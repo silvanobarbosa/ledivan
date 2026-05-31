@@ -57,8 +57,13 @@ export async function deleteSession(sessionId: string) {
   const session = await auth();
   if (!session?.user?.id) throw new Error("Não autorizado");
 
-  await db.delete(therapySessions)
-    .where(and(eq(therapySessions.id, sessionId), eq(therapySessions.userId, session.user.id)));
+  const existing = await db.query.therapySessions.findFirst({
+    where: and(eq(therapySessions.id, sessionId), eq(therapySessions.userId, session.user.id)),
+  });
+  if (!existing) return;
+
+  await db.delete(therapySessions).where(eq(therapySessions.id, sessionId));
 
   revalidatePath("/dashboard/agenda");
+  revalidatePath(`/dashboard/patients/${existing.patientId}`);
 }

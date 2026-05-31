@@ -13,6 +13,7 @@ import {
   ChevronRight,
   User,
   HeartHandshake,
+  BarChart3,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -28,6 +29,7 @@ const therapyNav: NavItem[] = [
 const financeNav: NavItem[] = [
   { icon: LayoutDashboard, label: "Dashboard", href: "/dashboard" },
   { icon: ArrowLeftRight, label: "Transações", href: "/dashboard/transactions" },
+  { icon: BarChart3, label: "Relatórios", href: "/dashboard/reports" },
   { icon: Wallet, label: "Metas", href: "/dashboard/goals" },
   { icon: Trophy, label: "Conquistas", href: "/dashboard/gamification" },
 ];

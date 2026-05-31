@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { createSession } from "../../sessions/actions";
-import { createPayment } from "../../payments/actions";
+import Link from "next/link";
+import { createSession, deleteSession } from "../../sessions/actions";
+import { createPayment, deletePayment } from "../../payments/actions";
 import {
   formatBRL,
   formatDate,
@@ -14,7 +15,7 @@ import {
   paymentStatusColor,
   patientStatusColor,
 } from "@/lib/therapy";
-import { Phone, Mail, MapPin, Plus, Link2 } from "lucide-react";
+import { Phone, Mail, MapPin, Plus, Link2, Pencil, Trash2 } from "lucide-react";
 
 type Patient = {
   id: string; name: string; email: string | null; phone: string | null;
@@ -64,6 +65,12 @@ export function PatientDetail({
             {patient.email && <span className="flex items-center gap-1.5"><Mail className="w-4 h-4" />{patient.email}</span>}
           </div>
         </div>
+        <Link
+          href={`/dashboard/patients/${patient.id}/edit`}
+          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/60 text-primary font-semibold text-sm hover:bg-white transition shrink-0"
+        >
+          <Pencil className="w-4 h-4" /> Editar
+        </Link>
       </div>
 
       {/* Tabs */}
@@ -126,7 +133,7 @@ export function PatientDetail({
           {sessions.length === 0 ? <Empty text="Nenhuma sessão registrada." /> : (
             <div className="grid gap-2">
               {sessions.map((s) => (
-                <div key={s.id} className="glass-card rounded-2xl p-4 flex items-center justify-between gap-3">
+                <div key={s.id} className="glass-card rounded-2xl p-4 flex items-center justify-between gap-3 group">
                   <div>
                     <p className="font-semibold">{formatDateTime(s.date)}</p>
                     <p className="text-sm text-foreground/50">{s.duration}min · {formatBRL(s.fee)}</p>
@@ -134,6 +141,11 @@ export function PatientDetail({
                   <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full uppercase ${sessionStatusColor(s.status)}`}>
                     {SESSION_STATUS_LABELS[s.status]}
                   </span>
+                  <form action={deleteSession.bind(null, s.id)}>
+                    <button className="opacity-0 group-hover:opacity-100 text-foreground/30 hover:text-red-600 transition" title="Excluir sessão">
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </form>
                 </div>
               ))}
             </div>
@@ -173,7 +185,7 @@ export function PatientDetail({
           {payments.length === 0 ? <Empty text="Nenhum pagamento registrado." /> : (
             <div className="grid gap-2">
               {payments.map((p) => (
-                <div key={p.id} className="glass-card rounded-2xl p-4 flex items-center justify-between gap-3">
+                <div key={p.id} className="glass-card rounded-2xl p-4 flex items-center justify-between gap-3 group">
                   <div>
                     <p className="font-semibold flex items-center gap-2">
                       {formatBRL(p.amount)}
@@ -184,6 +196,11 @@ export function PatientDetail({
                   <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full uppercase ${paymentStatusColor(p.status)}`}>
                     {PAYMENT_STATUS_LABELS[p.status]}
                   </span>
+                  <form action={deletePayment.bind(null, p.id)}>
+                    <button className="opacity-0 group-hover:opacity-100 text-foreground/30 hover:text-red-600 transition" title="Excluir pagamento">
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </form>
                 </div>
               ))}
             </div>

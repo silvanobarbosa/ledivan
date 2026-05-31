@@ -1,8 +1,12 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { ChevronLeft, ChevronRight } from "lucide-react";
 import { SESSION_STATUS_LABELS, sessionStatusColor } from "@/lib/therapy";
+import { updateSessionStatus } from "../sessions/actions";
+
+type SessionStatus = "realizada" | "nao_realizada" | "cancelada" | "realocada" | "agendada";
 
 type AgendaSession = { id: string; date: string; duration: number; status: string; patientName: string };
 
@@ -17,6 +21,15 @@ function startOfWeek(d: Date) {
 
 export function AgendaClient({ sessions }: { sessions: AgendaSession[] }) {
   const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date()));
+  const [pending, startTransition] = useTransition();
+  const router = useRouter();
+
+  const changeStatus = (id: string, status: SessionStatus) => {
+    startTransition(async () => {
+      await updateSessionStatus(id, status);
+      router.refresh();
+    });
+  };
 
   const weekEnd = new Date(weekStart);
   weekEnd.setDate(weekEnd.getDate() + 7);
@@ -73,10 +86,17 @@ export function AgendaClient({ sessions }: { sessions: AgendaSession[] }) {
                         {new Date(s.date).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
                       </span>
                       <span className="flex-1 font-medium truncate">{s.patientName}</span>
-                      <span className="text-xs text-foreground/40">{s.duration}min</span>
-                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase ${sessionStatusColor(s.status)}`}>
-                        {SESSION_STATUS_LABELS[s.status]}
-                      </span>
+                      <span className="text-xs text-foreground/40 hidden sm:inline">{s.duration}min</span>
+                      <select
+                        value={s.status}
+                        disabled={pending}
+                        onChange={(e) => changeStatus(s.id, e.target.value as SessionStatus)}
+                        className={`text-[10px] font-bold px-2 py-1 rounded-full uppercase border-0 outline-none cursor-pointer ${sessionStatusColor(s.status)}`}
+                      >
+                        {Object.entries(SESSION_STATUS_LABELS).map(([k, v]) => (
+                          <option key={k} value={k}>{v}</option>
+                        ))}
+                      </select>
                     </div>
                   ))}
                 </div>
