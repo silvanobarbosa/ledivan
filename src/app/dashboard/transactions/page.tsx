@@ -1,10 +1,20 @@
 import { db } from "@/db";
 import { auth } from "@/auth";
-import { users, transactions, categories } from "@/db/schema";
+import { users, transactions, categories, financialAccounts } from "@/db/schema";
 import { eq, desc, ilike, and } from "drizzle-orm";
 import { cn } from "@/lib/utils";
+import { AddTransaction } from "./AddTransaction";
+import { deleteTransaction } from "./actions";
+import { Trash2 } from "lucide-react";
 
 export const dynamic = "force-dynamic";
+
+const SOURCE_LABELS: Record<string, string> = {
+  manual: "Manual",
+  telegram: "Telegram",
+  scan: "Scan",
+  session_payment: "Sessão",
+};
 
 export default async function TransactionsPage({
   searchParams,
@@ -21,7 +31,7 @@ export default async function TransactionsPage({
   if (!user) return null;
 
   const allTransactions = await db.query.transactions.findMany({
-    where: q 
+    where: q
       ? and(eq(transactions.userId, user.id), ilike(transactions.description, `%${q}%`))
       : eq(transactions.userId, user.id),
     with: {
@@ -29,6 +39,16 @@ export default async function TransactionsPage({
     },
     orderBy: [desc(transactions.date)],
   });
+
+  const [allCategories, userAccounts] = await Promise.all([
+    db.query.categories.findMany(),
+    db.query.financialAccounts.findMany({ where: eq(financialAccounts.userId, user.id) }),
+  ]);
+
+  const removeTransaction = async (formData: FormData) => {
+    "use server";
+    await deleteTransaction(formData.get("id") as string);
+  };
 
   const formatCurrency = (val: string) => {
     return new Intl.NumberFormat("pt-BR", {
@@ -49,13 +69,14 @@ export default async function TransactionsPage({
 
   return (
     <div className="max-w-7xl mx-auto space-y-8 pb-20">
-      <div className="flex items-center justify-between">
+      <div className="flex items-end justify-between gap-4 flex-wrap">
         <div>
           <h2 className="text-4xl font-display font-bold text-foreground tracking-tight">
             {q ? `Resultados para "${q}"` : "Transações"}
           </h2>
-          <p className="text-lg text-foreground/40 font-medium">Histórico completo da sua vida financeira.</p>
+          <p className="text-lg text-foreground/40 font-medium">Receitas e despesas do consultório.</p>
         </div>
+        <AddTransaction categories={allCategories} accounts={userAccounts.map((a) => ({ id: a.id, name: a.name }))} />
       </div>
 
       <div className="bg-white rounded-[40px] shadow-sm border border-border overflow-hidden">
@@ -67,6 +88,7 @@ export default async function TransactionsPage({
               <th className="p-6 text-xs font-bold text-foreground/40 uppercase tracking-widest">Categoria</th>
               <th className="p-6 text-xs font-bold text-foreground/40 uppercase tracking-widest">Origem</th>
               <th className="p-6 text-xs font-bold text-foreground/40 uppercase tracking-widest text-right">Valor</th>
+              <th className="p-6 w-12"></th>
             </tr>
           </thead>
           <tbody>
@@ -84,10 +106,11 @@ export default async function TransactionsPage({
                 <td className="p-6">
                   <span className={cn(
                     "px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider",
-                    t.source === "telegram" ? "bg-blue-50 text-blue-600" : 
-                    t.source === "scan" ? "bg-accent/20 text-primary" : "bg-surface text-foreground/40"
+                    t.source === "telegram" ? "bg-blue-50 text-blue-600" :
+                    t.source === "scan" ? "bg-accent/20 text-primary" :
+                    t.source === "session_payment" ? "bg-[#f3e8ff] text-primary" : "bg-surface text-foreground/40"
                   )}>
-                    {t.source}
+                    {SOURCE_LABELS[t.source] || t.source}
                   </span>
                 </td>
                 <td className={cn(
@@ -95,6 +118,14 @@ export default async function TransactionsPage({
                   t.type === "income" ? "text-green-600" : "text-red-600"
                 )}>
                   {t.type === "income" ? "+" : "-"} {formatCurrency(t.amount)}
+                </td>
+                <td className="p-6 text-right">
+                  <form action={removeTransaction}>
+                    <input type="hidden" name="id" value={t.id} />
+                    <button className="opacity-0 group-hover:opacity-100 text-foreground/30 hover:text-red-600 transition" title="Excluir">
+                      <Trash2 className="w-4 h-4" />
+                    </button>
+                  </form>
                 </td>
               </tr>
             ))}

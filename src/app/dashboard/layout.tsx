@@ -48,10 +48,10 @@ export default async function DashboardLayout({
             <button className="p-2 lg:p-3 bg-white border border-border rounded-2xl text-foreground/60 hover:text-primary hover:border-primary transition-all">
               <Bell className="w-5 h-5" />
             </button>
-            <button className="hidden sm:flex items-center gap-2 bg-primary text-white px-6 py-3 rounded-2xl font-bold shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all">
+            <Link href="/dashboard/patients/new" className="hidden sm:flex items-center gap-2 bg-primary text-white px-6 py-3 rounded-2xl font-bold shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all">
               <Plus className="w-5 h-5" />
-              <span>Novo</span>
-            </button>
+              <span>Novo paciente</span>
+            </Link>
           </div>
         </header>
 
