@@ -17,7 +17,7 @@ export async function checkAchievements(userId: string) {
         userId,
         type: "first_transaction",
         title: "Primeiro Passo",
-        description: "Você registrou sua primeira transação no CapiCash!",
+        description: "Você registrou sua primeira transação no Ledivan+!",
       });
       return true;
     }
@@ -50,7 +50,7 @@ export async function checkAchievements(userId: string) {
         userId,
         type: "scanner_ninja",
         title: "Scanner Ninja",
-        description: "Você processou 3 notas fiscais usando o Capi-Scan AI!",
+        description: "Você processou 3 recibos usando o scan com IA!",
       });
       return true;
     }
@@ -66,7 +66,7 @@ export async function checkAchievements(userId: string) {
         userId,
         type: "voice_wizard",
         title: "Mago da Voz",
-        description: "Você registrou seu primeiro gasto via Telegram! 🦦",
+        description: "Você registrou seu primeiro lançamento via Telegram!",
       });
       return true;
     }
@@ -80,7 +80,7 @@ export async function checkAchievements(userId: string) {
         userId,
         type: "financial_guru",
         title: "Guru Financeiro",
-        description: "Você está dominando o CapiCash! Meta e conquistas em dia.",
+        description: "Você está dominando o Ledivan+! Meta e conquistas em dia.",
       });
       return true;
     }

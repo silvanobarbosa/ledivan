@@ -52,15 +52,15 @@ bot.command("v", async (ctx) => {
     })
     .where(eq(users.id, user.id));
 
-  ctx.reply(`✅ Sucesso! Conta vinculada a *${user.name}*. Agora você pode usar todos os comandos! 🦦`, { parse_mode: "Markdown" });
+  ctx.reply(`✅ Sucesso! Conta vinculada a *${user.name}*. Agora você pode usar todos os comandos.`, { parse_mode: "Markdown" });
 });
 
 bot.start((ctx) => {
   const user = (ctx as any).dbUser;
   if (!user) {
-    return ctx.reply("👋 Olá! Eu sou o CapiBot.\n\nPara começar, você precisa vincular sua conta:\n1. Acesse Ajustes no Dashboard.\n2. Gere um código de verificação.\n3. Digite aqui: `/v SEU_CODIGO`", { parse_mode: "Markdown" });
+    return ctx.reply("👋 Olá! Eu sou o assistente do Ledivan+.\n\nPara começar, vincule sua conta:\n1. Acesse Ajustes no Dashboard.\n2. Gere um código de verificação.\n3. Digite aqui: `/v SEU_CODIGO`", { parse_mode: "Markdown" });
   }
-  ctx.reply(`Olá de novo, ${user.name}! 🦦\n\nComandos:\n/saldo - Ver seu saldo atual\n/status - Resumo de gastos\n/insights - Dicas da IA\n/add [valor] [descrição] - Adicionar despesa`);
+  ctx.reply(`Olá de novo, ${user.name}!\n\nComandos:\n/saldo - Ver seu saldo atual\n/status - Resumo de lançamentos\n/insights - Dicas da IA\n/add [valor] [descrição] - Adicionar despesa`);
 });
 
 bot.command("saldo", async (ctx) => {
@@ -96,15 +96,15 @@ bot.command("insights", async (ctx) => {
   if (!user) return ctx.reply("❌ Conta não vinculada.");
   const result = await db.query.transactions.findMany({ where: eq(transactions.userId, user.id), limit: 10 });
   
-  ctx.reply("🤔 Deixa eu analisar seus dados... 🦦");
+  ctx.reply("🤔 Analisando seus dados...");
 
-  const prompt = `Analise estas transações financeiras e dê uma dica curta e amigável (estilo capivara) para o usuário: ${JSON.stringify(result)}`;
+  const prompt = `Analise estas transações financeiras e dê uma dica curta e profissional de gestão para o usuário: ${JSON.stringify(result)}`;
   const response = await openai.chat.completions.create({
     model: "gpt-4o-mini",
     messages: [{ role: "user", content: prompt }],
   });
 
-  ctx.reply(`🦦 *Capi-Insight:* ${response.choices[0].message.content}`, { parse_mode: "Markdown" });
+  ctx.reply(`💡 *Insight:* ${response.choices[0].message.content}`, { parse_mode: "Markdown" });
 });
 
 bot.on("text", async (ctx) => {
@@ -125,7 +125,7 @@ bot.on("text", async (ctx) => {
         description: description,
         source: "telegram",
       });
-      ctx.reply(`✅ Registrado: R$ ${amount} em "${description}". O Capi anotou tudo! 🦦`);
+      ctx.reply(`✅ Registrado: R$ ${amount} em "${description}".`);
     } catch (error) {
       ctx.reply("❌ Erro ao salvar.");
     }

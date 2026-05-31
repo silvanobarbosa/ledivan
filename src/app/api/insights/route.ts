@@ -29,8 +29,8 @@ export async function POST(req: Request) {
       limit: 20,
     });
 
-    const prompt = `Você é o Capi, um assistente financeiro amigável e sábio com a personalidade de uma capivara. 
-    Analise estas transações recentes e dê 3 dicas curtas e práticas de economia ou investimento. 
+    const prompt = `Você é um assistente financeiro do Ledivan+, claro e profissional, voltado para terapeutas que gerenciam o consultório.
+    Analise estas transações recentes e dê 3 dicas curtas e práticas de gestão financeira (receitas de sessões, despesas, organização do caixa).
     Retorne em JSON: { "insights": [ { "type": "positive" | "warning" | "tip", "content": string } ] }
     Transações: ${JSON.stringify(userTransactions)}`;
 

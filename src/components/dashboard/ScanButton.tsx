@@ -58,7 +58,7 @@ export function ScanButton({ userId }: { userId: string }) {
         onClick={() => fileInputRef.current?.click()}
         disabled={isScanning}
         className="fixed bottom-10 right-10 w-16 h-16 bg-accent text-primary rounded-full shadow-2xl flex items-center justify-center text-2xl hover:scale-110 active:scale-95 transition-all z-50 border-4 border-white disabled:opacity-50 disabled:scale-100"
-        title="Capi-Scan AI"
+        title="Escanear recibo com IA"
       >
         {isScanning ? (
           <Loader2 className="w-8 h-8 animate-spin" />

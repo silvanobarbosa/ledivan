@@ -72,7 +72,7 @@ export async function POST(req: Request) {
     });
 
   } catch (error: any) {
-    console.error("Erro no Capi-Scan:", error);
+    console.error("Erro no scan de recibo:", error);
     return NextResponse.json({ error: "Falha ao processar imagem." }, { status: 500 });
   }
 }

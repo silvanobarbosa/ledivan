@@ -31,7 +31,7 @@ export function CapiInsights({
   userId: string;
 }) {
   const [insights, setInsights] = useState<Insight[]>([
-    { id: "1", type: "tip", content: "Clique no botão abaixo para o Capi analisar seus gastos!" },
+    { id: "1", type: "tip", content: "Clique no botão abaixo para a IA analisar seus lançamentos." },
   ]);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -66,8 +66,8 @@ export function CapiInsights({
   return (
     <div className="p-8 bg-white rounded-[40px] shadow-sm border border-border space-y-8">
       <div className="flex items-center justify-between">
-        <h3 className="text-xl font-display font-bold text-primary">Capi-Insights</h3>
-        <span className="text-2xl">🦦</span>
+        <h3 className="text-xl font-display font-bold text-primary">Insights</h3>
+        <Sparkles className="w-5 h-5 text-accent" />
       </div>
 
       <div className="h-48 w-full relative">
