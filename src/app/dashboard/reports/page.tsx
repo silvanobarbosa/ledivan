@@ -1,9 +1,10 @@
 import { db } from "@/db";
 import { auth } from "@/auth";
 import { transactions } from "@/db/schema";
-import { sql, eq } from "drizzle-orm";
+import { sql, eq, and, gte } from "drizzle-orm";
 import { formatBRL } from "@/lib/therapy";
 import { TrendingUp, TrendingDown, Scale } from "lucide-react";
+import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 
@@ -14,10 +15,26 @@ function monthLabel(ym: string) {
   return `${MONTHS[parseInt(m) - 1]}/${y}`;
 }
 
-export default async function ReportsPage() {
+const PERIODS: Record<string, { label: string; months: number | null }> = {
+  "6m": { label: "6 meses", months: 6 },
+  "12m": { label: "12 meses", months: 12 },
+  all: { label: "Tudo", months: null },
+};
+
+export default async function ReportsPage({ searchParams }: { searchParams: Promise<{ period?: string }> }) {
+  const { period } = await searchParams;
+  const activePeriod = period && PERIODS[period] ? period : "12m";
   const session = await auth();
   if (!session?.user?.id) return null;
   const userId = session.user.id;
+
+  const months = PERIODS[activePeriod].months;
+  let cutoff: Date | null = null;
+  if (months) {
+    cutoff = new Date();
+    cutoff.setHours(0, 0, 0, 0);
+    cutoff.setMonth(cutoff.getMonth() - months);
+  }
 
   const rows = await db
     .select({
@@ -27,7 +44,7 @@ export default async function ReportsPage() {
       sessionIncome: sql<string>`sum(case when ${transactions.source} = 'session_payment' then ${transactions.amount} else 0 end)`,
     })
     .from(transactions)
-    .where(eq(transactions.userId, userId))
+    .where(cutoff ? and(eq(transactions.userId, userId), gte(transactions.date, cutoff)) : eq(transactions.userId, userId))
     .groupBy(sql`TO_CHAR(${transactions.date}, 'YYYY-MM')`)
     .orderBy(sql`TO_CHAR(${transactions.date}, 'YYYY-MM') DESC`);
 
@@ -50,9 +67,24 @@ export default async function ReportsPage() {
 
   return (
     <div className="max-w-5xl mx-auto space-y-8 pb-20">
-      <div>
-        <h1 className="text-3xl lg:text-4xl font-display font-bold text-primary">Relatórios</h1>
-        <p className="text-foreground/50 mt-1">Resumo financeiro mês a mês</p>
+      <div className="flex items-end justify-between gap-4 flex-wrap">
+        <div>
+          <h1 className="text-3xl lg:text-4xl font-display font-bold text-primary">Relatórios</h1>
+          <p className="text-foreground/50 mt-1">Resumo financeiro mês a mês</p>
+        </div>
+        <div className="flex gap-2">
+          {Object.entries(PERIODS).map(([key, p]) => (
+            <Link
+              key={key}
+              href={`/dashboard/reports?period=${key}`}
+              className={`px-4 py-2 rounded-full text-sm font-semibold transition ${
+                activePeriod === key ? "bg-primary text-white" : "bg-white/60 text-foreground/60 hover:bg-white"
+              }`}
+            >
+              {p.label}
+            </Link>
+          ))}
+        </div>
       </div>
 
       {/* Totais */}

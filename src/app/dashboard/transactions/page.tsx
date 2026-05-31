@@ -4,6 +4,7 @@ import { users, transactions, categories, financialAccounts } from "@/db/schema"
 import { eq, desc, ilike, and } from "drizzle-orm";
 import { cn } from "@/lib/utils";
 import { AddTransaction } from "./AddTransaction";
+import { ExportCSV } from "./ExportCSV";
 import { deleteTransaction } from "./actions";
 import { Trash2 } from "lucide-react";
 
@@ -76,7 +77,19 @@ export default async function TransactionsPage({
           </h2>
           <p className="text-lg text-foreground/40 font-medium">Receitas e despesas do consultório.</p>
         </div>
-        <AddTransaction categories={allCategories} accounts={userAccounts.map((a) => ({ id: a.id, name: a.name }))} />
+        <div className="flex gap-3">
+          <ExportCSV
+            rows={allTransactions.map((t) => ({
+              date: formatDate(t.date),
+              description: t.description || "",
+              category: t.category?.name || "",
+              type: t.type === "income" ? "Receita" : "Despesa",
+              source: SOURCE_LABELS[t.source] || t.source,
+              amount: t.amount,
+            }))}
+          />
+          <AddTransaction categories={allCategories} accounts={userAccounts.map((a) => ({ id: a.id, name: a.name }))} />
+        </div>
       </div>
 
       <div className="bg-white rounded-[40px] shadow-sm border border-border overflow-hidden">

@@ -2,8 +2,8 @@ import { db } from "@/db";
 import { auth } from "@/auth";
 import { users, transactions, goals, categories, achievements, patients, therapySessions } from "@/db/schema";
 import { eq, sum, desc, sql, count, and } from "drizzle-orm";
-import { formatBRL } from "@/lib/therapy";
-import { Users as UsersIcon, CalendarCheck } from "lucide-react";
+import { formatBRL, formatDateTime } from "@/lib/therapy";
+import { Users as UsersIcon, CalendarCheck, Clock } from "lucide-react";
 import { BalanceCard } from "@/components/dashboard/BalanceCard";
 import { RecentTransactions } from "@/components/dashboard/RecentTransactions";
 import { CapiInsights } from "@/components/dashboard/CapiInsights";
@@ -131,6 +131,15 @@ export default async function DashboardPage() {
     .where(sql`${transactions.userId} = ${user.id} AND ${transactions.source} = 'session_payment' AND ${transactions.date} >= ${monthStart}`);
   const sessionIncomeMonth = parseFloat(sessionIncomeRes?.val || "0");
 
+  // Próximas sessões (agendadas, daqui pra frente)
+  const now = new Date();
+  const upcomingSessions = await db.query.therapySessions.findMany({
+    where: sql`${therapySessions.userId} = ${user.id} AND ${therapySessions.date} >= ${now} AND ${therapySessions.status} = 'agendada'`,
+    with: { patient: { columns: { name: true, id: true } } },
+    orderBy: [therapySessions.date],
+    limit: 5,
+  });
+
   return (
     <div className="max-w-7xl mx-auto space-y-12 pb-20">
       <section className="space-y-2">
@@ -158,8 +167,35 @@ export default async function DashboardPage() {
         </div>
       </section>
 
+      {/* Próximas sessões */}
+      <section className="bg-white rounded-[40px] shadow-sm border border-border p-8 space-y-5">
+        <div className="flex items-center justify-between">
+          <h3 className="text-xl font-display font-bold text-primary flex items-center gap-2">
+            <Clock className="w-5 h-5" /> Próximas sessões
+          </h3>
+          <Link href="/dashboard/agenda" className="text-sm font-semibold text-accent hover:underline">Ver agenda</Link>
+        </div>
+        {upcomingSessions.length === 0 ? (
+          <p className="text-foreground/40 text-sm">Nenhuma sessão agendada.</p>
+        ) : (
+          <div className="grid gap-2">
+            {upcomingSessions.map((s) => (
+              <Link
+                key={s.id}
+                href={`/dashboard/patients/${s.patient?.id ?? ""}`}
+                className="flex items-center gap-3 bg-surface/60 rounded-2xl px-4 py-3 hover:bg-surface transition"
+              >
+                <span className="font-mono text-sm font-semibold text-primary shrink-0">{formatDateTime(s.date as unknown as string)}</span>
+                <span className="flex-1 font-medium truncate">{s.patient?.name ?? "—"}</span>
+                <span className="text-xs text-foreground/40">{s.duration}min</span>
+              </Link>
+            ))}
+          </div>
+        )}
+      </section>
+
       <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-        <BalanceCard 
+        <BalanceCard
           title="Saldo Total"
           amount={totalBalance}
           trend="+ R$ 0,00 este mês"
