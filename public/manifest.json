@@ -1,0 +1,17 @@
+{
+  "name": "CapiCash - Sua Fintech Amigável",
+  "short_name": "CapiCash",
+  "description": "Organize suas finanças com a ajuda do Capi, sua capivara financeira.",
+  "start_url": "/dashboard",
+  "display": "standalone",
+  "background_color": "#f6fafe",
+  "theme_color": "#00535b",
+  "icons": [
+    {
+      "src": "/icon.png",
+      "sizes": "1024x1024",
+      "type": "image/png",
+      "purpose": "any maskable"
+    }
+  ]
+}

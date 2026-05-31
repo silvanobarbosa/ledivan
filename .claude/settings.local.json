@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(vercel ls *)",
+      "Bash(npx drizzle-kit *)",
+      "Bash(cd \"C:/Users/User/GRS Sales\" && grep -n \"getPipelineVelocity\\\\|getStageConversion\\\\|getSlippedDeals\" \"src/db/queries.ts\" | head)",
+      "Read(//c/Users/User/GRS Sales/**)",
+      "Bash(npm uninstall *)",
+      "Bash(npx tsc *)"
+    ]
+  }
+}

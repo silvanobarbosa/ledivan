@@ -1,0 +1,117 @@
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,400&family=Inter:wght@400;500;600;700&display=swap');
+@import "tailwindcss";
+
+@theme {
+  /* Ledivan+ — Warm Glass Layered Palette */
+  --color-primary: #2b1830;            /* eggplant */
+  --color-on-primary: #ffffff;
+  --color-primary-container: #3a2240;  /* eggplant soft */
+  --color-on-primary-container: #f3e8ff;
+
+  --color-secondary: #8b5cf6;          /* accent violet */
+  --color-on-secondary: #ffffff;
+  --color-secondary-container: #c4b5fd;/* accent soft */
+  --color-on-secondary-container: #2b1830;
+
+  --color-tertiary: #6b5b6f;           /* muted */
+  --color-on-tertiary: #ffffff;
+
+  --color-error: #b91c1c;
+  --color-on-error: #ffffff;
+  --color-error-container: #fee2e2;
+  --color-on-error-container: #7f1d1d;
+
+  --color-background: #faf6f1;         /* creme */
+  --color-on-background: #1a0f1f;      /* ink */
+
+  --color-surface: #faf6f1;            /* creme (page bg) */
+  --color-on-surface: #1a0f1f;
+  --color-surface-variant: #efe7df;
+  --color-on-surface-variant: #6b5b6f; /* muted */
+
+  --color-outline: #9b8aa0;
+  --color-outline-variant: #e7ddd4;
+
+  --color-surface-container-lowest: #ffffff;
+  --color-surface-container-low: #fbf8f4;
+  --color-surface-container: #f5efe8;
+  --color-surface-container-high: #efe7df;
+  --color-surface-container-highest: #e7ddd4;
+
+  --color-accent: #8b5cf6;             /* violet highlight */
+
+  /* status (do design handoff) */
+  --color-success: #047857;
+  --color-warning: #b45309;
+  --color-pending: #6b7280;
+
+  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
+  --font-display: "Fraunces", ui-serif, Georgia, serif;
+}
+
+:root {
+  --background: var(--color-background);
+  --foreground: var(--color-on-background);
+  --card: var(--color-surface-container-lowest);
+  --primary: var(--color-primary);
+  --secondary: var(--color-secondary);
+  --accent: var(--color-accent);
+  --border: var(--color-outline-variant);
+  --input: var(--color-surface-container-low);
+  --ring: var(--color-primary);
+}
+
+@layer base {
+  * {
+    border-color: var(--border);
+  }
+  body {
+    background-color: var(--background);
+    color: var(--foreground);
+    font-family: var(--font-sans);
+    min-height: 100dvh;
+  }
+}
+
+@layer components {
+  .glass-card {
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(12px);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+  }
+  
+  .primary-gradient {
+    background: linear-gradient(135deg, #2b1830 0%, #8b5cf6 100%);
+  }
+
+  .achievement-shield {
+    filter: drop-shadow(0px 4px 12px rgba(43, 24, 48, 0.15));
+  }
+  
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}
+
+@keyframes bounce-slow {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-10px); }
+}
+
+@keyframes float {
+  0% { transform: translate(0, 0); }
+  50% { transform: translate(5px, 5px); }
+  100% { transform: translate(0, 0); }
+}
+
+.animate-bounce-slow {
+  animation: bounce-slow 3s ease-in-out infinite;
+}
+
+.animate-float {
+  animation: float 6s ease-in-out infinite;
+}

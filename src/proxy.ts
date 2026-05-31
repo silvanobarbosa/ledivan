@@ -1,0 +1,40 @@
+import { auth } from "@/auth";
+import { NextResponse } from "next/server";
+
+export default auth(async function proxy(req) {
+  const { nextUrl, auth: session } = req;
+  const { pathname } = nextUrl;
+  const isLoggedIn = !!session;
+
+  // Permite APIs públicas e Auth.js
+  if (pathname.includes("/api/auth") || pathname.startsWith("/api/telegram")) {
+    return NextResponse.next();
+  }
+
+  // Define rotas públicas
+  const isPublicRoute = 
+    pathname === "/" || 
+    pathname.startsWith("/login") || 
+    pathname.startsWith("/demo") ||
+    pathname.startsWith("/api/scan") ||
+    pathname.startsWith("/api/insights");
+
+  if (isPublicRoute) {
+    // Se já estiver logado e tentar ir para /login, manda pro dashboard
+    if (isLoggedIn && pathname.startsWith("/login")) {
+      return NextResponse.redirect(new URL("/dashboard", nextUrl));
+    }
+    return NextResponse.next();
+  }
+
+  // Protege o resto
+  if (!isLoggedIn) {
+    return NextResponse.redirect(new URL("/login", nextUrl));
+  }
+
+  return NextResponse.next();
+});
+
+export const config = {
+  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
+};
