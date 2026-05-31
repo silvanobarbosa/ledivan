@@ -1,6 +1,6 @@
 import { signIn } from "@/auth";
 import Link from "next/link";
-import { Sparkles, ArrowRight, Play } from "lucide-react";
+import { Sparkles, ArrowRight } from "lucide-react";
 
 export default function LoginPage() {
   return (
@@ -62,14 +62,6 @@ export default function LoginPage() {
                 <ArrowRight className="w-5 h-5 ml-2 group-hover:translate-x-2 transition-transform" />
               </button>
             </form>
-
-            <Link
-              href="/demo"
-              className="w-full flex items-center justify-center gap-4 py-5 bg-surface/50 border-2 border-dashed border-primary/20 rounded-[24px] text-lg font-bold text-primary hover:bg-primary/5 hover:border-primary/40 transition-all group"
-            >
-              <Play className="w-5 h-5 fill-current" />
-              <span>Ver Demonstração</span>
-            </Link>
 
             <div className="relative">
               <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-border"></div></div>

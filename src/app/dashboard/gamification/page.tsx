@@ -17,10 +17,10 @@ export default function GamificationPage() {
     <div className="max-w-7xl mx-auto space-y-12 pb-20">
       <section className="space-y-2">
         <h2 className="text-4xl font-display font-bold text-foreground tracking-tight">
-          Sua Jornada <span className="text-primary">Zen</span> 🦦
+          Sua <span className="text-primary">Evolução</span>
         </h2>
         <p className="text-lg text-foreground/40 font-medium">
-          Evolua suas finanças e desbloqueie novos poderes.
+          Acompanhe conquistas na gestão do consultório e das finanças.
         </p>
       </section>
 
@@ -34,7 +34,7 @@ export default function GamificationPage() {
           <div className="space-y-8">
             <div className="inline-flex items-center gap-2 px-4 py-2 bg-white/10 rounded-full text-xs font-bold border border-white/20">
               <Zap className="w-3 h-3 text-secondary-container" />
-              Ranking: Capivara Investidora
+              Nível: Gestor(a) Consciente
             </div>
             <div className="space-y-2">
               <h3 className="text-6xl lg:text-8xl font-display font-bold leading-tight">
@@ -105,7 +105,7 @@ export default function GamificationPage() {
                 { emoji: "🌱", label: "Semeador", desc: "1ª Meta" },
                 { emoji: "🛡️", label: "Inabalável", desc: "Reserva 50%" },
                 { emoji: "📈", label: "Mestre", desc: "1 ano +10%" },
-                { emoji: "🦦", label: "Zen", desc: "Sem dívidas" },
+                { emoji: "🌿", label: "Equilíbrio", desc: "Sem dívidas" },
                 { emoji: "🔥", label: "Focado", desc: "15 dias" },
                 { emoji: "💰", label: "Poupador", desc: "R$ 10k" },
                 { emoji: "🚀", label: "Explorador", desc: "Todas áreas" },
@@ -135,8 +135,8 @@ export default function GamificationPage() {
             <div className="space-y-6">
               {[
                 { level: 13, title: "Selo de Investidor Mestre", desc: "Novas medalhas para seu perfil", locked: true },
-                { level: 15, title: "Capi-Insights Avançados", desc: "Análise profunda de tendências", locked: true },
-                { level: 20, title: "Modo Ultra Zen", desc: "Customização total da interface", locked: true },
+                { level: 15, title: "Insights Avançados", desc: "Análise profunda de tendências", locked: true },
+                { level: 20, title: "Customização Total", desc: "Personalização completa da interface", locked: true },
               ].map((item, i) => (
                 <div key={i} className="relative pl-12 border-l-2 border-primary/10 pb-8 last:pb-0">
                   <div className="absolute left-[-13px] top-0 w-6 h-6 bg-white border-2 border-primary/20 rounded-full flex items-center justify-center">
