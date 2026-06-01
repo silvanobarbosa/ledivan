@@ -36,5 +36,6 @@ export default auth(async function proxy(req) {
 });
 
 export const config = {
-  matcher: ["/((?!_next/static|_next/image|favicon.ico).*)"],
+  // Ignora estáticos do Next, favicon e arquivos de /public (imagens, fontes, manifest, sw).
+  matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\\.(?:png|jpg|jpeg|gif|svg|ico|webp|woff2?|json|js)$).*)"],
 };
