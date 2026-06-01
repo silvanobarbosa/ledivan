@@ -2,7 +2,9 @@
 
 import { useState } from "react";
 import { generateTelegramCode } from "./actions";
-import { Smartphone, Check, Copy, RefreshCw } from "lucide-react";
+import { Check, RefreshCw, Send } from "lucide-react";
+
+const BOT = process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME || "levitanplusbot";
 
 export function TelegramSync({ currentId }: { currentId?: string | null }) {
   const [code, setCode] = useState<string | null>(null);
@@ -13,77 +15,59 @@ export function TelegramSync({ currentId }: { currentId?: string | null }) {
     try {
       const res = await generateTelegramCode();
       setCode(res.code);
-    } catch (err) {
+    } catch {
       alert("Erro ao gerar código.");
     } finally {
       setLoading(false);
     }
   };
 
-  if (currentId) {
+  if (currentId && !code) {
     return (
-      <div className="p-6 bg-green-50 rounded-3xl border border-green-100 flex items-center justify-between">
+      <div className="p-6 bg-[#ecfdf5] rounded-3xl border border-[#047857]/20 flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <div className="w-12 h-12 bg-green-500 rounded-2xl flex items-center justify-center text-white">
+          <div className="w-12 h-12 bg-[#047857] rounded-2xl flex items-center justify-center text-white">
             <Check className="w-6 h-6" />
           </div>
           <div>
-            <p className="font-bold text-green-800">Telegram Vinculado</p>
-            <p className="text-sm text-green-600">ID: {currentId}</p>
+            <p className="font-bold text-[#047857]">Telegram conectado</p>
+            <p className="text-sm text-[#047857]/70">Você já pode lançar por mensagem.</p>
           </div>
         </div>
-        <button 
-          onClick={handleGenerate}
-          className="text-xs font-bold text-green-700 hover:underline"
-        >
-          Trocar Conta
-        </button>
+        <button onClick={handleGenerate} className="text-xs font-bold text-[#047857] hover:underline">Reconectar</button>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <div className="p-6 bg-surface rounded-3xl border border-border space-y-4">
-        <div className="flex items-center gap-4">
-          <div className="w-12 h-12 bg-primary/10 rounded-2xl flex items-center justify-center text-primary">
-            <Smartphone className="w-6 h-6" />
-          </div>
-          <div>
-            <p className="font-bold">Vincular CapiBot</p>
-            <p className="text-sm text-foreground/40 font-medium">Use o Telegram para anotar gastos rapidamente.</p>
-          </div>
-        </div>
-
-        {!code ? (
-          <button 
-            onClick={handleGenerate}
-            disabled={loading}
-            className="w-full py-4 bg-primary text-white rounded-2xl font-bold shadow-lg shadow-primary/20 hover:opacity-90 transition-all flex items-center justify-center gap-2"
+    <div className="space-y-3">
+      {!code ? (
+        <button
+          onClick={handleGenerate}
+          disabled={loading}
+          className="w-full py-4 bg-[#229ED9] text-white rounded-2xl font-bold hover:opacity-90 transition flex items-center justify-center gap-2"
+        >
+          {loading ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
+          Conectar Telegram
+        </button>
+      ) : (
+        <div className="space-y-3">
+          <a
+            href={`https://t.me/${BOT}?start=${code}`}
+            target="_blank"
+            rel="noreferrer"
+            className="w-full py-4 bg-[#229ED9] text-white rounded-2xl font-bold hover:opacity-90 transition flex items-center justify-center gap-2"
           >
-            {loading && <RefreshCw className="w-4 h-4 animate-spin" />}
-            Gerar Código de Verificação
-          </button>
-        ) : (
-          <div className="space-y-4 animate-in fade-in slide-in-from-top-2">
-            <div className="p-4 bg-white border-2 border-dashed border-primary/30 rounded-2xl text-center">
-              <p className="text-xs font-bold text-foreground/30 uppercase tracking-widest mb-1">Seu Código</p>
-              <p className="text-4xl font-display font-bold text-primary tracking-[0.2em]">{code}</p>
-            </div>
-            <div className="bg-primary/5 p-4 rounded-2xl space-y-2">
-              <p className="text-sm font-medium text-primary">
-                1. Abra o Telegram e procure por <strong>@CapiCashBot</strong>
-              </p>
-              <p className="text-sm font-medium text-primary">
-                2. Envie o comando: <code className="bg-white px-2 py-1 rounded">/v {code}</code>
-              </p>
-            </div>
-          </div>
-        )}
-      </div>
-      <p className="text-[10px] text-foreground/30 font-medium px-2">
-        O código expira em 10 minutos. Nunca compartilhe este código com ninguém.
-      </p>
+            <Send className="w-5 h-5" /> Abrir no Telegram e conectar
+          </a>
+          <p className="text-xs text-foreground/50 text-center leading-relaxed">
+            Toque no botão acima → o Telegram abre no bot <strong>@{BOT}</strong> → toque em <strong>Iniciar</strong>. Pronto, conecta sozinho.
+          </p>
+          <p className="text-[11px] text-foreground/40 text-center">
+            Não abriu? Procure <strong>@{BOT}</strong> no Telegram e envie <code className="bg-surface px-1.5 py-0.5 rounded">/v {code}</code> (expira em 10 min).
+          </p>
+        </div>
+      )}
     </div>
   );
 }

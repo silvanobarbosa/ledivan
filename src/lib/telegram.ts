@@ -23,44 +23,52 @@ bot.use(async (ctx, next) => {
   return next();
 });
 
-// Comando de Verificação (Handshake)
-bot.command("v", async (ctx) => {
-  const code = ctx.payload;
-  const telegramId = ctx.from?.id.toString();
-
-  if (!code) {
-    return ctx.reply("❌ Por favor, informe o código. Ex: /v 123456");
-  }
-
+// Vincula a conta do profissional ao chat do Telegram pelo código.
+async function linkByCode(code: string, telegramId: string): Promise<{ name: string | null } | null> {
   const user = await db.query.users.findFirst({
     where: and(
       eq(users.telegramVerificationCode, code),
       gt(users.telegramVerificationExpires, new Date())
     ),
   });
-
-  if (!user) {
-    return ctx.reply("❌ Código inválido ou expirado. Gere um novo no Dashboard.");
-  }
-
-  // Vincular o usuário
+  if (!user) return null;
   await db.update(users)
-    .set({ 
-      telegramId: telegramId,
-      telegramVerificationCode: null,
-      telegramVerificationExpires: null 
-    })
+    .set({ telegramId, telegramVerificationCode: null, telegramVerificationExpires: null })
     .where(eq(users.id, user.id));
+  return { name: user.name };
+}
 
-  ctx.reply(`✅ Sucesso! Conta vinculada a *${user.name}*. Agora você pode usar todos os comandos.`, { parse_mode: "Markdown" });
+const MENU = "Comandos:\n/saldo - Ver seu saldo atual\n/status - Resumo de lançamentos\n/insights - Dicas da IA\n/add [valor] [descrição] - Adicionar lançamento";
+
+// Comando de Verificação manual (fallback)
+bot.command("v", async (ctx) => {
+  const code = ctx.payload;
+  const telegramId = ctx.from?.id.toString();
+  if (!code) return ctx.reply("❌ Informe o código. Ex: /v 123456");
+  if (!telegramId) return;
+  const linked = await linkByCode(code, telegramId);
+  if (!linked) return ctx.reply("❌ Código inválido ou expirado. Gere um novo nas Configurações do app.");
+  ctx.reply(`✅ Conta vinculada a *${linked.name}*! Agora você pode usar todos os comandos.\n\n${MENU}`, { parse_mode: "Markdown" });
 });
 
-bot.start((ctx) => {
+// /start — com deep link (?start=CÓDIGO) vincula automaticamente
+bot.start(async (ctx) => {
+  const telegramId = ctx.from?.id.toString();
+  const code = (ctx as any).startPayload as string | undefined;
+
+  if (code && telegramId) {
+    const linked = await linkByCode(code, telegramId);
+    if (linked) {
+      return ctx.reply(`✅ Pronto, ${linked.name}! Seu Telegram está vinculado ao Ledivan+.\n\n${MENU}`, { parse_mode: "Markdown" });
+    }
+    return ctx.reply("❌ Esse código de vínculo expirou. Gere um novo nas Configurações do app e toque em \"Conectar Telegram\" de novo.");
+  }
+
   const user = (ctx as any).dbUser;
   if (!user) {
-    return ctx.reply("👋 Olá! Eu sou o assistente do Ledivan+.\n\nPara começar, vincule sua conta:\n1. Acesse Ajustes no Dashboard.\n2. Gere um código de verificação.\n3. Digite aqui: `/v SEU_CODIGO`", { parse_mode: "Markdown" });
+    return ctx.reply("👋 Olá! Eu sou o assistente do Ledivan+.\n\nPara conectar sua conta, vá em *Configurações → Telegram* no app e toque em \"Conectar Telegram\". É automático. 🙂", { parse_mode: "Markdown" });
   }
-  ctx.reply(`Olá de novo, ${user.name}!\n\nComandos:\n/saldo - Ver seu saldo atual\n/status - Resumo de lançamentos\n/insights - Dicas da IA\n/add [valor] [descrição] - Adicionar despesa`);
+  ctx.reply(`Olá de novo, ${user.name}!\n\n${MENU}`);
 });
 
 bot.command("saldo", async (ctx) => {
