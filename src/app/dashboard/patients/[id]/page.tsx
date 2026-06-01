@@ -57,6 +57,7 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
         priceHistory={JSON.parse(JSON.stringify(priceHist))}
         records={JSON.parse(JSON.stringify(recordsList))}
         autoLinkPayments={!!prefs.autoLinkPayments}
+        transcriptionEnabled={!!prefs.transcriptionEnabled}
       />
     </div>
   );

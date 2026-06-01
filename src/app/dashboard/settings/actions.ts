@@ -17,6 +17,14 @@ export async function setAutoLinkPayments(enabled: boolean) {
   revalidatePath("/dashboard/settings");
 }
 
+// Liga/desliga a transcrição de sessão por IA (opt-in do terapeuta).
+export async function setTranscriptionEnabled(enabled: boolean) {
+  const session = await auth();
+  if (!session?.user?.id) throw new Error("Não autorizado");
+  await setPreferences(session.user.id, { transcriptionEnabled: enabled });
+  revalidatePath("/dashboard/settings");
+}
+
 // Define/atualiza o slug público de autoagendamento (/agendar/<slug>).
 export async function setBookingSlug(raw: string) {
   const session = await auth();

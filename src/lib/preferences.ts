@@ -11,6 +11,7 @@ export type Integrations = {
 
 export type UserPreferences = {
   autoLinkPayments?: boolean; // lançar pagamento de sessão como receita no financeiro automaticamente
+  transcriptionEnabled?: boolean; // habilita transcrição de sessão por IA (opt-in do terapeuta)
   integrations?: Integrations;
   [key: string]: unknown;
 };

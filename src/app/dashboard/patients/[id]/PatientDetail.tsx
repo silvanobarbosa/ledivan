@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createSession, deleteSession } from "../../sessions/actions";
 import { createPayment, deletePayment } from "../../payments/actions";
@@ -17,7 +18,7 @@ import {
   patientStatusColor,
   meetingUrl,
 } from "@/lib/therapy";
-import { Phone, Mail, MapPin, Plus, Link2, Pencil, Trash2, Video } from "lucide-react";
+import { Phone, Mail, MapPin, Plus, Link2, Pencil, Trash2, Video, Mic, Loader2 } from "lucide-react";
 
 type Patient = {
   id: string; name: string; email: string | null; phone: string | null;
@@ -39,15 +40,49 @@ const inputCls = "w-full px-4 py-2.5 rounded-xl bg-white/70 border border-border
 const TABS = ["Dados", "Prontuário", "Sessões", "Pagamentos", "Histórico"] as const;
 
 export function PatientDetail({
-  patient, sessions, payments, statusHistory, priceHistory, records, autoLinkPayments,
+  patient, sessions, payments, statusHistory, priceHistory, records, autoLinkPayments, transcriptionEnabled,
 }: {
   patient: Patient; sessions: Session[]; payments: Payment[];
-  statusHistory: StatusEntry[]; priceHistory: PriceEntry[]; records: RecordEntry[]; autoLinkPayments: boolean;
+  statusHistory: StatusEntry[]; priceHistory: PriceEntry[]; records: RecordEntry[];
+  autoLinkPayments: boolean; transcriptionEnabled: boolean;
 }) {
+  const router = useRouter();
   const [tab, setTab] = useState<(typeof TABS)[number]>("Dados");
   const [showSession, setShowSession] = useState(false);
   const [showPayment, setShowPayment] = useState(false);
   const [showRecord, setShowRecord] = useState(false);
+  // transcrição
+  const [showTranscribe, setShowTranscribe] = useState(false);
+  const [consent, setConsent] = useState(false);
+  const [audio, setAudio] = useState<File | null>(null);
+  const [transcribing, setTranscribing] = useState(false);
+  const [transcribeError, setTranscribeError] = useState<string | null>(null);
+
+  async function runTranscription() {
+    if (!audio || !consent) return;
+    setTranscribing(true);
+    setTranscribeError(null);
+    try {
+      const fd = new FormData();
+      fd.append("audio", audio);
+      fd.append("patientId", patient.id);
+      fd.append("consent", "true");
+      const res = await fetch("/api/transcribe", { method: "POST", body: fd });
+      const data = await res.json();
+      if (data.ok) {
+        setShowTranscribe(false);
+        setAudio(null);
+        setConsent(false);
+        router.refresh();
+      } else {
+        setTranscribeError(data.error || "Falha ao transcrever.");
+      }
+    } catch {
+      setTranscribeError("Erro de rede ao transcrever.");
+    } finally {
+      setTranscribing(false);
+    }
+  }
 
   return (
     <div className="space-y-6">
@@ -116,9 +151,41 @@ export function PatientDetail({
       {/* Prontuário */}
       {tab === "Prontuário" && (
         <div className="space-y-4">
-          <button onClick={() => setShowRecord((s) => !s)} className="flex items-center gap-2 text-primary font-semibold text-sm hover:underline">
-            <Plus className="w-4 h-4" /> Novo registro
-          </button>
+          <div className="flex flex-wrap gap-4">
+            <button onClick={() => setShowRecord((s) => !s)} className="flex items-center gap-2 text-primary font-semibold text-sm hover:underline">
+              <Plus className="w-4 h-4" /> Novo registro
+            </button>
+            {transcriptionEnabled && (
+              <button onClick={() => setShowTranscribe((s) => !s)} className="flex items-center gap-2 text-primary font-semibold text-sm hover:underline">
+                <Mic className="w-4 h-4" /> Transcrever sessão (IA)
+              </button>
+            )}
+          </div>
+
+          {transcriptionEnabled && showTranscribe && (
+            <div className="glass-card rounded-[24px] p-5 space-y-3">
+              <p className="text-sm font-semibold text-primary flex items-center gap-2"><Mic className="w-4 h-4" /> Transcrição por IA</p>
+              <input
+                type="file"
+                accept="audio/*"
+                onChange={(e) => setAudio(e.target.files?.[0] ?? null)}
+                className="block w-full text-sm text-foreground/70 file:mr-3 file:rounded-xl file:border-0 file:bg-primary file:text-white file:px-4 file:py-2 file:font-semibold"
+              />
+              <label className="flex items-start gap-2 text-sm bg-secondary-container/20 rounded-xl px-3 py-2.5 cursor-pointer">
+                <input type="checkbox" checked={consent} onChange={(e) => setConsent(e.target.checked)} className="accent-primary w-4 h-4 mt-0.5" />
+                <span>Confirmo que <strong>o paciente consentiu</strong> com a gravação e transcrição desta sessão.</span>
+              </label>
+              {transcribeError && <p className="text-sm text-red-600">{transcribeError}</p>}
+              <button
+                onClick={runTranscription}
+                disabled={!audio || !consent || transcribing}
+                className="inline-flex items-center gap-2 bg-primary text-white py-2.5 px-5 rounded-xl font-bold disabled:opacity-50"
+              >
+                {transcribing ? <><Loader2 className="w-4 h-4 animate-spin" /> Transcrevendo...</> : "Gerar evolução"}
+              </button>
+              <p className="text-[11px] text-foreground/40">Áudio até 25MB. A evolução gerada entra no prontuário como rascunho — revise antes de usar.</p>
+            </div>
+          )}
           {showRecord && (
             <form action={createRecord.bind(null, patient.id)} className="glass-card rounded-[24px] p-5 space-y-3">
               <div className="grid sm:grid-cols-2 gap-3">

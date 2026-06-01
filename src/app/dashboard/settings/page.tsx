@@ -9,6 +9,7 @@ import { TelegramSync } from "./TelegramSync";
 import { AutoLinkToggle } from "./AutoLinkToggle";
 import { IntegrationsCard } from "./IntegrationsCard";
 import { BookingCard } from "./BookingCard";
+import { TranscriptionToggle } from "./TranscriptionToggle";
 import { getPreferences } from "@/lib/preferences";
 
 export const dynamic = "force-dynamic";
@@ -107,6 +108,8 @@ export default async function SettingsPage() {
           <IntegrationsCard initial={prefs.integrations ?? {}} />
 
           <AutoLinkToggle initial={!!prefs.autoLinkPayments} />
+
+          <TranscriptionToggle initial={!!prefs.transcriptionEnabled} />
 
           <div className="p-10 bg-primary/5 rounded-[48px] border border-primary/10 flex items-center gap-6">
             <div className="w-16 h-16 bg-white rounded-3xl flex items-center justify-center text-3xl shadow-sm">
