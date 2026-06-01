@@ -18,7 +18,7 @@ import {
   patientStatusColor,
   meetingUrl,
 } from "@/lib/therapy";
-import { Phone, Mail, MapPin, Plus, Link2, Pencil, Trash2, Video, Mic, Loader2 } from "lucide-react";
+import { Phone, Mail, MapPin, Plus, Link2, Pencil, Trash2, Video, Mic, Loader2, Receipt } from "lucide-react";
 
 type Patient = {
   id: string; name: string; email: string | null; phone: string | null;
@@ -330,6 +330,11 @@ export function PatientDetail({
                   <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full uppercase ${paymentStatusColor(p.status)}`}>
                     {PAYMENT_STATUS_LABELS[p.status]}
                   </span>
+                  {p.status === "paid" && (
+                    <a href={`/recibo/${p.id}`} target="_blank" rel="noreferrer" className="text-xs font-semibold text-primary hover:underline flex items-center gap-1" title="Recibo">
+                      <Receipt className="w-3.5 h-3.5" /> Recibo
+                    </a>
+                  )}
                   <form action={deletePayment.bind(null, p.id)}>
                     <button className="opacity-0 group-hover:opacity-100 text-foreground/30 hover:text-red-600 transition" title="Excluir pagamento">
                       <Trash2 className="w-4 h-4" />
