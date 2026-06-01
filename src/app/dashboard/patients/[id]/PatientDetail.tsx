@@ -49,7 +49,7 @@ const inputCls = "w-full px-4 py-2.5 rounded-xl bg-white/70 border border-border
 const TABS = ["Dados", "Prontuário", "Espaço", "Sessões", "Pagamentos", "Histórico"] as const;
 
 export function PatientDetail({
-  patient, sessions, payments, statusHistory, priceHistory, records, autoLinkPayments, transcriptionEnabled, risk, assignments, moodToken, moodLogs,
+  patient, sessions, payments, statusHistory, priceHistory, records, autoLinkPayments, transcriptionEnabled, risk, assignments, moodToken, moodLogs, scales,
 }: {
   patient: Patient; sessions: Session[]; payments: Payment[];
   statusHistory: StatusEntry[]; priceHistory: PriceEntry[]; records: RecordEntry[];
@@ -58,6 +58,7 @@ export function PatientDetail({
   assignments: AssignmentEntry[];
   moodToken: string | null;
   moodLogs: { id: string; mood: number; note: string | null; loggedAt: string }[];
+  scales: { id: string; token: string; scaleType: string; status: string; score: number | null; severity: string | null; appliedAt: string | null }[];
 }) {
   const router = useRouter();
   const [tab, setTab] = useState<(typeof TABS)[number]>("Dados");
@@ -251,7 +252,7 @@ export function PatientDetail({
       )}
 
       {/* Espaço do Paciente: humor + tarefas */}
-      {tab === "Espaço" && <AssignmentsTab patientId={patient.id} assignments={assignments} moodToken={moodToken} moodLogs={moodLogs} />}
+      {tab === "Espaço" && <AssignmentsTab patientId={patient.id} assignments={assignments} moodToken={moodToken} moodLogs={moodLogs} scales={scales} />}
 
       {/* Sessões */}
       {tab === "Sessões" && (

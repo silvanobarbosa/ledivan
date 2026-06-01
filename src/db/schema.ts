@@ -191,6 +191,21 @@ export const patients = pgTable("patients", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+// Escalas de desfecho (PHQ-9/GAD-7) aplicadas ao paciente via link mágico.
+export const scaleApplications = pgTable("scale_applications", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: text("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
+  patientId: uuid("patient_id").references(() => patients.id, { onDelete: "cascade" }).notNull(),
+  token: text("token").unique().notNull(),
+  scaleType: text("scale_type").notNull(), // phq9 | gad7
+  status: text("status").default("pendente").notNull(), // pendente | respondida
+  answers: text("answers"), // JSON array de números
+  score: integer("score"),
+  severity: text("severity"),
+  appliedAt: timestamp("applied_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 // Diário de humor do paciente (registros via link mágico).
 export const moodLogs = pgTable("mood_logs", {
   id: uuid("id").primaryKey().defaultRandom(),

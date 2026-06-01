@@ -1,6 +1,6 @@
 import { db } from "@/db";
 import { auth } from "@/auth";
-import { patients, therapySessions, sessionPayments, patientStatusHistory, patientPriceHistory, patientRecords, assignments, moodLogs } from "@/db/schema";
+import { patients, therapySessions, sessionPayments, patientStatusHistory, patientPriceHistory, patientRecords, assignments, moodLogs, scaleApplications } from "@/db/schema";
 import { and, eq, desc } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import Link from "next/link";
@@ -55,6 +55,11 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
     limit: 60,
   });
 
+  const scaleList = await db.query.scaleApplications.findMany({
+    where: eq(scaleApplications.patientId, id),
+    orderBy: [desc(scaleApplications.createdAt)],
+  });
+
   return (
     <div className="max-w-4xl space-y-6">
       <Link href="/dashboard/patients" className="inline-flex items-center gap-2 text-foreground/50 hover:text-primary transition">
@@ -74,6 +79,7 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
         assignments={JSON.parse(JSON.stringify(assignmentsList))}
         moodToken={patient.moodToken}
         moodLogs={JSON.parse(JSON.stringify(moodList))}
+        scales={JSON.parse(JSON.stringify(scaleList))}
       />
     </div>
   );

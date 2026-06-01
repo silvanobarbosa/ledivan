@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@/db";
-import { patients, patientStatusHistory, patientPriceHistory, patientRecords, assignments } from "@/db/schema";
+import { patients, patientStatusHistory, patientPriceHistory, patientRecords, assignments, scaleApplications } from "@/db/schema";
 import { auth } from "@/auth";
 import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
@@ -141,6 +141,35 @@ export async function deleteRecord(recordId: string) {
   if (!rec) return;
   await db.delete(patientRecords).where(eq(patientRecords.id, recordId));
   revalidatePath(`/dashboard/patients/${rec.patientId}`);
+}
+
+// Cria uma aplicação de escala (PHQ-9/GAD-7) e gera o link do paciente.
+export async function createScale(patientId: string, scaleType: string) {
+  const session = await auth();
+  if (!session?.user?.id) throw new Error("Não autorizado");
+  const userId = session.user.id;
+  if (scaleType !== "phq9" && scaleType !== "gad7") throw new Error("Escala inválida");
+
+  const patient = await db.query.patients.findFirst({
+    where: and(eq(patients.id, patientId), eq(patients.userId, userId)),
+  });
+  if (!patient) throw new Error("Paciente não encontrado");
+
+  const token = crypto.randomUUID().replace(/-/g, "") + crypto.randomUUID().replace(/-/g, "").slice(0, 8);
+  await db.insert(scaleApplications).values({ userId, patientId, token, scaleType });
+  revalidatePath(`/dashboard/patients/${patientId}`);
+}
+
+export async function deleteScale(scaleId: string) {
+  const session = await auth();
+  if (!session?.user?.id) throw new Error("Não autorizado");
+  const userId = session.user.id;
+  const s = await db.query.scaleApplications.findFirst({
+    where: and(eq(scaleApplications.id, scaleId), eq(scaleApplications.userId, userId)),
+  });
+  if (!s) return;
+  await db.delete(scaleApplications).where(eq(scaleApplications.id, scaleId));
+  revalidatePath(`/dashboard/patients/${s.patientId}`);
 }
 
 // Gera (se ainda não houver) o token do diário de humor do paciente.

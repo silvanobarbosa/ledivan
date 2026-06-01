@@ -2,11 +2,14 @@
 
 import { useState } from "react";
 import { Plus, Copy, Check, Trash2, Paperclip, MessageCircle, Smile } from "lucide-react";
-import { createAssignment, deleteAssignment, commentAssignment, ensureMoodToken } from "../actions";
+import { createAssignment, deleteAssignment, commentAssignment, ensureMoodToken, createScale, deleteScale } from "../actions";
 import { formatDate } from "@/lib/therapy";
 import { MoodChart } from "./MoodChart";
+import { ScaleHistory } from "./ScaleHistory";
+import { SCALES, severityColor } from "@/lib/scales";
 
 type Mood = { id: string; mood: number; note: string | null; loggedAt: string };
+type ScaleApp = { id: string; token: string; scaleType: string; status: string; score: number | null; severity: string | null; appliedAt: string | null };
 
 type Assignment = {
   id: string; token: string; title: string; instructions: string | null;
@@ -19,13 +22,14 @@ const inputCls = "w-full px-4 py-2.5 rounded-xl bg-white/70 border border-border
 const TYPE_LABELS: Record<string, string> = { texto: "Texto", foto: "Foto", audio: "Áudio", video: "Vídeo", livre: "Livre (texto + mídia)" };
 
 export function AssignmentsTab({
-  patientId, assignments, moodToken, moodLogs,
+  patientId, assignments, moodToken, moodLogs, scales,
 }: {
-  patientId: string; assignments: Assignment[]; moodToken: string | null; moodLogs: Mood[];
+  patientId: string; assignments: Assignment[]; moodToken: string | null; moodLogs: Mood[]; scales: ScaleApp[];
 }) {
   const [showNew, setShowNew] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [moodCopied, setMoodCopied] = useState(false);
+  const [scaleCopiedId, setScaleCopiedId] = useState<string | null>(null);
 
   const origin = typeof window !== "undefined" ? window.location.origin : "";
 
@@ -55,6 +59,50 @@ export function AssignmentsTab({
             </button>
             <MoodChart logs={moodLogs} />
           </>
+        )}
+      </div>
+
+      {/* Escalas de desfecho */}
+      <div className="glass-card rounded-[24px] p-5 space-y-3">
+        <p className="font-semibold text-primary">Escalas de desfecho</p>
+        <p className="text-xs text-foreground/40">Aplique escalas validadas e acompanhe a evolução. Não substitui avaliação clínica.</p>
+        <div className="flex flex-wrap gap-2">
+          <form action={createScale.bind(null, patientId, "phq9")}>
+            <button className="bg-primary text-white py-2 px-4 rounded-xl font-bold text-sm">+ PHQ-9 (depressão)</button>
+          </form>
+          <form action={createScale.bind(null, patientId, "gad7")}>
+            <button className="bg-primary text-white py-2 px-4 rounded-xl font-bold text-sm">+ GAD-7 (ansiedade)</button>
+          </form>
+        </div>
+
+        {scales.some((s) => s.status === "respondida") && <ScaleHistory apps={scales} />}
+
+        {scales.length > 0 && (
+          <div className="space-y-2 pt-1">
+            {scales.map((s) => {
+              const scale = SCALES[s.scaleType as "phq9" | "gad7"];
+              return (
+                <div key={s.id} className="flex items-center justify-between gap-3 text-sm bg-surface/50 border border-border rounded-xl px-3 py-2 group">
+                  <span className="font-semibold">{scale?.short ?? s.scaleType}</span>
+                  {s.status === "respondida" ? (
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${severityColor(scale.severity(s.score ?? 0).tone)}`}>
+                      {s.score}/{scale.max} · {s.severity} · {formatDate(s.appliedAt)}
+                    </span>
+                  ) : (
+                    <button
+                      onClick={() => { navigator.clipboard.writeText(`${origin}/escala/${s.token}`); setScaleCopiedId(s.id); setTimeout(() => setScaleCopiedId(null), 1500); }}
+                      className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary hover:underline"
+                    >
+                      {scaleCopiedId === s.id ? <><Check className="w-3.5 h-3.5 text-[#047857]" /> Link copiado</> : <><Copy className="w-3.5 h-3.5" /> Copiar link (pendente)</>}
+                    </button>
+                  )}
+                  <form action={deleteScale.bind(null, s.id)}>
+                    <button className="opacity-0 group-hover:opacity-100 text-foreground/30 hover:text-red-600 transition"><Trash2 className="w-3.5 h-3.5" /></button>
+                  </form>
+                </div>
+              );
+            })}
+          </div>
         )}
       </div>
 
