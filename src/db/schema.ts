@@ -23,6 +23,8 @@ export const users = pgTable("user", {
   telegramId: text("telegram_id").unique(),
   telegramVerificationCode: text("telegram_verification_code"),
   telegramVerificationExpires: timestamp("telegram_verification_expires"),
+  whatsappId: text("whatsapp_id").unique(), // últimos 11 dígitos do número, p/ vincular mensagens recebidas
+
   preferences: text("preferences"), // JSON string
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });

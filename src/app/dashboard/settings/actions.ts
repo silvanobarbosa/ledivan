@@ -6,6 +6,7 @@ import { auth } from "@/auth";
 import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { setPreferences, getPreferences, type Integrations } from "@/lib/preferences";
+import { normalizePhone } from "@/lib/whatsapp";
 
 // Liga/desliga o vínculo automático de pagamentos de sessão com o financeiro.
 export async function setAutoLinkPayments(enabled: boolean) {
@@ -20,9 +21,20 @@ export async function setAutoLinkPayments(enabled: boolean) {
 export async function setIntegration(patch: Integrations) {
   const session = await auth();
   if (!session?.user?.id) throw new Error("Não autorizado");
+  const userId = session.user.id;
 
-  const prefs = await getPreferences(session.user.id);
-  await setPreferences(session.user.id, { integrations: { ...prefs.integrations, ...patch } });
+  const prefs = await getPreferences(userId);
+  const merged = { ...prefs.integrations, ...patch };
+  await setPreferences(userId, { integrations: merged });
+
+  // Mantém users.whatsappId sincronizado (chave de vínculo das mensagens recebidas).
+  if ("whatsapp" in patch || "whatsappNumber" in patch) {
+    const linkable = merged.whatsapp && merged.whatsappNumber;
+    await db.update(users)
+      .set({ whatsappId: linkable ? normalizePhone(merged.whatsappNumber!) : null })
+      .where(eq(users.id, userId));
+  }
+
   revalidatePath("/dashboard/settings");
 }
 
