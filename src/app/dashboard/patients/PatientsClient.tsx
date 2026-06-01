@@ -13,7 +13,12 @@ type PatientCard = {
   paymentStatus: string;
   sessionFee: string;
   frequency: string | null;
+  tags: string | null;
 };
+
+function parseTags(t: string | null): string[] {
+  return (t || "").split(",").map((x) => x.trim()).filter(Boolean);
+}
 
 const FILTERS = [
   { key: "todos", label: "Todos" },
@@ -25,11 +30,15 @@ const FILTERS = [
 export function PatientsClient({ patients }: { patients: PatientCard[] }) {
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState("todos");
+  const [tag, setTag] = useState<string | null>(null);
+
+  const allTags = Array.from(new Set(patients.flatMap((p) => parseTags(p.tags)))).sort();
 
   const filtered = patients.filter((p) => {
     const matchQuery = p.name.toLowerCase().includes(query.toLowerCase());
     const matchFilter = filter === "todos" || p.patientStatus === filter;
-    return matchQuery && matchFilter;
+    const matchTag = !tag || parseTags(p.tags).includes(tag);
+    return matchQuery && matchFilter && matchTag;
   });
 
   return (
@@ -59,6 +68,19 @@ export function PatientsClient({ patients }: { patients: PatientCard[] }) {
         </div>
       </div>
 
+      {allTags.length > 0 && (
+        <div className="flex gap-2 flex-wrap">
+          <button onClick={() => setTag(null)} className={`px-3 py-1 rounded-full text-xs font-semibold transition ${!tag ? "bg-primary text-white" : "bg-white/60 text-foreground/50 hover:bg-white"}`}>
+            Todas etiquetas
+          </button>
+          {allTags.map((t) => (
+            <button key={t} onClick={() => setTag(tag === t ? null : t)} className={`px-3 py-1 rounded-full text-xs font-semibold transition ${tag === t ? "bg-accent text-white" : "bg-secondary-container/30 text-primary hover:bg-secondary-container/50"}`}>
+              {t}
+            </button>
+          ))}
+        </div>
+      )}
+
       {filtered.length === 0 ? (
         <div className="text-center py-20 text-foreground/40">Nenhum paciente encontrado.</div>
       ) : (
@@ -82,6 +104,13 @@ export function PatientsClient({ patients }: { patients: PatientCard[] }) {
                 <p className="text-sm text-foreground/50 truncate">
                   {p.frequency || "—"} · {formatBRL(p.sessionFee)}/sessão
                 </p>
+                {parseTags(p.tags).length > 0 && (
+                  <div className="flex gap-1 flex-wrap mt-1.5">
+                    {parseTags(p.tags).map((t) => (
+                      <span key={t} className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-secondary-container/30 text-primary">{t}</span>
+                    ))}
+                  </div>
+                )}
               </div>
               <span className={`hidden sm:inline text-[10px] font-bold px-2.5 py-1 rounded-full ${paymentStatusColor(p.paymentStatus)}`}>
                 {PAYMENT_STATUS_LABELS[p.paymentStatus]}

@@ -109,6 +109,11 @@ export default function NewPatientPage() {
         </div>
 
         <div>
+          <label className={labelCls}>Etiquetas (separadas por vírgula)</label>
+          <input name="tags" className={inputCls} placeholder="ex: TCC, ansiedade, quinzenal" />
+        </div>
+
+        <div>
           <label className={labelCls}>Observações</label>
           <textarea name="notes" rows={3} className={inputCls} placeholder="Anotações sobre o paciente" />
         </div>

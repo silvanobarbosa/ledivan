@@ -188,6 +188,7 @@ export const patients = pgTable("patients", {
   reminderEnabled: boolean("reminder_enabled").default(false).notNull(),
   reminderChannel: text("reminder_channel").default("whatsapp").notNull(), // whatsapp | email | telegram
   moodToken: text("mood_token").unique(), // link do diário de humor: /humor/<token>
+  tags: text("tags"), // etiquetas separadas por vírgula
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

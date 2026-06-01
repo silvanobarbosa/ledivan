@@ -39,6 +39,7 @@ export default async function PatientsPage() {
           paymentStatus: p.paymentStatus,
           sessionFee: p.sessionFee,
           frequency: p.frequency,
+          tags: p.tags,
         }))}
       />
     </div>

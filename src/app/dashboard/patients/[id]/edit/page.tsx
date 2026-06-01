@@ -121,6 +121,11 @@ export default async function EditPatientPage({ params }: { params: Promise<{ id
         </div>
 
         <div>
+          <label className={labelCls}>Etiquetas (separadas por vírgula)</label>
+          <input name="tags" defaultValue={patient.tags ?? ""} className={inputCls} placeholder="ex: TCC, ansiedade, quinzenal" />
+        </div>
+
+        <div>
           <label className={labelCls}>Observações</label>
           <textarea name="notes" rows={3} defaultValue={patient.notes ?? ""} className={inputCls} />
         </div>

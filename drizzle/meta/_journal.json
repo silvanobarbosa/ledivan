@@ -78,6 +78,13 @@
       "when": 1780342477536,
       "tag": "0010_treatment_goals",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1780343761821,
+      "tag": "0011_patient_tags",
+      "breakpoints": true
     }
   ]
 }

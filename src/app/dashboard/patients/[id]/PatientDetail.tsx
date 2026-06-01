@@ -9,6 +9,8 @@ import { createRecord, deleteRecord } from "../actions";
 import { AssignmentsTab } from "./AssignmentsTab";
 import { SessionSummary } from "./SessionSummary";
 import { TreatmentPlan } from "./TreatmentPlan";
+import { TimelineTab } from "./TimelineTab";
+import { AnamneseForm } from "./AnamneseForm";
 import {
   formatBRL,
   formatDate,
@@ -48,7 +50,7 @@ const RECORD_TYPE_LABELS: Record<string, string> = { evolucao: "Evolução", ana
 
 const inputCls = "w-full px-4 py-2.5 rounded-xl bg-white/70 border border-border focus:ring-2 focus:ring-accent/20 focus:border-accent outline-none transition text-sm";
 
-const TABS = ["Dados", "Prontuário", "Espaço", "Sessões", "Pagamentos", "Histórico"] as const;
+const TABS = ["Dados", "Prontuário", "Espaço", "Sessões", "Pagamentos", "Linha do tempo", "Histórico"] as const;
 
 export function PatientDetail({
   patient, sessions, payments, statusHistory, priceHistory, records, autoLinkPayments, transcriptionEnabled, risk, assignments, moodToken, moodLogs, scales, treatmentGoals,
@@ -68,6 +70,7 @@ export function PatientDetail({
   const [showSession, setShowSession] = useState(false);
   const [showPayment, setShowPayment] = useState(false);
   const [showRecord, setShowRecord] = useState(false);
+  const [showAnamnese, setShowAnamnese] = useState(false);
   // transcrição
   const [showTranscribe, setShowTranscribe] = useState(false);
   const [consent, setConsent] = useState(false);
@@ -188,12 +191,17 @@ export function PatientDetail({
             <button onClick={() => setShowRecord((s) => !s)} className="flex items-center gap-2 text-primary font-semibold text-sm hover:underline">
               <Plus className="w-4 h-4" /> Novo registro
             </button>
+            <button onClick={() => setShowAnamnese((s) => !s)} className="flex items-center gap-2 text-primary font-semibold text-sm hover:underline">
+              <Plus className="w-4 h-4" /> Anamnese estruturada
+            </button>
             {transcriptionEnabled && (
               <button onClick={() => setShowTranscribe((s) => !s)} className="flex items-center gap-2 text-primary font-semibold text-sm hover:underline">
                 <Mic className="w-4 h-4" /> Transcrever sessão (IA)
               </button>
             )}
           </div>
+
+          {showAnamnese && <AnamneseForm patientId={patient.id} onDone={() => setShowAnamnese(false)} />}
 
           {transcriptionEnabled && showTranscribe && (
             <div className="glass-card rounded-[24px] p-5 space-y-3">
@@ -391,6 +399,11 @@ export function PatientDetail({
             </div>
           )}
         </div>
+      )}
+
+      {/* Linha do tempo */}
+      {tab === "Linha do tempo" && (
+        <TimelineTab sessions={sessions} payments={payments} records={records} moodLogs={moodLogs} scales={scales} assignments={assignments} />
       )}
 
       {/* Histórico */}
