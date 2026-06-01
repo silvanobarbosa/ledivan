@@ -7,6 +7,7 @@ import { formatDate } from "@/lib/therapy";
 import { MoodChart } from "./MoodChart";
 import { ScaleHistory } from "./ScaleHistory";
 import { SCALES, severityColor } from "@/lib/scales";
+import { TCC_TEMPLATES } from "@/lib/tccTemplates";
 
 type Mood = { id: string; mood: number; note: string | null; loggedAt: string };
 type ScaleApp = { id: string; token: string; scaleType: string; status: string; score: number | null; severity: string | null; appliedAt: string | null };
@@ -30,6 +31,10 @@ export function AssignmentsTab({
   const [copiedId, setCopiedId] = useState<string | null>(null);
   const [moodCopied, setMoodCopied] = useState(false);
   const [scaleCopiedId, setScaleCopiedId] = useState<string | null>(null);
+  // form de nova tarefa (controlado, p/ modelos TCC preencherem)
+  const [tTitle, setTTitle] = useState("");
+  const [tInstr, setTInstr] = useState("");
+  const [tType, setTType] = useState("livre");
 
   const origin = typeof window !== "undefined" ? window.location.origin : "";
 
@@ -113,12 +118,27 @@ export function AssignmentsTab({
 
       {showNew && (
         <form action={createAssignment.bind(null, patientId)} className="glass-card rounded-[24px] p-5 space-y-3">
-          <input name="title" required placeholder="Título (ex: Diário da semana)" className={inputCls} />
-          <textarea name="instructions" rows={3} placeholder="Instruções para o paciente..." className={inputCls} />
+          <div>
+            <p className="text-xs font-semibold text-foreground/60 mb-2">Modelos TCC (clique para preencher)</p>
+            <div className="flex flex-wrap gap-2">
+              {TCC_TEMPLATES.map((t) => (
+                <button
+                  key={t.key}
+                  type="button"
+                  onClick={() => { setTTitle(t.title); setTInstr(t.instructions); setTType(t.responseType); }}
+                  className="text-xs font-semibold px-3 py-1.5 rounded-full bg-secondary-container/30 text-primary hover:bg-secondary-container/50 transition"
+                >
+                  {t.label}
+                </button>
+              ))}
+            </div>
+          </div>
+          <input name="title" required value={tTitle} onChange={(e) => setTTitle(e.target.value)} placeholder="Título (ex: Diário da semana)" className={inputCls} />
+          <textarea name="instructions" rows={4} value={tInstr} onChange={(e) => setTInstr(e.target.value)} placeholder="Instruções para o paciente..." className={inputCls} />
           <div className="grid sm:grid-cols-2 gap-3">
             <div>
               <label className="text-xs font-semibold text-foreground/60">Tipo de resposta</label>
-              <select name="responseType" className={inputCls} defaultValue="livre">
+              <select name="responseType" className={inputCls} value={tType} onChange={(e) => setTType(e.target.value)}>
                 <option value="texto">Texto</option>
                 <option value="foto">Foto (ex: desenho)</option>
                 <option value="audio">Áudio</option>
