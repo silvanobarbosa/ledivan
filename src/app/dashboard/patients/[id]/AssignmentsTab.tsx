@@ -1,9 +1,12 @@
 "use client";
 
 import { useState } from "react";
-import { Plus, Copy, Check, Trash2, Paperclip, MessageCircle } from "lucide-react";
-import { createAssignment, deleteAssignment, commentAssignment } from "../actions";
+import { Plus, Copy, Check, Trash2, Paperclip, MessageCircle, Smile } from "lucide-react";
+import { createAssignment, deleteAssignment, commentAssignment, ensureMoodToken } from "../actions";
 import { formatDate } from "@/lib/therapy";
+import { MoodChart } from "./MoodChart";
+
+type Mood = { id: string; mood: number; note: string | null; loggedAt: string };
 
 type Assignment = {
   id: string; token: string; title: string; instructions: string | null;
@@ -15,19 +18,47 @@ type Assignment = {
 const inputCls = "w-full px-4 py-2.5 rounded-xl bg-white/70 border border-border focus:ring-2 focus:ring-accent/20 focus:border-accent outline-none transition text-sm";
 const TYPE_LABELS: Record<string, string> = { texto: "Texto", foto: "Foto", audio: "Áudio", video: "Vídeo", livre: "Livre (texto + mídia)" };
 
-export function AssignmentsTab({ patientId, assignments }: { patientId: string; assignments: Assignment[] }) {
+export function AssignmentsTab({
+  patientId, assignments, moodToken, moodLogs,
+}: {
+  patientId: string; assignments: Assignment[]; moodToken: string | null; moodLogs: Mood[];
+}) {
   const [showNew, setShowNew] = useState(false);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+  const [moodCopied, setMoodCopied] = useState(false);
+
+  const origin = typeof window !== "undefined" ? window.location.origin : "";
 
   const copyLink = (token: string, id: string) => {
-    const origin = typeof window !== "undefined" ? window.location.origin : "";
     navigator.clipboard.writeText(`${origin}/p/${token}`);
     setCopiedId(id);
     setTimeout(() => setCopiedId(null), 1500);
   };
 
   return (
-    <div className="space-y-4">
+    <div className="space-y-6">
+      {/* Diário de humor */}
+      <div className="glass-card rounded-[24px] p-5 space-y-3">
+        <p className="font-semibold text-primary flex items-center gap-2"><Smile className="w-4 h-4" /> Diário de humor</p>
+        {!moodToken ? (
+          <form action={ensureMoodToken.bind(null, patientId)}>
+            <button className="bg-primary text-white py-2 px-4 rounded-xl font-bold text-sm">Ativar diário de humor</button>
+            <p className="text-xs text-foreground/40 mt-2">Gera um link para o paciente registrar o humor quando quiser.</p>
+          </form>
+        ) : (
+          <>
+            <button
+              onClick={() => { navigator.clipboard.writeText(`${origin}/humor/${moodToken}`); setMoodCopied(true); setTimeout(() => setMoodCopied(false), 1500); }}
+              className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary hover:underline"
+            >
+              {moodCopied ? <><Check className="w-3.5 h-3.5 text-[#047857]" /> Link copiado</> : <><Copy className="w-3.5 h-3.5" /> Copiar link do diário de humor</>}
+            </button>
+            <MoodChart logs={moodLogs} />
+          </>
+        )}
+      </div>
+
+      {/* Tarefas */}
       <button onClick={() => setShowNew((s) => !s)} className="flex items-center gap-2 text-primary font-semibold text-sm hover:underline">
         <Plus className="w-4 h-4" /> Nova tarefa
       </button>

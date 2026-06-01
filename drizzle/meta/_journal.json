@@ -50,6 +50,13 @@
       "when": 1780339621272,
       "tag": "0006_assignments",
       "breakpoints": true
+    },
+    {
+      "idx": 7,
+      "version": "7",
+      "when": 1780340456919,
+      "tag": "0007_mood_logs",
+      "breakpoints": true
     }
   ]
 }

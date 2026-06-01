@@ -143,6 +143,22 @@ export async function deleteRecord(recordId: string) {
   revalidatePath(`/dashboard/patients/${rec.patientId}`);
 }
 
+// Gera (se ainda não houver) o token do diário de humor do paciente.
+export async function ensureMoodToken(patientId: string) {
+  const session = await auth();
+  if (!session?.user?.id) throw new Error("Não autorizado");
+  const userId = session.user.id;
+  const patient = await db.query.patients.findFirst({
+    where: and(eq(patients.id, patientId), eq(patients.userId, userId)),
+  });
+  if (!patient) throw new Error("Paciente não encontrado");
+  if (!patient.moodToken) {
+    const token = crypto.randomUUID().replace(/-/g, "") + crypto.randomUUID().replace(/-/g, "").slice(0, 8);
+    await db.update(patients).set({ moodToken: token }).where(eq(patients.id, patientId));
+  }
+  revalidatePath(`/dashboard/patients/${patientId}`);
+}
+
 // --- Espaço do Paciente: tarefas (lição de casa) ---
 
 export async function createAssignment(patientId: string, formData: FormData) {

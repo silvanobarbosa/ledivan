@@ -187,7 +187,18 @@ export const patients = pgTable("patients", {
   // Lembrete de sessao (escolha do terapeuta por paciente)
   reminderEnabled: boolean("reminder_enabled").default(false).notNull(),
   reminderChannel: text("reminder_channel").default("whatsapp").notNull(), // whatsapp | email | telegram
+  moodToken: text("mood_token").unique(), // link do diário de humor: /humor/<token>
   createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
+// Diário de humor do paciente (registros via link mágico).
+export const moodLogs = pgTable("mood_logs", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: text("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
+  patientId: uuid("patient_id").references(() => patients.id, { onDelete: "cascade" }).notNull(),
+  mood: integer("mood").notNull(), // 1 a 5
+  note: text("note"),
+  loggedAt: timestamp("logged_at").defaultNow().notNull(),
 });
 
 export const patientStatusHistory = pgTable("patient_status_history", {

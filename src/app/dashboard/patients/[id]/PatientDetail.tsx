@@ -46,16 +46,18 @@ const RECORD_TYPE_LABELS: Record<string, string> = { evolucao: "Evolução", ana
 
 const inputCls = "w-full px-4 py-2.5 rounded-xl bg-white/70 border border-border focus:ring-2 focus:ring-accent/20 focus:border-accent outline-none transition text-sm";
 
-const TABS = ["Dados", "Prontuário", "Tarefas", "Sessões", "Pagamentos", "Histórico"] as const;
+const TABS = ["Dados", "Prontuário", "Espaço", "Sessões", "Pagamentos", "Histórico"] as const;
 
 export function PatientDetail({
-  patient, sessions, payments, statusHistory, priceHistory, records, autoLinkPayments, transcriptionEnabled, risk, assignments,
+  patient, sessions, payments, statusHistory, priceHistory, records, autoLinkPayments, transcriptionEnabled, risk, assignments, moodToken, moodLogs,
 }: {
   patient: Patient; sessions: Session[]; payments: Payment[];
   statusHistory: StatusEntry[]; priceHistory: PriceEntry[]; records: RecordEntry[];
   autoLinkPayments: boolean; transcriptionEnabled: boolean;
   risk: { level: RiskLevel; rate: number; faltas: number; total: number };
   assignments: AssignmentEntry[];
+  moodToken: string | null;
+  moodLogs: { id: string; mood: number; note: string | null; loggedAt: string }[];
 }) {
   const router = useRouter();
   const [tab, setTab] = useState<(typeof TABS)[number]>("Dados");
@@ -248,8 +250,8 @@ export function PatientDetail({
         </div>
       )}
 
-      {/* Tarefas (Espaço do Paciente) */}
-      {tab === "Tarefas" && <AssignmentsTab patientId={patient.id} assignments={assignments} />}
+      {/* Espaço do Paciente: humor + tarefas */}
+      {tab === "Espaço" && <AssignmentsTab patientId={patient.id} assignments={assignments} moodToken={moodToken} moodLogs={moodLogs} />}
 
       {/* Sessões */}
       {tab === "Sessões" && (
