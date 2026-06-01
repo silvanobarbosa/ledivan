@@ -193,6 +193,18 @@ export const therapySessions = pgTable("therapy_sessions", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+// Prontuário: registros clínicos por paciente (evolução, anamnese, nota).
+export const patientRecords = pgTable("patient_records", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: text("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
+  patientId: uuid("patient_id").references(() => patients.id, { onDelete: "cascade" }).notNull(),
+  sessionId: uuid("session_id").references(() => therapySessions.id, { onDelete: "set null" }),
+  type: text("type").default("evolucao").notNull(), // evolucao | anamnese | nota
+  title: text("title"),
+  content: text("content").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 export const sessionPayments = pgTable("session_payments", {
   id: uuid("id").primaryKey().defaultRandom(),
   userId: text("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
@@ -245,6 +257,13 @@ export const patientsRelations = relations(patients, ({ one, many }) => ({
   statusHistory: many(patientStatusHistory),
   priceHistory: many(patientPriceHistory),
   contractHistory: many(patientContractHistory),
+  records: many(patientRecords),
+}));
+
+export const patientRecordsRelations = relations(patientRecords, ({ one }) => ({
+  user: one(users, { fields: [patientRecords.userId], references: [users.id] }),
+  patient: one(patients, { fields: [patientRecords.patientId], references: [patients.id] }),
+  session: one(therapySessions, { fields: [patientRecords.sessionId], references: [therapySessions.id] }),
 }));
 
 export const patientStatusHistoryRelations = relations(patientStatusHistory, ({ one }) => ({

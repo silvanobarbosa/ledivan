@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { createSession, deleteSession } from "../../sessions/actions";
 import { createPayment, deletePayment } from "../../payments/actions";
+import { createRecord, deleteRecord } from "../actions";
 import {
   formatBRL,
   formatDate,
@@ -28,20 +29,24 @@ type Session = { id: string; date: string; duration: number; fee: string; status
 type Payment = { id: string; date: string; amount: string; method: string; status: string; linkedTransactionId: string | null };
 type StatusEntry = { id: string; status: string; date: string };
 type PriceEntry = { id: string; valor: string; dataEfetiva: string };
+type RecordEntry = { id: string; type: string; title: string | null; content: string; createdAt: string };
+
+const RECORD_TYPE_LABELS: Record<string, string> = { evolucao: "Evolução", anamnese: "Anamnese", nota: "Nota" };
 
 const inputCls = "w-full px-4 py-2.5 rounded-xl bg-white/70 border border-border focus:ring-2 focus:ring-accent/20 focus:border-accent outline-none transition text-sm";
 
-const TABS = ["Dados", "Sessões", "Pagamentos", "Histórico"] as const;
+const TABS = ["Dados", "Prontuário", "Sessões", "Pagamentos", "Histórico"] as const;
 
 export function PatientDetail({
-  patient, sessions, payments, statusHistory, priceHistory, autoLinkPayments,
+  patient, sessions, payments, statusHistory, priceHistory, records, autoLinkPayments,
 }: {
   patient: Patient; sessions: Session[]; payments: Payment[];
-  statusHistory: StatusEntry[]; priceHistory: PriceEntry[]; autoLinkPayments: boolean;
+  statusHistory: StatusEntry[]; priceHistory: PriceEntry[]; records: RecordEntry[]; autoLinkPayments: boolean;
 }) {
   const [tab, setTab] = useState<(typeof TABS)[number]>("Dados");
   const [showSession, setShowSession] = useState(false);
   const [showPayment, setShowPayment] = useState(false);
+  const [showRecord, setShowRecord] = useState(false);
 
   return (
     <div className="space-y-6">
@@ -102,6 +107,58 @@ export function PatientDetail({
             <div>
               <p className="text-xs font-bold text-foreground/40 uppercase tracking-widest mb-1">Observações</p>
               <p className="text-sm text-foreground/80 whitespace-pre-wrap">{patient.notes}</p>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Prontuário */}
+      {tab === "Prontuário" && (
+        <div className="space-y-4">
+          <button onClick={() => setShowRecord((s) => !s)} className="flex items-center gap-2 text-primary font-semibold text-sm hover:underline">
+            <Plus className="w-4 h-4" /> Novo registro
+          </button>
+          {showRecord && (
+            <form action={createRecord.bind(null, patient.id)} className="glass-card rounded-[24px] p-5 space-y-3">
+              <div className="grid sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="text-xs font-semibold text-foreground/60">Tipo</label>
+                  <select name="type" className={inputCls} defaultValue="evolucao">
+                    <option value="evolucao">Evolução</option>
+                    <option value="anamnese">Anamnese</option>
+                    <option value="nota">Nota</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-foreground/60">Título (opcional)</label>
+                  <input name="title" className={inputCls} placeholder="ex: Sessão 12" />
+                </div>
+              </div>
+              <textarea name="content" rows={5} required className={inputCls} placeholder="Registro clínico, evolução do paciente, observações da sessão..." />
+              <button className="bg-primary text-white py-2.5 px-5 rounded-xl font-bold">Salvar registro</button>
+            </form>
+          )}
+          {records.length === 0 ? <Empty text="Nenhum registro no prontuário." /> : (
+            <div className="space-y-2">
+              {records.map((r) => (
+                <div key={r.id} className="glass-card rounded-2xl p-5 group">
+                  <div className="flex items-center justify-between gap-3 mb-2">
+                    <div className="flex items-center gap-2">
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full uppercase bg-[#f3e8ff] text-primary">{RECORD_TYPE_LABELS[r.type] || r.type}</span>
+                      {r.title && <span className="text-sm font-semibold">{r.title}</span>}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-foreground/40">{formatDateTime(r.createdAt)}</span>
+                      <form action={deleteRecord.bind(null, r.id)}>
+                        <button className="opacity-0 group-hover:opacity-100 text-foreground/30 hover:text-red-600 transition" title="Excluir registro">
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                      </form>
+                    </div>
+                  </div>
+                  <p className="text-sm text-foreground/80 whitespace-pre-wrap leading-relaxed">{r.content}</p>
+                </div>
+              ))}
             </div>
           )}
         </div>

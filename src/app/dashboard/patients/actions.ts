@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@/db";
-import { patients, patientStatusHistory, patientPriceHistory } from "@/db/schema";
+import { patients, patientStatusHistory, patientPriceHistory, patientRecords } from "@/db/schema";
 import { auth } from "@/auth";
 import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
@@ -97,6 +97,46 @@ export async function updatePatient(patientId: string, formData: FormData) {
 
   revalidatePath(`/dashboard/patients/${patientId}`);
   revalidatePath("/dashboard/patients");
+}
+
+// --- Prontuário (registros clínicos) ---
+
+export async function createRecord(patientId: string, formData: FormData) {
+  const session = await auth();
+  if (!session?.user?.id) throw new Error("Não autorizado");
+  const userId = session.user.id;
+
+  // valida posse do paciente
+  const patient = await db.query.patients.findFirst({
+    where: and(eq(patients.id, patientId), eq(patients.userId, userId)),
+  });
+  if (!patient) throw new Error("Paciente não encontrado");
+
+  const content = (formData.get("content") as string)?.trim();
+  if (!content) throw new Error("Conteúdo obrigatório");
+
+  await db.insert(patientRecords).values({
+    userId,
+    patientId,
+    type: (formData.get("type") as string) || "evolucao",
+    title: (formData.get("title") as string) || null,
+    content,
+  });
+
+  revalidatePath(`/dashboard/patients/${patientId}`);
+}
+
+export async function deleteRecord(recordId: string) {
+  const session = await auth();
+  if (!session?.user?.id) throw new Error("Não autorizado");
+  const userId = session.user.id;
+
+  const rec = await db.query.patientRecords.findFirst({
+    where: and(eq(patientRecords.id, recordId), eq(patientRecords.userId, userId)),
+  });
+  if (!rec) return;
+  await db.delete(patientRecords).where(eq(patientRecords.id, recordId));
+  revalidatePath(`/dashboard/patients/${rec.patientId}`);
 }
 
 export async function deletePatient(patientId: string) {

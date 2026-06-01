@@ -1,6 +1,6 @@
 import { db } from "@/db";
 import { auth } from "@/auth";
-import { patients, therapySessions, sessionPayments, patientStatusHistory, patientPriceHistory } from "@/db/schema";
+import { patients, therapySessions, sessionPayments, patientStatusHistory, patientPriceHistory, patientRecords } from "@/db/schema";
 import { and, eq, desc } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import Link from "next/link";
@@ -19,7 +19,7 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
   });
   if (!patient) notFound();
 
-  const [sessionsList, paymentsList, statusHist, priceHist, prefs] = await Promise.all([
+  const [sessionsList, paymentsList, statusHist, priceHist, recordsList, prefs] = await Promise.all([
     db.query.therapySessions.findMany({
       where: eq(therapySessions.patientId, id),
       orderBy: [desc(therapySessions.date)],
@@ -36,6 +36,10 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
       where: eq(patientPriceHistory.patientId, id),
       orderBy: [desc(patientPriceHistory.dataEfetiva)],
     }),
+    db.query.patientRecords.findMany({
+      where: eq(patientRecords.patientId, id),
+      orderBy: [desc(patientRecords.createdAt)],
+    }),
     getPreferences(userId),
   ]);
 
@@ -51,6 +55,7 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
         payments={JSON.parse(JSON.stringify(paymentsList))}
         statusHistory={JSON.parse(JSON.stringify(statusHist))}
         priceHistory={JSON.parse(JSON.stringify(priceHist))}
+        records={JSON.parse(JSON.stringify(recordsList))}
         autoLinkPayments={!!prefs.autoLinkPayments}
       />
     </div>
