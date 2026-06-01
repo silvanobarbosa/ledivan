@@ -76,8 +76,8 @@ async function seed() {
   const start = new Date(now); start.setMonth(start.getMonth() - 15); start.setDate(1);
 
   // 4. Pacientes
-  const firstNames = ["Ana", "Bruno", "Carla", "Diego", "Eliane", "Felipe", "Gabriela", "Henrique", "Isabela", "João", "Larissa", "Marcelo", "Natália", "Otávio", "Patrícia"];
-  const lastNames = ["Souza", "Lima", "Mendes", "Costa", "Almeida", "Pereira", "Rocha", "Carvalho", "Ribeiro", "Gomes", "Martins", "Araújo"];
+  const firstNames = ["Ana", "Bruno", "Carla", "Diego", "Eliane", "Felipe", "Gabriela", "Henrique", "Isabela", "João", "Larissa", "Marcelo", "Natália", "Otávio", "Patrícia", "Rafael", "Sofia", "Thiago", "Úrsula", "Vinícius", "Yara", "Caio", "Beatriz", "Lucas", "Mariana", "Pedro", "Renata", "Tatiana", "Gustavo", "Helena", "Igor", "Júlia", "Kléber", "Letícia", "Murilo", "Nina"];
+  const lastNames = ["Souza", "Lima", "Mendes", "Costa", "Almeida", "Pereira", "Rocha", "Carvalho", "Ribeiro", "Gomes", "Martins", "Araújo", "Barbosa", "Cardoso", "Dias", "Freitas", "Moraes", "Nunes", "Teixeira", "Vieira"];
   const freqs = ["semanal", "semanal", "semanal", "quinzenal"];
   const freqDays: Record<string, number> = { semanal: 7, quinzenal: 14, mensal: 30 };
 
@@ -87,19 +87,32 @@ async function seed() {
   const statusHistRows: any[] = [];
   const priceHistRows: any[] = [];
 
-  // 9 ativos, 1 pausado, 2 inativos
-  const statuses = ["ativo", "ativo", "ativo", "ativo", "ativo", "ativo", "ativo", "ativo", "ativo", "pausado", "inativo", "inativo"];
+  // Carga 3x: 27 ativos, 3 pausados, 6 inativos
+  const statuses: string[] = [
+    ...Array(27).fill("ativo"),
+    ...Array(3).fill("pausado"),
+    ...Array(6).fill("inativo"),
+  ];
+  const usedNames = new Set<string>();
+  const uniqueName = () => {
+    let n = `${pick(firstNames)} ${pick(lastNames)}`;
+    let guard = 0;
+    while (usedNames.has(n) && guard++ < 50) n = `${pick(firstNames)} ${pick(lastNames)}`;
+    usedNames.add(n);
+    return n;
+  };
   for (let i = 0; i < statuses.length; i++) {
     const id = uuid();
     const status = statuses[i];
-    const name = `${firstNames[i]} ${pick(lastNames)}`;
+    const name = uniqueName();
+    const slug = name.toLowerCase().normalize("NFD").replace(/[^a-z]/g, "");
     const fee = pick([150, 160, 180, 200, 220, 250]);
     const freq = pick(freqs);
     // entrou entre 15 e 2 meses atras
     const startedAt = new Date(start); startedAt.setMonth(startedAt.getMonth() + rnd(0, 13)); startedAt.setDate(rnd(1, 28));
     patientRows.push({
       id, userId, name,
-      email: `${firstNames[i].toLowerCase()}@email.com`,
+      email: `${slug}@email.com`,
       phone: `(11) 9${rnd(1000, 9999)}-${rnd(1000, 9999)}`,
       sessionFee: money(fee), frequency: freq,
       patientStatus: status,
@@ -121,11 +134,11 @@ async function seed() {
     }
   }
 
-  // 3 prospects (entradas recentes)
-  for (let i = 0; i < 3; i++) {
-    const pd = new Date(now); pd.setDate(pd.getDate() - rnd(2, 40));
+  // 9 prospects (entradas recentes)
+  for (let i = 0; i < 9; i++) {
+    const pd = new Date(now); pd.setDate(pd.getDate() - rnd(2, 90));
     patientRows.push({
-      id: uuid(), userId, name: `${pick(firstNames)} ${pick(lastNames)}`,
+      id: uuid(), userId, name: uniqueName(),
       phone: `(11) 9${rnd(1000, 9999)}-${rnd(1000, 9999)}`,
       patientStatus: "prospect", prospectDate: pd,
       prospectFechou: pick(["", "", "Não fechou"]),
@@ -137,7 +150,7 @@ async function seed() {
   await chunkInsert(patients, patientRows);
   await chunkInsert(patientStatusHistory, statusHistRows);
   await chunkInsert(patientPriceHistory, priceHistRows);
-  console.log(`🧑‍⚕️ ${patientRows.length} pacientes (${activePats.length} ativos + 3 prospects).`);
+  console.log(`🧑‍⚕️ ${patientRows.length} pacientes (${activePats.length} ativos + 9 prospects).`);
 
   // 5. Sessoes + pagamentos + transacoes de receita
   const sessionRows: any[] = [];
