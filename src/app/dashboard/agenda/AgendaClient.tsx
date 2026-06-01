@@ -3,12 +3,12 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronLeft, ChevronRight, X } from "lucide-react";
-import { SESSION_STATUS_LABELS, sessionStatusColor, meetingUrl } from "@/lib/therapy";
+import { SESSION_STATUS_LABELS, sessionStatusColor, meetingUrl, RISK_LABELS, riskColor, type RiskLevel } from "@/lib/therapy";
 import { updateSessionStatus } from "../sessions/actions";
-import { Video } from "lucide-react";
+import { Video, AlertTriangle } from "lucide-react";
 
 type SessionStatus = "realizada" | "nao_realizada" | "cancelada" | "realocada" | "agendada";
-type AgendaSession = { id: string; date: string; duration: number; status: string; patientName: string; isOnline: boolean };
+type AgendaSession = { id: string; date: string; duration: number; status: string; patientName: string; isOnline: boolean; risk: string };
 
 const DAY_NAMES = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 const START_HOUR = 7;
@@ -131,7 +131,12 @@ export function AgendaClient({ sessions }: { sessions: AgendaSession[] }) {
                           style={{ top: top + 1, height }}
                           className={`absolute left-1 right-1 rounded-lg px-2 py-1 text-left overflow-hidden border-l-[3px] border-primary/50 hover:shadow-md hover:z-10 transition ${sessionStatusColor(s.status)}`}
                         >
-                          <p className="text-[10px] font-bold leading-tight">{time}</p>
+                          <p className="text-[10px] font-bold leading-tight flex items-center gap-1">
+                            {time}
+                            {s.status === "agendada" && (s.risk === "alto" || s.risk === "medio") && (
+                              <AlertTriangle className={`w-2.5 h-2.5 ${s.risk === "alto" ? "text-[#b91c1c]" : "text-[#b45309]"}`} />
+                            )}
+                          </p>
                           <p className="text-[11px] font-semibold leading-tight truncate">{s.patientName}</p>
                         </button>
                       );
@@ -154,6 +159,11 @@ export function AgendaClient({ sessions }: { sessions: AgendaSession[] }) {
                 <p className="text-sm text-foreground/50">
                   {new Date(selected.date).toLocaleString("pt-BR", { weekday: "long", day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })} · {selected.duration}min
                 </p>
+                {(selected.risk === "alto" || selected.risk === "medio") && (
+                  <span className={`inline-flex items-center gap-1 mt-2 text-[10px] font-bold px-2 py-0.5 rounded-full ${riskColor(selected.risk as RiskLevel)}`}>
+                    <AlertTriangle className="w-3 h-3" /> {RISK_LABELS[selected.risk as RiskLevel]} de falta
+                  </span>
+                )}
               </div>
               <button onClick={() => setSelected(null)} className="p-1.5 rounded-lg hover:bg-surface transition"><X className="w-4 h-4" /></button>
             </div>

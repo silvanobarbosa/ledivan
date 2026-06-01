@@ -17,6 +17,9 @@ import {
   paymentStatusColor,
   patientStatusColor,
   meetingUrl,
+  RISK_LABELS,
+  riskColor,
+  type RiskLevel,
 } from "@/lib/therapy";
 import { Phone, Mail, MapPin, Plus, Link2, Pencil, Trash2, Video, Mic, Loader2, Receipt } from "lucide-react";
 
@@ -40,11 +43,12 @@ const inputCls = "w-full px-4 py-2.5 rounded-xl bg-white/70 border border-border
 const TABS = ["Dados", "Prontuário", "Sessões", "Pagamentos", "Histórico"] as const;
 
 export function PatientDetail({
-  patient, sessions, payments, statusHistory, priceHistory, records, autoLinkPayments, transcriptionEnabled,
+  patient, sessions, payments, statusHistory, priceHistory, records, autoLinkPayments, transcriptionEnabled, risk,
 }: {
   patient: Patient; sessions: Session[]; payments: Payment[];
   statusHistory: StatusEntry[]; priceHistory: PriceEntry[]; records: RecordEntry[];
   autoLinkPayments: boolean; transcriptionEnabled: boolean;
+  risk: { level: RiskLevel; rate: number; faltas: number; total: number };
 }) {
   const router = useRouter();
   const [tab, setTab] = useState<(typeof TABS)[number]>("Dados");
@@ -97,6 +101,11 @@ export function PatientDetail({
             <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase ${patientStatusColor(patient.patientStatus)}`}>
               {patient.patientStatus}
             </span>
+            {risk.total >= 1 && (
+              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${riskColor(risk.level)}`} title={`${risk.faltas} falta(s) em ${risk.total} sessões passadas`}>
+                {RISK_LABELS[risk.level]}
+              </span>
+            )}
           </div>
           <p className="text-foreground/50 mt-1">
             {patient.frequency || "—"} · {formatBRL(patient.sessionFee)}/sessão · {patient.contractType}

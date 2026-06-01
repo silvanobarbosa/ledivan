@@ -3,6 +3,7 @@ import { auth } from "@/auth";
 import { therapySessions } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { AgendaClient } from "./AgendaClient";
+import { riskFromSessions } from "@/lib/therapy";
 
 export default async function AgendaPage() {
   const session = await auth();
@@ -12,6 +13,16 @@ export default async function AgendaPage() {
     where: eq(therapySessions.userId, session.user.id),
     with: { patient: { columns: { name: true } } },
   });
+
+  // risco de falta por paciente (calculado sobre o histórico completo)
+  const byPatient = new Map<string, { status: string; date: Date }[]>();
+  for (const s of list) {
+    const arr = byPatient.get(s.patientId) ?? [];
+    arr.push({ status: s.status, date: s.date as Date });
+    byPatient.set(s.patientId, arr);
+  }
+  const riskByPatient = new Map<string, string>();
+  for (const [pid, sess] of byPatient) riskByPatient.set(pid, riskFromSessions(sess).level);
 
   return (
     <div className="max-w-5xl space-y-8">
@@ -27,6 +38,7 @@ export default async function AgendaPage() {
           status: s.status,
           isOnline: s.isOnline,
           patientName: s.patient?.name ?? "—",
+          risk: riskByPatient.get(s.patientId) ?? "baixo",
         }))}
       />
     </div>

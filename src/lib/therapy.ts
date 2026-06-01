@@ -11,6 +11,40 @@ export const REMINDER_CHANNEL_LABELS: Record<string, string> = {
   telegram: "Telegram",
 };
 
+// Risco de falta: heurística sobre o histórico de sessões passadas do paciente.
+export type RiskLevel = "baixo" | "medio" | "alto";
+
+export function riskFromSessions(sessions: { status: string; date: string | Date }[]): {
+  level: RiskLevel;
+  rate: number;
+  faltas: number;
+  total: number;
+} {
+  const now = Date.now();
+  const past = sessions.filter((s) => new Date(s.date).getTime() < now);
+  const faltas = past.filter((s) => s.status === "nao_realizada" || s.status === "cancelada").length;
+  const realizadas = past.filter((s) => s.status === "realizada").length;
+  const total = faltas + realizadas;
+  const rate = total > 0 ? faltas / total : 0;
+
+  let level: RiskLevel = "baixo";
+  if (total < 3 && faltas < 2) level = "baixo";
+  else if (rate >= 0.4 || faltas >= 4) level = "alto";
+  else if (rate >= 0.2 || faltas >= 2) level = "medio";
+
+  return { level, rate, faltas, total };
+}
+
+export const RISK_LABELS: Record<RiskLevel, string> = { baixo: "Risco baixo", medio: "Risco médio", alto: "Risco alto" };
+
+export function riskColor(level: RiskLevel): string {
+  switch (level) {
+    case "alto": return "bg-[#fee2e2] text-[#b91c1c]";
+    case "medio": return "bg-[#fffbeb] text-[#b45309]";
+    default: return "bg-[#ecfdf5] text-[#047857]";
+  }
+}
+
 export function formatBRL(value: number | string | null | undefined): string {
   const n = typeof value === "string" ? parseFloat(value) : value ?? 0;
   return (n || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });

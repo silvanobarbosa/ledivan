@@ -7,6 +7,7 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { PatientDetail } from "./PatientDetail";
 import { getPreferences } from "@/lib/preferences";
+import { riskFromSessions } from "@/lib/therapy";
 
 export default async function PatientPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -58,6 +59,7 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
         records={JSON.parse(JSON.stringify(recordsList))}
         autoLinkPayments={!!prefs.autoLinkPayments}
         transcriptionEnabled={!!prefs.transcriptionEnabled}
+        risk={riskFromSessions(sessionsList.map((s) => ({ status: s.status, date: s.date as Date })))}
       />
     </div>
   );
