@@ -2,8 +2,16 @@ import { db } from "@/db";
 import { users } from "@/db/schema";
 import { eq } from "drizzle-orm";
 
+export type Integrations = {
+  googleCalendar?: boolean;
+  gmail?: boolean;
+  whatsapp?: boolean;
+  whatsappNumber?: string;
+};
+
 export type UserPreferences = {
   autoLinkPayments?: boolean; // lançar pagamento de sessão como receita no financeiro automaticamente
+  integrations?: Integrations;
   [key: string]: unknown;
 };
 

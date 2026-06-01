@@ -5,7 +5,7 @@ import { users } from "@/db/schema";
 import { auth } from "@/auth";
 import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
-import { setPreferences } from "@/lib/preferences";
+import { setPreferences, getPreferences, type Integrations } from "@/lib/preferences";
 
 // Liga/desliga o vínculo automático de pagamentos de sessão com o financeiro.
 export async function setAutoLinkPayments(enabled: boolean) {
@@ -13,6 +13,16 @@ export async function setAutoLinkPayments(enabled: boolean) {
   if (!session?.user?.id) throw new Error("Não autorizado");
 
   await setPreferences(session.user.id, { autoLinkPayments: enabled });
+  revalidatePath("/dashboard/settings");
+}
+
+// Liga/desliga uma integração (google calendar / gmail / whatsapp) e salva número do WhatsApp.
+export async function setIntegration(patch: Integrations) {
+  const session = await auth();
+  if (!session?.user?.id) throw new Error("Não autorizado");
+
+  const prefs = await getPreferences(session.user.id);
+  await setPreferences(session.user.id, { integrations: { ...prefs.integrations, ...patch } });
   revalidatePath("/dashboard/settings");
 }
 

@@ -7,6 +7,7 @@ import { signOut } from "@/auth";
 import { updateProfile } from "./actions";
 import { TelegramSync } from "./TelegramSync";
 import { AutoLinkToggle } from "./AutoLinkToggle";
+import { IntegrationsCard } from "./IntegrationsCard";
 import { getPreferences } from "@/lib/preferences";
 
 export const dynamic = "force-dynamic";
@@ -99,6 +100,8 @@ export default async function SettingsPage() {
               </div>
             </form>
           </div>
+
+          <IntegrationsCard initial={prefs.integrations ?? {}} />
 
           <AutoLinkToggle initial={!!prefs.autoLinkPayments} />
 
