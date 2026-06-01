@@ -9,6 +9,29 @@ import { setPreferences, getPreferences, type Integrations } from "@/lib/prefere
 import { normalizePhone } from "@/lib/whatsapp";
 import { detectSmtp, verifySmtp } from "@/lib/email";
 import { encryptSecret } from "@/lib/crypto";
+import { connectInstance, checkInstanceState, disconnectInstance } from "@/lib/whatsappEvolution";
+
+// WhatsApp do profissional (Evolution): conectar (QR), checar estado, desconectar.
+export async function connectWhatsapp() {
+  const session = await auth();
+  if (!session?.user?.id) throw new Error("Não autorizado");
+  return connectInstance(session.user.id);
+}
+
+export async function checkWhatsapp() {
+  const session = await auth();
+  if (!session?.user?.id) throw new Error("Não autorizado");
+  const r = await checkInstanceState(session.user.id);
+  revalidatePath("/dashboard/settings");
+  return r;
+}
+
+export async function disconnectWhatsapp() {
+  const session = await auth();
+  if (!session?.user?.id) throw new Error("Não autorizado");
+  await disconnectInstance(session.user.id);
+  revalidatePath("/dashboard/settings");
+}
 
 // Detecta/valida/salva o SMTP do próprio profissional (e-mail ao paciente sai do e-mail dele).
 export async function testAndSaveSmtp(formData: FormData) {

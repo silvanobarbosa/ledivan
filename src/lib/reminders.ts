@@ -1,7 +1,7 @@
 // Envio de lembrete de sessão pelo canal escolhido no cadastro do paciente.
-import { sendWhatsapp } from "@/lib/whatsapp";
 import { meetingUrl } from "@/lib/therapy";
 import { sendProEmail } from "@/lib/email";
+import { sendWhatsappFromUser } from "@/lib/whatsappEvolution";
 
 type PatientLite = {
   name: string;
@@ -41,8 +41,7 @@ export async function sendSessionReminder(userId: string, p: PatientLite, s: Ses
   switch (p.reminderChannel) {
     case "whatsapp":
       if (!p.phone) return false;
-      await sendWhatsapp(p.phone, msg);
-      return true;
+      return sendWhatsappFromUser(userId, p.phone, msg);
     case "email": {
       if (!p.email) return false;
       // 1º tenta pelo e-mail do próprio profissional (SMTP); senão cai no remetente da plataforma

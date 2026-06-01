@@ -92,6 +92,13 @@
       "when": 1780351672411,
       "tag": "0012_smtp_per_user",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1780356637626,
+      "tag": "0013_whatsapp_instance",
+      "breakpoints": true
     }
   ]
 }

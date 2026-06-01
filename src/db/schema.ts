@@ -33,6 +33,9 @@ export const users = pgTable("user", {
   smtpPassEnc: text("smtp_pass_enc"), // senha de app, criptografada
   smtpFromName: text("smtp_from_name"),
   emailConfigured: boolean("email_configured").default(false).notNull(),
+  // WhatsApp do profissional (instância Evolution própria) — por tenant
+  whatsappInstance: text("whatsapp_instance"),
+  whatsappConnected: boolean("whatsapp_connected").default(false).notNull(),
 
   preferences: text("preferences"), // JSON string
   createdAt: timestamp("created_at").defaultNow().notNull(),

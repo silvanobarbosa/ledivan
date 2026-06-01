@@ -11,6 +11,7 @@ import { IntegrationsCard } from "./IntegrationsCard";
 import { BookingCard } from "./BookingCard";
 import { TranscriptionToggle } from "./TranscriptionToggle";
 import { SmtpCard } from "./SmtpCard";
+import { WhatsappCard } from "./WhatsappCard";
 import { getPreferences } from "@/lib/preferences";
 
 export const dynamic = "force-dynamic";
@@ -103,6 +104,8 @@ export default async function SettingsPage() {
               </div>
             </form>
           </div>
+
+          <WhatsappCard connected={user.whatsappConnected} />
 
           <SmtpCard configured={user.emailConfigured} currentEmail={user.smtpUser} loginEmail={user.email} />
 
