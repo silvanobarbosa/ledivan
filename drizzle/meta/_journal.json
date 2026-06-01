@@ -64,6 +64,13 @@
       "when": 1780341264956,
       "tag": "0008_scale_applications",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1780341745474,
+      "tag": "0009_session_summary",
+      "breakpoints": true
     }
   ]
 }

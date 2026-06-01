@@ -54,6 +54,45 @@ export async function updateSessionStatus(sessionId: string, status: SessionStat
   revalidatePath("/dashboard/agenda");
 }
 
+// Gera um resumo pós-sessão em linguagem acolhedora para o paciente (IA), a partir das notas.
+export async function generateSessionSummary(sessionId: string): Promise<{ ok: boolean; summary?: string; error?: string }> {
+  const session = await auth();
+  if (!session?.user?.id) return { ok: false, error: "Não autorizado" };
+  const userId = session.user.id;
+
+  const s = await db.query.therapySessions.findFirst({
+    where: and(eq(therapySessions.id, sessionId), eq(therapySessions.userId, userId)),
+    with: { patient: { columns: { name: true } } },
+  });
+  if (!s) return { ok: false, error: "Sessão não encontrada." };
+  if (!s.notes || !s.notes.trim()) return { ok: false, error: "Adicione notas à sessão antes de gerar o resumo." };
+
+  try {
+    const OpenAI = (await import("openai")).default;
+    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+    const r = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [
+        {
+          role: "system",
+          content:
+            "Você escreve um resumo pós-sessão PARA O PACIENTE, em português, tom acolhedor e simples (2ª pessoa, 'você'). Sem jargão clínico, sem diagnóstico. Baseie-se apenas nas notas. Estruture em: o que conversamos, 1-2 pontos de cuidado/para refletir, e uma sugestão prática até a próxima sessão. Curto (até ~120 palavras).",
+        },
+        { role: "user", content: `Notas da sessão com ${s.patient?.name ?? "o paciente"}:\n${s.notes}` },
+      ],
+    });
+    const summary = r.choices[0].message.content?.trim() || "";
+    if (!summary) return { ok: false, error: "Não foi possível gerar." };
+
+    await db.update(therapySessions).set({ patientSummary: summary }).where(eq(therapySessions.id, sessionId));
+    revalidatePath(`/dashboard/patients/${s.patientId}`);
+    return { ok: true, summary };
+  } catch (e) {
+    console.error("Erro no resumo pós-sessão:", e);
+    return { ok: false, error: "Falha ao gerar o resumo." };
+  }
+}
+
 export async function deleteSession(sessionId: string) {
   const session = await auth();
   if (!session?.user?.id) throw new Error("Não autorizado");

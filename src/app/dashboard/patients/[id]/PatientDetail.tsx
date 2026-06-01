@@ -7,6 +7,7 @@ import { createSession, deleteSession } from "../../sessions/actions";
 import { createPayment, deletePayment } from "../../payments/actions";
 import { createRecord, deleteRecord } from "../actions";
 import { AssignmentsTab } from "./AssignmentsTab";
+import { SessionSummary } from "./SessionSummary";
 import {
   formatBRL,
   formatDate,
@@ -31,7 +32,7 @@ type Patient = {
   emergencyName: string | null; emergencyPhone: string | null; emergencyRelationship: string | null;
   contractType: string | null; paymentDay: number | null;
 };
-type Session = { id: string; date: string; duration: number; fee: string; status: string; notes: string | null; isOnline: boolean };
+type Session = { id: string; date: string; duration: number; fee: string; status: string; notes: string | null; isOnline: boolean; patientSummary: string | null };
 type Payment = { id: string; date: string; amount: string; method: string; status: string; linkedTransactionId: string | null };
 type StatusEntry = { id: string; status: string; date: string };
 type PriceEntry = { id: string; valor: string; dataEfetiva: string };
@@ -284,24 +285,34 @@ export function PatientDetail({
           {sessions.length === 0 ? <Empty text="Nenhuma sessão registrada." /> : (
             <div className="grid gap-2">
               {sessions.map((s) => (
-                <div key={s.id} className="glass-card rounded-2xl p-4 flex items-center justify-between gap-3 group">
-                  <div>
-                    <p className="font-semibold flex items-center gap-1.5">{formatDateTime(s.date)}{s.isOnline && <Video className="w-3.5 h-3.5 text-primary" />}</p>
-                    <p className="text-sm text-foreground/50">{s.duration}min · {formatBRL(s.fee)}</p>
+                <div key={s.id} className="glass-card rounded-2xl p-4 space-y-3 group">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <p className="font-semibold flex items-center gap-1.5">{formatDateTime(s.date)}{s.isOnline && <Video className="w-3.5 h-3.5 text-primary" />}</p>
+                      <p className="text-sm text-foreground/50">{s.duration}min · {formatBRL(s.fee)}</p>
+                    </div>
+                    {s.isOnline && (
+                      <a href={meetingUrl(s.id)} target="_blank" rel="noreferrer" className="text-xs font-semibold text-primary hover:underline flex items-center gap-1">
+                        <Video className="w-3.5 h-3.5" /> Entrar
+                      </a>
+                    )}
+                    <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full uppercase ${sessionStatusColor(s.status)}`}>
+                      {SESSION_STATUS_LABELS[s.status]}
+                    </span>
+                    <form action={deleteSession.bind(null, s.id)}>
+                      <button className="opacity-0 group-hover:opacity-100 text-foreground/30 hover:text-red-600 transition" title="Excluir sessão">
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </form>
                   </div>
-                  {s.isOnline && (
-                    <a href={meetingUrl(s.id)} target="_blank" rel="noreferrer" className="text-xs font-semibold text-primary hover:underline flex items-center gap-1">
-                      <Video className="w-3.5 h-3.5" /> Entrar
-                    </a>
-                  )}
-                  <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full uppercase ${sessionStatusColor(s.status)}`}>
-                    {SESSION_STATUS_LABELS[s.status]}
-                  </span>
-                  <form action={deleteSession.bind(null, s.id)}>
-                    <button className="opacity-0 group-hover:opacity-100 text-foreground/30 hover:text-red-600 transition" title="Excluir sessão">
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </form>
+                  {s.notes && <p className="text-sm text-foreground/60 whitespace-pre-wrap">{s.notes}</p>}
+                  <SessionSummary
+                    sessionId={s.id}
+                    initialSummary={s.patientSummary}
+                    hasNotes={!!s.notes}
+                    patientName={patient.name}
+                    patientPhone={patient.phone}
+                  />
                 </div>
               ))}
             </div>

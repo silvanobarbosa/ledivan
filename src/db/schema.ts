@@ -254,6 +254,7 @@ export const therapySessions = pgTable("therapy_sessions", {
   chargeable: boolean("chargeable").default(true).notNull(),
   isOnline: boolean("is_online").default(false).notNull(), // atendimento por vídeo (Jitsi)
   reminderSentAt: timestamp("reminder_sent_at"), // evita lembrete duplicado
+  patientSummary: text("patient_summary"), // resumo pós-sessão para o paciente (IA)
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
