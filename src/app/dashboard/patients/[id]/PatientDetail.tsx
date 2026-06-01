@@ -24,7 +24,7 @@ import {
   riskColor,
   type RiskLevel,
 } from "@/lib/therapy";
-import { Phone, Mail, MapPin, Plus, Link2, Pencil, Trash2, Video, Mic, Loader2, Receipt } from "lucide-react";
+import { Phone, Mail, MapPin, Plus, Link2, Pencil, Trash2, Video, Mic, Loader2, Receipt, FileText } from "lucide-react";
 
 type Patient = {
   id: string; name: string; email: string | null; phone: string | null;
@@ -128,12 +128,22 @@ export function PatientDetail({
             {patient.email && <span className="flex items-center gap-1.5"><Mail className="w-4 h-4" />{patient.email}</span>}
           </div>
         </div>
-        <Link
-          href={`/dashboard/patients/${patient.id}/edit`}
-          className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/60 text-primary font-semibold text-sm hover:bg-white transition shrink-0"
-        >
-          <Pencil className="w-4 h-4" /> Editar
-        </Link>
+        <div className="flex items-center gap-2 shrink-0">
+          <a
+            href={`/prontuario/${patient.id}`}
+            target="_blank"
+            rel="noreferrer"
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/60 text-primary font-semibold text-sm hover:bg-white transition"
+          >
+            <FileText className="w-4 h-4" /> Prontuário PDF
+          </a>
+          <Link
+            href={`/dashboard/patients/${patient.id}/edit`}
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/60 text-primary font-semibold text-sm hover:bg-white transition"
+          >
+            <Pencil className="w-4 h-4" /> Editar
+          </Link>
+        </div>
       </div>
 
       {/* Tabs */}

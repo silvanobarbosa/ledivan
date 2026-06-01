@@ -14,6 +14,7 @@ import {
   User,
   BarChart3,
   Megaphone,
+  Activity,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -23,6 +24,7 @@ type NavItem = { icon: typeof LayoutDashboard; label: string; href: string };
 const therapyNav: NavItem[] = [
   { icon: Users, label: "Pacientes", href: "/dashboard/patients" },
   { icon: CalendarDays, label: "Agenda", href: "/dashboard/agenda" },
+  { icon: Activity, label: "Atenção clínica", href: "/dashboard/clinico" },
   { icon: UserPlus, label: "Prospects", href: "/dashboard/prospects" },
 ];
 
