@@ -123,6 +123,18 @@ export const achievements = pgTable("achievements", {
   earnedAt: timestamp("earned_at").defaultNow().notNull(),
 });
 
+// Divulgação: posts para redes sociais gerados com IA.
+export const socialPosts = pgTable("social_posts", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: text("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
+  theme: text("theme"),
+  network: text("network").default("instagram").notNull(),
+  tone: text("tone"),
+  content: text("content").notNull(),
+  hashtags: text("hashtags"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 // --- Tabelas do dominio Terapia (Ledivan) ---
 // Todas escopadas por userId (multi-tenant: cada terapeuta isolado).
 

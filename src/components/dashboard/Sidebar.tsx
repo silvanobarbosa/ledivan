@@ -13,6 +13,7 @@ import {
   ChevronRight,
   User,
   BarChart3,
+  Megaphone,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -31,6 +32,7 @@ const financeNav: NavItem[] = [
   { icon: BarChart3, label: "Relatórios", href: "/dashboard/reports" },
   { icon: Wallet, label: "Metas", href: "/dashboard/goals" },
   { icon: Trophy, label: "Conquistas", href: "/dashboard/gamification" },
+  { icon: Megaphone, label: "Divulgação", href: "/dashboard/social" },
 ];
 
 export function Sidebar() {
