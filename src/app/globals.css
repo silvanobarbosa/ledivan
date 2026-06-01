@@ -45,6 +45,14 @@
   --color-warning: #b45309;
   --color-pending: #6b7280;
 
+  /* tokens nomeados usados pela landing/login (Lovable) */
+  --color-ink: #1a0f1f;
+  --color-cream: #faf6f1;
+  --color-accent-violet: #8b5cf6;
+  --color-accent-soft: #c4b5fd;
+  --color-brand-eggplant: #2b1830;
+  --color-brand-eggplant-soft: #3a2240;
+
   --font-sans: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
   --font-display: "Fraunces", ui-serif, Georgia, serif;
 }
@@ -59,6 +67,18 @@
   --border: var(--color-outline-variant);
   --input: var(--color-surface-container-low);
   --ring: var(--color-primary);
+
+  /* vars cruas usadas via var() na landing/login */
+  --brand-eggplant: #2b1830;
+  --brand-eggplant-soft: #3a2240;
+  --cream: #faf6f1;
+  --ink: #1a0f1f;
+  --accent-violet: #8b5cf6;
+  --accent-soft: #c4b5fd;
+  --muted-foreground: #6b5b6f;
+  --shadow-glass: 0 1px 2px rgba(43, 24, 48, 0.04), 0 8px 24px -12px rgba(43, 24, 48, 0.08);
+  --shadow-glass-lg: 0 2px 4px rgba(43, 24, 48, 0.05), 0 24px 48px -20px rgba(43, 24, 48, 0.18);
+  --shadow-eggplant: 0 20px 40px -20px rgba(43, 24, 48, 0.45);
 }
 
 @layer base {
@@ -80,11 +100,31 @@
 
 @layer components {
   .glass-card {
-    background: rgba(255, 255, 255, 0.8);
-    backdrop-filter: blur(12px);
-    border: 1px solid rgba(255, 255, 255, 0.3);
+    background: rgba(255, 255, 255, 0.72);
+    backdrop-filter: saturate(140%) blur(12px);
+    -webkit-backdrop-filter: saturate(140%) blur(12px);
+    border: 1px solid rgba(43, 24, 48, 0.06);
+    box-shadow: var(--shadow-glass);
+    border-radius: 1.5rem;
   }
-  
+
+  .glass-card-lg {
+    background: rgba(255, 255, 255, 0.78);
+    backdrop-filter: saturate(140%) blur(14px);
+    -webkit-backdrop-filter: saturate(140%) blur(14px);
+    border: 1px solid rgba(43, 24, 48, 0.06);
+    box-shadow: var(--shadow-glass-lg);
+    border-radius: 2rem;
+  }
+
+  .bg-ornaments {
+    background-color: var(--cream);
+    background-image:
+      radial-gradient(900px 500px at 88% -10%, rgba(139, 92, 246, 0.18), transparent 60%),
+      radial-gradient(700px 500px at -10% 10%, rgba(43, 24, 48, 0.08), transparent 60%),
+      radial-gradient(800px 600px at 50% 110%, rgba(196, 181, 253, 0.22), transparent 65%);
+  }
+
   .primary-gradient {
     background: linear-gradient(135deg, #2b1830 0%, #8b5cf6 100%);
   }
@@ -120,3 +160,16 @@
 .animate-float {
   animation: float 6s ease-in-out infinite;
 }
+
+/* Landing (Lovable): reveal + float suave */
+@keyframes reveal-up {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.reveal-up { animation: reveal-up 0.7s cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+@keyframes float-soft {
+  0%, 100% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+}
+.float-soft { animation: float-soft 6s ease-in-out infinite; }
