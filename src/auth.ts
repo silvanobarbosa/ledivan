@@ -10,6 +10,9 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     Google({
       clientId: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+      // Permite vincular o login Google a um usuario pre-existente com o mesmo e-mail
+      // (necessario para a conta seed silvanobarbosa@gmail.com ja ter dados ao entrar).
+      allowDangerousEmailAccountLinking: true,
       authorization: {
         params: {
           prompt: "consent",

@@ -12,7 +12,6 @@ import {
   Trophy,
   ChevronRight,
   User,
-  HeartHandshake,
   BarChart3,
 } from "lucide-react";
 import Link from "next/link";
@@ -60,13 +59,8 @@ export function Sidebar() {
   return (
     <aside className="w-72 bg-white border-r border-border hidden lg:flex flex-col h-screen sticky top-0">
       <div className="p-8">
-        <Link href="/" className="flex items-center gap-2">
-          <span className="w-9 h-9 rounded-2xl bg-primary text-white flex items-center justify-center">
-            <HeartHandshake className="w-5 h-5" />
-          </span>
-          <h2 className="text-2xl font-display font-bold text-primary tracking-tight">
-            Ledivan<span className="text-accent">+</span>
-          </h2>
+        <Link href="/" className="block">
+          <img src="/ledivan-color.png" alt="L'E-Divan" className="h-14 w-auto object-contain" />
         </Link>
       </div>
 

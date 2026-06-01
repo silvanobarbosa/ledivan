@@ -1,6 +1,5 @@
 import Link from "next/link";
 import {
-  HeartHandshake,
   Users,
   CalendarDays,
   Wallet,
@@ -24,14 +23,9 @@ export default function LandingPage() {
     <div className="min-h-screen bg-surface text-foreground">
       {/* Header */}
       <header className="flex items-center justify-between px-6 lg:px-16 py-6 max-w-7xl mx-auto">
-        <div className="flex items-center gap-2">
-          <span className="w-9 h-9 rounded-2xl bg-primary text-white flex items-center justify-center">
-            <HeartHandshake className="w-5 h-5" />
-          </span>
-          <span className="font-display text-2xl font-bold text-primary tracking-tight">
-            Ledivan<span className="text-accent">+</span>
-          </span>
-        </div>
+        <Link href="/" className="block">
+          <img src="/ledivan-color.png" alt="L'E-Divan" className="h-12 w-auto object-contain" />
+        </Link>
         <Link
           href="/login"
           className="flex items-center gap-2 bg-primary text-white px-5 py-2.5 rounded-2xl font-bold shadow-lg shadow-primary/20 hover:scale-[1.02] transition-all"

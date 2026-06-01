@@ -19,9 +19,7 @@ export default function LoginPage() {
           </div>
           
           <div className="relative z-10 space-y-6">
-            <div className="w-20 h-20 bg-white rounded-[24px] flex items-center justify-center text-primary shadow-xl">
-              <span className="font-display font-bold text-4xl">L<span className="text-accent">+</span></span>
-            </div>
+            <img src="/ledivan-white.png" alt="L'E-Divan" className="h-24 w-auto object-contain" />
             <h1 className="text-5xl font-display font-bold tracking-tight leading-tight">
               Seu consultório e suas finanças, num só lugar.
             </h1>
