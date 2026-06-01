@@ -12,6 +12,7 @@ export type Integrations = {
 export type UserPreferences = {
   autoLinkPayments?: boolean; // lançar pagamento de sessão como receita no financeiro automaticamente
   transcriptionEnabled?: boolean; // habilita transcrição de sessão por IA (opt-in do terapeuta)
+  meetingProvider?: "jitsi" | "meet"; // provedor de vídeo para sessões online
   integrations?: Integrations;
   [key: string]: unknown;
 };

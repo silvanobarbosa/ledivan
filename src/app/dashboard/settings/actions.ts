@@ -33,6 +33,14 @@ export async function disconnectWhatsapp() {
   revalidatePath("/dashboard/settings");
 }
 
+// Provedor de vídeo das sessões online: jitsi (padrão) ou meet (Google).
+export async function setMeetingProvider(provider: "jitsi" | "meet") {
+  const session = await auth();
+  if (!session?.user?.id) throw new Error("Não autorizado");
+  await setPreferences(session.user.id, { meetingProvider: provider });
+  revalidatePath("/dashboard/settings");
+}
+
 // Detecta/valida/salva o SMTP do próprio profissional (e-mail ao paciente sai do e-mail dele).
 export async function testAndSaveSmtp(formData: FormData) {
   const session = await auth();

@@ -12,7 +12,9 @@ import { BookingCard } from "./BookingCard";
 import { TranscriptionToggle } from "./TranscriptionToggle";
 import { SmtpCard } from "./SmtpCard";
 import { WhatsappCard } from "./WhatsappCard";
+import { MeetingCard } from "./MeetingCard";
 import { getPreferences } from "@/lib/preferences";
+import { hasGoogleAccount } from "@/lib/googleCalendar";
 
 export const dynamic = "force-dynamic";
 
@@ -27,6 +29,7 @@ export default async function SettingsPage() {
   if (!user) return null;
 
   const prefs = await getPreferences(user.id);
+  const googleConnected = await hasGoogleAccount(user.id);
 
   return (
     <div className="max-w-4xl mx-auto space-y-12 pb-20">
@@ -104,6 +107,8 @@ export default async function SettingsPage() {
               </div>
             </form>
           </div>
+
+          <MeetingCard initial={(prefs.meetingProvider as "jitsi" | "meet") ?? "jitsi"} hasGoogle={googleConnected} />
 
           <WhatsappCard connected={user.whatsappConnected} />
 

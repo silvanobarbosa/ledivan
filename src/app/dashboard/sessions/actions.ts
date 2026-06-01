@@ -6,6 +6,8 @@ import { auth } from "@/auth";
 import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { getPreferences } from "@/lib/preferences";
+import { createMeetLink } from "@/lib/googleCalendar";
 
 type SessionStatus = "realizada" | "nao_realizada" | "cancelada" | "realocada" | "agendada";
 
@@ -25,17 +27,34 @@ export async function createSession(formData: FormData) {
 
   const dateRaw = formData.get("date") as string;
   const fee = (formData.get("fee") as string)?.replace(",", ".") || patient.sessionFee;
+  const isOnline = formData.get("isOnline") === "on";
+  const date = dateRaw ? new Date(dateRaw) : new Date();
+  const duration = formData.get("duration") ? parseInt(formData.get("duration") as string) : 50;
+
+  // Se online e a preferência for Google Meet, tenta gerar o link no Calendar do profissional.
+  let meetingUrl: string | null = null;
+  if (isOnline) {
+    const prefs = await getPreferences(userId);
+    if (prefs.meetingProvider === "meet") {
+      meetingUrl = await createMeetLink(userId, {
+        summary: `Sessão — ${patient.name}`,
+        startISO: date.toISOString(),
+        durationMin: duration,
+      });
+    }
+  }
 
   await db.insert(therapySessions).values({
     userId,
     patientId,
-    date: dateRaw ? new Date(dateRaw) : new Date(),
-    duration: formData.get("duration") ? parseInt(formData.get("duration") as string) : 50,
+    date,
+    duration,
     fee,
     status: ((formData.get("status") as string) || "agendada") as SessionStatus,
     notes: (formData.get("notes") as string) || null,
     chargeable: formData.get("chargeable") !== "false",
-    isOnline: formData.get("isOnline") === "on",
+    isOnline,
+    meetingUrl,
   });
 
   revalidatePath(`/dashboard/patients/${patientId}`);

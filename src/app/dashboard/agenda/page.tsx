@@ -37,6 +37,7 @@ export default async function AgendaPage() {
           duration: s.duration,
           status: s.status,
           isOnline: s.isOnline,
+          meetingUrl: s.meetingUrl,
           patientName: s.patient?.name ?? "—",
           risk: riskByPatient.get(s.patientId) ?? "baixo",
         }))}

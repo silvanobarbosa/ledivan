@@ -35,7 +35,7 @@ type Patient = {
   emergencyName: string | null; emergencyPhone: string | null; emergencyRelationship: string | null;
   contractType: string | null; paymentDay: number | null;
 };
-type Session = { id: string; date: string; duration: number; fee: string; status: string; notes: string | null; isOnline: boolean; patientSummary: string | null };
+type Session = { id: string; date: string; duration: number; fee: string; status: string; notes: string | null; isOnline: boolean; patientSummary: string | null; meetingUrl: string | null };
 type Payment = { id: string; date: string; amount: string; method: string; status: string; linkedTransactionId: string | null };
 type StatusEntry = { id: string; status: string; date: string };
 type PriceEntry = { id: string; valor: string; dataEfetiva: string };
@@ -313,7 +313,7 @@ export function PatientDetail({
                       <p className="text-sm text-foreground/50">{s.duration}min · {formatBRL(s.fee)}</p>
                     </div>
                     {s.isOnline && (
-                      <a href={meetingUrl(s.id)} target="_blank" rel="noreferrer" className="text-xs font-semibold text-primary hover:underline flex items-center gap-1">
+                      <a href={s.meetingUrl || meetingUrl(s.id)} target="_blank" rel="noreferrer" className="text-xs font-semibold text-primary hover:underline flex items-center gap-1">
                         <Video className="w-3.5 h-3.5" /> Entrar
                       </a>
                     )}
