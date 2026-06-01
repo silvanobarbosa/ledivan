@@ -35,6 +35,7 @@ export async function createSession(formData: FormData) {
     status: ((formData.get("status") as string) || "agendada") as SessionStatus,
     notes: (formData.get("notes") as string) || null,
     chargeable: formData.get("chargeable") !== "false",
+    isOnline: formData.get("isOnline") === "on",
   });
 
   revalidatePath(`/dashboard/patients/${patientId}`);

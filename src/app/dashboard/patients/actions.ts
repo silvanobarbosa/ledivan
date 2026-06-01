@@ -42,6 +42,8 @@ export async function createPatient(formData: FormData) {
     sessionsInPacket: formData.get("sessionsInPacket")
       ? parseInt(formData.get("sessionsInPacket") as string)
       : null,
+    reminderEnabled: formData.get("reminderEnabled") === "on",
+    reminderChannel: (formData.get("reminderChannel") as string) || "whatsapp",
   }).returning();
 
   // registra historico inicial
@@ -85,6 +87,8 @@ export async function updatePatient(patientId: string, formData: FormData) {
     emergencyRelationship: (formData.get("emergencyRelationship") as string) ?? existing.emergencyRelationship,
     paymentDay: formData.get("paymentDay") ? parseInt(formData.get("paymentDay") as string) : existing.paymentDay,
     contractType: ((formData.get("contractType") as string) || existing.contractType) as "pacote" | "avulso",
+    reminderEnabled: formData.get("reminderEnabled") === "on",
+    reminderChannel: (formData.get("reminderChannel") as string) || existing.reminderChannel,
   }).where(eq(patients.id, patientId));
 
   // historico de mudancas

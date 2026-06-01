@@ -15,8 +15,9 @@ import {
   sessionStatusColor,
   paymentStatusColor,
   patientStatusColor,
+  meetingUrl,
 } from "@/lib/therapy";
-import { Phone, Mail, MapPin, Plus, Link2, Pencil, Trash2 } from "lucide-react";
+import { Phone, Mail, MapPin, Plus, Link2, Pencil, Trash2, Video } from "lucide-react";
 
 type Patient = {
   id: string; name: string; email: string | null; phone: string | null;
@@ -25,7 +26,7 @@ type Patient = {
   emergencyName: string | null; emergencyPhone: string | null; emergencyRelationship: string | null;
   contractType: string | null; paymentDay: number | null;
 };
-type Session = { id: string; date: string; duration: number; fee: string; status: string; notes: string | null };
+type Session = { id: string; date: string; duration: number; fee: string; status: string; notes: string | null; isOnline: boolean };
 type Payment = { id: string; date: string; amount: string; method: string; status: string; linkedTransactionId: string | null };
 type StatusEntry = { id: string; status: string; date: string };
 type PriceEntry = { id: string; valor: string; dataEfetiva: string };
@@ -183,6 +184,10 @@ export function PatientDetail({
                 <select name="status" className={inputCls} defaultValue="agendada">
                   {Object.entries(SESSION_STATUS_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
                 </select></div>
+              <label className="sm:col-span-2 flex items-center gap-2 text-sm cursor-pointer">
+                <input type="checkbox" name="isOnline" value="on" className="accent-primary w-4 h-4" />
+                <Video className="w-4 h-4 text-primary" /> Atendimento online (gera sala de vídeo)
+              </label>
               <div className="sm:col-span-2"><textarea name="notes" rows={2} placeholder="Notas da sessão" className={inputCls} /></div>
               <button className="sm:col-span-2 bg-primary text-white py-2.5 rounded-xl font-bold">Salvar sessão</button>
             </form>
@@ -192,9 +197,14 @@ export function PatientDetail({
               {sessions.map((s) => (
                 <div key={s.id} className="glass-card rounded-2xl p-4 flex items-center justify-between gap-3 group">
                   <div>
-                    <p className="font-semibold">{formatDateTime(s.date)}</p>
+                    <p className="font-semibold flex items-center gap-1.5">{formatDateTime(s.date)}{s.isOnline && <Video className="w-3.5 h-3.5 text-primary" />}</p>
                     <p className="text-sm text-foreground/50">{s.duration}min · {formatBRL(s.fee)}</p>
                   </div>
+                  {s.isOnline && (
+                    <a href={meetingUrl(s.id)} target="_blank" rel="noreferrer" className="text-xs font-semibold text-primary hover:underline flex items-center gap-1">
+                      <Video className="w-3.5 h-3.5" /> Entrar
+                    </a>
+                  )}
                   <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full uppercase ${sessionStatusColor(s.status)}`}>
                     {SESSION_STATUS_LABELS[s.status]}
                   </span>

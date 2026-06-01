@@ -106,6 +106,20 @@ export default async function EditPatientPage({ params }: { params: Promise<{ id
           </div>
         </div>
 
+        <div className="pt-2 border-t border-border">
+          <p className="text-xs font-bold text-foreground/40 uppercase tracking-widest mb-3 mt-3">Lembrete de sessão</p>
+          <label className="flex items-center gap-2 text-sm mb-3 cursor-pointer">
+            <input type="checkbox" name="reminderEnabled" defaultChecked={patient.reminderEnabled} className="accent-primary w-4 h-4" />
+            Enviar lembrete automático antes da sessão
+          </label>
+          <label className={labelCls}>Canal do lembrete</label>
+          <select name="reminderChannel" className={inputCls} defaultValue={patient.reminderChannel}>
+            <option value="whatsapp">WhatsApp</option>
+            <option value="email">E-mail</option>
+            <option value="telegram">Telegram</option>
+          </select>
+        </div>
+
         <div>
           <label className={labelCls}>Observações</label>
           <textarea name="notes" rows={3} defaultValue={patient.notes ?? ""} className={inputCls} />

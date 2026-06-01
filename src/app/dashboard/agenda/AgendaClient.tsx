@@ -3,11 +3,12 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronLeft, ChevronRight, X } from "lucide-react";
-import { SESSION_STATUS_LABELS, sessionStatusColor } from "@/lib/therapy";
+import { SESSION_STATUS_LABELS, sessionStatusColor, meetingUrl } from "@/lib/therapy";
 import { updateSessionStatus } from "../sessions/actions";
+import { Video } from "lucide-react";
 
 type SessionStatus = "realizada" | "nao_realizada" | "cancelada" | "realocada" | "agendada";
-type AgendaSession = { id: string; date: string; duration: number; status: string; patientName: string };
+type AgendaSession = { id: string; date: string; duration: number; status: string; patientName: string; isOnline: boolean };
 
 const DAY_NAMES = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 const START_HOUR = 7;
@@ -156,6 +157,11 @@ export function AgendaClient({ sessions }: { sessions: AgendaSession[] }) {
               </div>
               <button onClick={() => setSelected(null)} className="p-1.5 rounded-lg hover:bg-surface transition"><X className="w-4 h-4" /></button>
             </div>
+            {selected.isOnline && (
+              <a href={meetingUrl(selected.id)} target="_blank" rel="noreferrer" className="flex items-center justify-center gap-2 w-full rounded-xl bg-primary text-white py-2.5 text-sm font-bold hover:bg-primary-container transition">
+                <Video className="w-4 h-4" /> Entrar na sala de vídeo
+              </a>
+            )}
             <div>
               <p className="text-xs font-bold text-foreground/40 uppercase tracking-widest mb-2">Status</p>
               <div className="grid grid-cols-2 gap-2">

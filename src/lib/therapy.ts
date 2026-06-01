@@ -1,5 +1,16 @@
 // Helpers do domínio Terapia (Ledivan): formatação e labels.
 
+// Sala de vídeo (Jitsi) derivada do id da sessão — sem config/OAuth.
+export function meetingUrl(sessionId: string): string {
+  return `https://meet.jit.si/LEDivan-${sessionId}`;
+}
+
+export const REMINDER_CHANNEL_LABELS: Record<string, string> = {
+  whatsapp: "WhatsApp",
+  email: "E-mail",
+  telegram: "Telegram",
+};
+
 export function formatBRL(value: number | string | null | undefined): string {
   const n = typeof value === "string" ? parseFloat(value) : value ?? 0;
   return (n || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });

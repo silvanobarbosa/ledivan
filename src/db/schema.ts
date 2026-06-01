@@ -151,6 +151,9 @@ export const patients = pgTable("patients", {
   paymentDay: integer("payment_day"), // dia do mes para cobranca
   contractType: contractTypeEnum("contract_type").default("avulso"),
   sessionsInPacket: integer("sessions_in_packet"),
+  // Lembrete de sessao (escolha do terapeuta por paciente)
+  reminderEnabled: boolean("reminder_enabled").default(false).notNull(),
+  reminderChannel: text("reminder_channel").default("whatsapp").notNull(), // whatsapp | email | telegram
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -190,6 +193,8 @@ export const therapySessions = pgTable("therapy_sessions", {
   notes: text("notes"),
   justificativa: text("justificativa"), // p/ faltas/cancelamentos
   chargeable: boolean("chargeable").default(true).notNull(),
+  isOnline: boolean("is_online").default(false).notNull(), // atendimento por vídeo (Jitsi)
+  reminderSentAt: timestamp("reminder_sent_at"), // evita lembrete duplicado
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

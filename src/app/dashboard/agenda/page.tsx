@@ -25,6 +25,7 @@ export default async function AgendaPage() {
           date: s.date as unknown as string,
           duration: s.duration,
           status: s.status,
+          isOnline: s.isOnline,
           patientName: s.patient?.name ?? "—",
         }))}
       />
