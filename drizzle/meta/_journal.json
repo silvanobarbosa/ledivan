@@ -43,6 +43,13 @@
       "when": 1780337307327,
       "tag": "0005_social_posts",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1780339621272,
+      "tag": "0006_assignments",
+      "breakpoints": true
     }
   ]
 }

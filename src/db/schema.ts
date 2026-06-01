@@ -123,6 +123,26 @@ export const achievements = pgTable("achievements", {
   earnedAt: timestamp("earned_at").defaultNow().notNull(),
 });
 
+// Espaço do Paciente: tarefas (lição de casa) com resposta multimídia.
+export const assignments = pgTable("assignments", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: text("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
+  patientId: uuid("patient_id").references(() => patients.id, { onDelete: "cascade" }).notNull(),
+  token: text("token").unique().notNull(), // link mágico do paciente: /p/<token>
+  title: text("title").notNull(),
+  instructions: text("instructions"),
+  responseType: text("response_type").default("texto").notNull(), // texto | foto | audio | video | livre
+  status: text("status").default("pendente").notNull(), // pendente | respondida
+  dueDate: timestamp("due_date"),
+  // resposta do paciente (MVP: uma resposta por tarefa)
+  responseText: text("response_text"),
+  responseFileUrl: text("response_file_url"),
+  responseFileType: text("response_file_type"),
+  respondedAt: timestamp("responded_at"),
+  therapistComment: text("therapist_comment"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 // Divulgação: posts para redes sociais gerados com IA.
 export const socialPosts = pgTable("social_posts", {
   id: uuid("id").primaryKey().defaultRandom(),

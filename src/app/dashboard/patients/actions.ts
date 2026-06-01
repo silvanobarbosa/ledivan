@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@/db";
-import { patients, patientStatusHistory, patientPriceHistory, patientRecords } from "@/db/schema";
+import { patients, patientStatusHistory, patientPriceHistory, patientRecords, assignments } from "@/db/schema";
 import { auth } from "@/auth";
 import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
@@ -141,6 +141,61 @@ export async function deleteRecord(recordId: string) {
   if (!rec) return;
   await db.delete(patientRecords).where(eq(patientRecords.id, recordId));
   revalidatePath(`/dashboard/patients/${rec.patientId}`);
+}
+
+// --- Espaço do Paciente: tarefas (lição de casa) ---
+
+export async function createAssignment(patientId: string, formData: FormData) {
+  const session = await auth();
+  if (!session?.user?.id) throw new Error("Não autorizado");
+  const userId = session.user.id;
+
+  const patient = await db.query.patients.findFirst({
+    where: and(eq(patients.id, patientId), eq(patients.userId, userId)),
+  });
+  if (!patient) throw new Error("Paciente não encontrado");
+
+  const title = (formData.get("title") as string)?.trim();
+  if (!title) throw new Error("Título obrigatório");
+
+  const dueRaw = formData.get("dueDate") as string;
+  const token = crypto.randomUUID().replace(/-/g, "") + crypto.randomUUID().replace(/-/g, "").slice(0, 8);
+
+  await db.insert(assignments).values({
+    userId,
+    patientId,
+    token,
+    title,
+    instructions: (formData.get("instructions") as string) || null,
+    responseType: (formData.get("responseType") as string) || "texto",
+    dueDate: dueRaw ? new Date(dueRaw) : null,
+  });
+
+  revalidatePath(`/dashboard/patients/${patientId}`);
+}
+
+export async function deleteAssignment(assignmentId: string) {
+  const session = await auth();
+  if (!session?.user?.id) throw new Error("Não autorizado");
+  const userId = session.user.id;
+  const a = await db.query.assignments.findFirst({
+    where: and(eq(assignments.id, assignmentId), eq(assignments.userId, userId)),
+  });
+  if (!a) return;
+  await db.delete(assignments).where(eq(assignments.id, assignmentId));
+  revalidatePath(`/dashboard/patients/${a.patientId}`);
+}
+
+export async function commentAssignment(assignmentId: string, comment: string) {
+  const session = await auth();
+  if (!session?.user?.id) throw new Error("Não autorizado");
+  const userId = session.user.id;
+  const a = await db.query.assignments.findFirst({
+    where: and(eq(assignments.id, assignmentId), eq(assignments.userId, userId)),
+  });
+  if (!a) return;
+  await db.update(assignments).set({ therapistComment: comment }).where(eq(assignments.id, assignmentId));
+  revalidatePath(`/dashboard/patients/${a.patientId}`);
 }
 
 export async function deletePatient(patientId: string) {

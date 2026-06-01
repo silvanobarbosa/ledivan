@@ -16,6 +16,7 @@ export default auth(async function proxy(req) {
     pathname === "/" ||
     pathname.startsWith("/login") ||
     pathname.startsWith("/agendar") ||
+    pathname.startsWith("/p/") ||
     pathname.startsWith("/api/scan") ||
     pathname.startsWith("/api/insights");
 

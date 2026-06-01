@@ -1,6 +1,6 @@
 import { db } from "@/db";
 import { auth } from "@/auth";
-import { patients, therapySessions, sessionPayments, patientStatusHistory, patientPriceHistory, patientRecords } from "@/db/schema";
+import { patients, therapySessions, sessionPayments, patientStatusHistory, patientPriceHistory, patientRecords, assignments } from "@/db/schema";
 import { and, eq, desc } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import Link from "next/link";
@@ -44,6 +44,11 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
     getPreferences(userId),
   ]);
 
+  const assignmentsList = await db.query.assignments.findMany({
+    where: eq(assignments.patientId, id),
+    orderBy: [desc(assignments.createdAt)],
+  });
+
   return (
     <div className="max-w-4xl space-y-6">
       <Link href="/dashboard/patients" className="inline-flex items-center gap-2 text-foreground/50 hover:text-primary transition">
@@ -60,6 +65,7 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
         autoLinkPayments={!!prefs.autoLinkPayments}
         transcriptionEnabled={!!prefs.transcriptionEnabled}
         risk={riskFromSessions(sessionsList.map((s) => ({ status: s.status, date: s.date as Date })))}
+        assignments={JSON.parse(JSON.stringify(assignmentsList))}
       />
     </div>
   );

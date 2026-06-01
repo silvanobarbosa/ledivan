@@ -6,6 +6,7 @@ import Link from "next/link";
 import { createSession, deleteSession } from "../../sessions/actions";
 import { createPayment, deletePayment } from "../../payments/actions";
 import { createRecord, deleteRecord } from "../actions";
+import { AssignmentsTab } from "./AssignmentsTab";
 import {
   formatBRL,
   formatDate,
@@ -35,20 +36,26 @@ type Payment = { id: string; date: string; amount: string; method: string; statu
 type StatusEntry = { id: string; status: string; date: string };
 type PriceEntry = { id: string; valor: string; dataEfetiva: string };
 type RecordEntry = { id: string; type: string; title: string | null; content: string; createdAt: string };
+type AssignmentEntry = {
+  id: string; token: string; title: string; instructions: string | null; responseType: string;
+  status: string; dueDate: string | null; responseText: string | null; responseFileUrl: string | null;
+  responseFileType: string | null; respondedAt: string | null; therapistComment: string | null;
+};
 
 const RECORD_TYPE_LABELS: Record<string, string> = { evolucao: "Evolução", anamnese: "Anamnese", nota: "Nota" };
 
 const inputCls = "w-full px-4 py-2.5 rounded-xl bg-white/70 border border-border focus:ring-2 focus:ring-accent/20 focus:border-accent outline-none transition text-sm";
 
-const TABS = ["Dados", "Prontuário", "Sessões", "Pagamentos", "Histórico"] as const;
+const TABS = ["Dados", "Prontuário", "Tarefas", "Sessões", "Pagamentos", "Histórico"] as const;
 
 export function PatientDetail({
-  patient, sessions, payments, statusHistory, priceHistory, records, autoLinkPayments, transcriptionEnabled, risk,
+  patient, sessions, payments, statusHistory, priceHistory, records, autoLinkPayments, transcriptionEnabled, risk, assignments,
 }: {
   patient: Patient; sessions: Session[]; payments: Payment[];
   statusHistory: StatusEntry[]; priceHistory: PriceEntry[]; records: RecordEntry[];
   autoLinkPayments: boolean; transcriptionEnabled: boolean;
   risk: { level: RiskLevel; rate: number; faltas: number; total: number };
+  assignments: AssignmentEntry[];
 }) {
   const router = useRouter();
   const [tab, setTab] = useState<(typeof TABS)[number]>("Dados");
@@ -240,6 +247,9 @@ export function PatientDetail({
           )}
         </div>
       )}
+
+      {/* Tarefas (Espaço do Paciente) */}
+      {tab === "Tarefas" && <AssignmentsTab patientId={patient.id} assignments={assignments} />}
 
       {/* Sessões */}
       {tab === "Sessões" && (
