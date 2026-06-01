@@ -8,6 +8,7 @@ import { createPayment, deletePayment } from "../../payments/actions";
 import { createRecord, deleteRecord } from "../actions";
 import { AssignmentsTab } from "./AssignmentsTab";
 import { SessionSummary } from "./SessionSummary";
+import { TreatmentPlan } from "./TreatmentPlan";
 import {
   formatBRL,
   formatDate,
@@ -50,7 +51,7 @@ const inputCls = "w-full px-4 py-2.5 rounded-xl bg-white/70 border border-border
 const TABS = ["Dados", "Prontuário", "Espaço", "Sessões", "Pagamentos", "Histórico"] as const;
 
 export function PatientDetail({
-  patient, sessions, payments, statusHistory, priceHistory, records, autoLinkPayments, transcriptionEnabled, risk, assignments, moodToken, moodLogs, scales,
+  patient, sessions, payments, statusHistory, priceHistory, records, autoLinkPayments, transcriptionEnabled, risk, assignments, moodToken, moodLogs, scales, treatmentGoals,
 }: {
   patient: Patient; sessions: Session[]; payments: Payment[];
   statusHistory: StatusEntry[]; priceHistory: PriceEntry[]; records: RecordEntry[];
@@ -60,6 +61,7 @@ export function PatientDetail({
   moodToken: string | null;
   moodLogs: { id: string; mood: number; note: string | null; loggedAt: string }[];
   scales: { id: string; token: string; scaleType: string; status: string; score: number | null; severity: string | null; appliedAt: string | null }[];
+  treatmentGoals: { id: string; title: string; description: string | null; status: string; progress: number; targetDate: string | null }[];
 }) {
   const router = useRouter();
   const [tab, setTab] = useState<(typeof TABS)[number]>("Dados");
@@ -171,6 +173,7 @@ export function PatientDetail({
       {/* Prontuário */}
       {tab === "Prontuário" && (
         <div className="space-y-4">
+          <TreatmentPlan patientId={patient.id} goals={treatmentGoals} />
           <div className="flex flex-wrap gap-4">
             <button onClick={() => setShowRecord((s) => !s)} className="flex items-center gap-2 text-primary font-semibold text-sm hover:underline">
               <Plus className="w-4 h-4" /> Novo registro

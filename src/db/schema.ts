@@ -258,6 +258,19 @@ export const therapySessions = pgTable("therapy_sessions", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
+// Plano terapêutico: objetivos do tratamento + progresso.
+export const treatmentGoals = pgTable("treatment_goals", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: text("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
+  patientId: uuid("patient_id").references(() => patients.id, { onDelete: "cascade" }).notNull(),
+  title: text("title").notNull(),
+  description: text("description"),
+  status: text("status").default("ativo").notNull(), // ativo | atingido | pausado
+  progress: integer("progress").default(0).notNull(), // 0-100
+  targetDate: timestamp("target_date"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+});
+
 // Prontuário: registros clínicos por paciente (evolução, anamnese, nota).
 export const patientRecords = pgTable("patient_records", {
   id: uuid("id").primaryKey().defaultRandom(),

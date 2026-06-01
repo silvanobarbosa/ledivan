@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@/db";
-import { patients, patientStatusHistory, patientPriceHistory, patientRecords, assignments, scaleApplications } from "@/db/schema";
+import { patients, patientStatusHistory, patientPriceHistory, patientRecords, assignments, scaleApplications, treatmentGoals } from "@/db/schema";
 import { auth } from "@/auth";
 import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
@@ -141,6 +141,56 @@ export async function deleteRecord(recordId: string) {
   if (!rec) return;
   await db.delete(patientRecords).where(eq(patientRecords.id, recordId));
   revalidatePath(`/dashboard/patients/${rec.patientId}`);
+}
+
+// --- Plano terapêutico (objetivos) ---
+
+export async function createTreatmentGoal(patientId: string, formData: FormData) {
+  const session = await auth();
+  if (!session?.user?.id) throw new Error("Não autorizado");
+  const userId = session.user.id;
+  const patient = await db.query.patients.findFirst({
+    where: and(eq(patients.id, patientId), eq(patients.userId, userId)),
+  });
+  if (!patient) throw new Error("Paciente não encontrado");
+  const title = (formData.get("title") as string)?.trim();
+  if (!title) throw new Error("Título obrigatório");
+  const targetRaw = formData.get("targetDate") as string;
+  await db.insert(treatmentGoals).values({
+    userId,
+    patientId,
+    title,
+    description: (formData.get("description") as string) || null,
+    targetDate: targetRaw ? new Date(targetRaw) : null,
+  });
+  revalidatePath(`/dashboard/patients/${patientId}`);
+}
+
+export async function updateTreatmentGoal(goalId: string, progress: number, status: string) {
+  const session = await auth();
+  if (!session?.user?.id) throw new Error("Não autorizado");
+  const userId = session.user.id;
+  const g = await db.query.treatmentGoals.findFirst({
+    where: and(eq(treatmentGoals.id, goalId), eq(treatmentGoals.userId, userId)),
+  });
+  if (!g) return;
+  const clamped = Math.max(0, Math.min(100, Math.round(progress)));
+  await db.update(treatmentGoals)
+    .set({ progress: clamped, status: clamped >= 100 ? "atingido" : status })
+    .where(eq(treatmentGoals.id, goalId));
+  revalidatePath(`/dashboard/patients/${g.patientId}`);
+}
+
+export async function deleteTreatmentGoal(goalId: string) {
+  const session = await auth();
+  if (!session?.user?.id) throw new Error("Não autorizado");
+  const userId = session.user.id;
+  const g = await db.query.treatmentGoals.findFirst({
+    where: and(eq(treatmentGoals.id, goalId), eq(treatmentGoals.userId, userId)),
+  });
+  if (!g) return;
+  await db.delete(treatmentGoals).where(eq(treatmentGoals.id, goalId));
+  revalidatePath(`/dashboard/patients/${g.patientId}`);
 }
 
 // Cria uma aplicação de escala (PHQ-9/GAD-7) e gera o link do paciente.
