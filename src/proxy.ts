@@ -12,10 +12,10 @@ export default auth(async function proxy(req) {
   }
 
   // Define rotas públicas
-  const isPublicRoute = 
-    pathname === "/" || 
-    pathname.startsWith("/login") || 
-    pathname.startsWith("/demo") ||
+  const isPublicRoute =
+    pathname === "/" ||
+    pathname.startsWith("/login") ||
+    pathname.startsWith("/agendar") ||
     pathname.startsWith("/api/scan") ||
     pathname.startsWith("/api/insights");
 

@@ -1,0 +1,62 @@
+"use server";
+
+import { db } from "@/db";
+import { users, patients, therapySessions } from "@/db/schema";
+import { and, eq, or } from "drizzle-orm";
+import { revalidatePath } from "next/cache";
+
+// Agendamento público (sem auth). Cria/usa um paciente (prospect) e agenda a sessão
+// no espaço do terapeuta dono do slug. Escreve apenas no userId resolvido pelo slug.
+export async function createPublicBooking(slug: string, formData: FormData) {
+  const therapist = await db.query.users.findFirst({ where: eq(users.bookingSlug, slug) });
+  if (!therapist) return { ok: false, error: "Link inválido." };
+  const userId = therapist.id;
+
+  const name = (formData.get("name") as string)?.trim();
+  const phone = ((formData.get("phone") as string) || "").trim() || null;
+  const email = ((formData.get("email") as string) || "").trim() || null;
+  const dateRaw = formData.get("date") as string;
+  const note = ((formData.get("note") as string) || "").trim() || null;
+
+  if (!name) return { ok: false, error: "Informe seu nome." };
+  if (!phone && !email) return { ok: false, error: "Informe telefone ou e-mail." };
+  if (!dateRaw) return { ok: false, error: "Escolha data e horário." };
+
+  // tenta achar paciente existente por telefone/e-mail
+  let patient = null;
+  const conds = [];
+  if (phone) conds.push(eq(patients.phone, phone));
+  if (email) conds.push(eq(patients.email, email));
+  if (conds.length) {
+    patient = await db.query.patients.findFirst({
+      where: and(eq(patients.userId, userId), conds.length === 1 ? conds[0] : or(...conds)),
+    });
+  }
+
+  if (!patient) {
+    [patient] = await db.insert(patients).values({
+      userId,
+      name,
+      phone,
+      email,
+      patientStatus: "prospect",
+      prospectDate: new Date(),
+      prospectObservacoes: "Agendou pelo link público.",
+      sessionFee: "0",
+    }).returning();
+  }
+
+  await db.insert(therapySessions).values({
+    userId,
+    patientId: patient.id,
+    date: new Date(dateRaw),
+    duration: 50,
+    fee: patient.sessionFee,
+    status: "agendada",
+    notes: note ? `Pedido via link público: ${note}` : "Agendado pelo link público.",
+  });
+
+  revalidatePath("/dashboard/agenda");
+  revalidatePath("/dashboard/prospects");
+  return { ok: true };
+}

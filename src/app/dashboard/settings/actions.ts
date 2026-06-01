@@ -17,6 +17,32 @@ export async function setAutoLinkPayments(enabled: boolean) {
   revalidatePath("/dashboard/settings");
 }
 
+// Define/atualiza o slug público de autoagendamento (/agendar/<slug>).
+export async function setBookingSlug(raw: string) {
+  const session = await auth();
+  if (!session?.user?.id) throw new Error("Não autorizado");
+  const userId = session.user.id;
+
+  let slug = (raw || "")
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .replace(/[^a-z0-9-]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 40);
+  if (!slug) return { ok: false, error: "Informe um nome para o link." };
+
+  // garante unicidade (ignora o próprio usuário)
+  const existing = await db.query.users.findFirst({ where: eq(users.bookingSlug, slug) });
+  if (existing && existing.id !== userId) {
+    slug = `${slug}-${userId.slice(0, 4)}`;
+  }
+
+  await db.update(users).set({ bookingSlug: slug }).where(eq(users.id, userId));
+  revalidatePath("/dashboard/settings");
+  return { ok: true, slug };
+}
+
 // Liga/desliga uma integração (google calendar / gmail / whatsapp) e salva número do WhatsApp.
 export async function setIntegration(patch: Integrations) {
   const session = await auth();

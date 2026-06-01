@@ -8,6 +8,7 @@ import { updateProfile } from "./actions";
 import { TelegramSync } from "./TelegramSync";
 import { AutoLinkToggle } from "./AutoLinkToggle";
 import { IntegrationsCard } from "./IntegrationsCard";
+import { BookingCard } from "./BookingCard";
 import { getPreferences } from "@/lib/preferences";
 
 export const dynamic = "force-dynamic";
@@ -100,6 +101,8 @@ export default async function SettingsPage() {
               </div>
             </form>
           </div>
+
+          <BookingCard initialSlug={user.bookingSlug} />
 
           <IntegrationsCard initial={prefs.integrations ?? {}} />
 

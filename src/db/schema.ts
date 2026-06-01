@@ -24,6 +24,7 @@ export const users = pgTable("user", {
   telegramVerificationCode: text("telegram_verification_code"),
   telegramVerificationExpires: timestamp("telegram_verification_expires"),
   whatsappId: text("whatsapp_id").unique(), // últimos 11 dígitos do número, p/ vincular mensagens recebidas
+  bookingSlug: text("booking_slug").unique(), // link público de autoagendamento /agendar/<slug>
 
   preferences: text("preferences"), // JSON string
   createdAt: timestamp("created_at").defaultNow().notNull(),

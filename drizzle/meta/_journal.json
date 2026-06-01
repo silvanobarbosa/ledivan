@@ -29,6 +29,13 @@
       "when": 1780334165163,
       "tag": "0003_reminders_online",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1780334646993,
+      "tag": "0004_booking_slug",
+      "breakpoints": true
     }
   ]
 }
