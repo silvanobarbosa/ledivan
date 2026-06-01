@@ -25,6 +25,14 @@ export const users = pgTable("user", {
   telegramVerificationExpires: timestamp("telegram_verification_expires"),
   whatsappId: text("whatsapp_id").unique(), // últimos 11 dígitos do número, p/ vincular mensagens recebidas
   bookingSlug: text("booking_slug").unique(), // link público de autoagendamento /agendar/<slug>
+  // SMTP próprio do profissional (e-mails ao paciente saem do e-mail dele) — por tenant
+  smtpHost: text("smtp_host"),
+  smtpPort: integer("smtp_port"),
+  smtpSecure: boolean("smtp_secure").default(false),
+  smtpUser: text("smtp_user"),
+  smtpPassEnc: text("smtp_pass_enc"), // senha de app, criptografada
+  smtpFromName: text("smtp_from_name"),
+  emailConfigured: boolean("email_configured").default(false).notNull(),
 
   preferences: text("preferences"), // JSON string
   createdAt: timestamp("created_at").defaultNow().notNull(),

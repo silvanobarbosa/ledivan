@@ -34,6 +34,7 @@ export async function GET(req: NextRequest) {
     const p = s.patient;
     if (!p?.reminderEnabled) { skipped++; continue; }
     const ok = await sendSessionReminder(
+      s.userId,
       { name: p.name, phone: p.phone, email: p.email, reminderChannel: p.reminderChannel },
       { id: s.id, date: s.date, isOnline: s.isOnline },
     );

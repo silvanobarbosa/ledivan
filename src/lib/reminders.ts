@@ -1,6 +1,7 @@
 // Envio de lembrete de sessão pelo canal escolhido no cadastro do paciente.
 import { sendWhatsapp } from "@/lib/whatsapp";
 import { meetingUrl } from "@/lib/therapy";
+import { sendProEmail } from "@/lib/email";
 
 type PatientLite = {
   name: string;
@@ -34,17 +35,21 @@ async function sendEmail(to: string, subject: string, text: string): Promise<boo
   return res.ok;
 }
 
-// Retorna true se conseguiu disparar pelo canal.
-export async function sendSessionReminder(p: PatientLite, s: SessionLite): Promise<boolean> {
+// Retorna true se conseguiu disparar pelo canal. userId = terapeuta dono (tenant).
+export async function sendSessionReminder(userId: string, p: PatientLite, s: SessionLite): Promise<boolean> {
   const msg = buildMessage(p, s);
   switch (p.reminderChannel) {
     case "whatsapp":
       if (!p.phone) return false;
       await sendWhatsapp(p.phone, msg);
       return true;
-    case "email":
+    case "email": {
       if (!p.email) return false;
+      // 1º tenta pelo e-mail do próprio profissional (SMTP); senão cai no remetente da plataforma
+      const pro = await sendProEmail(userId, p.email, "Lembrete da sua sessão", msg.replace(/\n/g, "<br>"));
+      if (pro.ok) return true;
       return sendEmail(p.email, "Lembrete da sua sessão — Ledivan+", msg);
+    }
     case "telegram":
       // Requer o Telegram do paciente vinculado (ainda não coletado). Pendente.
       console.warn("Lembrete por Telegram ainda não suportado (sem ID do paciente).");
