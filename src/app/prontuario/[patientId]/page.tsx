@@ -38,7 +38,7 @@ export default async function ProntuarioExport({ params }: { params: Promise<{ p
 
         <div className="bg-white rounded-[20px] border border-[#e7ddd4] p-10 print:border-0 print:rounded-none print:p-0 space-y-7 text-[#1a0f1f]">
           <div className="flex items-center justify-between border-b border-[#e7ddd4] pb-5">
-            <span className="font-display text-2xl font-semibold tracking-tight text-[#2b1830]">Ledivan</span>
+            <img src="/landing/logo-ledivan.png" alt="Ledivan" className="h-12 w-auto" />
             <div className="text-right text-xs text-[#6b5b6f]">
               <p className="font-display text-lg font-semibold text-[#2b1830]">Prontuário</p>
               <p>{therapist?.name ?? "Terapeuta"}</p>

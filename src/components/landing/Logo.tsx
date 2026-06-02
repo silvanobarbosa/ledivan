@@ -5,11 +5,14 @@ export function Logo({ className = "" }: { className?: string }) {
     <Link
       href="/"
       aria-label="Ir para a página inicial do Ledivan"
-      className={`inline-flex items-center ${className}`}
+      className={`inline-flex items-center group ${className}`}
     >
-      <span className="font-display text-2xl md:text-3xl font-semibold tracking-tight text-[color:var(--brand-eggplant)]">
-        Ledivan
-      </span>
+      <img
+        src="/landing/logo-ledivan.png"
+        alt="Ledivan"
+        className="h-12 md:h-14 w-auto object-contain transition-transform group-hover:-rotate-1"
+        draggable={false}
+      />
     </Link>
   );
 }

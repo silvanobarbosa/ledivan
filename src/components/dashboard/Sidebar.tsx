@@ -64,7 +64,7 @@ export function Sidebar() {
     <aside className="w-72 bg-white border-r border-border hidden lg:flex flex-col h-screen sticky top-0">
       <div className="p-8">
         <Link href="/" className="block">
-          <span className="font-display text-3xl font-semibold tracking-tight text-primary">Ledivan</span>
+          <img src="/ledivan-color.png" alt="Ledivan" className="h-14 w-auto object-contain" />
         </Link>
       </div>
 
