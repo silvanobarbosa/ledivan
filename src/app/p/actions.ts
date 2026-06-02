@@ -25,8 +25,10 @@ export async function submitAssignmentResponse(token: string, formData: FormData
       return { ok: false, error: "Arquivo muito grande (máx. 50MB)." };
     }
     try {
-      const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
-      const blob = await put(`tarefas/${token}/${Date.now()}-${safeName}`, file, { access: "public" });
+      const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_").slice(-60);
+      // caminho com pasta aleatória (não usa o token) + sufixo aleatório do Vercel → URL não deduzível
+      const folder = crypto.randomUUID();
+      const blob = await put(`tarefas/${folder}/${safeName}`, file, { access: "public", addRandomSuffix: true });
       fileUrl = blob.url;
       fileType = file.type;
     } catch (e) {
