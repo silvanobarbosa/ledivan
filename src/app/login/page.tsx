@@ -99,9 +99,9 @@ export default function LoginPage() {
 
             <p className="mt-7 text-center text-xs text-[color:var(--muted-foreground)]">
               Ao continuar, você concorda com nossos{" "}
-              <a href="#" className="text-[color:var(--brand-eggplant)] underline-offset-4 hover:underline">Termos</a>{" "}
-              e{" "}
-              <a href="#" className="text-[color:var(--brand-eggplant)] underline-offset-4 hover:underline">Privacidade</a>.
+              <a href="/termos" className="text-[color:var(--brand-eggplant)] underline-offset-4 hover:underline">Termos de Serviço</a>{" "}
+              e a{" "}
+              <a href="/privacidade" className="text-[color:var(--brand-eggplant)] underline-offset-4 hover:underline">Política de Privacidade</a>.
             </p>
           </div>
 

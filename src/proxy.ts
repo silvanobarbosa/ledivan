@@ -15,6 +15,8 @@ export default auth(async function proxy(req) {
   const isPublicRoute =
     pathname === "/" ||
     pathname.startsWith("/login") ||
+    pathname.startsWith("/privacidade") ||
+    pathname.startsWith("/termos") ||
     pathname.startsWith("/agendar") ||
     pathname.startsWith("/p/") ||
     pathname.startsWith("/humor/") ||
