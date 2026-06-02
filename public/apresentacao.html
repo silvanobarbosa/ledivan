@@ -1,0 +1,173 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Ledivan — Apresentação</title>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600;9..144,700&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --eggplant:#2b1830; --eggplant-soft:#3a2240; --cream:#faf6f1; --ink:#1a0f1f;
+    --muted:#6b5b6f; --violet:#8b5cf6; --violet-soft:#c4b5fd;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html,body{height:100%}
+  body{
+    font-family:Inter,system-ui,sans-serif;color:var(--ink);overflow:hidden;
+    background-color:var(--cream);
+    background-image:
+      radial-gradient(900px 500px at 88% -10%, rgba(139,92,246,.18), transparent 60%),
+      radial-gradient(700px 500px at -10% 10%, rgba(43,24,48,.08), transparent 60%),
+      radial-gradient(800px 600px at 50% 110%, rgba(196,181,253,.22), transparent 65%);
+  }
+  .display{font-family:Fraunces,Georgia,serif;letter-spacing:-.02em}
+  #stage{height:100vh;width:100vw;display:flex;align-items:center;justify-content:center;padding:6vh 8vw;position:relative}
+  .slide{display:none;max-width:1000px;width:100%;animation:rise .6s cubic-bezier(.22,1,.36,1) both}
+  .slide.active{display:block}
+  @keyframes rise{from{opacity:0;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+  .kicker{display:inline-block;font-size:.8rem;font-weight:700;text-transform:uppercase;letter-spacing:.18em;color:var(--violet);margin-bottom:1rem}
+  h1{font-size:clamp(2.4rem,6vw,4.5rem);font-weight:600;color:var(--eggplant);line-height:1.04}
+  h2{font-size:clamp(1.8rem,4.5vw,3rem);font-weight:600;color:var(--eggplant);line-height:1.08}
+  .lead{font-size:clamp(1.05rem,2vw,1.4rem);color:var(--muted);margin-top:1.2rem;line-height:1.6;max-width:46ch}
+  .italic{font-style:italic;color:var(--violet)}
+  .grid{display:grid;grid-template-columns:repeat(2,1fr);gap:1rem;margin-top:2rem}
+  .card{background:rgba(255,255,255,.72);backdrop-filter:blur(12px);border:1px solid rgba(43,24,48,.06);
+    box-shadow:0 1px 2px rgba(43,24,48,.04),0 8px 24px -12px rgba(43,24,48,.08);border-radius:1.25rem;padding:1.1rem 1.3rem}
+  .card .ico{font-size:1.6rem}
+  .card h3{font-family:Fraunces;font-size:1.15rem;color:var(--eggplant);margin:.4rem 0 .2rem}
+  .card p{font-size:.95rem;color:var(--muted);line-height:1.45}
+  .chips{display:flex;flex-wrap:wrap;gap:.6rem;margin-top:1.6rem}
+  .chip{background:rgba(139,92,246,.12);color:var(--eggplant);font-weight:600;font-size:.95rem;padding:.5rem 1rem;border-radius:999px}
+  .center{text-align:center}
+  .cta{display:inline-block;margin-top:2rem;background:var(--eggplant);color:var(--cream);font-weight:600;
+    padding:1rem 2rem;border-radius:999px;font-size:1.1rem;box-shadow:0 20px 40px -20px rgba(43,24,48,.45)}
+  .logo{font-family:Fraunces;font-weight:700;font-size:clamp(3rem,9vw,6rem);color:var(--eggplant)}
+  .dark{background:linear-gradient(135deg,#2b1830,#3a2240 60%,#5b2d7a);border-radius:0}
+  .dark h1,.dark h2{color:#fff}.dark .lead{color:rgba(255,255,255,.82)}.dark .kicker{color:var(--violet-soft)}
+  /* controles */
+  #bar{position:fixed;left:0;bottom:0;height:5px;background:var(--violet);width:0;transition:width .3s;z-index:20}
+  #ctrl{position:fixed;bottom:16px;right:20px;display:flex;gap:8px;z-index:20}
+  #ctrl button{border:none;background:rgba(43,24,48,.85);color:#fff;width:40px;height:40px;border-radius:12px;font-size:1rem;cursor:pointer}
+  #count{position:fixed;bottom:22px;left:24px;color:var(--muted);font-size:.85rem;z-index:20}
+  .hint{position:fixed;top:18px;right:22px;color:var(--muted);font-size:.8rem;z-index:20}
+</style>
+</head>
+<body>
+<div id="stage"></div>
+<div id="bar"></div>
+<div id="count"></div>
+<div class="hint">← → navega · barra de espaço = play/pause</div>
+<div id="ctrl">
+  <button id="prev">‹</button>
+  <button id="play">▶</button>
+  <button id="next">›</button>
+</div>
+
+<script>
+const slides = [
+  `<div class="center"><div class="logo">Ledivan</div>
+   <p class="lead" style="margin:1.2rem auto 0">Seu consultório e suas finanças, num só lugar.</p>
+   <p style="margin-top:1.5rem;color:var(--muted)">Apresentação do produto</p></div>`,
+
+  `<span class="kicker">O problema</span>
+   <h2>Cuidar de pessoas é seu trabalho.<br><span class="italic">A burocracia, não.</span></h2>
+   <div class="grid">
+     <div class="card"><div class="ico">🗂️</div><h3>Planilhas e cadernos</h3><p>Informações espalhadas, difíceis de achar.</p></div>
+     <div class="card"><div class="ico">📅</div><h3>Faltas sem controle</h3><p>Remarcações viram perda de receita.</p></div>
+     <div class="card"><div class="ico">💸</div><h3>Cobrança confusa</h3><p>Quem pagou? Quem atrasou?</p></div>
+     <div class="card"><div class="ico">🌫️</div><h3>Financeiro às cegas</h3><p>Sem clareza do que entra e sai.</p></div>
+   </div>`,
+
+  `<span class="kicker">A solução</span>
+   <h1>Tudo conectado,<br><span class="italic">do atendimento ao caixa.</span></h1>
+   <p class="lead">Pacientes, agenda, prontuário, financeiro e o cuidado entre as sessões — sem trocar de ferramenta.</p>`,
+
+  `<span class="kicker">Pacientes & Prontuário</span>
+   <h2>A ficha clínica completa</h2>
+   <div class="grid">
+     <div class="card"><div class="ico">👤</div><h3>Cadastro & histórico</h3><p>Status, valor, contrato e evolução de cada paciente.</p></div>
+     <div class="card"><div class="ico">📝</div><h3>Prontuário & anamnese</h3><p>Evoluções, plano terapêutico e objetivos com progresso.</p></div>
+     <div class="card"><div class="ico">📄</div><h3>Exportar em PDF</h3><p>Prontuário e recibos num clique.</p></div>
+     <div class="card"><div class="ico">ℹ️</div><h3>Ajuda em cada campo</h3><p>Tooltips e tour guiado para não se perder.</p></div>
+   </div>`,
+
+  `<span class="kicker">Agenda</span>
+   <h2>Visual, no estilo <span class="italic">Google Calendar</span></h2>
+   <p class="lead">Grade semanal, status da sessão em 1 clique, indicador de risco de falta e link de vídeo para atendimentos online.</p>`,
+
+  `<span class="kicker">Diferencial ⭐</span>
+   <h2 style="color:#fff">Cuidado também <span class="italic">entre as sessões</span></h2>
+   <div class="grid">
+     <div class="card"><div class="ico">🧩</div><h3>Tarefas (lição de casa)</h3><p>Modelos de TCC. Paciente responde por link com texto, foto, áudio ou vídeo.</p></div>
+     <div class="card"><div class="ico">🌿</div><h3>Diário de humor</h3><p>Registro simples; você acompanha por gráfico.</p></div>
+     <div class="card"><div class="ico">📊</div><h3>Escalas PHQ-9 / GAD-7</h3><p>Pontuação e evolução automáticas.</p></div>
+     <div class="card"><div class="ico">🤖</div><h3>Resumo por IA</h3><p>Rascunho de evolução a partir do áudio (com consentimento).</p></div>
+   </div>`,
+
+  `<span class="kicker">Financeiro</span>
+   <h2>Do recibo ao relatório</h2>
+   <div class="grid">
+     <div class="card"><div class="ico">🔁</div><h3>Pagamento vira receita</h3><p>Automático e opcional — você decide.</p></div>
+     <div class="card"><div class="ico">💬</div><h3>Lance por mensagem</h3><p>"50 material" no WhatsApp/Telegram, ou foto do recibo (IA).</p></div>
+     <div class="card"><div class="ico">📈</div><h3>Relatórios mensais</h3><p>Receita, despesa e saldo. Exporta CSV.</p></div>
+     <div class="card"><div class="ico">🎯</div><h3>Metas</h3><p>Objetivos de poupança com progresso.</p></div>
+   </div>`,
+
+  `<span class="kicker">Integrações</span>
+   <h2>Conecta com o que você já usa</h2>
+   <div class="chips">
+     <span class="chip">WhatsApp (seu número)</span>
+     <span class="chip">Telegram</span>
+     <span class="chip">Google Agenda & Meet</span>
+     <span class="chip">Seu e-mail (SMTP)</span>
+     <span class="chip">Autoagendamento</span>
+   </div>
+   <p class="lead">Lembretes saem do seu número. O paciente marca sozinho pelo seu link.</p>`,
+
+  `<span class="kicker">Inteligência & triagem</span>
+   <h2>Atenção clínica no lugar certo</h2>
+   <p class="lead">A tela inicial destaca quem precisa de um olhar agora — cruzando risco de falta, humor baixo, escala em alerta e pagamento atrasado.</p>`,
+
+  `<span class="kicker">Segurança & LGPD</span>
+   <h2>Dados protegidos</h2>
+   <div class="grid">
+     <div class="card"><div class="ico">🔒</div><h3>Isolamento por tenant</h3><p>Cada profissional acessa só os próprios dados.</p></div>
+     <div class="card"><div class="ico">🔐</div><h3>Criptografia</h3><p>Segredos e anexos clínicos protegidos e privados.</p></div>
+     <div class="card"><div class="ico">📑</div><h3>Conforme a LGPD</h3><p>Papéis claros e direitos do titular.</p></div>
+     <div class="card"><div class="ico">☁️</div><h3>Backups</h3><p>Infraestrutura gerenciada e confiável.</p></div>
+   </div>`,
+
+  `<div class="center"><div class="logo">Ledivan</div>
+   <h2 style="margin-top:1rem">Você cuida da escuta.<br><span class="italic">A gente cuida do resto.</span></h2>
+   <a class="cta">Comece grátis · ledivan.com.br</a></div>`,
+];
+
+const stage = document.getElementById("stage");
+const bar = document.getElementById("bar");
+const count = document.getElementById("count");
+let i = 0, playing = false, timer = null;
+const DARK = new Set([5]); // slides com fundo escuro
+
+function render(){
+  const dark = DARK.has(i);
+  stage.className = dark ? "dark" : "";
+  stage.style.cssText = dark
+    ? "height:100vh;width:100vw;display:flex;align-items:center;justify-content:center;padding:6vh 8vw;background:linear-gradient(135deg,#2b1830,#3a2240 60%,#5b2d7a)"
+    : "height:100vh;width:100vw;display:flex;align-items:center;justify-content:center;padding:6vh 8vw";
+  stage.innerHTML = '<div class="slide active'+(dark?' dark':'')+'">'+slides[i]+'</div>';
+  bar.style.width = ((i+1)/slides.length*100)+"%";
+  count.textContent = (i+1)+" / "+slides.length;
+}
+function go(n){ i = (n+slides.length)%slides.length; render(); }
+function next(){ go(i+1) } function prev(){ go(i-1) }
+function toggle(){ playing=!playing; document.getElementById("play").textContent=playing?"❚❚":"▶";
+  if(playing){ timer=setInterval(()=>{ if(i===slides.length-1){clearInterval(timer);playing=false;document.getElementById("play").textContent="▶";return;} next(); },6000);} else clearInterval(timer); }
+
+document.getElementById("next").onclick=next;
+document.getElementById("prev").onclick=prev;
+document.getElementById("play").onclick=toggle;
+document.addEventListener("keydown",e=>{ if(e.key==="ArrowRight")next(); else if(e.key==="ArrowLeft")prev(); else if(e.key===" "){e.preventDefault();toggle();} });
+render();
+</script>
+</body>
+</html>
