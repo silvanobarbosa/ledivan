@@ -91,7 +91,7 @@ export async function updatePatient(patientId: string, formData: FormData) {
     reminderEnabled: formData.get("reminderEnabled") === "on",
     reminderChannel: (formData.get("reminderChannel") as string) || existing.reminderChannel,
     tags: (formData.get("tags") as string)?.trim() || null,
-  }).where(eq(patients.id, patientId));
+  }).where(and(eq(patients.id, patientId), eq(patients.userId, session.user.id)));
 
   // historico de mudancas
   if (newStatus !== existing.patientStatus) {
@@ -141,7 +141,7 @@ export async function deleteRecord(recordId: string) {
     where: and(eq(patientRecords.id, recordId), eq(patientRecords.userId, userId)),
   });
   if (!rec) return;
-  await db.delete(patientRecords).where(eq(patientRecords.id, recordId));
+  await db.delete(patientRecords).where(and(eq(patientRecords.id, recordId), eq(patientRecords.userId, userId)));
   revalidatePath(`/dashboard/patients/${rec.patientId}`);
 }
 
@@ -179,7 +179,7 @@ export async function updateTreatmentGoal(goalId: string, progress: number, stat
   const clamped = Math.max(0, Math.min(100, Math.round(progress)));
   await db.update(treatmentGoals)
     .set({ progress: clamped, status: clamped >= 100 ? "atingido" : status })
-    .where(eq(treatmentGoals.id, goalId));
+    .where(and(eq(treatmentGoals.id, goalId), eq(treatmentGoals.userId, userId)));
   revalidatePath(`/dashboard/patients/${g.patientId}`);
 }
 
@@ -191,7 +191,7 @@ export async function deleteTreatmentGoal(goalId: string) {
     where: and(eq(treatmentGoals.id, goalId), eq(treatmentGoals.userId, userId)),
   });
   if (!g) return;
-  await db.delete(treatmentGoals).where(eq(treatmentGoals.id, goalId));
+  await db.delete(treatmentGoals).where(and(eq(treatmentGoals.id, goalId), eq(treatmentGoals.userId, userId)));
   revalidatePath(`/dashboard/patients/${g.patientId}`);
 }
 
@@ -220,7 +220,7 @@ export async function deleteScale(scaleId: string) {
     where: and(eq(scaleApplications.id, scaleId), eq(scaleApplications.userId, userId)),
   });
   if (!s) return;
-  await db.delete(scaleApplications).where(eq(scaleApplications.id, scaleId));
+  await db.delete(scaleApplications).where(and(eq(scaleApplications.id, scaleId), eq(scaleApplications.userId, userId)));
   revalidatePath(`/dashboard/patients/${s.patientId}`);
 }
 
@@ -235,7 +235,7 @@ export async function ensureMoodToken(patientId: string) {
   if (!patient) throw new Error("Paciente não encontrado");
   if (!patient.moodToken) {
     const token = crypto.randomUUID().replace(/-/g, "") + crypto.randomUUID().replace(/-/g, "").slice(0, 8);
-    await db.update(patients).set({ moodToken: token }).where(eq(patients.id, patientId));
+    await db.update(patients).set({ moodToken: token }).where(and(eq(patients.id, patientId), eq(patients.userId, userId)));
   }
   revalidatePath(`/dashboard/patients/${patientId}`);
 }
@@ -279,7 +279,7 @@ export async function deleteAssignment(assignmentId: string) {
     where: and(eq(assignments.id, assignmentId), eq(assignments.userId, userId)),
   });
   if (!a) return;
-  await db.delete(assignments).where(eq(assignments.id, assignmentId));
+  await db.delete(assignments).where(and(eq(assignments.id, assignmentId), eq(assignments.userId, userId)));
   revalidatePath(`/dashboard/patients/${a.patientId}`);
 }
 
@@ -291,7 +291,7 @@ export async function commentAssignment(assignmentId: string, comment: string) {
     where: and(eq(assignments.id, assignmentId), eq(assignments.userId, userId)),
   });
   if (!a) return;
-  await db.update(assignments).set({ therapistComment: comment }).where(eq(assignments.id, assignmentId));
+  await db.update(assignments).set({ therapistComment: comment }).where(and(eq(assignments.id, assignmentId), eq(assignments.userId, userId)));
   revalidatePath(`/dashboard/patients/${a.patientId}`);
 }
 

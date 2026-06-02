@@ -2,12 +2,15 @@
 
 import { db } from "@/db";
 import { users, patients, therapySessions } from "@/db/schema";
-import { and, eq, or } from "drizzle-orm";
+import { and, eq, or, gte, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 
 // Agendamento público (sem auth). Cria/usa um paciente (prospect) e agenda a sessão
 // no espaço do terapeuta dono do slug. Escreve apenas no userId resolvido pelo slug.
 export async function createPublicBooking(slug: string, formData: FormData) {
+  // honeypot anti-bot (campo oculto que humanos deixam vazio)
+  if (((formData.get("website") as string) || "").trim()) return { ok: true };
+
   const therapist = await db.query.users.findFirst({ where: eq(users.bookingSlug, slug) });
   if (!therapist) return { ok: false, error: "Link inválido." };
   const userId = therapist.id;
@@ -21,6 +24,14 @@ export async function createPublicBooking(slug: string, formData: FormData) {
   if (!name) return { ok: false, error: "Informe seu nome." };
   if (!phone && !email) return { ok: false, error: "Informe telefone ou e-mail." };
   if (!dateRaw) return { ok: false, error: "Escolha data e horário." };
+
+  // anti-spam: limita pedidos públicos por terapeuta (máx 10/hora)
+  const hourAgo = new Date(Date.now() - 60 * 60 * 1000);
+  const [{ n }] = await db
+    .select({ n: sql<number>`count(*)::int` })
+    .from(therapySessions)
+    .where(and(eq(therapySessions.userId, userId), gte(therapySessions.createdAt, hourAgo)));
+  if (n >= 10) return { ok: false, error: "Muitas solicitações agora. Tente novamente em alguns minutos." };
 
   // tenta achar paciente existente por telefone/e-mail
   let patient = null;

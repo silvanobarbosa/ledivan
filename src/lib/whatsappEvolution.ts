@@ -33,10 +33,16 @@ export async function connectInstance(userId: string): Promise<{ ok: boolean; qr
 
   try {
     if (!(await instanceExists(name))) {
+      // webhook seguro (token na URL) para receber mensagens, se APP_URL configurado
+      const appUrl = (process.env.APP_URL || "").replace(/\/$/, "");
+      const wtoken = process.env.EVOLUTION_WEBHOOK_TOKEN;
+      const webhook = appUrl
+        ? { webhook: { url: `${appUrl}/api/whatsapp${wtoken ? `?token=${wtoken}` : ""}`, events: ["MESSAGES_UPSERT"] } }
+        : {};
       const createRes = await fetch(`${URL()}/instance/create`, {
         method: "POST",
         headers: headers(),
-        body: JSON.stringify({ instanceName: name, integration: "WHATSAPP-BAILEYS", qrcode: true }),
+        body: JSON.stringify({ instanceName: name, integration: "WHATSAPP-BAILEYS", qrcode: true, ...webhook }),
       });
       const created = await createRes.json().catch(() => ({}));
       const b64 = created?.qrcode?.base64 || created?.base64;

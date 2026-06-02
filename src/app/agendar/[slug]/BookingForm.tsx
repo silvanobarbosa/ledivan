@@ -35,6 +35,7 @@ export function BookingForm({ slug }: { slug: string }) {
 
   return (
     <form action={onSubmit} className="mt-7 space-y-3">
+      <input type="text" name="website" className="hidden" tabIndex={-1} autoComplete="off" aria-hidden="true" />
       <input name="name" required placeholder="Seu nome" className={inputCls} />
       <input name="phone" placeholder="Telefone (WhatsApp)" className={inputCls} />
       <input name="email" type="email" placeholder="E-mail" className={inputCls} />

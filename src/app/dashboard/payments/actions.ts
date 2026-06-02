@@ -112,7 +112,7 @@ export async function deletePayment(paymentId: string) {
       and(eq(transactions.id, payment.linkedTransactionId), eq(transactions.userId, userId))
     );
   }
-  await db.delete(sessionPayments).where(eq(sessionPayments.id, paymentId));
+  await db.delete(sessionPayments).where(and(eq(sessionPayments.id, paymentId), eq(sessionPayments.userId, userId)));
 
   revalidatePath(`/dashboard/patients/${payment.patientId}`);
   revalidatePath("/dashboard");

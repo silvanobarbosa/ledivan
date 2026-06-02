@@ -1,5 +1,7 @@
 "use server";
 
+import { randomInt } from "crypto";
+
 import { db } from "@/db";
 import { users } from "@/db/schema";
 import { auth } from "@/auth";
@@ -167,7 +169,7 @@ export async function generateTelegramCode() {
   const session = await auth();
   if (!session?.user?.id) throw new Error("Não autorizado");
 
-  const code = Math.floor(100000 + Math.random() * 900000).toString();
+  const code = randomInt(100000, 1000000).toString();
   const expires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutos
 
   await db.update(users)

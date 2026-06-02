@@ -103,7 +103,7 @@ export async function generateSessionSummary(sessionId: string): Promise<{ ok: b
     const summary = r.choices[0].message.content?.trim() || "";
     if (!summary) return { ok: false, error: "Não foi possível gerar." };
 
-    await db.update(therapySessions).set({ patientSummary: summary }).where(eq(therapySessions.id, sessionId));
+    await db.update(therapySessions).set({ patientSummary: summary }).where(and(eq(therapySessions.id, sessionId), eq(therapySessions.userId, userId)));
     revalidatePath(`/dashboard/patients/${s.patientId}`);
     return { ok: true, summary };
   } catch (e) {
@@ -121,7 +121,7 @@ export async function deleteSession(sessionId: string) {
   });
   if (!existing) return;
 
-  await db.delete(therapySessions).where(eq(therapySessions.id, sessionId));
+  await db.delete(therapySessions).where(and(eq(therapySessions.id, sessionId), eq(therapySessions.userId, session.user.id)));
 
   revalidatePath("/dashboard/agenda");
   revalidatePath(`/dashboard/patients/${existing.patientId}`);
