@@ -26,10 +26,10 @@ export async function submitAssignmentResponse(token: string, formData: FormData
     }
     try {
       const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_").slice(-60);
-      // caminho com pasta aleatória (não usa o token) + sufixo aleatório do Vercel → URL não deduzível
+      // store PRIVADO: guardamos o pathname; o arquivo é servido só ao terapeuta dono (rota autorizada)
       const folder = crypto.randomUUID();
-      const blob = await put(`tarefas/${folder}/${safeName}`, file, { access: "public", addRandomSuffix: true });
-      fileUrl = blob.url;
+      const blob = await put(`tarefas/${folder}/${safeName}`, file, { access: "private", addRandomSuffix: true });
+      fileUrl = blob.pathname;
       fileType = file.type;
     } catch (e) {
       console.error("Erro no upload:", e);

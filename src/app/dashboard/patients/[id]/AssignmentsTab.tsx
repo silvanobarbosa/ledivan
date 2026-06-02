@@ -188,15 +188,15 @@ export function AssignmentsTab({
                   <p className="text-[10px] font-bold uppercase tracking-widest text-foreground/40">Resposta {a.respondedAt ? `· ${formatDate(a.respondedAt)}` : ""}</p>
                   {a.responseText && <p className="text-sm text-foreground/80 whitespace-pre-wrap">{a.responseText}</p>}
                   {a.responseFileUrl && (
-                    <a href={a.responseFileUrl} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary hover:underline">
+                    <a href={`/api/attachment/${a.id}`} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1.5 text-xs font-semibold text-primary hover:underline">
                       <Paperclip className="w-3.5 h-3.5" /> Ver anexo {a.responseFileType?.startsWith("audio") ? "(áudio)" : a.responseFileType?.startsWith("video") ? "(vídeo)" : a.responseFileType?.startsWith("image") ? "(imagem)" : ""}
                     </a>
                   )}
                   {a.responseFileType?.startsWith("image") && a.responseFileUrl && (
-                    <img src={a.responseFileUrl} alt="Anexo do paciente" className="rounded-lg max-h-60 mt-1" />
+                    <img src={`/api/attachment/${a.id}`} alt="Anexo do paciente" className="rounded-lg max-h-60 mt-1" />
                   )}
                   {a.responseFileType?.startsWith("audio") && a.responseFileUrl && (
-                    <audio controls src={a.responseFileUrl} className="w-full mt-1" />
+                    <audio controls src={`/api/attachment/${a.id}`} className="w-full mt-1" />
                   )}
 
                   {/* Comentário do terapeuta */}
