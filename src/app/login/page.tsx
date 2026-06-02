@@ -4,8 +4,8 @@ import { Mail, ArrowRight, Sparkles } from "lucide-react";
 import { Logo } from "@/components/landing/Logo";
 
 export const metadata = {
-  title: "Entrar — Ledivan+",
-  description: "Acesse sua conta Ledivan+ para gerenciar seu consultório e financeiro.",
+  title: "Entrar — Ledivan",
+  description: "Acesse sua conta Ledivan para gerenciar seu consultório e financeiro.",
 };
 
 export default function LoginPage() {
@@ -35,7 +35,7 @@ export default function LoginPage() {
               Bem-vindo de volta
             </span>
             <h1 className="font-display mt-5 text-4xl md:text-5xl font-medium text-[color:var(--brand-eggplant)] leading-[1.05]">
-              Entrar no <span className="italic text-[color:var(--accent-violet)]">Ledivan+</span>
+              Entrar no <span className="italic text-[color:var(--accent-violet)]">Ledivan</span>
             </h1>
             <p className="mt-3 text-sm text-[color:var(--muted-foreground)]">
               Acesse com seu Google ou receba um link mágico no e-mail.
@@ -108,14 +108,14 @@ export default function LoginPage() {
           <p className="mt-6 text-center text-sm text-[color:var(--muted-foreground)]">
             Ainda não tem conta?{" "}
             <Link href="/" className="text-[color:var(--brand-eggplant)] font-medium hover:underline">
-              Conheça o Ledivan+
+              Conheça o Ledivan
             </Link>
           </p>
         </div>
       </main>
 
       <footer className="mx-auto w-full max-w-6xl px-6 py-6 text-center text-xs text-[color:var(--muted-foreground)]">
-        © 2026 Ledivan+ · Cuidando de quem cuida.
+        © 2026 Ledivan · Cuidando de quem cuida.
       </footer>
     </div>
   );

@@ -226,9 +226,9 @@ async function seed() {
     return { userId, type, title, description, earnedAt: d };
   };
   await db.insert(achievements).values([
-    ach("first_transaction", "Primeiro Passo", "Você registrou sua primeira transação no Ledivan+!", 15),
+    ach("first_transaction", "Primeiro Passo", "Você registrou sua primeira transação no Ledivan!", 15),
     ach("goal_met", "Mestre do Planejamento", "Você atingiu uma meta!", 6),
-    ach("financial_guru", "Guru Financeiro", "Você está dominando o Ledivan+! Meta e conquistas em dia.", 3),
+    ach("financial_guru", "Guru Financeiro", "Você está dominando o Ledivan! Meta e conquistas em dia.", 3),
   ]);
 
   console.log("🏆 Metas e conquistas criadas.");

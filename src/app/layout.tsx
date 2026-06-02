@@ -3,13 +3,13 @@ import "./globals.css";
 import { PWARegistration } from "@/components/PWARegistration";
 
 export const metadata: Metadata = {
-  title: "Ledivan+ — Gestão de consultório e finanças",
+  title: "Ledivan — Gestão de consultório e finanças",
   description: "Gestão completa do consultório de terapia com módulo financeiro integrado.",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "Ledivan+",
+    title: "Ledivan",
   },
 };
 

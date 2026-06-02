@@ -64,7 +64,7 @@ export function Sidebar() {
     <aside className="w-72 bg-white border-r border-border hidden lg:flex flex-col h-screen sticky top-0">
       <div className="p-8">
         <Link href="/" className="block">
-          <img src="/ledivan-color.png" alt="L'E-Divan" className="h-14 w-auto object-contain" />
+          <span className="font-display text-3xl font-semibold tracking-tight text-primary">Ledivan</span>
         </Link>
       </div>
 
@@ -87,7 +87,7 @@ export function Sidebar() {
             </div>
             <div className="flex-1 overflow-hidden">
               <p className="text-sm font-bold truncate">Terapeuta</p>
-              <p className="text-xs text-foreground/40 truncate">Ledivan+</p>
+              <p className="text-xs text-foreground/40 truncate">Ledivan</p>
             </div>
           </div>
         </div>

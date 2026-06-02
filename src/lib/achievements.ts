@@ -17,7 +17,7 @@ export async function checkAchievements(userId: string) {
         userId,
         type: "first_transaction",
         title: "Primeiro Passo",
-        description: "Você registrou sua primeira transação no Ledivan+!",
+        description: "Você registrou sua primeira transação no Ledivan!",
       });
       return true;
     }
@@ -80,7 +80,7 @@ export async function checkAchievements(userId: string) {
         userId,
         type: "financial_guru",
         title: "Guru Financeiro",
-        description: "Você está dominando o Ledivan+! Meta e conquistas em dia.",
+        description: "Você está dominando o Ledivan! Meta e conquistas em dia.",
       });
       return true;
     }

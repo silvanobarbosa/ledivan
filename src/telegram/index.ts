@@ -1,10 +1,10 @@
 // src/telegram/index.mts
 import { bot } from "../lib/telegram";
 
-console.log("🚀 Iniciando bot Ledivan+ em modo Polling (Local)...");
+console.log("🚀 Iniciando bot Ledivan em modo Polling (Local)...");
 
 bot.launch().then(() => {
-  console.log("🤖 Bot Ledivan+ online e ouvindo!");
+  console.log("🤖 Bot Ledivan online e ouvindo!");
 });
 
 // Enable graceful stop

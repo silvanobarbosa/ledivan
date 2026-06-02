@@ -62,7 +62,7 @@ export async function sendProEmail(
       user: user.smtpUser,
       pass: decryptSecret(user.smtpPassEnc),
     });
-    const fromName = user.smtpFromName || user.name || "Ledivan+";
+    const fromName = user.smtpFromName || user.name || "Ledivan";
     await t.sendMail({ from: `"${fromName}" <${user.smtpUser}>`, to, subject, html });
     return { ok: true };
   } catch (e) {

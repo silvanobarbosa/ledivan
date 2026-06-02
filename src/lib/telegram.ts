@@ -59,14 +59,14 @@ bot.start(async (ctx) => {
   if (code && telegramId) {
     const linked = await linkByCode(code, telegramId);
     if (linked) {
-      return ctx.reply(`✅ Pronto, ${linked.name}! Seu Telegram está vinculado ao Ledivan+.\n\n${MENU}`, { parse_mode: "Markdown" });
+      return ctx.reply(`✅ Pronto, ${linked.name}! Seu Telegram está vinculado ao Ledivan.\n\n${MENU}`, { parse_mode: "Markdown" });
     }
     return ctx.reply("❌ Esse código de vínculo expirou. Gere um novo nas Configurações do app e toque em \"Conectar Telegram\" de novo.");
   }
 
   const user = (ctx as any).dbUser;
   if (!user) {
-    return ctx.reply("👋 Olá! Eu sou o assistente do Ledivan+.\n\nPara conectar sua conta, vá em *Configurações → Telegram* no app e toque em \"Conectar Telegram\". É automático. 🙂", { parse_mode: "Markdown" });
+    return ctx.reply("👋 Olá! Eu sou o assistente do Ledivan.\n\nPara conectar sua conta, vá em *Configurações → Telegram* no app e toque em \"Conectar Telegram\". É automático. 🙂", { parse_mode: "Markdown" });
   }
   ctx.reply(`Olá de novo, ${user.name}!\n\n${MENU}`);
 });

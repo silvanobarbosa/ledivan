@@ -8,7 +8,7 @@ import { SCALES, type ScaleType } from "@/lib/scales";
 import { Check } from "lucide-react";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Questionário — Ledivan+" };
+export const metadata = { title: "Questionário — Ledivan" };
 
 export default async function ScalePage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;
@@ -44,7 +44,7 @@ export default async function ScalePage({ params }: { params: Promise<{ token: s
             )}
           </div>
           <p className="mt-5 text-center text-[11px] text-[color:var(--muted-foreground)]">
-            Privado · visível apenas ao seu terapeuta · não substitui avaliação clínica · Ledivan+
+            Privado · visível apenas ao seu terapeuta · não substitui avaliação clínica · Ledivan
           </p>
         </div>
       </main>

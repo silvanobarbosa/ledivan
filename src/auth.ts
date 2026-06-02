@@ -24,7 +24,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     }),
     Resend({
       apiKey: process.env.AUTH_RESEND_KEY,
-      from: "Ledivan+ <onboarding@resend.dev>",
+      from: "Ledivan <onboarding@resend.dev>",
       async sendVerificationRequest({ identifier: email, url, provider }) {
         if (!provider.apiKey) {
           console.error("AUTH_RESEND_KEY is missing!");
@@ -43,13 +43,13 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           body: JSON.stringify({
             from: provider.from,
             to: email,
-            subject: `Seu acesso ao Ledivan+`,
+            subject: `Seu acesso ao Ledivan`,
             html: `
               <div style="font-family: sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border: 1px solid #e2e8f0; border-radius: 12px;">
-                <h1 style="color: #2b1830; font-size: 24px; font-weight: bold;">Ledivan+</h1>
+                <h1 style="color: #2b1830; font-size: 24px; font-weight: bold;">Ledivan</h1>
                 <p style="color: #4a5568; font-size: 16px;">Olá! Use o botão abaixo para entrar na sua conta com segurança.</p>
                 <div style="margin: 32px 0;">
-                  <a href="${url}" style="background-color: #2b1830; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: bold; display: inline-block;">Entrar no Ledivan+</a>
+                  <a href="${url}" style="background-color: #2b1830; color: white; padding: 12px 24px; border-radius: 8px; text-decoration: none; font-weight: bold; display: inline-block;">Entrar no Ledivan</a>
                 </div>
                 <p style="color: #718096; font-size: 14px;">Se você não solicitou este e-mail, pode ignorá-lo.</p>
               </div>

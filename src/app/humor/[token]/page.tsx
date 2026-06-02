@@ -6,7 +6,7 @@ import { Logo } from "@/components/landing/Logo";
 import { MoodForm } from "./MoodForm";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Como você está? — Ledivan+" };
+export const metadata = { title: "Como você está? — Ledivan" };
 
 export default async function MoodPage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;
@@ -34,7 +34,7 @@ export default async function MoodPage({ params }: { params: Promise<{ token: st
             <MoodForm token={token} />
           </div>
           <p className="mt-5 text-center text-[11px] text-[color:var(--muted-foreground)]">
-            Privado · visível apenas ao seu terapeuta · Ledivan+
+            Privado · visível apenas ao seu terapeuta · Ledivan
           </p>
         </div>
       </main>

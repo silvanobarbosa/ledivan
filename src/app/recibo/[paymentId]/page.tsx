@@ -33,7 +33,7 @@ export default async function ReciboPage({ params }: { params: Promise<{ payment
 
         <div className="bg-white rounded-[24px] border border-[#e7ddd4] p-10 print:border-0 print:rounded-none print:p-0">
           <div className="flex items-center justify-between border-b border-[#e7ddd4] pb-6">
-            <img src="/landing/logo-ledivan.png" alt="L'E-Divan" className="h-14 w-auto" />
+            <span className="font-display text-3xl font-semibold tracking-tight text-[#2b1830]">Ledivan</span>
             <div className="text-right">
               <p className="font-display text-2xl font-semibold text-[#2b1830]">Recibo</p>
               <p className="text-xs text-[#6b5b6f]">Nº {numero}</p>

@@ -23,7 +23,7 @@ import { Logo } from "@/components/landing/Logo";
 import { Reveal } from "@/components/landing/Reveal";
 
 export const metadata: Metadata = {
-  title: "L'E-Divan+ — Seu consultório e suas finanças, num só lugar",
+  title: "Ledivan — Seu consultório e suas finanças, num só lugar",
   description:
     "Para terapeutas: pacientes, agenda, financeiro e integrações com Google e WhatsApp — do atendimento ao caixa, sem planilhas.",
 };
@@ -374,13 +374,13 @@ function Integrations() {
             Conecta com as ferramentas que você já usa.
           </h2>
           <p className="mt-4 text-[color:var(--muted-foreground)]">
-            Sem migrar nada. O L&apos;E-Divan+ conversa com seu Google e seus apps de mensagem.
+            Sem migrar nada. O Ledivan conversa com seu Google e seus apps de mensagem.
           </p>
         </div>
       </Reveal>
       <div className="mt-14 relative">
         <div className="hidden md:flex absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 h-28 w-28 rounded-full bg-[color:var(--brand-eggplant)] text-cream items-center justify-center shadow-[var(--shadow-eggplant)] z-10">
-          <span className="font-display text-lg italic">L&apos;E-Divan+</span>
+          <span className="font-display text-lg italic">Ledivan</span>
         </div>
         <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-4">
           {items.map((it, i) => (
@@ -613,7 +613,7 @@ function Footer() {
           <a href="#pricing" className="hover:text-ink transition">Preço</a>
           <Link href="/login" className="hover:text-ink transition">Entrar</Link>
         </div>
-        <p className="text-xs text-[color:var(--muted-foreground)]">© 2026 L&apos;E-Divan+</p>
+        <p className="text-xs text-[color:var(--muted-foreground)]">© 2026 Ledivan</p>
       </div>
     </footer>
   );

@@ -24,13 +24,13 @@ async function sendEmail(to: string, subject: string, text: string): Promise<boo
   const key = process.env.AUTH_RESEND_KEY;
   if (!key) return false;
   const html = `<div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:20px;border:1px solid #e7ddd4;border-radius:16px;">
-    <h1 style="color:#2b1830;font-size:20px;">Ledivan+</h1>
+    <h1 style="color:#2b1830;font-size:20px;">Ledivan</h1>
     <p style="color:#1a0f1f;white-space:pre-line;font-size:15px;line-height:1.6;">${text.replace(/\*/g, "")}</p>
   </div>`;
   const res = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ from: "Ledivan+ <onboarding@resend.dev>", to, subject, html }),
+    body: JSON.stringify({ from: "Ledivan <onboarding@resend.dev>", to, subject, html }),
   });
   return res.ok;
 }
@@ -47,7 +47,7 @@ export async function sendSessionReminder(userId: string, p: PatientLite, s: Ses
       // 1º tenta pelo e-mail do próprio profissional (SMTP); senão cai no remetente da plataforma
       const pro = await sendProEmail(userId, p.email, "Lembrete da sua sessão", msg.replace(/\n/g, "<br>"));
       if (pro.ok) return true;
-      return sendEmail(p.email, "Lembrete da sua sessão — Ledivan+", msg);
+      return sendEmail(p.email, "Lembrete da sua sessão — Ledivan", msg);
     }
     case "telegram":
       // Requer o Telegram do paciente vinculado (ainda não coletado). Pendente.

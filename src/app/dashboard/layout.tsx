@@ -27,7 +27,7 @@ export default async function DashboardLayout({
         <header className="h-20 lg:h-24 bg-white/80 backdrop-blur-md border-b border-border flex items-center justify-between px-6 lg:px-8 shrink-0 z-10">
           <div className="flex items-center gap-4 flex-1">
             <Link href="/dashboard" className="lg:hidden flex items-center">
-              <img src="/ledivan-color.png" alt="L'E-Divan" className="h-9 w-auto object-contain" />
+              <span className="font-display text-2xl font-semibold tracking-tight text-primary">Ledivan</span>
             </Link>
             <HeaderSearch />
             

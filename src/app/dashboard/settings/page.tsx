@@ -35,7 +35,7 @@ export default async function SettingsPage() {
     <div className="max-w-4xl mx-auto space-y-12 pb-20">
       <section className="space-y-2">
         <h2 className="text-4xl font-display font-bold text-foreground tracking-tight">Configurações</h2>
-        <p className="text-lg text-foreground/40 font-medium">Gerencie sua conta e preferências do Ledivan+.</p>
+        <p className="text-lg text-foreground/40 font-medium">Gerencie sua conta e preferências do Ledivan.</p>
       </section>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
@@ -127,7 +127,7 @@ export default async function SettingsPage() {
               ✨
             </div>
             <div>
-              <h4 className="font-bold text-primary">Ledivan+</h4>
+              <h4 className="font-bold text-primary">Ledivan</h4>
               <p className="text-sm text-primary/60 font-medium">Gestão de consultório e finanças em um só lugar.</p>
             </div>
           </div>

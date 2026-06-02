@@ -44,7 +44,7 @@ export async function handleWhatsappMessage(from: string, rawText: string) {
 
   if (!user) {
     await sendWhatsapp(from,
-      "👋 Olá! Eu sou o assistente do Ledivan+.\n\nSeu número ainda não está vinculado. Acesse *Ajustes → Integrações* no app, ative o WhatsApp e salve este número para começar a registrar lançamentos por aqui.");
+      "👋 Olá! Eu sou o assistente do Ledivan.\n\nSeu número ainda não está vinculado. Acesse *Ajustes → Integrações* no app, ative o WhatsApp e salve este número para começar a registrar lançamentos por aqui.");
     return;
   }
 

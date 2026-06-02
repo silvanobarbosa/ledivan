@@ -10,7 +10,7 @@ export const dynamic = "force-dynamic";
 export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }) {
   const { slug } = await params;
   const therapist = await db.query.users.findFirst({ where: eq(users.bookingSlug, slug) });
-  return { title: therapist ? `Agendar com ${therapist.name ?? "terapeuta"} — Ledivan+` : "Agendar — Ledivan+" };
+  return { title: therapist ? `Agendar com ${therapist.name ?? "terapeuta"} — Ledivan` : "Agendar — Ledivan" };
 }
 
 export default async function BookingPage({ params }: { params: Promise<{ slug: string }> }) {
@@ -36,7 +36,7 @@ export default async function BookingPage({ params }: { params: Promise<{ slug: 
             <BookingForm slug={slug} />
           </div>
           <p className="mt-6 text-center text-xs text-[color:var(--muted-foreground)]">
-            Powered by Ledivan+ · Cuidando de quem cuida.
+            Powered by Ledivan · Cuidando de quem cuida.
           </p>
         </div>
       </main>

@@ -2,7 +2,7 @@
 @import "tailwindcss";
 
 @theme {
-  /* Ledivan+ — Warm Glass Layered Palette */
+  /* Ledivan — Warm Glass Layered Palette */
   --color-primary: #2b1830;            /* eggplant */
   --color-on-primary: #ffffff;
   --color-primary-container: #3a2240;  /* eggplant soft */

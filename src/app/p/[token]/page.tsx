@@ -7,7 +7,7 @@ import { ResponseForm } from "./ResponseForm";
 import { Check } from "lucide-react";
 
 export const dynamic = "force-dynamic";
-export const metadata = { title: "Sua tarefa — Ledivan+" };
+export const metadata = { title: "Sua tarefa — Ledivan" };
 
 export default async function PatientTaskPage({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;
@@ -51,7 +51,7 @@ export default async function PatientTaskPage({ params }: { params: Promise<{ to
             </div>
           </div>
           <p className="mt-5 text-center text-[11px] text-[color:var(--muted-foreground)]">
-            Suas respostas são privadas e visíveis apenas ao seu terapeuta. · Ledivan+
+            Suas respostas são privadas e visíveis apenas ao seu terapeuta. · Ledivan
           </p>
         </div>
       </main>
