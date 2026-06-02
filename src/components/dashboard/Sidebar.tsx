@@ -15,6 +15,7 @@ import {
   BarChart3,
   Megaphone,
   Activity,
+  HelpCircle,
 } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -77,6 +78,7 @@ export function Sidebar() {
 
         <p className="px-6 pt-5 pb-1 text-[10px] font-bold text-foreground/40 uppercase tracking-widest">Conta</p>
         {renderItem({ icon: Settings, label: "Ajustes", href: "/dashboard/settings" })}
+        {renderItem({ icon: HelpCircle, label: "Ajuda", href: "/dashboard/ajuda" })}
       </nav>
 
       <div className="p-6 mt-auto">

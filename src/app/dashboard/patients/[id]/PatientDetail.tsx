@@ -11,6 +11,7 @@ import { SessionSummary } from "./SessionSummary";
 import { TreatmentPlan } from "./TreatmentPlan";
 import { TimelineTab } from "./TimelineTab";
 import { AnamneseForm } from "./AnamneseForm";
+import { InfoTip } from "@/components/InfoTip";
 import {
   formatBRL,
   formatDate,
@@ -298,6 +299,7 @@ export function PatientDetail({
               <label className="sm:col-span-2 flex items-center gap-2 text-sm cursor-pointer">
                 <input type="checkbox" name="isOnline" value="on" className="accent-primary w-4 h-4" />
                 <Video className="w-4 h-4 text-primary" /> Atendimento online (gera sala de vídeo)
+                <InfoTip text="Cria um link de vídeo para a sessão (Jitsi por padrão, ou Google Meet se configurado em Ajustes). O botão 'Entrar' aparece na sessão e na agenda." />
               </label>
               <div className="sm:col-span-2"><textarea name="notes" rows={2} placeholder="Notas da sessão" className={inputCls} /></div>
               <button className="sm:col-span-2 bg-primary text-white py-2.5 rounded-xl font-bold">Salvar sessão</button>
@@ -366,6 +368,7 @@ export function PatientDetail({
                 <input type="checkbox" name="link" value="on" defaultChecked={autoLinkPayments} className="accent-primary w-4 h-4" />
                 <Link2 className="w-4 h-4 text-primary" />
                 <span>Lançar como receita no financeiro</span>
+                <InfoTip text="Se marcado, este pagamento vira uma transação de receita no Financeiro (categoria Sessões). Pode ligar/desligar caso a caso." />
               </label>
               <button className="sm:col-span-2 bg-primary text-white py-2.5 rounded-xl font-bold">Salvar pagamento</button>
             </form>

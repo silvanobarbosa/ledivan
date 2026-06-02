@@ -2,6 +2,8 @@ import { Sidebar } from "@/components/dashboard/Sidebar";
 import { ScanButton } from "@/components/dashboard/ScanButton";
 import { HeaderSearch } from "@/components/dashboard/HeaderSearch";
 import { BottomNavBar } from "@/components/dashboard/BottomNavBar";
+import { OnboardingTour } from "@/components/dashboard/OnboardingTour";
+import { HelpButton } from "@/components/dashboard/HelpButton";
 import { Bell, Plus } from "lucide-react";
 import { db } from "@/db";
 import { auth } from "@/auth";
@@ -45,6 +47,7 @@ export default async function DashboardLayout({
           </div>
 
           <div className="flex items-center gap-3 lg:gap-4 ml-4">
+            <HelpButton />
             <button className="p-2 lg:p-3 bg-white border border-border rounded-2xl text-foreground/60 hover:text-primary hover:border-primary transition-all">
               <Bell className="w-5 h-5" />
             </button>
@@ -62,6 +65,7 @@ export default async function DashboardLayout({
 
       <BottomNavBar />
       <ScanButton userId={user?.id || ""} />
+      <OnboardingTour />
     </div>
   );
 }

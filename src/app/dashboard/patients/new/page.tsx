@@ -1,6 +1,7 @@
 import { createPatient } from "../actions";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
+import { InfoTip } from "@/components/InfoTip";
 
 const inputCls =
   "w-full px-4 py-3 rounded-2xl bg-white/70 border border-border focus:ring-2 focus:ring-accent/20 focus:border-accent outline-none transition";
@@ -37,11 +38,11 @@ export default function NewPatientPage() {
 
         <div className="grid sm:grid-cols-2 gap-4">
           <div>
-            <label className={labelCls}>Valor da sessão (R$)</label>
+            <label className={labelCls}>Valor da sessão (R$)<InfoTip text="Valor cobrado por sessão. Vira o padrão ao registrar pagamentos e sessões deste paciente." /></label>
             <input name="sessionFee" inputMode="decimal" className={inputCls} placeholder="0,00" />
           </div>
           <div>
-            <label className={labelCls}>Frequência</label>
+            <label className={labelCls}>Frequência<InfoTip text="Com que frequência o paciente é atendido (semanal, quinzenal, mensal). Ajuda a organizar a agenda." /></label>
             <select name="frequency" className={inputCls} defaultValue="semanal">
               <option value="semanal">Semanal</option>
               <option value="quinzenal">Quinzenal</option>
@@ -53,7 +54,7 @@ export default function NewPatientPage() {
 
         <div className="grid sm:grid-cols-2 gap-4">
           <div>
-            <label className={labelCls}>Tipo de contrato</label>
+            <label className={labelCls}>Tipo de contrato<InfoTip text="Avulso: paga por sessão. Pacote: conjunto de sessões contratadas (informe a quantidade)." /></label>
             <select name="contractType" className={inputCls} defaultValue="avulso">
               <option value="avulso">Avulso</option>
               <option value="pacote">Pacote</option>
@@ -67,7 +68,7 @@ export default function NewPatientPage() {
 
         <div className="grid sm:grid-cols-2 gap-4">
           <div>
-            <label className={labelCls}>Dia de pagamento</label>
+            <label className={labelCls}>Dia de pagamento<InfoTip text="Dia do mês em que o paciente costuma pagar. Usado para organizar cobranças." /></label>
             <input name="paymentDay" type="number" min={1} max={31} className={inputCls} placeholder="ex: 5" />
           </div>
           <div>
@@ -95,7 +96,7 @@ export default function NewPatientPage() {
         </div>
 
         <div className="pt-2 border-t border-border">
-          <p className="text-xs font-bold text-foreground/40 uppercase tracking-widest mb-3 mt-3">Lembrete de sessão</p>
+          <p className="text-xs font-bold text-foreground/40 uppercase tracking-widest mb-3 mt-3">Lembrete de sessão<InfoTip text="Se ligado, o sistema envia um lembrete automático antes da sessão pelo canal escolhido (precisa ter o canal conectado em Ajustes)." /></p>
           <label className="flex items-center gap-2 text-sm mb-3 cursor-pointer">
             <input type="checkbox" name="reminderEnabled" className="accent-primary w-4 h-4" />
             Enviar lembrete automático antes da sessão
@@ -109,7 +110,7 @@ export default function NewPatientPage() {
         </div>
 
         <div>
-          <label className={labelCls}>Etiquetas (separadas por vírgula)</label>
+          <label className={labelCls}>Etiquetas (separadas por vírgula)<InfoTip text="Marcadores livres para organizar e filtrar pacientes na lista. Ex: TCC, ansiedade, casal." /></label>
           <input name="tags" className={inputCls} placeholder="ex: TCC, ansiedade, quinzenal" />
         </div>
 

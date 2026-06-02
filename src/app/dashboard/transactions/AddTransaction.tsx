@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Plus, X } from "lucide-react";
 import { createTransaction } from "./actions";
+import { InfoTip } from "@/components/InfoTip";
 
 type Cat = { id: string; name: string; type: string };
 type Acc = { id: string; name: string };
@@ -63,7 +64,7 @@ export function AddTransaction({ categories, accounts }: { categories: Cat[]; ac
           </div>
 
           <div>
-            <label className="text-xs font-semibold text-foreground/60">Categoria</label>
+            <label className="text-xs font-semibold text-foreground/60">Categoria<InfoTip text="Classifica o lançamento (ex: Aluguel sala, Sessões). Aparece nos relatórios por categoria." /></label>
             <select name="categoryId" className={inputCls} defaultValue="">
               <option value="">— Sem categoria —</option>
               {cats.map((c) => (
