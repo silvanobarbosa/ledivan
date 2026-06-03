@@ -1,0 +1,77 @@
+ROTEIRO — VÍDEO TUTORIAL DO LEDIVAN
+
+Vídeo de apresentação/onboarding (~3 a 4 min).
+Formato: gravação de tela (Loom/OBS) com narração, OU narração + capturas num gerador (Synthesia/Pictory/Descript/HeyGen).
+URL de demonstração: https://ledivan.vercel.app
+Conta de teste: silvanobarbosa@gmail.com (já populada com ~15 meses de dados).
+Tom: acolhedor, calmo, profissional. Paleta da marca (berinjela/creme/violeta).
+
+Dica de gravação: 1920x1080, cursor visível, zoom suave nos cliques. Música instrumental leve e baixa.
+
+============================================================
+
+CENA 0 — ABERTURA (0:00–0:10)
+Tela: logo Ledivan sobre fundo creme (landing https://ledivan.vercel.app).
+Narração: "Ledivan: o consultório e as finanças do terapeuta, num só lugar. Em 3 minutos, te mostro como ele organiza seu dia a dia."
+
+CENA 1 — LOGIN (0:10–0:25)
+Tela: /login → clicar "Entrar com Google".
+Ação: mostra entrar e cair no Dashboard.
+Narração: "O acesso é por Google ou link mágico no e-mail. Cada profissional tem um espaço totalmente isolado e seguro."
+
+CENA 2 — TOUR GUIADO (0:25–0:40)
+Tela: o tour de boas-vindas abrindo automaticamente; passar 2–3 passos.
+Narração: "No primeiro acesso, um tour mostra onde fica cada coisa. Você pode reabri-lo quando quiser pelo ícone de ajuda."
+
+CENA 3 — DASHBOARD (0:40–1:00)
+Tela: dashboard — cards (pacientes ativos, sessões da semana, receita do mês), seção "Atenção clínica" e "Próximas sessões".
+Narração: "Logo na entrada, o resumo do consultório: pacientes ativos, sessões da semana, receita do mês — e a Atenção clínica, que destaca quem precisa de um olhar agora: risco de falta, humor baixo, escala em alerta ou pagamento atrasado."
+
+CENA 4 — PACIENTES + PRONTUÁRIO (1:00–1:35)
+Tela: menu Pacientes → abrir um paciente → passear nas abas (Dados, Prontuário, Espaço, Sessões, Pagamentos, Linha do tempo).
+Ação: mostrar o badge de risco no topo; abrir Prontuário (plano terapêutico + evoluções); clicar "Prontuário PDF".
+Narração: "Cada paciente tem ficha completa, plano terapêutico com objetivos e progresso, prontuário com evoluções e anamnese — e você exporta tudo em PDF num clique. Passe o mouse no ícone de informação para entender cada campo."
+
+CENA 5 — AGENDA (1:35–1:55)
+Tela: /dashboard/agenda — grade semanal; clicar numa sessão → trocar status; mostrar botão de vídeo numa sessão online.
+Narração: "A agenda é visual, no estilo Google Calendar. Clique na sessão para marcar como realizada ou cancelada — e, se for online, o link de vídeo já fica ali, pronto."
+
+CENA 6 — ESPAÇO DO PACIENTE (1:55–2:35)  [DIFERENCIAL]
+Tela: dentro do paciente → aba "Espaço": criar tarefa com modelo TCC; copiar link; mostrar diário de humor com gráfico; aplicar PHQ-9.
+Ação (opcional): abrir o link do paciente noutra aba e responder com uma foto/áudio.
+Narração: "Aqui está o diferencial: o cuidado continua ENTRE as sessões. Você envia tarefas — com modelos prontos de TCC — e o paciente responde por um link, com texto, foto, áudio ou vídeo. Tem diário de humor com gráfico e escalas validadas, como PHQ-9 e GAD-7, pontuadas automaticamente. Tudo volta pro prontuário."
+
+CENA 7 — FINANCEIRO (2:35–3:00)
+Tela: Transações (novo lançamento), Relatórios (gráfico mês a mês), e um pagamento de sessão virando receita.
+Narração: "No financeiro, lance receitas e despesas, veja relatórios mês a mês e metas. O melhor: o pagamento de uma sessão vira receita automaticamente — você decide. E dá pra lançar um gasto só mandando uma mensagem no WhatsApp ou tirando foto do recibo."
+
+CENA 8 — INTEGRAÇÕES (3:00–3:25)
+Tela: Ajustes → conectar WhatsApp (QR), Telegram, e-mail próprio, Google Meet, link de autoagendamento.
+Narração: "Conecte seu WhatsApp para enviar lembretes do seu próprio número, seu Telegram, seu e-mail, e o Google Meet. Crie seu link de autoagendamento e deixe o paciente marcar sozinho."
+
+CENA 9 — FECHAMENTO (3:25–3:45)
+Tela: volta à landing / logo.
+Narração: "Ledivan: você cuida da escuta, a gente cuida do resto. Comece agora — 14 dias grátis."
+CTA na tela: "ledivan.com.br" + botão "Começar agora".
+
+============================================================
+
+VERSÃO CURTA (Reels/Shorts, ~45s)
+1. (0–5s) "Terapeuta: cansado de planilha + agenda + banco separados?"
+2. (5–15s) Dashboard + Atenção clínica.
+3. (15–28s) Espaço do Paciente: tarefa + humor + escala (o diferencial).
+4. (28–38s) Pagamento de sessão vira receita; lançar gasto por WhatsApp.
+5. (38–45s) Logo + "ledivan.com.br — 14 dias grátis".
+
+============================================================
+
+NARRAÇÃO — OBSERVAÇÕES
+- Voz calma, ritmo pausado (combina com o público de saúde mental).
+- Evitar promessas clínicas; foco em organização e tempo.
+- Legendas embutidas (acessibilidade + Reels sem som).
+
+FERRAMENTAS SUGERIDAS PARA PRODUZIR
+- Gravação de tela + narração: Loom, OBS, ScreenStudio (Mac).
+- IA (avatar/voz + slides): Synthesia, HeyGen, Pictory, Descript (cole este roteiro).
+- Edição: CapCut, Descript.
+- Apresentação pronta para gravar: https://ledivan.vercel.app/apresentacao.html (autoplay, fullscreen).
