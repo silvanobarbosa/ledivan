@@ -30,7 +30,7 @@ async function sendEmail(to: string, subject: string, text: string): Promise<boo
   const res = await fetch("https://api.resend.com/emails", {
     method: "POST",
     headers: { Authorization: `Bearer ${key}`, "Content-Type": "application/json" },
-    body: JSON.stringify({ from: "Ledivan <onboarding@resend.dev>", to, subject, html }),
+    body: JSON.stringify({ from: process.env.RESEND_FROM || "Ledivan <onboarding@resend.dev>", to, subject, html }),
   });
   return res.ok;
 }

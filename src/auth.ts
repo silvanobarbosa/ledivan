@@ -24,7 +24,7 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
     }),
     Resend({
       apiKey: process.env.AUTH_RESEND_KEY,
-      from: "Ledivan <onboarding@resend.dev>",
+      from: process.env.RESEND_FROM || "Ledivan <onboarding@resend.dev>",
       async sendVerificationRequest({ identifier: email, url, provider }) {
         if (!provider.apiKey) {
           console.error("AUTH_RESEND_KEY is missing!");
