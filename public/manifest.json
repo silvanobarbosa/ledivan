@@ -1,16 +1,16 @@
 {
-  "name": "CapiCash - Sua Fintech Amigável",
-  "short_name": "CapiCash",
-  "description": "Organize suas finanças com a ajuda do Capi, sua capivara financeira.",
+  "name": "Ledivan — Consultório e finanças",
+  "short_name": "Ledivan",
+  "description": "Gestão de consultório de terapia com módulo financeiro integrado.",
   "start_url": "/dashboard",
   "display": "standalone",
-  "background_color": "#f6fafe",
-  "theme_color": "#00535b",
+  "background_color": "#faf6f1",
+  "theme_color": "#2b1830",
   "icons": [
     {
-      "src": "/icon.png",
-      "sizes": "1024x1024",
-      "type": "image/png",
+      "src": "/icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
       "purpose": "any maskable"
     }
   ]

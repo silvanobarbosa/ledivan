@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" width="64" height="64">
+  <rect width="64" height="64" rx="14" fill="#2b1830"/>
+  <g fill="none" stroke="#faf6f1" stroke-width="3.2" stroke-linecap="round" stroke-linejoin="round">
+    <!-- encosto / braços -->
+    <path d="M13 36 v-5 a5 5 0 0 1 5 -5 h28 a5 5 0 0 1 5 5 v5"/>
+    <!-- assento -->
+    <rect x="11" y="34" width="42" height="11" rx="4.5" fill="#faf6f1" stroke="none"/>
+    <!-- almofada (divã) elevada à esquerda -->
+    <path d="M13 34 q2 -8 9 -8" stroke="#c4b5fd"/>
+    <!-- pés -->
+    <line x1="16" y1="45" x2="16" y2="50"/>
+    <line x1="48" y1="45" x2="48" y2="50"/>
+  </g>
+</svg>
