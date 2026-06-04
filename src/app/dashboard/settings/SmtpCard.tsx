@@ -82,8 +82,8 @@ export function SmtpCard({ configured, currentEmail, loginEmail }: { configured:
           {result && <p className={`text-sm ${result.ok ? "text-[#047857]" : "text-red-600"}`}>{result.msg}</p>}
 
           <div className="flex gap-2">
-            <button type="submit" disabled={pending} className="inline-flex items-center gap-2 bg-primary text-white py-2.5 px-5 rounded-xl font-bold disabled:opacity-50">
-              {pending ? <><Loader2 className="w-4 h-4 animate-spin" /> Testando...</> : "Testar e salvar"}
+            <button type="submit" disabled={pending} className="inline-flex items-center gap-2 bg-primary text-white py-2.5 px-5 rounded-xl font-bold transition hover:scale-[1.01] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100">
+              {pending ? <><Loader2 className="w-4 h-4 animate-spin" /> Testando…</> : "Testar e salvar"}
             </button>
             {configured && (
               <button type="button" onClick={() => startTransition(() => disableSmtp())} className="text-sm font-semibold text-red-500/70 hover:text-red-600 px-3">

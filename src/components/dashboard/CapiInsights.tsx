@@ -35,10 +35,11 @@ export function CapiInsights({
   ]);
   const [isLoading, setIsLoading] = useState(false);
 
-  const data = categoryData.map(c => ({
+  const PALETTE = ["#2b1830", "#8b5cf6", "#c4b5fd", "#6b5b6f", "#b45309", "#047857"];
+  const data = categoryData.map((c, i) => ({
     name: c.name,
     value: parseFloat(c.value || "0"),
-    color: c.color || "#004D40"
+    color: c.color || PALETTE[i % PALETTE.length]
   })).filter(c => c.value > 0);
 
   const generateInsights = async () => {
@@ -70,32 +71,50 @@ export function CapiInsights({
         <Sparkles className="w-5 h-5 text-accent" />
       </div>
 
-      <div className="h-48 w-full relative">
-        <ResponsiveContainer width="100%" height="100%">
-          <PieChart>
-            <Pie
-              data={data}
-              cx="50%"
-              cy="50%"
-              innerRadius={60}
-              outerRadius={80}
-              paddingAngle={5}
-              dataKey="value"
-            >
-              {data.map((entry, index) => (
-                <Cell key={`cell-${index}`} fill={entry.color} />
-              ))}
-            </Pie>
-            <Tooltip 
-              contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }}
-            />
-          </PieChart>
-        </ResponsiveContainer>
-        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-          <span className="text-[10px] font-bold text-foreground/30 uppercase tracking-widest">Gastos</span>
-          <span className="text-xs font-bold text-primary">Mix</span>
+      {data.length === 0 ? (
+        <div className="h-48 w-full flex flex-col items-center justify-center text-center gap-2 text-foreground/40">
+          <span className="text-3xl">🍩</span>
+          <p className="text-sm font-medium">Sem despesas por categoria ainda.</p>
         </div>
-      </div>
+      ) : (
+        <>
+          <div className="h-48 w-full relative">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={data}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={60}
+                  outerRadius={80}
+                  paddingAngle={5}
+                  dataKey="value"
+                >
+                  {data.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.color} />
+                  ))}
+                </Pie>
+                <Tooltip
+                  formatter={(value: any) => [`R$ ${Number(value || 0).toFixed(2)}`, "Total"]}
+                  contentStyle={{ borderRadius: '12px', border: '1px solid #e7ddd4', boxShadow: '0 4px 6px -1px rgb(43 24 48 / 0.1)' }}
+                />
+              </PieChart>
+            </ResponsiveContainer>
+            <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+              <span className="text-[10px] font-bold text-foreground/30 uppercase tracking-widest">Gastos</span>
+              <span className="text-xs font-bold text-primary">Mix</span>
+            </div>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {data.map((c, i) => (
+              <span key={i} className="inline-flex items-center gap-1.5 text-[11px] font-semibold text-foreground/60">
+                <span className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: c.color }} />
+                {c.name}
+              </span>
+            ))}
+          </div>
+        </>
+      )}
 
       <div className="space-y-4">
         {insights.map((insight) => (

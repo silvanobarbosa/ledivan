@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { createGoal } from "./actions";
 import { Plus, X } from "lucide-react";
+import { SubmitButton } from "@/components/SubmitButton";
 
 export function AddGoalForm() {
   const [isOpen, setIsOpen] = useState(false);
@@ -67,9 +68,9 @@ export function AddGoalForm() {
             />
           </div>
 
-          <button type="submit" className="w-full bg-primary text-white py-5 rounded-3xl font-bold shadow-lg shadow-primary/20 hover:opacity-90 transition-all text-lg">
+          <SubmitButton pendingLabel="Criando meta…" className="w-full inline-flex items-center justify-center gap-2 bg-primary text-white py-5 rounded-3xl font-bold shadow-lg shadow-primary/20 hover:opacity-90 transition-all text-lg">
             Começar a Poupar
-          </button>
+          </SubmitButton>
         </form>
       </div>
     </div>

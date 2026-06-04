@@ -6,6 +6,11 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { updatePatient, deletePatient } from "../../actions";
+import { SubmitButton } from "@/components/SubmitButton";
+import { InfoTip } from "@/components/InfoTip";
+import { ContractFields } from "@/components/dashboard/ContractFields";
+import { PhotoSlots } from "@/components/dashboard/PhotoSlots";
+import { REMINDER_LEAD_OPTIONS } from "@/lib/reminderLead";
 
 const inputCls =
   "w-full px-4 py-3 rounded-2xl bg-white/70 border border-border focus:ring-2 focus:ring-accent/20 focus:border-accent outline-none transition";
@@ -69,13 +74,7 @@ export default async function EditPatientPage({ params }: { params: Promise<{ id
         </div>
 
         <div className="grid sm:grid-cols-2 gap-4">
-          <div>
-            <label className={labelCls}>Tipo de contrato</label>
-            <select name="contractType" className={inputCls} defaultValue={patient.contractType ?? "avulso"}>
-              <option value="avulso">Avulso</option>
-              <option value="pacote">Pacote</option>
-            </select>
-          </div>
+          <ContractFields defaultType={patient.contractType ?? "avulso"} defaultSessions={patient.sessionsInPacket} />
           <div>
             <label className={labelCls}>Status</label>
             <select name="patientStatus" className={inputCls} defaultValue={patient.patientStatus}>
@@ -112,17 +111,41 @@ export default async function EditPatientPage({ params }: { params: Promise<{ id
             <input type="checkbox" name="reminderEnabled" defaultChecked={patient.reminderEnabled} className="accent-primary w-4 h-4" />
             Enviar lembrete automático antes da sessão
           </label>
-          <label className={labelCls}>Canal do lembrete</label>
-          <select name="reminderChannel" className={inputCls} defaultValue={patient.reminderChannel}>
-            <option value="whatsapp">WhatsApp</option>
-            <option value="email">E-mail</option>
-            <option value="telegram">Telegram</option>
-          </select>
+          <div className="grid sm:grid-cols-2 gap-4">
+            <div>
+              <label className={labelCls}>Canal do lembrete</label>
+              <select name="reminderChannel" className={inputCls} defaultValue={patient.reminderChannel}>
+                <option value="whatsapp">WhatsApp</option>
+                <option value="email">E-mail</option>
+                <option value="telegram">Telegram</option>
+              </select>
+            </div>
+            <div>
+              <label className={labelCls}>Antecedência<InfoTip text="Quanto tempo antes da sessão o lembrete é enviado." /></label>
+              <select name="reminderLeadMinutes" className={inputCls} defaultValue={patient.reminderLeadMinutes ?? 60}>
+                {REMINDER_LEAD_OPTIONS.map((o) => (
+                  <option key={o.value} value={o.value}>{o.label}</option>
+                ))}
+              </select>
+            </div>
+          </div>
         </div>
 
         <div>
           <label className={labelCls}>Etiquetas (separadas por vírgula)</label>
           <input name="tags" defaultValue={patient.tags ?? ""} className={inputCls} placeholder="ex: TCC, ansiedade, quinzenal" />
+        </div>
+
+        <div className="pt-2 border-t border-border">
+          <p className="text-xs font-bold text-foreground/40 uppercase tracking-widest mb-3 mt-3">Fotos<InfoTip text="A foto 3x4 é a referência do cadastro. As outras 3 são opcionais." /></p>
+          <PhotoSlots
+            initial={{
+              photo3x4: patient.photo3x4,
+              photoExtra1: patient.photoExtra1,
+              photoExtra2: patient.photoExtra2,
+              photoExtra3: patient.photoExtra3,
+            }}
+          />
         </div>
 
         <div>
@@ -131,9 +154,9 @@ export default async function EditPatientPage({ params }: { params: Promise<{ id
         </div>
 
         <div className="flex gap-3 pt-2">
-          <button type="submit" className="flex-1 bg-primary text-white py-3.5 rounded-2xl font-bold shadow-lg shadow-primary/20 hover:scale-[1.01] active:scale-[0.99] transition">
+          <SubmitButton pendingLabel="Salvando…" className="flex-1 inline-flex items-center justify-center gap-2 bg-primary text-white py-3.5 rounded-2xl font-bold shadow-lg shadow-primary/20 hover:scale-[1.01] transition">
             Salvar alterações
-          </button>
+          </SubmitButton>
           <Link href={`/dashboard/patients/${id}`} className="px-6 py-3.5 rounded-2xl font-semibold text-foreground/60 hover:bg-white/60 transition">
             Cancelar
           </Link>
@@ -141,9 +164,9 @@ export default async function EditPatientPage({ params }: { params: Promise<{ id
       </form>
 
       <form action={remove} className="flex justify-end">
-        <button className="text-sm font-semibold text-red-500/70 hover:text-red-600 transition px-4 py-2">
+        <SubmitButton pendingLabel="Excluindo…" className="inline-flex items-center gap-2 text-sm font-semibold text-red-500/70 hover:text-red-600 transition px-4 py-2">
           Excluir paciente
-        </button>
+        </SubmitButton>
       </form>
     </div>
   );

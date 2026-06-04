@@ -58,7 +58,11 @@ export function OnboardingTour() {
         <p className="mt-2 text-foreground/70 leading-relaxed">{step.text}</p>
 
         {step.href && (
-          <Link href={step.href} onClick={close} className="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-accent hover:underline">
+          <Link
+            href={step.href}
+            onClick={() => setI((x) => Math.min(STEPS.length - 1, x + 1))}
+            className="mt-4 inline-flex items-center gap-1.5 text-sm font-semibold text-accent hover:underline"
+          >
             {step.cta} <ArrowRight className="w-4 h-4" />
           </Link>
         )}

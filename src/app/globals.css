@@ -96,6 +96,22 @@
     font-family: var(--font-display);
     letter-spacing: -0.02em;
   }
+  /* Tailwind v4 zera o cursor de button → devolve o "clicável" */
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  label:has(> input[type="checkbox"]),
+  label:has(> input[type="radio"]) {
+    cursor: pointer;
+  }
+  button:disabled,
+  [aria-disabled="true"] {
+    cursor: not-allowed;
+  }
+  /* Feedback de toque universal: leve recuo ao pressionar */
+  button:not(:disabled):active,
+  a[role="button"]:not([aria-disabled="true"]):active {
+    transform: scale(0.98);
+  }
 }
 
 @layer components {

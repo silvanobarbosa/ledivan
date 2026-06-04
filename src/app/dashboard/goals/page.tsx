@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { Target, Calendar, Trophy, Trash2 } from "lucide-react";
 import { AddGoalForm } from "./AddGoalForm";
 import { addAmountToGoal, deleteGoal } from "./actions";
+import { SubmitButton } from "@/components/SubmitButton";
 
 export const dynamic = "force-dynamic";
 
@@ -58,9 +59,9 @@ export default async function GoalsPage() {
                     </div>
                   )}
                   <form action={deleteGoal.bind(null, goal.id)}>
-                    <button className="p-3 text-red-400 hover:text-red-600 transition-colors">
+                    <SubmitButton pendingLabel="" className="p-3 text-red-400 hover:text-red-600 transition-colors">
                       <Trash2 className="w-5 h-5" />
-                    </button>
+                    </SubmitButton>
                   </form>
                 </div>
               </div>
@@ -111,9 +112,9 @@ export default async function GoalsPage() {
                     placeholder="R$ 0,00"
                     className="flex-1 p-3 bg-surface rounded-2xl border border-border focus:border-primary outline-none font-bold text-sm"
                   />
-                  <button type="submit" className="px-6 py-3 text-sm font-bold text-white bg-primary rounded-2xl hover:opacity-90 transition-opacity">
+                  <SubmitButton pendingLabel="Salvando…" className="inline-flex items-center gap-2 px-6 py-3 text-sm font-bold text-white bg-primary rounded-2xl hover:opacity-90 transition">
                     Poupado!
-                  </button>
+                  </SubmitButton>
                 </form>
               </div>
             </div>
@@ -127,11 +128,8 @@ export default async function GoalsPage() {
             </div>
             <div className="space-y-2">
               <h3 className="text-xl font-bold">Nenhuma meta ativa</h3>
-              <p className="text-foreground/40 font-medium max-w-sm">Comece a poupar hoje para conquistar seus sonhos amanhã. O Capi te ajuda!</p>
+              <p className="text-foreground/40 font-medium max-w-sm">Comece a poupar hoje para conquistar seus sonhos amanhã.</p>
             </div>
-            <button className="bg-primary text-white px-8 py-4 rounded-3xl font-bold shadow-lg shadow-primary/20">
-              Criar minha primeira meta
-            </button>
           </div>
         )}
       </div>

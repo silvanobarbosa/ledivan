@@ -21,7 +21,7 @@ export function HeaderSearch() {
   return (
     <form 
       onSubmit={handleSearch}
-      className="flex items-center gap-4 bg-surface px-6 py-3 rounded-2xl border border-border w-full max-w-md group focus-within:border-primary transition-colors"
+      className="hidden sm:flex items-center gap-4 bg-surface px-4 lg:px-6 py-3 rounded-2xl border border-border w-full max-w-md group focus-within:border-primary transition-colors"
     >
       <Search className="w-5 h-5 text-foreground/40 group-focus-within:text-primary" />
       <input 

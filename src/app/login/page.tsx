@@ -2,6 +2,7 @@ import { signIn } from "@/auth";
 import Link from "next/link";
 import { Mail, ArrowRight, Sparkles } from "lucide-react";
 import { Logo } from "@/components/landing/Logo";
+import { SubmitButton } from "@/components/SubmitButton";
 
 export const metadata = {
   title: "Entrar — Ledivan",
@@ -47,13 +48,13 @@ export default function LoginPage() {
                 await signIn("google", { redirectTo: "/dashboard" });
               }}
             >
-              <button
-                type="submit"
+              <SubmitButton
+                pendingLabel="Conectando ao Google…"
                 className="mt-7 inline-flex w-full items-center justify-center gap-3 rounded-full border border-[rgba(43,24,48,0.12)] bg-white px-5 py-3.5 text-sm font-medium text-ink hover:bg-white/80 hover:shadow-[var(--shadow-glass)] transition"
               >
                 <GoogleIcon />
                 Continuar com Google
-              </button>
+              </SubmitButton>
             </form>
 
             <div className="my-6 flex items-center gap-3 text-[10px] uppercase tracking-[0.18em] text-[color:var(--muted-foreground)]">
@@ -88,13 +89,13 @@ export default function LoginPage() {
                   className="w-full rounded-full border border-[rgba(43,24,48,0.12)] bg-white/70 pl-11 pr-4 py-3.5 text-sm text-ink placeholder:text-[color:var(--muted-foreground)] focus:outline-none focus:border-[color:var(--accent-violet)] focus:ring-4 focus:ring-[rgba(139,92,246,0.15)] transition"
                 />
               </div>
-              <button
-                type="submit"
+              <SubmitButton
+                pendingLabel="Enviando link…"
                 className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-[color:var(--brand-eggplant)] px-6 py-3.5 text-sm font-medium text-cream shadow-[var(--shadow-eggplant)] hover:bg-[color:var(--brand-eggplant-soft)] transition"
               >
                 Enviar link de acesso
                 <ArrowRight className="h-4 w-4" />
-              </button>
+              </SubmitButton>
             </form>
 
             <p className="mt-7 text-center text-xs text-[color:var(--muted-foreground)]">

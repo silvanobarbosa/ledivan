@@ -40,6 +40,9 @@ export default async function AgendaPage() {
           meetingUrl: s.meetingUrl,
           patientName: s.patient?.name ?? "—",
           risk: riskByPatient.get(s.patientId) ?? "baixo",
+          meetingOpenedAt: s.meetingOpenedAt ? (s.meetingOpenedAt as unknown as string) : null,
+          guestJoinedAt: s.guestJoinedAt ? (s.guestJoinedAt as unknown as string) : null,
+          meetingEndedAt: s.meetingEndedAt ? (s.meetingEndedAt as unknown as string) : null,
         }))}
       />
     </div>

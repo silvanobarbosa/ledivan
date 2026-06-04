@@ -2,6 +2,10 @@ import { createPatient } from "../actions";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { InfoTip } from "@/components/InfoTip";
+import { SubmitButton } from "@/components/SubmitButton";
+import { ContractFields } from "@/components/dashboard/ContractFields";
+import { PhotoSlots } from "@/components/dashboard/PhotoSlots";
+import { REMINDER_LEAD_OPTIONS } from "@/lib/reminderLead";
 
 const inputCls =
   "w-full px-4 py-3 rounded-2xl bg-white/70 border border-border focus:ring-2 focus:ring-accent/20 focus:border-accent outline-none transition";
@@ -53,13 +57,7 @@ export default function NewPatientPage() {
         </div>
 
         <div className="grid sm:grid-cols-2 gap-4">
-          <div>
-            <label className={labelCls}>Tipo de contrato<InfoTip text="Avulso: paga por sessão. Pacote: conjunto de sessões contratadas (informe a quantidade)." /></label>
-            <select name="contractType" className={inputCls} defaultValue="avulso">
-              <option value="avulso">Avulso</option>
-              <option value="pacote">Pacote</option>
-            </select>
-          </div>
+          <ContractFields />
           <div>
             <label className={labelCls}>Início</label>
             <input name="startedAt" type="date" className={inputCls} />
@@ -101,17 +99,34 @@ export default function NewPatientPage() {
             <input type="checkbox" name="reminderEnabled" className="accent-primary w-4 h-4" />
             Enviar lembrete automático antes da sessão
           </label>
-          <label className={labelCls}>Canal do lembrete</label>
-          <select name="reminderChannel" className={inputCls} defaultValue="whatsapp">
-            <option value="whatsapp">WhatsApp</option>
-            <option value="email">E-mail</option>
-            <option value="telegram">Telegram</option>
-          </select>
+          <div className="grid sm:grid-cols-2 gap-4">
+            <div>
+              <label className={labelCls}>Canal do lembrete</label>
+              <select name="reminderChannel" className={inputCls} defaultValue="whatsapp">
+                <option value="whatsapp">WhatsApp</option>
+                <option value="email">E-mail</option>
+                <option value="telegram">Telegram</option>
+              </select>
+            </div>
+            <div>
+              <label className={labelCls}>Antecedência<InfoTip text="Quanto tempo antes da sessão o lembrete é enviado." /></label>
+              <select name="reminderLeadMinutes" className={inputCls} defaultValue={60}>
+                {REMINDER_LEAD_OPTIONS.map((o) => (
+                  <option key={o.value} value={o.value}>{o.label}</option>
+                ))}
+              </select>
+            </div>
+          </div>
         </div>
 
         <div>
           <label className={labelCls}>Etiquetas (separadas por vírgula)<InfoTip text="Marcadores livres para organizar e filtrar pacientes na lista. Ex: TCC, ansiedade, casal." /></label>
           <input name="tags" className={inputCls} placeholder="ex: TCC, ansiedade, quinzenal" />
+        </div>
+
+        <div className="pt-2 border-t border-border">
+          <p className="text-xs font-bold text-foreground/40 uppercase tracking-widest mb-3 mt-3">Fotos<InfoTip text="A foto 3x4 é a referência do cadastro. As outras 3 são opcionais." /></p>
+          <PhotoSlots />
         </div>
 
         <div>
@@ -120,9 +135,9 @@ export default function NewPatientPage() {
         </div>
 
         <div className="flex gap-3 pt-2">
-          <button type="submit" className="flex-1 bg-primary text-white py-3.5 rounded-2xl font-bold shadow-lg shadow-primary/20 hover:scale-[1.01] active:scale-[0.99] transition">
+          <SubmitButton pendingLabel="Cadastrando…" className="flex-1 inline-flex items-center justify-center gap-2 bg-primary text-white py-3.5 rounded-2xl font-bold shadow-lg shadow-primary/20 hover:scale-[1.01] transition">
             Cadastrar paciente
-          </button>
+          </SubmitButton>
           <Link href="/dashboard/patients" className="px-6 py-3.5 rounded-2xl font-semibold text-foreground/60 hover:bg-white/60 transition">
             Cancelar
           </Link>

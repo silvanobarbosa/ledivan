@@ -6,6 +6,30 @@ import { auth } from "@/auth";
 import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { put } from "@vercel/blob";
+
+// Upload de foto (terapeuta/paciente) → blob privado. Retorna o pathname,
+// que o formulário guarda em campo oculto e a action persiste na coluna.
+export async function uploadPhoto(formData: FormData): Promise<{ ok: boolean; pathname?: string; error?: string }> {
+  const session = await auth();
+  if (!session?.user?.id) return { ok: false, error: "Não autorizado" };
+  const file = formData.get("file") as File | null;
+  if (!file || file.size === 0) return { ok: false, error: "Sem arquivo" };
+  if (!file.type.startsWith("image/")) return { ok: false, error: "Envie uma imagem (JPG/PNG)." };
+  if (file.size > 8 * 1024 * 1024) return { ok: false, error: "Imagem muito grande (máx. 8MB)." };
+  if (!process.env.BLOB_READ_WRITE_TOKEN) return { ok: false, error: "Upload não configurado." };
+  try {
+    const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_").slice(-50) || "foto.jpg";
+    const blob = await put(`fotos/${session.user.id}/${crypto.randomUUID()}/${safeName}`, file, {
+      access: "private",
+      addRandomSuffix: true,
+    });
+    return { ok: true, pathname: blob.pathname };
+  } catch (e) {
+    console.error("Erro no upload de foto:", e);
+    return { ok: false, error: "Falha ao enviar a imagem." };
+  }
+}
 
 function num(v: FormDataEntryValue | null, fallback = "0") {
   if (v == null || v === "") return fallback;
@@ -44,6 +68,13 @@ export async function createPatient(formData: FormData) {
       : null,
     reminderEnabled: formData.get("reminderEnabled") === "on",
     reminderChannel: (formData.get("reminderChannel") as string) || "whatsapp",
+    reminderLeadMinutes: formData.get("reminderLeadMinutes")
+      ? parseInt(formData.get("reminderLeadMinutes") as string)
+      : 60,
+    photo3x4: (formData.get("photo3x4") as string) || null,
+    photoExtra1: (formData.get("photoExtra1") as string) || null,
+    photoExtra2: (formData.get("photoExtra2") as string) || null,
+    photoExtra3: (formData.get("photoExtra3") as string) || null,
     tags: (formData.get("tags") as string)?.trim() || null,
   }).returning();
 
@@ -88,8 +119,18 @@ export async function updatePatient(patientId: string, formData: FormData) {
     emergencyRelationship: (formData.get("emergencyRelationship") as string) ?? existing.emergencyRelationship,
     paymentDay: formData.get("paymentDay") ? parseInt(formData.get("paymentDay") as string) : existing.paymentDay,
     contractType: ((formData.get("contractType") as string) || existing.contractType) as "pacote" | "avulso",
+    sessionsInPacket: formData.get("sessionsInPacket")
+      ? parseInt(formData.get("sessionsInPacket") as string)
+      : existing.sessionsInPacket,
     reminderEnabled: formData.get("reminderEnabled") === "on",
     reminderChannel: (formData.get("reminderChannel") as string) || existing.reminderChannel,
+    reminderLeadMinutes: formData.get("reminderLeadMinutes")
+      ? parseInt(formData.get("reminderLeadMinutes") as string)
+      : existing.reminderLeadMinutes,
+    photo3x4: (formData.get("photo3x4") as string) || existing.photo3x4,
+    photoExtra1: (formData.get("photoExtra1") as string) || existing.photoExtra1,
+    photoExtra2: (formData.get("photoExtra2") as string) || existing.photoExtra2,
+    photoExtra3: (formData.get("photoExtra3") as string) || existing.photoExtra3,
     tags: (formData.get("tags") as string)?.trim() || null,
   }).where(and(eq(patients.id, patientId), eq(patients.userId, session.user.id)));
 

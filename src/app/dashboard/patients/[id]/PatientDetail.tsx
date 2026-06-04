@@ -22,7 +22,6 @@ import {
   sessionStatusColor,
   paymentStatusColor,
   patientStatusColor,
-  meetingUrl,
   RISK_LABELS,
   riskColor,
   type RiskLevel,
@@ -292,9 +291,14 @@ export function PatientDetail({
                 <input name="duration" type="number" defaultValue={50} className={inputCls} /></div>
               <div><label className="text-xs font-semibold text-foreground/60">Valor</label>
                 <input name="fee" inputMode="decimal" defaultValue={patient.sessionFee} className={inputCls} /></div>
-              <div className="sm:col-span-2"><label className="text-xs font-semibold text-foreground/60">Status</label>
+              <div><label className="text-xs font-semibold text-foreground/60">Status</label>
                 <select name="status" className={inputCls} defaultValue="agendada">
                   {Object.entries(SESSION_STATUS_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+                </select></div>
+              <div><label className="text-xs font-semibold text-foreground/60">Cobrança<InfoTip text="'Cobrar' (padrão): sessão cobrável. 'Não cobrar': cortesia/devolutiva. Ao registrar o pagamento de um paciente com pacote, 1 crédito do pacote é descontado." /></label>
+                <select name="chargeable" className={inputCls} defaultValue="true">
+                  <option value="true">Cobrar (padrão)</option>
+                  <option value="false">Não cobrar</option>
                 </select></div>
               <label className="sm:col-span-2 flex items-center gap-2 text-sm cursor-pointer">
                 <input type="checkbox" name="isOnline" value="on" className="accent-primary w-4 h-4" />
@@ -315,9 +319,15 @@ export function PatientDetail({
                       <p className="text-sm text-foreground/50">{s.duration}min · {formatBRL(s.fee)}</p>
                     </div>
                     {s.isOnline && (
-                      <a href={s.meetingUrl || meetingUrl(s.id)} target="_blank" rel="noreferrer" className="text-xs font-semibold text-primary hover:underline flex items-center gap-1">
-                        <Video className="w-3.5 h-3.5" /> Entrar
-                      </a>
+                      s.meetingUrl?.includes("meet.google.com") ? (
+                        <a href={s.meetingUrl} target="_blank" rel="noreferrer" className="text-xs font-semibold text-primary hover:underline flex items-center gap-1">
+                          <Video className="w-3.5 h-3.5" /> Entrar
+                        </a>
+                      ) : (
+                        <a href={`/dashboard/sala/${s.id}`} className="text-xs font-semibold text-primary hover:underline flex items-center gap-1">
+                          <Video className="w-3.5 h-3.5" /> Entrar
+                        </a>
+                      )
                     )}
                     <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full uppercase ${sessionStatusColor(s.status)}`}>
                       {SESSION_STATUS_LABELS[s.status]}

@@ -157,12 +157,14 @@ export async function updateProfile(formData: FormData) {
   if (!session?.user?.id) throw new Error("Não autorizado");
 
   const name = formData.get("name") as string;
+  const photo3x4 = (formData.get("photo3x4") as string) || null;
 
   await db.update(users)
-    .set({ name })
+    .set({ name, ...(photo3x4 !== null ? { photo3x4 } : {}) })
     .where(eq(users.id, session.user.id));
 
   revalidatePath("/dashboard/settings");
+  revalidatePath("/dashboard", "layout");
 }
 
 export async function generateTelegramCode() {

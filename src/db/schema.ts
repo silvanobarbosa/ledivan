@@ -20,6 +20,7 @@ export const users = pgTable("user", {
   email: text("email").notNull().unique(),
   emailVerified: timestamp("emailVerified", { mode: "date" }),
   image: text("image"),
+  photo3x4: text("photo_3x4"), // foto 3x4 do terapeuta (cabeçalho)
   telegramId: text("telegram_id").unique(),
   telegramVerificationCode: text("telegram_verification_code"),
   telegramVerificationExpires: timestamp("telegram_verification_expires"),
@@ -176,6 +177,10 @@ export const patients = pgTable("patients", {
   email: text("email"),
   phone: text("phone"),
   avatar: text("avatar"),
+  photo3x4: text("photo_3x4"), // foto 3x4 de referência do cadastro
+  photoExtra1: text("photo_extra1"),
+  photoExtra2: text("photo_extra2"),
+  photoExtra3: text("photo_extra3"),
   sessionFee: numeric("session_fee", { precision: 10, scale: 2 }).default("0").notNull(),
   frequency: text("frequency"), // ex: "semanal", "quinzenal"
   notes: text("notes"),
@@ -194,10 +199,12 @@ export const patients = pgTable("patients", {
   prospectObservacoes: text("prospect_observacoes"),
   paymentDay: integer("payment_day"), // dia do mes para cobranca
   contractType: contractTypeEnum("contract_type").default("avulso"),
-  sessionsInPacket: integer("sessions_in_packet"),
+  sessionsInPacket: integer("sessions_in_packet"), // qtd de atendimentos no pacote
+  packageCreditsUsed: integer("package_credits_used").default(0).notNull(), // créditos do pacote já consumidos
   // Lembrete de sessao (escolha do terapeuta por paciente)
   reminderEnabled: boolean("reminder_enabled").default(false).notNull(),
   reminderChannel: text("reminder_channel").default("whatsapp").notNull(), // whatsapp | email | telegram
+  reminderLeadMinutes: integer("reminder_lead_minutes").default(60).notNull(), // antecedência (min) do lembrete
   moodToken: text("mood_token").unique(), // link do diário de humor: /humor/<token>
   tags: text("tags"), // etiquetas separadas por vírgula
   createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -268,6 +275,11 @@ export const therapySessions = pgTable("therapy_sessions", {
   meetingUrl: text("meeting_url"), // link Google Meet (se gerado); senão usa Jitsi derivado do id
   reminderSentAt: timestamp("reminder_sent_at"), // evita lembrete duplicado
   patientSummary: text("patient_summary"), // resumo pós-sessão para o paciente (IA)
+  // Rastreio da reunião online (sala Jitsi embutida emite eventos)
+  meetingHappened: boolean("meeting_happened").default(false).notNull(),
+  meetingOpenedAt: timestamp("meeting_opened_at"), // terapeuta abriu a sala
+  guestJoinedAt: timestamp("guest_joined_at"), // primeiro convidado entrou
+  meetingEndedAt: timestamp("meeting_ended_at"), // sala encerrada
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

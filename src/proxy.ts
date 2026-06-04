@@ -18,6 +18,7 @@ export default auth(async function proxy(req) {
     pathname.startsWith("/privacidade") ||
     pathname.startsWith("/termos") ||
     pathname.startsWith("/agendar") ||
+    pathname.startsWith("/sala-convidado/") ||
     pathname.startsWith("/p/") ||
     pathname.startsWith("/humor/") ||
     pathname.startsWith("/escala/") ||

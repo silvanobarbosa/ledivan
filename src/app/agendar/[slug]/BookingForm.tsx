@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { CalendarCheck, Check } from "lucide-react";
+import { CalendarCheck, Check, Loader2 } from "lucide-react";
 import { createPublicBooking } from "../actions";
 
 const inputCls =
@@ -48,10 +48,10 @@ export function BookingForm({ slug }: { slug: string }) {
       <button
         type="submit"
         disabled={pending}
-        className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-[color:var(--brand-eggplant)] px-6 py-3.5 text-sm font-medium text-cream shadow-[var(--shadow-eggplant)] hover:bg-[color:var(--brand-eggplant-soft)] transition disabled:opacity-60"
+        className="inline-flex w-full items-center justify-center gap-2 rounded-full bg-[color:var(--brand-eggplant)] px-6 py-3.5 text-sm font-medium text-cream shadow-[var(--shadow-eggplant)] hover:bg-[color:var(--brand-eggplant-soft)] transition active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed disabled:active:scale-100"
       >
-        <CalendarCheck className="h-4 w-4" />
-        {pending ? "Enviando..." : "Solicitar agendamento"}
+        {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : <CalendarCheck className="h-4 w-4" />}
+        {pending ? "Enviando…" : "Solicitar agendamento"}
       </button>
     </form>
   );

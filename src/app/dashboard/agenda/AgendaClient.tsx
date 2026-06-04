@@ -3,12 +3,12 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronLeft, ChevronRight, X } from "lucide-react";
-import { SESSION_STATUS_LABELS, sessionStatusColor, meetingUrl, RISK_LABELS, riskColor, type RiskLevel } from "@/lib/therapy";
+import { SESSION_STATUS_LABELS, sessionStatusColor, RISK_LABELS, riskColor, type RiskLevel } from "@/lib/therapy";
 import { updateSessionStatus } from "../sessions/actions";
 import { Video, AlertTriangle } from "lucide-react";
 
 type SessionStatus = "realizada" | "nao_realizada" | "cancelada" | "realocada" | "agendada";
-type AgendaSession = { id: string; date: string; duration: number; status: string; patientName: string; isOnline: boolean; risk: string; meetingUrl: string | null };
+type AgendaSession = { id: string; date: string; duration: number; status: string; patientName: string; isOnline: boolean; risk: string; meetingUrl: string | null; meetingOpenedAt: string | null; guestJoinedAt: string | null; meetingEndedAt: string | null };
 
 const DAY_NAMES = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 const START_HOUR = 7;
@@ -168,9 +168,24 @@ export function AgendaClient({ sessions }: { sessions: AgendaSession[] }) {
               <button onClick={() => setSelected(null)} className="p-1.5 rounded-lg hover:bg-surface transition"><X className="w-4 h-4" /></button>
             </div>
             {selected.isOnline && (
-              <a href={selected.meetingUrl || meetingUrl(selected.id)} target="_blank" rel="noreferrer" className="flex items-center justify-center gap-2 w-full rounded-xl bg-primary text-white py-2.5 text-sm font-bold hover:bg-primary-container transition">
-                <Video className="w-4 h-4" /> Entrar na sala de vídeo
-              </a>
+              selected.meetingUrl?.includes("meet.google.com") ? (
+                <a href={selected.meetingUrl} target="_blank" rel="noreferrer" className="flex items-center justify-center gap-2 w-full rounded-xl bg-primary text-white py-2.5 text-sm font-bold hover:bg-primary-container transition">
+                  <Video className="w-4 h-4" /> Entrar no Google Meet
+                </a>
+              ) : (
+                <a href={`/dashboard/sala/${selected.id}`} className="flex items-center justify-center gap-2 w-full rounded-xl bg-primary text-white py-2.5 text-sm font-bold hover:bg-primary-container transition">
+                  <Video className="w-4 h-4" /> Entrar como anfitrião
+                </a>
+              )
+            )}
+            {/* Registro da reunião */}
+            {(selected.meetingOpenedAt || selected.guestJoinedAt || selected.meetingEndedAt) && (
+              <div className="rounded-xl bg-surface/60 border border-border p-3 text-xs text-foreground/60 space-y-1">
+                <p className="font-bold text-foreground/40 uppercase tracking-widest text-[10px]">Reunião</p>
+                {selected.meetingOpenedAt && <p>Abriu: {new Date(selected.meetingOpenedAt).toLocaleString("pt-BR", { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "short" })}</p>}
+                {selected.guestJoinedAt && <p>Convidado entrou: {new Date(selected.guestJoinedAt).toLocaleString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</p>}
+                {selected.meetingEndedAt && <p>Encerrou: {new Date(selected.meetingEndedAt).toLocaleString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</p>}
+              </div>
             )}
             <div>
               <p className="text-xs font-bold text-foreground/40 uppercase tracking-widest mb-2">Status</p>

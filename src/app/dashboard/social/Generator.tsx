@@ -51,8 +51,8 @@ export function Generator() {
         </div>
       </div>
       {error && <p className="text-sm text-red-600">{error}</p>}
-      <button type="submit" disabled={pending} className="inline-flex items-center gap-2 bg-primary text-white py-2.5 px-5 rounded-xl font-bold disabled:opacity-50">
-        {pending ? <><Loader2 className="w-4 h-4 animate-spin" /> Gerando...</> : <><Sparkles className="w-4 h-4" /> Gerar com IA</>}
+      <button type="submit" disabled={pending} className="inline-flex items-center gap-2 bg-primary text-white py-2.5 px-5 rounded-xl font-bold transition hover:scale-[1.01] active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:active:scale-100">
+        {pending ? <><Loader2 className="w-4 h-4 animate-spin" /> Gerando…</> : <><Sparkles className="w-4 h-4" /> Gerar com IA</>}
       </button>
     </form>
   );

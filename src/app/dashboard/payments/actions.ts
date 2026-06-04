@@ -90,6 +90,14 @@ export async function createPayment(formData: FormData) {
     linkedTransactionId,
   });
 
+  // Se cobrou (pago) e o paciente tem pacote, desconta 1 crédito do pacote.
+  if (status === "paid" && patient.contractType === "pacote" && patient.sessionsInPacket) {
+    const used = (patient.packageCreditsUsed ?? 0) + 1;
+    await db.update(patients)
+      .set({ packageCreditsUsed: Math.min(used, patient.sessionsInPacket) })
+      .where(and(eq(patients.id, patientId), eq(patients.userId, userId)));
+  }
+
   revalidatePath(`/dashboard/patients/${patientId}`);
   revalidatePath("/dashboard");
   revalidatePath("/dashboard/transactions");
@@ -113,6 +121,18 @@ export async function deletePayment(paymentId: string) {
     );
   }
   await db.delete(sessionPayments).where(and(eq(sessionPayments.id, paymentId), eq(sessionPayments.userId, userId)));
+
+  // Devolve o crédito do pacote, se este pagamento havia debitado um.
+  if (payment.status === "paid") {
+    const patient = await db.query.patients.findFirst({
+      where: and(eq(patients.id, payment.patientId), eq(patients.userId, userId)),
+    });
+    if (patient?.contractType === "pacote" && (patient.packageCreditsUsed ?? 0) > 0) {
+      await db.update(patients)
+        .set({ packageCreditsUsed: (patient.packageCreditsUsed ?? 0) - 1 })
+        .where(and(eq(patients.id, payment.patientId), eq(patients.userId, userId)));
+    }
+  }
 
   revalidatePath(`/dashboard/patients/${payment.patientId}`);
   revalidatePath("/dashboard");

@@ -2,6 +2,7 @@
 import { meetingUrl } from "@/lib/therapy";
 import { sendProEmail } from "@/lib/email";
 import { sendWhatsappFromUser } from "@/lib/whatsappEvolution";
+import { jaasConfigured } from "@/lib/jaas";
 
 type PatientLite = {
   name: string;
@@ -9,13 +10,26 @@ type PatientLite = {
   email: string | null;
   reminderChannel: string;
 };
-type SessionLite = { id: string; date: Date | string; isOnline: boolean };
+type SessionLite = { id: string; date: Date | string; isOnline: boolean; meetingUrl?: string | null };
+
+// Link de entrada do PACIENTE (convidado).
+// - Google Meet salvo na sessão → usa direto
+// - JaaS configurado → página de convidado (token moderator=false)
+// - senão → sala pública meet.jit.si
+function patientMeetingLink(s: SessionLite): string {
+  if (s.meetingUrl) return s.meetingUrl;
+  if (jaasConfigured()) {
+    const base = (process.env.APP_URL || "https://ledivan.com.br").replace(/\/$/, "");
+    return `${base}/sala-convidado/${s.id}`;
+  }
+  return meetingUrl(s.id);
+}
 
 function buildMessage(p: PatientLite, s: SessionLite) {
   const d = new Date(s.date);
   const quando = d.toLocaleString("pt-BR", { weekday: "long", day: "2-digit", month: "long", hour: "2-digit", minute: "2-digit" });
   let msg = `Olá, ${p.name}! 🌿\nLembrete da sua sessão: *${quando}*.`;
-  if (s.isOnline) msg += `\n\nAtendimento online — entre por aqui no horário:\n${meetingUrl(s.id)}`;
+  if (s.isOnline) msg += `\n\nAtendimento online — entre por aqui no horário:\n${patientMeetingLink(s)}`;
   msg += `\n\nAté lá!`;
   return msg;
 }

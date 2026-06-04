@@ -33,10 +33,18 @@ export async function GET(req: NextRequest) {
   for (const s of sessions) {
     const p = s.patient;
     if (!p?.reminderEnabled) { skipped++; continue; }
+    // Respeita a antecedência escolhida: dispara quando faltar <= lead.
+    // Tolerância ao intervalo do cron: se a próxima execução só ocorrer DEPOIS
+    // da sessão, manda agora (evita perder o lembrete em planos com cron diário).
+    // Em cron de 15min, defina CRON_INTERVAL_MIN=15 para anteced. exata.
+    const intervalMin = parseInt(process.env.CRON_INTERVAL_MIN || "1440");
+    const lead = p.reminderLeadMinutes ?? 60;
+    const minutesUntil = (new Date(s.date).getTime() - now.getTime()) / 60000;
+    if (minutesUntil > lead && minutesUntil > intervalMin) { skipped++; continue; }
     const ok = await sendSessionReminder(
       s.userId,
       { name: p.name, phone: p.phone, email: p.email, reminderChannel: p.reminderChannel },
-      { id: s.id, date: s.date, isOnline: s.isOnline },
+      { id: s.id, date: s.date, isOnline: s.isOnline, meetingUrl: s.meetingUrl },
     );
     if (ok) {
       await db.update(therapySessions)

@@ -1,9 +1,11 @@
 import { Sidebar } from "@/components/dashboard/Sidebar";
+import { MobileSidebar } from "@/components/dashboard/MobileSidebar";
 import { ScanButton } from "@/components/dashboard/ScanButton";
-import { HeaderSearch } from "@/components/dashboard/HeaderSearch";
 import { BottomNavBar } from "@/components/dashboard/BottomNavBar";
 import { OnboardingTour } from "@/components/dashboard/OnboardingTour";
 import { HelpButton } from "@/components/dashboard/HelpButton";
+import { HeaderUser } from "@/components/dashboard/HeaderUser";
+import { photoSrc } from "@/lib/photo";
 import { Bell, Plus } from "lucide-react";
 import { db } from "@/db";
 import { auth } from "@/auth";
@@ -27,33 +29,22 @@ export default async function DashboardLayout({
 
       <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
         <header className="h-20 lg:h-24 bg-white/80 backdrop-blur-md border-b border-border flex items-center justify-between px-6 lg:px-8 shrink-0 z-10">
-          <div className="flex items-center gap-4 flex-1">
-            <Link href="/dashboard" className="lg:hidden flex items-center">
+          <div className="flex items-center gap-3 lg:gap-4 min-w-0">
+            <MobileSidebar />
+            <Link href="/dashboard" className="lg:hidden flex items-center shrink-0">
               <img src="/ledivan-color.png" alt="Ledivan" className="h-9 w-auto object-contain" />
             </Link>
-            <HeaderSearch />
-            
-            <nav className="hidden xl:flex items-center gap-6 ml-8">
-              {["Metodologia", "Funcionalidades", "Segurança"].map((item) => (
-                <Link 
-                  key={item} 
-                  href={`/#${item.toLowerCase()}`} 
-                  className="text-xs font-bold text-foreground/40 hover:text-primary transition-colors uppercase tracking-widest"
-                >
-                  {item}
-                </Link>
-              ))}
-            </nav>
+            <HeaderUser name={user?.name} photoUrl={photoSrc(user?.photo3x4 ?? user?.image)} />
           </div>
 
-          <div className="flex items-center gap-3 lg:gap-4 ml-4">
+          <div className="flex items-center gap-2 lg:gap-4 ml-4">
             <HelpButton />
-            <button className="p-2 lg:p-3 bg-white border border-border rounded-2xl text-foreground/60 hover:text-primary hover:border-primary transition-all">
+            <button aria-label="Notificações" className="p-2 lg:p-3 bg-white border border-border rounded-2xl text-foreground/60 hover:text-primary hover:border-primary transition-all">
               <Bell className="w-5 h-5" />
             </button>
-            <Link href="/dashboard/patients/new" className="hidden sm:flex items-center gap-2 bg-primary text-white px-6 py-3 rounded-2xl font-bold shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all">
+            <Link href="/dashboard/patients/new" className="hidden sm:flex items-center gap-2 bg-primary text-white px-5 lg:px-6 py-3 rounded-2xl font-bold shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all">
               <Plus className="w-5 h-5" />
-              <span>Novo paciente</span>
+              <span className="hidden md:inline">Novo paciente</span>
             </Link>
           </div>
         </header>

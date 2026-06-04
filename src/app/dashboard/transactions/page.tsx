@@ -93,7 +93,8 @@ export default async function TransactionsPage({
       </div>
 
       <div className="bg-white rounded-[40px] shadow-sm border border-border overflow-hidden">
-        <table className="w-full text-left border-collapse">
+        <div className="overflow-x-auto">
+        <table className="w-full min-w-[640px] text-left border-collapse">
           <thead>
             <tr className="bg-surface/50 border-b border-border">
               <th className="p-6 text-xs font-bold text-foreground/40 uppercase tracking-widest">Data</th>
@@ -135,7 +136,7 @@ export default async function TransactionsPage({
                 <td className="p-6 text-right">
                   <form action={removeTransaction}>
                     <input type="hidden" name="id" value={t.id} />
-                    <button className="opacity-0 group-hover:opacity-100 text-foreground/30 hover:text-red-600 transition" title="Excluir">
+                    <button className="opacity-100 lg:opacity-0 lg:group-hover:opacity-100 text-foreground/40 hover:text-red-600 transition p-1" title="Excluir">
                       <Trash2 className="w-4 h-4" />
                     </button>
                   </form>
@@ -144,7 +145,8 @@ export default async function TransactionsPage({
             ))}
           </tbody>
         </table>
-        
+        </div>
+
         {allTransactions.length === 0 && (
           <div className="p-20 text-center space-y-4">
             <p className="text-4xl">📭</p>
