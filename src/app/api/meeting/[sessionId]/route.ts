@@ -10,6 +10,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ ses
   const { sessionId } = await params;
   const session = await auth();
   if (!session?.user?.id) return NextResponse.json({ error: "Não autorizado" }, { status: 401 });
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(sessionId)) {
+    return NextResponse.json({ error: "ID inválido" }, { status: 400 });
+  }
 
   let body: { event?: string } = {};
   try { body = await req.json(); } catch {}

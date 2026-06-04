@@ -9,8 +9,11 @@ import { meetingUrl } from "@/lib/therapy";
 export const dynamic = "force-dynamic";
 
 // Sala do PACIENTE (convidado) — pública, sem login. Token JaaS com moderator=false.
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
 export default async function SalaConvidadoPage({ params }: { params: Promise<{ sessionId: string }> }) {
   const { sessionId } = await params;
+  if (!UUID_RE.test(sessionId)) notFound();
 
   const s = await db.query.therapySessions.findFirst({
     where: eq(therapySessions.id, sessionId),
