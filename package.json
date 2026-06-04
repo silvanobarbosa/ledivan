@@ -14,6 +14,7 @@
     "db:migrate": "npx drizzle-kit migrate",
     "db:seed": "npx tsx --env-file=.env.local src/db/seed.ts",
     "seed:silvano": "npx tsx --env-file=.env.local src/scripts/seedSilvano.ts",
+    "seed:apoiador": "npx tsx --env-file=.env.local src/scripts/seedApoiador.ts",
     "auth:google": "npx tsx --env-file=.env.local src/scripts/getGoogleToken.ts"
   },
   "dependencies": {

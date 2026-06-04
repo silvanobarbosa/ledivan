@@ -113,6 +113,13 @@
       "when": 1780540386457,
       "tag": "0015_fair_ben_grimm",
       "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1780585830542,
+      "tag": "0016_slow_gamora",
+      "breakpoints": true
     }
   ]
 }

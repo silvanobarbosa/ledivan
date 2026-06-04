@@ -21,6 +21,7 @@ export const users = pgTable("user", {
   emailVerified: timestamp("emailVerified", { mode: "date" }),
   image: text("image"),
   photo3x4: text("photo_3x4"), // foto 3x4 do terapeuta (cabeçalho)
+  passwordHash: text("password_hash"), // login por senha (conta demo/apoiador)
   telegramId: text("telegram_id").unique(),
   telegramVerificationCode: text("telegram_verification_code"),
   telegramVerificationExpires: timestamp("telegram_verification_expires"),

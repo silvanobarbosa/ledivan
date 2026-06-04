@@ -3,6 +3,10 @@ import { DrizzleAdapter } from "@auth/drizzle-adapter";
 import { db } from "./db";
 import Google from "next-auth/providers/google";
 import Resend from "next-auth/providers/resend";
+import Credentials from "next-auth/providers/credentials";
+import bcrypt from "bcryptjs";
+import { users } from "./db/schema";
+import { eq } from "drizzle-orm";
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: DrizzleAdapter(db),
@@ -20,6 +24,21 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
           response_type: "code",
           scope: "openid email profile https://www.googleapis.com/auth/calendar.events",
         },
+      },
+    }),
+    // Login por e-mail + senha (conta demo "apoiador" e afins).
+    Credentials({
+      name: "Senha",
+      credentials: { email: {}, password: {} },
+      authorize: async (creds) => {
+        const email = (creds?.email as string)?.toLowerCase().trim();
+        const password = creds?.password as string;
+        if (!email || !password) return null;
+        const u = await db.query.users.findFirst({ where: eq(users.email, email) });
+        if (!u?.passwordHash) return null;
+        const ok = await bcrypt.compare(password, u.passwordHash);
+        if (!ok) return null;
+        return { id: u.id, email: u.email, name: u.name, image: u.image };
       },
     }),
     Resend({
@@ -71,10 +90,17 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
   },
   trustHost: true,
   secret: process.env.AUTH_SECRET,
+  // JWT é necessário para o provider Credentials (sessões de banco não suportam).
+  // Funciona normalmente com Google/e-mail; o adapter segue persistindo usuários/contas.
+  session: { strategy: "jwt" },
   callbacks: {
-    session({ session, user }) {
-      if (session.user) {
-        session.user.id = user.id;
+    jwt({ token, user }) {
+      if (user?.id) token.sub = user.id;
+      return token;
+    },
+    session({ session, token }) {
+      if (session.user && token.sub) {
+        session.user.id = token.sub;
       }
       return session;
     },

@@ -1,4 +1,5 @@
 import { signIn } from "@/auth";
+import { redirect } from "next/navigation";
 import Link from "next/link";
 import { Mail, ArrowRight, Sparkles } from "lucide-react";
 import { Logo } from "@/components/landing/Logo";
@@ -95,6 +96,52 @@ export default function LoginPage() {
               >
                 Enviar link de acesso
                 <ArrowRight className="h-4 w-4" />
+              </SubmitButton>
+            </form>
+
+            <div className="my-6 flex items-center gap-3 text-[10px] uppercase tracking-[0.18em] text-[color:var(--muted-foreground)]">
+              <span className="h-px flex-1 bg-[rgba(43,24,48,0.1)]" />
+              ou com senha
+              <span className="h-px flex-1 bg-[rgba(43,24,48,0.1)]" />
+            </div>
+
+            <form
+              action={async (formData) => {
+                "use server";
+                try {
+                  await signIn("credentials", {
+                    email: formData.get("email"),
+                    password: formData.get("password"),
+                    redirectTo: "/dashboard",
+                  });
+                } catch (error) {
+                  if (error instanceof Error && error.message.includes("NEXT_REDIRECT")) throw error;
+                  redirect("/login?error=credenciais");
+                }
+              }}
+              className="space-y-3"
+            >
+              <input
+                name="email"
+                type="email"
+                required
+                aria-label="E-mail"
+                placeholder="seu@email.com"
+                className="w-full rounded-full border border-[rgba(43,24,48,0.12)] bg-white/70 px-4 py-3.5 text-sm text-ink placeholder:text-[color:var(--muted-foreground)] focus:outline-none focus:border-[color:var(--accent-violet)] focus:ring-4 focus:ring-[rgba(139,92,246,0.15)] transition"
+              />
+              <input
+                name="password"
+                type="password"
+                required
+                aria-label="Senha"
+                placeholder="Senha"
+                className="w-full rounded-full border border-[rgba(43,24,48,0.12)] bg-white/70 px-4 py-3.5 text-sm text-ink placeholder:text-[color:var(--muted-foreground)] focus:outline-none focus:border-[color:var(--accent-violet)] focus:ring-4 focus:ring-[rgba(139,92,246,0.15)] transition"
+              />
+              <SubmitButton
+                pendingLabel="Entrando…"
+                className="inline-flex w-full items-center justify-center gap-2 rounded-full border border-[rgba(43,24,48,0.12)] bg-white px-6 py-3.5 text-sm font-medium text-ink hover:bg-white/80 transition"
+              >
+                Entrar com senha
               </SubmitButton>
             </form>
 
