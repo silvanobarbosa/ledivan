@@ -7,6 +7,37 @@ import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { put } from "@vercel/blob";
+import { sendWhatsappFromUser } from "@/lib/whatsappEvolution";
+import { sendProEmail } from "@/lib/email";
+
+// Envia mensagem ao paciente pelo canal escolhido (WhatsApp do Ledivan, Telegram ou e-mail).
+export async function sendPatientMessage(patientId: string, channel: string, text: string): Promise<{ ok: boolean; error?: string }> {
+  const session = await auth();
+  if (!session?.user?.id) return { ok: false, error: "Não autorizado" };
+  const userId = session.user.id;
+  const msg = (text || "").trim();
+  if (!msg) return { ok: false, error: "Escreva a mensagem." };
+
+  const patient = await db.query.patients.findFirst({
+    where: and(eq(patients.id, patientId), eq(patients.userId, userId)),
+  });
+  if (!patient) return { ok: false, error: "Paciente não encontrado." };
+
+  if (channel === "whatsapp") {
+    if (!patient.phone) return { ok: false, error: "Paciente sem telefone cadastrado." };
+    const ok = await sendWhatsappFromUser(userId, patient.phone, msg);
+    return ok ? { ok: true } : { ok: false, error: "Conecte seu WhatsApp em Ajustes (e confira o número do paciente)." };
+  }
+  if (channel === "email") {
+    if (!patient.email) return { ok: false, error: "Paciente sem e-mail cadastrado." };
+    const r = await sendProEmail(userId, patient.email, "Mensagem do seu terapeuta", msg.replace(/\n/g, "<br>"));
+    return r.ok ? { ok: true } : { ok: false, error: "Configure seu e-mail em Ajustes para enviar." };
+  }
+  if (channel === "telegram") {
+    return { ok: false, error: "Telegram ao paciente ainda não disponível (paciente precisa vincular o Telegram). Use WhatsApp ou e-mail." };
+  }
+  return { ok: false, error: "Canal inválido." };
+}
 
 // Upload de foto (terapeuta/paciente) → blob privado. Retorna o pathname,
 // que o formulário guarda em campo oculto e a action persiste na coluna.

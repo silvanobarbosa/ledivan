@@ -5,6 +5,7 @@ import { and, eq, gte, lte } from "drizzle-orm";
 import { Video, MapPin, CalendarCheck, Activity } from "lucide-react";
 import Link from "next/link";
 import { SESSION_STATUS_LABELS } from "@/lib/therapy";
+import { AnaliticosCharts } from "./AnaliticosCharts";
 
 export const dynamic = "force-dynamic";
 
@@ -39,7 +40,7 @@ export default async function AnaliticosPage({ searchParams }: { searchParams: P
   if (end) conds.push(lte(therapySessions.date, end));
 
   const rows = await db
-    .select({ isOnline: therapySessions.isOnline, location: therapySessions.location, status: therapySessions.status })
+    .select({ isOnline: therapySessions.isOnline, location: therapySessions.location, status: therapySessions.status, date: therapySessions.date })
     .from(therapySessions)
     .where(and(...conds));
 
@@ -64,6 +65,27 @@ export default async function AnaliticosPage({ searchParams }: { searchParams: P
 
   const pct = (n: number) => (total ? Math.round((n / total) * 100) : 0);
   const maxLoc = Math.max(1, ...locList.map(([, n]) => n));
+
+  // Dados p/ gráficos: por mês, por dia da semana, modalidade
+  const MES = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
+  const monthMap = new Map<string, number>();
+  const dowArr = [0, 0, 0, 0, 0, 0, 0];
+  for (const r of done) {
+    const d = new Date(r.date as unknown as string);
+    const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    monthMap.set(key, (monthMap.get(key) ?? 0) + 1);
+    dowArr[d.getDay()]++;
+  }
+  const chartMonthly = [...monthMap.entries()].sort((a, b) => a[0].localeCompare(b[0])).slice(-12).map(([k, v]) => {
+    const [y, m] = k.split("-");
+    return { label: `${MES[parseInt(m) - 1]}/${y.slice(2)}`, count: v };
+  });
+  const DOW = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+  const chartWeekday = dowArr.map((v, i) => ({ label: DOW[i], count: v }));
+  const chartMode = [
+    { name: "Online", value: online },
+    { name: "Presencial", value: presencial },
+  ];
 
   return (
     <div className="max-w-5xl mx-auto space-y-8 pb-20">
@@ -113,6 +135,9 @@ export default async function AnaliticosPage({ searchParams }: { searchParams: P
           <div><p className="text-2xl font-display font-bold text-primary leading-none">{presencial} <span className="text-sm font-normal text-foreground/40">({pct(presencial)}%)</span></p><p className="text-sm text-foreground/50 mt-1">Presencial</p></div>
         </div>
       </div>
+
+      {/* Gráficos */}
+      <AnaliticosCharts monthly={chartMonthly} weekday={chartWeekday} mode={chartMode} />
 
       {/* Por local físico */}
       <div className="glass-card rounded-[32px] p-6 space-y-4">

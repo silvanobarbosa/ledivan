@@ -4,11 +4,13 @@ import { useState } from "react";
 import Link from "next/link";
 import { Search, ChevronRight } from "lucide-react";
 import { formatBRL, patientStatusColor, paymentStatusColor, PAYMENT_STATUS_LABELS } from "@/lib/therapy";
+import { MessagePatient } from "@/components/dashboard/MessagePatient";
 
 type PatientCard = {
   id: string;
   name: string;
   phone: string | null;
+  email: string | null;
   patientStatus: string;
   paymentStatus: string;
   sessionFee: string;
@@ -86,37 +88,38 @@ export function PatientsClient({ patients }: { patients: PatientCard[] }) {
       ) : (
         <div className="grid gap-3">
           {filtered.map((p) => (
-            <Link
-              key={p.id}
-              href={`/dashboard/patients/${p.id}`}
-              className="glass-card rounded-[24px] p-5 flex items-center gap-4 hover:shadow-lg transition-all group"
-            >
-              <div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center font-display font-bold text-lg shrink-0">
-                {p.name.charAt(0).toUpperCase()}
-              </div>
-              <div className="flex-1 min-w-0">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <p className="font-bold truncate">{p.name}</p>
-                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wide ${patientStatusColor(p.patientStatus)}`}>
-                    {p.patientStatus}
-                  </span>
+            <div key={p.id} className="glass-card rounded-[24px] p-5 flex items-center gap-4 hover:shadow-lg transition-all group">
+              <Link href={`/dashboard/patients/${p.id}`} className="flex items-center gap-4 flex-1 min-w-0">
+                <div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center font-display font-bold text-lg shrink-0">
+                  {p.name.charAt(0).toUpperCase()}
                 </div>
-                <p className="text-sm text-foreground/50 truncate">
-                  {p.frequency || "—"} · {formatBRL(p.sessionFee)}/sessão
-                </p>
-                {parseTags(p.tags).length > 0 && (
-                  <div className="flex gap-1 flex-wrap mt-1.5">
-                    {parseTags(p.tags).map((t) => (
-                      <span key={t} className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-secondary-container/30 text-primary">{t}</span>
-                    ))}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-2 flex-wrap">
+                    <p className="font-bold truncate">{p.name}</p>
+                    <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wide ${patientStatusColor(p.patientStatus)}`}>
+                      {p.patientStatus}
+                    </span>
                   </div>
-                )}
-              </div>
+                  <p className="text-sm text-foreground/50 truncate">
+                    {p.frequency || "—"} · {formatBRL(p.sessionFee)}/sessão
+                  </p>
+                  {parseTags(p.tags).length > 0 && (
+                    <div className="flex gap-1 flex-wrap mt-1.5">
+                      {parseTags(p.tags).map((t) => (
+                        <span key={t} className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-secondary-container/30 text-primary">{t}</span>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              </Link>
               <span className={`hidden sm:inline text-[10px] font-bold px-2.5 py-1 rounded-full ${paymentStatusColor(p.paymentStatus)}`}>
                 {PAYMENT_STATUS_LABELS[p.paymentStatus]}
               </span>
-              <ChevronRight className="w-5 h-5 text-foreground/30 group-hover:text-primary group-hover:translate-x-1 transition" />
-            </Link>
+              <MessagePatient patient={{ id: p.id, name: p.name, phone: p.phone, email: p.email }} />
+              <Link href={`/dashboard/patients/${p.id}`} className="hidden sm:block">
+                <ChevronRight className="w-5 h-5 text-foreground/30 group-hover:text-primary group-hover:translate-x-1 transition" />
+              </Link>
+            </div>
           ))}
         </div>
       )}

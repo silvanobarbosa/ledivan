@@ -35,6 +35,7 @@ export default async function PatientsPage() {
           id: p.id,
           name: p.name,
           phone: p.phone,
+          email: p.email,
           patientStatus: p.patientStatus,
           paymentStatus: p.paymentStatus,
           sessionFee: p.sessionFee,
