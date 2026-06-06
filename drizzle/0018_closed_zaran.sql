@@ -1,0 +1,1 @@
+ALTER TABLE "patients" ADD COLUMN "price_review_date" timestamp;

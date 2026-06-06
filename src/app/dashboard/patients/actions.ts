@@ -56,6 +56,7 @@ export async function createPatient(formData: FormData) {
     frequency: (formData.get("frequency") as string) || null,
     notes: (formData.get("notes") as string) || null,
     patientStatus: (formData.get("patientStatus") as string) || "ativo",
+    prospectDate: (formData.get("patientStatus") as string) === "prospect" ? new Date() : null,
     startedAt: startedAtRaw ? new Date(startedAtRaw) : new Date(),
     address: (formData.get("address") as string) || null,
     emergencyName: (formData.get("emergencyName") as string) || null,
@@ -148,6 +149,31 @@ export async function updatePatient(patientId: string, formData: FormData) {
 
   revalidatePath(`/dashboard/patients/${patientId}`);
   revalidatePath("/dashboard/patients");
+}
+
+// Ajuste de valor da sessão: registra no histórico de preços, atualiza o valor
+// atual e (opcional) define a data de vencimento p/ lembrar de reajustar.
+export async function addPriceChange(patientId: string, formData: FormData) {
+  const session = await auth();
+  if (!session?.user?.id) throw new Error("Não autorizado");
+  const userId = session.user.id;
+
+  const patient = await db.query.patients.findFirst({
+    where: and(eq(patients.id, patientId), eq(patients.userId, userId)),
+  });
+  if (!patient) throw new Error("Paciente não encontrado");
+
+  const valor = num(formData.get("valor"), patient.sessionFee);
+  const efetivaRaw = formData.get("dataEfetiva") as string;
+  const vencRaw = formData.get("priceReviewDate") as string;
+  const dataEfetiva = efetivaRaw ? new Date(efetivaRaw) : new Date();
+
+  await db.insert(patientPriceHistory).values({ patientId, valor, dataEfetiva });
+  await db.update(patients)
+    .set({ sessionFee: valor, priceReviewDate: vencRaw ? new Date(vencRaw) : null })
+    .where(and(eq(patients.id, patientId), eq(patients.userId, userId)));
+
+  revalidatePath(`/dashboard/patients/${patientId}`);
 }
 
 // --- Prontuário (registros clínicos) ---

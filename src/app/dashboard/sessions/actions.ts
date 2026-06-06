@@ -63,6 +63,51 @@ export async function createSession(formData: FormData) {
   redirect(`/dashboard/patients/${patientId}`);
 }
 
+// Cria sessão direto da Agenda (sem redirecionar). Retorna {ok}.
+export async function createSessionFromAgenda(formData: FormData): Promise<{ ok: boolean; error?: string }> {
+  const session = await auth();
+  if (!session?.user?.id) return { ok: false, error: "Não autorizado" };
+  const userId = session.user.id;
+
+  const patientId = formData.get("patientId") as string;
+  if (!patientId) return { ok: false, error: "Escolha o paciente." };
+  const patient = await db.query.patients.findFirst({
+    where: and(eq(patients.id, patientId), eq(patients.userId, userId)),
+  });
+  if (!patient) return { ok: false, error: "Paciente não encontrado." };
+
+  const dateRaw = formData.get("date") as string;
+  if (!dateRaw) return { ok: false, error: "Escolha data e horário." };
+  const date = new Date(dateRaw);
+  const duration = formData.get("duration") ? parseInt(formData.get("duration") as string) : 50;
+  const isOnline = formData.get("isOnline") === "on";
+
+  let meetingUrl: string | null = null;
+  if (isOnline) {
+    const prefs = await getPreferences(userId);
+    if (prefs.meetingProvider === "meet") {
+      meetingUrl = await createMeetLink(userId, { summary: `Sessão — ${patient.name}`, startISO: date.toISOString(), durationMin: duration });
+    }
+  }
+
+  await db.insert(therapySessions).values({
+    userId,
+    patientId,
+    date,
+    duration,
+    fee: patient.sessionFee,
+    status: ((formData.get("status") as string) || "agendada") as SessionStatus,
+    chargeable: formData.get("chargeable") !== "false",
+    isOnline,
+    location: isOnline ? null : ((formData.get("location") as string) || patient.attendanceLocation || null),
+    meetingUrl,
+  });
+
+  revalidatePath("/dashboard/agenda");
+  revalidatePath(`/dashboard/patients/${patientId}`);
+  return { ok: true };
+}
+
 // Confirma um agendamento público que estava aguardando confirmação.
 export async function confirmSession(sessionId: string) {
   const session = await auth();

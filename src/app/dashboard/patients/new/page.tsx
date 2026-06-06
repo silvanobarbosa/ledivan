@@ -84,6 +84,7 @@ export default async function NewPatientPage() {
             <label className={labelCls}>Status</label>
             <select name="patientStatus" className={inputCls} defaultValue="ativo">
               <option value="ativo">Ativo</option>
+              <option value="prospect">Prospect</option>
               <option value="pausado">Pausado</option>
               <option value="inativo">Inativo</option>
             </select>

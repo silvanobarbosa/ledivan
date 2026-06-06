@@ -17,20 +17,24 @@ export async function createProspect(formData: FormData) {
 
   const dateRaw = formData.get("prospectDate") as string;
 
-  await db.insert(patients).values({
+  const prospectDate = dateRaw ? new Date(dateRaw) : new Date();
+  const [created] = await db.insert(patients).values({
     userId,
     name: name.trim(),
     phone: (formData.get("phone") as string) || null,
     email: (formData.get("email") as string) || null,
     patientStatus: "prospect",
-    prospectDate: dateRaw ? new Date(dateRaw) : new Date(),
+    prospectDate,
     prospectFechou: (formData.get("prospectFechou") as string) || "",
     prospectObservacoes: (formData.get("prospectObservacoes") as string) || null,
     sessionFee: ((formData.get("sessionFee") as string) || "0").replace(",", "."),
-  });
+  }).returning();
+
+  // histórico começa já na fase de prospect (se soma ao prontuário depois)
+  await db.insert(patientStatusHistory).values({ patientId: created.id, status: "prospect", date: prospectDate });
 
   revalidatePath("/dashboard/prospects");
-  redirect("/dashboard/prospects");
+  redirect(`/dashboard/patients/${created.id}`);
 }
 
 // Converte prospect em paciente ativo

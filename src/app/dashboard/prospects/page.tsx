@@ -5,6 +5,7 @@ import { and, eq, desc } from "drizzle-orm";
 import { createProspect, convertProspect } from "./actions";
 import { formatDate } from "@/lib/therapy";
 import { UserPlus, ArrowRight } from "lucide-react";
+import Link from "next/link";
 
 const inputCls = "w-full px-4 py-2.5 rounded-xl bg-white/70 border border-border focus:ring-2 focus:ring-accent/20 focus:border-accent outline-none transition text-sm";
 
@@ -47,16 +48,19 @@ export default async function ProspectsPage() {
         <div className="grid gap-3">
           {list.map((p) => (
             <div key={p.id} className="glass-card rounded-[24px] p-5 flex items-center gap-4">
-              <div className="w-11 h-11 rounded-2xl bg-secondary-container/40 text-primary flex items-center justify-center font-display font-bold shrink-0">
-                {p.name.charAt(0).toUpperCase()}
-              </div>
-              <div className="flex-1 min-w-0">
-                <p className="font-bold truncate">{p.name}</p>
-                <p className="text-sm text-foreground/50 truncate">
-                  {p.phone || "—"} · prospecção {formatDate(p.prospectDate)}
-                  {p.prospectFechou ? ` · ${p.prospectFechou}` : ""}
-                </p>
-              </div>
+              <Link href={`/dashboard/patients/${p.id}`} className="flex items-center gap-4 flex-1 min-w-0 group">
+                <div className="w-11 h-11 rounded-2xl bg-secondary-container/40 text-primary flex items-center justify-center font-display font-bold shrink-0">
+                  {p.name.charAt(0).toUpperCase()}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="font-bold truncate group-hover:text-primary transition">{p.name}</p>
+                  <p className="text-sm text-foreground/50 truncate">
+                    {p.phone || "—"} · prospecção {formatDate(p.prospectDate)}
+                    {p.prospectFechou ? ` · ${p.prospectFechou}` : ""}
+                  </p>
+                  <p className="text-[11px] text-accent font-semibold mt-0.5">Abrir para agendar / ver histórico →</p>
+                </div>
+              </Link>
               <form action={convert}>
                 <input type="hidden" name="id" value={p.id} />
                 <button className="flex items-center gap-1.5 bg-primary text-white text-sm px-4 py-2 rounded-xl font-semibold hover:scale-[1.02] transition">

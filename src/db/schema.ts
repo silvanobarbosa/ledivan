@@ -201,6 +201,7 @@ export const patients = pgTable("patients", {
   prospectFechou: text("prospect_fechou"), // 'Fechou' | 'Não fechou' | ''
   prospectObservacoes: text("prospect_observacoes"),
   paymentDay: integer("payment_day"), // dia do mes para cobranca
+  priceReviewDate: timestamp("price_review_date"), // vencimento do valor atual (lembrete de reajuste)
   contractType: contractTypeEnum("contract_type").default("avulso"),
   attendanceMode: text("attendance_mode").default("presencial").notNull(), // online | presencial | misto
   attendanceLocation: text("attendance_location"), // endereço pré-selecionado (presencial/misto)

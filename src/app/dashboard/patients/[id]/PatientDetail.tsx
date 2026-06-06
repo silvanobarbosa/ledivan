@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createSession, deleteSession } from "../../sessions/actions";
 import { createPayment, deletePayment } from "../../payments/actions";
-import { createRecord, deleteRecord } from "../actions";
+import { createRecord, deleteRecord, addPriceChange } from "../actions";
 import { AssignmentsTab } from "./AssignmentsTab";
 import { SessionSummary } from "./SessionSummary";
 import { TreatmentPlan } from "./TreatmentPlan";
@@ -35,6 +35,7 @@ type Patient = {
   emergencyName: string | null; emergencyPhone: string | null; emergencyRelationship: string | null;
   contractType: string | null; paymentDay: number | null;
   attendanceMode: string | null; attendanceLocation: string | null;
+  priceReviewDate: string | null;
 };
 type Session = { id: string; date: string; duration: number; fee: string; status: string; notes: string | null; isOnline: boolean; patientSummary: string | null; meetingUrl: string | null };
 type Payment = { id: string; date: string; amount: string; method: string; status: string; linkedTransactionId: string | null };
@@ -449,12 +450,39 @@ export function PatientDetail({
             ))}
           </div>
           <div className="glass-card rounded-[24px] p-5">
-            <p className="text-xs font-bold text-foreground/40 uppercase tracking-widest mb-3">Preço</p>
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-xs font-bold text-foreground/40 uppercase tracking-widest">Preço</p>
+              <span className="text-xs text-foreground/50">Atual: <strong className="text-primary">{formatBRL(patient.sessionFee)}</strong></span>
+            </div>
+            {patient.priceReviewDate && (
+              <p className="text-[11px] text-[#92400e] bg-[#fffbeb] border border-[#fde68a] rounded-lg px-2 py-1 mb-2">
+                ⏰ Reajuste previsto para {formatDate(patient.priceReviewDate)}
+              </p>
+            )}
             {priceHistory.length === 0 ? <Empty text="Sem histórico." /> : priceHistory.map((h) => (
               <div key={h.id} className="flex justify-between py-1.5 text-sm border-b border-border last:border-0">
                 <span>{formatBRL(h.valor)}</span><span className="text-foreground/40">{formatDate(h.dataEfetiva)}</span>
               </div>
             ))}
+
+            <form action={addPriceChange.bind(null, patient.id)} className="mt-4 pt-4 border-t border-border space-y-2">
+              <p className="text-xs font-bold text-foreground/40 uppercase tracking-widest">Ajustar valor</p>
+              <div>
+                <label className="text-[11px] font-semibold text-foreground/50">Novo valor (R$)</label>
+                <input name="valor" inputMode="decimal" required placeholder="ex: 220,00" className={inputCls} />
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-[11px] font-semibold text-foreground/50">Vigente a partir de</label>
+                  <input name="dataEfetiva" type="date" className={inputCls} />
+                </div>
+                <div>
+                  <label className="text-[11px] font-semibold text-foreground/50">Vencimento (reajuste)</label>
+                  <input name="priceReviewDate" type="date" defaultValue={patient.priceReviewDate ? patient.priceReviewDate.slice(0, 10) : ""} className={inputCls} />
+                </div>
+              </div>
+              <button className="w-full bg-primary text-white py-2.5 rounded-xl font-bold text-sm">Salvar ajuste</button>
+            </form>
           </div>
         </div>
       )}

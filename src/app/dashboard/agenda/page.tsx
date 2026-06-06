@@ -1,9 +1,10 @@
 import { db } from "@/db";
 import { auth } from "@/auth";
-import { therapySessions } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { therapySessions, patients, users } from "@/db/schema";
+import { and, eq, ne } from "drizzle-orm";
 import { AgendaClient } from "./AgendaClient";
 import { riskFromSessions } from "@/lib/therapy";
+import { parseLocations } from "@/lib/locations";
 
 export default async function AgendaPage() {
   const session = await auth();
@@ -13,6 +14,15 @@ export default async function AgendaPage() {
     where: eq(therapySessions.userId, session.user.id),
     with: { patient: { columns: { name: true } } },
   });
+
+  // pacientes p/ o seletor de novo atendimento (exclui inativos)
+  const pats = await db.query.patients.findMany({
+    where: and(eq(patients.userId, session.user.id), ne(patients.patientStatus, "inativo")),
+    columns: { id: true, name: true, patientStatus: true, attendanceMode: true, attendanceLocation: true },
+    orderBy: [patients.name],
+  });
+  const me = await db.query.users.findFirst({ where: eq(users.id, session.user.id) });
+  const locations = parseLocations(me?.attendanceLocations);
 
   // risco de falta por paciente (calculado sobre o histórico completo)
   const byPatient = new Map<string, { status: string; date: Date }[]>();
@@ -46,6 +56,8 @@ export default async function AgendaPage() {
           pendingConfirmation: s.pendingConfirmation,
           location: s.location,
         }))}
+        patients={pats.map((p) => ({ id: p.id, name: p.name, status: p.patientStatus, attendanceMode: p.attendanceMode, attendanceLocation: p.attendanceLocation }))}
+        locations={locations}
       />
     </div>
   );

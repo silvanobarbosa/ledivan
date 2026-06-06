@@ -1,7 +1,7 @@
 import { db } from "@/db";
 import { auth } from "@/auth";
 import { therapySessions } from "@/db/schema";
-import { and, eq, gte } from "drizzle-orm";
+import { and, eq, gte, lte } from "drizzle-orm";
 import { Video, MapPin, CalendarCheck, Activity } from "lucide-react";
 import Link from "next/link";
 import { SESSION_STATUS_LABELS } from "@/lib/therapy";
@@ -15,21 +15,33 @@ const PERIODS: Record<string, { label: string; months: number | null }> = {
   all: { label: "Tudo", months: null },
 };
 
-export default async function AnaliticosPage({ searchParams }: { searchParams: Promise<{ period?: string }> }) {
-  const { period } = await searchParams;
-  const activePeriod = period && PERIODS[period] ? period : "12m";
+export default async function AnaliticosPage({ searchParams }: { searchParams: Promise<{ period?: string; from?: string; to?: string }> }) {
+  const { period, from, to } = await searchParams;
+  const custom = period === "custom" && (from || to);
+  const activePeriod = custom ? "custom" : period && PERIODS[period] ? period : "12m";
   const session = await auth();
   if (!session?.user?.id) return null;
   const userId = session.user.id;
 
-  const months = PERIODS[activePeriod].months;
+  // Janela de tempo: personalizada (from/to) ou um dos atalhos.
   let cutoff: Date | null = null;
-  if (months) { cutoff = new Date(); cutoff.setHours(0, 0, 0, 0); cutoff.setMonth(cutoff.getMonth() - months); }
+  let end: Date | null = null;
+  if (custom) {
+    if (from) { cutoff = new Date(from); cutoff.setHours(0, 0, 0, 0); }
+    if (to) { end = new Date(to); end.setHours(23, 59, 59, 999); }
+  } else {
+    const months = PERIODS[activePeriod].months;
+    if (months) { cutoff = new Date(); cutoff.setHours(0, 0, 0, 0); cutoff.setMonth(cutoff.getMonth() - months); }
+  }
+
+  const conds = [eq(therapySessions.userId, userId)];
+  if (cutoff) conds.push(gte(therapySessions.date, cutoff));
+  if (end) conds.push(lte(therapySessions.date, end));
 
   const rows = await db
     .select({ isOnline: therapySessions.isOnline, location: therapySessions.location, status: therapySessions.status })
     .from(therapySessions)
-    .where(cutoff ? and(eq(therapySessions.userId, userId), gte(therapySessions.date, cutoff)) : eq(therapySessions.userId, userId));
+    .where(and(...conds));
 
   // Considera atendimentos realizados
   const done = rows.filter((r) => r.status === "realizada");
@@ -62,15 +74,29 @@ export default async function AnaliticosPage({ searchParams }: { searchParams: P
           </h1>
           <p className="text-foreground/50 mt-1">Gestão de atendimento — por local e modalidade. (O financeiro fica em Relatórios.)</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {Object.entries(PERIODS).map(([key, p]) => (
             <Link key={key} href={`/dashboard/analiticos?period=${key}`}
               className={`px-4 py-2 rounded-full text-sm font-semibold transition ${activePeriod === key ? "bg-primary text-white" : "bg-white/60 text-foreground/60 hover:bg-white"}`}>
               {p.label}
             </Link>
           ))}
+          {/* Período personalizado */}
+          <form method="get" className="flex items-center gap-1.5 rounded-full bg-white/60 px-2 py-1">
+            <input type="hidden" name="period" value="custom" />
+            <input type="date" name="from" defaultValue={from || ""} className="text-xs bg-transparent outline-none px-1 py-1" />
+            <span className="text-xs text-foreground/40">→</span>
+            <input type="date" name="to" defaultValue={to || ""} className="text-xs bg-transparent outline-none px-1 py-1" />
+            <button className={`px-3 py-1 rounded-full text-xs font-bold transition ${activePeriod === "custom" ? "bg-primary text-white" : "bg-primary/10 text-primary hover:bg-primary/20"}`}>Aplicar</button>
+          </form>
         </div>
       </div>
+
+      {custom && (
+        <p className="text-sm text-foreground/50">
+          Período: {from ? new Date(from).toLocaleDateString("pt-BR") : "início"} até {to ? new Date(to).toLocaleDateString("pt-BR") : "hoje"}.
+        </p>
+      )}
 
       {/* Cards principais */}
       <div className="grid sm:grid-cols-3 gap-4">
