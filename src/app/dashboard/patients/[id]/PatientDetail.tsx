@@ -6,6 +6,7 @@ import Link from "next/link";
 import { createSession, deleteSession } from "../../sessions/actions";
 import { createPayment, deletePayment } from "../../payments/actions";
 import { createRecord, deleteRecord, addPriceChange, renewPackage } from "../actions";
+import { ATTENDANCE_MODE_LABELS } from "@/lib/locations";
 import { AssignmentsTab } from "./AssignmentsTab";
 import { SessionSummary } from "./SessionSummary";
 import { TreatmentPlan } from "./TreatmentPlan";
@@ -51,6 +52,7 @@ type AssignmentEntry = {
 };
 
 const RECORD_TYPE_LABELS: Record<string, string> = { evolucao: "Evolução", anamnese: "Anamnese", nota: "Nota" };
+const PATIENT_STATUS_LABELS: Record<string, string> = { ativo: "Ativo", pausado: "Pausado", inativo: "Inativo", prospect: "Prospect" };
 
 const inputCls = "w-full px-4 py-2.5 rounded-xl bg-white/70 border border-border focus:ring-2 focus:ring-accent/20 focus:border-accent outline-none transition text-sm";
 
@@ -173,6 +175,11 @@ export function PatientDetail({
       {/* Dados */}
       {tab === "Dados" && (
         <div className="glass-card rounded-[24px] p-6 space-y-4">
+          <Field label="Status" value={PATIENT_STATUS_LABELS[patient.patientStatus] || patient.patientStatus} />
+          <Field label="Modelo de contratação" value={patient.contractType === "pacote" ? `Pacote${patient.sessionsInPacket ? ` · ${patient.sessionsInPacket} sessões` : ""}${patient.sessionsInPacket ? ` · ${Math.max(0, patient.sessionsInPacket - patient.packageCreditsUsed)} restantes` : ""}` : "Avulso"} />
+          <Field label="Valor da sessão" value={formatBRL(patient.sessionFee)} />
+          <Field label="Modo de atendimento" value={ATTENDANCE_MODE_LABELS[patient.attendanceMode || "presencial"] || "—"} />
+          {patient.attendanceMode !== "online" && patient.attendanceLocation && <Field label="Local" value={patient.attendanceLocation} icon={<MapPin className="w-4 h-4" />} />}
           <Field label="Início" value={formatDate(patient.startedAt)} />
           <Field label="Dia de pagamento" value={patient.paymentDay ? `Dia ${patient.paymentDay}` : "—"} />
           <Field label="Status de pagamento" value={PAYMENT_STATUS_LABELS[patient.paymentStatus] || "—"} />
