@@ -46,6 +46,14 @@ function gadSeverity(s: number) {
   return s >= 15 ? "grave" : s >= 10 ? "moderada" : s >= 5 ? "leve" : "mínima";
 }
 
+// Endereços presenciais do terapeuta (analíticos por local)
+const LOCATIONS = [
+  { name: "Consultório Centro", address: "Av. Paulista, 1000 — sala 52, São Paulo/SP" },
+  { name: "Clínica Jardins", address: "Rua Oscar Freire, 200 — São Paulo/SP" },
+  { name: "Espaço Pinheiros", address: "Rua dos Pinheiros, 850 — São Paulo/SP" },
+];
+const locLabel = (l: { name: string; address: string }) => `${l.name} — ${l.address}`;
+
 async function seed() {
   console.log(`🌱 Seed Apoiador — ${MONTHS} meses de dados ricos...`);
 
@@ -53,7 +61,7 @@ async function seed() {
   const passwordHash = await bcrypt.hash(PASSWORD, 10);
   let user = await db.query.users.findFirst({ where: eq(users.email, EMAIL) });
   if (!user) {
-    [user] = await db.insert(users).values({ name: NAME, email: EMAIL, passwordHash, emailVerified: new Date() }).returning();
+    [user] = await db.insert(users).values({ name: NAME, email: EMAIL, passwordHash, emailVerified: new Date(), bookingSlug: "helena-moraes", attendanceLocations: JSON.stringify(LOCATIONS) }).returning();
     console.log(`👤 Usuário criado: ${user.id}`);
   } else {
     console.log(`👤 Usuário existente: ${user.id} — limpando domínio...`);
@@ -76,7 +84,7 @@ async function seed() {
     await db.delete(goals).where(eq(goals.userId, user.id));
     await db.delete(achievements).where(eq(achievements.userId, user.id));
     await db.delete(financialAccounts).where(eq(financialAccounts.userId, user.id));
-    await db.update(users).set({ name: NAME, passwordHash, emailVerified: new Date(), bookingSlug: "helena-moraes" }).where(eq(users.id, user.id));
+    await db.update(users).set({ name: NAME, passwordHash, emailVerified: new Date(), bookingSlug: "helena-moraes", attendanceLocations: JSON.stringify(LOCATIONS) }).where(eq(users.id, user.id));
   }
   const userId = user.id;
 
@@ -106,7 +114,7 @@ async function seed() {
   const queixas = ["Ansiedade generalizada", "Episódio depressivo", "Luto", "Terapia de casal", "Síndrome do pânico", "Estresse no trabalho (burnout)", "Autoestima", "TOC", "Fobia social", "Adaptação a mudanças"];
   const tagPool = ["TCC", "ansiedade", "depressão", "casal", "luto", "adolescente", "online", "quinzenal", "pânico", "burnout"];
 
-  type Pat = { id: string; name: string; fee: number; freq: string; status: string; startedAt: Date; contractType: string; sessionsInPacket: number | null; queixa: string; online: boolean };
+  type Pat = { id: string; name: string; fee: number; freq: string; status: string; startedAt: Date; contractType: string; sessionsInPacket: number | null; queixa: string; mode: string; location: string | null };
   const activePats: Pat[] = [];
   const allPats: Pat[] = [];
   const patientRows: any[] = [];
@@ -133,7 +141,8 @@ async function seed() {
     const freq = pick(freqs);
     const contractType = pick(["avulso", "avulso", "pacote"]);
     const sessionsInPacket = contractType === "pacote" ? pick([4, 8, 10, 12]) : null;
-    const online = chance(0.45);
+    const mode = pick(["online", "online", "presencial", "presencial", "presencial", "misto"]); // ~ 33% online, 50% presencial, 17% misto
+    const chosenLoc = mode === "online" ? null : locLabel(pick(LOCATIONS));
     const startedAt = new Date(start); startedAt.setMonth(startedAt.getMonth() + rnd(0, MONTHS - 2)); startedAt.setDate(rnd(1, 28));
     const queixa = pick(queixas);
     const nTags = rnd(1, 3);
@@ -149,6 +158,8 @@ async function seed() {
       patientStatus: status,
       paymentStatus: status === "inativo" ? "pending" : overdue ? "overdue" : "paid",
       contractType, sessionsInPacket,
+      attendanceMode: mode,
+      attendanceLocation: chosenLoc,
       packageCreditsUsed: 0,
       paymentDay: pick([5, 10, 15, 20]),
       startedAt,
@@ -169,7 +180,7 @@ async function seed() {
       const bump = new Date(startedAt); bump.setMonth(bump.getMonth() + rnd(8, 16));
       if (bump < now) priceHistRows.push({ patientId: id, valor: money(fee), dataEfetiva: bump });
     }
-    const p: Pat = { id, name, fee, freq, status, startedAt, contractType, sessionsInPacket, queixa, online };
+    const p: Pat = { id, name, fee, freq, status, startedAt, contractType, sessionsInPacket, queixa, mode, location: chosenLoc };
     allPats.push(p);
     if (status === "ativo") activePats.push(p);
   }
@@ -231,7 +242,9 @@ async function seed() {
       }
       const sid = uuid();
       const chargeable = status === "realizada" || (status === "agendada");
-      const isOnline = p.online;
+      // online conforme o modo do paciente (misto alterna ~50/50)
+      const isOnline = p.mode === "online" ? true : p.mode === "misto" ? chance(0.5) : false;
+      const sessionLocation = isOnline ? null : (p.location || locLabel(pick(LOCATIONS)));
       const realizadaPast = status === "realizada";
 
       // tracking de reunião p/ online realizadas
@@ -249,6 +262,7 @@ async function seed() {
         fee: money(p.fee), status,
         chargeable: status === "nao_realizada" ? false : chargeable,
         isOnline,
+        location: sessionLocation,
         notes: hasNote ? pick(evolucoes) : null,
         justificativa: (status === "cancelada" || status === "realocada") ? pick(["Paciente remarcou.", "Imprevisto pessoal.", "Feriado.", "Atestado médico."]) : null,
         meetingHappened, meetingOpenedAt, guestJoinedAt, meetingEndedAt,
