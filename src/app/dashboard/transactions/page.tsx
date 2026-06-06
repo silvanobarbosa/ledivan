@@ -1,12 +1,13 @@
 import { db } from "@/db";
 import { auth } from "@/auth";
 import { users, transactions, categories, financialAccounts } from "@/db/schema";
-import { eq, desc, ilike, and } from "drizzle-orm";
+import { eq, desc, ilike, and, gte, lte } from "drizzle-orm";
 import { cn } from "@/lib/utils";
 import { AddTransaction } from "./AddTransaction";
 import { ExportCSV } from "./ExportCSV";
 import { deleteTransaction } from "./actions";
 import { Trash2 } from "lucide-react";
+import { PAYMENT_FORM_LABELS } from "@/lib/finance";
 
 export const dynamic = "force-dynamic";
 
@@ -20,9 +21,9 @@ const SOURCE_LABELS: Record<string, string> = {
 export default async function TransactionsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string }>;
+  searchParams: Promise<{ q?: string; from?: string; to?: string }>;
 }) {
-  const { q } = await searchParams;
+  const { q, from, to } = await searchParams;
   const session = await auth();
   if (!session?.user?.id) return null;
 
@@ -31,10 +32,13 @@ export default async function TransactionsPage({
   });
   if (!user) return null;
 
+  const conds = [eq(transactions.userId, user.id)];
+  if (q) conds.push(ilike(transactions.description, `%${q}%`));
+  if (from) { const d = new Date(from); d.setHours(0, 0, 0, 0); conds.push(gte(transactions.date, d)); }
+  if (to) { const d = new Date(to); d.setHours(23, 59, 59, 999); conds.push(lte(transactions.date, d)); }
+
   const allTransactions = await db.query.transactions.findMany({
-    where: q
-      ? and(eq(transactions.userId, user.id), ilike(transactions.description, `%${q}%`))
-      : eq(transactions.userId, user.id),
+    where: and(...conds),
     with: {
       category: true,
     },
@@ -92,15 +96,27 @@ export default async function TransactionsPage({
         </div>
       </div>
 
+      {/* Filtro por período (data início/fim) */}
+      <form method="get" className="flex flex-wrap items-center gap-2 glass-card rounded-2xl px-4 py-3">
+        {q && <input type="hidden" name="q" value={q} />}
+        <span className="text-sm font-semibold text-foreground/50">Período:</span>
+        <input type="date" name="from" defaultValue={from || ""} className="text-sm bg-surface border border-border rounded-xl px-3 py-2 outline-none" />
+        <span className="text-foreground/40">→</span>
+        <input type="date" name="to" defaultValue={to || ""} className="text-sm bg-surface border border-border rounded-xl px-3 py-2 outline-none" />
+        <button className="bg-primary text-white text-sm font-bold px-4 py-2 rounded-xl">Filtrar</button>
+        {(from || to) && <a href="/dashboard/transactions" className="text-sm font-semibold text-foreground/50 hover:text-primary px-2">limpar</a>}
+      </form>
+
       <div className="bg-white rounded-[40px] shadow-sm border border-border overflow-hidden">
         <div className="overflow-x-auto">
-        <table className="w-full min-w-[640px] text-left border-collapse">
+        <table className="w-full min-w-[760px] text-left border-collapse">
           <thead>
             <tr className="bg-surface/50 border-b border-border">
               <th className="p-6 text-xs font-bold text-foreground/40 uppercase tracking-widest">Data</th>
               <th className="p-6 text-xs font-bold text-foreground/40 uppercase tracking-widest">Descrição</th>
               <th className="p-6 text-xs font-bold text-foreground/40 uppercase tracking-widest">Categoria</th>
               <th className="p-6 text-xs font-bold text-foreground/40 uppercase tracking-widest">Origem</th>
+              <th className="p-6 text-xs font-bold text-foreground/40 uppercase tracking-widest">Forma</th>
               <th className="p-6 text-xs font-bold text-foreground/40 uppercase tracking-widest text-right">Valor</th>
               <th className="p-6 w-12"></th>
             </tr>
@@ -126,6 +142,11 @@ export default async function TransactionsPage({
                   )}>
                     {SOURCE_LABELS[t.source] || t.source}
                   </span>
+                </td>
+                <td className="p-6">
+                  {t.method ? (
+                    <span className="text-xs font-semibold text-foreground/60">{PAYMENT_FORM_LABELS[t.method] || t.method}</span>
+                  ) : <span className="text-xs text-foreground/30">—</span>}
                 </td>
                 <td className={cn(
                   "p-6 text-sm font-bold text-right",

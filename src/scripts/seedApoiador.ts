@@ -160,6 +160,7 @@ async function seed() {
       contractType, sessionsInPacket,
       attendanceMode: mode,
       attendanceLocation: chosenLoc,
+      priceReviewDate: status === "ativo" && chance(0.4) ? (() => { const d = new Date(now); d.setMonth(d.getMonth() + rnd(1, 6)); return d; })() : null,
       packageCreditsUsed: 0,
       paymentDay: pick([5, 10, 15, 20]),
       startedAt,
@@ -185,18 +186,23 @@ async function seed() {
     if (status === "ativo") activePats.push(p);
   }
 
-  // 12 prospects
+  // 12 prospects (alguns já com sessões/avaliação, acumulando histórico)
+  const prospectSeeds: { id: string; fee: number; pd: Date }[] = [];
   for (let i = 0; i < 12; i++) {
+    const pid = uuid();
     const pd = new Date(now); pd.setDate(pd.getDate() - rnd(2, 120));
+    const fee = pick([180, 200, 220]);
     patientRows.push({
-      id: uuid(), userId, name: uniqueName(),
+      id: pid, userId, name: uniqueName(),
       phone: `(11) 9${rnd(1000, 9999)}-${rnd(1000, 9999)}`,
       email: chance(0.6) ? `lead${i}@email.com` : null,
       patientStatus: "prospect", prospectDate: pd,
       prospectFechou: pick(["", "", "", "Não fechou"]),
       prospectObservacoes: pick(["Indicação de paciente.", "Veio pelo Instagram.", "Primeira conversa por telefone.", "Pediu valores e horários.", "Buscando terapia de casal."]),
-      sessionFee: money(pick([180, 200, 220])),
+      sessionFee: money(fee),
     });
+    statusHistRows.push({ patientId: pid, status: "prospect", date: pd });
+    prospectSeeds.push({ id: pid, fee, pd });
   }
 
   await chunkInsert(patients, patientRows);
@@ -283,8 +289,10 @@ async function seed() {
           if (used < p.sessionsInPacket) creditsUsedByPatient[p.id] = used + 1;
         }
         const txId = uuid();
-        txRows.push({ id: txId, userId, accountId: contaPJ.id, amount: money(p.fee), type: "income", categoryId: catSessions, description: `Sessão — ${p.name}`, date: payDate, source: "session_payment" });
-        paymentRows.push({ userId, patientId: p.id, sessionId: sid, amount: money(p.fee), date: payDate, method: pick(["pix", "pix", "pix", "card", "transfer", "cash"]), status: "paid", linkedTransactionId: txId });
+        const payMethod = pick(["pix", "pix", "pix", "card", "transfer", "cash"]);
+        const txForm = payMethod === "card" ? "credito" : payMethod === "transfer" ? "transferencia" : payMethod === "cash" ? "dinheiro" : "pix";
+        txRows.push({ id: txId, userId, accountId: contaPJ.id, amount: money(p.fee), type: "income", categoryId: catSessions, description: `Sessão — ${p.name}`, date: payDate, source: "session_payment", method: txForm });
+        paymentRows.push({ userId, patientId: p.id, sessionId: sid, amount: money(p.fee), date: payDate, method: payMethod, status: "paid", linkedTransactionId: txId });
       }
       cur.setDate(cur.getDate() + step);
     }
@@ -303,7 +311,7 @@ async function seed() {
   while (expMonth <= now) {
     const mk = (cat: string, desc: string, val: number, day: number, type: "income" | "expense" = "expense") => {
       const d = new Date(expMonth); d.setDate(day);
-      if (d <= now) txRows.push({ id: uuid(), userId, accountId: contaPJ.id, amount: money(val), type, categoryId: cat, description: desc, date: d, source: "manual" });
+      if (d <= now) txRows.push({ id: uuid(), userId, accountId: contaPJ.id, amount: money(val), type, categoryId: cat, description: desc, date: d, source: "manual", method: type === "income" ? pick(["pix", "transferencia", "deposito"]) : pick(["debito", "pix", "boleto", "credito", "transferencia"]) });
     };
     mk(catAluguel, "Aluguel da sala", 1200 + rnd(-50, 80), 5);
     mk(catSuper, "Supervisão clínica", 400, 12);
@@ -313,6 +321,18 @@ async function seed() {
     if (chance(0.5)) mk(catMkt, "Anúncios / Marketing", rnd(80, 250), 22);
     if (chance(0.25)) mk(catOutras, "Palestra / workshop", rnd(300, 900), rnd(10, 26), "income");
     expMonth.setMonth(expMonth.getMonth() + 1);
+  }
+
+  // Sessões de avaliação de alguns prospects (histórico que soma ao prontuário ao converter)
+  for (const ps of prospectSeeds) {
+    if (!chance(0.5)) continue;
+    const n = rnd(1, 2);
+    for (let k = 0; k < n; k++) {
+      const d = new Date(ps.pd); d.setDate(d.getDate() + k * 7 + rnd(0, 3)); d.setHours(pick([9, 10, 14, 15, 18]), 0, 0, 0);
+      const past = d < now;
+      sessionRows.push({ id: uuid(), userId, patientId: ps.id, date: d, duration: 50, fee: money(ps.fee), status: past ? "realizada" : "agendada", chargeable: past, isOnline: chance(0.5), location: null, notes: past ? "Sessão de avaliação inicial." : null, meetingHappened: false, meetingOpenedAt: null, guestJoinedAt: null, meetingEndedAt: null, patientSummary: null });
+      if (past) recordRows.push({ id: uuid(), userId, patientId: ps.id, sessionId: null, type: "evolucao", title: "Avaliação", content: "Primeira escuta. Demanda mapeada; combinado seguir com acompanhamento.", createdAt: d });
+    }
   }
 
   await chunkInsert(therapySessions, sessionRows);

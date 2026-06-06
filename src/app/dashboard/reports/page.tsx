@@ -1,10 +1,13 @@
 import { db } from "@/db";
 import { auth } from "@/auth";
-import { transactions } from "@/db/schema";
-import { sql, eq, and, gte } from "drizzle-orm";
+import { transactions, categories } from "@/db/schema";
+import { sql, eq, and, gte, lte } from "drizzle-orm";
 import { formatBRL } from "@/lib/therapy";
 import { TrendingUp, TrendingDown, Scale } from "lucide-react";
 import Link from "next/link";
+import { ReportsCharts } from "./ReportsCharts";
+
+const SOURCE_LABELS: Record<string, string> = { manual: "Manual", telegram: "Telegram", scan: "Scan", session_payment: "Sessões" };
 
 export const dynamic = "force-dynamic";
 
@@ -21,20 +24,28 @@ const PERIODS: Record<string, { label: string; months: number | null }> = {
   all: { label: "Tudo", months: null },
 };
 
-export default async function ReportsPage({ searchParams }: { searchParams: Promise<{ period?: string }> }) {
-  const { period } = await searchParams;
-  const activePeriod = period && PERIODS[period] ? period : "12m";
+export default async function ReportsPage({ searchParams }: { searchParams: Promise<{ period?: string; from?: string; to?: string }> }) {
+  const { period, from, to } = await searchParams;
+  const custom = period === "custom" && (from || to);
+  const activePeriod = custom ? "custom" : period && PERIODS[period] ? period : "12m";
   const session = await auth();
   if (!session?.user?.id) return null;
   const userId = session.user.id;
 
-  const months = PERIODS[activePeriod].months;
   let cutoff: Date | null = null;
-  if (months) {
-    cutoff = new Date();
-    cutoff.setHours(0, 0, 0, 0);
-    cutoff.setMonth(cutoff.getMonth() - months);
+  let end: Date | null = null;
+  if (custom) {
+    if (from) { cutoff = new Date(from); cutoff.setHours(0, 0, 0, 0); }
+    if (to) { end = new Date(to); end.setHours(23, 59, 59, 999); }
+  } else {
+    const months = PERIODS[activePeriod].months;
+    if (months) { cutoff = new Date(); cutoff.setHours(0, 0, 0, 0); cutoff.setMonth(cutoff.getMonth() - months); }
   }
+
+  const dateConds = [eq(transactions.userId, userId)];
+  if (cutoff) dateConds.push(gte(transactions.date, cutoff));
+  if (end) dateConds.push(lte(transactions.date, end));
+  const whereClause = and(...dateConds);
 
   const rows = await db
     .select({
@@ -44,9 +55,26 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
       sessionIncome: sql<string>`sum(case when ${transactions.source} = 'session_payment' then ${transactions.amount} else 0 end)`,
     })
     .from(transactions)
-    .where(cutoff ? and(eq(transactions.userId, userId), gte(transactions.date, cutoff)) : eq(transactions.userId, userId))
+    .where(whereClause)
     .groupBy(sql`TO_CHAR(${transactions.date}, 'YYYY-MM')`)
     .orderBy(sql`TO_CHAR(${transactions.date}, 'YYYY-MM') DESC`);
+
+  // Despesas por categoria + receitas por origem (no período)
+  const catRows = await db
+    .select({ name: categories.name, color: categories.color, value: sql<string>`sum(${transactions.amount})` })
+    .from(transactions)
+    .leftJoin(categories, eq(transactions.categoryId, categories.id))
+    .where(and(whereClause, eq(transactions.type, "expense")))
+    .groupBy(categories.name, categories.color);
+
+  const srcRows = await db
+    .select({ source: transactions.source, value: sql<string>`sum(${transactions.amount})` })
+    .from(transactions)
+    .where(and(whereClause, eq(transactions.type, "income")))
+    .groupBy(transactions.source);
+
+  const chartCategories = catRows.map((r) => ({ name: r.name || "Sem categoria", color: r.color, value: parseFloat(r.value || "0") }));
+  const chartSources = srcRows.map((r) => ({ name: SOURCE_LABELS[r.source] || r.source, value: parseFloat(r.value || "0") }));
 
   const data = rows.map((r) => {
     const income = parseFloat(r.income || "0");
@@ -65,6 +93,13 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
   const totalNet = totalIncome - totalExpense;
   const maxBar = Math.max(1, ...data.map((d) => Math.max(d.income, d.expense)));
 
+  // Série mensal ascendente + saldo acumulado (para os gráficos)
+  let acc = 0;
+  const chartMonthly = [...data].reverse().map((d) => {
+    acc += d.net;
+    return { label: monthLabel(d.ym), income: d.income, expense: d.expense, net: d.net, cumulative: acc };
+  });
+
   return (
     <div className="max-w-5xl mx-auto space-y-8 pb-20">
       <div className="flex items-end justify-between gap-4 flex-wrap">
@@ -72,7 +107,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
           <h1 className="text-3xl lg:text-4xl font-display font-bold text-primary">Relatórios</h1>
           <p className="text-foreground/50 mt-1">Resumo financeiro mês a mês</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap items-center gap-2">
           {Object.entries(PERIODS).map(([key, p]) => (
             <Link
               key={key}
@@ -84,6 +119,13 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
               {p.label}
             </Link>
           ))}
+          <form method="get" className="flex items-center gap-1.5 rounded-full bg-white/60 px-2 py-1">
+            <input type="hidden" name="period" value="custom" />
+            <input type="date" name="from" defaultValue={from || ""} className="text-xs bg-transparent outline-none px-1 py-1" />
+            <span className="text-xs text-foreground/40">→</span>
+            <input type="date" name="to" defaultValue={to || ""} className="text-xs bg-transparent outline-none px-1 py-1" />
+            <button className={`px-3 py-1 rounded-full text-xs font-bold transition ${activePeriod === "custom" ? "bg-primary text-white" : "bg-primary/10 text-primary hover:bg-primary/20"}`}>Aplicar</button>
+          </form>
         </div>
       </div>
 
@@ -102,6 +144,9 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
           <div><p className={`text-xl font-display font-bold leading-none ${totalNet >= 0 ? "text-[#047857]" : "text-[#b91c1c]"}`}>{formatBRL(totalNet)}</p><p className="text-sm text-foreground/50 mt-1">Saldo (total)</p></div>
         </div>
       </div>
+
+      {/* Gráficos do fluxo financeiro */}
+      <ReportsCharts monthly={chartMonthly} categories={chartCategories} sources={chartSources} />
 
       {/* Tabela mensal */}
       {data.length === 0 ? (

@@ -4,6 +4,7 @@ import { useState } from "react";
 import { Plus, X } from "lucide-react";
 import { createTransaction } from "./actions";
 import { InfoTip } from "@/components/InfoTip";
+import { PAYMENT_FORMS } from "@/lib/finance";
 
 type Cat = { id: string; name: string; type: string };
 type Acc = { id: string; name: string };
@@ -78,6 +79,15 @@ export function AddTransaction({ categories, accounts }: { categories: Cat[]; ac
               <option value="">— Nenhuma —</option>
               {accounts.map((a) => (
                 <option key={a.id} value={a.id}>{a.name}</option>
+              ))}
+            </select>
+          </div>
+          <div className="sm:col-span-2">
+            <label className="text-xs font-semibold text-foreground/60">Forma de {type === "income" ? "recebimento" : "pagamento"}</label>
+            <select name="method" className={inputCls} defaultValue="">
+              <option value="">— Não informar —</option>
+              {PAYMENT_FORMS.map((f) => (
+                <option key={f.value} value={f.value}>{f.label}</option>
               ))}
             </select>
           </div>

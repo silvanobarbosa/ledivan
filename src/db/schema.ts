@@ -115,6 +115,8 @@ export const transactions = pgTable("transactions", {
   description: text("description"),
   date: timestamp("date").defaultNow().notNull(),
   source: transactionSourceEnum("source").default("manual").notNull(),
+  method: text("method"), // forma: pix | debito | credito | dinheiro | deposito | transferencia | boleto | outro
+  reconciledAt: timestamp("reconciled_at"), // conciliado com extrato bancário
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 

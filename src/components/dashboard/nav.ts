@@ -11,6 +11,7 @@ import {
   Megaphone,
   Activity,
   PieChart,
+  Scale,
   HelpCircle,
 } from "lucide-react";
 
@@ -35,6 +36,7 @@ export const NAV_GROUPS: NavGroup[] = [
     items: [
       { icon: ArrowLeftRight, label: "Transações", href: "/dashboard/transactions" },
       { icon: BarChart3, label: "Relatórios", href: "/dashboard/reports" },
+      { icon: Scale, label: "Conciliação", href: "/dashboard/conciliacao" },
       { icon: Wallet, label: "Metas", href: "/dashboard/goals" },
       { icon: Trophy, label: "Conquistas", href: "/dashboard/gamification" },
       { icon: Megaphone, label: "Divulgação", href: "/dashboard/social" },

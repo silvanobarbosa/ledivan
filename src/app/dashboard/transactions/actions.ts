@@ -30,6 +30,7 @@ export async function createTransaction(formData: FormData) {
     description: (formData.get("description") as string) || null,
     date: dateRaw ? new Date(dateRaw) : new Date(),
     source: "manual",
+    method: (formData.get("method") as string) || null,
   });
 
   revalidatePath("/dashboard/transactions");
