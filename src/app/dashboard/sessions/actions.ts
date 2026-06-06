@@ -54,12 +54,23 @@ export async function createSession(formData: FormData) {
     notes: (formData.get("notes") as string) || null,
     chargeable: formData.get("chargeable") !== "false",
     isOnline,
+    location: isOnline ? null : ((formData.get("location") as string) || patient.attendanceLocation || null),
     meetingUrl,
   });
 
   revalidatePath(`/dashboard/patients/${patientId}`);
   revalidatePath("/dashboard/agenda");
   redirect(`/dashboard/patients/${patientId}`);
+}
+
+// Confirma um agendamento público que estava aguardando confirmação.
+export async function confirmSession(sessionId: string) {
+  const session = await auth();
+  if (!session?.user?.id) throw new Error("Não autorizado");
+  await db.update(therapySessions)
+    .set({ pendingConfirmation: false })
+    .where(and(eq(therapySessions.id, sessionId), eq(therapySessions.userId, session.user.id)));
+  revalidatePath("/dashboard/agenda");
 }
 
 export async function updateSessionStatus(sessionId: string, status: SessionStatus, justificativa?: string) {

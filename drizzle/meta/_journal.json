@@ -120,6 +120,13 @@
       "when": 1780585830542,
       "tag": "0016_slow_gamora",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1780778350364,
+      "tag": "0017_premium_hitman",
+      "breakpoints": true
     }
   ]
 }

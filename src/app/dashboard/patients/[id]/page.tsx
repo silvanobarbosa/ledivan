@@ -1,6 +1,6 @@
 import { db } from "@/db";
 import { auth } from "@/auth";
-import { patients, therapySessions, sessionPayments, patientStatusHistory, patientPriceHistory, patientRecords, assignments, moodLogs, scaleApplications, treatmentGoals } from "@/db/schema";
+import { users, patients, therapySessions, sessionPayments, patientStatusHistory, patientPriceHistory, patientRecords, assignments, moodLogs, scaleApplications, treatmentGoals } from "@/db/schema";
 import { and, eq, desc } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import Link from "next/link";
@@ -8,6 +8,7 @@ import { ArrowLeft } from "lucide-react";
 import { PatientDetail } from "./PatientDetail";
 import { getPreferences } from "@/lib/preferences";
 import { riskFromSessions } from "@/lib/therapy";
+import { parseLocations } from "@/lib/locations";
 
 export default async function PatientPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -65,6 +66,9 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
     orderBy: [desc(treatmentGoals.createdAt)],
   });
 
+  const me = await db.query.users.findFirst({ where: eq(users.id, userId) });
+  const locations = parseLocations(me?.attendanceLocations);
+
   return (
     <div className="max-w-4xl space-y-6">
       <Link href="/dashboard/patients" className="inline-flex items-center gap-2 text-foreground/50 hover:text-primary transition">
@@ -86,6 +90,7 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
         moodLogs={JSON.parse(JSON.stringify(moodList))}
         scales={JSON.parse(JSON.stringify(scaleList))}
         treatmentGoals={JSON.parse(JSON.stringify(goalsList))}
+        locations={locations}
       />
     </div>
   );

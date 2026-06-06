@@ -2,12 +2,18 @@
 
 import { useState, useRef } from "react";
 import { Camera, Loader2 } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
+
+// Só aparece na tela inicial e nas telas do Financeiro.
+const ALLOWED = ["/dashboard", "/dashboard/transactions", "/dashboard/reports", "/dashboard/goals", "/dashboard/gamification"];
 
 export function ScanButton({ userId }: { userId: string }) {
   const [isScanning, setIsScanning] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const router = useRouter();
+  const pathname = usePathname();
+
+  if (!ALLOWED.includes(pathname)) return null;
 
   const handleScan = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];

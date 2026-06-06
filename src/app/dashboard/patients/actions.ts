@@ -63,6 +63,8 @@ export async function createPatient(formData: FormData) {
     emergencyRelationship: (formData.get("emergencyRelationship") as string) || null,
     paymentDay: formData.get("paymentDay") ? parseInt(formData.get("paymentDay") as string) : null,
     contractType: ((formData.get("contractType") as string) || "avulso") as "pacote" | "avulso",
+    attendanceMode: (formData.get("attendanceMode") as string) || "presencial",
+    attendanceLocation: (formData.get("attendanceLocation") as string) || null,
     sessionsInPacket: formData.get("sessionsInPacket")
       ? parseInt(formData.get("sessionsInPacket") as string)
       : null,
@@ -119,6 +121,8 @@ export async function updatePatient(patientId: string, formData: FormData) {
     emergencyRelationship: (formData.get("emergencyRelationship") as string) ?? existing.emergencyRelationship,
     paymentDay: formData.get("paymentDay") ? parseInt(formData.get("paymentDay") as string) : existing.paymentDay,
     contractType: ((formData.get("contractType") as string) || existing.contractType) as "pacote" | "avulso",
+    attendanceMode: (formData.get("attendanceMode") as string) || existing.attendanceMode,
+    attendanceLocation: (formData.get("attendanceLocation") as string) ?? existing.attendanceLocation,
     sessionsInPacket: formData.get("sessionsInPacket")
       ? parseInt(formData.get("sessionsInPacket") as string)
       : existing.sessionsInPacket,

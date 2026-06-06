@@ -2,13 +2,20 @@
 
 import { useState, useTransition } from "react";
 import { CalendarCheck, Copy, Check } from "lucide-react";
-import { setBookingSlug } from "./actions";
+import { setBookingSlug, setBookingAutoConfirm } from "./actions";
 
-export function BookingCard({ initialSlug }: { initialSlug: string | null }) {
+export function BookingCard({ initialSlug, initialAutoConfirm = false }: { initialSlug: string | null; initialAutoConfirm?: boolean }) {
   const [slug, setSlug] = useState(initialSlug ?? "");
   const [saved, setSaved] = useState(initialSlug ?? "");
   const [copied, setCopied] = useState(false);
+  const [auto, setAuto] = useState(initialAutoConfirm);
+  const [, startAuto] = useTransition();
   const [pending, startTransition] = useTransition();
+
+  function toggleAuto(v: boolean) {
+    setAuto(v);
+    startAuto(async () => { await setBookingAutoConfirm(v); });
+  }
 
   const origin = typeof window !== "undefined" ? window.location.origin : "https://levianpuls.vercel.app";
   const link = saved ? `${origin}/agendar/${saved}` : "";
@@ -61,6 +68,18 @@ export function BookingCard({ initialSlug }: { initialSlug: string | null }) {
           <a href={link} target="_blank" rel="noreferrer" className="text-xs font-semibold text-primary hover:underline">Abrir</a>
         </div>
       )}
+
+      <div className="pt-4 border-t border-border space-y-2">
+        <p className="text-xs font-bold text-foreground/40 uppercase tracking-widest">Como o pedido entra</p>
+        <label className="flex items-start gap-3 cursor-pointer rounded-2xl border border-border p-3 hover:bg-surface/50 transition">
+          <input type="radio" name="autoconfirm" checked={!auto} onChange={() => toggleAuto(false)} className="accent-primary w-4 h-4 mt-0.5" />
+          <span className="text-sm"><strong>Confirmar manualmente</strong><br /><span className="text-foreground/50">O paciente recebe “aguarde a confirmação”. Você confirma na agenda.</span></span>
+        </label>
+        <label className="flex items-start gap-3 cursor-pointer rounded-2xl border border-border p-3 hover:bg-surface/50 transition">
+          <input type="radio" name="autoconfirm" checked={auto} onChange={() => toggleAuto(true)} className="accent-primary w-4 h-4 mt-0.5" />
+          <span className="text-sm"><strong>Entrar automaticamente</strong><br /><span className="text-foreground/50">O horário é confirmado na hora; o paciente recebe o OK (e o link de vídeo, se online).</span></span>
+        </label>
+      </div>
     </div>
   );
 }

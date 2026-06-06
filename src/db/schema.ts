@@ -38,6 +38,8 @@ export const users = pgTable("user", {
   // WhatsApp do profissional (instância Evolution própria) — por tenant
   whatsappInstance: text("whatsapp_instance"),
   whatsappConnected: boolean("whatsapp_connected").default(false).notNull(),
+  // Endereços de atendimento presencial (até 3): JSON [{name, address}]
+  attendanceLocations: text("attendance_locations"),
 
   preferences: text("preferences"), // JSON string
   createdAt: timestamp("created_at").defaultNow().notNull(),
@@ -200,6 +202,8 @@ export const patients = pgTable("patients", {
   prospectObservacoes: text("prospect_observacoes"),
   paymentDay: integer("payment_day"), // dia do mes para cobranca
   contractType: contractTypeEnum("contract_type").default("avulso"),
+  attendanceMode: text("attendance_mode").default("presencial").notNull(), // online | presencial | misto
+  attendanceLocation: text("attendance_location"), // endereço pré-selecionado (presencial/misto)
   sessionsInPacket: integer("sessions_in_packet"), // qtd de atendimentos no pacote
   packageCreditsUsed: integer("package_credits_used").default(0).notNull(), // créditos do pacote já consumidos
   // Lembrete de sessao (escolha do terapeuta por paciente)
@@ -273,6 +277,8 @@ export const therapySessions = pgTable("therapy_sessions", {
   justificativa: text("justificativa"), // p/ faltas/cancelamentos
   chargeable: boolean("chargeable").default(true).notNull(),
   isOnline: boolean("is_online").default(false).notNull(), // atendimento por vídeo
+  location: text("location"), // local presencial (endereço/rótulo) quando não-online
+  pendingConfirmation: boolean("pending_confirmation").default(false).notNull(), // agendamento público aguardando confirmação
   meetingUrl: text("meeting_url"), // link Google Meet (se gerado); senão usa Jitsi derivado do id
   reminderSentAt: timestamp("reminder_sent_at"), // evita lembrete duplicado
   patientSummary: text("patient_summary"), // resumo pós-sessão para o paciente (IA)

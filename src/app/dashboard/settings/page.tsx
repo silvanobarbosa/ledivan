@@ -7,6 +7,8 @@ import { signOut } from "@/auth";
 import { updateProfile } from "./actions";
 import { SubmitButton } from "@/components/SubmitButton";
 import { SinglePhoto } from "@/components/dashboard/PhotoSlots";
+import { LocationsCard } from "./LocationsCard";
+import { parseLocations } from "@/lib/locations";
 import { TelegramSync } from "./TelegramSync";
 import { AutoLinkToggle } from "./AutoLinkToggle";
 import { IntegrationsCard } from "./IntegrationsCard";
@@ -126,7 +128,9 @@ export default async function SettingsPage() {
             <SmtpCard configured={user.emailConfigured} currentEmail={user.smtpUser} loginEmail={user.email} />
           </div>
 
-          <BookingCard initialSlug={user.bookingSlug} />
+          <LocationsCard initial={parseLocations(user.attendanceLocations)} />
+
+          <BookingCard initialSlug={user.bookingSlug} initialAutoConfirm={!!prefs.bookingAutoConfirm} />
 
           <IntegrationsCard initial={prefs.integrations ?? {}} />
 

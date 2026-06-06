@@ -34,6 +34,7 @@ type Patient = {
   patientStatus: string; paymentStatus: string; startedAt: string | null; address: string | null;
   emergencyName: string | null; emergencyPhone: string | null; emergencyRelationship: string | null;
   contractType: string | null; paymentDay: number | null;
+  attendanceMode: string | null; attendanceLocation: string | null;
 };
 type Session = { id: string; date: string; duration: number; fee: string; status: string; notes: string | null; isOnline: boolean; patientSummary: string | null; meetingUrl: string | null };
 type Payment = { id: string; date: string; amount: string; method: string; status: string; linkedTransactionId: string | null };
@@ -53,7 +54,7 @@ const inputCls = "w-full px-4 py-2.5 rounded-xl bg-white/70 border border-border
 const TABS = ["Dados", "Prontuário", "Espaço", "Sessões", "Pagamentos", "Linha do tempo", "Histórico"] as const;
 
 export function PatientDetail({
-  patient, sessions, payments, statusHistory, priceHistory, records, autoLinkPayments, transcriptionEnabled, risk, assignments, moodToken, moodLogs, scales, treatmentGoals,
+  patient, sessions, payments, statusHistory, priceHistory, records, autoLinkPayments, transcriptionEnabled, risk, assignments, moodToken, moodLogs, scales, treatmentGoals, locations = [],
 }: {
   patient: Patient; sessions: Session[]; payments: Payment[];
   statusHistory: StatusEntry[]; priceHistory: PriceEntry[]; records: RecordEntry[];
@@ -64,6 +65,7 @@ export function PatientDetail({
   moodLogs: { id: string; mood: number; note: string | null; loggedAt: string }[];
   scales: { id: string; token: string; scaleType: string; status: string; score: number | null; severity: string | null; appliedAt: string | null }[];
   treatmentGoals: { id: string; title: string; description: string | null; status: string; progress: number; targetDate: string | null }[];
+  locations?: { name: string; address: string }[];
 }) {
   const router = useRouter();
   const [tab, setTab] = useState<(typeof TABS)[number]>("Dados");
@@ -305,6 +307,22 @@ export function PatientDetail({
                 <Video className="w-4 h-4 text-primary" /> Atendimento online (gera sala de vídeo)
                 <InfoTip text="Cria um link de vídeo para a sessão (Jitsi por padrão, ou Google Meet se configurado em Ajustes). O botão 'Entrar' aparece na sessão e na agenda." />
               </label>
+              {patient.attendanceMode !== "online" && (
+                <div className="sm:col-span-2 space-y-2">
+                  <div className="rounded-xl bg-[#fffbeb] border border-[#fde68a] px-3 py-2 text-xs text-[#92400e]">
+                    ⚠️ Confirme o endereço do atendimento{patient.attendanceLocation ? ` — sugerido: ${patient.attendanceLocation}` : ""}.
+                  </div>
+                  <label className="text-xs font-semibold text-foreground/60">Local (presencial)</label>
+                  {locations.length ? (
+                    <select name="location" className={inputCls} defaultValue={patient.attendanceLocation || ""}>
+                      <option value="">—</option>
+                      {locations.map((l, i) => { const v = l.name ? `${l.name} — ${l.address}` : l.address; return <option key={i} value={v}>{v}</option>; })}
+                    </select>
+                  ) : (
+                    <input name="location" className={inputCls} defaultValue={patient.attendanceLocation || ""} placeholder="Endereço do atendimento" />
+                  )}
+                </div>
+              )}
               <div className="sm:col-span-2"><textarea name="notes" rows={2} placeholder="Notas da sessão" className={inputCls} /></div>
               <button className="sm:col-span-2 bg-primary text-white py-2.5 rounded-xl font-bold">Salvar sessão</button>
             </form>

@@ -4,6 +4,7 @@ import { db } from "@/db";
 import { users, patients, therapySessions } from "@/db/schema";
 import { and, eq, or, gte, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import { getPreferences } from "@/lib/preferences";
 
 // Agendamento público (sem auth). Cria/usa um paciente (prospect) e agenda a sessão
 // no espaço do terapeuta dono do slug. Escreve apenas no userId resolvido pelo slug.
@@ -20,6 +21,7 @@ export async function createPublicBooking(slug: string, formData: FormData) {
   const email = ((formData.get("email") as string) || "").trim() || null;
   const dateRaw = formData.get("date") as string;
   const note = ((formData.get("note") as string) || "").trim() || null;
+  const online = formData.get("online") === "on";
 
   if (!name) return { ok: false, error: "Informe seu nome." };
   if (!phone && !email) return { ok: false, error: "Informe telefone ou e-mail." };
@@ -57,17 +59,27 @@ export async function createPublicBooking(slug: string, formData: FormData) {
     }).returning();
   }
 
-  await db.insert(therapySessions).values({
+  const prefs = await getPreferences(userId);
+  const auto = !!prefs.bookingAutoConfirm;
+
+  const [created] = await db.insert(therapySessions).values({
     userId,
     patientId: patient.id,
     date: new Date(dateRaw),
     duration: 50,
     fee: patient.sessionFee,
     status: "agendada",
+    isOnline: online,
+    pendingConfirmation: !auto, // se não é automático, aguarda confirmação do terapeuta
     notes: note ? `Pedido via link público: ${note}` : "Agendado pelo link público.",
-  });
+  }).returning();
 
   revalidatePath("/dashboard/agenda");
   revalidatePath("/dashboard/prospects");
-  return { ok: true };
+
+  // Link de vídeo do convidado (só faz sentido se online e confirmado automaticamente)
+  const base = (process.env.APP_URL || "https://ledivan.com.br").replace(/\/$/, "");
+  const meetingLink = auto && online ? `${base}/sala-convidado/${created.id}` : null;
+
+  return { ok: true, mode: auto ? "auto" : "confirm", online, meetingLink };
 }

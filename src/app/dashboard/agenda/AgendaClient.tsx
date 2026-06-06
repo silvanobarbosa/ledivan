@@ -4,11 +4,11 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronLeft, ChevronRight, X } from "lucide-react";
 import { SESSION_STATUS_LABELS, sessionStatusColor, RISK_LABELS, riskColor, type RiskLevel } from "@/lib/therapy";
-import { updateSessionStatus } from "../sessions/actions";
+import { updateSessionStatus, confirmSession } from "../sessions/actions";
 import { Video, AlertTriangle } from "lucide-react";
 
 type SessionStatus = "realizada" | "nao_realizada" | "cancelada" | "realocada" | "agendada";
-type AgendaSession = { id: string; date: string; duration: number; status: string; patientName: string; isOnline: boolean; risk: string; meetingUrl: string | null; meetingOpenedAt: string | null; guestJoinedAt: string | null; meetingEndedAt: string | null };
+type AgendaSession = { id: string; date: string; duration: number; status: string; patientName: string; isOnline: boolean; risk: string; meetingUrl: string | null; meetingOpenedAt: string | null; guestJoinedAt: string | null; meetingEndedAt: string | null; pendingConfirmation: boolean; location: string | null };
 
 const DAY_NAMES = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 const START_HOUR = 7;
@@ -53,6 +53,14 @@ export function AgendaClient({ sessions }: { sessions: AgendaSession[] }) {
   const changeStatus = (id: string, status: SessionStatus) => {
     startTransition(async () => {
       await updateSessionStatus(id, status);
+      setSelected(null);
+      router.refresh();
+    });
+  };
+
+  const confirm = (id: string) => {
+    startTransition(async () => {
+      await confirmSession(id);
       setSelected(null);
       router.refresh();
     });
@@ -133,6 +141,7 @@ export function AgendaClient({ sessions }: { sessions: AgendaSession[] }) {
                         >
                           <p className="text-[10px] font-bold leading-tight flex items-center gap-1">
                             {time}
+                            {s.pendingConfirmation && <span title="Aguardando confirmação">⏳</span>}
                             {s.status === "agendada" && (s.risk === "alto" || s.risk === "medio") && (
                               <AlertTriangle className={`w-2.5 h-2.5 ${s.risk === "alto" ? "text-[#b91c1c]" : "text-[#b45309]"}`} />
                             )}
@@ -167,6 +176,20 @@ export function AgendaClient({ sessions }: { sessions: AgendaSession[] }) {
               </div>
               <button onClick={() => setSelected(null)} className="p-1.5 rounded-lg hover:bg-surface transition"><X className="w-4 h-4" /></button>
             </div>
+
+            {selected.pendingConfirmation && (
+              <div className="rounded-xl bg-[#fffbeb] border border-[#fde68a] p-3 space-y-2">
+                <p className="text-xs font-semibold text-[#92400e]">⏳ Agendamento solicitado pelo link público — aguardando sua confirmação.</p>
+                <button disabled={pending} onClick={() => confirm(selected.id)} className="w-full rounded-xl bg-primary text-white py-2 text-sm font-bold disabled:opacity-60">
+                  Confirmar agendamento
+                </button>
+              </div>
+            )}
+
+            {!selected.isOnline && selected.location && (
+              <p className="text-sm text-foreground/60 flex items-start gap-1.5"><span className="text-foreground/40">📍</span> {selected.location}</p>
+            )}
+
             {selected.isOnline && (
               selected.meetingUrl?.includes("meet.google.com") ? (
                 <a href={selected.meetingUrl} target="_blank" rel="noreferrer" className="flex items-center justify-center gap-2 w-full rounded-xl bg-primary text-white py-2.5 text-sm font-bold hover:bg-primary-container transition">

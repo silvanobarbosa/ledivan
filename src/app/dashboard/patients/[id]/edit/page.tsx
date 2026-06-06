@@ -10,7 +10,10 @@ import { SubmitButton } from "@/components/SubmitButton";
 import { InfoTip } from "@/components/InfoTip";
 import { ContractFields } from "@/components/dashboard/ContractFields";
 import { PhotoSlots } from "@/components/dashboard/PhotoSlots";
+import { AttendanceFields } from "@/components/dashboard/AttendanceFields";
 import { REMINDER_LEAD_OPTIONS } from "@/lib/reminderLead";
+import { users } from "@/db/schema";
+import { parseLocations } from "@/lib/locations";
 
 const inputCls =
   "w-full px-4 py-3 rounded-2xl bg-white/70 border border-border focus:ring-2 focus:ring-accent/20 focus:border-accent outline-none transition";
@@ -25,6 +28,9 @@ export default async function EditPatientPage({ params }: { params: Promise<{ id
     where: and(eq(patients.id, id), eq(patients.userId, session.user.id)),
   });
   if (!patient) notFound();
+
+  const me = await db.query.users.findFirst({ where: eq(users.id, session.user.id) });
+  const locations = parseLocations(me?.attendanceLocations);
 
   const save = updatePatient.bind(null, id);
   const remove = deletePatient.bind(null, id);
@@ -84,6 +90,8 @@ export default async function EditPatientPage({ params }: { params: Promise<{ id
             </select>
           </div>
         </div>
+
+        <AttendanceFields locations={locations} defaultMode={patient.attendanceMode ?? "presencial"} defaultLocation={patient.attendanceLocation} />
 
         <div className="grid sm:grid-cols-2 gap-4">
           <div>

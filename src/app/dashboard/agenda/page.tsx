@@ -43,6 +43,8 @@ export default async function AgendaPage() {
           meetingOpenedAt: s.meetingOpenedAt ? (s.meetingOpenedAt as unknown as string) : null,
           guestJoinedAt: s.guestJoinedAt ? (s.guestJoinedAt as unknown as string) : null,
           meetingEndedAt: s.meetingEndedAt ? (s.meetingEndedAt as unknown as string) : null,
+          pendingConfirmation: s.pendingConfirmation,
+          location: s.location,
         }))}
       />
     </div>

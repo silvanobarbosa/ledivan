@@ -35,6 +35,28 @@ export async function disconnectWhatsapp() {
   revalidatePath("/dashboard/settings");
 }
 
+// Endereços de atendimento presencial (até 3).
+export async function saveLocations(locations: { name: string; address: string }[]) {
+  const session = await auth();
+  if (!session?.user?.id) throw new Error("Não autorizado");
+  const clean = (locations || [])
+    .map((l) => ({ name: (l.name || "").trim(), address: (l.address || "").trim() }))
+    .filter((l) => l.name || l.address)
+    .slice(0, 3);
+  await db.update(users).set({ attendanceLocations: JSON.stringify(clean) }).where(eq(users.id, session.user.id));
+  revalidatePath("/dashboard/settings");
+  return { ok: true };
+}
+
+// Agendamento público: entra automático (true) ou requer confirmação (false).
+export async function setBookingAutoConfirm(value: boolean) {
+  const session = await auth();
+  if (!session?.user?.id) throw new Error("Não autorizado");
+  await setPreferences(session.user.id, { bookingAutoConfirm: value });
+  revalidatePath("/dashboard/settings");
+  return { ok: true };
+}
+
 // Provedor de vídeo das sessões online: jitsi (padrão) ou meet (Google).
 export async function setMeetingProvider(provider: "jitsi" | "meet") {
   const session = await auth();

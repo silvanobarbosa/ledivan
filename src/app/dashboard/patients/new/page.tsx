@@ -5,13 +5,22 @@ import { InfoTip } from "@/components/InfoTip";
 import { SubmitButton } from "@/components/SubmitButton";
 import { ContractFields } from "@/components/dashboard/ContractFields";
 import { PhotoSlots } from "@/components/dashboard/PhotoSlots";
+import { AttendanceFields } from "@/components/dashboard/AttendanceFields";
 import { REMINDER_LEAD_OPTIONS } from "@/lib/reminderLead";
+import { auth } from "@/auth";
+import { db } from "@/db";
+import { users } from "@/db/schema";
+import { eq } from "drizzle-orm";
+import { parseLocations } from "@/lib/locations";
 
 const inputCls =
   "w-full px-4 py-3 rounded-2xl bg-white/70 border border-border focus:ring-2 focus:ring-accent/20 focus:border-accent outline-none transition";
 const labelCls = "block text-sm font-semibold text-foreground/70 mb-1.5";
 
-export default function NewPatientPage() {
+export default async function NewPatientPage() {
+  const session = await auth();
+  const me = session?.user?.id ? await db.query.users.findFirst({ where: eq(users.id, session.user.id) }) : null;
+  const locations = parseLocations(me?.attendanceLocations);
   return (
     <div className="max-w-2xl space-y-8">
       <Link href="/dashboard/patients" className="inline-flex items-center gap-2 text-foreground/50 hover:text-primary transition">
@@ -63,6 +72,8 @@ export default function NewPatientPage() {
             <input name="startedAt" type="date" className={inputCls} />
           </div>
         </div>
+
+        <AttendanceFields locations={locations} />
 
         <div className="grid sm:grid-cols-2 gap-4">
           <div>
