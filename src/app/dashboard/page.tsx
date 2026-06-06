@@ -156,45 +156,21 @@ export default async function DashboardPage() {
         </p>
       </section>
 
-      {/* Resumo do consultório */}
+      {/* Resumo do consultório (cards clicáveis) */}
       <section className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <div className="glass-card rounded-[28px] p-6 flex items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center"><UsersIcon className="w-6 h-6" /></div>
-          <div><p className="text-2xl font-display font-bold text-primary leading-none">{activePatients}</p><p className="text-sm text-foreground/50 mt-1">Pacientes ativos</p></div>
-        </div>
-        <div className="glass-card rounded-[28px] p-6 flex items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-accent/10 text-accent flex items-center justify-center"><CalendarCheck className="w-6 h-6" /></div>
-          <div><p className="text-2xl font-display font-bold text-primary leading-none">{weekSessions}</p><p className="text-sm text-foreground/50 mt-1">Sessões na semana</p></div>
-        </div>
-        <div className="glass-card rounded-[28px] p-6 flex items-center gap-4">
-          <div className="w-12 h-12 rounded-2xl bg-[#ecfdf5] text-[#047857] flex items-center justify-center font-bold">R$</div>
-          <div><p className="text-2xl font-display font-bold text-primary leading-none">{formatBRL(sessionIncomeMonth)}</p><p className="text-sm text-foreground/50 mt-1">Receita de sessões (mês)</p></div>
-        </div>
+        <Link href="/dashboard/patients" className="glass-card rounded-[28px] p-6 flex items-center gap-4 hover:scale-[1.02] active:scale-[0.99] transition group">
+          <div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center shrink-0"><UsersIcon className="w-6 h-6" /></div>
+          <div className="min-w-0"><p className="text-2xl font-display font-bold text-primary leading-none">{activePatients}</p><p className="text-sm text-foreground/50 mt-1 flex items-center gap-1">Pacientes ativos <ChevronRight className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 transition" /></p></div>
+        </Link>
+        <Link href="/dashboard/agenda" className="glass-card rounded-[28px] p-6 flex items-center gap-4 hover:scale-[1.02] active:scale-[0.99] transition group">
+          <div className="w-12 h-12 rounded-2xl bg-accent/10 text-accent flex items-center justify-center shrink-0"><CalendarCheck className="w-6 h-6" /></div>
+          <div className="min-w-0"><p className="text-2xl font-display font-bold text-primary leading-none">{weekSessions}</p><p className="text-sm text-foreground/50 mt-1 flex items-center gap-1">Sessões na semana <ChevronRight className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 transition" /></p></div>
+        </Link>
+        <Link href="/dashboard/transactions" className="glass-card rounded-[28px] p-6 flex items-center gap-4 hover:scale-[1.02] active:scale-[0.99] transition group">
+          <div className="w-12 h-12 rounded-2xl bg-[#ecfdf5] text-[#047857] flex items-center justify-center font-bold shrink-0">R$</div>
+          <div className="min-w-0"><p className="text-2xl font-display font-bold text-primary leading-none break-words">{formatBRL(sessionIncomeMonth)}</p><p className="text-sm text-foreground/50 mt-1 flex items-center gap-1">Receita de sessões (mês) <ChevronRight className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 transition" /></p></div>
+        </Link>
       </section>
-
-      {/* Atenção clínica */}
-      {flagged.length > 0 && (
-        <section className="bg-white rounded-[40px] shadow-sm border border-border p-8 space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="text-xl font-display font-bold text-primary flex items-center gap-2">
-              <Activity className="w-5 h-5" /> Atenção clínica
-            </h3>
-            <Link href="/dashboard/clinico" className="text-sm font-semibold text-accent hover:underline">Ver todos ({flagged.length})</Link>
-          </div>
-          <div className="grid gap-2">
-            {flagged.slice(0, 4).map(({ id, name, flags }) => (
-              <Link key={id} href={`/dashboard/patients/${id}`} className="flex items-center gap-3 bg-surface/60 rounded-2xl px-4 py-3 hover:bg-surface transition group">
-                <span className="w-9 h-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-display font-bold text-sm shrink-0">{name.charAt(0).toUpperCase()}</span>
-                <div className="flex-1 min-w-0">
-                  <p className="font-semibold truncate text-sm">{name}</p>
-                  <div className="mt-1"><FlagChips flags={flags} /></div>
-                </div>
-                <ChevronRight className="w-4 h-4 text-foreground/30 group-hover:text-primary transition" />
-              </Link>
-            ))}
-          </div>
-        </section>
-      )}
 
       {/* Próximas sessões */}
       <section className="bg-white rounded-[40px] shadow-sm border border-border p-8 space-y-5">
@@ -222,6 +198,30 @@ export default async function DashboardPage() {
           </div>
         )}
       </section>
+
+      {/* Atenção clínica */}
+      {flagged.length > 0 && (
+        <section className="bg-white rounded-[40px] shadow-sm border border-border p-8 space-y-4">
+          <div className="flex items-center justify-between">
+            <h3 className="text-xl font-display font-bold text-primary flex items-center gap-2">
+              <Activity className="w-5 h-5" /> Atenção clínica
+            </h3>
+            <Link href="/dashboard/clinico" className="text-sm font-semibold text-accent hover:underline">Ver todos ({flagged.length})</Link>
+          </div>
+          <div className="grid gap-2">
+            {flagged.slice(0, 4).map(({ id, name, flags }) => (
+              <Link key={id} href={`/dashboard/patients/${id}`} className="flex items-center gap-3 bg-surface/60 rounded-2xl px-4 py-3 hover:bg-surface transition group">
+                <span className="w-9 h-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-display font-bold text-sm shrink-0">{name.charAt(0).toUpperCase()}</span>
+                <div className="flex-1 min-w-0">
+                  <p className="font-semibold truncate text-sm">{name}</p>
+                  <div className="mt-1"><FlagChips flags={flags} /></div>
+                </div>
+                <ChevronRight className="w-4 h-4 text-foreground/30 group-hover:text-primary transition" />
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
 
       <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
         <BalanceCard

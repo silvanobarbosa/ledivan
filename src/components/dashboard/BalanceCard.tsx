@@ -40,7 +40,7 @@ export function BalanceCard({ title, amount, trend, icon, variant = "white", cla
           {icon}
         </div>
       </div>
-      <div className="text-3xl font-bold tracking-tight">
+      <div className="text-2xl lg:text-3xl font-bold tracking-tight break-words tabular-nums leading-tight">
         {formatCurrency(amount)}
       </div>
       {trend && (
