@@ -1,6 +1,6 @@
 import { db } from "@/db";
 import { auth } from "@/auth";
-import { users, patients, therapySessions, sessionPayments, patientStatusHistory, patientPriceHistory, patientRecords, assignments, moodLogs, scaleApplications, treatmentGoals } from "@/db/schema";
+import { users, patients, therapySessions, sessionPayments, patientStatusHistory, patientPriceHistory, patientContractHistory, patientRecords, assignments, moodLogs, scaleApplications, treatmentGoals } from "@/db/schema";
 import { and, eq, desc } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import Link from "next/link";
@@ -69,6 +69,11 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
   const me = await db.query.users.findFirst({ where: eq(users.id, userId) });
   const locations = parseLocations(me?.attendanceLocations);
 
+  const contractHist = await db.query.patientContractHistory.findMany({
+    where: eq(patientContractHistory.patientId, id),
+    orderBy: [desc(patientContractHistory.date)],
+  });
+
   return (
     <div className="max-w-4xl space-y-6">
       <Link href="/dashboard/patients" className="inline-flex items-center gap-2 text-foreground/50 hover:text-primary transition">
@@ -91,6 +96,7 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
         scales={JSON.parse(JSON.stringify(scaleList))}
         treatmentGoals={JSON.parse(JSON.stringify(goalsList))}
         locations={locations}
+        contractHistory={JSON.parse(JSON.stringify(contractHist))}
       />
     </div>
   );

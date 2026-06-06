@@ -118,15 +118,33 @@ export async function confirmSession(sessionId: string) {
   revalidatePath("/dashboard/agenda");
 }
 
-export async function updateSessionStatus(sessionId: string, status: SessionStatus, justificativa?: string) {
+export async function updateSessionStatus(sessionId: string, status: SessionStatus, justificativa?: string, chargeable?: boolean) {
   const session = await auth();
   if (!session?.user?.id) throw new Error("Não autorizado");
+  const userId = session.user.id;
+
+  const existing = await db.query.therapySessions.findFirst({
+    where: and(eq(therapySessions.id, sessionId), eq(therapySessions.userId, userId)),
+    with: { patient: true },
+  });
+  if (!existing) return;
 
   await db.update(therapySessions)
-    .set({ status, justificativa: justificativa || null })
-    .where(and(eq(therapySessions.id, sessionId), eq(therapySessions.userId, session.user.id)));
+    .set({ status, justificativa: justificativa || null, ...(chargeable !== undefined ? { chargeable } : {}) })
+    .where(and(eq(therapySessions.id, sessionId), eq(therapySessions.userId, userId)));
+
+  // Abate/restaura crédito do pacote conforme transição p/ "realizada" (se a opção do paciente estiver ligada)
+  const p = existing.patient;
+  if (p?.contractType === "pacote" && p.deductPackageOnSession && p.sessionsInPacket) {
+    const was = existing.status === "realizada";
+    const now = status === "realizada";
+    const used = p.packageCreditsUsed ?? 0;
+    if (!was && now) await db.update(patients).set({ packageCreditsUsed: Math.min(used + 1, p.sessionsInPacket) }).where(eq(patients.id, p.id));
+    else if (was && !now) await db.update(patients).set({ packageCreditsUsed: Math.max(used - 1, 0) }).where(eq(patients.id, p.id));
+  }
 
   revalidatePath("/dashboard/agenda");
+  revalidatePath(`/dashboard/patients/${existing.patientId}`);
 }
 
 // Gera um resumo pós-sessão em linguagem acolhedora para o paciente (IA), a partir das notas.

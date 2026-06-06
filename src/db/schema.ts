@@ -209,6 +209,7 @@ export const patients = pgTable("patients", {
   attendanceLocation: text("attendance_location"), // endereço pré-selecionado (presencial/misto)
   sessionsInPacket: integer("sessions_in_packet"), // qtd de atendimentos no pacote
   packageCreditsUsed: integer("package_credits_used").default(0).notNull(), // créditos do pacote já consumidos
+  deductPackageOnSession: boolean("deduct_package_on_session").default(true).notNull(), // sessão realizada abate do pacote (senão, abate no pagamento)
   // Lembrete de sessao (escolha do terapeuta por paciente)
   reminderEnabled: boolean("reminder_enabled").default(false).notNull(),
   reminderChannel: text("reminder_channel").default("whatsapp").notNull(), // whatsapp | email | telegram

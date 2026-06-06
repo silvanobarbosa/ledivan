@@ -11,9 +11,11 @@ const labelCls = "block text-sm font-semibold text-foreground/70 mb-1.5";
 export function ContractFields({
   defaultType = "avulso",
   defaultSessions,
+  defaultDeduct = true,
 }: {
   defaultType?: string;
   defaultSessions?: number | null;
+  defaultDeduct?: boolean;
 }) {
   const [type, setType] = useState(defaultType);
 
@@ -44,6 +46,11 @@ export function ContractFields({
             className={inputCls}
             placeholder="ex: 10"
           />
+          <label className="flex items-center gap-2 text-sm mt-3 cursor-pointer">
+            <input type="checkbox" name="deductPackageOnSession" defaultChecked={defaultDeduct} className="accent-primary w-4 h-4" />
+            Sessão realizada abate na quantidade do pacote
+            <InfoTip text="Se ligado, cada sessão marcada como realizada consome 1 crédito do pacote. Se desligado, o crédito é abatido ao registrar o pagamento." />
+          </label>
         </div>
       )}
     </>

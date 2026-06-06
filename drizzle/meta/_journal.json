@@ -141,6 +141,13 @@
       "when": 1780781512266,
       "tag": "0019_elite_freak",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1780783032338,
+      "tag": "0020_colossal_aaron_stack",
+      "breakpoints": true
     }
   ]
 }

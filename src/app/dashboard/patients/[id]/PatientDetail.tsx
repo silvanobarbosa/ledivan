@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createSession, deleteSession } from "../../sessions/actions";
 import { createPayment, deletePayment } from "../../payments/actions";
-import { createRecord, deleteRecord, addPriceChange } from "../actions";
+import { createRecord, deleteRecord, addPriceChange, renewPackage } from "../actions";
 import { AssignmentsTab } from "./AssignmentsTab";
 import { SessionSummary } from "./SessionSummary";
 import { TreatmentPlan } from "./TreatmentPlan";
@@ -36,7 +36,9 @@ type Patient = {
   contractType: string | null; paymentDay: number | null;
   attendanceMode: string | null; attendanceLocation: string | null;
   priceReviewDate: string | null;
+  sessionsInPacket: number | null; packageCreditsUsed: number; deductPackageOnSession: boolean;
 };
+type ContractEntry = { id: string; type: string; from: string | null; to: string | null; description: string | null; date: string };
 type Session = { id: string; date: string; duration: number; fee: string; status: string; notes: string | null; isOnline: boolean; patientSummary: string | null; meetingUrl: string | null };
 type Payment = { id: string; date: string; amount: string; method: string; status: string; linkedTransactionId: string | null };
 type StatusEntry = { id: string; status: string; date: string };
@@ -55,10 +57,11 @@ const inputCls = "w-full px-4 py-2.5 rounded-xl bg-white/70 border border-border
 const TABS = ["Dados", "Prontuário", "Espaço", "Sessões", "Pagamentos", "Linha do tempo", "Histórico"] as const;
 
 export function PatientDetail({
-  patient, sessions, payments, statusHistory, priceHistory, records, autoLinkPayments, transcriptionEnabled, risk, assignments, moodToken, moodLogs, scales, treatmentGoals, locations = [],
+  patient, sessions, payments, statusHistory, priceHistory, records, autoLinkPayments, transcriptionEnabled, risk, assignments, moodToken, moodLogs, scales, treatmentGoals, locations = [], contractHistory = [],
 }: {
   patient: Patient; sessions: Session[]; payments: Payment[];
   statusHistory: StatusEntry[]; priceHistory: PriceEntry[]; records: RecordEntry[];
+  contractHistory?: ContractEntry[];
   autoLinkPayments: boolean; transcriptionEnabled: boolean;
   risk: { level: RiskLevel; rate: number; faltas: number; total: number };
   assignments: AssignmentEntry[];
@@ -482,6 +485,45 @@ export function PatientDetail({
                 </div>
               </div>
               <button className="w-full bg-primary text-white py-2.5 rounded-xl font-bold text-sm">Salvar ajuste</button>
+            </form>
+          </div>
+
+          {/* Pacote */}
+          <div className="glass-card rounded-[24px] p-5 sm:col-span-2">
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-xs font-bold text-foreground/40 uppercase tracking-widest">Pacote</p>
+              {patient.contractType === "pacote" && patient.sessionsInPacket ? (
+                <span className="text-xs text-foreground/50">
+                  Créditos: <strong className="text-primary">{Math.max(0, patient.sessionsInPacket - patient.packageCreditsUsed)}</strong> / {patient.sessionsInPacket} restantes
+                </span>
+              ) : <span className="text-xs text-foreground/40">Sem pacote ativo</span>}
+            </div>
+
+            {contractHistory.length > 0 && (
+              <div className="mb-3 space-y-1">
+                {contractHistory.map((h) => (
+                  <div key={h.id} className="flex justify-between py-1 text-sm border-b border-border last:border-0">
+                    <span>{h.description || h.type}{h.to ? ` → ${h.to}` : ""}</span>
+                    <span className="text-foreground/40">{formatDate(h.date)}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <form action={renewPackage.bind(null, patient.id)} className="pt-3 border-t border-border space-y-2">
+              <p className="text-xs font-bold text-foreground/40 uppercase tracking-widest">Renovar pacote</p>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-[11px] font-semibold text-foreground/50">Qtd de sessões</label>
+                  <input name="sessionsInPacket" type="number" min={1} max={200} defaultValue={patient.sessionsInPacket ?? ""} className={inputCls} placeholder="ex: 10" />
+                </div>
+                <div>
+                  <label className="text-[11px] font-semibold text-foreground/50">Valor (R$)</label>
+                  <input name="valor" inputMode="decimal" defaultValue={patient.sessionFee} className={inputCls} />
+                </div>
+              </div>
+              <p className="text-[11px] text-foreground/40">Sugestão: últimos valores. Zera os créditos usados e registra no histórico.</p>
+              <button className="w-full bg-primary text-white py-2.5 rounded-xl font-bold text-sm">Renovar pacote</button>
             </form>
           </div>
         </div>

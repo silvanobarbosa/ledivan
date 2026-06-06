@@ -80,7 +80,7 @@ export default async function EditPatientPage({ params }: { params: Promise<{ id
         </div>
 
         <div className="grid sm:grid-cols-2 gap-4">
-          <ContractFields defaultType={patient.contractType ?? "avulso"} defaultSessions={patient.sessionsInPacket} />
+          <ContractFields defaultType={patient.contractType ?? "avulso"} defaultSessions={patient.sessionsInPacket} defaultDeduct={patient.deductPackageOnSession} />
           <div>
             <label className={labelCls}>Status</label>
             <select name="patientStatus" className={inputCls} defaultValue={patient.patientStatus}>

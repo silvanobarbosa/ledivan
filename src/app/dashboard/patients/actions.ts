@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@/db";
-import { patients, patientStatusHistory, patientPriceHistory, patientRecords, assignments, scaleApplications, treatmentGoals } from "@/db/schema";
+import { patients, patientStatusHistory, patientPriceHistory, patientContractHistory, patientRecords, assignments, scaleApplications, treatmentGoals } from "@/db/schema";
 import { auth } from "@/auth";
 import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
@@ -69,6 +69,9 @@ export async function createPatient(formData: FormData) {
     sessionsInPacket: formData.get("sessionsInPacket")
       ? parseInt(formData.get("sessionsInPacket") as string)
       : null,
+    deductPackageOnSession: formData.has("contractType") && (formData.get("contractType") as string) === "pacote"
+      ? formData.get("deductPackageOnSession") === "on"
+      : true,
     reminderEnabled: formData.get("reminderEnabled") === "on",
     reminderChannel: (formData.get("reminderChannel") as string) || "whatsapp",
     reminderLeadMinutes: formData.get("reminderLeadMinutes")
@@ -127,6 +130,9 @@ export async function updatePatient(patientId: string, formData: FormData) {
     sessionsInPacket: formData.get("sessionsInPacket")
       ? parseInt(formData.get("sessionsInPacket") as string)
       : existing.sessionsInPacket,
+    deductPackageOnSession: (formData.get("contractType") as string) === "pacote"
+      ? formData.get("deductPackageOnSession") === "on"
+      : existing.deductPackageOnSession,
     reminderEnabled: formData.get("reminderEnabled") === "on",
     reminderChannel: (formData.get("reminderChannel") as string) || existing.reminderChannel,
     reminderLeadMinutes: formData.get("reminderLeadMinutes")
@@ -172,6 +178,38 @@ export async function addPriceChange(patientId: string, formData: FormData) {
   await db.update(patients)
     .set({ sessionFee: valor, priceReviewDate: vencRaw ? new Date(vencRaw) : null })
     .where(and(eq(patients.id, patientId), eq(patients.userId, userId)));
+
+  revalidatePath(`/dashboard/patients/${patientId}`);
+}
+
+// Renova o pacote: zera créditos usados, atualiza qtd/valor e registra no histórico.
+export async function renewPackage(patientId: string, formData: FormData) {
+  const session = await auth();
+  if (!session?.user?.id) throw new Error("Não autorizado");
+  const userId = session.user.id;
+
+  const patient = await db.query.patients.findFirst({
+    where: and(eq(patients.id, patientId), eq(patients.userId, userId)),
+  });
+  if (!patient) throw new Error("Paciente não encontrado");
+
+  const qty = formData.get("sessionsInPacket") ? parseInt(formData.get("sessionsInPacket") as string) : (patient.sessionsInPacket ?? 0);
+  const fee = num(formData.get("valor"), patient.sessionFee);
+
+  await db.update(patients)
+    .set({ contractType: "pacote", sessionsInPacket: qty, packageCreditsUsed: 0, sessionFee: fee })
+    .where(and(eq(patients.id, patientId), eq(patients.userId, userId)));
+
+  await db.insert(patientContractHistory).values({
+    patientId,
+    type: "package_renew",
+    from: `${patient.sessionsInPacket ?? 0}x · ${patient.sessionFee}`,
+    to: `${qty}x · ${fee}`,
+    description: "Renovação de pacote",
+  });
+  if (fee !== patient.sessionFee) {
+    await db.insert(patientPriceHistory).values({ patientId, valor: fee, dataEfetiva: new Date() });
+  }
 
   revalidatePath(`/dashboard/patients/${patientId}`);
 }

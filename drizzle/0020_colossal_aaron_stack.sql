@@ -1,0 +1,1 @@
+ALTER TABLE "patients" ADD COLUMN "deduct_package_on_session" boolean DEFAULT true NOT NULL;

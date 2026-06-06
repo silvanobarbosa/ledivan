@@ -84,12 +84,21 @@ export function AgendaClient({ sessions, patients = [], locations = [] }: { sess
     setWeekStart(next);
   };
 
-  const changeStatus = (id: string, status: SessionStatus) => {
+  const [askCharge, setAskCharge] = useState<SessionStatus | null>(null);
+
+  const changeStatus = (id: string, status: SessionStatus, chargeable?: boolean) => {
     startTransition(async () => {
-      await updateSessionStatus(id, status);
+      await updateSessionStatus(id, status, undefined, chargeable);
+      setAskCharge(null);
       setSelected(null);
       router.refresh();
     });
+  };
+
+  // realizada/cancelada/realocada → pergunta se cobra; demais aplicam direto
+  const pickStatus = (id: string, status: SessionStatus) => {
+    if (status === "realizada" || status === "cancelada" || status === "realocada") setAskCharge(status);
+    else changeStatus(id, status);
   };
 
   const confirm = (id: string) => {
@@ -185,7 +194,7 @@ export function AgendaClient({ sessions, patients = [], locations = [] }: { sess
                       return (
                         <button
                           key={s.id}
-                          onClick={() => setSelected(s)}
+                          onClick={() => { setAskCharge(null); setSelected(s); }}
                           style={{ top: top + 1, height }}
                           className={`absolute left-1 right-1 rounded-lg px-2 py-1 text-left overflow-hidden border-l-[3px] border-primary/50 hover:shadow-md hover:z-10 transition ${sessionStatusColor(s.status)}`}
                         >
@@ -262,20 +271,31 @@ export function AgendaClient({ sessions, patients = [], locations = [] }: { sess
             )}
             <div>
               <p className="text-xs font-bold text-foreground/40 uppercase tracking-widest mb-2">Status</p>
-              <div className="grid grid-cols-2 gap-2">
-                {(Object.keys(SESSION_STATUS_LABELS) as SessionStatus[]).map((st) => (
-                  <button
-                    key={st}
-                    disabled={pending}
-                    onClick={() => changeStatus(selected.id, st)}
-                    className={`py-2 rounded-xl text-xs font-bold transition ${
-                      selected.status === st ? `${sessionStatusColor(st)} ring-2 ring-primary/30` : "bg-surface text-foreground/60 hover:bg-surface-container"
-                    }`}
-                  >
-                    {SESSION_STATUS_LABELS[st]}
-                  </button>
-                ))}
-              </div>
+              {askCharge ? (
+                <div className="rounded-xl bg-surface/60 border border-border p-3 space-y-2">
+                  <p className="text-sm font-semibold">Marcar como <span className="lowercase">{SESSION_STATUS_LABELS[askCharge]}</span>. Esta sessão será cobrada?</p>
+                  <div className="flex gap-2">
+                    <button disabled={pending} onClick={() => changeStatus(selected.id, askCharge, true)} className="flex-1 py-2 rounded-xl text-sm font-bold bg-primary text-white disabled:opacity-60">Cobrar</button>
+                    <button disabled={pending} onClick={() => changeStatus(selected.id, askCharge, false)} className="flex-1 py-2 rounded-xl text-sm font-bold bg-surface text-foreground/70 hover:bg-surface-container disabled:opacity-60">Não cobrar</button>
+                  </div>
+                  <button onClick={() => setAskCharge(null)} className="text-xs text-foreground/40 hover:text-primary">cancelar</button>
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-2">
+                  {(Object.keys(SESSION_STATUS_LABELS) as SessionStatus[]).map((st) => (
+                    <button
+                      key={st}
+                      disabled={pending}
+                      onClick={() => pickStatus(selected.id, st)}
+                      className={`py-2 rounded-xl text-xs font-bold transition ${
+                        selected.status === st ? `${sessionStatusColor(st)} ring-2 ring-primary/30` : "bg-surface text-foreground/60 hover:bg-surface-container"
+                      }`}
+                    >
+                      {SESSION_STATUS_LABELS[st]}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </div>
