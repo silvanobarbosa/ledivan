@@ -63,25 +63,14 @@ export default async function EditPatientPage({ params }: { params: Promise<{ id
           </div>
         </div>
 
-        <div className="grid sm:grid-cols-2 gap-4">
-          <div>
-            <label className={labelCls}>Frequência</label>
-            <select name="frequency" className={inputCls} defaultValue={patient.frequency ?? "semanal"}>
-              <option value="semanal">Semanal</option>
-              <option value="quinzenal">Quinzenal</option>
-              <option value="mensal">Mensal</option>
-              <option value="avulso">Avulso</option>
-            </select>
-          </div>
-          <div>
-            <label className={labelCls}>Status</label>
-            <select name="patientStatus" className={inputCls} defaultValue={patient.patientStatus}>
-              <option value="ativo">Ativo</option>
-              <option value="prospect">Prospect</option>
-              <option value="pausado">Pausado</option>
-              <option value="inativo">Inativo</option>
-            </select>
-          </div>
+        <div>
+          <label className={labelCls}>Status</label>
+          <select name="patientStatus" className={inputCls} defaultValue={patient.patientStatus}>
+            <option value="ativo">Ativo</option>
+            <option value="prospect">Prospect</option>
+            <option value="pausado">Pausado</option>
+            <option value="inativo">Inativo</option>
+          </select>
         </div>
 
         <AttendanceFields locations={locations} defaultMode={patient.attendanceMode ?? "presencial"} defaultLocation={patient.attendanceLocation} />

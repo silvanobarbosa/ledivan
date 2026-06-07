@@ -108,6 +108,31 @@ export async function createSessionFromAgenda(formData: FormData): Promise<{ ok:
   return { ok: true };
 }
 
+// Edita uma sessão: data/hora e modalidade (online/presencial).
+export async function updateSession(sessionId: string, formData: FormData): Promise<{ ok: boolean; error?: string }> {
+  const session = await auth();
+  if (!session?.user?.id) return { ok: false, error: "Não autorizado" };
+  const userId = session.user.id;
+  const existing = await db.query.therapySessions.findFirst({
+    where: and(eq(therapySessions.id, sessionId), eq(therapySessions.userId, userId)),
+    with: { patient: { columns: { attendanceLocation: true } } },
+  });
+  if (!existing) return { ok: false, error: "Sessão não encontrada" };
+
+  const dateRaw = formData.get("date") as string;
+  const isOnline = formData.get("isOnline") === "on";
+  const patch: Partial<typeof therapySessions.$inferInsert> = {};
+  if (dateRaw) patch.date = new Date(dateRaw);
+  patch.isOnline = isOnline;
+  if (isOnline) patch.meetingUrl = null; // sala Jitsi derivada do id
+  else patch.location = (formData.get("location") as string) || existing.location || existing.patient?.attendanceLocation || null;
+
+  await db.update(therapySessions).set(patch).where(and(eq(therapySessions.id, sessionId), eq(therapySessions.userId, userId)));
+  revalidatePath("/dashboard/agenda");
+  revalidatePath(`/dashboard/patients/${existing.patientId}`);
+  return { ok: true };
+}
+
 // Converte a sessão entre online e presencial (mudança de planos no atendimento).
 export async function setSessionOnline(sessionId: string, online: boolean): Promise<{ ok: boolean }> {
   const session = await auth();

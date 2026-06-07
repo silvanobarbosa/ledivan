@@ -4,8 +4,8 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronLeft, ChevronRight, X, Plus, Stethoscope } from "lucide-react";
 import { SESSION_STATUS_LABELS, sessionStatusColor, RISK_LABELS, riskColor, type RiskLevel } from "@/lib/therapy";
-import { updateSessionStatus, confirmSession, createSessionFromAgenda } from "../sessions/actions";
-import { Video, AlertTriangle } from "lucide-react";
+import { updateSessionStatus, confirmSession, createSessionFromAgenda, updateSession } from "../sessions/actions";
+import { Video, AlertTriangle, MapPin, Pencil } from "lucide-react";
 
 type PatientLite = { id: string; name: string; status: string; attendanceMode: string | null; attendanceLocation: string | null };
 type LocationLite = { name: string; address: string };
@@ -85,6 +85,18 @@ export function AgendaClient({ sessions, patients = [], locations = [] }: { sess
   };
 
   const [askCharge, setAskCharge] = useState<SessionStatus | null>(null);
+  const [editing, setEditing] = useState(false);
+  const [editOnline, setEditOnline] = useState(false);
+
+  function submitEdit(formData: FormData) {
+    if (!selected) return;
+    startTransition(async () => {
+      await updateSession(selected.id, formData);
+      setEditing(false);
+      setSelected(null);
+      router.refresh();
+    });
+  }
 
   const changeStatus = (id: string, status: SessionStatus, chargeable?: boolean) => {
     startTransition(async () => {
@@ -194,7 +206,7 @@ export function AgendaClient({ sessions, patients = [], locations = [] }: { sess
                       return (
                         <button
                           key={s.id}
-                          onClick={() => { setAskCharge(null); setSelected(s); }}
+                          onClick={() => { setAskCharge(null); setEditing(false); setSelected(s); }}
                           style={{ top: top + 1, height }}
                           className={`absolute left-1 right-1 rounded-lg px-2 py-1 text-left overflow-hidden border-l-[3px] border-primary/50 hover:shadow-md hover:z-10 transition ${sessionStatusColor(s.status)}`}
                         >
@@ -205,7 +217,10 @@ export function AgendaClient({ sessions, patients = [], locations = [] }: { sess
                               <AlertTriangle className={`w-2.5 h-2.5 ${s.risk === "alto" ? "text-[#b91c1c]" : "text-[#b45309]"}`} />
                             )}
                           </p>
-                          <p className="text-[11px] font-semibold leading-tight truncate">{s.patientName}</p>
+                          <p className="text-[11px] font-semibold leading-tight truncate flex items-center gap-1">
+                            {s.isOnline ? <Video className="w-2.5 h-2.5 shrink-0" /> : <MapPin className="w-2.5 h-2.5 shrink-0" />}
+                            <span className="truncate">{s.patientName}</span>
+                          </p>
                         </button>
                       );
                     })}
@@ -251,8 +266,30 @@ export function AgendaClient({ sessions, patients = [], locations = [] }: { sess
               </div>
             )}
 
-            {!selected.isOnline && selected.location && (
-              <p className="text-sm text-foreground/60 flex items-start gap-1.5"><span className="text-foreground/40">📍</span> {selected.location}</p>
+            <p className="text-sm text-foreground/60 flex items-center gap-1.5">
+              {selected.isOnline ? <><Video className="w-4 h-4 text-primary" /> Online</> : <><MapPin className="w-4 h-4 text-primary" /> Presencial{selected.location ? ` · ${selected.location}` : ""}</>}
+            </p>
+
+            {/* Editar sessão (data / modalidade) */}
+            {!editing ? (
+              <button onClick={() => { setEditing(true); setEditOnline(selected.isOnline); }} className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary hover:underline">
+                <Pencil className="w-4 h-4" /> Editar (data / modalidade)
+              </button>
+            ) : (
+              <form action={submitEdit} className="rounded-xl bg-surface/60 border border-border p-3 space-y-2">
+                <div>
+                  <label className="text-xs font-semibold text-foreground/60">Data e horário</label>
+                  <input name="date" type="datetime-local" defaultValue={toLocalInput(new Date(selected.date))} className="w-full px-3 py-2 rounded-xl bg-white border border-border outline-none text-sm" />
+                </div>
+                <label className="flex items-center gap-2 text-sm cursor-pointer">
+                  <input type="checkbox" name="isOnline" checked={editOnline} onChange={(e) => setEditOnline(e.target.checked)} className="accent-primary w-4 h-4" />
+                  <Video className="w-4 h-4 text-primary" /> Atendimento online
+                </label>
+                <div className="flex gap-2">
+                  <button disabled={pending} className="flex-1 bg-primary text-white py-2 rounded-xl text-sm font-bold disabled:opacity-60">Salvar</button>
+                  <button type="button" onClick={() => setEditing(false)} className="px-3 py-2 rounded-xl text-sm text-foreground/50">Cancelar</button>
+                </div>
+              </form>
             )}
 
             {selected.isOnline && (

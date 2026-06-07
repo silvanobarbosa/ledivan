@@ -1,7 +1,7 @@
 import { db } from "@/db";
 import { auth } from "@/auth";
-import { patients } from "@/db/schema";
-import { and, eq, desc, ne } from "drizzle-orm";
+import { patients, sessionPayments, therapySessions } from "@/db/schema";
+import { and, eq, desc, ne, sql } from "drizzle-orm";
 import Link from "next/link";
 import { Plus } from "lucide-react";
 import { PatientsClient } from "./PatientsClient";
@@ -9,11 +9,26 @@ import { PatientsClient } from "./PatientsClient";
 export default async function PatientsPage() {
   const session = await auth();
   if (!session?.user?.id) return null;
+  const userId = session.user.id;
 
   const list = await db.query.patients.findMany({
-    where: and(eq(patients.userId, session.user.id), ne(patients.patientStatus, "prospect")),
+    where: and(eq(patients.userId, userId), ne(patients.patientStatus, "prospect")),
     orderBy: [desc(patients.createdAt)],
   });
+
+  // Saldo por paciente: pagamentos (pagos) − sessões realizadas cobráveis
+  const paysByPatient = await db
+    .select({ pid: sessionPayments.patientId, total: sql<string>`sum(${sessionPayments.amount})` })
+    .from(sessionPayments)
+    .where(and(eq(sessionPayments.userId, userId), eq(sessionPayments.status, "paid")))
+    .groupBy(sessionPayments.patientId);
+  const debitByPatient = await db
+    .select({ pid: therapySessions.patientId, total: sql<string>`sum(${therapySessions.fee})` })
+    .from(therapySessions)
+    .where(and(eq(therapySessions.userId, userId), eq(therapySessions.status, "realizada"), eq(therapySessions.chargeable, true)))
+    .groupBy(therapySessions.patientId);
+  const paidMap = new Map(paysByPatient.map((r) => [r.pid, parseFloat(r.total || "0")]));
+  const debitMap = new Map(debitByPatient.map((r) => [r.pid, parseFloat(r.total || "0")]));
 
   return (
     <div className="space-y-8 max-w-5xl">
@@ -31,17 +46,26 @@ export default async function PatientsPage() {
       </div>
 
       <PatientsClient
-        patients={list.map((p) => ({
-          id: p.id,
-          name: p.name,
-          phone: p.phone,
-          email: p.email,
-          patientStatus: p.patientStatus,
-          paymentStatus: p.paymentStatus,
-          sessionFee: p.sessionFee,
-          frequency: p.frequency,
-          tags: p.tags,
-        }))}
+        patients={list.map((p) => {
+          const fee = parseFloat(p.sessionFee || "0") || 0;
+          const bal = (paidMap.get(p.id) ?? 0) - (debitMap.get(p.id) ?? 0);
+          const creditSessions = fee > 0 && bal > 0 ? Math.floor(bal / fee) : 0;
+          const debtSessions = fee > 0 && bal < 0 ? Math.ceil(-bal / fee) : 0;
+          return {
+            id: p.id,
+            name: p.name,
+            phone: p.phone,
+            email: p.email,
+            patientStatus: p.patientStatus,
+            paymentStatus: p.paymentStatus,
+            sessionFee: p.sessionFee,
+            frequency: p.frequency,
+            tags: p.tags,
+            balance: bal,
+            creditSessions,
+            debtSessions,
+          };
+        })}
       />
     </div>
   );

@@ -229,18 +229,35 @@ export async function updateFinancialModel(patientId: string, formData: FormData
   if (!patient) throw new Error("Paciente não encontrado");
 
   const newFee = num(formData.get("sessionFee"), patient.sessionFee);
-  const contractType = ((formData.get("contractType") as string) || patient.contractType || "avulso") as "pacote" | "avulso";
+  // Modalidade única: semanal | quinzenal | mensal | avulso | pacote
+  const modalidade = (formData.get("billingModel") as string) || (patient.contractType === "pacote" ? "pacote" : patient.frequency || "avulso");
+  const isPacote = modalidade === "pacote";
+  const contractType = (isPacote ? "pacote" : "avulso") as "pacote" | "avulso";
+  const frequency = isPacote ? patient.frequency : modalidade;
+
+  // rótulo legível p/ histórico de modelo
+  const MODEL_LABEL: Record<string, string> = { semanal: "Semanal", quinzenal: "Quinzenal", mensal: "Mensal", avulso: "Avulso", pacote: "Pacote" };
+  const oldModel = patient.contractType === "pacote" ? "pacote" : (patient.frequency || "avulso");
 
   await db.update(patients).set({
     sessionFee: newFee,
     contractType,
-    sessionsInPacket: formData.get("sessionsInPacket") ? parseInt(formData.get("sessionsInPacket") as string) : (contractType === "pacote" ? patient.sessionsInPacket : null),
-    deductPackageOnSession: contractType === "pacote" ? formData.get("deductPackageOnSession") === "on" : true,
+    frequency,
+    sessionsInPacket: formData.get("sessionsInPacket") ? parseInt(formData.get("sessionsInPacket") as string) : (isPacote ? patient.sessionsInPacket : null),
+    deductPackageOnSession: isPacote ? formData.get("deductPackageOnSession") === "on" : true,
     paymentDay: formData.get("paymentDay") ? parseInt(formData.get("paymentDay") as string) : patient.paymentDay,
   }).where(and(eq(patients.id, patientId), eq(patients.userId, userId)));
 
   if (newFee !== patient.sessionFee) {
     await db.insert(patientPriceHistory).values({ patientId, valor: newFee, dataEfetiva: new Date() });
+  }
+  if (oldModel !== modalidade) {
+    await db.insert(patientContractHistory).values({
+      patientId, type: "model",
+      from: MODEL_LABEL[oldModel] || oldModel,
+      to: MODEL_LABEL[modalidade] || modalidade,
+      description: `Modelo: ${MODEL_LABEL[oldModel] || oldModel} → ${MODEL_LABEL[modalidade] || modalidade}`,
+    });
   }
   revalidatePath(`/dashboard/patients/${patientId}`);
 }

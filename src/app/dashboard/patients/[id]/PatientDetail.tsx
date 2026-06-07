@@ -3,11 +3,10 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { createSession, deleteSession } from "../../sessions/actions";
+import { createSession, deleteSession, updateSession } from "../../sessions/actions";
 import { createPayment, deletePayment } from "../../payments/actions";
 import { createRecord, deleteRecord, addPriceChange, renewPackage, updateFinancialModel } from "../actions";
 import { ATTENDANCE_MODE_LABELS } from "@/lib/locations";
-import { ContractFields } from "@/components/dashboard/ContractFields";
 import { AssignmentsTab } from "./AssignmentsTab";
 import { SessionSummary } from "./SessionSummary";
 import { TreatmentPlan } from "./TreatmentPlan";
@@ -59,7 +58,7 @@ const PATIENT_STATUS_LABELS: Record<string, string> = { ativo: "Ativo", pausado:
 
 const inputCls = "w-full px-4 py-2.5 rounded-xl bg-white/70 border border-border focus:ring-2 focus:ring-accent/20 focus:border-accent outline-none transition text-sm";
 
-const TABS = ["Dados", "Prontuário", "Atividades", "Sessões", "Pagamentos", "Linha do tempo", "Financeiro"] as const;
+const TABS = ["Dados", "Prontuário", "Atividades", "Sessões", "Linha do tempo", "Financeiro"] as const;
 
 export function PatientDetail({
   patient, sessions, payments, statusHistory, priceHistory, records, autoLinkPayments, transcriptionEnabled, risk, assignments, moodToken, moodLogs, scales, treatmentGoals, locations = [], contractHistory = [], finance, ledger = [],
@@ -80,6 +79,9 @@ export function PatientDetail({
 }) {
   const router = useRouter();
   const [tab, setTab] = useState<(typeof TABS)[number]>("Dados");
+  const [model, setModel] = useState(patient.contractType === "pacote" ? "pacote" : (patient.frequency || "avulso"));
+  const [editSess, setEditSess] = useState<string | null>(null);
+  const sessToLocal = (iso: string) => { const d = new Date(iso); const p = (n: number) => String(n).padStart(2, "0"); return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`; };
   const [showSession, setShowSession] = useState(false);
   const [showPayment, setShowPayment] = useState(false);
   const [showRecord, setShowRecord] = useState(false);
@@ -372,6 +374,13 @@ export function PatientDetail({
                 </div>
               )}
               <div className="sm:col-span-2"><textarea name="notes" rows={2} placeholder="Notas da sessão" className={inputCls} /></div>
+              <div className={`sm:col-span-2 text-xs rounded-xl px-3 py-2 ${finance.creditSessions >= 1 ? "bg-[#ecfdf5] text-[#047857]" : finance.balance > 0 ? "bg-[#fffbeb] text-[#92400e]" : "bg-[#fef2f2] text-[#b91c1c]"}`}>
+                {finance.creditSessions >= 1
+                  ? `✓ ${finance.creditSessions} sessão(ões) de crédito. Se marcar "cobrar", consome 1 crédito.`
+                  : finance.balance > 0
+                    ? `Crédito parcial (${formatBRL(finance.balance.toFixed(2))}). Se cobrar, o saldo pode ficar negativo.`
+                    : `⚠️ Sem crédito. Se marcar "cobrar", o paciente ficará devendo.`}
+              </div>
               <button className="sm:col-span-2 bg-primary text-white py-2.5 rounded-xl font-bold">Salvar sessão</button>
             </form>
           )}
@@ -381,8 +390,8 @@ export function PatientDetail({
                 <div key={s.id} className="glass-card rounded-2xl p-4 space-y-3 group">
                   <div className="flex items-center justify-between gap-3">
                     <div>
-                      <p className="font-semibold flex items-center gap-1.5">{formatDateTime(s.date)}{s.isOnline && <Video className="w-3.5 h-3.5 text-primary" />}</p>
-                      <p className="text-sm text-foreground/50">{s.duration}min · {formatBRL(s.fee)}</p>
+                      <p className="font-semibold flex items-center gap-1.5">{formatDateTime(s.date)}{s.isOnline ? <Video className="w-3.5 h-3.5 text-primary" /> : <MapPin className="w-3.5 h-3.5 text-foreground/40" />}</p>
+                      <p className="text-sm text-foreground/50">{s.duration}min · {formatBRL(s.fee)} · {s.isOnline ? "Online" : "Presencial"}</p>
                     </div>
                     {s.isOnline && (
                       s.meetingUrl?.includes("meet.google.com") ? (
@@ -398,6 +407,9 @@ export function PatientDetail({
                     <a href={`/atender/${s.id}`} className="text-xs font-bold text-primary hover:underline flex items-center gap-1" title="Vamos atender?">
                       <Stethoscope className="w-3.5 h-3.5" /> Atender
                     </a>
+                    <button type="button" onClick={() => setEditSess(editSess === s.id ? null : s.id)} className="text-xs font-semibold text-foreground/50 hover:text-primary flex items-center gap-1" title="Editar sessão">
+                      <Pencil className="w-3.5 h-3.5" /> Editar
+                    </button>
                     <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full uppercase ${sessionStatusColor(s.status)}`}>
                       {SESSION_STATUS_LABELS[s.status]}
                     </span>
@@ -407,6 +419,25 @@ export function PatientDetail({
                       </button>
                     </form>
                   </div>
+                  {editSess === s.id && (
+                    <form
+                      action={async (fd) => { await updateSession(s.id, fd); setEditSess(null); router.refresh(); }}
+                      className="rounded-xl bg-surface/60 border border-border p-3 grid sm:grid-cols-2 gap-2"
+                    >
+                      <div>
+                        <label className="text-[11px] font-semibold text-foreground/50">Data e horário</label>
+                        <input name="date" type="datetime-local" defaultValue={sessToLocal(s.date)} className={inputCls} />
+                      </div>
+                      <label className="flex items-center gap-2 text-sm sm:pt-6 cursor-pointer">
+                        <input type="checkbox" name="isOnline" defaultChecked={s.isOnline} className="accent-primary w-4 h-4" />
+                        <Video className="w-4 h-4 text-primary" /> Atendimento online
+                      </label>
+                      <div className="sm:col-span-2 flex gap-2">
+                        <button className="bg-primary text-white py-2 px-4 rounded-xl text-sm font-bold">Salvar</button>
+                        <button type="button" onClick={() => setEditSess(null)} className="px-3 py-2 rounded-xl text-sm text-foreground/50">Cancelar</button>
+                      </div>
+                    </form>
+                  )}
                   {s.notes && <p className="text-sm text-foreground/60 whitespace-pre-wrap">{s.notes}</p>}
                   <SessionSummary
                     sessionId={s.id}
@@ -422,8 +453,8 @@ export function PatientDetail({
         </div>
       )}
 
-      {/* Pagamentos */}
-      {tab === "Pagamentos" && (
+      {/* Pagamentos (dentro do Financeiro) */}
+      {tab === "Financeiro" && (
         <div className="space-y-4">
           <button onClick={() => setShowPayment((s) => !s)} className="flex items-center gap-2 text-primary font-semibold text-sm hover:underline">
             <Plus className="w-4 h-4" /> Registrar pagamento
@@ -504,29 +535,45 @@ export function PatientDetail({
                 <input name="paymentDay" type="number" min={1} max={31} defaultValue={patient.paymentDay ?? ""} className={inputCls} placeholder="ex: 5" />
               </div>
             </div>
-            <ContractFields defaultType={patient.contractType ?? "avulso"} defaultSessions={patient.sessionsInPacket} defaultDeduct={patient.deductPackageOnSession} />
+            <div>
+              <label className="text-xs font-semibold text-foreground/60">Modalidade<InfoTip text="Como o atendimento é contratado: por frequência (semanal/quinzenal/mensal), avulso ou pacote. Mudanças ficam no histórico de modelo." /></label>
+              <select name="billingModel" value={model} onChange={(e) => setModel(e.target.value)} className={inputCls}>
+                <option value="semanal">Semanal</option>
+                <option value="quinzenal">Quinzenal</option>
+                <option value="mensal">Mensal</option>
+                <option value="avulso">Avulso</option>
+                <option value="pacote">Pacote</option>
+              </select>
+            </div>
+            {model === "pacote" && (
+              <div className="grid sm:grid-cols-2 gap-3 items-end">
+                <div>
+                  <label className="text-xs font-semibold text-foreground/60">Atendimentos no pacote</label>
+                  <input name="sessionsInPacket" type="number" min={1} max={200} defaultValue={patient.sessionsInPacket ?? ""} className={inputCls} placeholder="ex: 10" />
+                </div>
+                <label className="flex items-center gap-2 text-sm pb-2 cursor-pointer">
+                  <input type="checkbox" name="deductPackageOnSession" defaultChecked={patient.deductPackageOnSession} className="accent-primary w-4 h-4" />
+                  Sessão realizada abate do pacote
+                </label>
+              </div>
+            )}
             <button className="bg-primary text-white py-2.5 px-5 rounded-xl font-bold text-sm">Salvar modelo financeiro</button>
           </form>
 
-          {/* Fluxo financeiro: pagamentos (+) e sessões realizadas cobráveis (−) */}
-          <div className="glass-card rounded-[24px] p-5">
-            <div className="flex items-center justify-between mb-3">
-              <p className="text-xs font-bold text-foreground/40 uppercase tracking-widest">Fluxo financeiro</p>
-              <span className={`text-sm font-bold ${finance.balance < 0 ? "text-[#b91c1c]" : "text-[#047857]"}`}>Saldo: {formatBRL(finance.balance.toFixed(2))}</span>
-            </div>
-            <p className="text-[11px] text-foreground/50 mb-2">Cada sessão realizada marcada como “cobrar” desconta o valor; cada pagamento soma. O saldo pode ficar negativo (devendo).</p>
-            {ledger.length === 0 ? <Empty text="Sem movimentações." /> : (
-              <div className="space-y-1 max-h-80 overflow-y-auto">
-                {ledger.map((l) => (
-                  <div key={l.id} className="flex items-center justify-between gap-2 py-1.5 text-sm border-b border-border last:border-0">
-                    <span className="flex-1 min-w-0 truncate text-foreground/70">{formatDate(l.date)} · {l.desc}</span>
-                    <span className={`shrink-0 font-semibold ${l.amount >= 0 ? "text-[#047857]" : "text-[#b91c1c]"}`}>{l.amount >= 0 ? "+" : ""}{formatBRL(Math.abs(l.amount).toFixed(2))}</span>
-                    <span className={`shrink-0 w-24 text-right font-bold ${l.balance < 0 ? "text-[#b91c1c]" : "text-foreground/70"}`}>{formatBRL(l.balance.toFixed(2))}</span>
+          {/* Histórico de modelo contratual */}
+          {contractHistory.filter((h) => h.type === "model").length > 0 && (
+            <div className="glass-card rounded-[24px] p-5">
+              <p className="text-xs font-bold text-foreground/40 uppercase tracking-widest mb-2">Histórico de modelo</p>
+              <div className="space-y-1">
+                {contractHistory.filter((h) => h.type === "model").map((h) => (
+                  <div key={h.id} className="flex justify-between py-1 text-sm border-b border-border last:border-0">
+                    <span>{h.description || `${h.from} → ${h.to}`}</span>
+                    <span className="text-foreground/40">{formatDate(h.date)}</span>
                   </div>
                 ))}
               </div>
-            )}
-          </div>
+            </div>
+          )}
 
           <div className="grid gap-4 sm:grid-cols-2">
           <div className="glass-card rounded-[24px] p-5">
@@ -611,6 +658,26 @@ export function PatientDetail({
               <button className="w-full bg-primary text-white py-2.5 rounded-xl font-bold text-sm">Renovar pacote</button>
             </form>
           </div>
+          </div>
+
+          {/* Fluxo financeiro (no rodapé): pagamentos (+) e sessões realizadas cobráveis (−) */}
+          <div className="glass-card rounded-[24px] p-5">
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-xs font-bold text-foreground/40 uppercase tracking-widest">Fluxo financeiro</p>
+              <span className={`text-sm font-bold ${finance.balance < 0 ? "text-[#b91c1c]" : "text-[#047857]"}`}>Saldo: {formatBRL(finance.balance.toFixed(2))}</span>
+            </div>
+            <p className="text-[11px] text-foreground/50 mb-2">Cada sessão realizada marcada como “cobrar” desconta o valor; cada pagamento soma. O saldo pode ficar negativo (devendo).</p>
+            {ledger.length === 0 ? <Empty text="Sem movimentações." /> : (
+              <div className="space-y-1 max-h-96 overflow-y-auto">
+                {ledger.map((l) => (
+                  <div key={l.id} className="flex items-center justify-between gap-2 py-1.5 text-sm border-b border-border last:border-0">
+                    <span className="flex-1 min-w-0 truncate text-foreground/70">{formatDate(l.date)} · {l.desc}</span>
+                    <span className={`shrink-0 font-semibold ${l.amount >= 0 ? "text-[#047857]" : "text-[#b91c1c]"}`}>{l.amount >= 0 ? "+" : ""}{formatBRL(Math.abs(l.amount).toFixed(2))}</span>
+                    <span className={`shrink-0 w-24 text-right font-bold ${l.balance < 0 ? "text-[#b91c1c]" : "text-foreground/70"}`}>{formatBRL(l.balance.toFixed(2))}</span>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       )}

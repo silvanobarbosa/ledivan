@@ -16,6 +16,9 @@ type PatientCard = {
   sessionFee: string;
   frequency: string | null;
   tags: string | null;
+  balance: number;
+  creditSessions: number;
+  debtSessions: number;
 };
 
 function parseTags(t: string | null): string[] {
@@ -101,7 +104,12 @@ export function PatientsClient({ patients }: { patients: PatientCard[] }) {
                     </span>
                   </div>
                   <p className="text-sm text-foreground/50 truncate">
-                    {p.frequency || "—"} · {formatBRL(p.sessionFee)}/sessão
+                    {formatBRL(p.sessionFee)}/sessão
+                    {p.balance < 0 ? (
+                      <span className="ml-2 font-semibold text-[#b91c1c]">· devendo {p.debtSessions} sessão(ões)</span>
+                    ) : p.creditSessions > 0 ? (
+                      <span className="ml-2 font-semibold text-[#047857]">· {p.creditSessions} sessão(ões) de crédito</span>
+                    ) : null}
                   </p>
                   {parseTags(p.tags).length > 0 && (
                     <div className="flex gap-1 flex-wrap mt-1.5">

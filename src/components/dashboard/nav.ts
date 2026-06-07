@@ -46,7 +46,7 @@ export const NAV_GROUPS: NavGroup[] = [
   {
     title: "Conta",
     items: [
-      { icon: Settings, label: "Ajustes", href: "/dashboard/settings" },
+      { icon: Settings, label: "Meu Perfil", href: "/dashboard/settings" },
       { icon: HelpCircle, label: "Ajuda", href: "/dashboard/ajuda" },
     ],
   },

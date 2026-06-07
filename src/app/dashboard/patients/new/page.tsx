@@ -48,20 +48,9 @@ export default async function NewPatientPage() {
           </div>
         </div>
 
-        <div className="grid sm:grid-cols-2 gap-4">
-          <div>
-            <label className={labelCls}>Frequência<InfoTip text="Com que frequência o paciente é atendido. Ajuda a organizar a agenda." /></label>
-            <select name="frequency" className={inputCls} defaultValue="semanal">
-              <option value="semanal">Semanal</option>
-              <option value="quinzenal">Quinzenal</option>
-              <option value="mensal">Mensal</option>
-              <option value="avulso">Avulso</option>
-            </select>
-          </div>
-          <div>
-            <label className={labelCls}>Início</label>
-            <input name="startedAt" type="date" className={inputCls} />
-          </div>
+        <div>
+          <label className={labelCls}>Início</label>
+          <input name="startedAt" type="date" className={inputCls} />
         </div>
 
         <AttendanceFields locations={locations} />
