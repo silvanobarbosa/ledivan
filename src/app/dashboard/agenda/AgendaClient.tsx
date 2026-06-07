@@ -13,6 +13,14 @@ type LocationLite = { name: string; address: string };
 type SessionStatus = "realizada" | "nao_realizada" | "cancelada" | "realocada" | "agendada";
 type AgendaSession = { id: string; date: string; duration: number; status: string; patientName: string; isOnline: boolean; risk: string; meetingUrl: string | null; meetingOpenedAt: string | null; guestJoinedAt: string | null; meetingEndedAt: string | null; pendingConfirmation: boolean; location: string | null };
 
+// Cor do bloco: reserva=amarelo, realizada=verde, não-realizada(cancelada/falta/realocada)=vermelho, agendada futura=roxo
+function blockColor(s: AgendaSession): string {
+  if (s.pendingConfirmation) return "bg-[#fef3c7] text-[#92400e] border-[#f59e0b]";
+  if (s.status === "realizada") return "bg-[#dcfce7] text-[#166534] border-[#22c55e]";
+  if (s.status === "cancelada" || s.status === "nao_realizada" || s.status === "realocada") return "bg-[#fee2e2] text-[#b91c1c] border-[#ef4444]";
+  return "bg-[#ede9fe] text-[#5b21b6] border-[#8b5cf6]";
+}
+
 const DAY_NAMES = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 const START_HOUR = 7;
 const END_HOUR = 21;
@@ -149,6 +157,14 @@ export function AgendaClient({ sessions, patients = [], locations = [] }: { sess
         <button onClick={() => shift(1)} className="p-2 rounded-xl hover:bg-white/60 transition"><ChevronRight className="w-5 h-5" /></button>
       </div>
 
+      {/* Legenda de cores */}
+      <div className="flex flex-wrap gap-3 px-1 text-[11px] text-foreground/50">
+        <span className="inline-flex items-center gap-1"><span className="w-3 h-3 rounded bg-[#fef3c7] border border-[#f59e0b]" /> Reserva</span>
+        <span className="inline-flex items-center gap-1"><span className="w-3 h-3 rounded bg-[#ede9fe] border border-[#8b5cf6]" /> Agendada</span>
+        <span className="inline-flex items-center gap-1"><span className="w-3 h-3 rounded bg-[#dcfce7] border border-[#22c55e]" /> Realizada</span>
+        <span className="inline-flex items-center gap-1"><span className="w-3 h-3 rounded bg-[#fee2e2] border border-[#ef4444]" /> Não realizada</span>
+      </div>
+
       {/* Grade */}
       <div className="glass-card rounded-[24px] overflow-hidden">
         <div className="overflow-x-auto">
@@ -208,7 +224,7 @@ export function AgendaClient({ sessions, patients = [], locations = [] }: { sess
                           key={s.id}
                           onClick={() => { setAskCharge(null); setEditing(false); setSelected(s); }}
                           style={{ top: top + 1, height }}
-                          className={`absolute left-1 right-1 rounded-lg px-2 py-1 text-left overflow-hidden border-l-[3px] border-primary/50 hover:shadow-md hover:z-10 transition ${sessionStatusColor(s.status)}`}
+                          className={`absolute left-1 right-1 rounded-lg px-2 py-1 text-left overflow-hidden border-l-[3px] hover:shadow-md hover:z-10 transition ${blockColor(s)}`}
                         >
                           <p className="text-[10px] font-bold leading-tight flex items-center gap-1">
                             {time}
