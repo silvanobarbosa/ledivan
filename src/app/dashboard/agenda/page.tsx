@@ -58,6 +58,7 @@ export default async function AgendaPage() {
           meetingEndedAt: s.meetingEndedAt ? (s.meetingEndedAt as unknown as string) : null,
           pendingConfirmation: s.pendingConfirmation,
           location: s.location,
+          recurring: s.recurring,
         }))}
         patients={pats.map((p) => ({ id: p.id, name: p.name, status: p.patientStatus, attendanceMode: p.attendanceMode, attendanceLocation: p.attendanceLocation }))}
         locations={locations}

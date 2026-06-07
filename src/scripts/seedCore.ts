@@ -6,7 +6,7 @@ import { db } from "../db";
 import {
   users, categories, financialAccounts, transactions, goals, achievements,
   patients, patientStatusHistory, patientPriceHistory, therapySessions, sessionPayments,
-  patientRecords, assignments, scaleApplications, moodLogs, treatmentGoals, socialPosts,
+  patientRecords, assignments, scaleApplications, moodLogs, treatmentGoals, socialPosts, patientPackages,
 } from "../db/schema";
 import { eq, inArray } from "drizzle-orm";
 import bcrypt from "bcryptjs";
@@ -81,6 +81,7 @@ export async function runSeed(cfg: SeedCfg) {
       await db.delete(patientStatusHistory).where(inArray(patientStatusHistory.patientId, patIds));
       await db.delete(patientPriceHistory).where(inArray(patientPriceHistory.patientId, patIds));
     }
+    await db.delete(patientPackages).where(eq(patientPackages.userId, user.id));
     await db.delete(sessionPayments).where(eq(sessionPayments.userId, user.id));
     await db.delete(patientRecords).where(eq(patientRecords.userId, user.id));
     await db.delete(assignments).where(eq(assignments.userId, user.id));
@@ -121,7 +122,7 @@ export async function runSeed(cfg: SeedCfg) {
   const queixas = ["Ansiedade generalizada", "Episódio depressivo", "Luto", "Terapia de casal", "Síndrome do pânico", "Estresse no trabalho (burnout)", "Autoestima", "TOC", "Fobia social", "Adaptação a mudanças", "Conflitos familiares", "Transtorno alimentar"];
   const tagPool = ["TCC", "ansiedade", "depressão", "casal", "luto", "adolescente", "online", "quinzenal", "pânico", "burnout", "psicanálise", "infantil"];
 
-  type Pat = { id: string; name: string; fee: number; freq: string; status: string; startedAt: Date; contractType: string; sessionsInPacket: number | null; queixa: string; mode: string; location: string | null; behavior: string; paymentFormat: string };
+  type Pat = { id: string; name: string; fee: number; freq: string; status: string; startedAt: Date; contractType: string; sessionsInPacket: number | null; queixa: string; mode: string; location: string | null; behavior: string; paymentFormat: string; recurring: boolean };
   const activePats: Pat[] = [];
   const allPats: Pat[] = [];
   const patientRows: any[] = [];
@@ -193,7 +194,7 @@ export async function runSeed(cfg: SeedCfg) {
       const bump = new Date(startedAt); bump.setMonth(bump.getMonth() + rnd(8, 16));
       if (bump < now) priceHistRows.push({ patientId: id, valor: money(fee), dataEfetiva: bump });
     }
-    const p: Pat = { id, name, fee, freq, status, startedAt, contractType, sessionsInPacket, queixa, mode, location: chosenLoc, behavior, paymentFormat };
+    const p: Pat = { id, name, fee, freq, status, startedAt, contractType, sessionsInPacket, queixa, mode, location: chosenLoc, behavior, paymentFormat, recurring: status === "ativo" && chance(0.25) };
     allPats.push(p);
     if (status === "ativo") activePats.push(p);
   }
@@ -241,7 +242,8 @@ export async function runSeed(cfg: SeedCfg) {
   for (const p of allPats) {
     const step = freqDays[p.freq] ?? 7;
     const hour = pick([8, 9, 10, 11, 14, 15, 16, 17, 18, 19]);
-    const stop = p.status === "ativo" ? new Date(now.getTime() + 21 * 86400000) : new Date(now.getTime() - rnd(30, 300) * 86400000);
+    const recUntil = new Date(now.getTime() + 120 * 86400000); // limite da recorrência
+    const stop = p.status === "ativo" ? new Date(now.getTime() + (p.recurring ? 120 : 21) * 86400000) : new Date(now.getTime() - rnd(30, 300) * 86400000);
     const cur = new Date(p.startedAt); cur.setHours(hour, 0, 0, 0);
 
     while (cur <= stop) {
@@ -267,7 +269,9 @@ export async function runSeed(cfg: SeedCfg) {
       sessionRows.push({
         id: sid, userId, patientId: p.id, date: new Date(cur), duration: 50, fee: money(p.fee), status,
         chargeable: status === "nao_realizada" ? false : chargeable, isOnline, location: sessionLocation,
-        pendingConfirmation: !isPast && chance(0.35), // ~35% das futuras ficam como reserva a confirmar
+        pendingConfirmation: !isPast && (p.recurring ? true : chance(0.35)), // futuras: reserva (recorrentes sempre reserva)
+        recurring: !isPast && p.recurring,
+        recurrenceUntil: (!isPast && p.recurring) ? recUntil : null,
         notes: hasNote ? pick(evolucoes) : null,
         justificativa: (status === "cancelada" || status === "realocada") ? pick(["Paciente remarcou.", "Imprevisto pessoal.", "Feriado.", "Atestado médico."]) : null,
         meetingHappened, meetingOpenedAt, guestJoinedAt, meetingEndedAt,
@@ -312,6 +316,23 @@ export async function runSeed(cfg: SeedCfg) {
       remaining -= amt;
     }
   }
+
+  // Pacotes numerados (P1, P2, ...) p/ pacientes com pacote — variar abertos/esgotados/sobrepostos
+  const packageRows: any[] = [];
+  for (const p of activePats) {
+    if (p.behavior !== "pacote" && p.behavior !== "pacote_renovar") continue;
+    const n = p.behavior === "pacote_renovar" ? rnd(2, 3) : rnd(1, 2); // renovar tende a ter mais histórico
+    for (let seq = 1; seq <= n; seq++) {
+      const sessions = pick([2, 4, 8]);
+      const isLast = seq === n;
+      // últimos pacotes podem ter saldo (pacote) ou estar quase esgotados (renovar)
+      const used = isLast
+        ? (p.behavior === "pacote" ? rnd(0, Math.max(0, sessions - 1)) : sessions - rnd(0, 1))
+        : sessions; // pacotes antigos esgotados
+      packageRows.push({ userId, patientId: p.id, seq, sessions, used: Math.min(used, sessions), fee: money(p.fee) });
+    }
+  }
+  await chunkInsert(patientPackages, packageRows);
 
   const expMonth = new Date(start);
   while (expMonth <= now) {

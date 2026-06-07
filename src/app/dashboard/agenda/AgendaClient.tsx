@@ -2,18 +2,18 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronLeft, ChevronRight, X, Plus, Stethoscope } from "lucide-react";
+import { ChevronLeft, ChevronRight, X, Plus, Stethoscope, Repeat } from "lucide-react";
 import { SESSION_STATUS_LABELS, sessionStatusColor, sessionColorClasses, RISK_LABELS, riskColor, type RiskLevel } from "@/lib/therapy";
-import { updateSessionStatus, confirmSession, createSessionFromAgenda, updateSession } from "../sessions/actions";
+import { updateSessionStatus, confirmSession, createSessionFromAgenda, updateSession, createRecurring } from "../sessions/actions";
 import { Video, AlertTriangle, MapPin, Pencil } from "lucide-react";
 
 type PatientLite = { id: string; name: string; status: string; attendanceMode: string | null; attendanceLocation: string | null };
 type LocationLite = { name: string; address: string };
 
 type SessionStatus = "realizada" | "nao_realizada" | "cancelada" | "realocada" | "agendada";
-type AgendaSession = { id: string; date: string; duration: number; status: string; patientName: string; isOnline: boolean; risk: string; meetingUrl: string | null; meetingOpenedAt: string | null; guestJoinedAt: string | null; meetingEndedAt: string | null; pendingConfirmation: boolean; location: string | null };
+type AgendaSession = { id: string; date: string; duration: number; status: string; patientName: string; isOnline: boolean; risk: string; meetingUrl: string | null; meetingOpenedAt: string | null; guestJoinedAt: string | null; meetingEndedAt: string | null; pendingConfirmation: boolean; location: string | null; recurring: boolean };
 
-const blockColor = (s: AgendaSession) => sessionColorClasses(s.status, s.pendingConfirmation);
+const blockColor = (s: AgendaSession) => sessionColorClasses(s.status, s.pendingConfirmation, s.recurring);
 
 const DAY_NAMES = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 const START_HOUR = 7;
@@ -39,6 +39,7 @@ export function AgendaClient({ sessions, patients = [], locations = [] }: { sess
   const [newDate, setNewDate] = useState("");
   const [newPatient, setNewPatient] = useState("");
   const [newOnline, setNewOnline] = useState(false);
+  const [newRecorrente, setNewRecorrente] = useState(false);
   const [newError, setNewError] = useState<string | null>(null);
 
   function pad(n: number) { return String(n).padStart(2, "0"); }
@@ -51,14 +52,15 @@ export function AgendaClient({ sessions, patients = [], locations = [] }: { sess
     setNewDate(toLocalInput(d));
     setNewPatient("");
     setNewOnline(false);
+    setNewRecorrente(false);
     setNewError(null);
     setShowNew(true);
   }
   function submitNew(formData: FormData) {
     setNewError(null);
     startTransition(async () => {
-      const res = await createSessionFromAgenda(formData);
-      if (res.ok) { setShowNew(false); router.refresh(); }
+      const res = newRecorrente ? await createRecurring(formData) : await createSessionFromAgenda(formData);
+      if (res.ok) { setShowNew(false); setNewRecorrente(false); router.refresh(); }
       else setNewError(res.error || "Falha ao agendar.");
     });
   }
@@ -154,6 +156,7 @@ export function AgendaClient({ sessions, patients = [], locations = [] }: { sess
       {/* Legenda de cores */}
       <div className="flex flex-wrap gap-3 px-1 text-[11px] text-foreground/50">
         <span className="inline-flex items-center gap-1"><span className="w-3 h-3 rounded bg-[#fef3c7] border border-[#f59e0b]" /> Reserva</span>
+        <span className="inline-flex items-center gap-1"><span className="w-3 h-3 rounded bg-[#dbeafe] border border-[#3b82f6]" /> Recorrente</span>
         <span className="inline-flex items-center gap-1"><span className="w-3 h-3 rounded bg-[#ede9fe] border border-[#8b5cf6]" /> Agendada</span>
         <span className="inline-flex items-center gap-1"><span className="w-3 h-3 rounded bg-[#dcfce7] border border-[#22c55e]" /> Realizada</span>
         <span className="inline-flex items-center gap-1"><span className="w-3 h-3 rounded bg-[#fee2e2] border border-[#ef4444]" /> Não realizada</span>
@@ -216,6 +219,7 @@ export function AgendaClient({ sessions, patients = [], locations = [] }: { sess
                       return (
                         <button
                           key={s.id}
+                          title={s.recurring ? "Reserva recorrente" : undefined}
                           onClick={() => { setAskCharge(null); setEditing(false); setSelected(s); }}
                           style={{ top: top + 1, height }}
                           className={`absolute left-1 right-1 rounded-lg px-2 py-1 text-left overflow-hidden border-l-[3px] hover:shadow-md hover:z-10 transition ${blockColor(s)}`}
@@ -228,6 +232,7 @@ export function AgendaClient({ sessions, patients = [], locations = [] }: { sess
                             )}
                           </p>
                           <p className="text-[11px] font-semibold leading-tight truncate flex items-center gap-1">
+                            {s.recurring && <Repeat className="w-2.5 h-2.5 shrink-0" />}
                             {s.isOnline ? <Video className="w-2.5 h-2.5 shrink-0" /> : <MapPin className="w-2.5 h-2.5 shrink-0" />}
                             <span className="truncate">{s.patientName}</span>
                           </p>
@@ -408,10 +413,23 @@ export function AgendaClient({ sessions, patients = [], locations = [] }: { sess
               </div>
             )}
 
-            <select name="reserva" className="w-full px-4 py-2.5 rounded-xl bg-surface border border-border outline-none text-sm" defaultValue="false">
-              <option value="false">Confirmar agenda</option>
-              <option value="true">Só reservar (confirmar depois)</option>
-            </select>
+            {!newRecorrente && (
+              <select name="reserva" className="w-full px-4 py-2.5 rounded-xl bg-surface border border-border outline-none text-sm" defaultValue="false">
+                <option value="false">Confirmar agenda</option>
+                <option value="true">Só reservar (confirmar depois)</option>
+              </select>
+            )}
+            <label className="flex items-center gap-2 text-sm cursor-pointer rounded-xl bg-[#dbeafe] px-3 py-2">
+              <input type="checkbox" checked={newRecorrente} onChange={(e) => setNewRecorrente(e.target.checked)} className="accent-[#3b82f6] w-4 h-4" />
+              <Repeat className="w-4 h-4 text-[#1e40af]" /> Reserva recorrente (semanal)
+            </label>
+            {newRecorrente && (
+              <div>
+                <label className="text-xs font-semibold text-foreground/60">Recorrente até</label>
+                <input name="until" type="date" required className="w-full px-3 py-2.5 rounded-xl bg-surface border border-border outline-none text-sm" />
+                <p className="text-[11px] text-foreground/50 mt-1">Cria uma reserva por semana, no mesmo dia/horário, até a data escolhida.</p>
+              </div>
+            )}
             <select name="status" className="w-full px-4 py-2.5 rounded-xl bg-surface border border-border outline-none text-sm" defaultValue="agendada">
               {(Object.entries(SESSION_STATUS_LABELS)).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
             </select>

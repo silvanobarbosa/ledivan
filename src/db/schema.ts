@@ -292,6 +292,8 @@ export const therapySessions = pgTable("therapy_sessions", {
   isOnline: boolean("is_online").default(false).notNull(), // atendimento por vídeo
   location: text("location"), // local presencial (endereço/rótulo) quando não-online
   pendingConfirmation: boolean("pending_confirmation").default(false).notNull(), // agendamento público aguardando confirmação
+  recurring: boolean("recurring").default(false).notNull(), // reserva recorrente (semanal)
+  recurrenceUntil: timestamp("recurrence_until"), // data limite da recorrência
   meetingUrl: text("meeting_url"), // link Google Meet (se gerado); senão usa Jitsi derivado do id
   reminderSentAt: timestamp("reminder_sent_at"), // evita lembrete duplicado
   patientSummary: text("patient_summary"), // resumo pós-sessão para o paciente (IA)
@@ -344,12 +346,28 @@ export const sessionPayments = pgTable("session_payments", {
   method: paymentMethodEnum("method").default("pix").notNull(),
   status: paymentStatusEnum("status").default("paid").notNull(),
   kind: text("kind"), // null = pagamento normal; "pacote" = crédito de pacote (não é receita)
+  packageId: uuid("package_id"), // vínculo opcional com um pacote (patient_packages)
   // VINCULO OPCIONAL com o financeiro: se preenchido, este pagamento gerou uma transacao de receita.
   linkedTransactionId: uuid("linked_transaction_id").references(() => transactions.id, { onDelete: "set null" }),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (t) => [
   index("sp_patient_idx").on(t.patientId),
   index("sp_user_idx").on(t.userId),
+]);
+
+// Pacotes do paciente (P1, P2, ...). Cada um tem N sessões; consumidas uma a uma
+// nas sessões realizadas+cobráveis. Pagamentos podem ser vinculados a um pacote.
+export const patientPackages = pgTable("patient_packages", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: text("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
+  patientId: uuid("patient_id").references(() => patients.id, { onDelete: "cascade" }).notNull(),
+  seq: integer("seq").notNull(), // número do pacote por paciente (P{seq})
+  sessions: integer("sessions").notNull(), // total de sessões do pacote
+  used: integer("used").default(0).notNull(), // sessões já consumidas
+  fee: numeric("fee", { precision: 10, scale: 2 }), // valor/sessão na criação (referência)
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (t) => [
+  index("pkg_patient_idx").on(t.patientId),
 ]);
 
 // --- Relations ---

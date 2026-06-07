@@ -7,13 +7,15 @@ export function meetingUrl(sessionId: string): string {
 
 // Cor unificada das sessões (agenda, cards, listas):
 // reserva=amarelo, realizada=verde, não-realizada(cancelada/falta/realocada)=vermelho, agendada futura=roxo.
-export function sessionColorClasses(status: string, pending?: boolean): string {
+export function sessionColorClasses(status: string, pending?: boolean, recurring?: boolean): string {
+  if (recurring && status !== "realizada" && status !== "cancelada" && status !== "nao_realizada") return "bg-[#dbeafe] text-[#1e40af] border-[#3b82f6]";
   if (pending) return "bg-[#fef3c7] text-[#92400e] border-[#f59e0b]";
   if (status === "realizada") return "bg-[#dcfce7] text-[#166534] border-[#22c55e]";
   if (status === "cancelada" || status === "nao_realizada" || status === "realocada") return "bg-[#fee2e2] text-[#b91c1c] border-[#ef4444]";
   return "bg-[#ede9fe] text-[#5b21b6] border-[#8b5cf6]";
 }
-export function sessionLabel(status: string, pending?: boolean): string {
+export function sessionLabel(status: string, pending?: boolean, recurring?: boolean): string {
+  if (recurring && status !== "realizada") return "Recorrente";
   if (pending) return "Reserva";
   return SESSION_STATUS_LABELS[status] ?? status;
 }

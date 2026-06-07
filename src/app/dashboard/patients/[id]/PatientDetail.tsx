@@ -29,7 +29,7 @@ import {
   riskColor,
   type RiskLevel,
 } from "@/lib/therapy";
-import { Phone, Mail, MapPin, Plus, Link2, Pencil, Trash2, Video, Mic, Loader2, Receipt, FileText, Stethoscope } from "lucide-react";
+import { Phone, Mail, MapPin, Plus, Link2, Pencil, Trash2, Video, Mic, Loader2, Receipt, FileText, Stethoscope, Repeat } from "lucide-react";
 
 type Patient = {
   id: string; name: string; email: string | null; phone: string | null;
@@ -46,7 +46,7 @@ type Patient = {
 type ContractEntry = { id: string; type: string; from: string | null; to: string | null; description: string | null; date: string };
 type Finance = { fee: number; balance: number; totalPaid: number; totalDebit: number; atendimentos: number; lastPaymentDate: string | null; lastPaymentAmount: number | null; creditSessions: number; debtSessions: number };
 type LedgerEntry = { id: string; date: string; kind: "pagamento" | "sessao"; desc: string; amount: number; balance: number; payId: string | null };
-type Session = { id: string; date: string; duration: number; fee: string; status: string; notes: string | null; isOnline: boolean; patientSummary: string | null; meetingUrl: string | null; pendingConfirmation: boolean };
+type Session = { id: string; date: string; duration: number; fee: string; status: string; notes: string | null; isOnline: boolean; patientSummary: string | null; meetingUrl: string | null; pendingConfirmation: boolean; recurring: boolean };
 type Payment = { id: string; date: string; amount: string; method: string; status: string; linkedTransactionId: string | null };
 type StatusEntry = { id: string; status: string; date: string };
 type PriceEntry = { id: string; valor: string; dataEfetiva: string };
@@ -65,7 +65,7 @@ const inputCls = "w-full px-4 py-2.5 rounded-xl bg-white/70 border border-border
 const TABS = ["Dados", "Prontuário", "Atividades", "Sessões", "Financeiro", "Linha do tempo"] as const;
 
 export function PatientDetail({
-  patient, sessions, payments, statusHistory, priceHistory, records, autoLinkPayments, transcriptionEnabled, risk, assignments, moodToken, moodLogs, scales, treatmentGoals, locations = [], contractHistory = [], finance, ledger = [], sessionStats,
+  patient, sessions, payments, statusHistory, priceHistory, records, autoLinkPayments, transcriptionEnabled, risk, assignments, moodToken, moodLogs, scales, treatmentGoals, locations = [], contractHistory = [], finance, ledger = [], sessionStats, packageInfo, recurring,
 }: {
   patient: Patient; sessions: Session[]; payments: Payment[];
   statusHistory: StatusEntry[]; priceHistory: PriceEntry[]; records: RecordEntry[];
@@ -73,6 +73,8 @@ export function PatientDetail({
   finance: Finance;
   ledger?: LedgerEntry[];
   sessionStats: { reservadas: number; agendadasFuturas: number; realizadasCount: number; lastRealizada: string | null };
+  packageInfo: { list: { id: string; seq: number; sessions: number; used: number; remaining: number }[]; openSessions: number; currentLabel: string | null; openLabels: string[]; totalSessions: number };
+  recurring: { day: string; time: string; until: string | null } | null;
   autoLinkPayments: boolean; transcriptionEnabled: boolean;
   risk: { level: RiskLevel; rate: number; faltas: number; total: number };
   assignments: AssignmentEntry[];
@@ -90,7 +92,7 @@ export function PatientDetail({
   const feeNum = parseFloat((patient.sessionFee || "0").replace(",", ".")) || 0;
   const payNum = parseFloat((payAmount || "0").replace(",", ".")) || 0;
   const paySessions = feeNum > 0 ? Math.floor(payNum / feeNum) : 0;
-  const sessHex = (status: string, pending?: boolean) => pending ? "#f59e0b" : status === "realizada" ? "#22c55e" : (status === "cancelada" || status === "nao_realizada" || status === "realocada") ? "#ef4444" : "#8b5cf6";
+  const sessHex = (status: string, pending?: boolean, recurring?: boolean) => (recurring && status !== "realizada" && status !== "cancelada" && status !== "nao_realizada") ? "#3b82f6" : pending ? "#f59e0b" : status === "realizada" ? "#22c55e" : (status === "cancelada" || status === "nao_realizada" || status === "realocada") ? "#ef4444" : "#8b5cf6";
   const PERIODO_MES: Record<string, number> = { semanal: 4, quinzenal: 2, mensal: 1 };
   const sessoesPrevistasMes = (PERIODO_MES[patient.frequency || ""] ?? 0) * (patient.timesPerPeriod || 1);
   const sessToLocal = (iso: string) => { const d = new Date(iso); const p = (n: number) => String(n).padStart(2, "0"); return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`; };
@@ -202,6 +204,12 @@ export function PatientDetail({
           <p className="text-[10px] text-foreground/40">{sessionStats.lastRealizada ? `última: ${formatDate(sessionStats.lastRealizada)}` : "—"}</p>
         </div>
       </div>
+
+      {recurring && (
+        <div className="rounded-2xl bg-[#dbeafe] border border-[#93c5fd] px-4 py-2.5 text-sm text-[#1e40af] flex items-center gap-2">
+          <Repeat className="w-4 h-4" /> <span><strong>Agenda recorrente:</strong> {recurring.day} {recurring.time}{recurring.until ? ` · até ${formatDate(recurring.until)}` : ""}</span>
+        </div>
+      )}
 
       {/* Tabs */}
       <div className="flex gap-2 bg-white/50 p-1.5 rounded-2xl w-fit">
@@ -436,7 +444,7 @@ export function PatientDetail({
           {sessions.length === 0 ? <Empty text="Nenhuma sessão registrada." /> : (
             <div className="grid gap-2">
               {sessions.map((s) => (
-                <div key={s.id} style={{ borderLeftColor: sessHex(s.status, s.pendingConfirmation) }} className="glass-card rounded-2xl p-4 space-y-3 group border-l-4">
+                <div key={s.id} style={{ borderLeftColor: sessHex(s.status, s.pendingConfirmation, s.recurring) }} className="glass-card rounded-2xl p-4 space-y-3 group border-l-4">
                   <div className="flex items-center justify-between gap-3">
                     <div>
                       <p className="font-semibold flex items-center gap-1.5">{formatDateTime(s.date)}{s.isOnline ? <Video className="w-3.5 h-3.5 text-primary" /> : <MapPin className="w-3.5 h-3.5 text-foreground/40" />}</p>
@@ -461,8 +469,8 @@ export function PatientDetail({
                     <button type="button" onClick={() => setEditSess(editSess === s.id ? null : s.id)} className="text-xs font-semibold text-foreground/50 hover:text-primary flex items-center gap-1" title="Editar sessão">
                       <Pencil className="w-3.5 h-3.5" /> Editar
                     </button>
-                    <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full uppercase border ${sessionColorClasses(s.status, s.pendingConfirmation)}`}>
-                      {sessionLabel(s.status, s.pendingConfirmation)}
+                    <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full uppercase border ${sessionColorClasses(s.status, s.pendingConfirmation, s.recurring)}`}>
+                      {sessionLabel(s.status, s.pendingConfirmation, s.recurring)}
                     </span>
                     <form action={deleteSession.bind(null, s.id)}>
                       <button className="opacity-0 group-hover:opacity-100 text-foreground/30 hover:text-red-600 transition" title="Excluir sessão">
@@ -527,6 +535,13 @@ export function PatientDetail({
                 <select name="status" className={inputCls} defaultValue="paid">
                   {Object.entries(PAYMENT_STATUS_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
                 </select></div>
+              {packageInfo.list.length > 0 && (
+                <div className="sm:col-span-2"><label className="text-xs font-semibold text-foreground/60">Vincular a pacote</label>
+                  <select name="packageId" className={inputCls} defaultValue={packageInfo.list.find((p) => p.remaining > 0)?.id ?? ""}>
+                    <option value="">— Sem pacote —</option>
+                    {packageInfo.list.map((p) => <option key={p.id} value={p.id}>P{p.seq} · {p.sessions} sessões ({p.remaining} restantes)</option>)}
+                  </select></div>
+              )}
               <label className="sm:col-span-2 flex items-center gap-2 text-sm bg-secondary-container/30 rounded-xl px-3 py-2.5 cursor-pointer">
                 <input type="checkbox" name="link" value="on" defaultChecked={autoLinkPayments} className="accent-primary w-4 h-4" />
                 <Link2 className="w-4 h-4 text-primary" />
@@ -576,6 +591,26 @@ export function PatientDetail({
             </div>
           </div>
 
+          {/* Pacotes (P1, P2, ...) */}
+          {packageInfo.list.length > 0 && (
+            <div className="glass-card rounded-[24px] p-5">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-xs font-bold text-foreground/40 uppercase tracking-widest">Pacotes</p>
+                <span className="text-sm">
+                  Em aberto: <strong className="text-primary">{packageInfo.openSessions}</strong> sessão(ões)
+                  {packageInfo.currentLabel && <span className="text-foreground/50"> · vigente {packageInfo.currentLabel}</span>}
+                </span>
+              </div>
+              <div className="space-y-1">
+                {packageInfo.list.map((p) => (
+                  <div key={p.id} className={`flex items-center justify-between py-1.5 text-sm border-b border-border last:border-0 ${p.remaining > 0 ? "" : "opacity-50"}`}>
+                    <span className="font-semibold">P{p.seq} <span className="font-normal text-foreground/50">· {p.sessions} sessões</span></span>
+                    <span className="text-foreground/60">{p.used}/{p.sessions} usadas · <strong className={p.remaining > 0 ? "text-[#047857]" : "text-foreground/40"}>{p.remaining} restantes</strong></span>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
 
           {/* Ajustes (recolhível): recorrência, valor, pacote + históricos editáveis */}
           <FinanceAdjust patientId={patient.id} frequency={patient.frequency} priceHistory={priceHistory} contractHistory={contractHistory} />

@@ -1,9 +1,9 @@
 "use server";
 
 import { db } from "@/db";
-import { patients, patientStatusHistory, patientPriceHistory, patientContractHistory, patientRecords, assignments, scaleApplications, treatmentGoals, sessionPayments } from "@/db/schema";
+import { patients, patientStatusHistory, patientPriceHistory, patientContractHistory, patientRecords, assignments, scaleApplications, treatmentGoals, sessionPayments, patientPackages } from "@/db/schema";
 import { auth } from "@/auth";
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { put } from "@vercel/blob";
@@ -282,7 +282,7 @@ export async function setRecorrencia(patientId: string, formData: FormData) {
   revalidatePath(`/dashboard/patients/${patientId}`);
 }
 
-// Ajuste: Incluir Pacote (define formato pacote + quantidade de sessões). Gera histórico.
+// Ajuste: Incluir Pacote → cria um pacote numerado (P1, P2, ...) com N sessões.
 export async function includePackage(patientId: string, formData: FormData) {
   const session = await auth();
   if (!session?.user?.id) throw new Error("Não autorizado");
@@ -291,8 +291,13 @@ export async function includePackage(patientId: string, formData: FormData) {
   if (!patient) throw new Error("Paciente não encontrado");
   const qty = formData.get("sessionsInPacket") ? parseInt(formData.get("sessionsInPacket") as string) : 0;
   if (qty < 1) throw new Error("Quantidade inválida");
-  await db.update(patients).set({ contractType: "pacote", paymentFormat: "pacote", sessionsInPacket: qty }).where(and(eq(patients.id, patientId), eq(patients.userId, userId)));
-  await db.insert(patientContractHistory).values({ patientId, type: "model", from: patient.sessionsInPacket ? `Pacote ${patient.sessionsInPacket}` : (patient.paymentFormat || "avulso"), to: `Pacote ${qty}`, description: `Pacote incluído: ${qty} sessões` });
+
+  // próximo número de pacote do paciente
+  const [{ maxSeq }] = await db.select({ maxSeq: sql<number>`coalesce(max(${patientPackages.seq}), 0)::int` }).from(patientPackages).where(eq(patientPackages.patientId, patientId));
+  const seq = (maxSeq || 0) + 1;
+  await db.insert(patientPackages).values({ userId, patientId, seq, sessions: qty, fee: patient.sessionFee });
+  await db.update(patients).set({ contractType: "pacote", paymentFormat: "pacote" }).where(and(eq(patients.id, patientId), eq(patients.userId, userId)));
+  await db.insert(patientContractHistory).values({ patientId, type: "model", from: patient.paymentFormat || "avulso", to: `Pacote P${seq}`, description: `Pacote P${seq} incluído: ${qty} sessões` });
   revalidatePath(`/dashboard/patients/${patientId}`);
 }
 

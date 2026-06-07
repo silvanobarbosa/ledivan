@@ -1,6 +1,6 @@
 import { db } from "@/db";
 import { auth } from "@/auth";
-import { users, patients, therapySessions, sessionPayments, patientStatusHistory, patientPriceHistory, patientContractHistory, patientRecords, assignments, moodLogs, scaleApplications, treatmentGoals } from "@/db/schema";
+import { users, patients, therapySessions, sessionPayments, patientStatusHistory, patientPriceHistory, patientContractHistory, patientRecords, assignments, moodLogs, scaleApplications, treatmentGoals, patientPackages } from "@/db/schema";
 import { and, eq, desc } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import Link from "next/link";
@@ -22,7 +22,7 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
   if (!patient) notFound();
 
   // Todas as consultas do paciente em paralelo (evita waterfall de round-trips no Neon)
-  const [sessionsList, paymentsList, statusHist, priceHist, recordsList, assignmentsList, moodList, scaleList, goalsList, contractHist, me] = await Promise.all([
+  const [sessionsList, paymentsList, statusHist, priceHist, recordsList, assignmentsList, moodList, scaleList, goalsList, contractHist, me, packagesList] = await Promise.all([
     db.query.therapySessions.findMany({ where: eq(therapySessions.patientId, id), orderBy: [desc(therapySessions.date)] }),
     db.query.sessionPayments.findMany({ where: eq(sessionPayments.patientId, id), orderBy: [desc(sessionPayments.date)] }),
     db.query.patientStatusHistory.findMany({ where: eq(patientStatusHistory.patientId, id), orderBy: [desc(patientStatusHistory.date)] }),
@@ -34,6 +34,7 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
     db.query.treatmentGoals.findMany({ where: eq(treatmentGoals.patientId, id), orderBy: [desc(treatmentGoals.createdAt)] }),
     db.query.patientContractHistory.findMany({ where: eq(patientContractHistory.patientId, id), orderBy: [desc(patientContractHistory.date)] }),
     db.query.users.findFirst({ where: eq(users.id, userId) }),
+    db.query.patientPackages.findMany({ where: eq(patientPackages.patientId, id), orderBy: [patientPackages.seq] }),
   ]);
 
   const prefs = (() => { try { return me?.preferences ? JSON.parse(me.preferences) : {}; } catch { return {}; } })();
@@ -49,6 +50,27 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
     realizadasCount: realizadas.length,
     lastRealizada: lastRealizada ? new Date(lastRealizada).toISOString() : null,
   };
+
+  // Pacotes (P1, P2, ...) + abertos
+  const packages = packagesList.map((p) => ({ id: p.id, seq: p.seq, sessions: p.sessions, used: p.used, remaining: Math.max(0, p.sessions - p.used) }));
+  const openPkgs = packages.filter((p) => p.remaining > 0);
+  const packageInfo = {
+    list: packages,
+    openSessions: openPkgs.reduce((a, p) => a + p.remaining, 0),
+    currentLabel: openPkgs.map((p) => `P${p.seq}`).join("+") || null,
+    openLabels: openPkgs.map((p) => `P${p.seq}`),
+    totalSessions: packages.reduce((a, p) => a + p.sessions, 0),
+  };
+
+  // Agenda recorrente (a partir das reservas recurring futuras)
+  const DOW = ["domingo", "segunda", "terça", "quarta", "quinta", "sexta", "sábado"];
+  const recSessions = sessionsList.filter((s) => s.recurring && new Date(s.date as unknown as string).getTime() >= nowMs).sort((a, b) => new Date(a.date as unknown as string).getTime() - new Date(b.date as unknown as string).getTime());
+  let recurring: { day: string; time: string; until: string | null } | null = null;
+  if (recSessions.length) {
+    const d = new Date(recSessions[0].date as unknown as string);
+    const untilMax = recSessions.map((s) => s.recurrenceUntil ? new Date(s.recurrenceUntil as unknown as string).getTime() : 0).sort((a, b) => b - a)[0];
+    recurring = { day: DOW[d.getDay()], time: d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }), until: untilMax ? new Date(untilMax).toISOString() : null };
+  }
 
   // --- Fluxo financeiro universal: pagamentos (+) e sessões realizadas+cobráveis (−) ---
   const fee = parseFloat(patient.sessionFee || "0") || 0;
@@ -105,6 +127,8 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
         finance={finance}
         ledger={JSON.parse(JSON.stringify(ledger))}
         sessionStats={sessionStats}
+        packageInfo={packageInfo}
+        recurring={recurring}
       />
     </div>
   );

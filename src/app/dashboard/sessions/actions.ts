@@ -1,15 +1,70 @@
 "use server";
 
 import { db } from "@/db";
-import { therapySessions, patients } from "@/db/schema";
+import { therapySessions, patients, patientPackages } from "@/db/schema";
 import { auth } from "@/auth";
-import { and, eq } from "drizzle-orm";
+import { and, eq, asc, desc, gt, lt, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getPreferences } from "@/lib/preferences";
 import { createMeetLink } from "@/lib/googleCalendar";
 
 type SessionStatus = "realizada" | "nao_realizada" | "cancelada" | "realocada" | "agendada";
+
+// Consome 1 sessão do pacote ABERTO mais antigo (P menor com used<sessions).
+async function consumePackage(userId: string, patientId: string) {
+  const pkg = await db.query.patientPackages.findFirst({
+    where: and(eq(patientPackages.userId, userId), eq(patientPackages.patientId, patientId), lt(patientPackages.used, sql`${patientPackages.sessions}`)),
+    orderBy: [asc(patientPackages.seq)],
+  });
+  if (pkg) await db.update(patientPackages).set({ used: pkg.used + 1 }).where(eq(patientPackages.id, pkg.id));
+}
+// Devolve 1 sessão ao pacote mais recente com used>0 (revert).
+async function restorePackage(userId: string, patientId: string) {
+  const pkg = await db.query.patientPackages.findFirst({
+    where: and(eq(patientPackages.userId, userId), eq(patientPackages.patientId, patientId), gt(patientPackages.used, 0)),
+    orderBy: [desc(patientPackages.seq)],
+  });
+  if (pkg) await db.update(patientPackages).set({ used: pkg.used - 1 }).where(eq(patientPackages.id, pkg.id));
+}
+
+// Cria uma RESERVA RECORRENTE: gera sessões semanais (reservas) da data inicial até "até".
+export async function createRecurring(formData: FormData): Promise<{ ok: boolean; error?: string; count?: number }> {
+  const session = await auth();
+  if (!session?.user?.id) return { ok: false, error: "Não autorizado" };
+  const userId = session.user.id;
+  const patientId = formData.get("patientId") as string;
+  if (!patientId) return { ok: false, error: "Escolha o paciente." };
+  const patient = await db.query.patients.findFirst({ where: and(eq(patients.id, patientId), eq(patients.userId, userId)) });
+  if (!patient) return { ok: false, error: "Paciente não encontrado." };
+
+  const dateRaw = formData.get("date") as string;
+  const untilRaw = formData.get("until") as string;
+  if (!dateRaw || !untilRaw) return { ok: false, error: "Informe data/hora inicial e data limite." };
+  const first = new Date(dateRaw);
+  const until = new Date(untilRaw); until.setHours(23, 59, 59, 999);
+  if (until <= first) return { ok: false, error: "Data limite deve ser depois da inicial." };
+  const duration = formData.get("duration") ? parseInt(formData.get("duration") as string) : 50;
+  const isOnline = formData.get("isOnline") === "on";
+  const location = isOnline ? null : ((formData.get("location") as string) || patient.attendanceLocation || null);
+
+  const rows: typeof therapySessions.$inferInsert[] = [];
+  const cur = new Date(first);
+  let guard = 0;
+  while (cur <= until && guard++ < 120) {
+    rows.push({
+      userId, patientId, date: new Date(cur), duration, fee: patient.sessionFee,
+      status: "agendada", chargeable: true, isOnline, location,
+      pendingConfirmation: true, recurring: true, recurrenceUntil: until,
+    });
+    cur.setDate(cur.getDate() + 7);
+  }
+  if (!rows.length) return { ok: false, error: "Nenhuma data gerada." };
+  await db.insert(therapySessions).values(rows);
+  revalidatePath("/dashboard/agenda");
+  revalidatePath(`/dashboard/patients/${patientId}`);
+  return { ok: true, count: rows.length };
+}
 
 export async function createSession(formData: FormData) {
   const session = await auth();
@@ -59,6 +114,10 @@ export async function createSession(formData: FormData) {
     meetingUrl,
   });
 
+  if ((formData.get("status") as string) === "realizada" && formData.get("chargeable") !== "false") {
+    await consumePackage(userId, patientId);
+  }
+
   revalidatePath(`/dashboard/patients/${patientId}`);
   revalidatePath("/dashboard/agenda");
   redirect(`/dashboard/patients/${patientId}`);
@@ -104,6 +163,10 @@ export async function createSessionFromAgenda(formData: FormData): Promise<{ ok:
     pendingConfirmation: formData.get("reserva") === "true",
     meetingUrl,
   });
+
+  if (((formData.get("status") as string) || "agendada") === "realizada" && formData.get("chargeable") !== "false") {
+    await consumePackage(userId, patientId);
+  }
 
   revalidatePath("/dashboard/agenda");
   revalidatePath(`/dashboard/patients/${patientId}`);
@@ -180,7 +243,6 @@ export async function updateSessionStatus(sessionId: string, status: SessionStat
 
   const existing = await db.query.therapySessions.findFirst({
     where: and(eq(therapySessions.id, sessionId), eq(therapySessions.userId, userId)),
-    with: { patient: true },
   });
   if (!existing) return;
 
@@ -188,15 +250,12 @@ export async function updateSessionStatus(sessionId: string, status: SessionStat
     .set({ status, justificativa: justificativa || null, ...(chargeable !== undefined ? { chargeable } : {}) })
     .where(and(eq(therapySessions.id, sessionId), eq(therapySessions.userId, userId)));
 
-  // Abate/restaura crédito do pacote conforme transição p/ "realizada" (se a opção do paciente estiver ligada)
-  const p = existing.patient;
-  if (p?.contractType === "pacote" && p.deductPackageOnSession && p.sessionsInPacket) {
-    const was = existing.status === "realizada";
-    const now = status === "realizada";
-    const used = p.packageCreditsUsed ?? 0;
-    if (!was && now) await db.update(patients).set({ packageCreditsUsed: Math.min(used + 1, p.sessionsInPacket) }).where(eq(patients.id, p.id));
-    else if (was && !now) await db.update(patients).set({ packageCreditsUsed: Math.max(used - 1, 0) }).where(eq(patients.id, p.id));
-  }
+  // Abate/restaura 1 sessão do pacote conforme transição p/ "realizada" + cobrável
+  const was = existing.status === "realizada" && existing.chargeable;
+  const willCharge = chargeable !== undefined ? chargeable : existing.chargeable;
+  const now = status === "realizada" && willCharge;
+  if (!was && now) await consumePackage(userId, existing.patientId);
+  else if (was && !now) await restorePackage(userId, existing.patientId);
 
   revalidatePath("/dashboard/agenda");
   revalidatePath(`/dashboard/patients/${existing.patientId}`);
