@@ -358,10 +358,10 @@ function Features() {
 }
 
 function Integrations() {
-  const items = [
+  const items: { name: string; slug: string; color: string; d: string; extra?: { slug: string; color: string } }[] = [
     { name: "Gmail", slug: "gmail", color: "EA4335", d: "Confirmações e recibos automáticos por e-mail." },
     { name: "Google Agenda", slug: "googlecalendar", color: "4285F4", d: "Sincronize sessões nos dois sentidos." },
-    { name: "Google Meet", slug: "googlemeet", color: "00897B", d: "Links de atendimento online gerados na agenda." },
+    { name: "Google Meet / Jitsi", slug: "googlemeet", color: "00897B", extra: { slug: "jitsimeet", color: "1D76BA" }, d: "Atendimento online: links gerados na agenda (Google Meet ou Jitsi)." },
     { name: "WhatsApp", slug: "whatsapp", color: "25D366", d: "Registre gastos e lembre pacientes por mensagem." },
     { name: "Telegram", slug: "telegram", color: "26A5E4", d: "Bot pessoal para lançamentos por voz ou texto." },
   ];
@@ -379,15 +379,15 @@ function Integrations() {
         </div>
       </Reveal>
       <div className="mt-14 relative">
-        <div className="hidden md:flex absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 h-28 w-28 rounded-full bg-[color:var(--brand-eggplant)] text-cream items-center justify-center shadow-[var(--shadow-eggplant)] z-10">
-          <span className="font-display text-lg italic">Ledivan</span>
-        </div>
         <div className="grid sm:grid-cols-2 lg:grid-cols-5 gap-4">
           {items.map((it, i) => (
             <Reveal key={it.name} delay={i * 90}>
               <div className="glass-card p-6 h-full text-center group hover:-translate-y-1 transition-transform duration-300">
-                <div className="mx-auto h-14 w-14 rounded-2xl bg-white grid place-items-center shadow-[var(--shadow-glass)] group-hover:scale-110 transition-transform" style={{ border: `1px solid #${it.color}22` }}>
+                <div className="mx-auto h-14 w-auto px-4 rounded-2xl bg-white inline-flex items-center justify-center gap-2 shadow-[var(--shadow-glass)] group-hover:scale-110 transition-transform" style={{ border: `1px solid #${it.color}22` }}>
                   <img src={`https://cdn.simpleicons.org/${it.slug}/${it.color}`} alt={`Integração com ${it.name}`} className="h-7 w-7" loading="lazy" />
+                  {it.extra && (
+                    <img src={`https://cdn.simpleicons.org/${it.extra.slug}/${it.extra.color}`} alt="Jitsi" className="h-7 w-7" loading="lazy" />
+                  )}
                 </div>
                 <p className="font-display mt-4 text-lg font-medium text-[color:var(--brand-eggplant)]">{it.name}</p>
                 <p className="mt-1 text-xs text-[color:var(--muted-foreground)] leading-relaxed">{it.d}</p>
