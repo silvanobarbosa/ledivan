@@ -23,6 +23,7 @@ export function AtenderClient({ session, records, meeting, therapistName }: { se
   const [recs, setRecs] = useState<Rec[]>(records);
   const [pending, start] = useTransition();
   const [patientOpen, setPatientOpen] = useState(false);
+  const [askCharge, setAskCharge] = useState(false);
 
   const dt = new Date(session.date).toLocaleString("pt-BR", { weekday: "long", day: "2-digit", month: "long", hour: "2-digit", minute: "2-digit" });
 
@@ -40,8 +41,8 @@ export function AtenderClient({ session, records, meeting, therapistName }: { se
   function toggleOnline() {
     start(async () => { await setSessionOnline(session.id, !online); setOnline(!online); });
   }
-  function finalizar() {
-    start(async () => { await updateSessionStatus(session.id, "realizada"); router.push("/dashboard/agenda"); });
+  function finalizar(chargeable: boolean) {
+    start(async () => { await updateSessionStatus(session.id, "realizada", undefined, chargeable); router.push("/dashboard/agenda"); });
   }
 
   // --- Confirmação: "Vamos atender?" ---
@@ -83,10 +84,25 @@ export function AtenderClient({ session, records, meeting, therapistName }: { se
         <button onClick={toggleOnline} disabled={pending} className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-xl bg-surface hover:bg-surface-container transition disabled:opacity-60">
           <ArrowLeftRight className="w-4 h-4" /> {online ? "Converter p/ presencial" : "Converter p/ online"}
         </button>
-        <button onClick={finalizar} disabled={pending} className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-xl bg-primary text-white disabled:opacity-60">
+        <button onClick={() => setAskCharge(true)} disabled={pending} className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-xl bg-primary text-white disabled:opacity-60">
           <Check className="w-4 h-4" /> Finalizar
         </button>
       </header>
+
+      {/* Finalizar: cobra ou não? */}
+      {askCharge && (
+        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/40 p-4" onClick={() => setAskCharge(false)}>
+          <div className="bg-white rounded-[28px] p-6 w-full max-w-sm space-y-4 shadow-2xl text-center" onClick={(e) => e.stopPropagation()}>
+            <p className="font-display text-lg font-bold text-primary">Finalizar atendimento</p>
+            <p className="text-sm text-foreground/60">A sessão será marcada como <strong>realizada</strong>. Esta sessão será cobrada?</p>
+            <div className="flex gap-3">
+              <button disabled={pending} onClick={() => finalizar(false)} className="flex-1 py-3 rounded-2xl font-semibold bg-surface text-foreground/70 hover:bg-surface-container transition disabled:opacity-60">Não cobrar</button>
+              <button disabled={pending} onClick={() => finalizar(true)} className="flex-1 py-3 rounded-2xl font-bold bg-primary text-white transition disabled:opacity-60">Cobrar</button>
+            </div>
+            <button onClick={() => setAskCharge(false)} className="text-xs text-foreground/40 hover:text-primary">cancelar</button>
+          </div>
+        </div>
+      )}
 
       {/* Conteúdo */}
       <div className="flex-1 flex flex-col min-h-0">
