@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronLeft, ChevronRight, X, Plus, Stethoscope } from "lucide-react";
-import { SESSION_STATUS_LABELS, sessionStatusColor, RISK_LABELS, riskColor, type RiskLevel } from "@/lib/therapy";
+import { SESSION_STATUS_LABELS, sessionStatusColor, sessionColorClasses, RISK_LABELS, riskColor, type RiskLevel } from "@/lib/therapy";
 import { updateSessionStatus, confirmSession, createSessionFromAgenda, updateSession } from "../sessions/actions";
 import { Video, AlertTriangle, MapPin, Pencil } from "lucide-react";
 
@@ -13,13 +13,7 @@ type LocationLite = { name: string; address: string };
 type SessionStatus = "realizada" | "nao_realizada" | "cancelada" | "realocada" | "agendada";
 type AgendaSession = { id: string; date: string; duration: number; status: string; patientName: string; isOnline: boolean; risk: string; meetingUrl: string | null; meetingOpenedAt: string | null; guestJoinedAt: string | null; meetingEndedAt: string | null; pendingConfirmation: boolean; location: string | null };
 
-// Cor do bloco: reserva=amarelo, realizada=verde, não-realizada(cancelada/falta/realocada)=vermelho, agendada futura=roxo
-function blockColor(s: AgendaSession): string {
-  if (s.pendingConfirmation) return "bg-[#fef3c7] text-[#92400e] border-[#f59e0b]";
-  if (s.status === "realizada") return "bg-[#dcfce7] text-[#166534] border-[#22c55e]";
-  if (s.status === "cancelada" || s.status === "nao_realizada" || s.status === "realocada") return "bg-[#fee2e2] text-[#b91c1c] border-[#ef4444]";
-  return "bg-[#ede9fe] text-[#5b21b6] border-[#8b5cf6]";
-}
+const blockColor = (s: AgendaSession) => sessionColorClasses(s.status, s.pendingConfirmation);
 
 const DAY_NAMES = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 const START_HOUR = 7;

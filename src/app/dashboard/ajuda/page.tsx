@@ -22,8 +22,8 @@ const GUIDES: Guide[] = [
       { q: "Como cadastrar um paciente?", a: "Menu Pacientes → 'Novo paciente'. Preencha nome (obrigatório), contato, valor da sessão, frequência, contrato e, se quiser, lembrete, etiquetas e fotos. Os ícones (i) explicam cada campo." },
       { q: "Foto 3x4 e fotos extras", a: "No cadastro há um slot de foto 3x4 (referência do paciente) e mais 3 slots opcionais. As fotos ficam guardadas de forma privada, acessíveis só para você." },
       { q: "Contrato avulso x pacote", a: "Avulso: paga por sessão. Pacote: você informa quantos atendimentos o pacote tem; a cada sessão cobrada, 1 crédito do pacote é descontado automaticamente." },
-      { q: "Onde vejo o histórico do paciente?", a: "Abra o paciente: abas Dados, Prontuário, Espaço (tarefas/humor/escalas), Sessões, Pagamentos, Linha do tempo e Histórico." },
-      { q: "Para que servem as etiquetas?", a: "Organizar e filtrar pacientes (ex: TCC, ansiedade). Filtre pelos chips na lista de Pacientes." },
+      { q: "Onde vejo o histórico do paciente?", a: "Abra o paciente: abas Dados, Prontuário, Atividades (tarefas/humor/escalas), Sessões, Financeiro e Linha do tempo. No topo aparecem os cards de Reservadas, Agendadas futuras, Status de crédito e Realizadas." },
+      { q: "Para que servem as etiquetas?", a: "Organizar e filtrar pacientes (ex: TCC, ansiedade). Ficam no cabeçalho do Prontuário e filtram a lista de Pacientes." },
     ],
   },
   {
@@ -51,10 +51,10 @@ const GUIDES: Guide[] = [
     ],
   },
   {
-    id: "espaco", icon: HeartHandshake, title: "Espaço do Paciente (tarefas, humor, escalas)",
+    id: "espaco", icon: HeartHandshake, title: "Atividades do Paciente (tarefas, humor, escalas)",
     items: [
-      { q: "Enviar uma tarefa (lição de casa)", a: "No paciente → aba Espaço → 'Nova tarefa'. Use um modelo TCC pronto se quiser. Copie o link e envie ao paciente — ele responde com texto, foto, áudio ou vídeo, e você vê aqui." },
-      { q: "Diário de humor", a: "Na aba Espaço, ative o diário e envie o link. O paciente registra o humor (emoji 1–5) quando quiser; você acompanha por gráfico." },
+      { q: "Enviar uma tarefa (lição de casa)", a: "No paciente → aba Atividades → 'Nova tarefa'. Use um modelo TCC pronto se quiser. Copie o link e envie ao paciente — ele responde com texto, foto, áudio ou vídeo, e você vê aqui." },
+      { q: "Diário de humor", a: "Na aba Atividades, ative o diário e envie o link. O paciente registra o humor (emoji 1–5) quando quiser; você acompanha por gráfico." },
       { q: "Escalas de desfecho", a: "Aplique PHQ-9 (depressão) ou GAD-7 (ansiedade). O paciente responde pelo link e o resultado é pontuado e interpretado automaticamente, com gráfico de evolução." },
       { q: "Transcrição por IA", a: "Opcional, ative em Ajustes. No prontuário, envie o áudio da sessão → a IA gera um rascunho de evolução. Exige consentimento do paciente, confirmado em tela." },
     ],
@@ -64,7 +64,7 @@ const GUIDES: Guide[] = [
     items: [
       { q: "O que tem no prontuário?", a: "É o cenário completo de cada consulta, da mais recente para a mais antiga: data e status da sessão, se foi cobrada/paga, se houve tarefa, e as anotações de evolução. Junta tudo o que também sai no Prontuário PDF." },
       { q: "Exportar o prontuário", a: "No topo do paciente, botão 'Prontuário PDF' → Imprimir/Salvar PDF." },
-      { q: "Emitir recibo", a: "Em Pagamentos do paciente, clique em 'Recibo' (pagamentos pagos) → Imprimir/Salvar PDF." },
+      { q: "Emitir recibo", a: "No paciente → aba Financeiro → no Fluxo financeiro, clique em 'recibo' no pagamento desejado → Imprimir/Salvar PDF." },
     ],
   },
   {

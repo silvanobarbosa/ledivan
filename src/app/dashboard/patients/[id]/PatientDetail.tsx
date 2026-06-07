@@ -22,7 +22,8 @@ import {
   SESSION_STATUS_LABELS,
   PAYMENT_METHOD_LABELS,
   PAYMENT_STATUS_LABELS,
-  sessionStatusColor,
+  sessionColorClasses,
+  sessionLabel,
   patientStatusColor,
   RISK_LABELS,
   riskColor,
@@ -45,7 +46,7 @@ type Patient = {
 type ContractEntry = { id: string; type: string; from: string | null; to: string | null; description: string | null; date: string };
 type Finance = { fee: number; balance: number; totalPaid: number; totalDebit: number; atendimentos: number; lastPaymentDate: string | null; lastPaymentAmount: number | null; creditSessions: number; debtSessions: number };
 type LedgerEntry = { id: string; date: string; kind: "pagamento" | "sessao"; desc: string; amount: number; balance: number; payId: string | null };
-type Session = { id: string; date: string; duration: number; fee: string; status: string; notes: string | null; isOnline: boolean; patientSummary: string | null; meetingUrl: string | null };
+type Session = { id: string; date: string; duration: number; fee: string; status: string; notes: string | null; isOnline: boolean; patientSummary: string | null; meetingUrl: string | null; pendingConfirmation: boolean };
 type Payment = { id: string; date: string; amount: string; method: string; status: string; linkedTransactionId: string | null };
 type StatusEntry = { id: string; status: string; date: string };
 type PriceEntry = { id: string; valor: string; dataEfetiva: string };
@@ -89,6 +90,7 @@ export function PatientDetail({
   const feeNum = parseFloat((patient.sessionFee || "0").replace(",", ".")) || 0;
   const payNum = parseFloat((payAmount || "0").replace(",", ".")) || 0;
   const paySessions = feeNum > 0 ? Math.floor(payNum / feeNum) : 0;
+  const sessHex = (status: string, pending?: boolean) => pending ? "#f59e0b" : status === "realizada" ? "#22c55e" : (status === "cancelada" || status === "nao_realizada" || status === "realocada") ? "#ef4444" : "#8b5cf6";
   const PERIODO_MES: Record<string, number> = { semanal: 4, quinzenal: 2, mensal: 1 };
   const sessoesPrevistasMes = (PERIODO_MES[patient.frequency || ""] ?? 0) * (patient.timesPerPeriod || 1);
   const sessToLocal = (iso: string) => { const d = new Date(iso); const p = (n: number) => String(n).padStart(2, "0"); return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`; };
@@ -434,7 +436,7 @@ export function PatientDetail({
           {sessions.length === 0 ? <Empty text="Nenhuma sessão registrada." /> : (
             <div className="grid gap-2">
               {sessions.map((s) => (
-                <div key={s.id} className="glass-card rounded-2xl p-4 space-y-3 group">
+                <div key={s.id} style={{ borderLeftColor: sessHex(s.status, s.pendingConfirmation) }} className="glass-card rounded-2xl p-4 space-y-3 group border-l-4">
                   <div className="flex items-center justify-between gap-3">
                     <div>
                       <p className="font-semibold flex items-center gap-1.5">{formatDateTime(s.date)}{s.isOnline ? <Video className="w-3.5 h-3.5 text-primary" /> : <MapPin className="w-3.5 h-3.5 text-foreground/40" />}</p>
@@ -459,8 +461,8 @@ export function PatientDetail({
                     <button type="button" onClick={() => setEditSess(editSess === s.id ? null : s.id)} className="text-xs font-semibold text-foreground/50 hover:text-primary flex items-center gap-1" title="Editar sessão">
                       <Pencil className="w-3.5 h-3.5" /> Editar
                     </button>
-                    <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full uppercase ${sessionStatusColor(s.status)}`}>
-                      {SESSION_STATUS_LABELS[s.status]}
+                    <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full uppercase border ${sessionColorClasses(s.status, s.pendingConfirmation)}`}>
+                      {sessionLabel(s.status, s.pendingConfirmation)}
                     </span>
                     <form action={deleteSession.bind(null, s.id)}>
                       <button className="opacity-0 group-hover:opacity-100 text-foreground/30 hover:text-red-600 transition" title="Excluir sessão">

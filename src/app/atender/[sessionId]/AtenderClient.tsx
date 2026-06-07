@@ -151,8 +151,8 @@ export function AtenderClient({ session, records, meeting, therapistName }: { se
               <p className="font-display text-lg font-bold text-primary">{session.patientName}</p>
               <button onClick={() => setPatientOpen(false)} className="p-1.5 rounded-lg hover:bg-surface"><X className="w-4 h-4" /></button>
             </div>
-            <p className="text-sm text-foreground/50">Abra o cadastro completo numa nova aba (Dados, Prontuário, Atividades, Sessões, Pagamentos):</p>
-            {["Dados", "Prontuário", "Atividades", "Sessões", "Pagamentos", "Linha do tempo", "Histórico"].map((t) => (
+            <p className="text-sm text-foreground/50">Abra o cadastro completo numa nova aba:</p>
+            {["Dados", "Prontuário", "Atividades", "Sessões", "Financeiro", "Linha do tempo"].map((t) => (
               <a key={t} href={`/dashboard/patients/${session.patientId}`} target="_blank" rel="noreferrer" className="flex items-center justify-between rounded-2xl border border-border px-4 py-3 hover:border-primary/30 transition">
                 <span className="font-semibold text-sm">{t}</span>
                 <ExternalLink className="w-4 h-4 text-foreground/40" />
