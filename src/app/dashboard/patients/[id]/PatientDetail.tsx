@@ -80,6 +80,7 @@ export function PatientDetail({
   const [tab, setTab] = useState<(typeof TABS)[number]>("Dados");
   const [model, setModel] = useState(patient.contractType === "pacote" ? "pacote" : (patient.frequency || "avulso"));
   const [editSess, setEditSess] = useState<string | null>(null);
+  const todayStart = (() => { const d = new Date(); d.setHours(0, 0, 0, 0); return d.getTime(); })();
   const sessToLocal = (iso: string) => { const d = new Date(iso); const p = (n: number) => String(n).padStart(2, "0"); return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`; };
   const [showSession, setShowSession] = useState(false);
   const [showPayment, setShowPayment] = useState(false);
@@ -415,9 +416,11 @@ export function PatientDetail({
                         </a>
                       )
                     )}
-                    <a href={`/atender/${s.id}`} className="text-xs font-bold text-primary hover:underline flex items-center gap-1" title="Vamos atender?">
-                      <Stethoscope className="w-3.5 h-3.5" /> Atender
-                    </a>
+                    {new Date(s.date).getTime() >= todayStart && (
+                      <a href={`/atender/${s.id}`} className="text-xs font-bold text-primary hover:underline flex items-center gap-1" title="Vamos atender?">
+                        <Stethoscope className="w-3.5 h-3.5" /> Atender
+                      </a>
+                    )}
                     <button type="button" onClick={() => setEditSess(editSess === s.id ? null : s.id)} className="text-xs font-semibold text-foreground/50 hover:text-primary flex items-center gap-1" title="Editar sessão">
                       <Pencil className="w-3.5 h-3.5" /> Editar
                     </button>

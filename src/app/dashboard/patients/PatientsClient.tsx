@@ -103,14 +103,16 @@ export function PatientsClient({ patients }: { patients: PatientCard[] }) {
                       {p.patientStatus}
                     </span>
                   </div>
-                  <p className="text-sm text-foreground/50 truncate">
-                    {formatBRL(p.sessionFee)}/sessão
+                  <p className="text-sm text-foreground/50 truncate">{formatBRL(p.sessionFee)}/sessão</p>
+                  <div className="mt-1">
                     {p.balance < 0 ? (
-                      <span className="ml-2 font-semibold text-[#b91c1c]">· devendo {p.debtSessions} sessão(ões)</span>
+                      <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full bg-[#fef2f2] text-[#b91c1c]">⚠️ Devendo {p.debtSessions} sessão(ões)</span>
                     ) : p.creditSessions > 0 ? (
-                      <span className="ml-2 font-semibold text-[#047857]">· {p.creditSessions} sessão(ões) de crédito</span>
-                    ) : null}
-                  </p>
+                      <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full bg-[#ecfdf5] text-[#047857]">💳 {p.creditSessions} sessão(ões) de crédito</span>
+                    ) : (
+                      <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full bg-surface text-foreground/50">Em dia</span>
+                    )}
+                  </div>
                   {parseTags(p.tags).length > 0 && (
                     <div className="flex gap-1 flex-wrap mt-1.5">
                       {parseTags(p.tags).map((t) => (

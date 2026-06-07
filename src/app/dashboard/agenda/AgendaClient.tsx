@@ -251,7 +251,7 @@ export function AgendaClient({ sessions, patients = [], locations = [] }: { sess
               <button onClick={() => setSelected(null)} className="p-1.5 rounded-lg hover:bg-surface transition"><X className="w-4 h-4" /></button>
             </div>
 
-            {!selected.pendingConfirmation && (
+            {!selected.pendingConfirmation && new Date(selected.date).setHours(0, 0, 0, 0) >= new Date().setHours(0, 0, 0, 0) && (
               <a href={`/atender/${selected.id}`} className="flex items-center justify-center gap-2 w-full rounded-xl bg-primary text-white py-2.5 text-sm font-bold hover:bg-primary-container transition">
                 <Stethoscope className="w-4 h-4" /> Vamos atender?
               </a>
