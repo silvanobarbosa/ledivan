@@ -1,6 +1,6 @@
 import { db } from "@/db";
 import { auth } from "@/auth";
-import { users, transactions, goals, categories, achievements, patients, therapySessions } from "@/db/schema";
+import { users, transactions, goals, categories, achievements, patients, therapySessions, patientPackages } from "@/db/schema";
 import { eq, sum, desc, sql, count, and } from "drizzle-orm";
 import { formatBRL, formatDateTime } from "@/lib/therapy";
 import { getClinicalFlags } from "@/lib/clinical";
@@ -43,7 +43,7 @@ export default async function DashboardPage() {
   const [
     balanceRows, recentTransactionsData, userGoals, userAchievementsData, tCountRows,
     chartData, categoryDistribution, activeRows, weekRows, sessionIncomeRows,
-    flagged, upcomingSessions, reservasRows,
+    flagged, upcomingSessions, reservasRows, pkgEndingRows,
   ] = await Promise.all([
     db.select({
       total: sum(transactions.amount),
@@ -73,8 +73,13 @@ export default async function DashboardPage() {
       limit: 5,
     }),
     db.select({ val: count() }).from(therapySessions).where(sql`${therapySessions.userId} = ${user.id} AND ${therapySessions.date} >= ${now} AND ${therapySessions.pendingConfirmation} = true`),
+    db.select({ pid: patientPackages.patientId, rem: sql<number>`sum(${patientPackages.sessions} - ${patientPackages.used})::int` })
+      .from(patientPackages).innerJoin(patients, eq(patientPackages.patientId, patients.id))
+      .where(and(eq(patientPackages.userId, user.id), eq(patients.patientStatus, "ativo"), eq(patients.contractType, "pacote")))
+      .groupBy(patientPackages.patientId),
   ]);
   const reservasCount = Number(reservasRows[0]?.val || 0);
+  const pacotesAcabando = pkgEndingRows.filter((r) => Number(r.rem) === 1).length;
 
   const totalBalance = parseFloat(balanceRows[0]?.total || "0");
   const totalIncome = parseFloat(balanceRows[0]?.income || "0");
@@ -114,16 +119,30 @@ export default async function DashboardPage() {
         </Link>
       </section>
 
-      {/* Reservas a confirmar */}
-      {reservasCount > 0 && (
-        <Link href="/dashboard/reservas" className="flex items-center gap-3 bg-[#fffbeb] border border-[#fde68a] rounded-[28px] p-5 hover:shadow-md transition group">
-          <div className="w-12 h-12 rounded-2xl bg-[#fef3c7] text-[#92400e] flex items-center justify-center text-xl shrink-0">⏳</div>
-          <div className="flex-1">
-            <p className="font-bold text-[#92400e]">{reservasCount} reserva(s) a confirmar</p>
-            <p className="text-sm text-[#92400e]/70">Agendas reservadas aguardando confirmação. Clique para ver e confirmar.</p>
-          </div>
-          <ChevronRight className="w-5 h-5 text-[#92400e]/50 group-hover:translate-x-1 transition" />
-        </Link>
+      {/* Reservas a confirmar + Pacotes acabando */}
+      {(reservasCount > 0 || pacotesAcabando > 0) && (
+        <div className="grid sm:grid-cols-2 gap-4">
+          {reservasCount > 0 && (
+            <Link href="/dashboard/reservas" className="flex items-center gap-3 bg-[#fffbeb] border border-[#fde68a] rounded-[28px] p-5 hover:shadow-md transition group">
+              <div className="w-12 h-12 rounded-2xl bg-[#fef3c7] text-[#92400e] flex items-center justify-center text-xl shrink-0">⏳</div>
+              <div className="flex-1 min-w-0">
+                <p className="font-bold text-[#92400e]">{reservasCount} reserva(s) a confirmar</p>
+                <p className="text-sm text-[#92400e]/70">Agendas reservadas aguardando confirmação.</p>
+              </div>
+              <ChevronRight className="w-5 h-5 text-[#92400e]/50 group-hover:translate-x-1 transition shrink-0" />
+            </Link>
+          )}
+          {pacotesAcabando > 0 && (
+            <Link href="/dashboard/creditos" className="flex items-center gap-3 bg-[#eff6ff] border border-[#bfdbfe] rounded-[28px] p-5 hover:shadow-md transition group">
+              <div className="w-12 h-12 rounded-2xl bg-[#dbeafe] text-[#1e40af] flex items-center justify-center text-xl shrink-0">📦</div>
+              <div className="flex-1 min-w-0">
+                <p className="font-bold text-[#1e40af]">{pacotesAcabando} paciente(s) com pacote acabando</p>
+                <p className="text-sm text-[#1e40af]/70">Resta só 1 sessão no pacote — hora de renovar.</p>
+              </div>
+              <ChevronRight className="w-5 h-5 text-[#1e40af]/50 group-hover:translate-x-1 transition shrink-0" />
+            </Link>
+          )}
+        </div>
       )}
 
       {/* Próximas sessões */}

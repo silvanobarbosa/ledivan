@@ -49,7 +49,7 @@ const photos = {
 
 export default function Landing() {
   return (
-    <div className="bg-ornaments min-h-screen text-ink overflow-x-clip">
+    <div className="bg-ornaments min-h-screen text-ink overflow-x-hidden">
       <Header />
       <main>
         <Hero />
@@ -176,14 +176,14 @@ function HeroVisual() {
             ))}
           </ul>
         </div>
-        <div className="absolute top-[55%] right-[-1rem] glass-card p-4 w-44 z-20 float-soft" style={{ animationDelay: "1.5s" }}>
+        <div className="hidden sm:block absolute top-[55%] right-[-1rem] glass-card p-4 w-44 z-20 float-soft" style={{ animationDelay: "1.5s" }}>
           <p className="text-[10px] uppercase tracking-wide text-[color:var(--muted-foreground)]">Receita do mês</p>
           <p className="font-display text-2xl font-medium text-[color:var(--brand-eggplant)] tabular-nums">R$ 9.840</p>
           <div className="mt-2 h-1.5 rounded-full bg-[rgba(43,24,48,0.06)] overflow-hidden">
             <div className="h-full rounded-full" style={{ width: "72%", background: "linear-gradient(90deg, #c4b5fd, #8b5cf6)" }} />
           </div>
         </div>
-        <div className="absolute bottom-[60%] left-[-1rem] glass-card px-3 py-2 z-20 flex items-center gap-2 float-soft" style={{ animationDelay: "2.5s" }}>
+        <div className="hidden sm:flex absolute bottom-[60%] left-[-1rem] glass-card px-3 py-2 z-20 items-center gap-2 float-soft" style={{ animationDelay: "2.5s" }}>
           <img src="https://cdn.simpleicons.org/whatsapp/25D366" alt="" className="h-4 w-4" />
           <span className="text-[11px] text-ink">&quot;50 material&quot; → lançado ✓</span>
         </div>
@@ -221,7 +221,7 @@ function Manifesto() {
         <Reveal>
           <div className="relative">
             <div aria-hidden className="absolute -inset-8 -z-10 rounded-[3rem]" style={{ background: "radial-gradient(55% 55% at 30% 30%, rgba(139,92,246,0.28), transparent 70%), radial-gradient(45% 45% at 80% 80%, rgba(196,181,253,0.4), transparent 70%)", filter: "blur(22px)" }} />
-            <div className="grid grid-cols-5 grid-rows-6 gap-3 h-[520px]">
+            <div className="grid grid-cols-5 grid-rows-6 gap-3 h-[380px] sm:h-[520px]">
               <div className="col-span-3 row-span-4 rounded-[2rem] overflow-hidden shadow-[var(--shadow-glass-lg)] border border-white/40">
                 <img src={photos.teaWoman} alt="Terapeuta em momento de pausa" className="h-full w-full object-cover" loading="lazy" />
               </div>
