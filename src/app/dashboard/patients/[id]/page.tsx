@@ -45,7 +45,7 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
   const lastRealizada = realizadas.map((s) => new Date(s.date as unknown as string).getTime()).sort((a, b) => b - a)[0];
   const sessionStats = {
     reservadas: sessionsList.filter((s) => s.pendingConfirmation && new Date(s.date as unknown as string).getTime() >= nowMs).length,
-    agendadasFuturas: sessionsList.filter((s) => s.status === "agendada" && !s.pendingConfirmation && new Date(s.date as unknown as string).getTime() >= nowMs).length,
+    agendadasFuturas: sessionsList.filter((s) => s.status === "agendada" && new Date(s.date as unknown as string).getTime() >= nowMs).length,
     realizadasCount: realizadas.length,
     lastRealizada: lastRealizada ? new Date(lastRealizada).toISOString() : null,
   };

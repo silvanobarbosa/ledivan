@@ -187,7 +187,7 @@ export function PatientDetail({
         <div className="glass-card rounded-[20px] p-4">
           <p className="text-2xl font-display font-bold text-primary">{sessionStats.agendadasFuturas}</p>
           <p className="text-xs text-foreground/50">Agendadas futuras</p>
-          <p className="text-[10px] text-foreground/40">confirmadas</p>
+          <p className="text-[10px] text-foreground/40">inclui reservas</p>
         </div>
         <button onClick={() => setTab("Financeiro")} className={`rounded-[20px] p-4 text-left border ${finance.balance < 0 ? "bg-[#fef2f2] border-[#fecaca]" : "bg-[#ecfdf5] border-[#a7f3d0]"}`}>
           <p className={`text-2xl font-display font-bold ${finance.balance < 0 ? "text-[#b91c1c]" : "text-[#047857]"}`}>
