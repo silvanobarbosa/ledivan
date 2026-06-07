@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createSession, deleteSession, updateSession } from "../../sessions/actions";
 import { createPayment } from "../../payments/actions";
-import { createRecord, deleteRecord, updateFinancialModel, updatePatientNotes, addPackageCredit } from "../actions";
+import { createRecord, deleteRecord, updateFinancialModel, updatePatientNotes } from "../actions";
 import { ATTENDANCE_MODE_LABELS } from "@/lib/locations";
 import { MessagePatient } from "@/components/dashboard/MessagePatient";
 import { AssignmentsTab } from "./AssignmentsTab";
@@ -632,22 +632,6 @@ export function PatientDetail({
             </div>
           </div>
 
-          {/* Adicionar sessões de pacote (crédito na conta-corrente, não vincula a pago) */}
-          <form action={addPackageCredit.bind(null, patient.id)} className="glass-card rounded-[24px] p-5 space-y-2">
-            <p className="text-xs font-bold text-foreground/40 uppercase tracking-widest">Adicionar sessões de pacote</p>
-            <p className="text-[11px] text-foreground/50">Gera crédito cumulativo no fluxo (não é receita). Vai sendo abatido conforme as sessões cobradas.</p>
-            <div className="flex items-end gap-2">
-              <div>
-                <label className="text-[11px] font-semibold text-foreground/50">Pacote</label>
-                <select name="packSize" defaultValue="4" className={inputCls}>
-                  <option value="2">2 sessões</option>
-                  <option value="4">4 sessões</option>
-                  <option value="8">8 sessões</option>
-                </select>
-              </div>
-              <button className="bg-primary text-white py-2.5 px-5 rounded-xl font-bold text-sm">Adicionar</button>
-            </div>
-          </form>
 
           {/* Histórico de modelo contratual */}
           {contractHistory.filter((h) => h.type === "model").length > 0 && (
