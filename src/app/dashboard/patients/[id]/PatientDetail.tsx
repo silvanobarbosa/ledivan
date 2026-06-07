@@ -4,7 +4,7 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createSession, deleteSession, updateSession } from "../../sessions/actions";
-import { createPayment, deletePayment } from "../../payments/actions";
+import { createPayment } from "../../payments/actions";
 import { createRecord, deleteRecord, addPriceChange, renewPackage, updateFinancialModel } from "../actions";
 import { ATTENDANCE_MODE_LABELS } from "@/lib/locations";
 import { AssignmentsTab } from "./AssignmentsTab";
@@ -21,7 +21,6 @@ import {
   PAYMENT_METHOD_LABELS,
   PAYMENT_STATUS_LABELS,
   sessionStatusColor,
-  paymentStatusColor,
   patientStatusColor,
   RISK_LABELS,
   riskColor,
@@ -41,7 +40,7 @@ type Patient = {
 };
 type ContractEntry = { id: string; type: string; from: string | null; to: string | null; description: string | null; date: string };
 type Finance = { fee: number; balance: number; totalPaid: number; totalDebit: number; atendimentos: number; lastPaymentDate: string | null; lastPaymentAmount: number | null; creditSessions: number; debtSessions: number };
-type LedgerEntry = { id: string; date: string; kind: "pagamento" | "sessao"; desc: string; amount: number; balance: number };
+type LedgerEntry = { id: string; date: string; kind: "pagamento" | "sessao"; desc: string; amount: number; balance: number; payId: string | null };
 type Session = { id: string; date: string; duration: number; fee: string; status: string; notes: string | null; isOnline: boolean; patientSummary: string | null; meetingUrl: string | null };
 type Payment = { id: string; date: string; amount: string; method: string; status: string; linkedTransactionId: string | null };
 type StatusEntry = { id: string; status: string; date: string };
@@ -213,6 +212,7 @@ export function PatientDetail({
 
       {/* Dados */}
       {tab === "Dados" && (
+        <div className="space-y-4">
         <div className="glass-card rounded-[24px] p-6 space-y-4">
           <Field label="Status" value={PATIENT_STATUS_LABELS[patient.patientStatus] || patient.patientStatus} />
           <Field label="Modelo de contratação" value={patient.contractType === "pacote" ? `Pacote${patient.sessionsInPacket ? ` · ${patient.sessionsInPacket} sessões` : ""}${patient.sessionsInPacket ? ` · ${Math.max(0, patient.sessionsInPacket - patient.packageCreditsUsed)} restantes` : ""}` : "Avulso"} />
@@ -232,6 +232,17 @@ export function PatientDetail({
               <p className="text-sm text-foreground/80 whitespace-pre-wrap">{patient.notes}</p>
             </div>
           )}
+        </div>
+
+        {/* Histórico de status */}
+        <div className="glass-card rounded-[24px] p-6">
+          <p className="text-xs font-bold text-foreground/40 uppercase tracking-widest mb-3">Histórico de status</p>
+          {statusHistory.length === 0 ? <Empty text="Sem histórico." /> : statusHistory.map((h) => (
+            <div key={h.id} className="flex justify-between py-1.5 text-sm border-b border-border last:border-0">
+              <span className="capitalize">{PATIENT_STATUS_LABELS[h.status] || h.status}</span><span className="text-foreground/40">{formatDate(h.date)}</span>
+            </div>
+          ))}
+        </div>
         </div>
       )}
 
@@ -483,34 +494,7 @@ export function PatientDetail({
               <button className="sm:col-span-2 bg-primary text-white py-2.5 rounded-xl font-bold">Salvar pagamento</button>
             </form>
           )}
-          {payments.length === 0 ? <Empty text="Nenhum pagamento registrado." /> : (
-            <div className="grid gap-2">
-              {payments.map((p) => (
-                <div key={p.id} className="glass-card rounded-2xl p-4 flex items-center justify-between gap-3 group">
-                  <div>
-                    <p className="font-semibold flex items-center gap-2">
-                      {formatBRL(p.amount)}
-                      {p.linkedTransactionId && <Link2 className="w-3.5 h-3.5 text-primary" />}
-                    </p>
-                    <p className="text-sm text-foreground/50">{formatDate(p.date)} · {PAYMENT_METHOD_LABELS[p.method]}</p>
-                  </div>
-                  <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full uppercase ${paymentStatusColor(p.status)}`}>
-                    {PAYMENT_STATUS_LABELS[p.status]}
-                  </span>
-                  {p.status === "paid" && (
-                    <a href={`/recibo/${p.id}`} target="_blank" rel="noreferrer" className="text-xs font-semibold text-primary hover:underline flex items-center gap-1" title="Recibo">
-                      <Receipt className="w-3.5 h-3.5" /> Recibo
-                    </a>
-                  )}
-                  <form action={deletePayment.bind(null, p.id)}>
-                    <button className="opacity-0 group-hover:opacity-100 text-foreground/30 hover:text-red-600 transition" title="Excluir pagamento">
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </form>
-                </div>
-              ))}
-            </div>
-          )}
+          <p className="text-[11px] text-foreground/40">Os pagamentos aparecem no Fluxo financeiro abaixo (com opção de recibo).</p>
         </div>
       )}
 
@@ -560,6 +544,30 @@ export function PatientDetail({
             <button className="bg-primary text-white py-2.5 px-5 rounded-xl font-bold text-sm">Salvar modelo financeiro</button>
           </form>
 
+          {/* Renovar pacote (dentro do modelo financeiro) */}
+          {model === "pacote" && (
+            <form action={renewPackage.bind(null, patient.id)} className="glass-card rounded-[24px] p-5 space-y-2">
+              <div className="flex items-center justify-between">
+                <p className="text-xs font-bold text-foreground/40 uppercase tracking-widest">Renovar pacote</p>
+                {patient.sessionsInPacket ? (
+                  <span className="text-xs text-foreground/50">Créditos: <strong className="text-primary">{Math.max(0, patient.sessionsInPacket - patient.packageCreditsUsed)}</strong> / {patient.sessionsInPacket}</span>
+                ) : null}
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <div>
+                  <label className="text-[11px] font-semibold text-foreground/50">Qtd de sessões</label>
+                  <input name="sessionsInPacket" type="number" min={1} max={200} defaultValue={patient.sessionsInPacket ?? ""} className={inputCls} placeholder="ex: 10" />
+                </div>
+                <div>
+                  <label className="text-[11px] font-semibold text-foreground/50">Valor (R$)</label>
+                  <input name="valor" inputMode="decimal" defaultValue={patient.sessionFee} className={inputCls} />
+                </div>
+              </div>
+              <p className="text-[11px] text-foreground/40">Zera os créditos usados e registra no histórico.</p>
+              <button className="bg-primary text-white py-2.5 px-5 rounded-xl font-bold text-sm">Renovar pacote</button>
+            </form>
+          )}
+
           {/* Histórico de modelo contratual */}
           {contractHistory.filter((h) => h.type === "model").length > 0 && (
             <div className="glass-card rounded-[24px] p-5">
@@ -575,15 +583,6 @@ export function PatientDetail({
             </div>
           )}
 
-          <div className="grid gap-4 sm:grid-cols-2">
-          <div className="glass-card rounded-[24px] p-5">
-            <p className="text-xs font-bold text-foreground/40 uppercase tracking-widest mb-3">Status</p>
-            {statusHistory.length === 0 ? <Empty text="Sem histórico." /> : statusHistory.map((h) => (
-              <div key={h.id} className="flex justify-between py-1.5 text-sm border-b border-border last:border-0">
-                <span className="capitalize">{h.status}</span><span className="text-foreground/40">{formatDate(h.date)}</span>
-              </div>
-            ))}
-          </div>
           <div className="glass-card rounded-[24px] p-5">
             <div className="flex items-center justify-between mb-3">
               <p className="text-xs font-bold text-foreground/40 uppercase tracking-widest">Preço</p>
@@ -620,46 +619,6 @@ export function PatientDetail({
             </form>
           </div>
 
-          {/* Pacote */}
-          <div className="glass-card rounded-[24px] p-5 sm:col-span-2">
-            <div className="flex items-center justify-between mb-3">
-              <p className="text-xs font-bold text-foreground/40 uppercase tracking-widest">Pacote</p>
-              {patient.contractType === "pacote" && patient.sessionsInPacket ? (
-                <span className="text-xs text-foreground/50">
-                  Créditos: <strong className="text-primary">{Math.max(0, patient.sessionsInPacket - patient.packageCreditsUsed)}</strong> / {patient.sessionsInPacket} restantes
-                </span>
-              ) : <span className="text-xs text-foreground/40">Sem pacote ativo</span>}
-            </div>
-
-            {contractHistory.length > 0 && (
-              <div className="mb-3 space-y-1">
-                {contractHistory.map((h) => (
-                  <div key={h.id} className="flex justify-between py-1 text-sm border-b border-border last:border-0">
-                    <span>{h.description || h.type}{h.to ? ` → ${h.to}` : ""}</span>
-                    <span className="text-foreground/40">{formatDate(h.date)}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-
-            <form action={renewPackage.bind(null, patient.id)} className="pt-3 border-t border-border space-y-2">
-              <p className="text-xs font-bold text-foreground/40 uppercase tracking-widest">Renovar pacote</p>
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="text-[11px] font-semibold text-foreground/50">Qtd de sessões</label>
-                  <input name="sessionsInPacket" type="number" min={1} max={200} defaultValue={patient.sessionsInPacket ?? ""} className={inputCls} placeholder="ex: 10" />
-                </div>
-                <div>
-                  <label className="text-[11px] font-semibold text-foreground/50">Valor (R$)</label>
-                  <input name="valor" inputMode="decimal" defaultValue={patient.sessionFee} className={inputCls} />
-                </div>
-              </div>
-              <p className="text-[11px] text-foreground/40">Sugestão: últimos valores. Zera os créditos usados e registra no histórico.</p>
-              <button className="w-full bg-primary text-white py-2.5 rounded-xl font-bold text-sm">Renovar pacote</button>
-            </form>
-          </div>
-          </div>
-
           {/* Fluxo financeiro (no rodapé): pagamentos (+) e sessões realizadas cobráveis (−) */}
           <div className="glass-card rounded-[24px] p-5">
             <div className="flex items-center justify-between mb-3">
@@ -672,6 +631,11 @@ export function PatientDetail({
                 {ledger.map((l) => (
                   <div key={l.id} className="flex items-center justify-between gap-2 py-1.5 text-sm border-b border-border last:border-0">
                     <span className="flex-1 min-w-0 truncate text-foreground/70">{formatDate(l.date)} · {l.desc}</span>
+                    {l.kind === "pagamento" && l.payId && (
+                      <a href={`/recibo/${l.payId}`} target="_blank" rel="noreferrer" className="shrink-0 text-primary hover:underline inline-flex items-center gap-0.5 text-xs" title="Emitir recibo">
+                        <Receipt className="w-3.5 h-3.5" /> recibo
+                      </a>
+                    )}
                     <span className={`shrink-0 font-semibold ${l.amount >= 0 ? "text-[#047857]" : "text-[#b91c1c]"}`}>{l.amount >= 0 ? "+" : ""}{formatBRL(Math.abs(l.amount).toFixed(2))}</span>
                     <span className={`shrink-0 w-24 text-right font-bold ${l.balance < 0 ? "text-[#b91c1c]" : "text-foreground/70"}`}>{formatBRL(l.balance.toFixed(2))}</span>
                   </div>

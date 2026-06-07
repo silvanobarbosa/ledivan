@@ -78,12 +78,12 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
   // --- Fluxo financeiro universal: pagamentos (+) e sessões realizadas+cobráveis (−) ---
   const fee = parseFloat(patient.sessionFee || "0") || 0;
   const paidPayments = paymentsList.filter((p) => p.status === "paid");
-  type LedgerItem = { id: string; date: string; kind: "pagamento" | "sessao"; desc: string; amount: number };
+  type LedgerItem = { id: string; date: string; kind: "pagamento" | "sessao"; desc: string; amount: number; payId: string | null };
   const ledgerRaw: LedgerItem[] = [
-    ...paidPayments.map((p) => ({ id: `p${p.id}`, date: p.date as unknown as string, kind: "pagamento" as const, desc: "Pagamento recebido", amount: parseFloat(p.amount) })),
+    ...paidPayments.map((p) => ({ id: `p${p.id}`, date: p.date as unknown as string, kind: "pagamento" as const, desc: "Pagamento recebido", amount: parseFloat(p.amount), payId: p.id })),
     ...sessionsList
       .filter((s) => s.status === "realizada" && s.chargeable)
-      .map((s) => ({ id: `s${s.id}`, date: s.date as unknown as string, kind: "sessao" as const, desc: "Sessão realizada (cobrança)", amount: -parseFloat(s.fee) })),
+      .map((s) => ({ id: `s${s.id}`, date: s.date as unknown as string, kind: "sessao" as const, desc: "Sessão realizada (cobrança)", amount: -parseFloat(s.fee), payId: null })),
   ].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
   let running = 0;
