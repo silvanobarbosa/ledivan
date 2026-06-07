@@ -19,10 +19,11 @@ export const { handlers, auth, signIn, signOut } = NextAuth({
       allowDangerousEmailAccountLinking: true,
       authorization: {
         params: {
-          prompt: "consent",
-          access_type: "offline",
-          response_type: "code",
-          scope: "openid email profile https://www.googleapis.com/auth/calendar.events",
+          // Apenas escopos NÃO sensíveis → sem tela de "app não verificado".
+          // (Google Meet via Agenda exigiria o escopo calendar.events + verificação;
+          //  o vídeo do app usa Jitsi/JaaS, então não precisamos dele.)
+          prompt: "select_account",
+          scope: "openid email profile",
         },
       },
     }),
