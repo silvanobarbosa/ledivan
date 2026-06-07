@@ -190,12 +190,13 @@ export default async function DashboardPage() {
             {upcomingSessions.map((s) => (
               <Link
                 key={s.id}
-                href={`/dashboard/patients/${s.patient?.id ?? ""}`}
-                className="flex items-center gap-3 bg-surface/60 rounded-2xl px-4 py-3 hover:bg-surface transition"
+                href={`/atender/${s.id}`}
+                className="flex items-center gap-3 bg-surface/60 rounded-2xl px-4 py-3 hover:bg-surface transition group"
               >
                 <span className="font-mono text-sm font-semibold text-primary shrink-0">{formatDateTime(s.date as unknown as string)}</span>
                 <span className="flex-1 font-medium truncate">{s.patient?.name ?? "—"}</span>
                 <span className="text-xs text-foreground/40">{s.duration}min</span>
+                <span className="text-[11px] font-bold text-accent opacity-0 group-hover:opacity-100 transition">Atender →</span>
               </Link>
             ))}
           </div>

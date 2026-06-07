@@ -24,6 +24,7 @@ export function JitsiRoom({
   jwt,
   reportEvents = true,
   onLeaveHref = "/dashboard/agenda",
+  inline = false,
 }: {
   roomName: string;
   displayName: string;
@@ -32,6 +33,7 @@ export function JitsiRoom({
   jwt?: string | null;
   reportEvents?: boolean;
   onLeaveHref?: string;
+  inline?: boolean;
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const [loaded, setLoaded] = useState(false);
@@ -111,7 +113,7 @@ export function JitsiRoom({
   }, [roomName, displayName, sessionId, domain, jwt, onLeaveHref]);
 
   return (
-    <div className="fixed inset-0 bg-black">
+    <div className={inline ? "relative h-full w-full bg-black overflow-hidden" : "fixed inset-0 bg-black"}>
       {!loaded && (
         <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 text-white/80">
           <Loader2 className="w-8 h-8 animate-spin" />

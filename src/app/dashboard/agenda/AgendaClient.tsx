@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronLeft, ChevronRight, X, Plus } from "lucide-react";
+import { ChevronLeft, ChevronRight, X, Plus, Stethoscope } from "lucide-react";
 import { SESSION_STATUS_LABELS, sessionStatusColor, RISK_LABELS, riskColor, type RiskLevel } from "@/lib/therapy";
 import { updateSessionStatus, confirmSession, createSessionFromAgenda } from "../sessions/actions";
 import { Video, AlertTriangle } from "lucide-react";
@@ -235,6 +235,12 @@ export function AgendaClient({ sessions, patients = [], locations = [] }: { sess
               </div>
               <button onClick={() => setSelected(null)} className="p-1.5 rounded-lg hover:bg-surface transition"><X className="w-4 h-4" /></button>
             </div>
+
+            {!selected.pendingConfirmation && (
+              <a href={`/atender/${selected.id}`} className="flex items-center justify-center gap-2 w-full rounded-xl bg-primary text-white py-2.5 text-sm font-bold hover:bg-primary-container transition">
+                <Stethoscope className="w-4 h-4" /> Vamos atender?
+              </a>
+            )}
 
             {selected.pendingConfirmation && (
               <div className="rounded-xl bg-[#fffbeb] border border-[#fde68a] p-3 space-y-2">

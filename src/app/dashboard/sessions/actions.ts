@@ -108,6 +108,34 @@ export async function createSessionFromAgenda(formData: FormData): Promise<{ ok:
   return { ok: true };
 }
 
+// Converte a sessão entre online e presencial (mudança de planos no atendimento).
+export async function setSessionOnline(sessionId: string, online: boolean): Promise<{ ok: boolean }> {
+  const session = await auth();
+  if (!session?.user?.id) return { ok: false };
+  const userId = session.user.id;
+  const s = await db.query.therapySessions.findFirst({
+    where: and(eq(therapySessions.id, sessionId), eq(therapySessions.userId, userId)),
+    with: { patient: { columns: { name: true } } },
+  });
+  if (!s) return { ok: false };
+
+  let meetingUrl: string | null = null;
+  if (online) {
+    const prefs = await getPreferences(userId);
+    if (prefs.meetingProvider === "meet") {
+      meetingUrl = await createMeetLink(userId, { summary: `Sessão — ${s.patient?.name ?? ""}`, startISO: new Date(s.date as Date).toISOString(), durationMin: s.duration });
+    }
+  }
+  // ao virar presencial, descarta o link (cancela o uso do sistema de reunião)
+  await db.update(therapySessions)
+    .set({ isOnline: online, meetingUrl: online ? meetingUrl : null })
+    .where(and(eq(therapySessions.id, sessionId), eq(therapySessions.userId, userId)));
+
+  revalidatePath(`/dashboard/agenda`);
+  revalidatePath(`/atender/${sessionId}`);
+  return { ok: true };
+}
+
 // Confirma um agendamento público que estava aguardando confirmação.
 export async function confirmSession(sessionId: string) {
   const session = await auth();

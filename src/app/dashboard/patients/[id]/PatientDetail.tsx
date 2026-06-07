@@ -27,7 +27,7 @@ import {
   riskColor,
   type RiskLevel,
 } from "@/lib/therapy";
-import { Phone, Mail, MapPin, Plus, Link2, Pencil, Trash2, Video, Mic, Loader2, Receipt, FileText } from "lucide-react";
+import { Phone, Mail, MapPin, Plus, Link2, Pencil, Trash2, Video, Mic, Loader2, Receipt, FileText, Stethoscope } from "lucide-react";
 
 type Patient = {
   id: string; name: string; email: string | null; phone: string | null;
@@ -56,7 +56,7 @@ const PATIENT_STATUS_LABELS: Record<string, string> = { ativo: "Ativo", pausado:
 
 const inputCls = "w-full px-4 py-2.5 rounded-xl bg-white/70 border border-border focus:ring-2 focus:ring-accent/20 focus:border-accent outline-none transition text-sm";
 
-const TABS = ["Dados", "Prontuário", "Espaço", "Sessões", "Pagamentos", "Linha do tempo", "Histórico"] as const;
+const TABS = ["Dados", "Prontuário", "Atividades", "Sessões", "Pagamentos", "Linha do tempo", "Histórico"] as const;
 
 export function PatientDetail({
   patient, sessions, payments, statusHistory, priceHistory, records, autoLinkPayments, transcriptionEnabled, risk, assignments, moodToken, moodLogs, scales, treatmentGoals, locations = [], contractHistory = [],
@@ -287,7 +287,7 @@ export function PatientDetail({
       )}
 
       {/* Espaço do Paciente: humor + tarefas */}
-      {tab === "Espaço" && <AssignmentsTab patientId={patient.id} assignments={assignments} moodToken={moodToken} moodLogs={moodLogs} scales={scales} />}
+      {tab === "Atividades" && <AssignmentsTab patientId={patient.id} assignments={assignments} moodToken={moodToken} moodLogs={moodLogs} scales={scales} />}
 
       {/* Sessões */}
       {tab === "Sessões" && (
@@ -358,6 +358,9 @@ export function PatientDetail({
                         </a>
                       )
                     )}
+                    <a href={`/atender/${s.id}`} className="text-xs font-bold text-primary hover:underline flex items-center gap-1" title="Vamos atender?">
+                      <Stethoscope className="w-3.5 h-3.5" /> Atender
+                    </a>
                     <span className={`text-[10px] font-bold px-2.5 py-1 rounded-full uppercase ${sessionStatusColor(s.status)}`}>
                       {SESSION_STATUS_LABELS[s.status]}
                     </span>
