@@ -6,7 +6,6 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { PatientDetail } from "./PatientDetail";
-import { getPreferences } from "@/lib/preferences";
 import { riskFromSessions } from "@/lib/therapy";
 import { parseLocations } from "@/lib/locations";
 
@@ -22,58 +21,23 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
   });
   if (!patient) notFound();
 
-  const [sessionsList, paymentsList, statusHist, priceHist, recordsList, prefs] = await Promise.all([
-    db.query.therapySessions.findMany({
-      where: eq(therapySessions.patientId, id),
-      orderBy: [desc(therapySessions.date)],
-    }),
-    db.query.sessionPayments.findMany({
-      where: eq(sessionPayments.patientId, id),
-      orderBy: [desc(sessionPayments.date)],
-    }),
-    db.query.patientStatusHistory.findMany({
-      where: eq(patientStatusHistory.patientId, id),
-      orderBy: [desc(patientStatusHistory.date)],
-    }),
-    db.query.patientPriceHistory.findMany({
-      where: eq(patientPriceHistory.patientId, id),
-      orderBy: [desc(patientPriceHistory.dataEfetiva)],
-    }),
-    db.query.patientRecords.findMany({
-      where: eq(patientRecords.patientId, id),
-      orderBy: [desc(patientRecords.createdAt)],
-    }),
-    getPreferences(userId),
+  // Todas as consultas do paciente em paralelo (evita waterfall de round-trips no Neon)
+  const [sessionsList, paymentsList, statusHist, priceHist, recordsList, assignmentsList, moodList, scaleList, goalsList, contractHist, me] = await Promise.all([
+    db.query.therapySessions.findMany({ where: eq(therapySessions.patientId, id), orderBy: [desc(therapySessions.date)] }),
+    db.query.sessionPayments.findMany({ where: eq(sessionPayments.patientId, id), orderBy: [desc(sessionPayments.date)] }),
+    db.query.patientStatusHistory.findMany({ where: eq(patientStatusHistory.patientId, id), orderBy: [desc(patientStatusHistory.date)] }),
+    db.query.patientPriceHistory.findMany({ where: eq(patientPriceHistory.patientId, id), orderBy: [desc(patientPriceHistory.dataEfetiva)] }),
+    db.query.patientRecords.findMany({ where: eq(patientRecords.patientId, id), orderBy: [desc(patientRecords.createdAt)] }),
+    db.query.assignments.findMany({ where: eq(assignments.patientId, id), orderBy: [desc(assignments.createdAt)] }),
+    db.query.moodLogs.findMany({ where: eq(moodLogs.patientId, id), orderBy: [desc(moodLogs.loggedAt)], limit: 60 }),
+    db.query.scaleApplications.findMany({ where: eq(scaleApplications.patientId, id), orderBy: [desc(scaleApplications.createdAt)] }),
+    db.query.treatmentGoals.findMany({ where: eq(treatmentGoals.patientId, id), orderBy: [desc(treatmentGoals.createdAt)] }),
+    db.query.patientContractHistory.findMany({ where: eq(patientContractHistory.patientId, id), orderBy: [desc(patientContractHistory.date)] }),
+    db.query.users.findFirst({ where: eq(users.id, userId) }),
   ]);
 
-  const assignmentsList = await db.query.assignments.findMany({
-    where: eq(assignments.patientId, id),
-    orderBy: [desc(assignments.createdAt)],
-  });
-
-  const moodList = await db.query.moodLogs.findMany({
-    where: eq(moodLogs.patientId, id),
-    orderBy: [desc(moodLogs.loggedAt)],
-    limit: 60,
-  });
-
-  const scaleList = await db.query.scaleApplications.findMany({
-    where: eq(scaleApplications.patientId, id),
-    orderBy: [desc(scaleApplications.createdAt)],
-  });
-
-  const goalsList = await db.query.treatmentGoals.findMany({
-    where: eq(treatmentGoals.patientId, id),
-    orderBy: [desc(treatmentGoals.createdAt)],
-  });
-
-  const me = await db.query.users.findFirst({ where: eq(users.id, userId) });
+  const prefs = (() => { try { return me?.preferences ? JSON.parse(me.preferences) : {}; } catch { return {}; } })();
   const locations = parseLocations(me?.attendanceLocations);
-
-  const contractHist = await db.query.patientContractHistory.findMany({
-    where: eq(patientContractHistory.patientId, id),
-    orderBy: [desc(patientContractHistory.date)],
-  });
 
   // --- Fluxo financeiro universal: pagamentos (+) e sessões realizadas+cobráveis (−) ---
   const fee = parseFloat(patient.sessionFee || "0") || 0;

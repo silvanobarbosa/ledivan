@@ -1,4 +1,4 @@
-import { pgTable, text, numeric, timestamp, uuid, pgEnum, boolean, integer, primaryKey } from "drizzle-orm/pg-core";
+import { pgTable, text, numeric, timestamp, uuid, pgEnum, boolean, integer, primaryKey, index } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import type { AdapterAccountType } from "next-auth/adapters"
 
@@ -118,7 +118,10 @@ export const transactions = pgTable("transactions", {
   method: text("method"), // forma: pix | debito | credito | dinheiro | deposito | transferencia | boleto | outro
   reconciledAt: timestamp("reconciled_at"), // conciliado com extrato bancário
   createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+}, (t) => [
+  index("tx_user_idx").on(t.userId),
+  index("tx_date_idx").on(t.date),
+]);
 
 export const goals = pgTable("goals", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -217,7 +220,9 @@ export const patients = pgTable("patients", {
   moodToken: text("mood_token").unique(), // link do diário de humor: /humor/<token>
   tags: text("tags"), // etiquetas separadas por vírgula
   createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+}, (t) => [
+  index("pat_user_idx").on(t.userId),
+]);
 
 // Escalas de desfecho (PHQ-9/GAD-7) aplicadas ao paciente via link mágico.
 export const scaleApplications = pgTable("scale_applications", {
@@ -242,7 +247,9 @@ export const moodLogs = pgTable("mood_logs", {
   mood: integer("mood").notNull(), // 1 a 5
   note: text("note"),
   loggedAt: timestamp("logged_at").defaultNow().notNull(),
-});
+}, (t) => [
+  index("mood_patient_idx").on(t.patientId),
+]);
 
 export const patientStatusHistory = pgTable("patient_status_history", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -292,7 +299,11 @@ export const therapySessions = pgTable("therapy_sessions", {
   guestJoinedAt: timestamp("guest_joined_at"), // primeiro convidado entrou
   meetingEndedAt: timestamp("meeting_ended_at"), // sala encerrada
   createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+}, (t) => [
+  index("ts_user_idx").on(t.userId),
+  index("ts_patient_idx").on(t.patientId),
+  index("ts_date_idx").on(t.date),
+]);
 
 // Plano terapêutico: objetivos do tratamento + progresso.
 export const treatmentGoals = pgTable("treatment_goals", {
@@ -317,7 +328,9 @@ export const patientRecords = pgTable("patient_records", {
   title: text("title"),
   content: text("content").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+}, (t) => [
+  index("pr_patient_idx").on(t.patientId),
+]);
 
 export const sessionPayments = pgTable("session_payments", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -331,7 +344,10 @@ export const sessionPayments = pgTable("session_payments", {
   // VINCULO OPCIONAL com o financeiro: se preenchido, este pagamento gerou uma transacao de receita.
   linkedTransactionId: uuid("linked_transaction_id").references(() => transactions.id, { onDelete: "set null" }),
   createdAt: timestamp("created_at").defaultNow().notNull(),
-});
+}, (t) => [
+  index("sp_patient_idx").on(t.patientId),
+  index("sp_user_idx").on(t.userId),
+]);
 
 // --- Relations ---
 

@@ -33,120 +33,59 @@ export default async function DashboardPage() {
     return <div>Usuário não encontrado no banco de dados.</div>;
   }
 
-  // 1. Buscar Totais
-  const [balanceResult] = await db
-    .select({ 
+  // Datas de janela
+  const thirtyDaysAgo = new Date(); thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+  const weekStart = new Date(); weekStart.setHours(0, 0, 0, 0); weekStart.setDate(weekStart.getDate() - weekStart.getDay());
+  const weekEnd = new Date(weekStart); weekEnd.setDate(weekEnd.getDate() + 7);
+  const monthStart = new Date(); monthStart.setHours(0, 0, 0, 0); monthStart.setDate(1);
+  const now = new Date();
+
+  // Todas as consultas do dashboard em paralelo (evita waterfall no Neon)
+  const [
+    balanceRows, recentTransactionsData, userGoals, userAchievementsData, tCountRows,
+    chartData, categoryDistribution, activeRows, weekRows, sessionIncomeRows,
+    flagged, mgmtFlagged, upcomingSessions,
+  ] = await Promise.all([
+    db.select({
       total: sum(transactions.amount),
       income: sql<string>`sum(case when ${transactions.type} = 'income' then ${transactions.amount} else 0 end)`,
-      expense: sql<string>`sum(case when ${transactions.type} = 'expense' then ${transactions.amount} else 0 end)`
-    })
-    .from(transactions)
-    .where(eq(transactions.userId, user.id));
+      expense: sql<string>`sum(case when ${transactions.type} = 'expense' then ${transactions.amount} else 0 end)`,
+    }).from(transactions).where(eq(transactions.userId, user.id)),
+    db.query.transactions.findMany({ where: eq(transactions.userId, user.id), with: { category: true }, orderBy: [desc(transactions.date)], limit: 5 }),
+    db.query.goals.findMany({ where: eq(goals.userId, user.id), limit: 1 }),
+    db.query.achievements.findMany({ where: eq(achievements.userId, user.id) }),
+    db.select({ val: count() }).from(transactions).where(eq(transactions.userId, user.id)),
+    db.select({ date: sql<string>`TO_CHAR(${transactions.date}, 'DD/MM')`, total: sum(transactions.amount) })
+      .from(transactions)
+      .where(sql`${transactions.userId} = ${user.id} AND ${transactions.date} >= ${thirtyDaysAgo}`)
+      .groupBy(sql`TO_CHAR(${transactions.date}, 'DD/MM'), ${transactions.date}`)
+      .orderBy(transactions.date),
+    db.select({ name: categories.name, value: sum(transactions.amount), color: categories.color })
+      .from(transactions).innerJoin(categories, eq(transactions.categoryId, categories.id))
+      .where(eq(transactions.userId, user.id)).groupBy(categories.name, categories.color),
+    db.select({ val: count() }).from(patients).where(and(eq(patients.userId, user.id), eq(patients.patientStatus, "ativo"))),
+    db.select({ val: count() }).from(therapySessions).where(sql`${therapySessions.userId} = ${user.id} AND ${therapySessions.date} >= ${weekStart} AND ${therapySessions.date} < ${weekEnd}`),
+    db.select({ val: sum(transactions.amount) }).from(transactions).where(sql`${transactions.userId} = ${user.id} AND ${transactions.source} = 'session_payment' AND ${transactions.date} >= ${monthStart}`),
+    getClinicalFlags(user.id),
+    getManagementFlags(user.id),
+    db.query.therapySessions.findMany({
+      where: sql`${therapySessions.userId} = ${user.id} AND ${therapySessions.date} >= ${now} AND ${therapySessions.status} = 'agendada'`,
+      with: { patient: { columns: { name: true, id: true } } },
+      orderBy: [therapySessions.date],
+      limit: 5,
+    }),
+  ]);
 
-  const totalBalance = parseFloat(balanceResult?.total || "0");
-  const totalIncome = parseFloat(balanceResult?.income || "0");
-  const totalExpense = parseFloat(balanceResult?.expense || "0");
-
-  // 2. Buscar Transações Recentes com Categorias
-  const recentTransactionsData = await db.query.transactions.findMany({
-    where: eq(transactions.userId, user.id),
-    with: {
-      category: true,
-    },
-    orderBy: [desc(transactions.date)],
-    limit: 5,
-  });
-
-  // 3. Buscar Metas
-  const userGoals = await db.query.goals.findMany({
-    where: eq(goals.userId, user.id),
-    limit: 1,
-  });
-
-  // 4. Buscar Conquistas
-  const userAchievementsData = await db.query.achievements.findMany({
-    where: eq(achievements.userId, user.id),
-  });
-
-  // 5. Calcular Gamificação (XP e Nível)
-  const [tCountResult] = await db
-    .select({ val: count() })
-    .from(transactions)
-    .where(eq(transactions.userId, user.id));
-  
-  const totalTransactionsCount = Number(tCountResult?.val || 0);
+  const totalBalance = parseFloat(balanceRows[0]?.total || "0");
+  const totalIncome = parseFloat(balanceRows[0]?.income || "0");
+  const totalExpense = parseFloat(balanceRows[0]?.expense || "0");
+  const totalTransactionsCount = Number(tCountRows[0]?.val || 0);
   const xp = (totalTransactionsCount * 10) + (userAchievementsData.length * 100);
   const level = 1 + Math.floor(xp / 500);
-  const nextLevelXp = level * 500;
   const currentLevelXp = xp % 500;
-
-  // 6. Dados para o Gráfico (últimos 30 dias)
-  const thirtyDaysAgo = new Date();
-  thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-
-  const chartData = await db
-    .select({
-      date: sql<string>`TO_CHAR(${transactions.date}, 'DD/MM')`,
-      total: sum(transactions.amount),
-    })
-    .from(transactions)
-    .where(sql`${transactions.userId} = ${user.id} AND ${transactions.date} >= ${thirtyDaysAgo}`)
-    .groupBy(sql`TO_CHAR(${transactions.date}, 'DD/MM'), ${transactions.date}`)
-    .orderBy(transactions.date);
-
-  // 6. Distribuição por Categoria (Donut Chart)
-  const categoryDistribution = await db
-    .select({
-      name: categories.name,
-      value: sum(transactions.amount),
-      color: categories.color,
-    })
-    .from(transactions)
-    .innerJoin(categories, eq(transactions.categoryId, categories.id))
-    .where(eq(transactions.userId, user.id))
-    .groupBy(categories.name, categories.color);
-
-  // 7. Resumo do consultório (Terapia)
-  const [activePatientsRes] = await db
-    .select({ val: count() })
-    .from(patients)
-    .where(and(eq(patients.userId, user.id), eq(patients.patientStatus, "ativo")));
-  const activePatients = Number(activePatientsRes?.val || 0);
-
-  const weekStart = new Date();
-  weekStart.setHours(0, 0, 0, 0);
-  weekStart.setDate(weekStart.getDate() - weekStart.getDay());
-  const weekEnd = new Date(weekStart);
-  weekEnd.setDate(weekEnd.getDate() + 7);
-
-  const [weekSessionsRes] = await db
-    .select({ val: count() })
-    .from(therapySessions)
-    .where(sql`${therapySessions.userId} = ${user.id} AND ${therapySessions.date} >= ${weekStart} AND ${therapySessions.date} < ${weekEnd}`);
-  const weekSessions = Number(weekSessionsRes?.val || 0);
-
-  const monthStart = new Date();
-  monthStart.setHours(0, 0, 0, 0);
-  monthStart.setDate(1);
-  const [sessionIncomeRes] = await db
-    .select({ val: sum(transactions.amount) })
-    .from(transactions)
-    .where(sql`${transactions.userId} = ${user.id} AND ${transactions.source} = 'session_payment' AND ${transactions.date} >= ${monthStart}`);
-  const sessionIncomeMonth = parseFloat(sessionIncomeRes?.val || "0");
-
-  // Atenção clínica (pacientes em alerta)
-  const flagged = await getClinicalFlags(user.id);
-  // Atenção de gestão (financeiro/contrato)
-  const mgmtFlagged = await getManagementFlags(user.id);
-
-  // Próximas sessões (agendadas, daqui pra frente)
-  const now = new Date();
-  const upcomingSessions = await db.query.therapySessions.findMany({
-    where: sql`${therapySessions.userId} = ${user.id} AND ${therapySessions.date} >= ${now} AND ${therapySessions.status} = 'agendada'`,
-    with: { patient: { columns: { name: true, id: true } } },
-    orderBy: [therapySessions.date],
-    limit: 5,
-  });
+  const activePatients = Number(activeRows[0]?.val || 0);
+  const weekSessions = Number(weekRows[0]?.val || 0);
+  const sessionIncomeMonth = parseFloat(sessionIncomeRows[0]?.val || "0");
 
   return (
     <div className="max-w-7xl mx-auto space-y-12 pb-20">

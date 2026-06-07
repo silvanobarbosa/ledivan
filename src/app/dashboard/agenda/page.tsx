@@ -1,7 +1,7 @@
 import { db } from "@/db";
 import { auth } from "@/auth";
 import { therapySessions, patients, users } from "@/db/schema";
-import { and, eq, ne } from "drizzle-orm";
+import { and, eq, ne, gte } from "drizzle-orm";
 import { AgendaClient } from "./AgendaClient";
 import { riskFromSessions } from "@/lib/therapy";
 import { parseLocations } from "@/lib/locations";
@@ -10,18 +10,21 @@ export default async function AgendaPage() {
   const session = await auth();
   if (!session?.user?.id) return null;
 
-  const list = await db.query.therapySessions.findMany({
-    where: eq(therapySessions.userId, session.user.id),
-    with: { patient: { columns: { name: true } } },
-  });
+  // Janela de exibição: últimos 120 dias (para cálculo de risco/histórico recente) em diante.
+  const windowStart = new Date(); windowStart.setDate(windowStart.getDate() - 120);
 
-  // pacientes p/ o seletor de novo atendimento (exclui inativos)
-  const pats = await db.query.patients.findMany({
-    where: and(eq(patients.userId, session.user.id), ne(patients.patientStatus, "inativo")),
-    columns: { id: true, name: true, patientStatus: true, attendanceMode: true, attendanceLocation: true },
-    orderBy: [patients.name],
-  });
-  const me = await db.query.users.findFirst({ where: eq(users.id, session.user.id) });
+  const [list, pats, me] = await Promise.all([
+    db.query.therapySessions.findMany({
+      where: and(eq(therapySessions.userId, session.user.id), gte(therapySessions.date, windowStart)),
+      with: { patient: { columns: { name: true } } },
+    }),
+    db.query.patients.findMany({
+      where: and(eq(patients.userId, session.user.id), ne(patients.patientStatus, "inativo")),
+      columns: { id: true, name: true, patientStatus: true, attendanceMode: true, attendanceLocation: true },
+      orderBy: [patients.name],
+    }),
+    db.query.users.findFirst({ where: eq(users.id, session.user.id) }),
+  ]);
   const locations = parseLocations(me?.attendanceLocations);
 
   // risco de falta por paciente (calculado sobre o histórico completo)
