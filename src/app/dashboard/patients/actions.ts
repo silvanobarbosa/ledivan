@@ -238,6 +238,9 @@ export async function updateFinancialModel(patientId: string, formData: FormData
 
   const FMT: Record<string, string> = { avulso: "Avulso", mensal: "Mensal", quinzenal: "Quinzenal", pacote: "Pacote" };
 
+  const vencRaw = formData.get("priceReviewDate") as string;
+  const efetivaRaw = formData.get("dataEfetiva") as string;
+
   await db.update(patients).set({
     sessionFee: newFee,
     frequency: recorrencia,
@@ -246,10 +249,11 @@ export async function updateFinancialModel(patientId: string, formData: FormData
     contractType: (isPacote ? "pacote" : "avulso") as "pacote" | "avulso",
     sessionsInPacket: isPacote ? packSize : null,
     paymentDay: formData.get("paymentDay") ? parseInt(formData.get("paymentDay") as string) : patient.paymentDay,
+    priceReviewDate: vencRaw ? new Date(vencRaw) : patient.priceReviewDate,
   }).where(and(eq(patients.id, patientId), eq(patients.userId, userId)));
 
   if (newFee !== patient.sessionFee) {
-    await db.insert(patientPriceHistory).values({ patientId, valor: newFee, dataEfetiva: new Date() });
+    await db.insert(patientPriceHistory).values({ patientId, valor: newFee, dataEfetiva: efetivaRaw ? new Date(efetivaRaw) : new Date() });
   }
   if ((patient.paymentFormat || "avulso") !== paymentFormat) {
     await db.insert(patientContractHistory).values({

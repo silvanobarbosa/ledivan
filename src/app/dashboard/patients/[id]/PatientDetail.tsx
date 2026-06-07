@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createSession, deleteSession, updateSession } from "../../sessions/actions";
 import { createPayment } from "../../payments/actions";
-import { createRecord, deleteRecord, addPriceChange, updateFinancialModel, updatePatientNotes, addPackageCredit } from "../actions";
+import { createRecord, deleteRecord, updateFinancialModel, updatePatientNotes, addPackageCredit } from "../actions";
 import { ATTENDANCE_MODE_LABELS } from "@/lib/locations";
 import { MessagePatient } from "@/components/dashboard/MessagePatient";
 import { AssignmentsTab } from "./AssignmentsTab";
@@ -549,62 +549,71 @@ export function PatientDetail({
       {/* Financeiro */}
       {tab === "Financeiro" && (
         <div className="space-y-4">
-          {/* Tipo de Atendimento + Formato de Pagamento */}
+          {/* Tipo de atendimento (resumo atual) */}
+          <div className="glass-card rounded-[24px] p-5">
+            <p className="text-xs font-bold text-foreground/40 uppercase tracking-widest mb-1">Tipo de atendimento</p>
+            <p className="text-sm text-foreground/70">
+              <strong className="capitalize">{patient.frequency || "—"}</strong>, {patient.timesPerPeriod}× por período
+              {patient.contractType === "pacote" && patient.sessionsInPacket ? ` · Pacote de ${patient.sessionsInPacket}` : ""}
+              {" · "}{formatBRL(patient.sessionFee)}/sessão
+              {patient.paymentDay ? ` · pgto dia ${patient.paymentDay}` : ""}
+            </p>
+            {patient.priceReviewDate && <p className="text-[11px] text-[#92400e] mt-1">⏰ Reajuste previsto para {formatDate(patient.priceReviewDate)}</p>}
+          </div>
+
+          {/* Ajustar Recorrência: frequência + empacotamento + valor + prazos */}
           <form action={updateFinancialModel.bind(null, patient.id)} className="glass-card rounded-[24px] p-5 space-y-4">
-            <div className="space-y-2">
-              <p className="text-xs font-bold text-foreground/40 uppercase tracking-widest">Tipo de atendimento</p>
-              <div className="grid sm:grid-cols-2 gap-3 items-end">
-                <div>
-                  <label className="text-xs font-semibold text-foreground/60">Recorrência</label>
-                  <select name="recorrencia" value={recorrencia} onChange={(e) => setRecorrencia(e.target.value)} className={inputCls}>
-                    <option value="semanal">Semanal</option>
-                    <option value="quinzenal">Quinzenal</option>
-                    <option value="mensal">Mensal</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="text-xs font-semibold text-foreground/60">Vezes por período<InfoTip text="Quantas vezes no período da recorrência. Ex: 2x por semana." /></label>
-                  <input name="timesPerPeriod" type="number" min={1} max={14} value={times} onChange={(e) => setTimes(e.target.value)} className={inputCls} />
-                </div>
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <p className="text-xs font-bold text-foreground/40 uppercase tracking-widest">Formato de pagamento</p>
-              <div className="grid sm:grid-cols-2 gap-3 items-end">
-                <div>
-                  <label className="text-xs font-semibold text-foreground/60">Formato</label>
-                  <select name="paymentFormat" value={payFormat} onChange={(e) => setPayFormat(e.target.value)} className={inputCls}>
-                    <option value="avulso">Avulso</option>
-                    <option value="mensal">Mensal</option>
-                    <option value="quinzenal">Quinzenal</option>
-                    <option value="pacote">Pacote</option>
-                  </select>
-                </div>
-                {payFormat === "pacote" && (
-                  <div>
-                    <label className="text-xs font-semibold text-foreground/60">Pacote de</label>
-                    <select name="packSize" defaultValue={String(patient.sessionsInPacket ?? 4)} className={inputCls}>
-                      <option value="2">2 sessões</option>
-                      <option value="4">4 sessões</option>
-                      <option value="8">8 sessões</option>
-                    </select>
-                  </div>
-                )}
-              </div>
-            </div>
-
-            <div className="grid sm:grid-cols-2 gap-3">
+            <p className="text-xs font-bold text-foreground/40 uppercase tracking-widest">Ajustar recorrência</p>
+            <div className="grid sm:grid-cols-2 gap-3 items-end">
               <div>
-                <label className="text-xs font-semibold text-foreground/60">Valor da sessão (R$)</label>
+                <label className="text-xs font-semibold text-foreground/60">Recorrência</label>
+                <select name="recorrencia" value={recorrencia} onChange={(e) => setRecorrencia(e.target.value)} className={inputCls}>
+                  <option value="semanal">Semanal</option>
+                  <option value="quinzenal">Quinzenal</option>
+                  <option value="mensal">Mensal</option>
+                </select>
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-foreground/60">Vezes por período<InfoTip text="Ex: 2x por semana." /></label>
+                <input name="timesPerPeriod" type="number" min={1} max={14} value={times} onChange={(e) => setTimes(e.target.value)} className={inputCls} />
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-foreground/60">Empacotamento</label>
+                <select name="paymentFormat" value={payFormat} onChange={(e) => setPayFormat(e.target.value)} className={inputCls}>
+                  <option value="avulso">Avulso</option>
+                  <option value="mensal">Mensal</option>
+                  <option value="quinzenal">Quinzenal</option>
+                  <option value="pacote">Pacote</option>
+                </select>
+              </div>
+              {payFormat === "pacote" && (
+                <div>
+                  <label className="text-xs font-semibold text-foreground/60">Pacote de</label>
+                  <select name="packSize" defaultValue={String(patient.sessionsInPacket ?? 4)} className={inputCls}>
+                    <option value="2">2 sessões</option>
+                    <option value="4">4 sessões</option>
+                    <option value="8">8 sessões</option>
+                  </select>
+                </div>
+              )}
+              <div>
+                <label className="text-xs font-semibold text-foreground/60">Novo valor da sessão (R$)</label>
                 <input name="sessionFee" inputMode="decimal" defaultValue={patient.sessionFee} className={inputCls} />
               </div>
               <div>
                 <label className="text-xs font-semibold text-foreground/60">Dia de pagamento</label>
                 <input name="paymentDay" type="number" min={1} max={31} defaultValue={patient.paymentDay ?? ""} className={inputCls} placeholder="ex: 5" />
               </div>
+              <div>
+                <label className="text-xs font-semibold text-foreground/60">Vigente a partir de</label>
+                <input name="dataEfetiva" type="date" className={inputCls} />
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-foreground/60">Vencimento (reajuste)</label>
+                <input name="priceReviewDate" type="date" defaultValue={patient.priceReviewDate ? patient.priceReviewDate.slice(0, 10) : ""} className={inputCls} />
+              </div>
             </div>
-            <button className="bg-primary text-white py-2.5 px-5 rounded-xl font-bold text-sm">Salvar</button>
+            <button className="bg-primary text-white py-2.5 px-5 rounded-xl font-bold text-sm">Salvar ajuste</button>
           </form>
 
           {/* Contadores */}
@@ -656,39 +665,12 @@ export function PatientDetail({
           )}
 
           <div className="glass-card rounded-[24px] p-5">
-            <div className="flex items-center justify-between mb-3">
-              <p className="text-xs font-bold text-foreground/40 uppercase tracking-widest">Preço</p>
-              <span className="text-xs text-foreground/50">Atual: <strong className="text-primary">{formatBRL(patient.sessionFee)}</strong></span>
-            </div>
-            {patient.priceReviewDate && (
-              <p className="text-[11px] text-[#92400e] bg-[#fffbeb] border border-[#fde68a] rounded-lg px-2 py-1 mb-2">
-                ⏰ Reajuste previsto para {formatDate(patient.priceReviewDate)}
-              </p>
-            )}
+            <p className="text-xs font-bold text-foreground/40 uppercase tracking-widest mb-2">Histórico de valor</p>
             {priceHistory.length === 0 ? <Empty text="Sem histórico." /> : priceHistory.map((h) => (
               <div key={h.id} className="flex justify-between py-1.5 text-sm border-b border-border last:border-0">
                 <span>{formatBRL(h.valor)}</span><span className="text-foreground/40">{formatDate(h.dataEfetiva)}</span>
               </div>
             ))}
-
-            <form action={addPriceChange.bind(null, patient.id)} className="mt-4 pt-4 border-t border-border space-y-2">
-              <p className="text-xs font-bold text-foreground/40 uppercase tracking-widest">Ajustar valor</p>
-              <div>
-                <label className="text-[11px] font-semibold text-foreground/50">Novo valor (R$)</label>
-                <input name="valor" inputMode="decimal" required placeholder="ex: 220,00" className={inputCls} />
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="text-[11px] font-semibold text-foreground/50">Vigente a partir de</label>
-                  <input name="dataEfetiva" type="date" className={inputCls} />
-                </div>
-                <div>
-                  <label className="text-[11px] font-semibold text-foreground/50">Vencimento (reajuste)</label>
-                  <input name="priceReviewDate" type="date" defaultValue={patient.priceReviewDate ? patient.priceReviewDate.slice(0, 10) : ""} className={inputCls} />
-                </div>
-              </div>
-              <button className="w-full bg-primary text-white py-2.5 rounded-xl font-bold text-sm">Salvar ajuste</button>
-            </form>
           </div>
 
           {/* Fluxo financeiro (no rodapé): pagamentos (+) e sessões realizadas cobráveis (−) */}
