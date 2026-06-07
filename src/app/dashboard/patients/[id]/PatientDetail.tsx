@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createSession, deleteSession, updateSession } from "../../sessions/actions";
 import { createPayment } from "../../payments/actions";
-import { createRecord, deleteRecord, addPriceChange, renewPackage, updateFinancialModel } from "../actions";
+import { createRecord, deleteRecord, addPriceChange, renewPackage, updateFinancialModel, updatePatientNotes } from "../actions";
 import { ATTENDANCE_MODE_LABELS } from "@/lib/locations";
 import { AssignmentsTab } from "./AssignmentsTab";
 import { SessionSummary } from "./SessionSummary";
@@ -37,6 +37,7 @@ type Patient = {
   attendanceMode: string | null; attendanceLocation: string | null;
   priceReviewDate: string | null;
   sessionsInPacket: number | null; packageCreditsUsed: number; deductPackageOnSession: boolean;
+  tags: string | null;
 };
 type ContractEntry = { id: string; type: string; from: string | null; to: string | null; description: string | null; date: string };
 type Finance = { fee: number; balance: number; totalPaid: number; totalDebit: number; atendimentos: number; lastPaymentDate: string | null; lastPaymentAmount: number | null; creditSessions: number; debtSessions: number };
@@ -256,6 +257,31 @@ export function PatientDetail({
       {/* Prontuário */}
       {tab === "Prontuário" && (
         <div className="space-y-4">
+          {/* Cabeçalho do prontuário: etiquetas + observações (editáveis, com histórico) */}
+          <form action={updatePatientNotes.bind(null, patient.id)} className="glass-card rounded-[24px] p-5 space-y-3">
+            <p className="text-xs font-bold text-foreground/40 uppercase tracking-widest">Cabeçalho do prontuário</p>
+            <div>
+              <label className="text-xs font-semibold text-foreground/60">Etiquetas (separadas por vírgula)</label>
+              <input name="tags" defaultValue={patient.tags ?? ""} className={inputCls} placeholder="ex: TCC, ansiedade, casal" />
+            </div>
+            <div>
+              <label className="text-xs font-semibold text-foreground/60">Observações</label>
+              <textarea name="notes" rows={3} defaultValue={patient.notes ?? ""} className={inputCls} placeholder="Anotações gerais sobre o paciente (aparecem no topo do prontuário)" />
+            </div>
+            <button className="bg-primary text-white py-2.5 px-5 rounded-xl font-bold text-sm">Salvar cabeçalho</button>
+            {contractHistory.filter((h) => h.type === "tags" || h.type === "observacoes").length > 0 && (
+              <div className="pt-3 border-t border-border space-y-1">
+                <p className="text-[11px] font-bold text-foreground/40 uppercase tracking-widest">Histórico de alterações</p>
+                {contractHistory.filter((h) => h.type === "tags" || h.type === "observacoes").map((h) => (
+                  <div key={h.id} className="flex justify-between gap-3 py-1 text-[11px] text-foreground/60 border-b border-border last:border-0">
+                    <span className="truncate">{h.description}: {h.to}</span>
+                    <span className="text-foreground/40 shrink-0">{formatDate(h.date)}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </form>
+
           <TreatmentPlan patientId={patient.id} goals={treatmentGoals} />
           <div className="flex flex-wrap gap-4">
             <button onClick={() => setShowRecord((s) => !s)} className="flex items-center gap-2 text-primary font-semibold text-sm hover:underline">
@@ -575,7 +601,6 @@ export function PatientDetail({
                 </div>
               </div>
               <p className="text-[11px] text-foreground/50">Total do pacote: <strong className="text-primary">{formatBRL(renewTotal.toFixed(2))}</strong> <span className="text-foreground/40">({renewQty || 0} × {formatBRL(patient.sessionFee)})</span></p>
-              <p className="text-[11px] text-foreground/40">Zera os créditos usados e registra no histórico.</p>
               <button className="bg-primary text-white py-2.5 px-5 rounded-xl font-bold text-sm">Renovar pacote</button>
             </form>
           )}

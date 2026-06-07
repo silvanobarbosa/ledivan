@@ -109,20 +109,12 @@ export default async function NewPatientPage() {
           </div>
         </div>
 
-        <div>
-          <label className={labelCls}>Etiquetas (separadas por vírgula)<InfoTip text="Marcadores livres para organizar e filtrar pacientes na lista. Ex: TCC, ansiedade, casal." /></label>
-          <input name="tags" className={inputCls} placeholder="ex: TCC, ansiedade, quinzenal" />
-        </div>
-
         <div className="pt-2 border-t border-border">
           <p className="text-xs font-bold text-foreground/40 uppercase tracking-widest mb-3 mt-3">Fotos<InfoTip text="A foto 3x4 é a referência do cadastro. As outras 3 são opcionais." /></p>
           <PhotoSlots />
         </div>
 
-        <div>
-          <label className={labelCls}>Observações</label>
-          <textarea name="notes" rows={3} className={inputCls} placeholder="Anotações sobre o paciente" />
-        </div>
+        <p className="text-xs text-foreground/50">💡 Etiquetas e observações ficam no <strong>Prontuário</strong> do paciente (com histórico de alterações).</p>
 
         <div className="flex gap-3 pt-2">
           <SubmitButton pendingLabel="Cadastrando…" className="flex-1 inline-flex items-center justify-center gap-2 bg-primary text-white py-3.5 rounded-2xl font-bold shadow-lg shadow-primary/20 hover:scale-[1.01] transition">

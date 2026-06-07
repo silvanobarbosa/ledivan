@@ -74,7 +74,8 @@ export default async function ProntuarioExport({ params }: { params: Promise<{ p
               <Field label="Início" value={formatDate(patient.startedAt)} />
               <Field label="Frequência" value={patient.frequency ?? "—"} />
             </Grid>
-            {patient.notes && <p className="text-sm mt-2 text-[#1a0f1f]/80 whitespace-pre-wrap">{patient.notes}</p>}
+            {patient.tags && <p className="text-sm mt-2"><span className="text-[#6b5b6f]">Etiquetas:</span> <strong>{patient.tags}</strong></p>}
+            {patient.notes && <p className="text-sm mt-2 text-[#1a0f1f]/80 whitespace-pre-wrap"><span className="text-[#6b5b6f]">Observações:</span> {patient.notes}</p>}
           </Section>
 
           <Section title="Plano terapêutico">

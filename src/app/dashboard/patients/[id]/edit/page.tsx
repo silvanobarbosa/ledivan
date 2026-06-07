@@ -116,11 +116,6 @@ export default async function EditPatientPage({ params }: { params: Promise<{ id
           </div>
         </div>
 
-        <div>
-          <label className={labelCls}>Etiquetas (separadas por vírgula)</label>
-          <input name="tags" defaultValue={patient.tags ?? ""} className={inputCls} placeholder="ex: TCC, ansiedade, quinzenal" />
-        </div>
-
         <div className="pt-2 border-t border-border">
           <p className="text-xs font-bold text-foreground/40 uppercase tracking-widest mb-3 mt-3">Fotos<InfoTip text="A foto 3x4 é a referência do cadastro. As outras 3 são opcionais." /></p>
           <PhotoSlots
@@ -133,10 +128,7 @@ export default async function EditPatientPage({ params }: { params: Promise<{ id
           />
         </div>
 
-        <div>
-          <label className={labelCls}>Observações</label>
-          <textarea name="notes" rows={3} defaultValue={patient.notes ?? ""} className={inputCls} />
-        </div>
+        <p className="text-xs text-foreground/50">💡 Etiquetas e observações ficam no <strong>Prontuário</strong> do paciente (com histórico).</p>
 
         <div className="flex gap-3 pt-2">
           <SubmitButton pendingLabel="Salvando…" className="flex-1 inline-flex items-center justify-center gap-2 bg-primary text-white py-3.5 rounded-2xl font-bold shadow-lg shadow-primary/20 hover:scale-[1.01] transition">

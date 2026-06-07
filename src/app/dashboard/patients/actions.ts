@@ -151,7 +151,7 @@ export async function updatePatient(patientId: string, formData: FormData) {
     phone: (formData.get("phone") as string) ?? existing.phone,
     sessionFee: newFee,
     frequency: (formData.get("frequency") as string) ?? existing.frequency,
-    notes: (formData.get("notes") as string) ?? existing.notes,
+    notes: existing.notes, // editado no Prontuário
     patientStatus: newStatus,
     address: (formData.get("address") as string) ?? existing.address,
     emergencyName: (formData.get("emergencyName") as string) ?? existing.emergencyName,
@@ -176,7 +176,7 @@ export async function updatePatient(patientId: string, formData: FormData) {
     photoExtra1: (formData.get("photoExtra1") as string) || existing.photoExtra1,
     photoExtra2: (formData.get("photoExtra2") as string) || existing.photoExtra2,
     photoExtra3: (formData.get("photoExtra3") as string) || existing.photoExtra3,
-    tags: (formData.get("tags") as string)?.trim() || null,
+    tags: existing.tags, // editado no Prontuário
   }).where(and(eq(patients.id, patientId), eq(patients.userId, session.user.id)));
 
   // historico de mudancas
@@ -291,6 +291,31 @@ export async function renewPackage(patientId: string, formData: FormData) {
     await db.insert(patientPriceHistory).values({ patientId, valor: fee, dataEfetiva: new Date() });
   }
 
+  revalidatePath(`/dashboard/patients/${patientId}`);
+}
+
+// Etiquetas + observações (no cabeçalho do Prontuário). Gera histórico de alterações.
+export async function updatePatientNotes(patientId: string, formData: FormData) {
+  const session = await auth();
+  if (!session?.user?.id) throw new Error("Não autorizado");
+  const userId = session.user.id;
+  const patient = await db.query.patients.findFirst({
+    where: and(eq(patients.id, patientId), eq(patients.userId, userId)),
+  });
+  if (!patient) throw new Error("Paciente não encontrado");
+
+  const newTags = ((formData.get("tags") as string) || "").trim() || null;
+  const newNotes = ((formData.get("notes") as string) || "").trim() || null;
+
+  await db.update(patients).set({ tags: newTags, notes: newNotes }).where(and(eq(patients.id, patientId), eq(patients.userId, userId)));
+
+  if ((patient.tags || null) !== newTags) {
+    await db.insert(patientContractHistory).values({ patientId, type: "tags", from: patient.tags || "—", to: newTags || "—", description: "Etiquetas alteradas" });
+  }
+  if ((patient.notes || null) !== newNotes) {
+    const trunc = (s: string | null) => (s ? (s.length > 80 ? s.slice(0, 80) + "…" : s) : "—");
+    await db.insert(patientContractHistory).values({ patientId, type: "observacoes", from: trunc(patient.notes), to: trunc(newNotes), description: "Observações alteradas" });
+  }
   revalidatePath(`/dashboard/patients/${patientId}`);
 }
 
