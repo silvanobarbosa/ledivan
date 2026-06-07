@@ -5,8 +5,9 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createSession, deleteSession, updateSession } from "../../sessions/actions";
 import { createPayment } from "../../payments/actions";
-import { createRecord, deleteRecord, addPriceChange, renewPackage, updateFinancialModel, updatePatientNotes } from "../actions";
+import { createRecord, deleteRecord, addPriceChange, updateFinancialModel, updatePatientNotes, addPackageCredit } from "../actions";
 import { ATTENDANCE_MODE_LABELS } from "@/lib/locations";
+import { MessagePatient } from "@/components/dashboard/MessagePatient";
 import { AssignmentsTab } from "./AssignmentsTab";
 import { SessionSummary } from "./SessionSummary";
 import { TreatmentPlan } from "./TreatmentPlan";
@@ -38,6 +39,7 @@ type Patient = {
   priceReviewDate: string | null;
   sessionsInPacket: number | null; packageCreditsUsed: number; deductPackageOnSession: boolean;
   tags: string | null;
+  timesPerPeriod: number; paymentFormat: string;
 };
 type ContractEntry = { id: string; type: string; from: string | null; to: string | null; description: string | null; date: string };
 type Finance = { fee: number; balance: number; totalPaid: number; totalDebit: number; atendimentos: number; lastPaymentDate: string | null; lastPaymentAmount: number | null; creditSessions: number; debtSessions: number };
@@ -79,15 +81,18 @@ export function PatientDetail({
 }) {
   const router = useRouter();
   const [tab, setTab] = useState<(typeof TABS)[number]>("Dados");
-  const [model, setModel] = useState(patient.contractType === "pacote" ? "pacote" : (patient.frequency || "avulso"));
   const [editSess, setEditSess] = useState<string | null>(null);
   const todayStart = (() => { const d = new Date(); d.setHours(0, 0, 0, 0); return d.getTime(); })();
   const [payAmount, setPayAmount] = useState(patient.sessionFee);
-  const [renewQty, setRenewQty] = useState(String(patient.sessionsInPacket ?? ""));
   const feeNum = parseFloat((patient.sessionFee || "0").replace(",", ".")) || 0;
   const payNum = parseFloat((payAmount || "0").replace(",", ".")) || 0;
   const paySessions = feeNum > 0 ? Math.floor(payNum / feeNum) : 0;
-  const renewTotal = feeNum * (parseInt(renewQty || "0") || 0);
+  // Tipo de atendimento (controlado p/ contadores ao vivo)
+  const [recorrencia, setRecorrencia] = useState(patient.frequency || "semanal");
+  const [times, setTimes] = useState(String(patient.timesPerPeriod ?? 1));
+  const [payFormat, setPayFormat] = useState(patient.paymentFormat || "avulso");
+  const PERIODO_MES: Record<string, number> = { semanal: 4, quinzenal: 2, mensal: 1 };
+  const sessoesPrevistasMes = (PERIODO_MES[recorrencia] ?? 0) * (parseInt(times || "0") || 0);
   const sessToLocal = (iso: string) => { const d = new Date(iso); const p = (n: number) => String(n).padStart(2, "0"); return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`; };
   const [showSession, setShowSession] = useState(false);
   const [showPayment, setShowPayment] = useState(false);
@@ -154,6 +159,7 @@ export function PatientDetail({
           </div>
         </div>
         <div className="flex items-center gap-2 shrink-0">
+          <MessagePatient patient={{ id: patient.id, name: patient.name, phone: patient.phone, email: patient.email }} />
           <a
             href={`/prontuario/${patient.id}`}
             target="_blank"
@@ -543,9 +549,51 @@ export function PatientDetail({
       {/* Financeiro */}
       {tab === "Financeiro" && (
         <div className="space-y-4">
-          {/* Modelo financeiro (movido do cadastro base) */}
-          <form action={updateFinancialModel.bind(null, patient.id)} className="glass-card rounded-[24px] p-5 space-y-3">
-            <p className="text-xs font-bold text-foreground/40 uppercase tracking-widest">Modelo financeiro</p>
+          {/* Tipo de Atendimento + Formato de Pagamento */}
+          <form action={updateFinancialModel.bind(null, patient.id)} className="glass-card rounded-[24px] p-5 space-y-4">
+            <div className="space-y-2">
+              <p className="text-xs font-bold text-foreground/40 uppercase tracking-widest">Tipo de atendimento</p>
+              <div className="grid sm:grid-cols-2 gap-3 items-end">
+                <div>
+                  <label className="text-xs font-semibold text-foreground/60">Recorrência</label>
+                  <select name="recorrencia" value={recorrencia} onChange={(e) => setRecorrencia(e.target.value)} className={inputCls}>
+                    <option value="semanal">Semanal</option>
+                    <option value="quinzenal">Quinzenal</option>
+                    <option value="mensal">Mensal</option>
+                  </select>
+                </div>
+                <div>
+                  <label className="text-xs font-semibold text-foreground/60">Vezes por período<InfoTip text="Quantas vezes no período da recorrência. Ex: 2x por semana." /></label>
+                  <input name="timesPerPeriod" type="number" min={1} max={14} value={times} onChange={(e) => setTimes(e.target.value)} className={inputCls} />
+                </div>
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <p className="text-xs font-bold text-foreground/40 uppercase tracking-widest">Formato de pagamento</p>
+              <div className="grid sm:grid-cols-2 gap-3 items-end">
+                <div>
+                  <label className="text-xs font-semibold text-foreground/60">Formato</label>
+                  <select name="paymentFormat" value={payFormat} onChange={(e) => setPayFormat(e.target.value)} className={inputCls}>
+                    <option value="avulso">Avulso</option>
+                    <option value="mensal">Mensal</option>
+                    <option value="quinzenal">Quinzenal</option>
+                    <option value="pacote">Pacote</option>
+                  </select>
+                </div>
+                {payFormat === "pacote" && (
+                  <div>
+                    <label className="text-xs font-semibold text-foreground/60">Pacote de</label>
+                    <select name="packSize" defaultValue={String(patient.sessionsInPacket ?? 4)} className={inputCls}>
+                      <option value="2">2 sessões</option>
+                      <option value="4">4 sessões</option>
+                      <option value="8">8 sessões</option>
+                    </select>
+                  </div>
+                )}
+              </div>
+            </div>
+
             <div className="grid sm:grid-cols-2 gap-3">
               <div>
                 <label className="text-xs font-semibold text-foreground/60">Valor da sessão (R$)</label>
@@ -556,54 +604,41 @@ export function PatientDetail({
                 <input name="paymentDay" type="number" min={1} max={31} defaultValue={patient.paymentDay ?? ""} className={inputCls} placeholder="ex: 5" />
               </div>
             </div>
-            <div>
-              <label className="text-xs font-semibold text-foreground/60">Modalidade<InfoTip text="Como o atendimento é contratado: por frequência (semanal/quinzenal/mensal), avulso ou pacote. Mudanças ficam no histórico de modelo." /></label>
-              <select name="billingModel" value={model} onChange={(e) => setModel(e.target.value)} className={inputCls}>
-                <option value="semanal">Semanal</option>
-                <option value="quinzenal">Quinzenal</option>
-                <option value="mensal">Mensal</option>
-                <option value="avulso">Avulso</option>
-                <option value="pacote">Pacote</option>
-              </select>
-            </div>
-            {model === "pacote" && (
-              <div className="grid sm:grid-cols-2 gap-3 items-end">
-                <div>
-                  <label className="text-xs font-semibold text-foreground/60">Atendimentos no pacote</label>
-                  <input name="sessionsInPacket" type="number" min={1} max={200} defaultValue={patient.sessionsInPacket ?? ""} className={inputCls} placeholder="ex: 10" />
-                </div>
-                <label className="flex items-center gap-2 text-sm pb-2 cursor-pointer">
-                  <input type="checkbox" name="deductPackageOnSession" defaultChecked={patient.deductPackageOnSession} className="accent-primary w-4 h-4" />
-                  Sessão realizada abate do pacote
-                </label>
-              </div>
-            )}
-            <button className="bg-primary text-white py-2.5 px-5 rounded-xl font-bold text-sm">Salvar modelo financeiro</button>
+            <button className="bg-primary text-white py-2.5 px-5 rounded-xl font-bold text-sm">Salvar</button>
           </form>
 
-          {/* Renovar pacote (dentro do modelo financeiro) */}
-          {model === "pacote" && (
-            <form action={renewPackage.bind(null, patient.id)} className="glass-card rounded-[24px] p-5 space-y-2">
-              <div className="flex items-center justify-between">
-                <p className="text-xs font-bold text-foreground/40 uppercase tracking-widest">Renovar pacote</p>
-                {patient.sessionsInPacket ? (
-                  <span className="text-xs text-foreground/50">Créditos: <strong className="text-primary">{Math.max(0, patient.sessionsInPacket - patient.packageCreditsUsed)}</strong> / {patient.sessionsInPacket}</span>
-                ) : null}
+          {/* Contadores */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="glass-card rounded-[20px] p-4">
+              <p className="text-2xl font-display font-bold text-primary">{sessoesPrevistasMes}</p>
+              <p className="text-xs text-foreground/50">Sessões previstas no mês</p>
+            </div>
+            <div className="glass-card rounded-[20px] p-4">
+              <p className={`text-2xl font-display font-bold ${finance.balance < 0 ? "text-[#b91c1c]" : "text-[#047857]"}`}>{finance.balance < 0 ? `-${finance.debtSessions}` : finance.creditSessions}</p>
+              <p className="text-xs text-foreground/50">Crédito de sessões</p>
+            </div>
+            <div className="glass-card rounded-[20px] p-4">
+              <p className="text-2xl font-display font-bold text-primary">{formatBRL(patient.sessionFee)}</p>
+              <p className="text-xs text-foreground/50">Valor atual</p>
+            </div>
+          </div>
+
+          {/* Adicionar sessões de pacote (crédito na conta-corrente, não vincula a pago) */}
+          <form action={addPackageCredit.bind(null, patient.id)} className="glass-card rounded-[24px] p-5 space-y-2">
+            <p className="text-xs font-bold text-foreground/40 uppercase tracking-widest">Adicionar sessões de pacote</p>
+            <p className="text-[11px] text-foreground/50">Gera crédito cumulativo no fluxo (não é receita). Vai sendo abatido conforme as sessões cobradas.</p>
+            <div className="flex items-end gap-2">
+              <div>
+                <label className="text-[11px] font-semibold text-foreground/50">Pacote</label>
+                <select name="packSize" defaultValue="4" className={inputCls}>
+                  <option value="2">2 sessões</option>
+                  <option value="4">4 sessões</option>
+                  <option value="8">8 sessões</option>
+                </select>
               </div>
-              <div className="grid grid-cols-2 gap-2">
-                <div>
-                  <label className="text-[11px] font-semibold text-foreground/50">Qtd de sessões</label>
-                  <input name="sessionsInPacket" type="number" min={1} max={200} value={renewQty} onChange={(e) => setRenewQty(e.target.value)} className={inputCls} placeholder="ex: 10" />
-                </div>
-                <div>
-                  <label className="text-[11px] font-semibold text-foreground/50">Valor por sessão (R$)</label>
-                  <input name="valor" inputMode="decimal" defaultValue={patient.sessionFee} className={inputCls} />
-                </div>
-              </div>
-              <p className="text-[11px] text-foreground/50">Total do pacote: <strong className="text-primary">{formatBRL(renewTotal.toFixed(2))}</strong> <span className="text-foreground/40">({renewQty || 0} × {formatBRL(patient.sessionFee)})</span></p>
-              <button className="bg-primary text-white py-2.5 px-5 rounded-xl font-bold text-sm">Renovar pacote</button>
-            </form>
-          )}
+              <button className="bg-primary text-white py-2.5 px-5 rounded-xl font-bold text-sm">Adicionar</button>
+            </div>
+          </form>
 
           {/* Histórico de modelo contratual */}
           {contractHistory.filter((h) => h.type === "model").length > 0 && (

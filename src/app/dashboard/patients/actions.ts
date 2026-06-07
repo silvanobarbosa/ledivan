@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@/db";
-import { patients, patientStatusHistory, patientPriceHistory, patientContractHistory, patientRecords, assignments, scaleApplications, treatmentGoals } from "@/db/schema";
+import { patients, patientStatusHistory, patientPriceHistory, patientContractHistory, patientRecords, assignments, scaleApplications, treatmentGoals, sessionPayments } from "@/db/schema";
 import { auth } from "@/auth";
 import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
@@ -216,8 +216,9 @@ export async function addPriceChange(patientId: string, formData: FormData) {
   revalidatePath(`/dashboard/patients/${patientId}`);
 }
 
-// Modelo financeiro do paciente (movido do cadastro base p/ a aba Financeiro):
-// valor da sessão, tipo de contrato, qtd do pacote, abate por sessão, dia de pagamento.
+// Tipo de Atendimento + Formato de Pagamento (aba Financeiro).
+// Recorrência (semanal/quinzenal/mensal) × vezes por período; valor; dia de pagamento;
+// formato (avulso/mensal/quinzenal/pacote) + tamanho do pacote (2/4/8).
 export async function updateFinancialModel(patientId: string, formData: FormData) {
   const session = await auth();
   if (!session?.user?.id) throw new Error("Não autorizado");
@@ -229,36 +230,58 @@ export async function updateFinancialModel(patientId: string, formData: FormData
   if (!patient) throw new Error("Paciente não encontrado");
 
   const newFee = num(formData.get("sessionFee"), patient.sessionFee);
-  // Modalidade única: semanal | quinzenal | mensal | avulso | pacote
-  const modalidade = (formData.get("billingModel") as string) || (patient.contractType === "pacote" ? "pacote" : patient.frequency || "avulso");
-  const isPacote = modalidade === "pacote";
-  const contractType = (isPacote ? "pacote" : "avulso") as "pacote" | "avulso";
-  const frequency = isPacote ? patient.frequency : modalidade;
+  const recorrencia = (formData.get("recorrencia") as string) || patient.frequency || "semanal";
+  const timesPerPeriod = formData.get("timesPerPeriod") ? Math.max(1, parseInt(formData.get("timesPerPeriod") as string)) : patient.timesPerPeriod;
+  const paymentFormat = (formData.get("paymentFormat") as string) || patient.paymentFormat || "avulso";
+  const isPacote = paymentFormat === "pacote";
+  const packSize = formData.get("packSize") ? parseInt(formData.get("packSize") as string) : patient.sessionsInPacket;
 
-  // rótulo legível p/ histórico de modelo
-  const MODEL_LABEL: Record<string, string> = { semanal: "Semanal", quinzenal: "Quinzenal", mensal: "Mensal", avulso: "Avulso", pacote: "Pacote" };
-  const oldModel = patient.contractType === "pacote" ? "pacote" : (patient.frequency || "avulso");
+  const FMT: Record<string, string> = { avulso: "Avulso", mensal: "Mensal", quinzenal: "Quinzenal", pacote: "Pacote" };
 
   await db.update(patients).set({
     sessionFee: newFee,
-    contractType,
-    frequency,
-    sessionsInPacket: formData.get("sessionsInPacket") ? parseInt(formData.get("sessionsInPacket") as string) : (isPacote ? patient.sessionsInPacket : null),
-    deductPackageOnSession: isPacote ? formData.get("deductPackageOnSession") === "on" : true,
+    frequency: recorrencia,
+    timesPerPeriod,
+    paymentFormat,
+    contractType: (isPacote ? "pacote" : "avulso") as "pacote" | "avulso",
+    sessionsInPacket: isPacote ? packSize : null,
     paymentDay: formData.get("paymentDay") ? parseInt(formData.get("paymentDay") as string) : patient.paymentDay,
   }).where(and(eq(patients.id, patientId), eq(patients.userId, userId)));
 
   if (newFee !== patient.sessionFee) {
     await db.insert(patientPriceHistory).values({ patientId, valor: newFee, dataEfetiva: new Date() });
   }
-  if (oldModel !== modalidade) {
+  if ((patient.paymentFormat || "avulso") !== paymentFormat) {
     await db.insert(patientContractHistory).values({
       patientId, type: "model",
-      from: MODEL_LABEL[oldModel] || oldModel,
-      to: MODEL_LABEL[modalidade] || modalidade,
-      description: `Modelo: ${MODEL_LABEL[oldModel] || oldModel} → ${MODEL_LABEL[modalidade] || modalidade}`,
+      from: FMT[patient.paymentFormat || "avulso"] || patient.paymentFormat,
+      to: FMT[paymentFormat] || paymentFormat,
+      description: `Formato: ${FMT[patient.paymentFormat || "avulso"] || patient.paymentFormat} → ${FMT[paymentFormat] || paymentFormat}`,
     });
   }
+  revalidatePath(`/dashboard/patients/${patientId}`);
+}
+
+// Adiciona sessões de pacote (2/4/8) ao fluxo do paciente como CRÉDITO — sem vincular
+// a pagamento/receita. Vira entrada na conta-corrente (será abatida pelas sessões cobradas).
+export async function addPackageCredit(patientId: string, formData: FormData) {
+  const session = await auth();
+  if (!session?.user?.id) throw new Error("Não autorizado");
+  const userId = session.user.id;
+  const patient = await db.query.patients.findFirst({
+    where: and(eq(patients.id, patientId), eq(patients.userId, userId)),
+  });
+  if (!patient) throw new Error("Paciente não encontrado");
+
+  const size = parseInt((formData.get("packSize") as string) || "0");
+  if (![2, 4, 8].includes(size)) throw new Error("Pacote inválido");
+  const fee = parseFloat(patient.sessionFee || "0") || 0;
+  const amount = (fee * size).toFixed(2);
+
+  // entrada de crédito (não é receita: linkedTransactionId nulo, kind=pacote)
+  await db.insert(sessionPayments).values({
+    userId, patientId, amount, method: "pix", status: "paid", kind: "pacote", linkedTransactionId: null,
+  });
   revalidatePath(`/dashboard/patients/${patientId}`);
 }
 

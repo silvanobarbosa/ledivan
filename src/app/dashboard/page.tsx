@@ -4,7 +4,6 @@ import { users, transactions, goals, categories, achievements, patients, therapy
 import { eq, sum, desc, sql, count, and } from "drizzle-orm";
 import { formatBRL, formatDateTime } from "@/lib/therapy";
 import { getClinicalFlags } from "@/lib/clinical";
-import { getManagementFlags, MGMT_FLAG_LABELS } from "@/lib/management";
 import { FlagChips } from "@/components/dashboard/FlagChips";
 import { Users as UsersIcon, CalendarCheck, Clock, Activity, ChevronRight } from "lucide-react";
 import { BalanceCard } from "@/components/dashboard/BalanceCard";
@@ -44,7 +43,7 @@ export default async function DashboardPage() {
   const [
     balanceRows, recentTransactionsData, userGoals, userAchievementsData, tCountRows,
     chartData, categoryDistribution, activeRows, weekRows, sessionIncomeRows,
-    flagged, mgmtFlagged, upcomingSessions,
+    flagged, upcomingSessions,
   ] = await Promise.all([
     db.select({
       total: sum(transactions.amount),
@@ -67,7 +66,6 @@ export default async function DashboardPage() {
     db.select({ val: count() }).from(therapySessions).where(sql`${therapySessions.userId} = ${user.id} AND ${therapySessions.date} >= ${weekStart} AND ${therapySessions.date} < ${weekEnd}`),
     db.select({ val: sum(transactions.amount) }).from(transactions).where(sql`${transactions.userId} = ${user.id} AND ${transactions.source} = 'session_payment' AND ${transactions.date} >= ${monthStart}`),
     getClinicalFlags(user.id),
-    getManagementFlags(user.id),
     db.query.therapySessions.findMany({
       where: sql`${therapySessions.userId} = ${user.id} AND ${therapySessions.date} >= ${now} AND ${therapySessions.status} = 'agendada'`,
       with: { patient: { columns: { name: true, id: true } } },
@@ -158,34 +156,6 @@ export default async function DashboardPage() {
                 <div className="flex-1 min-w-0">
                   <p className="font-semibold truncate text-sm">{name}</p>
                   <div className="mt-1"><FlagChips flags={flags} /></div>
-                </div>
-                <ChevronRight className="w-4 h-4 text-foreground/30 group-hover:text-primary transition" />
-              </Link>
-            ))}
-          </div>
-        </section>
-      )}
-
-      {/* Atenção de gestão (financeiro/contrato) */}
-      {mgmtFlagged.length > 0 && (
-        <section className="bg-white rounded-[40px] shadow-sm border border-border p-8 space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="text-xl font-display font-bold text-primary flex items-center gap-2">
-              <Wallet className="w-5 h-5" /> Atenção de gestão
-            </h3>
-            <span className="text-sm text-foreground/40">{mgmtFlagged.length} paciente(s)</span>
-          </div>
-          <div className="grid gap-2">
-            {mgmtFlagged.slice(0, 6).map(({ id, name, flags }) => (
-              <Link key={id} href={`/dashboard/patients/${id}`} className="flex items-center gap-3 bg-surface/60 rounded-2xl px-4 py-3 hover:bg-surface transition group">
-                <span className="w-9 h-9 rounded-xl bg-[#fffbeb] text-[#92400e] flex items-center justify-center font-display font-bold text-sm shrink-0">{name.charAt(0).toUpperCase()}</span>
-                <div className="flex-1 min-w-0">
-                  <p className="font-semibold truncate text-sm">{name}</p>
-                  <div className="mt-1 flex flex-wrap gap-1">
-                    {flags.map((f) => (
-                      <span key={f} className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#fef3c7] text-[#92400e]">{MGMT_FLAG_LABELS[f]}</span>
-                    ))}
-                  </div>
                 </div>
                 <ChevronRight className="w-4 h-4 text-foreground/30 group-hover:text-primary transition" />
               </Link>

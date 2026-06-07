@@ -1,0 +1,1 @@
+ALTER TABLE "session_payments" ADD COLUMN "kind" text;

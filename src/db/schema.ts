@@ -210,7 +210,9 @@ export const patients = pgTable("patients", {
   contractType: contractTypeEnum("contract_type").default("avulso"),
   attendanceMode: text("attendance_mode").default("presencial").notNull(), // online | presencial | misto
   attendanceLocation: text("attendance_location"), // endereço pré-selecionado (presencial/misto)
-  sessionsInPacket: integer("sessions_in_packet"), // qtd de atendimentos no pacote
+  timesPerPeriod: integer("times_per_period").default(1).notNull(), // vezes por período da recorrência (ex: 2x/semana)
+  paymentFormat: text("payment_format").default("avulso").notNull(), // avulso | mensal | quinzenal | pacote
+  sessionsInPacket: integer("sessions_in_packet"), // tamanho do pacote (2/4/8)
   packageCreditsUsed: integer("package_credits_used").default(0).notNull(), // créditos do pacote já consumidos
   deductPackageOnSession: boolean("deduct_package_on_session").default(true).notNull(), // sessão realizada abate do pacote (senão, abate no pagamento)
   // Lembrete de sessao (escolha do terapeuta por paciente)
@@ -341,6 +343,7 @@ export const sessionPayments = pgTable("session_payments", {
   date: timestamp("date").defaultNow().notNull(),
   method: paymentMethodEnum("method").default("pix").notNull(),
   status: paymentStatusEnum("status").default("paid").notNull(),
+  kind: text("kind"), // null = pagamento normal; "pacote" = crédito de pacote (não é receita)
   // VINCULO OPCIONAL com o financeiro: se preenchido, este pagamento gerou uma transacao de receita.
   linkedTransactionId: uuid("linked_transaction_id").references(() => transactions.id, { onDelete: "set null" }),
   createdAt: timestamp("created_at").defaultNow().notNull(),
