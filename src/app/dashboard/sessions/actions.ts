@@ -55,6 +55,7 @@ export async function createSession(formData: FormData) {
     chargeable: formData.get("chargeable") !== "false",
     isOnline,
     location: isOnline ? null : ((formData.get("location") as string) || patient.attendanceLocation || null),
+    pendingConfirmation: formData.get("reserva") === "true", // Reserva (não confirmada) vs Agenda confirmada
     meetingUrl,
   });
 
@@ -100,6 +101,7 @@ export async function createSessionFromAgenda(formData: FormData): Promise<{ ok:
     chargeable: formData.get("chargeable") !== "false",
     isOnline,
     location: isOnline ? null : ((formData.get("location") as string) || patient.attendanceLocation || null),
+    pendingConfirmation: formData.get("reserva") === "true",
     meetingUrl,
   });
 

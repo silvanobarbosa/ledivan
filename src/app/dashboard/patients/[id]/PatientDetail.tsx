@@ -5,7 +5,8 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createSession, deleteSession, updateSession } from "../../sessions/actions";
 import { createPayment } from "../../payments/actions";
-import { createRecord, deleteRecord, updateFinancialModel, updatePatientNotes } from "../actions";
+import { createRecord, deleteRecord, updatePatientNotes } from "../actions";
+import { FinanceAdjust } from "./FinanceAdjust";
 import { ATTENDANCE_MODE_LABELS } from "@/lib/locations";
 import { MessagePatient } from "@/components/dashboard/MessagePatient";
 import { AssignmentsTab } from "./AssignmentsTab";
@@ -63,13 +64,14 @@ const inputCls = "w-full px-4 py-2.5 rounded-xl bg-white/70 border border-border
 const TABS = ["Dados", "Prontuário", "Atividades", "Sessões", "Financeiro", "Linha do tempo"] as const;
 
 export function PatientDetail({
-  patient, sessions, payments, statusHistory, priceHistory, records, autoLinkPayments, transcriptionEnabled, risk, assignments, moodToken, moodLogs, scales, treatmentGoals, locations = [], contractHistory = [], finance, ledger = [],
+  patient, sessions, payments, statusHistory, priceHistory, records, autoLinkPayments, transcriptionEnabled, risk, assignments, moodToken, moodLogs, scales, treatmentGoals, locations = [], contractHistory = [], finance, ledger = [], sessionStats,
 }: {
   patient: Patient; sessions: Session[]; payments: Payment[];
   statusHistory: StatusEntry[]; priceHistory: PriceEntry[]; records: RecordEntry[];
   contractHistory?: ContractEntry[];
   finance: Finance;
   ledger?: LedgerEntry[];
+  sessionStats: { reservadas: number; agendadasFuturas: number; realizadasCount: number; lastRealizada: string | null };
   autoLinkPayments: boolean; transcriptionEnabled: boolean;
   risk: { level: RiskLevel; rate: number; faltas: number; total: number };
   assignments: AssignmentEntry[];
@@ -87,12 +89,8 @@ export function PatientDetail({
   const feeNum = parseFloat((patient.sessionFee || "0").replace(",", ".")) || 0;
   const payNum = parseFloat((payAmount || "0").replace(",", ".")) || 0;
   const paySessions = feeNum > 0 ? Math.floor(payNum / feeNum) : 0;
-  // Tipo de atendimento (controlado p/ contadores ao vivo)
-  const [recorrencia, setRecorrencia] = useState(patient.frequency || "semanal");
-  const [times, setTimes] = useState(String(patient.timesPerPeriod ?? 1));
-  const [payFormat, setPayFormat] = useState(patient.paymentFormat || "avulso");
   const PERIODO_MES: Record<string, number> = { semanal: 4, quinzenal: 2, mensal: 1 };
-  const sessoesPrevistasMes = (PERIODO_MES[recorrencia] ?? 0) * (parseInt(times || "0") || 0);
+  const sessoesPrevistasMes = (PERIODO_MES[patient.frequency || ""] ?? 0) * (patient.timesPerPeriod || 1);
   const sessToLocal = (iso: string) => { const d = new Date(iso); const p = (n: number) => String(n).padStart(2, "0"); return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`; };
   const [showSession, setShowSession] = useState(false);
   const [showPayment, setShowPayment] = useState(false);
@@ -178,36 +176,30 @@ export function PatientDetail({
       </div>
 
       {/* Status Financeiro */}
-      <button onClick={() => setTab("Financeiro")} className="w-full text-left">
-        <div className={`rounded-[24px] p-5 border ${finance.balance < 0 ? "bg-[#fef2f2] border-[#fecaca]" : "bg-[#ecfdf5] border-[#a7f3d0]"}`}>
-          <div className="flex items-center justify-between flex-wrap gap-3">
-            <div>
-              <p className="text-xs font-bold uppercase tracking-widest text-foreground/40">Status financeiro</p>
-              {finance.balance < 0 ? (
-                <p className="text-2xl font-display font-bold text-[#b91c1c] mt-1">
-                  Devendo {formatBRL(Math.abs(finance.balance).toFixed(2))}
-                  {finance.debtSessions > 0 && <span className="text-sm font-normal"> · ~{finance.debtSessions} sessão(ões)</span>}
-                </p>
-              ) : (
-                <p className="text-2xl font-display font-bold text-[#047857] mt-1">
-                  {finance.creditSessions} sessão(ões) de crédito
-                  <span className="text-sm font-normal"> · {formatBRL(finance.balance.toFixed(2))}</span>
-                </p>
-              )}
-            </div>
-            <div className="flex gap-5 text-sm">
-              <div>
-                <p className="text-foreground/40 text-xs">Atendimentos</p>
-                <p className="font-bold text-primary">{finance.atendimentos}</p>
-              </div>
-              <div>
-                <p className="text-foreground/40 text-xs">Último pagamento</p>
-                <p className="font-bold text-primary">{finance.lastPaymentDate ? `${formatDate(finance.lastPaymentDate)} · ${formatBRL((finance.lastPaymentAmount ?? 0).toFixed(2))}` : "—"}</p>
-              </div>
-            </div>
-          </div>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+        <div className="glass-card rounded-[20px] p-4">
+          <p className="text-2xl font-display font-bold text-primary">{sessionStats.reservadas}</p>
+          <p className="text-xs text-foreground/50">Sessões reservadas</p>
+          <p className="text-[10px] text-foreground/40">criadas e não confirmadas</p>
         </div>
-      </button>
+        <div className="glass-card rounded-[20px] p-4">
+          <p className="text-2xl font-display font-bold text-primary">{sessionStats.agendadasFuturas}</p>
+          <p className="text-xs text-foreground/50">Agendadas futuras</p>
+          <p className="text-[10px] text-foreground/40">confirmadas</p>
+        </div>
+        <button onClick={() => setTab("Financeiro")} className={`rounded-[20px] p-4 text-left border ${finance.balance < 0 ? "bg-[#fef2f2] border-[#fecaca]" : "bg-[#ecfdf5] border-[#a7f3d0]"}`}>
+          <p className={`text-2xl font-display font-bold ${finance.balance < 0 ? "text-[#b91c1c]" : "text-[#047857]"}`}>
+            {finance.balance < 0 ? `-${finance.debtSessions}` : finance.creditSessions}<span className="text-sm"> sess.</span>
+          </p>
+          <p className="text-xs text-foreground/50">Status de crédito</p>
+          <p className={`text-[10px] font-semibold ${finance.balance < 0 ? "text-[#b91c1c]" : "text-[#047857]"}`}>{finance.balance < 0 ? "Devendo " : "Crédito "}{formatBRL(Math.abs(finance.balance).toFixed(2))}</p>
+        </button>
+        <div className="glass-card rounded-[20px] p-4">
+          <p className="text-2xl font-display font-bold text-primary">{sessionStats.realizadasCount}</p>
+          <p className="text-xs text-foreground/50">Sessões realizadas</p>
+          <p className="text-[10px] text-foreground/40">{sessionStats.lastRealizada ? `última: ${formatDate(sessionStats.lastRealizada)}` : "—"}</p>
+        </div>
+      </div>
 
       {/* Tabs */}
       <div className="flex gap-2 bg-white/50 p-1.5 rounded-2xl w-fit">
@@ -387,6 +379,11 @@ export function PatientDetail({
           {showSession && (
             <form action={createSession} className="glass-card rounded-[24px] p-5 grid sm:grid-cols-2 gap-3">
               <input type="hidden" name="patientId" value={patient.id} />
+              <div className="sm:col-span-2"><label className="text-xs font-semibold text-foreground/60">Tipo de agenda<InfoTip text="Reserva: bloqueia o horário mas não é confirmada (confirmar depois). Confirmar: agenda efetiva." /></label>
+                <select name="reserva" className={inputCls} defaultValue="false">
+                  <option value="false">Confirmar agenda</option>
+                  <option value="true">Só reservar (confirmar depois)</option>
+                </select></div>
               <div className="sm:col-span-2"><label className="text-xs font-semibold text-foreground/60">Data/hora</label>
                 <input name="date" type="datetime-local" required className={inputCls} /></div>
               <div><label className="text-xs font-semibold text-foreground/60">Duração (min)</label>
@@ -561,61 +558,6 @@ export function PatientDetail({
             {patient.priceReviewDate && <p className="text-[11px] text-[#92400e] mt-1">⏰ Reajuste previsto para {formatDate(patient.priceReviewDate)}</p>}
           </div>
 
-          {/* Ajustar Recorrência: frequência + empacotamento + valor + prazos */}
-          <form action={updateFinancialModel.bind(null, patient.id)} className="glass-card rounded-[24px] p-5 space-y-4">
-            <p className="text-xs font-bold text-foreground/40 uppercase tracking-widest">Ajustar recorrência</p>
-            <div className="grid sm:grid-cols-2 gap-3 items-end">
-              <div>
-                <label className="text-xs font-semibold text-foreground/60">Recorrência</label>
-                <select name="recorrencia" value={recorrencia} onChange={(e) => setRecorrencia(e.target.value)} className={inputCls}>
-                  <option value="semanal">Semanal</option>
-                  <option value="quinzenal">Quinzenal</option>
-                  <option value="mensal">Mensal</option>
-                </select>
-              </div>
-              <div>
-                <label className="text-xs font-semibold text-foreground/60">Vezes por período<InfoTip text="Ex: 2x por semana." /></label>
-                <input name="timesPerPeriod" type="number" min={1} max={14} value={times} onChange={(e) => setTimes(e.target.value)} className={inputCls} />
-              </div>
-              <div>
-                <label className="text-xs font-semibold text-foreground/60">Empacotamento</label>
-                <select name="paymentFormat" value={payFormat} onChange={(e) => setPayFormat(e.target.value)} className={inputCls}>
-                  <option value="avulso">Avulso</option>
-                  <option value="mensal">Mensal</option>
-                  <option value="quinzenal">Quinzenal</option>
-                  <option value="pacote">Pacote</option>
-                </select>
-              </div>
-              {payFormat === "pacote" && (
-                <div>
-                  <label className="text-xs font-semibold text-foreground/60">Pacote de</label>
-                  <select name="packSize" defaultValue={String(patient.sessionsInPacket ?? 4)} className={inputCls}>
-                    <option value="2">2 sessões</option>
-                    <option value="4">4 sessões</option>
-                    <option value="8">8 sessões</option>
-                  </select>
-                </div>
-              )}
-              <div>
-                <label className="text-xs font-semibold text-foreground/60">Novo valor da sessão (R$)</label>
-                <input name="sessionFee" inputMode="decimal" defaultValue={patient.sessionFee} className={inputCls} />
-              </div>
-              <div>
-                <label className="text-xs font-semibold text-foreground/60">Dia de pagamento</label>
-                <input name="paymentDay" type="number" min={1} max={31} defaultValue={patient.paymentDay ?? ""} className={inputCls} placeholder="ex: 5" />
-              </div>
-              <div>
-                <label className="text-xs font-semibold text-foreground/60">Vigente a partir de</label>
-                <input name="dataEfetiva" type="date" className={inputCls} />
-              </div>
-              <div>
-                <label className="text-xs font-semibold text-foreground/60">Vencimento (reajuste)</label>
-                <input name="priceReviewDate" type="date" defaultValue={patient.priceReviewDate ? patient.priceReviewDate.slice(0, 10) : ""} className={inputCls} />
-              </div>
-            </div>
-            <button className="bg-primary text-white py-2.5 px-5 rounded-xl font-bold text-sm">Salvar ajuste</button>
-          </form>
-
           {/* Contadores */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
             <div className="glass-card rounded-[20px] p-4">
@@ -633,29 +575,8 @@ export function PatientDetail({
           </div>
 
 
-          {/* Histórico de modelo contratual */}
-          {contractHistory.filter((h) => h.type === "model").length > 0 && (
-            <div className="glass-card rounded-[24px] p-5">
-              <p className="text-xs font-bold text-foreground/40 uppercase tracking-widest mb-2">Histórico de modelo</p>
-              <div className="space-y-1">
-                {contractHistory.filter((h) => h.type === "model").map((h) => (
-                  <div key={h.id} className="flex justify-between py-1 text-sm border-b border-border last:border-0">
-                    <span>{h.description || `${h.from} → ${h.to}`}</span>
-                    <span className="text-foreground/40">{formatDate(h.date)}</span>
-                  </div>
-                ))}
-              </div>
-            </div>
-          )}
-
-          <div className="glass-card rounded-[24px] p-5">
-            <p className="text-xs font-bold text-foreground/40 uppercase tracking-widest mb-2">Histórico de valor</p>
-            {priceHistory.length === 0 ? <Empty text="Sem histórico." /> : priceHistory.map((h) => (
-              <div key={h.id} className="flex justify-between py-1.5 text-sm border-b border-border last:border-0">
-                <span>{formatBRL(h.valor)}</span><span className="text-foreground/40">{formatDate(h.dataEfetiva)}</span>
-              </div>
-            ))}
-          </div>
+          {/* Ajustes (recolhível): recorrência, valor, pacote + históricos editáveis */}
+          <FinanceAdjust patientId={patient.id} frequency={patient.frequency} priceHistory={priceHistory} contractHistory={contractHistory} />
 
           {/* Fluxo financeiro (no rodapé): pagamentos (+) e sessões realizadas cobráveis (−) */}
           <div className="glass-card rounded-[24px] p-5">

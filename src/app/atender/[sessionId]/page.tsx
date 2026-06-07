@@ -45,6 +45,7 @@ export default async function AtenderPage({ params }: { params: Promise<{ sessio
         id: s.id, patientId: s.patientId, patientName: s.patient?.name ?? "Paciente",
         date: (s.date as Date).toISOString(), duration: s.duration, isOnline: s.isOnline,
         location: s.patient?.attendanceLocation ?? null, status: s.status,
+        pendingConfirmation: s.pendingConfirmation,
       }}
       records={JSON.parse(JSON.stringify(records))}
       meeting={meeting}

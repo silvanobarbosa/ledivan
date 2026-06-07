@@ -7,9 +7,9 @@ import { Video, MapPin, ArrowLeftRight, ExternalLink, Check, Loader2, X, FileTex
 import { JitsiRoom } from "@/components/dashboard/JitsiRoom";
 import { MobileSidebar } from "@/components/dashboard/MobileSidebar";
 import { createRecord } from "@/app/dashboard/patients/actions";
-import { updateSessionStatus, setSessionOnline } from "@/app/dashboard/sessions/actions";
+import { updateSessionStatus, setSessionOnline, confirmSession } from "@/app/dashboard/sessions/actions";
 
-type S = { id: string; patientId: string; patientName: string; date: string; duration: number; isOnline: boolean; location: string | null; status: string };
+type S = { id: string; patientId: string; patientName: string; date: string; duration: number; isOnline: boolean; location: string | null; status: string; pendingConfirmation?: boolean };
 type Rec = { id: string; type: string; title: string | null; content: string; createdAt: string };
 type Meeting = { domain: string; room: string; jwt: string | null };
 
@@ -57,9 +57,12 @@ export function AtenderClient({ session, records, meeting, therapistName }: { se
           <p className="text-sm inline-flex items-center gap-1.5 justify-center">
             {online ? <><Video className="w-4 h-4 text-primary" /> Atendimento online</> : <><MapPin className="w-4 h-4 text-primary" /> Presencial{session.location ? ` · ${session.location}` : ""}</>}
           </p>
+          {session.pendingConfirmation && (
+            <p className="text-xs text-[#92400e] bg-[#fffbeb] border border-[#fde68a] rounded-xl px-3 py-2">⚠️ Esta era uma <strong>reserva</strong>. Ao iniciar, será convertida de <strong>Reservada → Agendada</strong>.</p>
+          )}
           <div className="flex gap-3 pt-2">
             <Link href="/dashboard/agenda" className="flex-1 py-3 rounded-2xl font-semibold text-foreground/60 hover:bg-white/60 transition">Voltar</Link>
-            <button onClick={() => setStarted(true)} className="flex-1 bg-primary text-white py-3 rounded-2xl font-bold shadow-lg shadow-primary/20 active:scale-[0.98] transition">
+            <button disabled={pending} onClick={() => { if (session.pendingConfirmation) start(async () => { await confirmSession(session.id); }); setStarted(true); }} className="flex-1 bg-primary text-white py-3 rounded-2xl font-bold shadow-lg shadow-primary/20 active:scale-[0.98] transition disabled:opacity-60">
               Sim, iniciar
             </button>
           </div>

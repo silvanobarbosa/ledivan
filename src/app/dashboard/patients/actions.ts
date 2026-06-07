@@ -266,6 +266,61 @@ export async function updateFinancialModel(patientId: string, formData: FormData
   revalidatePath(`/dashboard/patients/${patientId}`);
 }
 
+// Ajuste: Recorrência (sem vínculo com qtd/valor). Gera histórico.
+export async function setRecorrencia(patientId: string, formData: FormData) {
+  const session = await auth();
+  if (!session?.user?.id) throw new Error("Não autorizado");
+  const userId = session.user.id;
+  const patient = await db.query.patients.findFirst({ where: and(eq(patients.id, patientId), eq(patients.userId, userId)) });
+  if (!patient) throw new Error("Paciente não encontrado");
+  const rec = (formData.get("recorrencia") as string) || patient.frequency || "semanal";
+  const L: Record<string, string> = { semanal: "Semanal", quinzenal: "Quinzenal", mensal: "Mensal" };
+  if (rec !== patient.frequency) {
+    await db.update(patients).set({ frequency: rec }).where(and(eq(patients.id, patientId), eq(patients.userId, userId)));
+    await db.insert(patientContractHistory).values({ patientId, type: "recorrencia", from: L[patient.frequency || ""] || patient.frequency, to: L[rec] || rec, description: `Recorrência: ${L[patient.frequency || ""] || patient.frequency || "—"} → ${L[rec] || rec}` });
+  }
+  revalidatePath(`/dashboard/patients/${patientId}`);
+}
+
+// Ajuste: Incluir Pacote (define formato pacote + quantidade de sessões). Gera histórico.
+export async function includePackage(patientId: string, formData: FormData) {
+  const session = await auth();
+  if (!session?.user?.id) throw new Error("Não autorizado");
+  const userId = session.user.id;
+  const patient = await db.query.patients.findFirst({ where: and(eq(patients.id, patientId), eq(patients.userId, userId)) });
+  if (!patient) throw new Error("Paciente não encontrado");
+  const qty = formData.get("sessionsInPacket") ? parseInt(formData.get("sessionsInPacket") as string) : 0;
+  if (qty < 1) throw new Error("Quantidade inválida");
+  await db.update(patients).set({ contractType: "pacote", paymentFormat: "pacote", sessionsInPacket: qty }).where(and(eq(patients.id, patientId), eq(patients.userId, userId)));
+  await db.insert(patientContractHistory).values({ patientId, type: "model", from: patient.sessionsInPacket ? `Pacote ${patient.sessionsInPacket}` : (patient.paymentFormat || "avulso"), to: `Pacote ${qty}`, description: `Pacote incluído: ${qty} sessões` });
+  revalidatePath(`/dashboard/patients/${patientId}`);
+}
+
+// Editar / excluir um registro do histórico de valor (preço).
+export async function editPriceHistory(historyId: string, formData: FormData) {
+  const session = await auth();
+  if (!session?.user?.id) throw new Error("Não autorizado");
+  const row = await db.query.patientPriceHistory.findFirst({ where: eq(patientPriceHistory.id, historyId) });
+  if (!row) return;
+  const owner = await db.query.patients.findFirst({ where: and(eq(patients.id, row.patientId), eq(patients.userId, session.user.id)) });
+  if (!owner) return;
+  const valor = num(formData.get("valor"), row.valor);
+  const efetivaRaw = formData.get("dataEfetiva") as string;
+  await db.update(patientPriceHistory).set({ valor, ...(efetivaRaw ? { dataEfetiva: new Date(efetivaRaw) } : {}) }).where(eq(patientPriceHistory.id, historyId));
+  revalidatePath(`/dashboard/patients/${row.patientId}`);
+}
+
+export async function deletePriceHistory(historyId: string) {
+  const session = await auth();
+  if (!session?.user?.id) throw new Error("Não autorizado");
+  const row = await db.query.patientPriceHistory.findFirst({ where: eq(patientPriceHistory.id, historyId) });
+  if (!row) return;
+  const owner = await db.query.patients.findFirst({ where: and(eq(patients.id, row.patientId), eq(patients.userId, session.user.id)) });
+  if (!owner) return;
+  await db.delete(patientPriceHistory).where(eq(patientPriceHistory.id, historyId));
+  revalidatePath(`/dashboard/patients/${row.patientId}`);
+}
+
 // Adiciona sessões de pacote (2/4/8) ao fluxo do paciente como CRÉDITO — sem vincular
 // a pagamento/receita. Vira entrada na conta-corrente (será abatida pelas sessões cobradas).
 export async function addPackageCredit(patientId: string, formData: FormData) {

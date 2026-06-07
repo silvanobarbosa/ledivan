@@ -43,7 +43,7 @@ export default async function DashboardPage() {
   const [
     balanceRows, recentTransactionsData, userGoals, userAchievementsData, tCountRows,
     chartData, categoryDistribution, activeRows, weekRows, sessionIncomeRows,
-    flagged, upcomingSessions,
+    flagged, upcomingSessions, reservasRows,
   ] = await Promise.all([
     db.select({
       total: sum(transactions.amount),
@@ -67,12 +67,14 @@ export default async function DashboardPage() {
     db.select({ val: sum(transactions.amount) }).from(transactions).where(sql`${transactions.userId} = ${user.id} AND ${transactions.source} = 'session_payment' AND ${transactions.date} >= ${monthStart}`),
     getClinicalFlags(user.id),
     db.query.therapySessions.findMany({
-      where: sql`${therapySessions.userId} = ${user.id} AND ${therapySessions.date} >= ${now} AND ${therapySessions.status} = 'agendada'`,
+      where: sql`${therapySessions.userId} = ${user.id} AND ${therapySessions.date} >= ${now} AND ${therapySessions.status} = 'agendada' AND ${therapySessions.pendingConfirmation} = false`,
       with: { patient: { columns: { name: true, id: true } } },
       orderBy: [therapySessions.date],
       limit: 5,
     }),
+    db.select({ val: count() }).from(therapySessions).where(sql`${therapySessions.userId} = ${user.id} AND ${therapySessions.date} >= ${now} AND ${therapySessions.pendingConfirmation} = true`),
   ]);
+  const reservasCount = Number(reservasRows[0]?.val || 0);
 
   const totalBalance = parseFloat(balanceRows[0]?.total || "0");
   const totalIncome = parseFloat(balanceRows[0]?.income || "0");
@@ -111,6 +113,18 @@ export default async function DashboardPage() {
           <div className="min-w-0"><p className="text-2xl font-display font-bold text-primary leading-none break-words">{formatBRL(sessionIncomeMonth)}</p><p className="text-sm text-foreground/50 mt-1 flex items-center gap-1">Receita de sessões (mês) <ChevronRight className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 transition" /></p></div>
         </Link>
       </section>
+
+      {/* Reservas a confirmar */}
+      {reservasCount > 0 && (
+        <Link href="/dashboard/reservas" className="flex items-center gap-3 bg-[#fffbeb] border border-[#fde68a] rounded-[28px] p-5 hover:shadow-md transition group">
+          <div className="w-12 h-12 rounded-2xl bg-[#fef3c7] text-[#92400e] flex items-center justify-center text-xl shrink-0">⏳</div>
+          <div className="flex-1">
+            <p className="font-bold text-[#92400e]">{reservasCount} reserva(s) a confirmar</p>
+            <p className="text-sm text-[#92400e]/70">Agendas reservadas aguardando confirmação. Clique para ver e confirmar.</p>
+          </div>
+          <ChevronRight className="w-5 h-5 text-[#92400e]/50 group-hover:translate-x-1 transition" />
+        </Link>
+      )}
 
       {/* Próximas sessões */}
       <section className="bg-white rounded-[40px] shadow-sm border border-border p-8 space-y-5">

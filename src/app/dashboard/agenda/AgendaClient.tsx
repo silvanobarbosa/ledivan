@@ -398,6 +398,10 @@ export function AgendaClient({ sessions, patients = [], locations = [] }: { sess
               </div>
             )}
 
+            <select name="reserva" className="w-full px-4 py-2.5 rounded-xl bg-surface border border-border outline-none text-sm" defaultValue="false">
+              <option value="false">Confirmar agenda</option>
+              <option value="true">Só reservar (confirmar depois)</option>
+            </select>
             <select name="status" className="w-full px-4 py-2.5 rounded-xl bg-surface border border-border outline-none text-sm" defaultValue="agendada">
               {(Object.entries(SESSION_STATUS_LABELS)).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
             </select>

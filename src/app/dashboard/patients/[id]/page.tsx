@@ -39,6 +39,17 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
   const prefs = (() => { try { return me?.preferences ? JSON.parse(me.preferences) : {}; } catch { return {}; } })();
   const locations = parseLocations(me?.attendanceLocations);
 
+  // Estatísticas de sessões p/ os cards do paciente
+  const nowMs = Date.now();
+  const realizadas = sessionsList.filter((s) => s.status === "realizada");
+  const lastRealizada = realizadas.map((s) => new Date(s.date as unknown as string).getTime()).sort((a, b) => b - a)[0];
+  const sessionStats = {
+    reservadas: sessionsList.filter((s) => s.pendingConfirmation && new Date(s.date as unknown as string).getTime() >= nowMs).length,
+    agendadasFuturas: sessionsList.filter((s) => s.status === "agendada" && !s.pendingConfirmation && new Date(s.date as unknown as string).getTime() >= nowMs).length,
+    realizadasCount: realizadas.length,
+    lastRealizada: lastRealizada ? new Date(lastRealizada).toISOString() : null,
+  };
+
   // --- Fluxo financeiro universal: pagamentos (+) e sessões realizadas+cobráveis (−) ---
   const fee = parseFloat(patient.sessionFee || "0") || 0;
   const paidPayments = paymentsList.filter((p) => p.status === "paid");
@@ -93,6 +104,7 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
         contractHistory={JSON.parse(JSON.stringify(contractHist))}
         finance={finance}
         ledger={JSON.parse(JSON.stringify(ledger))}
+        sessionStats={sessionStats}
       />
     </div>
   );
