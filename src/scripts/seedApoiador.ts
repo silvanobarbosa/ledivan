@@ -114,7 +114,7 @@ async function seed() {
   const queixas = ["Ansiedade generalizada", "Episódio depressivo", "Luto", "Terapia de casal", "Síndrome do pânico", "Estresse no trabalho (burnout)", "Autoestima", "TOC", "Fobia social", "Adaptação a mudanças"];
   const tagPool = ["TCC", "ansiedade", "depressão", "casal", "luto", "adolescente", "online", "quinzenal", "pânico", "burnout"];
 
-  type Pat = { id: string; name: string; fee: number; freq: string; status: string; startedAt: Date; contractType: string; sessionsInPacket: number | null; queixa: string; mode: string; location: string | null };
+  type Pat = { id: string; name: string; fee: number; freq: string; status: string; startedAt: Date; contractType: string; sessionsInPacket: number | null; queixa: string; mode: string; location: string | null; behavior: string; paymentFormat: string };
   const activePats: Pat[] = [];
   const allPats: Pat[] = [];
   const patientRows: any[] = [];
@@ -139,8 +139,13 @@ async function seed() {
     const slug = name.toLowerCase().normalize("NFD").replace(/[^a-z]/g, "");
     const fee = pick([150, 160, 180, 200, 200, 220, 250, 280]);
     const freq = pick(freqs);
-    const contractType = pick(["avulso", "avulso", "pacote"]);
-    const sessionsInPacket = contractType === "pacote" ? pick([4, 8, 10, 12]) : null;
+    // Comportamento financeiro (só importa p/ ativos): variar crédito/débito/renovação
+    const behavior = pick(["emdia", "emdia", "credito", "credito", "devedor", "devedor", "pacote", "pacote_renovar"]);
+    const isPkg = behavior === "pacote" || behavior === "pacote_renovar";
+    const contractType = isPkg ? "pacote" : "avulso";
+    const sessionsInPacket = isPkg ? pick([2, 4, 8]) : null;
+    const paymentFormat = isPkg ? "pacote" : pick(["avulso", "mensal", "quinzenal"]);
+    const timesPerPeriod = freq === "semanal" ? pick([1, 1, 2]) : 1;
     const mode = pick(["online", "online", "presencial", "presencial", "presencial", "misto"]); // ~ 33% online, 50% presencial, 17% misto
     const chosenLoc = mode === "online" ? null : locLabel(pick(LOCATIONS));
     const startedAt = new Date(start); startedAt.setMonth(startedAt.getMonth() + rnd(0, MONTHS - 2)); startedAt.setDate(rnd(1, 28));
@@ -158,6 +163,8 @@ async function seed() {
       patientStatus: status,
       paymentStatus: status === "inativo" ? "pending" : overdue ? "overdue" : "paid",
       contractType, sessionsInPacket,
+      timesPerPeriod,
+      paymentFormat,
       attendanceMode: mode,
       attendanceLocation: chosenLoc,
       priceReviewDate: status === "ativo" && chance(0.4) ? (() => { const d = new Date(now); d.setMonth(d.getMonth() + rnd(1, 6)); return d; })() : null,
@@ -181,7 +188,7 @@ async function seed() {
       const bump = new Date(startedAt); bump.setMonth(bump.getMonth() + rnd(8, 16));
       if (bump < now) priceHistRows.push({ patientId: id, valor: money(fee), dataEfetiva: bump });
     }
-    const p: Pat = { id, name, fee, freq, status, startedAt, contractType, sessionsInPacket, queixa, mode, location: chosenLoc };
+    const p: Pat = { id, name, fee, freq, status, startedAt, contractType, sessionsInPacket, queixa, mode, location: chosenLoc, behavior, paymentFormat };
     allPats.push(p);
     if (status === "ativo") activePats.push(p);
   }
@@ -216,6 +223,7 @@ async function seed() {
   const txRows: any[] = [];
   const recordRows: any[] = [];
   const creditsUsedByPatient: Record<string, number> = {};
+  const consumedByPatient: Record<string, number> = {}; // R$ cobrado (sessões realizadas) por paciente
 
   const evolucoes = [
     "Paciente relata melhora do sono. Trabalhamos reestruturação cognitiva de pensamentos catastróficos.",
@@ -280,25 +288,46 @@ async function seed() {
         recordRows.push({ id: uuid(), userId, patientId: p.id, sessionId: sid, type: "evolucao", title: null, content: pick(evolucoes), createdAt: new Date(cur) });
       }
 
-      // pagamento p/ realizadas cobráveis
+      // sessão realizada cobrável => consome do saldo (débito no fluxo)
       if (realizadaPast && chargeable) {
-        const payDate = new Date(cur);
-        // pacote: desconta crédito (limitado ao tamanho); avulso: gera receita avulsa
-        if (p.contractType === "pacote" && p.sessionsInPacket) {
-          const used = (creditsUsedByPatient[p.id] ?? 0);
-          if (used < p.sessionsInPacket) creditsUsedByPatient[p.id] = used + 1;
+        consumedByPatient[p.id] = (consumedByPatient[p.id] ?? 0) + p.fee;
+        // Pagamento avulso por sessão: emdia/credito pagam; devedor paga só parte; pacote não (crédito vem do pacote)
+        const paysNow = p.behavior === "emdia" || p.behavior === "credito" ? true : p.behavior === "devedor" ? chance(0.55) : false;
+        if (paysNow) {
+          const payDate = new Date(cur);
+          const txId = uuid();
+          const payMethod = pick(["pix", "pix", "pix", "card", "transfer", "cash"]);
+          const txForm = payMethod === "card" ? "credito" : payMethod === "transfer" ? "transferencia" : payMethod === "cash" ? "dinheiro" : "pix";
+          txRows.push({ id: txId, userId, accountId: contaPJ.id, amount: money(p.fee), type: "income", categoryId: catSessions, description: `Sessão — ${p.name}`, date: payDate, source: "session_payment", method: txForm });
+          paymentRows.push({ userId, patientId: p.id, sessionId: sid, amount: money(p.fee), date: payDate, method: payMethod, status: "paid", linkedTransactionId: txId });
         }
-        const txId = uuid();
-        const payMethod = pick(["pix", "pix", "pix", "card", "transfer", "cash"]);
-        const txForm = payMethod === "card" ? "credito" : payMethod === "transfer" ? "transferencia" : payMethod === "cash" ? "dinheiro" : "pix";
-        txRows.push({ id: txId, userId, accountId: contaPJ.id, amount: money(p.fee), type: "income", categoryId: catSessions, description: `Sessão — ${p.name}`, date: payDate, source: "session_payment", method: txForm });
-        paymentRows.push({ userId, patientId: p.id, sessionId: sid, amount: money(p.fee), date: payDate, method: payMethod, status: "paid", linkedTransactionId: txId });
       }
       cur.setDate(cur.getDate() + step);
     }
 
     // anamnese inicial p/ todos atendidos
     recordRows.push({ id: uuid(), userId, patientId: p.id, sessionId: null, type: "anamnese", title: "Anamnese inicial", content: `Queixa principal: ${p.queixa}. História: paciente buscou atendimento por demanda relacionada a ${p.queixa.toLowerCase()}. Sem internações prévias. Rede de apoio presente.`, createdAt: p.startedAt });
+  }
+
+  // Créditos de pacote (entradas kind="pacote", sem receita) p/ gerar saldo positivo/negativo
+  for (const p of activePats) {
+    const consumed = consumedByPatient[p.id] ?? 0;
+    let creditTotal = 0;
+    if (p.behavior === "credito") creditTotal = p.fee * rnd(2, 5);                 // sobra de crédito
+    else if (p.behavior === "pacote") creditTotal = consumed * (1 + rnd(5, 30) / 100);   // saldo positivo
+    else if (p.behavior === "pacote_renovar") creditTotal = consumed * (rnd(78, 94) / 100); // saldo negativo → renovar
+    if (creditTotal <= 1) continue;
+    const packAmount = p.fee * (p.sessionsInPacket || 4);
+    let remaining = creditTotal;
+    let when = new Date(p.startedAt); when.setDate(when.getDate() + rnd(5, 20));
+    let guard = 0;
+    while (remaining > 1 && guard++ < 40) {
+      const amt = Math.min(packAmount, remaining);
+      when = new Date(when); when.setDate(when.getDate() + rnd(20, 60));
+      const d = when > now ? new Date(now.getTime() - rnd(1, 20) * 86400000) : when;
+      paymentRows.push({ userId, patientId: p.id, sessionId: null, amount: money(amt), date: d, method: "pix", status: "paid", kind: "pacote", linkedTransactionId: null });
+      remaining -= amt;
+    }
   }
 
   // grava créditos usados nos pacientes
