@@ -3,6 +3,7 @@ import { meetingUrl } from "@/lib/therapy";
 import { sendProEmail } from "@/lib/email";
 import { sendWhatsappFromUser } from "@/lib/whatsappEvolution";
 import { jaasConfigured } from "@/lib/jaas";
+import { escapeHtml } from "@/lib/html";
 
 type PatientLite = {
   name: string;
@@ -39,7 +40,7 @@ async function sendEmail(to: string, subject: string, text: string): Promise<boo
   if (!key) return false;
   const html = `<div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:20px;border:1px solid #e7ddd4;border-radius:16px;">
     <h1 style="color:#2b1830;font-size:20px;">Ledivan</h1>
-    <p style="color:#1a0f1f;white-space:pre-line;font-size:15px;line-height:1.6;">${text.replace(/\*/g, "")}</p>
+    <p style="color:#1a0f1f;white-space:pre-line;font-size:15px;line-height:1.6;">${escapeHtml(text.replace(/\*/g, ""))}</p>
   </div>`;
   const res = await fetch("https://api.resend.com/emails", {
     method: "POST",
@@ -59,7 +60,7 @@ export async function sendSessionReminder(userId: string, p: PatientLite, s: Ses
     case "email": {
       if (!p.email) return false;
       // 1º tenta pelo e-mail do próprio profissional (SMTP); senão cai no remetente da plataforma
-      const pro = await sendProEmail(userId, p.email, "Lembrete da sua sessão", msg.replace(/\n/g, "<br>"));
+      const pro = await sendProEmail(userId, p.email, "Lembrete da sua sessão", escapeHtml(msg).replace(/\n/g, "<br>"));
       if (pro.ok) return true;
       return sendEmail(p.email, "Lembrete da sua sessão — Ledivan", msg);
     }

@@ -6,10 +6,11 @@ import { handleWhatsappMessage } from "@/lib/whatsapp";
 // (opcional) proteja com ?token=EVOLUTION_WEBHOOK_TOKEN
 export async function POST(req: NextRequest) {
   try {
+    // Token obrigatório: sem ele (ou divergente) o webhook é recusado.
     const expected = process.env.EVOLUTION_WEBHOOK_TOKEN;
-    if (expected) {
-      const token = req.nextUrl.searchParams.get("token");
-      if (token !== expected) return NextResponse.json({ ok: false }, { status: 401 });
+    const token = req.nextUrl.searchParams.get("token");
+    if (!expected || token !== expected) {
+      return NextResponse.json({ ok: false }, { status: 401 });
     }
 
     const body = await req.json();

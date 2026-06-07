@@ -15,6 +15,7 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
   const session = await auth();
   if (!session?.user?.id) return null;
   const userId = session.user.id;
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) notFound();
 
   const patient = await db.query.patients.findFirst({
     where: and(eq(patients.id, id), eq(patients.userId, userId)),

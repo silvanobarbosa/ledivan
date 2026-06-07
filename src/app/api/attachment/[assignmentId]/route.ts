@@ -23,6 +23,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ assi
       headers: {
         "Content-Type": a.responseFileType || "application/octet-stream",
         "Cache-Control": "private, no-store",
+        "X-Content-Type-Options": "nosniff",
       },
     });
   } catch (e) {

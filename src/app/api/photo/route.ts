@@ -24,6 +24,7 @@ export async function GET(req: NextRequest) {
       headers: {
         "Content-Type": blob.headers.get("content-type") || "image/jpeg",
         "Cache-Control": "private, max-age=3600",
+        "X-Content-Type-Options": "nosniff",
       },
     });
   } catch (e) {

@@ -23,6 +23,7 @@ export default async function EditPatientPage({ params }: { params: Promise<{ id
   const { id } = await params;
   const session = await auth();
   if (!session?.user?.id) return null;
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) notFound();
 
   const patient = await db.query.patients.findFirst({
     where: and(eq(patients.id, id), eq(patients.userId, session.user.id)),

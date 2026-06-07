@@ -9,6 +9,7 @@ import { redirect } from "next/navigation";
 import { put } from "@vercel/blob";
 import { sendWhatsappFromUser } from "@/lib/whatsappEvolution";
 import { sendProEmail } from "@/lib/email";
+import { escapeHtml } from "@/lib/html";
 
 // Envia mensagem ao paciente pelo canal escolhido (WhatsApp do Ledivan, Telegram ou e-mail).
 export async function sendPatientMessage(patientId: string, channel: string, text: string): Promise<{ ok: boolean; error?: string }> {
@@ -30,7 +31,7 @@ export async function sendPatientMessage(patientId: string, channel: string, tex
   }
   if (channel === "email") {
     if (!patient.email) return { ok: false, error: "Paciente sem e-mail cadastrado." };
-    const r = await sendProEmail(userId, patient.email, "Mensagem do seu terapeuta", msg.replace(/\n/g, "<br>"));
+    const r = await sendProEmail(userId, patient.email, "Mensagem do seu terapeuta", escapeHtml(msg).replace(/\n/g, "<br>"));
     return r.ok ? { ok: true } : { ok: false, error: "Configure seu e-mail em Ajustes para enviar." };
   }
   if (channel === "telegram") {
@@ -46,7 +47,9 @@ export async function uploadPhoto(formData: FormData): Promise<{ ok: boolean; pa
   if (!session?.user?.id) return { ok: false, error: "Não autorizado" };
   const file = formData.get("file") as File | null;
   if (!file || file.size === 0) return { ok: false, error: "Sem arquivo" };
-  if (!file.type.startsWith("image/")) return { ok: false, error: "Envie uma imagem (JPG/PNG)." };
+  // Whitelist de tipos raster (SVG fica de fora: pode conter script/XSS)
+  const ALLOWED = ["image/jpeg", "image/png", "image/webp", "image/gif", "image/heic"];
+  if (!ALLOWED.includes(file.type)) return { ok: false, error: "Envie uma imagem JPG, PNG, WEBP ou GIF." };
   if (file.size > 8 * 1024 * 1024) return { ok: false, error: "Imagem muito grande (máx. 8MB)." };
   if (!process.env.BLOB_READ_WRITE_TOKEN) return { ok: false, error: "Upload não configurado." };
   try {

@@ -14,6 +14,7 @@ export default async function ProntuarioExport({ params }: { params: Promise<{ p
   const session = await auth();
   if (!session?.user?.id) return null;
   const userId = session.user.id;
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(patientId)) notFound();
 
   const patient = await db.query.patients.findFirst({
     where: and(eq(patients.id, patientId), eq(patients.userId, userId)),

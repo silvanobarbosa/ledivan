@@ -13,6 +13,7 @@ export default async function ReciboPage({ params }: { params: Promise<{ payment
   const session = await auth();
   if (!session?.user?.id) return null;
   const userId = session.user.id;
+  if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(paymentId)) notFound();
 
   const payment = await db.query.sessionPayments.findFirst({
     where: and(eq(sessionPayments.id, paymentId), eq(sessionPayments.userId, userId)),
