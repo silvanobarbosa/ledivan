@@ -267,6 +267,7 @@ export async function runSeed(cfg: SeedCfg) {
       sessionRows.push({
         id: sid, userId, patientId: p.id, date: new Date(cur), duration: 50, fee: money(p.fee), status,
         chargeable: status === "nao_realizada" ? false : chargeable, isOnline, location: sessionLocation,
+        pendingConfirmation: !isPast && chance(0.35), // ~35% das futuras ficam como reserva a confirmar
         notes: hasNote ? pick(evolucoes) : null,
         justificativa: (status === "cancelada" || status === "realocada") ? pick(["Paciente remarcou.", "Imprevisto pessoal.", "Feriado.", "Atestado médico."]) : null,
         meetingHappened, meetingOpenedAt, guestJoinedAt, meetingEndedAt,
