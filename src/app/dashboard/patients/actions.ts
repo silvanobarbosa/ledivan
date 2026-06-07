@@ -301,6 +301,31 @@ export async function includePackage(patientId: string, formData: FormData) {
   revalidatePath(`/dashboard/patients/${patientId}`);
 }
 
+// Editar pacote (total de sessões e/ou usadas).
+export async function editPackage(packageId: string, formData: FormData) {
+  const session = await auth();
+  if (!session?.user?.id) throw new Error("Não autorizado");
+  const userId = session.user.id;
+  const pkg = await db.query.patientPackages.findFirst({ where: and(eq(patientPackages.id, packageId), eq(patientPackages.userId, userId)) });
+  if (!pkg) return;
+  const sessions = formData.get("sessions") ? Math.max(1, parseInt(formData.get("sessions") as string)) : pkg.sessions;
+  const usedRaw = formData.get("used") ? parseInt(formData.get("used") as string) : pkg.used;
+  const used = Math.max(0, Math.min(usedRaw, sessions));
+  await db.update(patientPackages).set({ sessions, used }).where(eq(patientPackages.id, packageId));
+  revalidatePath(`/dashboard/patients/${pkg.patientId}`);
+}
+
+// Excluir pacote.
+export async function deletePackage(packageId: string) {
+  const session = await auth();
+  if (!session?.user?.id) throw new Error("Não autorizado");
+  const userId = session.user.id;
+  const pkg = await db.query.patientPackages.findFirst({ where: and(eq(patientPackages.id, packageId), eq(patientPackages.userId, userId)) });
+  if (!pkg) return;
+  await db.delete(patientPackages).where(eq(patientPackages.id, packageId));
+  revalidatePath(`/dashboard/patients/${pkg.patientId}`);
+}
+
 // Editar / excluir um registro do histórico de valor (preço).
 export async function editPriceHistory(historyId: string, formData: FormData) {
   const session = await auth();

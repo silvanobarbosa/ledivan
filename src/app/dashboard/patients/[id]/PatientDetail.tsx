@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createSession, deleteSession, updateSession } from "../../sessions/actions";
 import { createPayment } from "../../payments/actions";
-import { createRecord, deleteRecord, updatePatientNotes } from "../actions";
+import { createRecord, deleteRecord, updatePatientNotes, editPackage, deletePackage } from "../actions";
 import { FinanceAdjust } from "./FinanceAdjust";
 import { ATTENDANCE_MODE_LABELS } from "@/lib/locations";
 import { MessagePatient } from "@/components/dashboard/MessagePatient";
@@ -87,6 +87,7 @@ export function PatientDetail({
   const router = useRouter();
   const [tab, setTab] = useState<(typeof TABS)[number]>("Dados");
   const [editSess, setEditSess] = useState<string | null>(null);
+  const [editPkgId, setEditPkgId] = useState<string | null>(null);
   const todayStart = (() => { const d = new Date(); d.setHours(0, 0, 0, 0); return d.getTime(); })();
   const [payAmount, setPayAmount] = useState(patient.sessionFee);
   const feeNum = parseFloat((patient.sessionFee || "0").replace(",", ".")) || 0;
@@ -603,10 +604,26 @@ export function PatientDetail({
               </div>
               <div className="space-y-1">
                 {packageInfo.list.map((p) => (
-                  <div key={p.id} className={`flex items-center justify-between py-1.5 text-sm border-b border-border last:border-0 ${p.remaining > 0 ? "" : "opacity-50"}`}>
-                    <span className="font-semibold">P{p.seq} <span className="font-normal text-foreground/50">· {p.sessions} sessões</span></span>
-                    <span className="text-foreground/60">{p.used}/{p.sessions} usadas · <strong className={p.remaining > 0 ? "text-[#047857]" : "text-foreground/40"}>{p.remaining} restantes</strong></span>
-                  </div>
+                  editPkgId === p.id ? (
+                    <form key={p.id} action={editPackage.bind(null, p.id)} onSubmit={() => setEditPkgId(null)} className="flex flex-wrap items-end gap-2 py-2 border-b border-border last:border-0">
+                      <span className="font-semibold text-sm">P{p.seq}</span>
+                      <div><label className="text-[10px] text-foreground/50 block">Total</label><input name="sessions" type="number" min={1} max={200} defaultValue={p.sessions} className="w-20 px-2 py-1.5 rounded-lg bg-white border border-border text-sm" /></div>
+                      <div><label className="text-[10px] text-foreground/50 block">Usadas</label><input name="used" type="number" min={0} max={200} defaultValue={p.used} className="w-20 px-2 py-1.5 rounded-lg bg-white border border-border text-sm" /></div>
+                      <button className="bg-primary text-white px-3 py-1.5 rounded-lg font-bold text-xs">Salvar</button>
+                      <button type="button" onClick={() => setEditPkgId(null)} className="text-foreground/40 text-xs">cancelar</button>
+                    </form>
+                  ) : (
+                    <div key={p.id} className={`flex items-center justify-between py-1.5 text-sm border-b border-border last:border-0 group ${p.remaining > 0 ? "" : "opacity-50"}`}>
+                      <span className="font-semibold">P{p.seq} <span className="font-normal text-foreground/50">· {p.sessions} sessões</span></span>
+                      <span className="flex items-center gap-2 text-foreground/60">
+                        {p.used}/{p.sessions} usadas · <strong className={p.remaining > 0 ? "text-[#047857]" : "text-foreground/40"}>{p.remaining} restantes</strong>
+                        <button onClick={() => setEditPkgId(p.id)} className="text-foreground/30 hover:text-primary opacity-0 group-hover:opacity-100 transition" title="Editar pacote"><Pencil className="w-3.5 h-3.5" /></button>
+                        <form action={deletePackage.bind(null, p.id)} onSubmit={(e) => { if (!confirm(`Excluir pacote P${p.seq}?`)) e.preventDefault(); }}>
+                          <button className="text-foreground/30 hover:text-red-600 opacity-0 group-hover:opacity-100 transition" title="Excluir pacote"><Trash2 className="w-3.5 h-3.5" /></button>
+                        </form>
+                      </span>
+                    </div>
+                  )
                 ))}
               </div>
             </div>
