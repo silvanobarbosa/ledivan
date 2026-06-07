@@ -57,7 +57,7 @@ const PATIENT_STATUS_LABELS: Record<string, string> = { ativo: "Ativo", pausado:
 
 const inputCls = "w-full px-4 py-2.5 rounded-xl bg-white/70 border border-border focus:ring-2 focus:ring-accent/20 focus:border-accent outline-none transition text-sm";
 
-const TABS = ["Dados", "Prontuário", "Atividades", "Sessões", "Linha do tempo", "Financeiro"] as const;
+const TABS = ["Dados", "Prontuário", "Atividades", "Sessões", "Financeiro", "Linha do tempo"] as const;
 
 export function PatientDetail({
   patient, sessions, payments, statusHistory, priceHistory, records, autoLinkPayments, transcriptionEnabled, risk, assignments, moodToken, moodLogs, scales, treatmentGoals, locations = [], contractHistory = [], finance, ledger = [],
@@ -81,6 +81,12 @@ export function PatientDetail({
   const [model, setModel] = useState(patient.contractType === "pacote" ? "pacote" : (patient.frequency || "avulso"));
   const [editSess, setEditSess] = useState<string | null>(null);
   const todayStart = (() => { const d = new Date(); d.setHours(0, 0, 0, 0); return d.getTime(); })();
+  const [payAmount, setPayAmount] = useState(patient.sessionFee);
+  const [renewQty, setRenewQty] = useState(String(patient.sessionsInPacket ?? ""));
+  const feeNum = parseFloat((patient.sessionFee || "0").replace(",", ".")) || 0;
+  const payNum = parseFloat((payAmount || "0").replace(",", ".")) || 0;
+  const paySessions = feeNum > 0 ? Math.floor(payNum / feeNum) : 0;
+  const renewTotal = feeNum * (parseInt(renewQty || "0") || 0);
   const sessToLocal = (iso: string) => { const d = new Date(iso); const p = (n: number) => String(n).padStart(2, "0"); return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}T${p(d.getHours())}:${p(d.getMinutes())}`; };
   const [showSession, setShowSession] = useState(false);
   const [showPayment, setShowPayment] = useState(false);
@@ -477,7 +483,9 @@ export function PatientDetail({
             <form action={createPayment} className="glass-card rounded-[24px] p-5 grid sm:grid-cols-2 gap-3">
               <input type="hidden" name="patientId" value={patient.id} />
               <div><label className="text-xs font-semibold text-foreground/60">Valor</label>
-                <input name="amount" inputMode="decimal" required defaultValue={patient.sessionFee} className={inputCls} /></div>
+                <input name="amount" inputMode="decimal" required value={payAmount} onChange={(e) => setPayAmount(e.target.value)} className={inputCls} />
+                <p className="text-[11px] mt-1 text-foreground/50">Valor/sessão atual: <strong>{formatBRL(patient.sessionFee)}</strong> · credita <strong className="text-[#047857]">{paySessions} sessão(ões)</strong></p>
+              </div>
               <div><label className="text-xs font-semibold text-foreground/60">Data</label>
                 <input name="date" type="date" className={inputCls} /></div>
               <div><label className="text-xs font-semibold text-foreground/60">Método</label>
@@ -559,13 +567,14 @@ export function PatientDetail({
               <div className="grid grid-cols-2 gap-2">
                 <div>
                   <label className="text-[11px] font-semibold text-foreground/50">Qtd de sessões</label>
-                  <input name="sessionsInPacket" type="number" min={1} max={200} defaultValue={patient.sessionsInPacket ?? ""} className={inputCls} placeholder="ex: 10" />
+                  <input name="sessionsInPacket" type="number" min={1} max={200} value={renewQty} onChange={(e) => setRenewQty(e.target.value)} className={inputCls} placeholder="ex: 10" />
                 </div>
                 <div>
-                  <label className="text-[11px] font-semibold text-foreground/50">Valor (R$)</label>
+                  <label className="text-[11px] font-semibold text-foreground/50">Valor por sessão (R$)</label>
                   <input name="valor" inputMode="decimal" defaultValue={patient.sessionFee} className={inputCls} />
                 </div>
               </div>
+              <p className="text-[11px] text-foreground/50">Total do pacote: <strong className="text-primary">{formatBRL(renewTotal.toFixed(2))}</strong> <span className="text-foreground/40">({renewQty || 0} × {formatBRL(patient.sessionFee)})</span></p>
               <p className="text-[11px] text-foreground/40">Zera os créditos usados e registra no histórico.</p>
               <button className="bg-primary text-white py-2.5 px-5 rounded-xl font-bold text-sm">Renovar pacote</button>
             </form>
