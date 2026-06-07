@@ -8,7 +8,6 @@ import { ArrowLeft } from "lucide-react";
 import { updatePatient, deletePatient } from "../../actions";
 import { SubmitButton } from "@/components/SubmitButton";
 import { InfoTip } from "@/components/InfoTip";
-import { ContractFields } from "@/components/dashboard/ContractFields";
 import { PhotoSlots } from "@/components/dashboard/PhotoSlots";
 import { AttendanceFields } from "@/components/dashboard/AttendanceFields";
 import { REMINDER_LEAD_OPTIONS } from "@/lib/reminderLead";
@@ -66,10 +65,6 @@ export default async function EditPatientPage({ params }: { params: Promise<{ id
 
         <div className="grid sm:grid-cols-2 gap-4">
           <div>
-            <label className={labelCls}>Valor da sessão (R$)</label>
-            <input name="sessionFee" inputMode="decimal" defaultValue={patient.sessionFee} className={inputCls} />
-          </div>
-          <div>
             <label className={labelCls}>Frequência</label>
             <select name="frequency" className={inputCls} defaultValue={patient.frequency ?? "semanal"}>
               <option value="semanal">Semanal</option>
@@ -78,14 +73,11 @@ export default async function EditPatientPage({ params }: { params: Promise<{ id
               <option value="avulso">Avulso</option>
             </select>
           </div>
-        </div>
-
-        <div className="grid sm:grid-cols-2 gap-4">
-          <ContractFields defaultType={patient.contractType ?? "avulso"} defaultSessions={patient.sessionsInPacket} defaultDeduct={patient.deductPackageOnSession} />
           <div>
             <label className={labelCls}>Status</label>
             <select name="patientStatus" className={inputCls} defaultValue={patient.patientStatus}>
               <option value="ativo">Ativo</option>
+              <option value="prospect">Prospect</option>
               <option value="pausado">Pausado</option>
               <option value="inativo">Inativo</option>
             </select>
@@ -94,16 +86,11 @@ export default async function EditPatientPage({ params }: { params: Promise<{ id
 
         <AttendanceFields locations={locations} defaultMode={patient.attendanceMode ?? "presencial"} defaultLocation={patient.attendanceLocation} />
 
-        <div className="grid sm:grid-cols-2 gap-4">
-          <div>
-            <label className={labelCls}>Dia de pagamento</label>
-            <input name="paymentDay" type="number" min={1} max={31} defaultValue={patient.paymentDay ?? ""} className={inputCls} />
-          </div>
-          <div>
-            <label className={labelCls}>Endereço</label>
-            <input name="address" defaultValue={patient.address ?? ""} className={inputCls} />
-          </div>
+        <div>
+          <label className={labelCls}>Endereço</label>
+          <input name="address" defaultValue={patient.address ?? ""} className={inputCls} />
         </div>
+        <p className="text-xs text-foreground/50">💡 Valor, contrato/pacote e dia de pagamento ficam na aba <strong>Financeiro</strong> do paciente.</p>
 
         <div className="pt-2 border-t border-border">
           <p className="text-xs font-bold text-foreground/40 uppercase tracking-widest mb-3 mt-3">Contato de emergência</p>

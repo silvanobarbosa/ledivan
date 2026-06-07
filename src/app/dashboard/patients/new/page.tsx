@@ -3,7 +3,6 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { InfoTip } from "@/components/InfoTip";
 import { SubmitButton } from "@/components/SubmitButton";
-import { ContractFields } from "@/components/dashboard/ContractFields";
 import { PhotoSlots } from "@/components/dashboard/PhotoSlots";
 import { AttendanceFields } from "@/components/dashboard/AttendanceFields";
 import { REMINDER_LEAD_OPTIONS } from "@/lib/reminderLead";
@@ -51,11 +50,7 @@ export default async function NewPatientPage() {
 
         <div className="grid sm:grid-cols-2 gap-4">
           <div>
-            <label className={labelCls}>Valor da sessão (R$)<InfoTip text="Valor cobrado por sessão. Vira o padrão ao registrar pagamentos e sessões deste paciente." /></label>
-            <input name="sessionFee" inputMode="decimal" className={inputCls} placeholder="0,00" />
-          </div>
-          <div>
-            <label className={labelCls}>Frequência<InfoTip text="Com que frequência o paciente é atendido (semanal, quinzenal, mensal). Ajuda a organizar a agenda." /></label>
+            <label className={labelCls}>Frequência<InfoTip text="Com que frequência o paciente é atendido. Ajuda a organizar a agenda." /></label>
             <select name="frequency" className={inputCls} defaultValue="semanal">
               <option value="semanal">Semanal</option>
               <option value="quinzenal">Quinzenal</option>
@@ -63,10 +58,6 @@ export default async function NewPatientPage() {
               <option value="avulso">Avulso</option>
             </select>
           </div>
-        </div>
-
-        <div className="grid sm:grid-cols-2 gap-4">
-          <ContractFields />
           <div>
             <label className={labelCls}>Início</label>
             <input name="startedAt" type="date" className={inputCls} />
@@ -77,10 +68,6 @@ export default async function NewPatientPage() {
 
         <div className="grid sm:grid-cols-2 gap-4">
           <div>
-            <label className={labelCls}>Dia de pagamento<InfoTip text="Dia do mês em que o paciente costuma pagar. Usado para organizar cobranças." /></label>
-            <input name="paymentDay" type="number" min={1} max={31} className={inputCls} placeholder="ex: 5" />
-          </div>
-          <div>
             <label className={labelCls}>Status</label>
             <select name="patientStatus" className={inputCls} defaultValue="ativo">
               <option value="ativo">Ativo</option>
@@ -90,6 +77,8 @@ export default async function NewPatientPage() {
             </select>
           </div>
         </div>
+
+        <p className="text-xs text-foreground/50 -mt-2">💡 Valor da sessão, contrato/pacote e dia de pagamento são definidos depois, na aba <strong>Financeiro</strong> do paciente.</p>
 
         <div className="pt-2 border-t border-border">
           <p className="text-xs font-bold text-foreground/40 uppercase tracking-widest mb-3 mt-3">Contato de emergência</p>

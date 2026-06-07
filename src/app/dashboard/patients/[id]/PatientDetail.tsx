@@ -5,8 +5,9 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createSession, deleteSession } from "../../sessions/actions";
 import { createPayment, deletePayment } from "../../payments/actions";
-import { createRecord, deleteRecord, addPriceChange, renewPackage } from "../actions";
+import { createRecord, deleteRecord, addPriceChange, renewPackage, updateFinancialModel } from "../actions";
 import { ATTENDANCE_MODE_LABELS } from "@/lib/locations";
+import { ContractFields } from "@/components/dashboard/ContractFields";
 import { AssignmentsTab } from "./AssignmentsTab";
 import { SessionSummary } from "./SessionSummary";
 import { TreatmentPlan } from "./TreatmentPlan";
@@ -40,6 +41,8 @@ type Patient = {
   sessionsInPacket: number | null; packageCreditsUsed: number; deductPackageOnSession: boolean;
 };
 type ContractEntry = { id: string; type: string; from: string | null; to: string | null; description: string | null; date: string };
+type Finance = { fee: number; balance: number; totalPaid: number; totalDebit: number; atendimentos: number; lastPaymentDate: string | null; lastPaymentAmount: number | null; creditSessions: number; debtSessions: number };
+type LedgerEntry = { id: string; date: string; kind: "pagamento" | "sessao"; desc: string; amount: number; balance: number };
 type Session = { id: string; date: string; duration: number; fee: string; status: string; notes: string | null; isOnline: boolean; patientSummary: string | null; meetingUrl: string | null };
 type Payment = { id: string; date: string; amount: string; method: string; status: string; linkedTransactionId: string | null };
 type StatusEntry = { id: string; status: string; date: string };
@@ -56,14 +59,16 @@ const PATIENT_STATUS_LABELS: Record<string, string> = { ativo: "Ativo", pausado:
 
 const inputCls = "w-full px-4 py-2.5 rounded-xl bg-white/70 border border-border focus:ring-2 focus:ring-accent/20 focus:border-accent outline-none transition text-sm";
 
-const TABS = ["Dados", "Prontuário", "Atividades", "Sessões", "Pagamentos", "Linha do tempo", "Histórico"] as const;
+const TABS = ["Dados", "Prontuário", "Atividades", "Sessões", "Pagamentos", "Linha do tempo", "Financeiro"] as const;
 
 export function PatientDetail({
-  patient, sessions, payments, statusHistory, priceHistory, records, autoLinkPayments, transcriptionEnabled, risk, assignments, moodToken, moodLogs, scales, treatmentGoals, locations = [], contractHistory = [],
+  patient, sessions, payments, statusHistory, priceHistory, records, autoLinkPayments, transcriptionEnabled, risk, assignments, moodToken, moodLogs, scales, treatmentGoals, locations = [], contractHistory = [], finance, ledger = [],
 }: {
   patient: Patient; sessions: Session[]; payments: Payment[];
   statusHistory: StatusEntry[]; priceHistory: PriceEntry[]; records: RecordEntry[];
   contractHistory?: ContractEntry[];
+  finance: Finance;
+  ledger?: LedgerEntry[];
   autoLinkPayments: boolean; transcriptionEnabled: boolean;
   risk: { level: RiskLevel; rate: number; faltas: number; total: number };
   assignments: AssignmentEntry[];
@@ -156,6 +161,38 @@ export function PatientDetail({
           </Link>
         </div>
       </div>
+
+      {/* Status Financeiro */}
+      <button onClick={() => setTab("Financeiro")} className="w-full text-left">
+        <div className={`rounded-[24px] p-5 border ${finance.balance < 0 ? "bg-[#fef2f2] border-[#fecaca]" : "bg-[#ecfdf5] border-[#a7f3d0]"}`}>
+          <div className="flex items-center justify-between flex-wrap gap-3">
+            <div>
+              <p className="text-xs font-bold uppercase tracking-widest text-foreground/40">Status financeiro</p>
+              {finance.balance < 0 ? (
+                <p className="text-2xl font-display font-bold text-[#b91c1c] mt-1">
+                  Devendo {formatBRL(Math.abs(finance.balance).toFixed(2))}
+                  {finance.debtSessions > 0 && <span className="text-sm font-normal"> · ~{finance.debtSessions} sessão(ões)</span>}
+                </p>
+              ) : (
+                <p className="text-2xl font-display font-bold text-[#047857] mt-1">
+                  {finance.creditSessions} sessão(ões) de crédito
+                  <span className="text-sm font-normal"> · {formatBRL(finance.balance.toFixed(2))}</span>
+                </p>
+              )}
+            </div>
+            <div className="flex gap-5 text-sm">
+              <div>
+                <p className="text-foreground/40 text-xs">Atendimentos</p>
+                <p className="font-bold text-primary">{finance.atendimentos}</p>
+              </div>
+              <div>
+                <p className="text-foreground/40 text-xs">Último pagamento</p>
+                <p className="font-bold text-primary">{finance.lastPaymentDate ? `${formatDate(finance.lastPaymentDate)} · ${formatBRL((finance.lastPaymentAmount ?? 0).toFixed(2))}` : "—"}</p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </button>
 
       {/* Tabs */}
       <div className="flex gap-2 bg-white/50 p-1.5 rounded-2xl w-fit">
@@ -451,9 +488,47 @@ export function PatientDetail({
         <TimelineTab sessions={sessions} payments={payments} records={records} moodLogs={moodLogs} scales={scales} assignments={assignments} />
       )}
 
-      {/* Histórico */}
-      {tab === "Histórico" && (
-        <div className="grid gap-4 sm:grid-cols-2">
+      {/* Financeiro */}
+      {tab === "Financeiro" && (
+        <div className="space-y-4">
+          {/* Modelo financeiro (movido do cadastro base) */}
+          <form action={updateFinancialModel.bind(null, patient.id)} className="glass-card rounded-[24px] p-5 space-y-3">
+            <p className="text-xs font-bold text-foreground/40 uppercase tracking-widest">Modelo financeiro</p>
+            <div className="grid sm:grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs font-semibold text-foreground/60">Valor da sessão (R$)</label>
+                <input name="sessionFee" inputMode="decimal" defaultValue={patient.sessionFee} className={inputCls} />
+              </div>
+              <div>
+                <label className="text-xs font-semibold text-foreground/60">Dia de pagamento</label>
+                <input name="paymentDay" type="number" min={1} max={31} defaultValue={patient.paymentDay ?? ""} className={inputCls} placeholder="ex: 5" />
+              </div>
+            </div>
+            <ContractFields defaultType={patient.contractType ?? "avulso"} defaultSessions={patient.sessionsInPacket} defaultDeduct={patient.deductPackageOnSession} />
+            <button className="bg-primary text-white py-2.5 px-5 rounded-xl font-bold text-sm">Salvar modelo financeiro</button>
+          </form>
+
+          {/* Fluxo financeiro: pagamentos (+) e sessões realizadas cobráveis (−) */}
+          <div className="glass-card rounded-[24px] p-5">
+            <div className="flex items-center justify-between mb-3">
+              <p className="text-xs font-bold text-foreground/40 uppercase tracking-widest">Fluxo financeiro</p>
+              <span className={`text-sm font-bold ${finance.balance < 0 ? "text-[#b91c1c]" : "text-[#047857]"}`}>Saldo: {formatBRL(finance.balance.toFixed(2))}</span>
+            </div>
+            <p className="text-[11px] text-foreground/50 mb-2">Cada sessão realizada marcada como “cobrar” desconta o valor; cada pagamento soma. O saldo pode ficar negativo (devendo).</p>
+            {ledger.length === 0 ? <Empty text="Sem movimentações." /> : (
+              <div className="space-y-1 max-h-80 overflow-y-auto">
+                {ledger.map((l) => (
+                  <div key={l.id} className="flex items-center justify-between gap-2 py-1.5 text-sm border-b border-border last:border-0">
+                    <span className="flex-1 min-w-0 truncate text-foreground/70">{formatDate(l.date)} · {l.desc}</span>
+                    <span className={`shrink-0 font-semibold ${l.amount >= 0 ? "text-[#047857]" : "text-[#b91c1c]"}`}>{l.amount >= 0 ? "+" : ""}{formatBRL(Math.abs(l.amount).toFixed(2))}</span>
+                    <span className={`shrink-0 w-24 text-right font-bold ${l.balance < 0 ? "text-[#b91c1c]" : "text-foreground/70"}`}>{formatBRL(l.balance.toFixed(2))}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          <div className="grid gap-4 sm:grid-cols-2">
           <div className="glass-card rounded-[24px] p-5">
             <p className="text-xs font-bold text-foreground/40 uppercase tracking-widest mb-3">Status</p>
             {statusHistory.length === 0 ? <Empty text="Sem histórico." /> : statusHistory.map((h) => (
@@ -535,6 +610,7 @@ export function PatientDetail({
               <p className="text-[11px] text-foreground/40">Sugestão: últimos valores. Zera os créditos usados e registra no histórico.</p>
               <button className="w-full bg-primary text-white py-2.5 rounded-xl font-bold text-sm">Renovar pacote</button>
             </form>
+          </div>
           </div>
         </div>
       )}

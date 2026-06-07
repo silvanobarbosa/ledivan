@@ -216,6 +216,35 @@ export async function addPriceChange(patientId: string, formData: FormData) {
   revalidatePath(`/dashboard/patients/${patientId}`);
 }
 
+// Modelo financeiro do paciente (movido do cadastro base p/ a aba Financeiro):
+// valor da sessão, tipo de contrato, qtd do pacote, abate por sessão, dia de pagamento.
+export async function updateFinancialModel(patientId: string, formData: FormData) {
+  const session = await auth();
+  if (!session?.user?.id) throw new Error("Não autorizado");
+  const userId = session.user.id;
+
+  const patient = await db.query.patients.findFirst({
+    where: and(eq(patients.id, patientId), eq(patients.userId, userId)),
+  });
+  if (!patient) throw new Error("Paciente não encontrado");
+
+  const newFee = num(formData.get("sessionFee"), patient.sessionFee);
+  const contractType = ((formData.get("contractType") as string) || patient.contractType || "avulso") as "pacote" | "avulso";
+
+  await db.update(patients).set({
+    sessionFee: newFee,
+    contractType,
+    sessionsInPacket: formData.get("sessionsInPacket") ? parseInt(formData.get("sessionsInPacket") as string) : (contractType === "pacote" ? patient.sessionsInPacket : null),
+    deductPackageOnSession: contractType === "pacote" ? formData.get("deductPackageOnSession") === "on" : true,
+    paymentDay: formData.get("paymentDay") ? parseInt(formData.get("paymentDay") as string) : patient.paymentDay,
+  }).where(and(eq(patients.id, patientId), eq(patients.userId, userId)));
+
+  if (newFee !== patient.sessionFee) {
+    await db.insert(patientPriceHistory).values({ patientId, valor: newFee, dataEfetiva: new Date() });
+  }
+  revalidatePath(`/dashboard/patients/${patientId}`);
+}
+
 // Renova o pacote: zera créditos usados, atualiza qtd/valor e registra no histórico.
 export async function renewPackage(patientId: string, formData: FormData) {
   const session = await auth();

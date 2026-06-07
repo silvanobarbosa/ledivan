@@ -75,6 +75,35 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
     orderBy: [desc(patientContractHistory.date)],
   });
 
+  // --- Fluxo financeiro universal: pagamentos (+) e sessões realizadas+cobráveis (−) ---
+  const fee = parseFloat(patient.sessionFee || "0") || 0;
+  const paidPayments = paymentsList.filter((p) => p.status === "paid");
+  type LedgerItem = { id: string; date: string; kind: "pagamento" | "sessao"; desc: string; amount: number };
+  const ledgerRaw: LedgerItem[] = [
+    ...paidPayments.map((p) => ({ id: `p${p.id}`, date: p.date as unknown as string, kind: "pagamento" as const, desc: "Pagamento recebido", amount: parseFloat(p.amount) })),
+    ...sessionsList
+      .filter((s) => s.status === "realizada" && s.chargeable)
+      .map((s) => ({ id: `s${s.id}`, date: s.date as unknown as string, kind: "sessao" as const, desc: "Sessão realizada (cobrança)", amount: -parseFloat(s.fee) })),
+  ].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+  let running = 0;
+  const ledger = ledgerRaw.map((it) => { running += it.amount; return { ...it, balance: running }; }).reverse();
+  const balance = running;
+  const totalPaid = paidPayments.reduce((a, p) => a + parseFloat(p.amount), 0);
+  const totalDebit = sessionsList.filter((s) => s.status === "realizada" && s.chargeable).reduce((a, s) => a + parseFloat(s.fee), 0);
+  const lastPay = paidPayments.slice().sort((a, b) => new Date(b.date as unknown as string).getTime() - new Date(a.date as unknown as string).getTime())[0];
+  const finance = {
+    fee,
+    balance,
+    totalPaid,
+    totalDebit,
+    atendimentos: sessionsList.filter((s) => s.status === "realizada").length,
+    lastPaymentDate: lastPay ? (lastPay.date as unknown as string) : null,
+    lastPaymentAmount: lastPay ? parseFloat(lastPay.amount) : null,
+    creditSessions: fee > 0 && balance > 0 ? Math.floor(balance / fee) : 0,
+    debtSessions: fee > 0 && balance < 0 ? Math.ceil(-balance / fee) : 0,
+  };
+
   return (
     <div className="max-w-4xl space-y-6">
       <Link href="/dashboard/patients" className="inline-flex items-center gap-2 text-foreground/50 hover:text-primary transition">
@@ -98,6 +127,8 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
         treatmentGoals={JSON.parse(JSON.stringify(goalsList))}
         locations={locations}
         contractHistory={JSON.parse(JSON.stringify(contractHist))}
+        finance={finance}
+        ledger={JSON.parse(JSON.stringify(ledger))}
       />
     </div>
   );
