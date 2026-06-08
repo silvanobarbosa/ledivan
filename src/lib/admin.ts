@@ -3,7 +3,7 @@ import { db } from "@/db";
 import { users } from "@/db/schema";
 import { eq } from "drizzle-orm";
 
-const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || "renan@rdmss.com.br")
+const ADMIN_EMAILS = (process.env.ADMIN_EMAILS || "silvanobarbosa@gmail.com")
   .split(",").map((s) => s.trim().toLowerCase()).filter(Boolean);
 
 export function isAdminUser(u?: { email?: string | null; role?: string | null } | null): boolean {

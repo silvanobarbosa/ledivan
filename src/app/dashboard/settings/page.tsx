@@ -17,6 +17,7 @@ import { TranscriptionToggle } from "./TranscriptionToggle";
 import { SmtpCard } from "./SmtpCard";
 import { WhatsappCard } from "./WhatsappCard";
 import { MeetingCard } from "./MeetingCard";
+import { PasswordCard } from "./PasswordCard";
 import { getPreferences } from "@/lib/preferences";
 import { hasGoogleAccount } from "@/lib/googleCalendar";
 
@@ -115,6 +116,8 @@ export default async function SettingsPage() {
               </div>
             </form>
           </div>
+
+          <PasswordCard hasPassword={!!user.passwordHash} />
 
           <div id="reuniao" className="scroll-mt-24">
             <MeetingCard initial={(prefs.meetingProvider as "jitsi" | "meet") ?? "jitsi"} hasGoogle={googleConnected} />

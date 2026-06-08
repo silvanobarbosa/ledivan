@@ -189,6 +189,30 @@ export async function updateProfile(formData: FormData) {
   revalidatePath("/dashboard", "layout");
 }
 
+// Troca de senha no perfil. Exige a senha atual se já houver uma definida.
+export async function changePassword(_prev: unknown, formData: FormData): Promise<{ ok: boolean; error?: string }> {
+  const session = await auth();
+  if (!session?.user?.id) return { ok: false, error: "Não autorizado" };
+  const u = await db.query.users.findFirst({ where: eq(users.id, session.user.id) });
+  if (!u) return { ok: false, error: "Usuário não encontrado" };
+
+  const current = (formData.get("current") as string) || "";
+  const next = (formData.get("next") as string) || "";
+  const confirm = (formData.get("confirm") as string) || "";
+
+  if (next.length < 8) return { ok: false, error: "A nova senha precisa de ao menos 8 caracteres." };
+  if (next !== confirm) return { ok: false, error: "A confirmação não confere." };
+
+  const bcrypt = (await import("bcryptjs")).default;
+  if (u.passwordHash) {
+    const ok = await bcrypt.compare(current, u.passwordHash);
+    if (!ok) return { ok: false, error: "Senha atual incorreta." };
+  }
+  const hash = await bcrypt.hash(next, 10);
+  await db.update(users).set({ passwordHash: hash }).where(eq(users.id, u.id));
+  return { ok: true };
+}
+
 export async function generateTelegramCode() {
   const session = await auth();
   if (!session?.user?.id) throw new Error("Não autorizado");
