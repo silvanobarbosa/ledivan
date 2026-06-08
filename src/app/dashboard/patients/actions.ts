@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@/db";
-import { patients, patientStatusHistory, patientPriceHistory, patientContractHistory, patientRecords, assignments, scaleApplications, treatmentGoals, sessionPayments, patientPackages } from "@/db/schema";
+import { patients, patientStatusHistory, patientPriceHistory, patientContractHistory, patientRecords, assignments, scaleApplications, treatmentGoals, patientPackages } from "@/db/schema";
 import { auth } from "@/auth";
 import { and, eq, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
@@ -216,56 +216,6 @@ export async function addPriceChange(patientId: string, formData: FormData) {
   revalidatePath(`/dashboard/patients/${patientId}`);
 }
 
-// Tipo de Atendimento + Formato de Pagamento (aba Financeiro).
-// Recorrência (semanal/quinzenal/mensal) × vezes por período; valor; dia de pagamento;
-// formato (avulso/mensal/quinzenal/pacote) + tamanho do pacote (2/4/8).
-export async function updateFinancialModel(patientId: string, formData: FormData) {
-  const session = await auth();
-  if (!session?.user?.id) throw new Error("Não autorizado");
-  const userId = session.user.id;
-
-  const patient = await db.query.patients.findFirst({
-    where: and(eq(patients.id, patientId), eq(patients.userId, userId)),
-  });
-  if (!patient) throw new Error("Paciente não encontrado");
-
-  const newFee = num(formData.get("sessionFee"), patient.sessionFee);
-  const recorrencia = (formData.get("recorrencia") as string) || patient.frequency || "semanal";
-  const timesPerPeriod = formData.get("timesPerPeriod") ? Math.max(1, parseInt(formData.get("timesPerPeriod") as string)) : patient.timesPerPeriod;
-  const paymentFormat = (formData.get("paymentFormat") as string) || patient.paymentFormat || "avulso";
-  const isPacote = paymentFormat === "pacote";
-  const packSize = formData.get("packSize") ? parseInt(formData.get("packSize") as string) : patient.sessionsInPacket;
-
-  const FMT: Record<string, string> = { avulso: "Avulso", mensal: "Mensal", quinzenal: "Quinzenal", pacote: "Pacote" };
-
-  const vencRaw = formData.get("priceReviewDate") as string;
-  const efetivaRaw = formData.get("dataEfetiva") as string;
-
-  await db.update(patients).set({
-    sessionFee: newFee,
-    frequency: recorrencia,
-    timesPerPeriod,
-    paymentFormat,
-    contractType: (isPacote ? "pacote" : "avulso") as "pacote" | "avulso",
-    sessionsInPacket: isPacote ? packSize : null,
-    paymentDay: formData.get("paymentDay") ? parseInt(formData.get("paymentDay") as string) : patient.paymentDay,
-    priceReviewDate: vencRaw ? new Date(vencRaw) : patient.priceReviewDate,
-  }).where(and(eq(patients.id, patientId), eq(patients.userId, userId)));
-
-  if (newFee !== patient.sessionFee) {
-    await db.insert(patientPriceHistory).values({ patientId, valor: newFee, dataEfetiva: efetivaRaw ? new Date(efetivaRaw) : new Date() });
-  }
-  if ((patient.paymentFormat || "avulso") !== paymentFormat) {
-    await db.insert(patientContractHistory).values({
-      patientId, type: "model",
-      from: FMT[patient.paymentFormat || "avulso"] || patient.paymentFormat,
-      to: FMT[paymentFormat] || paymentFormat,
-      description: `Formato: ${FMT[patient.paymentFormat || "avulso"] || patient.paymentFormat} → ${FMT[paymentFormat] || paymentFormat}`,
-    });
-  }
-  revalidatePath(`/dashboard/patients/${patientId}`);
-}
-
 // Ajuste: Recorrência (sem vínculo com qtd/valor). Gera histórico.
 export async function setRecorrencia(patientId: string, formData: FormData) {
   const session = await auth();
@@ -349,61 +299,6 @@ export async function deletePriceHistory(historyId: string) {
   if (!owner) return;
   await db.delete(patientPriceHistory).where(eq(patientPriceHistory.id, historyId));
   revalidatePath(`/dashboard/patients/${row.patientId}`);
-}
-
-// Adiciona sessões de pacote (2/4/8) ao fluxo do paciente como CRÉDITO — sem vincular
-// a pagamento/receita. Vira entrada na conta-corrente (será abatida pelas sessões cobradas).
-export async function addPackageCredit(patientId: string, formData: FormData) {
-  const session = await auth();
-  if (!session?.user?.id) throw new Error("Não autorizado");
-  const userId = session.user.id;
-  const patient = await db.query.patients.findFirst({
-    where: and(eq(patients.id, patientId), eq(patients.userId, userId)),
-  });
-  if (!patient) throw new Error("Paciente não encontrado");
-
-  const size = parseInt((formData.get("packSize") as string) || "0");
-  if (![2, 4, 8].includes(size)) throw new Error("Pacote inválido");
-  const fee = parseFloat(patient.sessionFee || "0") || 0;
-  const amount = (fee * size).toFixed(2);
-
-  // entrada de crédito (não é receita: linkedTransactionId nulo, kind=pacote)
-  await db.insert(sessionPayments).values({
-    userId, patientId, amount, method: "pix", status: "paid", kind: "pacote", linkedTransactionId: null,
-  });
-  revalidatePath(`/dashboard/patients/${patientId}`);
-}
-
-// Renova o pacote: zera créditos usados, atualiza qtd/valor e registra no histórico.
-export async function renewPackage(patientId: string, formData: FormData) {
-  const session = await auth();
-  if (!session?.user?.id) throw new Error("Não autorizado");
-  const userId = session.user.id;
-
-  const patient = await db.query.patients.findFirst({
-    where: and(eq(patients.id, patientId), eq(patients.userId, userId)),
-  });
-  if (!patient) throw new Error("Paciente não encontrado");
-
-  const qty = formData.get("sessionsInPacket") ? parseInt(formData.get("sessionsInPacket") as string) : (patient.sessionsInPacket ?? 0);
-  const fee = num(formData.get("valor"), patient.sessionFee);
-
-  await db.update(patients)
-    .set({ contractType: "pacote", sessionsInPacket: qty, packageCreditsUsed: 0, sessionFee: fee })
-    .where(and(eq(patients.id, patientId), eq(patients.userId, userId)));
-
-  await db.insert(patientContractHistory).values({
-    patientId,
-    type: "package_renew",
-    from: `${patient.sessionsInPacket ?? 0}x · ${patient.sessionFee}`,
-    to: `${qty}x · ${fee}`,
-    description: "Renovação de pacote",
-  });
-  if (fee !== patient.sessionFee) {
-    await db.insert(patientPriceHistory).values({ patientId, valor: fee, dataEfetiva: new Date() });
-  }
-
-  revalidatePath(`/dashboard/patients/${patientId}`);
 }
 
 // Etiquetas + observações (no cabeçalho do Prontuário). Gera histórico de alterações.

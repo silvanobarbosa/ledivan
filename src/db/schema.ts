@@ -128,6 +128,7 @@ export const transactions = pgTable("transactions", {
 }, (t) => [
   index("tx_user_idx").on(t.userId),
   index("tx_date_idx").on(t.date),
+  index("tx_user_date_idx").on(t.userId, t.date),
 ]);
 
 export const goals = pgTable("goals", {
@@ -231,6 +232,7 @@ export const patients = pgTable("patients", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (t) => [
   index("pat_user_idx").on(t.userId),
+  index("pat_user_status_idx").on(t.userId, t.patientStatus),
 ]);
 
 // Escalas de desfecho (PHQ-9/GAD-7) aplicadas ao paciente via link mágico.
@@ -314,6 +316,9 @@ export const therapySessions = pgTable("therapy_sessions", {
   index("ts_user_idx").on(t.userId),
   index("ts_patient_idx").on(t.patientId),
   index("ts_date_idx").on(t.date),
+  index("ts_user_status_idx").on(t.userId, t.status),
+  index("ts_user_date_idx").on(t.userId, t.date),
+  index("ts_pending_date_idx").on(t.pendingConfirmation, t.date),
 ]);
 
 // Plano terapêutico: objetivos do tratamento + progresso.
@@ -360,6 +365,7 @@ export const sessionPayments = pgTable("session_payments", {
 }, (t) => [
   index("sp_patient_idx").on(t.patientId),
   index("sp_user_idx").on(t.userId),
+  index("sp_user_status_idx").on(t.userId, t.status),
 ]);
 
 // Pacotes do paciente (P1, P2, ...). Cada um tem N sessões; consumidas uma a uma
@@ -375,6 +381,7 @@ export const patientPackages = pgTable("patient_packages", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (t) => [
   index("pkg_patient_idx").on(t.patientId),
+  index("pkg_user_idx").on(t.userId),
 ]);
 
 // --- Relations ---

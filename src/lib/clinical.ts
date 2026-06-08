@@ -9,16 +9,16 @@ export type FlaggedPatient = { id: string; name: string; flags: ClinicalFlag[]; 
 
 // Cruza risco de falta, escalas, humor e pagamento para sinalizar pacientes que merecem atenção.
 export async function getClinicalFlags(userId: string): Promise<FlaggedPatient[]> {
-  const pats = await db.query.patients.findMany({
-    where: and(eq(patients.userId, userId), inArray(patients.patientStatus, ["ativo", "pausado"])),
-  });
-  if (pats.length === 0) return [];
-
-  const [sessions, scales, moods] = await Promise.all([
-    db.query.therapySessions.findMany({ where: eq(therapySessions.userId, userId) }),
-    db.query.scaleApplications.findMany({ where: and(eq(scaleApplications.userId, userId), eq(scaleApplications.status, "respondida")), orderBy: [desc(scaleApplications.appliedAt)] }),
-    db.query.moodLogs.findMany({ where: eq(moodLogs.userId, userId), orderBy: [desc(moodLogs.loggedAt)] }),
+  const [pats, sessions, scales, moods] = await Promise.all([
+    db.query.patients.findMany({
+      where: and(eq(patients.userId, userId), inArray(patients.patientStatus, ["ativo", "pausado"])),
+      columns: { id: true, name: true, patientStatus: true, paymentStatus: true },
+    }),
+    db.query.therapySessions.findMany({ where: eq(therapySessions.userId, userId), columns: { patientId: true, status: true, date: true } }),
+    db.query.scaleApplications.findMany({ where: and(eq(scaleApplications.userId, userId), eq(scaleApplications.status, "respondida")), orderBy: [desc(scaleApplications.appliedAt)], columns: { patientId: true, score: true, severity: true, scaleType: true, appliedAt: true } }),
+    db.query.moodLogs.findMany({ where: eq(moodLogs.userId, userId), orderBy: [desc(moodLogs.loggedAt)], columns: { patientId: true, mood: true } }),
   ]);
+  if (pats.length === 0) return [];
 
   const sessionsByPatient = new Map<string, { status: string; date: Date }[]>();
   for (const s of sessions) {

@@ -1,6 +1,6 @@
 import { db } from "@/db";
 import { auth } from "@/auth";
-import { users, transactions, categories, financialAccounts } from "@/db/schema";
+import { transactions, categories, financialAccounts } from "@/db/schema";
 import { eq, desc, ilike, and, gte, lte } from "drizzle-orm";
 import { cn } from "@/lib/utils";
 import { AddTransaction } from "./AddTransaction";
@@ -27,27 +27,20 @@ export default async function TransactionsPage({
   const session = await auth();
   if (!session?.user?.id) return null;
 
-  const user = await db.query.users.findFirst({
-    where: eq(users.id, session.user.id),
-  });
-  if (!user) return null;
-
-  const conds = [eq(transactions.userId, user.id)];
+  const userId = session.user.id;
+  const conds = [eq(transactions.userId, userId)];
   if (q) conds.push(ilike(transactions.description, `%${q}%`));
   if (from) { const d = new Date(from); d.setHours(0, 0, 0, 0); conds.push(gte(transactions.date, d)); }
   if (to) { const d = new Date(to); d.setHours(23, 59, 59, 999); conds.push(lte(transactions.date, d)); }
 
-  const allTransactions = await db.query.transactions.findMany({
-    where: and(...conds),
-    with: {
-      category: true,
-    },
-    orderBy: [desc(transactions.date)],
-  });
-
-  const [allCategories, userAccounts] = await Promise.all([
+  const [allTransactions, allCategories, userAccounts] = await Promise.all([
+    db.query.transactions.findMany({
+      where: and(...conds),
+      with: { category: true },
+      orderBy: [desc(transactions.date)],
+    }),
     db.query.categories.findMany(),
-    db.query.financialAccounts.findMany({ where: eq(financialAccounts.userId, user.id) }),
+    db.query.financialAccounts.findMany({ where: eq(financialAccounts.userId, userId) }),
   ]);
 
   const removeTransaction = async (formData: FormData) => {

@@ -11,22 +11,21 @@ export default async function PatientsPage() {
   if (!session?.user?.id) return null;
   const userId = session.user.id;
 
-  const list = await db.query.patients.findMany({
-    where: and(eq(patients.userId, userId), ne(patients.patientStatus, "prospect")),
-    orderBy: [desc(patients.createdAt)],
-  });
-
-  // Saldo por paciente: pagamentos (pagos) − sessões realizadas cobráveis
-  const paysByPatient = await db
-    .select({ pid: sessionPayments.patientId, total: sql<string>`sum(${sessionPayments.amount})` })
-    .from(sessionPayments)
-    .where(and(eq(sessionPayments.userId, userId), eq(sessionPayments.status, "paid")))
-    .groupBy(sessionPayments.patientId);
-  const debitByPatient = await db
-    .select({ pid: therapySessions.patientId, total: sql<string>`sum(${therapySessions.fee})` })
-    .from(therapySessions)
-    .where(and(eq(therapySessions.userId, userId), eq(therapySessions.status, "realizada"), eq(therapySessions.chargeable, true)))
-    .groupBy(therapySessions.patientId);
+  // Saldo por paciente: pagamentos (pagos) − sessões realizadas cobráveis (em paralelo)
+  const [list, paysByPatient, debitByPatient] = await Promise.all([
+    db.query.patients.findMany({
+      where: and(eq(patients.userId, userId), ne(patients.patientStatus, "prospect")),
+      orderBy: [desc(patients.createdAt)],
+    }),
+    db.select({ pid: sessionPayments.patientId, total: sql<string>`sum(${sessionPayments.amount})` })
+      .from(sessionPayments)
+      .where(and(eq(sessionPayments.userId, userId), eq(sessionPayments.status, "paid")))
+      .groupBy(sessionPayments.patientId),
+    db.select({ pid: therapySessions.patientId, total: sql<string>`sum(${therapySessions.fee})` })
+      .from(therapySessions)
+      .where(and(eq(therapySessions.userId, userId), eq(therapySessions.status, "realizada"), eq(therapySessions.chargeable, true)))
+      .groupBy(therapySessions.patientId),
+  ]);
   const paidMap = new Map(paysByPatient.map((r) => [r.pid, parseFloat(r.total || "0")]));
   const debitMap = new Map(debitByPatient.map((r) => [r.pid, parseFloat(r.total || "0")]));
 

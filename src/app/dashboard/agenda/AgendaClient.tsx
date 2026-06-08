@@ -2,10 +2,9 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronLeft, ChevronRight, X, Plus, Stethoscope, Repeat } from "lucide-react";
+import { ChevronLeft, ChevronRight, X, Plus, Stethoscope, Repeat, Video, AlertTriangle, MapPin, Pencil } from "lucide-react";
 import { SESSION_STATUS_LABELS, sessionStatusColor, sessionColorClasses, RISK_LABELS, riskColor, type RiskLevel } from "@/lib/therapy";
 import { updateSessionStatus, confirmSession, createSessionFromAgenda, updateSession, createRecurring } from "../sessions/actions";
-import { Video, AlertTriangle, MapPin, Pencil } from "lucide-react";
 
 type PatientLite = { id: string; name: string; status: string; attendanceMode: string | null; attendanceLocation: string | null };
 type LocationLite = { name: string; address: string };

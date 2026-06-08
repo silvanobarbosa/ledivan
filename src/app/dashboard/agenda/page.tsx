@@ -16,6 +16,7 @@ export default async function AgendaPage() {
   const [list, pats, me] = await Promise.all([
     db.query.therapySessions.findMany({
       where: and(eq(therapySessions.userId, session.user.id), gte(therapySessions.date, windowStart)),
+      columns: { id: true, patientId: true, date: true, duration: true, status: true, isOnline: true, meetingUrl: true, meetingOpenedAt: true, guestJoinedAt: true, meetingEndedAt: true, pendingConfirmation: true, location: true, recurring: true },
       with: { patient: { columns: { name: true } } },
     }),
     db.query.patients.findMany({
