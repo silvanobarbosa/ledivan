@@ -16,6 +16,8 @@
     "seed:silvano": "npx tsx --env-file=.env.local src/scripts/seedSilvano.ts",
     "seed:apoiador": "npx tsx --env-file=.env.local src/scripts/seedApoiador.ts",
     "wipe": "npx tsx --env-file=.env.local src/scripts/wipeUser.ts",
+    "delete-user": "npx tsx --env-file=.env.local src/scripts/deleteUsers.ts",
+    "import:gi": "npx tsx --env-file=.env.local src/scripts/importGi.ts",
     "auth:google": "npx tsx --env-file=.env.local src/scripts/getGoogleToken.ts"
   },
   "dependencies": {

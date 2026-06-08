@@ -1,0 +1,488 @@
+﻿paciente_email;paciente_nome;data;valor;metodo;status;pacote;observacao
+alessandra@paciente.local;ALESSANDRA;;200,00;pix;pago;P1;PACOTE 1 - PAGOU 200,00
+alessandra@paciente.local;ALESSANDRA;;200,00;pix;pago;P2;Pacote 2- pagou 200,00
+alessandra@paciente.local;ALESSANDRA;;50,00;pix;pago;P3;Pacote 3 - pagou 50,00
+alessandra@paciente.local;ALESSANDRA;;200,00;pix;pago;P4;Pacote 4 - pagou 200,00
+alessandra@paciente.local;ALESSANDRA;2025-04-03;200,00;pix;pago;P5;Pacote 5 - pagou 200,00 em 03/04
+alessandra@paciente.local;ALESSANDRA;2025-05-05;200,00;pix;pago;P6;Pacote 6 - pagou 200,00 em 05/05
+alessandra@paciente.local;ALESSANDRA;2025-06-05;200,00;pix;pago;P7;Pacote 7 - pagou 200,00 em 05/06/25
+alessandra@paciente.local;ALESSANDRA;2025-07-04;150,00;pix;pago;P8;Pacote 8 - pagou 150,00 em 04/07
+alessandra@paciente.local;ALESSANDRA;2025-08-04;200,00;pix;pago;P9;Pacote 9 - pagou 200,00 em 04/08
+alessandra@paciente.local;ALESSANDRA;2025-10-02;200,00;pix;pago;P10;Pacote 10 - pagou 200,00em 02/10
+alessandra@paciente.local;ALESSANDRA;2025-11-06;200,00;pix;pago;P11;Pacote 11 - pagou 200,00 em 06/11
+alessandra@paciente.local;ALESSANDRA;2025-12-04;195,00;pix;pago;P12;Pacote 12 - pagou 195,00 em 04/12
+alessandra@paciente.local;ALESSANDRA;;195,00;pix;pago;P13;Pacote 13 - pagou 195,00 e, 14/01
+alessandra@paciente.local;ALESSANDRA;2025-02-03;260,00;pix;pago;P14;Pacote 14 - pagou 260,00 em 03/02
+alessandra@paciente.local;ALESSANDRA;2025-03-03;260,00;pix;pago;P15;Pacote 15 - pagou 260,00 em 03/03
+alessandra@paciente.local;ALESSANDRA;2025-04-07;260,00;pix;pago;P16;Pacote 16 - pagou 260,00 em 07/04
+alessandra@paciente.local;ALESSANDRA;2025-05-07;260,00;pix;pago;P17;Pacote 17 - pagou 260,00 em 07/05
+alessandra@paciente.local;ALESSANDRA;2026-06-05;130,00;pix;pago;P18;Pacote 18 - pagou 130,00 em 05/06/26
+aline@paciente.local;ALINE;;150,00;pix;pago;P2;Pacote 2 - pagou 150,00
+aline@paciente.local;ALINE;;150,00;pix;pago;P3;Pacote 3 - pagou 150,00
+aline@paciente.local;ALINE;;200,00;pix;pago;P4;Pacote 4 - pagou 200,00
+aline@paciente.local;ALINE;;;pix;pago;P5;Pacote 5 - cobrar 150,00
+aline@paciente.local;ALINE;2025-04-05;150,00;pix;pago;P6;Pacote 6 - Pagou 150,00 em 05/04/25
+aline@paciente.local;ALINE;2025-05-08;200,00;pix;pago;P7;Pacote 7 - pagou 200,00 em 08/05
+aline@paciente.local;ALINE;2025-06-12;200,00;pix;pago;P8;Pacote 8 - Pagou 200,00 em 12/06/25
+aline@paciente.local;ALINE;2025-07-22;100,00;pix;pago;P9;Pacote 9 - pagou 100,00 em 22/07
+aline@paciente.local;ALINE;2025-08-05;150,00;pix;pago;P10;Pacote 10 - pagou 150,00 em 05/08
+aline@paciente.local;ALINE;;;pix;pago;P11;Pacote 11
+ana.paula@paciente.local;ANA PAULA;2025-04-15;240,00;pix;pago;P2;Pacote 2- pagou 240,00 em 15/04
+ana.paula@paciente.local;ANA PAULA;2025-06-03;160,00;pix;pago;P3;Pacote 3 - pagou 160,00 em 03/06/25
+ana.raquel@paciente.local;ANA RAQUEL;;200,00;pix;pago;P1;PACOTE 1 - pagou 200
+ana.raquel@paciente.local;ANA RAQUEL;;50,00;pix;pago;P2;PACOTE 2 - pago 50,00
+ana.raquel@paciente.local;ANA RAQUEL;;50,00;pix;pago;P3;PACOTE 3 - pagou 50,00
+ana.raquel@paciente.local;ANA RAQUEL;;200,00;pix;pago;P4;Pacote 4 - pagou 200,00
+ana.raquel@paciente.local;ANA RAQUEL;;200,00;pix;pago;P5;Pacote 5 - Pago 200,00
+ana.raquel@paciente.local;ANA RAQUEL;;200,00;pix;pago;P6;Pacote 6 - pago 200,00
+ana.raquel@paciente.local;ANA RAQUEL;2025-05-07;;pix;pago;P6;Pacote 6 - pago em 07/05
+ana.raquel@paciente.local;ANA RAQUEL;2025-04-03;200,00;pix;pago;P7;Pacote 7 - pagou 200,00 em 03/04
+ana.raquel@paciente.local;ANA RAQUEL;2025-06-06;200,00;pix;pago;P7;Pacote 7 - pagou 200,00 em 06/06/25
+ana.raquel@paciente.local;ANA RAQUEL;2025-07-14;;pix;pago;P8;Pacote 8 - pagou em 14/07
+ana.raquel@paciente.local;ANA RAQUEL;2025-09-09;200,00;pix;pago;P9;Pacote 9 - pagou 200,00 em 09/09
+ana.raquel@paciente.local;ANA RAQUEL;2025-10-16;200,00;pix;pago;P10;Pacote 10 - pagou 200,00 em 16/10
+ana.raquel@paciente.local;ANA RAQUEL;2025-11-24;260,00;pix;pago;P11;Pacote 11 - pagou 260,00 em 24/11
+ana.raquel@paciente.local;ANA RAQUEL;2025-01-21;260,00;pix;pago;P12;Pacote 12 - pagou 260,00 em 21/01
+ana.raquel@paciente.local;ANA RAQUEL;2025-03-12;260,00;pix;pago;P13;Pacote 13 - pagou 260,00 em 12/03
+ana.raquel@paciente.local;ANA RAQUEL;2025-04-13;260,00;pix;pago;P14;Pacote 14 - pagou 260,00 em 13/04
+ana.raquel@paciente.local;ANA RAQUEL;2026-05-18;260,00;pix;pago;P15;Pacote 15 - pagou 260,00 em 18/05/26
+angela@paciente.local;ANGELA;2026-03-18;200,00;pix;pago;P1;Pacote 1  - pagou 200,00 em 18/03
+angela@paciente.local;ANGELA;2026-04-09;500,00;pix;pago;P2;Pacote 2 - pagou 500,00 em 09/04
+angela@paciente.local;ANGELA;;;pix;pago;P3;Pacote 3
+bruna@paciente.local;BRUNA;;200,00;pix;pago;P1;Pacote 1 - pago R$ 200,00
+bruna@paciente.local;BRUNA;;;pix;pago;P2;Pacote 2 - cortesia
+catarina@paciente.local;CATARINA;;200,00;pix;pago;P1;Pacote 1 - pago R$ 200,00
+catarina@paciente.local;CATARINA;;200,00;pix;pago;P2;Pacote 2 - pago R$ 200,00
+catarina@paciente.local;CATARINA;;200,00;pix;pago;P3;pacote 3 - pago R$ 200,00
+catarina@paciente.local;CATARINA;;200,00;pix;pago;P4;Pacote 4 - pago R$ 200,00
+catarina@paciente.local;CATARINA;;100,00;pix;pago;P5;Pacote 5 - pago 100,00
+catarina@paciente.local;CATARINA;;250,00;pix;pago;P6;Pacote 6 - pago 250
+catarina@paciente.local;CATARINA;;;pix;pago;P7;Pacote 7 - 150,00 (compensamos 1 do mês passado)
+catarina@paciente.local;CATARINA;;200,00;pix;pago;P8;Pacote 8 - pago 200,00
+catarina@paciente.local;CATARINA;;200,00;pix;pago;P9;Pacote 9 - pagou 200,00
+catarina@paciente.local;CATARINA;;200,00;pix;pago;P10;Pacote 10 - pago 200,00
+catarina@paciente.local;CATARINA;2025-05-04;240,00;pix;pago;P10;Pacote 10 - pagou 240,00 em 04/05
+catarina@paciente.local;CATARINA;2026-06-01;300,00;pix;pago;P11;Pacote 11 - pagou 300,00 em 01/06/26
+catarina@paciente.local;CATARINA;;200,00;pix;pago;P12;Pacote 12 - pagou 200,00
+catarina@paciente.local;CATARINA;;150,00;pix;pago;P13;Pacote 13 - pagou 150,00
+catarina@paciente.local;CATARINA;2025-05-01;200,00;pix;pago;P14;Pacote 14 - pagou 200,00 em 01/05
+catarina@paciente.local;CATARINA;2025-06-02;300,00;pix;pago;P15;Pacote 15 - Pagou 300,00 em 02/06
+catarina@paciente.local;CATARINA;;;pix;pago;P16;Pacote 16
+catarina@paciente.local;CATARINA;2025-08-04;240,00;pix;pago;P17;Pacote 17 - Pagou 240,00 em 04/08
+catarina@paciente.local;CATARINA;2025-08-29;300,00;pix;pago;P18;Pacote 18 - pagou 300,00 em 29/08
+catarina@paciente.local;CATARINA;2025-10-01;300,00;pix;pago;P19;Pacote 19 - pagou 300,00 em 01/10
+catarina@paciente.local;CATARINA;2025-11-03;240,00;pix;pago;P20;Pacote 20 - pagou 240,00 em 03/11
+catarina@paciente.local;CATARINA;2025-12-01;300,00;pix;pago;P21;Pacote 21 - pagou 300,00 em 01/12
+catarina@paciente.local;CATARINA;2025-01-12;240,00;pix;pago;P22;Pacote 22 - pagou 240,00 em 12/01
+catarina@paciente.local;CATARINA;2025-02-02;240,00;pix;pago;P23;Pacote 23 - pagou 240,00 em 02/02
+catarina@paciente.local;CATARINA;2025-03-05;300,00;pix;pago;P24;Pacote 24 - pagou 300,00 em 05/03
+catarina@paciente.local;CATARINA;2025-04-01;150,00;pix;pago;P25;Pacote 25 - Pagou 150,00 em 01/04
+claudio@paciente.local;CLÁUDIO;2025-06-21;400,00;pix;pago;P2;Pacote 2 - pagou 400,00 em 21/06
+claudio@paciente.local;CLÁUDIO;2025-07-28;400,00;pix;pago;P3;Pacote 3 - pagou 400,00 em 28/07
+claudio@paciente.local;CLÁUDIO;2025-08-21;400,00;pix;pago;P4;Pacote 4 - pagou 400,00 em 21/08
+claudio@paciente.local;CLÁUDIO;2025-09-25;400,00;pix;pago;P5;Pacote 5 - pagou 400,00 em 25/09
+claudio@paciente.local;CLÁUDIO;2025-11-05;400,00;pix;pago;P6;Pacote 6 - pagou 400,00 em 05/11
+claudio@paciente.local;CLÁUDIO;2025-11-27;400,00;pix;pago;P7;Pacote 7 - pagou 400,00 em 27/11
+claudio@paciente.local;CLÁUDIO;2025-04-15;200,00;pix;pago;P8;Pacote 8 - pagou 200,00 em 15/04
+danieli@paciente.local;DANIELI;2025-10-10;400,00;pix;pago;P3;Pacote 3 - pagou 400,00 em 10/10
+danieli@paciente.local;DANIELI;2025-11-17;400,00;pix;pago;P4;Pacote 4 - pagou 400,00 em 17/11
+danieli@paciente.local;DANIELI;;;pix;pago;P5;Pacote 5
+drielle@paciente.local;DRIELLE;;;pix;pago;P1;PACOTE 1 - pago (150,00)
+drielle@paciente.local;DRIELLE;;;pix;pago;P2;PACOTE 2 - pago (100,00)
+drielle@paciente.local;DRIELLE;;100,00;pix;pago;P3;PACOTE 3  pagou 100,00
+drielle@paciente.local;DRIELLE;;;pix;pago;P4;PACOTE 4 - PAGAMENTO 30/11 (150,00)
+drielle@paciente.local;DRIELLE;;;pix;pago;P5;Pacote 5 -
+drielle@paciente.local;DRIELLE;;;pix;pago;P6;Pacote 6
+drielle@paciente.local;DRIELLE;;;pix;pago;P7;Pacote 7
+drielle@paciente.local;DRIELLE;2025-03-02;160,00;pix;pago;P8;Pacote 8 - pagou 160,00 em 02/03
+drielle@paciente.local;DRIELLE;2025-04-17;180,00;pix;pago;P9;Pacote 9 - pagou 180,00 em 17/04
+drielle@paciente.local;DRIELLE;;;pix;pago;P10;Pacote 10
+drielle@paciente.local;DRIELLE;;;pix;pago;P11;Pacote  11
+duda.berg@paciente.local;DUDA BERG;;320,00;pix;pago;P1;Pacote 1- Pagou 320,00
+duda.berg@paciente.local;DUDA BERG;2025-04-14;320,00;pix;pago;P2;Pacote 2 -pagou 320,00 em 14/04
+duda.berg@paciente.local;DUDA BERG;2025-05-19;640,00;pix;pago;P3;Pacote 3 - pagou 640,00 em 19/05
+duda.berg@paciente.local;DUDA BERG;2025-06-17;640,00;pix;pago;P4;Pacote 4 - pagou 640,00 em 17/06/25
+duda.berg@paciente.local;DUDA BERG;2025-07-22;640,00;pix;pago;P5;Pacote 5 - pagou 640,00 em 22/07
+duda.berg@paciente.local;DUDA BERG;2025-08-20;640,00;pix;pago;P6;Pacote 6 - pagou 640,00 em 20/08/25
+duda.berg@paciente.local;DUDA BERG;2025-09-24;640,00;pix;pago;P7;Pacote 7 - pagou 640,00 em 24/09
+duda.berg@paciente.local;DUDA BERG;2025-10-15;640,00;pix;pago;P8;Pacote 8 - pagou 640,00 em 15/10
+duda.berg@paciente.local;DUDA BERG;2025-12-17;640,00;pix;pago;P10;Pacote 10 - pagou 640,00 em 17/12
+duda.berg@paciente.local;DUDA BERG;2025-02-07;640,00;pix;pago;P11;Pacote 11 - pagou 640,00 em 07/02
+duda.berg@paciente.local;DUDA BERG;2025-03-09;640,00;pix;pago;P12;Pacote 12 - pagou 640,00 em 09/03
+duda.berg@paciente.local;DUDA BERG;2025-04-13;720,00;pix;pago;P13;Pacote 13 - pagou 720,00 em 13/04
+duda.berg@paciente.local;DUDA BERG;2026-05-11;720,00;pix;pago;P14;Pacote 14 - pagou 720,00 em 11/05/26
+duda.berg@paciente.local;DUDA BERG;;;pix;pago;P15;Pacote 15
+eloa@paciente.local;ELOÁ;;200,00;pix;pago;P1;Pacote 1 - pago R$ 200,00
+eloa@paciente.local;ELOÁ;;200,00;pix;pago;P2;Pacote 2 - pago 200,00
+eloa@paciente.local;ELOÁ;;200,00;pix;pago;P3;Pacote 3 - pago 200,00
+eloa@paciente.local;ELOÁ;;200,00;pix;pago;P4;Pacote 4 - pago 200,00
+eloa@paciente.local;ELOÁ;;200,00;pix;pago;P5;Pacote 5 - pagou 200,00
+eloa@paciente.local;ELOÁ;;200,00;pix;pago;P6;Pacote 6 - pagou 200,00
+eloa@paciente.local;ELOÁ;;200,00;pix;pago;P7;Pacote 7 - pagou 200
+eloa@paciente.local;ELOÁ;;200,00;pix;pago;P8;Pacote 8 - pagou 200,00
+eloa@paciente.local;ELOÁ;2025-04-11;200,00;pix;pago;P9;Pacote 9 - pagou 200,00 em 11/04
+eloa@paciente.local;ELOÁ;2025-05-13;200,00;pix;pago;P10;Pacote 10 - pagou 200,00 em 13/05
+eloa@paciente.local;ELOÁ;2025-06-07;200,00;pix;pago;P11;Pacote 11 - pagou 200,00 em 07/06/25
+eloa@paciente.local;ELOÁ;2025-07-05;200,00;pix;pago;P12;Pacote 12 - pagou 200,00 em 05/07
+eloa@paciente.local;ELOÁ;2025-08-01;200,00;pix;pago;P13;Pacote 13 - pagou 200,00 em 01/08
+eloa@paciente.local;ELOÁ;2025-09-03;200,00;pix;pago;P14;Pacote 14 - pagou 200,00 em 03/09
+eloa@paciente.local;ELOÁ;2025-10-08;240,00;pix;pago;P15;Pacote 15 - pagou 240,00 em 08/10
+eloa@paciente.local;ELOÁ;2025-11-19;240,00;pix;pago;P16;Pacote 16 - pagou 240,00 em 19/11
+eloa@paciente.local;ELOÁ;2025-01-16;180,00;pix;pago;P17;Pacote 17 - pagou 180,00 em 16/01
+eloa@paciente.local;ELOÁ;2025-02-06;180,00;pix;pago;P18;Pacote 18 - pagou 180,00 em 06/02
+eloa@paciente.local;ELOÁ;;240,00;pix;pago;P19;Pacote 19 - pagou 240,00e m 06/03
+eloa@paciente.local;ELOÁ;2025-04-07;240,00;pix;pago;P20;Pacote 20 - pagou 240,00 em 07/04
+eloa@paciente.local;ELOÁ;2026-05-07;240,00;pix;pago;P21;Pacote 21 - pagou 240,00 em 07/05/26
+eloa@paciente.local;ELOÁ;2026-06-06;260,00;pix;pago;P22;Pacote 22 - pagou 260,00 em 06/06/26
+fernanda@paciente.local;FERNANDA;2025-08-08;400,00;pix;pago;P1;Pacote 1 - pagou 400,00 em 08/08
+fernanda@paciente.local;FERNANDA;2025-09-06;200,00;pix;pago;P2;Pacote 2 - pagou 200,00 em 06/09
+fernanda@paciente.local;FERNANDA;2025-02-12;400,00;pix;pago;P3;Pacote 3 - pagou 400,00 em 12/02
+fernanda@paciente.local;FERNANDA;2025-04-01;100,00;pix;pago;P4;Pacote 4 - pagou 100,00 em 01/04
+fernanda@paciente.local;FERNANDA;2025-04-15;300,00;pix;pago;P5;pacote 5 - pagou 300,00 em 15/04
+fernanda@paciente.local;FERNANDA;2026-05-06;400,00;pix;pago;P6;Pacote 6 - pagou 400,00 em 06/05/26
+fernanda@paciente.local;FERNANDA;;;pix;pago;P7;Pacote 7
+gabriela@paciente.local;GABRIELA;;200,00;pix;pago;P1;Pacote 1 - pago 200,00
+gabriela@paciente.local;GABRIELA;;100,00;pix;pago;P2;Pacote 2 - pago 100,00
+gabriela@paciente.local;GABRIELA;;200,00;pix;pago;P3;Pacote 3 - pago 200,00
+gabriela@paciente.local;GABRIELA;;200,00;pix;pago;P4;Pacote  4 - pago 200,00
+gabriela@paciente.local;GABRIELA;;200,00;pix;pago;P5;Pacote 5 - pago 200,00
+gabriela@paciente.local;GABRIELA;;150,00;pix;pago;P6;Pacote 6 - pagou 150,00
+gabriela@paciente.local;GABRIELA;;150,00;pix;pago;P7;Pacote 7 - pago 150,00
+giulia@paciente.local;GIULIA;2025-04-15;400,00;pix;pago;P1;Pacote 1 - Pagou 400,00 em 15/04
+giulia@paciente.local;GIULIA;2025-05-11;300,00;pix;pago;P2;Pacote 2 - pagou 300,00 em 11/05
+giulia@paciente.local;GIULIA;;;pix;pago;P7;Pacote 7
+gustavo@paciente.local;GUSTAVO;2025-07-09;360,00;pix;pago;P1;Pacote 1 - pagou 360,00 em 09/07
+gustavo@paciente.local;GUSTAVO;2025-08-19;40,00;pix;pago;P2;Pacote 2 pagou 40,00 a mais, cobrar 280,00- pagou em 19/08
+gustavo@paciente.local;GUSTAVO;2025-09-25;320,00;pix;pago;P3;Pacote 3 - pagou 320,00 em 25/09
+gustavo@paciente.local;GUSTAVO;2025-11-14;320,00;pix;pago;P4;Pacote 4  -pagou 320,00 em 14/11
+gustavo@paciente.local;GUSTAVO;2025-11-25;320,00;pix;pago;P5;Pacote 5 - pagou 320,00 em 25/11
+gustavo@paciente.local;GUSTAVO;2025-01-14;320,00;pix;pago;P6;Pacote 6 - pagou 320,00 em 14/01
+gustavo@paciente.local;GUSTAVO;2025-02-10;320,00;pix;pago;P7;Pacote 7 - pagou 320,00 em 10/02
+gustavo@paciente.local;GUSTAVO;2025-03-19;320,00;pix;pago;P8;Pacote 8 - pagou 320,00 em 19/03
+gustavo@paciente.local;GUSTAVO;2025-04-13;160,00;pix;pago;P9;Pacote 9 - pagou 160,00 em 13/04
+gustavo@paciente.local;GUSTAVO;2026-05-05;320,00;pix;pago;P10;Pacote 10 - pagou 320,00 em 05/05/26
+gustavo@paciente.local;GUSTAVO;;;pix;pago;P11;Pacote 11
+iris@paciente.local;IRIS;2025-02-13;;pix;pago;P1;Pacote 1 - pagu 400,00 em 13/02
+iris@paciente.local;IRIS;2025-03-20;400,00;pix;pago;P2;Pacote 2 - pagou 400,00 em 20/03
+iris@paciente.local;IRIS;2025-04-17;400,00;pix;pago;P3;Pacote 3 - pagou 400,00 em 17/04
+iris@paciente.local;IRIS;2026-05-09;400,00;pix;pago;P4;Pacote 4 - pagou 400,00 em 09/05/26
+iris@paciente.local;IRIS;;;pix;pago;P5;Pacote 5
+jacke.e.daniel@paciente.local;JACKE E DANIEL;2025-04-09;520,00;pix;pago;P1;Pacote 1 - Pagou 520,00 em 09/04
+jacke.e.daniel@paciente.local;JACKE E DANIEL;2026-05-14;520,00;pix;pago;P2;Pacote 2 - pagou 520,00 em 14/05/26
+jana.e.jairo@paciente.local;JANA E JAIRO;2025-02-25;480,00;pix;pago;P1;Pacote 1 - pagou 480,00 em 25/02
+jana.e.jairo@paciente.local;JANA E JAIRO;2025-03-25;120,00;pix;pago;P2;Pacote 2 - pagou 120,00 em 25/03
+jana.e.jairo@paciente.local;JANA E JAIRO;2025-04-08;100,00;pix;pago;P3;Pacote 3 - pagou 100,00 em 08/04
+jana.e.jairo@paciente.local;JANA E JAIRO;2026-05-08;500,00;pix;pago;P4;Pacote 4 - pagou 500,00 em 08/05/26
+jana.e.jairo@paciente.local;JANA E JAIRO;;;pix;pago;P6;Pacote 6
+jaqueceli@paciente.local;JAQUECELI;2025-01-13;100,00;pix;pago;P2;Pacote 2 - pagou 100,00 em 13/01
+jaqueceli@paciente.local;JAQUECELI;2025-01-20;100,00;pix;pago;P3;Pacote 3  pagou 100,00 em 20/01
+jaqueceli@paciente.local;JAQUECELI;2025-02-02;100,00;pix;pago;P4;Pacote 4 - pagou 100,00 em 02/02
+jaqueceli@paciente.local;JAQUECELI;2025-02-09;100,00;pix;pago;P6;Pacote 6 - pagou 100,00 em 09/02
+jaqueceli@paciente.local;JAQUECELI;2025-02-19;100,00;pix;pago;P7;Pacote 7 - pagou 100,00 em 19/02
+jaqueceli@paciente.local;JAQUECELI;2025-02-23;100,00;pix;pago;P8;Pacote 8 - pagou 100,00 em 23/02
+jaqueceli@paciente.local;JAQUECELI;2025-03-07;100,00;pix;pago;P9;Pacote 9 - pagou 100,00 em 07/03
+jaqueceli@paciente.local;JAQUECELI;;;pix;pago;P10;Pacote 10
+jaqueceli@paciente.local;JAQUECELI;;;pix;pago;P11;Pacote 11
+josi@paciente.local;JOSI;;270,00;pix;pago;P2;Pacote 2 - pagou 270,00
+josi@paciente.local;JOSI;;180,00;pix;pago;P3;Pacote 3 - pago 180,00
+josi@paciente.local;JOSI;;360,00;pix;pago;P4;Pacote 4 - pagou 360,00
+josi@paciente.local;JOSI;;200,00;pix;pago;P5;Pacote 5 - pagou 200,00
+josi@paciente.local;JOSI;2025-04-10;270,00;pix;pago;P6;Pacote 6 - pagou 270,00 em 10/04
+josi@paciente.local;JOSI;2025-05-07;360,00;pix;pago;P7;Pacote 7 - pagou 360,00 em 07/05
+josi@paciente.local;JOSI;2025-06-10;360,00;pix;pago;P8;Pacote 8 - pagou 360,00 em 10/06/25
+josi@paciente.local;JOSI;2025-07-23;270,00;pix;pago;P9;Pacote 9 - pagou 270,00 em 23/07
+josi@paciente.local;JOSI;2025-08-21;270,00;pix;pago;P10;Pacote 10 - pagou 270,00 em 21/08
+josi@paciente.local;JOSI;2025-09-22;270,00;pix;pago;P11;Pacote 11 - pagou 270,00 em 22/09
+josi@paciente.local;JOSI;2025-10-13;280,00;pix;pago;P12;Pacote 12 - pagou 280,00 em 13/10
+josi@paciente.local;JOSI;2025-11-18;270,00;pix;pago;P13;Pacote 13 - pagou 270,00 em 18/11
+josi@paciente.local;JOSI;2025-12-09;180,00;pix;pago;P14;Pacote 14 - pagou 180,00 em 09/12
+josi@paciente.local;JOSI;2025-01-23;180,00;pix;pago;P15;Pacote 15 - pagou 180,00 em 23/01
+josi@paciente.local;JOSI;2025-02-06;270,00;pix;pago;P16;Pacote 16 - pagou 270,00 em 06/02
+josi@paciente.local;JOSI;2025-03-18;180,00;pix;pago;P17;Pacote 17 - Pagou 180,00 em 18/03
+joyce@paciente.local;JOYCE;;320,00;pix;pago;P1;Pacote 1 - pagou 320,00
+joyce@paciente.local;JOYCE;;320,00;pix;pago;P2;Pacote 2 - pagou 320,00
+joyce@paciente.local;JOYCE;2025-04-14;320,00;pix;pago;P3;Pacote 3 - Pagou 320,00 em 14/04
+joyce@paciente.local;JOYCE;2025-05-19;320,00;pix;pago;P4;Pacote 4 - pagou 320,00 em 19/05
+joyce@paciente.local;JOYCE;2025-06-09;240,00;pix;pago;P5;Pacote 5 - pagou 240,00 em 09/06/25
+joyce@paciente.local;JOYCE;;160,00;pix;pago;P6;Pacote 6 -  pagou 160,00 dia 05/07
+joyce@paciente.local;JOYCE;2025-08-04;320,00;pix;pago;P7;Pacote 7 - pagou 320,00 em 04/08
+joyce@paciente.local;JOYCE;2025-08-29;400,00;pix;pago;P8;Pacote 8 - pagou 400 em 29/08
+joyce@paciente.local;JOYCE;2025-10-05;240,00;pix;pago;P9;Pacote 9 - pagou 240,00 em 05/10
+joyce@paciente.local;JOYCE;2025-11-04;320,00;pix;pago;P10;Pacote 10 - pagou 320,00 em 04/11/25
+joyce@paciente.local;JOYCE;2025-12-03;240,00;pix;pago;P11;Pacote 11 - pagou 240,00 em 03/12
+joyce@paciente.local;JOYCE;2025-01-12;240,00;pix;pago;P12;Pacote 12 - pagou 240,00 em 12/01
+joyce@paciente.local;JOYCE;2025-02-02;240,00;pix;pago;P18;Pacote 18 - pagou 240,00 em 2/02
+joyce@paciente.local;JOYCE;2025-04-06;180,00;pix;pago;P20;Pacote 20 - pagou 180,00 em 06/04
+joyce@paciente.local;JOYCE;2026-05-04;270,00;pix;pago;P21;Pacote 21 - pagou 270,00 em 04/05/26
+joyce@paciente.local;JOYCE;2026-06-01;450,00;pix;pago;P22;Pacote 22 - pagou 450,00 em 01/06/26
+joao.pancatawa@paciente.local;JOÃO PANCATAWA;;380,00;pix;pago;P1;PACOTE 1 - pago 380,00
+joao.pancatawa@paciente.local;JOÃO PANCATAWA;;320,00;pix;pago;P2;PACOTE 2 - pagou 320,00
+joao.pancatawa@paciente.local;JOÃO PANCATAWA;;;pix;pago;P3;Pacote 3
+joao.pancatawa@paciente.local;JOÃO PANCATAWA;;;pix;pago;P4;Pacote 4
+julia.vieira@paciente.local;JULIA VIEIRA;2025-04-14;160,00;pix;pago;P1;Pacote 1 - pagou 160,00 em 14/04
+julia.vieira@paciente.local;JULIA VIEIRA;2025-04-20;160,00;pix;pago;P2;Pacote 2 - pagou 160,00 em 20/04
+julia.vieira@paciente.local;JULIA VIEIRA;2025-05-11;160,00;pix;pago;P3;Pacote 3 - pagou 160,00 em 11/05
+julia.vieira@paciente.local;JULIA VIEIRA;;;pix;pago;P4;Pacote 4
+julia.vieira@paciente.local;JULIA VIEIRA;;;pix;pago;P5;Pacote 5
+juliana@paciente.local;JULIANA;2025-08-20;320,00;pix;pago;P2;Pacote 2 - pagou 320,00 em 20/08/25
+juliana@paciente.local;JULIANA;2025-09-20;160,00;pix;pago;P3;Pacote 3 - pagou 160,00 em 20/09/25
+julieta@paciente.local;JULIETA;2025-01-16;300,00;pix;pago;P1;Pacote 1- pagou 300,00 em 16/01
+julieta@paciente.local;JULIETA;2025-02-03;400,00;pix;pago;P2;Pacote 2 - pagou 400,00 em 03/02
+julieta@paciente.local;JULIETA;2025-03-09;300,00;pix;pago;P3;Pacote 3 - pagou 300,00 em 09/03
+julieta@paciente.local;JULIETA;2025-04-02;500,00;pix;pago;P4;Pacote 4 - pagou 500,00 em 02/04
+julieta@paciente.local;JULIETA;2025-05-05;400,00;pix;pago;P5;Pacote 5 - pagou 400,00 em 05/05
+julieta@paciente.local;JULIETA;2025-06-03;200,00;pix;pago;P6;Pacote 6 - pagou 200,00 em 03/06
+kellen@paciente.local;KELLEN;;;pix;pago;P1;PACOTE 1
+katia@paciente.local;KÁTIA;;200,00;pix;pago;P1;Pacote 1 - pago R$ 200,00
+katia@paciente.local;KÁTIA;;200,00;pix;pago;P2;Pacote 2 - pago R$ 200,00
+katia@paciente.local;KÁTIA;;200,00;pix;pago;P3;pacote 3 - pago R$ 200,00
+katia@paciente.local;KÁTIA;;200,00;pix;pago;P6;Pacote 6 - pago 200,00
+katia@paciente.local;KÁTIA;;200,00;pix;pago;P7;Pacote 7 - pago 200,00
+katia@paciente.local;KÁTIA;;200,00;pix;pago;P8;Pacote 8 - pago 200,00
+katia@paciente.local;KÁTIA;;200,00;pix;pago;P9;Pacote 9 - pago 200,00
+katia@paciente.local;KÁTIA;;200,00;pix;pago;P10;Pacote 10 - pagou 200,00
+katia@paciente.local;KÁTIA;;200,00;pix;pago;P11;Pacote 11 - pagou 200
+katia@paciente.local;KÁTIA;2025-04-07;200,00;pix;pago;P12;Pacote 12 - pagou 200,00 em 07/04
+katia@paciente.local;KÁTIA;2025-09-10;320,00;pix;pago;P13;Pacote 13 - pagou 320,00 em 10/09
+katia@paciente.local;KÁTIA;2025-05-12;240,00;pix;pago;P14;Pacote 14 - pagou 240,00 em 12/05
+katia@paciente.local;KÁTIA;2026-06-01;400,00;pix;pago;P15;Pacote 15 - pagou 400,00 em 01/06/26
+luca@paciente.local;LUCA;2025-10-27;400,00;pix;pago;P2;Pacote 2 - pagou 400,00 em 27/10
+luca@paciente.local;LUCA;2025-11-24;400,00;pix;pago;P3;Pacote 3 - pagou 400,00 em 24/11
+maria.eduarda@paciente.local;MARIA EDUARDA;;100,00;pix;pago;P2;PACOTE 2 - pagou 100
+maria.eduarda@paciente.local;MARIA EDUARDA;;100,00;pix;pago;P3;PACOTE 3 - pago 100,00
+maria.eduarda@paciente.local;MARIA EDUARDA;;50,00;pix;pago;P4;PACOTE 4 - pago 50,00
+maria.eduarda@paciente.local;MARIA EDUARDA;;150,00;pix;pago;P5;Pacote 5 - pagou 150,00
+maria.eduarda@paciente.local;MARIA EDUARDA;;100,00;pix;pago;P6;Pacote 6 - pagou 100,00
+maria.eduarda@paciente.local;MARIA EDUARDA;;100,00;pix;pago;P7;Pacote 7 - pagou 100,00
+maria.eduarda@paciente.local;MARIA EDUARDA;;;pix;pago;P8;Pacote 8
+maria.julia@paciente.local;MARIA JÚLIA;;150,00;pix;pago;P1;Pacote 1 -pago 150,00
+maria.julia@paciente.local;MARIA JÚLIA;;200,00;pix;pago;P2;Pacote 2 -pago 200,00
+maria.julia@paciente.local;MARIA JÚLIA;;200,00;pix;pago;P3;Pacote 3  - pago 200,00
+maria.julia@paciente.local;MARIA JÚLIA;;200,00;pix;pago;P4;Pacote 4 - pago 200,00
+maria.julia@paciente.local;MARIA JÚLIA;;200,00;pix;pago;P5;Pacote 5 - pago 200,00
+maria.julia@paciente.local;MARIA JÚLIA;;150,00;pix;pago;P6;Pacote 6 - pagou 150,00
+maria.julia@paciente.local;MARIA JÚLIA;;200,00;pix;pago;P7;Pacote 7 - pagou 200,00
+maria.julia@paciente.local;MARIA JÚLIA;;200,00;pix;pago;P8;Pacote 8 - pagou 200,00
+maria.julia@paciente.local;MARIA JÚLIA;2025-04-07;150,00;pix;pago;P9;Pacote 9 - pagou 150,00 em 07/04/25
+maria.julia@paciente.local;MARIA JÚLIA;2025-05-08;200,00;pix;pago;P10;Pacote 10 - pagou 200,00 em 08/05
+maria.julia@paciente.local;MARIA JÚLIA;2025-06-10;200,00;pix;pago;P11;Pacote 11 - pagou 200,00 em 10/06/25
+maria.julia@paciente.local;MARIA JÚLIA;2025-07-07;150,00;pix;pago;P12;Pacote 12 - pagou 150,00 em 07/07
+maria.julia@paciente.local;MARIA JÚLIA;2025-08-07;200,00;pix;pago;P13;Pacote 13 - pagou 200,00 em 07/08
+maria.julia@paciente.local;MARIA JÚLIA;2025-09-11;200,00;pix;pago;P14;Pacote 14 - pagou 200,00 em 11/09
+maria.julia@paciente.local;MARIA JÚLIA;2025-10-08;200,00;pix;pago;P15;Pacote 15 - pagou 200,00 em 08/10
+maria.julia@paciente.local;MARIA JÚLIA;2025-11-10;240,00;pix;pago;P16;Pacote 16 - pagou 240,00 em 10/11
+maria.julia@paciente.local;MARIA JÚLIA;2025-12-11;180,00;pix;pago;P17;Pacote 17 - pagou 180,00 em 11/12
+maria.julia@paciente.local;MARIA JÚLIA;2025-01-12;180,00;pix;pago;P18;Pacote 18 - pagou 180,00 em 12/01
+maria.julia@paciente.local;MARIA JÚLIA;2025-02-11;120,00;pix;pago;P19;Pacote 19 - Pagou 120,00 em 11/02
+maria.julia@paciente.local;MARIA JÚLIA;2025-03-07;240,00;pix;pago;P20;Pacote 20 - Pagou 240,00 em 07/03
+maria.julia@paciente.local;MARIA JÚLIA;2025-04-16;180,00;pix;pago;P21;Pacote 21 - pagou 180,00 em 16/04
+maria.julia@paciente.local;MARIA JÚLIA;2026-05-07;180,00;pix;pago;P22;Pacote 22 - pagou 180,00 em 07/05/26
+maria.julia@paciente.local;MARIA JÚLIA;2026-06-01;240,00;pix;pago;P23;Pacote 23 - pagou 240,00 em 01/06/26
+meyla@paciente.local;MEYLA;2025-09-02;80,00;pix;pago;P1;Pacote 1 - pagou 80,00 em 02/09
+meyla@paciente.local;MEYLA;2025-09-19;130,00;pix;pago;P2;Pacote 2 - pagou 130,00 em 19/09
+meyla@paciente.local;MEYLA;2025-10-01;195,00;pix;pago;P3;Pacote 3 - pagou 195,00 em 01/10
+meyla@paciente.local;MEYLA;;;pix;pago;P4;Pacote 4
+meyla@paciente.local;MEYLA;2025-11-11;130,00;pix;pago;P5;Pacote 5 - pagou 130 em 11/11
+meyla@paciente.local;MEYLA;2025-11-15;65,00;pix;pago;P6;Pacote 6 - pago 65,00 em 15/11
+meyla@paciente.local;MEYLA;;;pix;pago;P7;Pacote 7
+meyla@paciente.local;MEYLA;2025-12-19;65,00;pix;pago;P8;Pacote 8 - pagou 65,00 em 19/12
+meyla@paciente.local;MEYLA;2025-03-04;120,00;pix;pago;P9;Pacote 9 - pagou 120,00 em 04/03
+meyla@paciente.local;MEYLA;2025-04-14;150,00;pix;pago;P10;Pacote 10 - pagou 150,00 em 14/04
+meyla@paciente.local;MEYLA;2025-05-01;195,00;pix;pago;P11;Pacote 11 - pagou 195,00 em 01/05
+meyla@paciente.local;MEYLA;2026-06-01;130,00;pix;pago;P12;Pacote 12 - Pagou 130,00 em 01/06/26
+michele@paciente.local;MICHELE;2025-06-26;320,00;pix;pago;P2;Pacote 2 - pagou 320,00 em 26/06
+michele@paciente.local;MICHELE;2025-08-07;320,00;pix;pago;P3;Pacote 3 - pagou 320,00 em 07/08
+michele@paciente.local;MICHELE;;;pix;pago;P4;Pacote 4
+mirella@paciente.local;MIRELLA;;120,00;pix;pago;P1;Pacote 1 - pagou 120,00
+mirella@paciente.local;MIRELLA;2025-03-05;428,00;pix;pago;P2;Pacote 2 - pagou 428,00 em 05/03
+mirella@paciente.local;MIRELLA;2025-03-19;428,00;pix;pago;P3;Pacote 3 - pagou 428,00 em 19/03
+mirella@paciente.local;MIRELLA;2025-04-14;214,00;pix;pago;P4;Pacote 4 - pagou 214,00 em 14/04
+mirella@paciente.local;MIRELLA;2025-05-04;214,00;pix;pago;P5;Pacote 5 - pagou 214,00 em 04/05
+mirella@paciente.local;MIRELLA;2025-05-20;321,00;pix;pago;P6;Pacote 6 - pagou 321,00 em 20/05
+mirella@paciente.local;MIRELLA;;;pix;pago;P7;Pacote 7
+monique@paciente.local;MONIQUE;;;pix;pago;P1;PACOTE 1
+nadir@paciente.local;NADIR;;360,00;pix;pago;P2;Pacote 2 - pagou 360,00
+nadir@paciente.local;NADIR;;360,00;pix;pago;P3;Pacote 3 - pagou 360,00
+nadir@paciente.local;NADIR;2025-04-07;360,00;pix;pago;P4;Pacote 4 - pagou 360,00 em 07/04
+nadir@paciente.local;NADIR;2025-05-15;360,00;pix;pago;P5;Pacote 5 - pagou 360,00 em 15/05
+nadir@paciente.local;NADIR;2025-06-16;360,00;pix;pago;P6;Pacote 6 - pagou 360,00 em 16/06
+nadir@paciente.local;NADIR;2025-07-10;180,00;pix;pago;P7;Pacote 7 - pagou 180,00 em 10/07
+nadir@paciente.local;NADIR;2025-08-06;360,00;pix;pago;P8;Pacote 8 - pagou 360,00 em 06/08
+nadir@paciente.local;NADIR;2025-09-08;360,00;pix;pago;P9;Pacote 9 - pagou 360,00 em 08/09/25
+nelson@paciente.local;NELSON;;200,00;pix;pago;P1;Pacote 1 - pago R$ 200,00
+nelson@paciente.local;NELSON;;200,00;pix;pago;P2;Pacote 2 - pago R$ 200,00
+nelson@paciente.local;NELSON;;200,00;pix;pago;P3;pacote 3 - pago R$ 200,00
+nelson@paciente.local;NELSON;;250,00;pix;pago;P4;Pacote 4 - pago R$ 250,00
+nelson@paciente.local;NELSON;;200,00;pix;pago;P5;Pacote 5 - pago 200,00
+nelson@paciente.local;NELSON;;200,00;pix;pago;P6;Pacote 6 - pago 200,00
+nelson@paciente.local;NELSON;;200,00;pix;pago;P7;Pacote 7 - pago 200,00
+nelson@paciente.local;NELSON;;200,00;pix;pago;P8;Pacote 8 - pago 200,00
+nelson@paciente.local;NELSON;;200,00;pix;pago;P9;PACOTE 9 - pagou 200,00
+nelson@paciente.local;NELSON;;200,00;pix;pago;P10;Pacote 10 - pagou 200,00
+nelson@paciente.local;NELSON;;200,00;pix;pago;P11;Pacote 11 - pagou 200,00
+nelson@paciente.local;NELSON;2025-04-01;200,00;pix;pago;P12;Pacote 12 - pagou 200,00 em 01/04
+nelson@paciente.local;NELSON;;;pix;pago;P13;Pacote 13 - aumentar para 70,00
+pedro@paciente.local;PEDRO;2025-10-01;160,00;pix;pago;P1;Pacote 1 - pagou 160,00 em 01/10
+pedro@paciente.local;PEDRO;2025-10-18;80,00;pix;pago;P2;Pacote 2 - pagou 80,00 em 18/10
+pedro@paciente.local;PEDRO;2025-11-05;160,00;pix;pago;P3;Pacote 3 - pagou 160,00 em 05/11
+pedro@paciente.local;PEDRO;2025-11-15;160,00;pix;pago;P4;Pacote 4  - pago 160,00 em 15/11
+pedro@paciente.local;PEDRO;2025-12-04;160,00;pix;pago;P5;Pacote 5 - pagou 160,00 em 04/12
+pedro@paciente.local;PEDRO;2025-12-18;240,00;pix;pago;P6;Pacote 6 - pagou 240,00 em 18/12
+pedro@paciente.local;PEDRO;2025-01-16;320,00;pix;pago;P7;Pacote  7 - pagou 320,00 em 16/01
+pedro@paciente.local;PEDRO;2025-02-03;160,00;pix;pago;P8;Pacote 8 - pagou 160,00 em 03/02
+pedro@paciente.local;PEDRO;2025-02-22;80,00;pix;pago;P9;Pacote 9 - pagou 80,00 em 22/02
+pedro@paciente.local;PEDRO;2025-03-03;160,00;pix;pago;P10;Pacote 10 - pagou 160,00 em 03/03
+pedro@paciente.local;PEDRO;2025-03-19;240,00;pix;pago;P11;Pacote 11 - pagou 240,00 em 19/03
+pedro@paciente.local;PEDRO;2025-04-04;160,00;pix;pago;P12;Pacote 12 - pagou 160,00 em 04/04
+pedro@paciente.local;PEDRO;2025-04-20;160,00;pix;pago;P13;Pacote 13 - pagou 160,00 em 20/04
+pedro@paciente.local;PEDRO;2026-05-09;160,00;pix;pago;P14;Pacote 14 - pagou 160,00 em 09/05/26
+pedro@paciente.local;PEDRO;2025-05-23;160,00;pix;pago;P23;Pacote 23 - pagou 160,00 em 23/05
+pedro@paciente.local;PEDRO;2025-06-05;340,00;pix;pago;P24;Pacote 24 - pagou 340,00 em 05/06
+priscila.z@paciente.local;PRISCILA Z.;;320,00;pix;pago;P1;Pacote 1 = pagou 320,00
+priscila.z@paciente.local;PRISCILA Z.;;320,00;pix;pago;P2;Pacote 2 - pago 320,00
+priscila.z@paciente.local;PRISCILA Z.;;160,00;pix;pago;P3;Pacote 3 - pagou 160,00
+priscila.z@paciente.local;PRISCILA Z.;2025-04-06;240,00;pix;pago;P4;Pacote 4 - pagou 240,00 em 06/04/25
+priscila.z@paciente.local;PRISCILA Z.;2025-05-13;480,00;pix;pago;P5;Pacote 5 - pagou 480,00 em 13/05
+priscila.z@paciente.local;PRISCILA Z.;2025-06-07;320,00;pix;pago;P6;Pacote 6 - pagou 320,00 em 07/06/25
+priscila.z@paciente.local;PRISCILA Z.;2025-07-05;320,00;pix;pago;P7;Pacote 7 - pagou 320,00 em 05/07
+priscila.z@paciente.local;PRISCILA Z.;;320,00;pix;pago;P8;Pacote 8 - pagou 320,00 rm 04/08
+priscila.z@paciente.local;PRISCILA Z.;2025-09-16;320,00;pix;pago;P9;Pacote 9 - pagou 320,00 em 16/09
+priscila.z@paciente.local;PRISCILA Z.;2025-11-03;320,00;pix;pago;P10;Pacote 10 - PAGOU 320,00 EM 03/11
+priscila.z@paciente.local;PRISCILA Z.;2025-12-09;160,00;pix;pago;P11;Pacote 11 - pagou 160,00 em 09/12
+priscila.z@paciente.local;PRISCILA Z.;2025-01-12;240,00;pix;pago;P12;Pacote 12 - pagou 240,00 em 12/01
+priscila.z@paciente.local;PRISCILA Z.;2025-02-11;240,00;pix;pago;P13;Pacote 13 - pagou 240,00 em 11/02
+priscila.z@paciente.local;PRISCILA Z.;2025-03-02;360,00;pix;pago;P14;Pacote 14 - pagou 360,00 em 02/03
+priscila.z@paciente.local;PRISCILA Z.;2025-04-01;360,00;pix;pago;P15;Pacote 15 - pagou 360,00 em 01/04
+priscila.z@paciente.local;PRISCILA Z.;2025-05-12;360,00;pix;pago;P16;Pacote 16 - pagou 360,00 em 12/05
+priscila.z@paciente.local;PRISCILA Z.;;;pix;pago;P17;Pacote 17
+rafael.paiva@paciente.local;RAFAEL PAIVA;;200,00;pix;pago;P2;Pacote 2 - pago 200,00
+rafael.paiva@paciente.local;RAFAEL PAIVA;;150,00;pix;pago;P3;Pacote 3 - pagou 150,00
+rafael.paiva@paciente.local;RAFAEL PAIVA;;200,00;pix;pago;P4;Pacote 4 - pagou 200,00
+rafael.paiva@paciente.local;RAFAEL PAIVA;;200,00;pix;pago;P5;Pacote 5 - pagou 200,00
+rafael.paiva@paciente.local;RAFAEL PAIVA;2025-04-10;150,00;pix;pago;P6;Pacote 6 - pagou 150,00 em 10/04
+rafael.paiva@paciente.local;RAFAEL PAIVA;2025-05-08;200,00;pix;pago;P7;Pacote 7 - Pagou 200,00 em 08/05
+rafael.paiva@paciente.local;RAFAEL PAIVA;2025-06-12;150,00;pix;pago;P8;Pacote 8 - pagou 150,00 em 12/06/25
+rafael.paiva@paciente.local;RAFAEL PAIVA;2025-07-03;200,00;pix;pago;P9;Pacote 9 - pagou 200,00 em 03/07
+rafael.paiva@paciente.local;RAFAEL PAIVA;2025-08-26;200,00;pix;pago;P10;Pacote 10 - pagou 200,00 em 26/08
+rafael.paiva@paciente.local;RAFAEL PAIVA;2025-09-30;260,00;pix;pago;P11;Pacote 11 - pagou 260,00 em 30/09
+rafael.paiva@paciente.local;RAFAEL PAIVA;2025-10-21;65,00;pix;pago;P12;Pacote 12 - pagou 65,00 em 21/10
+rafael.paiva@paciente.local;RAFAEL PAIVA;2025-12-05;260,00;pix;pago;P13;Pacote 13 - pagou 260,00 em 05/12
+raphael.da.dani@paciente.local;RAPHAEL DA DANI;;;pix;pago;P1;PACOTE 1 - cortesia
+raphael.da.dani@paciente.local;RAPHAEL DA DANI;;200,00;pix;pago;P2;PACOTE 2 - pago 200,00
+roseli@paciente.local;ROSELI;2025-05-16;160,00;pix;pago;P1;Pacote 1 - pagou 160,00 em 16/05
+roseli@paciente.local;ROSELI;2025-06-05;240,00;pix;pago;P2;Pacote 2 - pagou 240,00 em 05/06
+roseli@paciente.local;ROSELI;2025-07-02;240,00;pix;pago;P3;Pacote 3 - pagou 240,00 em 02/07
+roseli@paciente.local;ROSELI;2025-08-04;320,00;pix;pago;P4;Pacote 4 - pagou 320,00 em 4/08
+roseli@paciente.local;ROSELI;2025-09-03;240,00;pix;pago;P5;Pacote 5 - pagou 240,00 em 03/09
+roseli@paciente.local;ROSELI;2025-10-22;320,00;pix;pago;P6;Pacote 6 - pagou 320,00 em 22/10
+roseli@paciente.local;ROSELI;2025-11-06;240,00;pix;pago;P7;Pacote 7 - pagou 240,00 em 06/11
+roseli@paciente.local;ROSELI;2026-06-02;270,00;pix;pago;P7;Pacote 7 - pagou 270,00 em 02/06/26
+roseli@paciente.local;ROSELI;2025-12-02;80,00;pix;pago;P8;Pacote 8 - pagou 80,00 em 02/12/25
+roseli@paciente.local;ROSELI;2025-01-22;160,00;pix;pago;P9;Pacote 9 - pagou 160,00 em 22/01
+roseli@paciente.local;ROSELI;2025-02-02;320,00;pix;pago;P10;Pacote 10 - pagou 320,00 em 02/02
+roseli@paciente.local;ROSELI;2025-03-02;160,00;pix;pago;P11;Pacote 11 - pagou 160,00 em 02/03
+roseli@paciente.local;ROSELI;2025-04-01;320,00;pix;pago;P12;Pacote 12 - pagou 320,00 em 01/04
+roseli@paciente.local;ROSELI;2025-05-04;160,00;pix;pago;P13;Pacote 13 - pagou 160,00 em 04/05
+rosilene.lima@paciente.local;ROSILENE LIMA;2025-08-20;400,00;pix;pago;P2;Pacote 2 - pagou 400,00 em 20/08/25
+rosilene.lima@paciente.local;ROSILENE LIMA;2025-09-19;400,00;pix;pago;P3;Pacote 3 - pagou 400,00 em 19/09
+rosilene.lima@paciente.local;ROSILENE LIMA;2025-10-16;400,00;pix;pago;P4;Pacote 4 - pagou 400,00 em 16/10
+rosilene.lima@paciente.local;ROSILENE LIMA;2025-11-18;400,00;pix;pago;P5;Pacote 5 - pago 400,00 em 18/11/25
+rosilene.lima@paciente.local;ROSILENE LIMA;2025-12-09;400,00;pix;pago;P6;Pacote 6 - pagou 400,00 em 09/12
+rosilene.lima@paciente.local;ROSILENE LIMA;2025-02-21;400,00;pix;pago;P7;Pacote 7 - pagou 400,00 em 21/02
+rosilene.lima@paciente.local;ROSILENE LIMA;;;pix;pago;P8;Pacote 8
+samira@paciente.local;SAMIRA;;200,00;pix;pago;P1;Pacote 1 - pago 200,00
+samira@paciente.local;SAMIRA;;200,00;pix;pago;P2;Pacote 2 - pago 200,00
+sandra@paciente.local;SANDRA;;60,00;pix;pago;P1;Pacote 1 - pago 60,00
+sandra@paciente.local;SANDRA;;90,00;pix;pago;P2;Pacote 2 - pago 90
+sandra@paciente.local;SANDRA;;;pix;pago;P3;Pacote 3 - 120,00
+sandra@paciente.local;SANDRA;;120,00;pix;pago;P4;PACOTE 4 - pagou 120,00
+savya@paciente.local;SAVYA;2025-12-09;400,00;pix;pago;P2;Pacote 2 - pagou 400,00 em 09/12
+savya@paciente.local;SAVYA;2025-01-22;400,00;pix;pago;P3;Pacote 3 - pagou 400,00 em 22/01
+suellen@paciente.local;SUELLEN;;200,00;pix;pago;P1;Pacote 1 - pago R$ 200,00
+suellen@paciente.local;SUELLEN;;200,00;pix;pago;P2;Pacote 2 - pago 200,00
+suellen@paciente.local;SUELLEN;;;pix;pago;P3;Pacote 3
+suellen@paciente.local;SUELLEN;;;pix;pago;P4;Pacote 4
+suellen.g@paciente.local;SUELLEN G;2025-04-11;320,00;pix;pago;P2;Pacote 2 - pagou 320,00 em 11/04
+suellen.g@paciente.local;SUELLEN G;2025-05-12;320,00;pix;pago;P3;Pacote 3 - pagou 320,00 em 12/05
+suellen.g@paciente.local;SUELLEN G;2025-06-16;320,00;pix;pago;P4;Pacote 4 - pagou 320,00 em 16/06
+suellen.g@paciente.local;SUELLEN G;2025-07-21;320,00;pix;pago;P5;Pacote 5 - pagou 320,00 em 21/07/25
+suellen.g@paciente.local;SUELLEN G;2025-09-01;320,00;pix;pago;P6;Pacote 6 - pagou 320,00 em 01/09
+suellen.g@paciente.local;SUELLEN G;2025-10-02;320,00;pix;pago;P7;Pacote 7 - pagou 320,00 em 02/10
+suellen.g@paciente.local;SUELLEN G;2025-10-27;320,00;pix;pago;P8;Pacote 8 - pagou 320,00 em 27/10
+suellen.g@paciente.local;SUELLEN G;2025-11-18;320,00;pix;pago;P9;Pacote 9 - pagou 320,00 em 18/11
+suellen.g@paciente.local;SUELLEN G;;;pix;pago;P10;Pacote 10
+sonia@paciente.local;SÔNIA;;320,00;pix;pago;P1;Pacote 1 - pagou 320,00
+sonia@paciente.local;SÔNIA;;320,00;pix;pago;P2;Pacote 2 - pagou 320,00
+sonia@paciente.local;SÔNIA;2025-04-08;320,00;pix;pago;P3;Pacote 3 - pagou 320,00 em 08/04
+sonia@paciente.local;SÔNIA;2025-05-08;320,00;pix;pago;P4;Pacote 4 - pagou 320,00 em 08/05
+sonia@paciente.local;SÔNIA;2025-06-06;240,00;pix;pago;P5;Pacote 5 - pagou 240,00 em 06/06/25
+sonia@paciente.local;SÔNIA;2025-07-07;320,00;pix;pago;P6;Pacote 6 - pagou 320,00 em 07/07
+sonia@paciente.local;SÔNIA;2025-08-07;320,00;pix;pago;P7;Pacote 7 - pagou 320,00 em 07/08
+sonia@paciente.local;SÔNIA;2025-09-05;320,00;pix;pago;P8;Pacote 8 - pagou 320,00 em 05/09/2025
+sonia@paciente.local;SÔNIA;2025-10-07;320,00;pix;pago;P9;Pacote 9 - pagou 320,00 em 07/10
+sonia@paciente.local;SÔNIA;2025-05-11;240,00;pix;pago;P10;Pacote 10 - pagou 240,00 em 11/05
+sonia@paciente.local;SÔNIA;;;pix;pago;P11;Pacote 11
+tadeu@paciente.local;TADEU;;;pix;pago;P1;Pacote 1 - cortesia
+tadeu@paciente.local;TADEU;;200,00;pix;pago;P2;Pacote 2 - pago 200,00
+tadeu@paciente.local;TADEU;;;pix;pago;P3;Pacote 3
+vinicius@paciente.local;VINÍCIUS;;200,00;pix;pago;P1;Pacote 1 - pago 200,00
+vinicius@paciente.local;VINÍCIUS;;200,00;pix;pago;P2;Pacote 2 - pago 200,00
+vinicius@paciente.local;VINÍCIUS;;;pix;pago;P3;Pacote 3
+vinicius@paciente.local;VINÍCIUS;;;pix;pago;P4;Pacote 4
+yasmin@paciente.local;YASMIN;2025-06-02;320,00;pix;pago;P1;Pacote 1 - pagou 320,00 em 02/06
+yasmin@paciente.local;YASMIN;2025-07-01;320,00;pix;pago;P2;Pacote 2 - pagou 320,00 em 01/07
+yasmin@paciente.local;YASMIN;2025-08-01;320,00;pix;pago;P3;Pacote 3 - pagou 320,00 em 01/08/2025
+yasmin@paciente.local;YASMIN;2025-09-01;320,00;pix;pago;P4;Pacote 4 - pagou 320,00 em 01/09/25
+yasmin@paciente.local;YASMIN;2025-10-01;320,00;pix;pago;P5;Pacote 5 - pagou 320,00 em 01/10
+yasmin@paciente.local;YASMIN;2025-11-01;320,00;pix;pago;P6;Pacote 6 - pagou 320,00 em 01/11
+yasmin@paciente.local;YASMIN;2025-12-01;320,00;pix;pago;P7;Pacote 7 - pagou 320,00 em 01/12
+yasmin@paciente.local;YASMIN;2025-01-19;240,00;pix;pago;P8;Pacote 8 - pagou 240,00 em 19/01
+yasmin@paciente.local;YASMIN;2025-02-07;160,00;pix;pago;P9;Pacote 9 - pagou 160,00 em 07/02
+yasmin@paciente.local;YASMIN;2025-03-07;400,00;pix;pago;P10;Pacote 10 - pagou 400,00 em 07/03
+yasmin@paciente.local;YASMIN;2025-04-01;320,00;pix;pago;P11;Pacote 11 - pagou 320,00 em 01/04
+yasmin@paciente.local;YASMIN;2025-05-05;320,00;pix;pago;P12;Pacote 12 - pagou ,320,00 em 05/05
+yasmin@paciente.local;YASMIN;2026-06-01;450,00;pix;pago;P13;Pacote 13 - pagou 450,00 em 01/06/26
+ian@paciente.local;IAN;2026-05-27;100,00;pix;pago;P1;Pacote 1 - pagou 100,00 em 27/05/26
+ian@paciente.local;IAN;2025-06-03;200,00;pix;pago;P7;Pacote 7 - pagou 200,00 em 03/06
+ian@paciente.local;IAN;;;pix;pago;P8;Pacote 8
+heitor@paciente.local;HEITOR;2026-05-15;360,00;pix;pago;P1;Pacote 1 - pagou 360,00 em 15/05/26
+heitor@paciente.local;HEITOR;;;pix;pago;P2;Pacote 2
+manu@paciente.local;MANU;2026-06-05;400,00;pix;pago;P1;Pacote 1 - pagou 400,00 em 05/06/26
+rafa@paciente.local;RAFA;;;pix;pago;P1;Pacote 1
+pacote@paciente.local;Pacote;;200,00;pix;pago;P1;PACOTE 1 - pago 200,00
+pacote@paciente.local;Pacote;;200,00;pix;pago;P2;Pacote 2 - pago 200,00
+pacote@paciente.local;Pacote;;150,00;pix;pago;P3;Pacote 3 - pagou 150,00
+pacote@paciente.local;Pacote;;200,00;pix;pago;P4;Pacote 4 - pagou 200,00
+pacote@paciente.local;Pacote;;200,00;pix;pago;P5;Pacote 5 - pagou 200,00
+pacote@paciente.local;Pacote;2025-04-10;150,00;pix;pago;P6;Pacote 6 - pagou 150,00 em 10/04
+pacote@paciente.local;Pacote;2025-05-08;200,00;pix;pago;P7;Pacote 7 - Pagou 200,00 em 08/05
+pacote@paciente.local;Pacote;2025-06-12;150,00;pix;pago;P8;Pacote 8 - pagou 150,00 em 12/06/25
+pacote@paciente.local;Pacote;2025-07-03;200,00;pix;pago;P9;Pacote 9 - pagou 200,00 em 03/07
+pacote@paciente.local;Pacote;2025-08-26;200,00;pix;pago;P10;Pacote 10 - pagou 200,00 em 26/08
+pacote@paciente.local;Pacote;2025-09-30;260,00;pix;pago;P11;Pacote 11 - pagou 260,00 em 30/09
+pacote@paciente.local;Pacote;2025-10-21;65,00;pix;pago;P12;Pacote 12 - pagou 65,00 em 21/10
+pacote@paciente.local;Pacote;2025-12-05;260,00;pix;pago;P13;Pacote 13 - pagou 260,00 em 05/12
+pacote.fechar.mensal@paciente.local;Pacote - fechar mensal;2025-10-02;400,00;pix;pago;P1;Pacote 1 - pagou 400,00 em 02/10
+pacote.fechar.mensal@paciente.local;Pacote - fechar mensal;2025-10-27;400,00;pix;pago;P2;Pacote 2 - pagou 400,00 em 27/10
+pacote.fechar.mensal@paciente.local;Pacote - fechar mensal;2025-11-24;400,00;pix;pago;P3;Pacote 3 - pagou 400,00 em 24/11
+pacote.4.sessoes@paciente.local;Pacote 4 SESSÕES;2025-05-17;400,00;pix;pago;P1;Pacote 1 - pagou 400,00 em 17/05
+pacote.4.sessoes@paciente.local;Pacote 4 SESSÕES;2025-06-21;400,00;pix;pago;P2;Pacote 2 - pagou 400,00 em 21/06
+pacote.4.sessoes@paciente.local;Pacote 4 SESSÕES;2025-07-28;400,00;pix;pago;P3;Pacote 3 - pagou 400,00 em 28/07
+pacote.4.sessoes@paciente.local;Pacote 4 SESSÕES;2025-08-21;400,00;pix;pago;P4;Pacote 4 - pagou 400,00 em 21/08
+pacote.4.sessoes@paciente.local;Pacote 4 SESSÕES;2025-09-25;400,00;pix;pago;P5;Pacote 5 - pagou 400,00 em 25/09
+pacote.4.sessoes@paciente.local;Pacote 4 SESSÕES;2025-11-05;400,00;pix;pago;P6;Pacote 6 - pagou 400,00 em 05/11
+pacote.4.sessoes@paciente.local;Pacote 4 SESSÕES;2025-11-27;400,00;pix;pago;P7;Pacote 7 - pagou 400,00 em 27/11
+pacote.4.sessoes@paciente.local;Pacote 4 SESSÕES;2025-04-15;200,00;pix;pago;P8;Pacote 8 - pagou 200,00 em 15/04
+pacote.quinz@paciente.local;Pacote QUINZ;2025-12-22;100,00;pix;pago;P1;Pacote 1 - pagou 100,00 em 22/12
+pacote.quinz@paciente.local;Pacote QUINZ;2025-01-13;100,00;pix;pago;P2;Pacote 2 - pagou 100,00 em 13/01
+pacote.quinz@paciente.local;Pacote QUINZ;2025-01-20;100,00;pix;pago;P3;Pacote 3  pagou 100,00 em 20/01
+pacote.quinz@paciente.local;Pacote QUINZ;2025-02-02;100,00;pix;pago;P4;Pacote 4 - pagou 100,00 em 02/02
+pacote.quinz@paciente.local;Pacote QUINZ;2025-02-09;100,00;pix;pago;P6;Pacote 6 - pagou 100,00 em 09/02
+pacote.quinz@paciente.local;Pacote QUINZ;2025-02-19;100,00;pix;pago;P7;Pacote 7 - pagou 100,00 em 19/02
+pacote.quinz@paciente.local;Pacote QUINZ;2025-02-23;100,00;pix;pago;P8;Pacote 8 - pagou 100,00 em 23/02
+pacote.quinz@paciente.local;Pacote QUINZ;2025-03-07;100,00;pix;pago;P9;Pacote 9 - pagou 100,00 em 07/03
+pacote.quinz@paciente.local;Pacote QUINZ;;;pix;pago;P10;Pacote 10
+pacote.quinz@paciente.local;Pacote QUINZ;;;pix;pago;P11;Pacote 11
+pacote.mensal@paciente.local;Pacote MENSAL;2025-03-18;200,00;pix;pago;P1;Pacote 1  - pagou 200,00 em 18/03
+pacote.mensal@paciente.local;Pacote MENSAL;2025-04-09;500,00;pix;pago;P2;Pacote 2 - pagou 500,00 em 09/04
+pacote.mensal@paciente.local;Pacote MENSAL;;;pix;pago;P3;Pacote 3

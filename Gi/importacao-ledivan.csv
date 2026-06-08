@@ -1,0 +1,91 @@
+﻿nome;email;telefone;data_nascimento;status;valor_sessao;recorrencia;formato_pagamento;tamanho_pacote;dia_pagamento;modalidade;endereco_atendimento;queixa;etiquetas;observacoes;emergencia_nome;emergencia_telefone;emergencia_parentesco;data_inicio
+ALESSANDRA;alessandra@paciente.local;;1988-11-26;ativo;65,00;mensal;mensal;;;online;;;;1 ano;;;;2024-11-23
+ALEXSANDRA;alexsandra@paciente.local;;;inativo;;mensal;avulso;;;online;;;;;;;;
+ALINE;aline@paciente.local;;;inativo;;mensal;avulso;;;online;;;;;;;;
+ANA PAULA;ana.paula@paciente.local;;;inativo;80,00;mensal;pacote;;;online;;;;1 ano;;;;
+ANA RAQUEL;ana.raquel@paciente.local;;1984-09-21;ativo;65,00;mensal;pacote;;;online;;;;1 ano;;;;2024-10-12
+ANGELA;angela@paciente.local;;;ativo;100,00;mensal;mensal;;;online;;;;1 ano;;;;2026-03-09
+Ariane;ariane@paciente.local;;;inativo;;;;;;online;;;;;;;;
+BRUNA;bruna@paciente.local;;;inativo;;;;;;online;;;;1 ano;;;;
+Bianca;bianca@paciente.local;;;inativo;;;;;;online;;;;;;;;
+CATARINA;catarina@paciente.local;;2010-06-11;ativo;50,01;mensal;mensal;;;online;;;;1 ano;;;;2024-04-10
+CLÁUDIO;claudio@paciente.local;;;inativo;;mensal;avulso;;;online;;;;;;;;
+DANIELI;danieli@paciente.local;;;inativo;;mensal;avulso;;;online;;;;;;;;
+DRIELLE;drielle@paciente.local;;1994-09-27;ativo;80,00;quinzenal;pacote;;;online;;;;1 ano;;;;2026-02-19
+DUDA BERG;duda.berg@paciente.local;;2004-08-12;ativo;90,00;mensal;pacote;;;online;;;;1 ano;;;;2025-03-11
+ELOÁ;eloa@paciente.local;;2002-02-03;ativo;60,00;mensal;mensal;;;online;;;;1 ano;;;;2024-08-13
+FERNANDA;fernanda@paciente.local;;1981-03-03;ativo;100,00;mensal;mensal;;;online;;;;1 ano;;;;2025-08-09
+GABRIELA;gabriela@paciente.local;;;inativo;50,00;mensal;avulso;;;online;;;;1 ano;;;;
+GIULIA;giulia@paciente.local;;2012-05-23;ativo;100,00;mensal;mensal;;;online;;;;1 ano;;;;2026-04-08
+GUSTAVO;gustavo@paciente.local;;1985-10-26;ativo;80,00;mensal;mensal;;;online;;;;1 ano;;;;2025-07-09
+IRIS;iris@paciente.local;;2015-12-05;ativo;100,00;mensal;pacote;;;online;;;;1 ano;;;;2026-02-12
+IVO;ivo@paciente.local;;;inativo;;mensal;avulso;;;online;;;;;;;;
+Isa;isa@paciente.local;;;inativo;;;;;;online;;;;;;;;
+JACKE E DANIEL;jacke.e.daniel@paciente.local;;;ativo;130,00;mensal;pacote;;;online;;;;1 ano;;;;2026-04-01
+JANA E JAIRO;jana.e.jairo@paciente.local;;;ativo;120,00;mensal;mensal;;;online;;;;1 ano;;;;2026-02-27
+JANAINA E JAIRO;janaina.e.jairo@paciente.local;;;inativo;;;;;;online;;;;;;;;
+JAQUECELI;jaqueceli@paciente.local;;;inativo;;mensal;avulso;;;online;;;;;;;;
+JOSI;josi@paciente.local;;;inativo;;mensal;avulso;;;online;;;;;;;;
+JOYCE;joyce@paciente.local;;1996-07-12;ativo;90,00;mensal;mensal;;;online;;;;1 ano;;;;2025-02-11
+JOÃO;joao@paciente.local;;;inativo;;mensal;avulso;;;online;;;;;;;;
+JOÃO PANCATAWA;joao.pancatawa@paciente.local;;;inativo;360,00;mensal;avulso;;;online;;;;1 ano;;;;
+JULIA (filha da Laine);julia.filha.da.laine@paciente.local;;;inativo;30,00;mensal;avulso;;;online;;;;1 ano;;;;
+JULIA VIEIRA;julia.vieira@paciente.local;;1998-06-07;ativo;80,00;quinzenal;pacote;;;online;;;;1 ano;;;;2025-07-21
+JULIANA;juliana@paciente.local;;;inativo;;mensal;avulso;;;online;;;;;;;;
+JULIETA;julieta@paciente.local;;1980-10-24;ativo;100,00;mensal;mensal;;;online;;;;1 ano;;;;2025-01-14
+Jucileia (filho);jucileia.filho@paciente.local;;;inativo;;;;;;online;;;;;;;;
+Julhia;julhia@paciente.local;;;inativo;;;;;;online;;;;;;;;
+KELLEN;kellen@paciente.local;;;inativo;50,00;avulso;avulso;;;online;;;;1 ano;;;;
+KESIA;kesia@paciente.local;;;inativo;80,00;mensal;pacote;;;online;;;;1 ano;;;;
+KÁTIA;katia@paciente.local;;1979-10-06;ativo;80,00;mensal;mensal;;;online;;;;3 meses;;;;2025-08-28
+Késia;kesia@paciente.local;;;inativo;;;;;;online;;;;;;;;
+LARISSA;larissa@paciente.local;;;inativo;80,00;avulso;avulso;;;online;;;;1 ano;;;;
+LEONARDO;leonardo@paciente.local;;;inativo;;mensal;avulso;;;online;;;;;;;;
+LUCA;luca@paciente.local;;;inativo;;mensal;avulso;;;online;;;;;;;;
+MARIA EDUARDA;maria.eduarda@paciente.local;;;inativo;;mensal;avulso;;;online;;;;;;;;
+MARIA JÚLIA;maria.julia@paciente.local;;1996-05-06;ativo;60,00;mensal;mensal;;;online;;;;1 ano;;;;2023-09-09
+MEYLA;meyla@paciente.local;;1992-05-20;ativo;652611,00;quinzenal;pacote;;;online;;;;30/11/25 - após 80;;;;2025-07-23
+MICHELE;michele@paciente.local;;;inativo;;mensal;avulso;;;online;;;;;;;;
+MIRELLA;mirella@paciente.local;;2010-09-17;ativo;107,00;quinzenal;pacote;;;online;;;;1 ano;;;;2026-02-27
+MONIQUE;monique@paciente.local;;;inativo;50,00;mensal;avulso;;;online;;;;1 ano;;;;
+Manuela;manuela@paciente.local;;;inativo;;;;;;online;;;;;;;;
+Mãe do Vini;mae.do.vini@paciente.local;;;inativo;;;;;;online;;;;;;;;
+NADIR;nadir@paciente.local;;;inativo;;mensal;avulso;;;online;;;;;;;;
+NELSON;nelson@paciente.local;;;inativo;50,00;mensal;avulso;;;online;;;;1 ano;;;;
+Nath;nath@paciente.local;;;inativo;;;;;;online;;;;;;;;
+PEDRO;pedro@paciente.local;;2006-03-24;ativo;80,00;quinzenal;pacote;;;online;;;;1 ano;;;;2025-09-20
+PRISCILA Z.;priscila.z@paciente.local;;1990-07-28;ativo;80,01;mensal;mensal;;;online;;;;1 ano;;;;2025-01-04
+RAFAEL PAIVA;rafael.paiva@paciente.local;;;inativo;;mensal;avulso;;;online;;;;;;;;
+RAPHAEL DA DANI;raphael.da.dani@paciente.local;;;inativo;50,00;;;;;online;;;;1 ano;;;;
+ROBERTA;roberta@paciente.local;;;inativo;;mensal;avulso;;;online;;;;;;;;
+RODRIGO;rodrigo@paciente.local;;;ativo;80,00;avulso;avulso;;;online;;;;1 ano;;;;2026-03-16
+ROSELI;roseli@paciente.local;;1968-11-16;ativo;80,01;mensal;mensal;;;online;;;;1 ano;;;;2025-05-28
+ROSILENE LIMA;rosilene.lima@paciente.local;;;inativo;;mensal;avulso;;;online;;;;;;;;
+SAMIRA;samira@paciente.local;;;inativo;50,00;;;;;online;;;;1 ano;;;;
+SANDRA;sandra@paciente.local;;;inativo;30,00;mensal;avulso;;;online;;;;1 ano;;;;
+SAVYA;savya@paciente.local;;;inativo;;mensal;avulso;;;online;;;;;;;;
+SUELLEN;suellen@paciente.local;;;inativo;50,00;mensal;pacote;;;online;;;;1 ano;;;;
+SUELLEN G;suellen.g@paciente.local;;;inativo;;mensal;avulso;;;online;;;;;;;;
+Sheila;sheila@paciente.local;;;inativo;;;;;;online;;;;;;;;
+SÔNIA;sonia@paciente.local;;1957-03-01;ativo;80,00;mensal;mensal;;;online;;;;1 ano;;;;2025-01-09
+TADEU;tadeu@paciente.local;;;inativo;50,00;;;;;online;;;;1 ano;;;;
+THAIS;thais@paciente.local;;;inativo;50,00;mensal;avulso;;;online;;;;1 ano;;;;
+THALIA;thalia@paciente.local;;;inativo;80,00;mensal;pacote;;;online;;;;1 ano;;;;
+THAMYS;thamys@paciente.local;;1986-07-21;ativo;90,00;avulso;avulso;;;online;;;;1 ano;;;;2025-03-12
+Teresa;teresa@paciente.local;;;inativo;;;;;;online;;;;;;;;
+VINÍCIUS;vinicius@paciente.local;;;ativo;80,00;quinzenal;pacote;;;online;;;;1 ano;;;;
+Vanessa;vanessa@paciente.local;;;inativo;;;;;;online;;;;;;;;
+Veronica;veronica@paciente.local;;;inativo;;;;;;online;;;;;;;;
+YASMIN;yasmin@paciente.local;;2008-05-28;ativo;80,01;mensal;mensal;;;online;;;;1 ano;;;;2025-05-21
+Zelia;zelia@paciente.local;;;inativo;;;;;;online;;;;;;;;
+IAN;ian@paciente.local;;;ativo;100,00;quinzenal;pacote;;;online;;;;1 ano;;;;
+HEITOR;heitor@paciente.local;;;ativo;120,00;mensal;mensal;;;online;;;;1 ano;;;;2026-05-15
+MANU;manu@paciente.local;;;ativo;100,00;mensal;mensal;;;online;;;;1 ano;;;;
+RAFA;rafa@paciente.local;;;ativo;100,00;mensal;mensal;;;online;;;;1 ano;;;;
+Nutrição;nutricao@paciente.local;;;inativo;;;;;;online;;;;1 ano;;;;
+Pacote;pacote@paciente.local;;1986-10-10;inativo;20241009000000,00;mensal;avulso;;;online;;;;1 ano;;;;
+Pacote - fechar mensal;pacote.fechar.mensal@paciente.local;;;inativo;20251002000000,00;mensal;avulso;;;online;;;;1 ano;;;;
+Pacote 4 SESSÕES;pacote.4.sessoes@paciente.local;;;inativo;20250704000000,00;mensal;avulso;;;online;;;;1 ano;;;;
+Pacote QUINZ;pacote.quinz@paciente.local;;;inativo;20251222000000,00;mensal;avulso;;;online;;;;1 ano;;;;
+Pacote MENSAL;pacote.mensal@paciente.local;;;inativo;20260309000000,00;mensal;avulso;;;online;;;;1 ano;;;;
+Avulso;avulso@paciente.local;;1979-02-10;inativo;20260316000000,00;mensal;avulso;;;online;;;;1 ano;;;;

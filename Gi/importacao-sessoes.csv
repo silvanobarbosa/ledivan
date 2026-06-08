@@ -1,0 +1,2221 @@
+﻿paciente_email;paciente_nome;data_hora;duracao_min;valor;status;cobrar;modalidade;local;evolucao
+alessandra@paciente.local;ALESSANDRA;2024-05-01 07:00;50;65,00;cancelada;nao;online;;não fará a sessão
+alessandra@paciente.local;ALESSANDRA;2024-11-23 07:00;50;65,00;realizada;sim;online;;
+alessandra@paciente.local;ALESSANDRA;2024-11-28 07:00;50;65,00;realizada;sim;online;;
+alessandra@paciente.local;ALESSANDRA;2024-12-04 07:00;50;65,00;realizada;sim;online;;
+alessandra@paciente.local;ALESSANDRA;2024-12-12 07:00;50;65,00;cancelada;nao;online;;não fez, avisou
+alessandra@paciente.local;ALESSANDRA;2024-12-21 07:00;50;65,00;cancelada;nao;online;;não fez, avisou
+alessandra@paciente.local;ALESSANDRA;2025-01-18 07:00;50;65,00;realizada;sim;online;;
+alessandra@paciente.local;ALESSANDRA;2025-02-01 07:00;50;65,00;realizada;sim;online;;
+alessandra@paciente.local;ALESSANDRA;2025-02-06 07:00;50;65,00;realizada;sim;online;;
+alessandra@paciente.local;ALESSANDRA;2025-02-13 07:00;50;65,00;realizada;sim;online;;
+alessandra@paciente.local;ALESSANDRA;2025-02-20 07:00;50;65,00;realizada;sim;online;;
+alessandra@paciente.local;ALESSANDRA;2025-02-25 07:00;50;65,00;realizada;sim;online;;
+alessandra@paciente.local;ALESSANDRA;2025-03-06 07:00;50;65,00;realizada;sim;online;;
+alessandra@paciente.local;ALESSANDRA;2025-03-13 07:00;50;65,00;realizada;sim;online;;
+alessandra@paciente.local;ALESSANDRA;2025-03-19 07:00;50;65,00;realizada;sim;online;;
+alessandra@paciente.local;ALESSANDRA;2025-03-27 07:00;50;65,00;realizada;sim;online;;
+alessandra@paciente.local;ALESSANDRA;2025-04-03 07:00;50;65,00;realizada;sim;online;;
+alessandra@paciente.local;ALESSANDRA;2025-04-10 07:00;50;65,00;realizada;sim;online;;
+alessandra@paciente.local;ALESSANDRA;2025-04-17 07:00;50;65,00;realizada;sim;online;;
+alessandra@paciente.local;ALESSANDRA;2025-04-17 07:00;50;65,00;cancelada;nao;online;;férias
+alessandra@paciente.local;ALESSANDRA;2025-04-24 07:00;50;65,00;realizada;sim;online;;
+alessandra@paciente.local;ALESSANDRA;2025-05-05 07:00;50;65,00;realizada;sim;online;;
+alessandra@paciente.local;ALESSANDRA;2025-05-15 07:00;50;65,00;realizada;sim;online;;
+alessandra@paciente.local;ALESSANDRA;2025-05-22 07:00;50;65,00;realizada;sim;online;;
+alessandra@paciente.local;ALESSANDRA;2025-05-29 07:00;50;65,00;realizada;sim;online;;
+alessandra@paciente.local;ALESSANDRA;2025-06-05 07:00;50;65,00;realizada;sim;online;;
+alessandra@paciente.local;ALESSANDRA;2025-06-12 07:00;50;65,00;realizada;sim;online;;
+alessandra@paciente.local;ALESSANDRA;2025-06-19 07:00;50;65,00;cancelada;nao;online;;feriado
+alessandra@paciente.local;ALESSANDRA;2025-06-26 07:00;50;65,00;realizada;sim;online;;
+alessandra@paciente.local;ALESSANDRA;2025-07-03 07:00;50;65,00;realizada;sim;online;;
+alessandra@paciente.local;ALESSANDRA;2025-07-10 07:00;50;65,00;realizada;sim;online;;
+alessandra@paciente.local;ALESSANDRA;2025-07-24 07:00;50;65,00;realizada;sim;online;;
+alessandra@paciente.local;ALESSANDRA;2025-07-31 07:00;50;65,00;realizada;sim;online;;
+alessandra@paciente.local;ALESSANDRA;2025-08-07 07:00;50;65,00;realizada;sim;online;;
+alessandra@paciente.local;ALESSANDRA;2025-08-14 07:00;50;65,00;realizada;sim;online;;
+alessandra@paciente.local;ALESSANDRA;2025-08-21 07:00;50;65,00;realizada;sim;online;;
+alessandra@paciente.local;ALESSANDRA;2025-08-28 07:00;50;65,00;realizada;sim;online;;
+alessandra@paciente.local;ALESSANDRA;2025-10-02 07:00;50;65,00;realizada;sim;online;;
+alessandra@paciente.local;ALESSANDRA;2025-10-09 07:00;50;65,00;realizada;sim;online;;
+alessandra@paciente.local;ALESSANDRA;2025-10-16 07:00;50;65,00;realizada;sim;online;;
+alessandra@paciente.local;ALESSANDRA;2025-10-23 07:00;50;65,00;cancelada;nao;online;;não fez a sessão
+alessandra@paciente.local;ALESSANDRA;2025-10-30 07:00;50;65,00;realizada;sim;online;;
+alessandra@paciente.local;ALESSANDRA;2025-11-06 07:00;50;65,00;realizada;sim;online;;
+alessandra@paciente.local;ALESSANDRA;2025-11-13 07:00;50;65,00;realizada;sim;online;;
+alessandra@paciente.local;ALESSANDRA;2025-11-20 07:00;50;65,00;realizada;sim;online;;
+alessandra@paciente.local;ALESSANDRA;2025-11-27 07:00;50;65,00;realizada;sim;online;;
+alessandra@paciente.local;ALESSANDRA;2025-12-04 07:00;50;65,00;realizada;sim;online;;
+alessandra@paciente.local;ALESSANDRA;2025-12-11 07:00;50;65,00;realizada;sim;online;;
+alessandra@paciente.local;ALESSANDRA;2025-12-18 07:00;50;65,00;realizada;sim;online;;
+alessandra@paciente.local;ALESSANDRA;2026-01-15 07:00;50;65,00;realizada;sim;online;;
+alessandra@paciente.local;ALESSANDRA;2026-01-22 07:00;50;65,00;realizada;sim;online;;
+alessandra@paciente.local;ALESSANDRA;2026-01-29 07:00;50;65,00;realizada;sim;online;;
+alessandra@paciente.local;ALESSANDRA;2026-02-05 07:00;50;65,00;realizada;sim;online;;
+alessandra@paciente.local;ALESSANDRA;2026-02-12 07:00;50;65,00;realizada;sim;online;;
+alessandra@paciente.local;ALESSANDRA;2026-02-19 07:00;50;65,00;realizada;sim;online;;
+alessandra@paciente.local;ALESSANDRA;2026-02-26 07:00;50;65,00;realizada;sim;online;;
+alessandra@paciente.local;ALESSANDRA;2026-03-05 07:00;50;65,00;realizada;sim;online;;
+alessandra@paciente.local;ALESSANDRA;2026-03-12 07:00;50;65,00;falta_cobrada;nao;online;;não fez, não cobrar
+alessandra@paciente.local;ALESSANDRA;2026-03-19 07:00;50;65,00;realizada;sim;online;;
+alessandra@paciente.local;ALESSANDRA;2026-03-26 07:00;50;65,00;realizada;sim;online;;
+alessandra@paciente.local;ALESSANDRA;2026-04-02 07:00;50;65,00;realizada;sim;online;;
+alessandra@paciente.local;ALESSANDRA;2026-04-09 07:00;50;65,00;realizada;sim;online;;
+alessandra@paciente.local;ALESSANDRA;2026-04-16 07:00;50;65,00;realizada;sim;online;;
+alessandra@paciente.local;ALESSANDRA;2026-04-23 07:00;50;65,00;realizada;sim;online;;
+alessandra@paciente.local;ALESSANDRA;2026-04-30 07:00;50;65,00;realizada;sim;online;;
+alessandra@paciente.local;ALESSANDRA;2026-05-07 07:00;50;65,00;realizada;sim;online;;
+alessandra@paciente.local;ALESSANDRA;2026-05-14 07:00;50;65,00;realizada;sim;online;;
+alessandra@paciente.local;ALESSANDRA;2026-05-21 07:00;50;65,00;realizada;sim;online;;
+alessandra@paciente.local;ALESSANDRA;2026-05-28 07:00;50;65,00;cancelada;nao;online;;não fez, avisou
+alessandra@paciente.local;ALESSANDRA;2026-06-04 07:00;50;65,00;cancelada;nao;online;;não fez, avisou
+alessandra@paciente.local;ALESSANDRA;2026-06-11 07:00;50;65,00;cancelada;nao;online;;
+alessandra@paciente.local;ALESSANDRA;2026-06-18 07:00;50;65,00;cancelada;nao;online;;
+alessandra@paciente.local;ALESSANDRA;2026-06-25 07:00;50;65,00;cancelada;nao;online;;
+alexsandra@paciente.local;ALEXSANDRA;2025-08-08 07:00;50;;realizada;sim;online;;
+alexsandra@paciente.local;ALEXSANDRA;2025-08-15 07:00;50;;realizada;sim;online;;
+alexsandra@paciente.local;ALEXSANDRA;2025-08-22 07:00;50;;realizada;sim;online;;
+alexsandra@paciente.local;ALEXSANDRA;2025-08-29 07:00;50;;cancelada;nao;online;;não vai - avisou
+alexsandra@paciente.local;ALEXSANDRA;2025-09-05 07:00;50;;cancelada;nao;online;;não fez, avisou
+alexsandra@paciente.local;ALEXSANDRA;2025-09-12 07:00;50;;cancelada;nao;online;;não fará a sessão - avisou
+alexsandra@paciente.local;ALEXSANDRA;2025-09-19 07:00;50;;cancelada;nao;online;;
+aline@paciente.local;ALINE;2024-11-05 07:00;50;;realizada;sim;online;;
+aline@paciente.local;ALINE;2024-11-12 07:00;50;;realizada;sim;online;;
+aline@paciente.local;ALINE;2024-11-19 07:00;50;;realizada;sim;online;;
+aline@paciente.local;ALINE;2024-11-26 07:00;50;;realizada;sim;online;;
+aline@paciente.local;ALINE;2024-12-03 07:00;50;;realizada;sim;online;;
+aline@paciente.local;ALINE;2024-12-10 07:00;50;;realizada;sim;online;;
+aline@paciente.local;ALINE;2024-12-18 07:00;50;;realizada;sim;online;;
+aline@paciente.local;ALINE;2025-01-07 07:00;50;;realizada;sim;online;;
+aline@paciente.local;ALINE;2025-01-14 07:00;50;;realizada;sim;online;;
+aline@paciente.local;ALINE;2025-02-06 07:00;50;;realizada;sim;online;;
+aline@paciente.local;ALINE;2025-02-11 07:00;50;;realizada;sim;online;;
+aline@paciente.local;ALINE;2025-02-18 07:00;50;;realizada;sim;online;;
+aline@paciente.local;ALINE;2025-02-18 07:00;50;;realizada;sim;online;;
+aline@paciente.local;ALINE;2025-02-25 07:00;50;;realizada;sim;online;;
+aline@paciente.local;ALINE;2025-02-25 07:00;50;;cancelada;nao;online;;não conectou
+aline@paciente.local;ALINE;2025-03-04 07:00;50;;cancelada;nao;online;;não teve, eu desmarquei
+aline@paciente.local;ALINE;2025-03-11 07:00;50;;realizada;sim;online;;desmarcou
+aline@paciente.local;ALINE;2025-04-01 07:00;50;;realizada;sim;online;;
+aline@paciente.local;ALINE;2025-04-08 07:00;50;;realizada;sim;online;;
+aline@paciente.local;ALINE;2025-04-12 07:00;50;;realizada;sim;online;;(cortesia?)
+aline@paciente.local;ALINE;2025-04-15 07:00;50;;realizada;sim;online;;
+aline@paciente.local;ALINE;2025-04-22 07:00;50;;realizada;sim;online;;
+aline@paciente.local;ALINE;2025-04-29 07:00;50;;realizada;sim;online;;
+aline@paciente.local;ALINE;2025-05-06 07:00;50;;realizada;sim;online;;
+aline@paciente.local;ALINE;2025-05-13 07:00;50;;realizada;sim;online;;
+aline@paciente.local;ALINE;2025-05-20 07:00;50;;falta_cobrada;nao;online;;não fez - não cobrar
+aline@paciente.local;ALINE;2025-05-27 07:00;50;;realizada;sim;online;;
+aline@paciente.local;ALINE;2025-06-03 07:00;50;;realizada;sim;online;;
+aline@paciente.local;ALINE;2025-06-10 07:00;50;;realizada;sim;online;;
+aline@paciente.local;ALINE;2025-06-17 07:00;50;;realizada;sim;online;;
+aline@paciente.local;ALINE;2025-06-24 07:00;50;;realizada;sim;online;;
+aline@paciente.local;ALINE;2025-07-01 07:00;50;;falta_cobrada;nao;online;;não fez a sessão, não cobrar
+aline@paciente.local;ALINE;2025-07-08 07:00;50;;realizada;sim;online;;
+aline@paciente.local;ALINE;2025-07-15 07:00;50;;cancelada;nao;online;;minhas férias
+aline@paciente.local;ALINE;2025-07-22 07:00;50;;realizada;sim;online;;
+aline@paciente.local;ALINE;2025-07-29 07:00;50;;cancelada;nao;online;;não fez, avisou
+aline@paciente.local;ALINE;2025-08-05 07:00;50;;realizada;sim;online;;
+aline@paciente.local;ALINE;2025-08-12 07:00;50;;realizada;sim;online;;
+aline@paciente.local;ALINE;2025-08-19 07:00;50;;falta_cobrada;nao;online;;não fez, não avisou, não cobrar
+aline@paciente.local;ALINE;2025-08-26 07:00;50;;falta_cobrada;nao;online;;não fez, avisou, não cobrar
+aline@paciente.local;ALINE;2025-09-02 07:00;50;;cancelada;nao;online;;não fez, avisou no dia
+aline@paciente.local;ALINE;2025-09-09 07:00;50;;realizada;sim;online;;
+aline@paciente.local;ALINE;2025-09-16 07:00;50;;realizada;sim;online;;
+aline@paciente.local;ALINE;2025-09-23 07:00;50;;realizada;sim;online;;
+aline@paciente.local;ALINE;2025-09-30 07:00;50;;realizada;sim;online;;
+ana.paula@paciente.local;ANA PAULA;2025-03-11 07:00;50;80,00;realizada;sim;online;;
+ana.paula@paciente.local;ANA PAULA;2025-03-19 07:00;50;80,00;realizada;sim;online;;
+ana.paula@paciente.local;ANA PAULA;2025-03-25 07:00;50;80,00;realizada;sim;online;;
+ana.paula@paciente.local;ANA PAULA;2025-04-01 07:00;50;80,00;realizada;sim;online;;
+ana.paula@paciente.local;ANA PAULA;2025-04-15 07:00;50;80,00;realizada;sim;online;;
+ana.paula@paciente.local;ANA PAULA;2025-04-23 07:00;50;80,00;realizada;sim;online;;
+ana.paula@paciente.local;ANA PAULA;2025-04-29 07:00;50;80,00;realizada;sim;online;;
+ana.paula@paciente.local;ANA PAULA;2025-05-06 07:00;50;80,00;realizada;sim;online;;
+ana.paula@paciente.local;ANA PAULA;2025-05-20 07:00;50;80,00;realizada;sim;online;;
+ana.paula@paciente.local;ANA PAULA;2026-05-14 07:00;50;80,00;cancelada;nao;online;;não conectou, não cobrar
+ana.paula@paciente.local;ANA PAULA;27/0/25 nã 07:00;50;80,00;realizada;sim;online;;
+ana.raquel@paciente.local;ANA RAQUEL;2024-02-27 07:00;50;65,00;cancelada;nao;online;;eu desmarquei
+ana.raquel@paciente.local;ANA RAQUEL;2024-10-12 07:00;50;65,00;realizada;sim;online;;cortesia
+ana.raquel@paciente.local;ANA RAQUEL;2024-10-17 07:00;50;65,00;realizada;sim;online;;
+ana.raquel@paciente.local;ANA RAQUEL;2024-10-24 07:00;50;65,00;realizada;sim;online;;fez dia 23
+ana.raquel@paciente.local;ANA RAQUEL;2024-10-31 07:00;50;65,00;realizada;sim;online;;
+ana.raquel@paciente.local;ANA RAQUEL;2024-11-07 07:00;50;65,00;falta_cobrada;nao;online;;não haverá sessão - não cobrar
+ana.raquel@paciente.local;ANA RAQUEL;2024-11-14 07:00;50;65,00;realizada;sim;online;;
+ana.raquel@paciente.local;ANA RAQUEL;2024-11-21 07:00;50;65,00;realizada;sim;online;;
+ana.raquel@paciente.local;ANA RAQUEL;2024-12-19 07:00;50;65,00;realizada;sim;online;;
+ana.raquel@paciente.local;ANA RAQUEL;2025-01-09 07:00;50;65,00;realizada;sim;online;;
+ana.raquel@paciente.local;ANA RAQUEL;2025-01-15 07:00;50;65,00;realizada;sim;online;;
+ana.raquel@paciente.local;ANA RAQUEL;2025-01-16 07:00;50;65,00;realizada;sim;online;;
+ana.raquel@paciente.local;ANA RAQUEL;2025-01-30 07:00;50;65,00;realizada;sim;online;;
+ana.raquel@paciente.local;ANA RAQUEL;2025-02-06 07:00;50;65,00;realizada;sim;online;;
+ana.raquel@paciente.local;ANA RAQUEL;2025-02-13 07:00;50;65,00;realizada;sim;online;;
+ana.raquel@paciente.local;ANA RAQUEL;2025-02-20 07:00;50;65,00;realizada;sim;online;;
+ana.raquel@paciente.local;ANA RAQUEL;2025-03-06 07:00;50;65,00;realizada;sim;online;;
+ana.raquel@paciente.local;ANA RAQUEL;2025-03-13 07:00;50;65,00;cancelada;nao;online;;não vai fazer
+ana.raquel@paciente.local;ANA RAQUEL;2025-03-20 07:00;50;65,00;realizada;sim;online;;
+ana.raquel@paciente.local;ANA RAQUEL;2025-03-27 07:00;50;65,00;realizada;sim;online;;
+ana.raquel@paciente.local;ANA RAQUEL;2025-04-03 07:00;50;65,00;realizada;sim;online;;
+ana.raquel@paciente.local;ANA RAQUEL;2025-04-11 07:00;50;65,00;realizada;sim;online;;
+ana.raquel@paciente.local;ANA RAQUEL;2025-04-17 07:00;50;65,00;realizada;sim;online;;
+ana.raquel@paciente.local;ANA RAQUEL;2025-04-17 07:00;50;65,00;cancelada;nao;online;;férias
+ana.raquel@paciente.local;ANA RAQUEL;2025-04-24 07:00;50;65,00;realizada;sim;online;;
+ana.raquel@paciente.local;ANA RAQUEL;2025-05-01 07:00;50;65,00;cancelada;nao;online;;não fará a sessão
+ana.raquel@paciente.local;ANA RAQUEL;2025-05-08 07:00;50;65,00;realizada;sim;online;;
+ana.raquel@paciente.local;ANA RAQUEL;2025-05-15 07:00;50;65,00;realizada;sim;online;;
+ana.raquel@paciente.local;ANA RAQUEL;2025-05-22 07:00;50;65,00;realizada;sim;online;;
+ana.raquel@paciente.local;ANA RAQUEL;2025-05-29 07:00;50;65,00;falta_cobrada;nao;online;;não fará a sessão - não cobrar
+ana.raquel@paciente.local;ANA RAQUEL;2025-06-05 07:00;50;65,00;realizada;sim;online;;
+ana.raquel@paciente.local;ANA RAQUEL;2025-06-12 07:00;50;65,00;realizada;sim;online;;
+ana.raquel@paciente.local;ANA RAQUEL;2025-06-19 07:00;50;65,00;cancelada;nao;online;;feriado
+ana.raquel@paciente.local;ANA RAQUEL;2025-06-26 07:00;50;65,00;realizada;sim;online;;
+ana.raquel@paciente.local;ANA RAQUEL;2025-07-03 07:00;50;65,00;realizada;sim;online;;
+ana.raquel@paciente.local;ANA RAQUEL;2025-07-10 07:00;50;65,00;realizada;sim;online;;
+ana.raquel@paciente.local;ANA RAQUEL;2025-07-24 07:00;50;65,00;falta_cobrada;nao;online;;não fez, não cobrar
+ana.raquel@paciente.local;ANA RAQUEL;2025-07-31 07:00;50;65,00;realizada;sim;online;;
+ana.raquel@paciente.local;ANA RAQUEL;2025-08-07 07:00;50;65,00;realizada;sim;online;;
+ana.raquel@paciente.local;ANA RAQUEL;2025-08-14 07:00;50;65,00;realizada;sim;online;;
+ana.raquel@paciente.local;ANA RAQUEL;2025-08-21 07:00;50;65,00;realizada;sim;online;;
+ana.raquel@paciente.local;ANA RAQUEL;2025-08-28 07:00;50;65,00;realizada;sim;online;;
+ana.raquel@paciente.local;ANA RAQUEL;2025-09-04 07:00;50;65,00;realizada;sim;online;;
+ana.raquel@paciente.local;ANA RAQUEL;2025-09-11 07:00;50;65,00;realizada;sim;online;;
+ana.raquel@paciente.local;ANA RAQUEL;2025-09-18 07:00;50;65,00;realizada;sim;online;;
+ana.raquel@paciente.local;ANA RAQUEL;2025-09-25 07:00;50;65,00;cancelada;nao;online;;não fez, avisou
+ana.raquel@paciente.local;ANA RAQUEL;2025-10-02 07:00;50;65,00;realizada;sim;online;;
+ana.raquel@paciente.local;ANA RAQUEL;2025-10-09 07:00;50;65,00;falta_cobrada;nao;online;;não fez, não cobrar
+ana.raquel@paciente.local;ANA RAQUEL;2025-10-16 07:00;50;65,00;realizada;sim;online;;
+ana.raquel@paciente.local;ANA RAQUEL;2025-10-23 07:00;50;65,00;realizada;sim;online;;
+ana.raquel@paciente.local;ANA RAQUEL;2025-10-30 07:00;50;65,00;realizada;sim;online;;
+ana.raquel@paciente.local;ANA RAQUEL;2025-11-06 07:00;50;65,00;falta_cobrada;sim;online;;não fez, cobrar
+ana.raquel@paciente.local;ANA RAQUEL;2025-11-13 07:00;50;65,00;realizada;sim;online;;
+ana.raquel@paciente.local;ANA RAQUEL;2025-11-20 07:00;50;65,00;cancelada;nao;online;;não fará avisou
+ana.raquel@paciente.local;ANA RAQUEL;2025-11-27 07:00;50;65,00;realizada;sim;online;;
+ana.raquel@paciente.local;ANA RAQUEL;2025-12-04 07:00;50;65,00;realizada;sim;online;;
+ana.raquel@paciente.local;ANA RAQUEL;2025-12-11 07:00;50;65,00;falta_cobrada;nao;online;;não fez, não cobrar
+ana.raquel@paciente.local;ANA RAQUEL;2025-12-18 07:00;50;65,00;realizada;sim;online;;
+ana.raquel@paciente.local;ANA RAQUEL;2026-01-22 07:00;50;65,00;realizada;sim;online;;
+ana.raquel@paciente.local;ANA RAQUEL;2026-01-29 07:00;50;65,00;cancelada;nao;online;;não fez, avisou
+ana.raquel@paciente.local;ANA RAQUEL;2026-02-05 07:00;50;65,00;realizada;sim;online;;
+ana.raquel@paciente.local;ANA RAQUEL;2026-02-12 07:00;50;65,00;realizada;sim;online;;
+ana.raquel@paciente.local;ANA RAQUEL;2026-02-19 07:00;50;65,00;realizada;sim;online;;
+ana.raquel@paciente.local;ANA RAQUEL;2026-02-26 07:00;50;65,00;cancelada;nao;online;;não fez, avisou
+ana.raquel@paciente.local;ANA RAQUEL;2026-03-05 07:00;50;65,00;falta_cobrada;nao;online;;não cobrar
+ana.raquel@paciente.local;ANA RAQUEL;2026-03-12 07:00;50;65,00;realizada;sim;online;;
+ana.raquel@paciente.local;ANA RAQUEL;2026-03-19 07:00;50;65,00;realizada;sim;online;;
+ana.raquel@paciente.local;ANA RAQUEL;2026-03-26 07:00;50;65,00;realizada;sim;online;;
+ana.raquel@paciente.local;ANA RAQUEL;2026-04-02 07:00;50;65,00;realizada;sim;online;;
+ana.raquel@paciente.local;ANA RAQUEL;2026-04-09 07:00;50;65,00;realizada;sim;online;;
+ana.raquel@paciente.local;ANA RAQUEL;2026-04-16 07:00;50;65,00;cancelada;nao;online;;eu desmarquei
+ana.raquel@paciente.local;ANA RAQUEL;2026-04-23 07:00;50;65,00;realizada;sim;online;;
+ana.raquel@paciente.local;ANA RAQUEL;2026-04-30 07:00;50;65,00;cancelada;nao;online;;desmarcou com antecedência
+ana.raquel@paciente.local;ANA RAQUEL;2026-05-07 07:00;50;65,00;realizada;sim;online;;
+ana.raquel@paciente.local;ANA RAQUEL;2026-05-14 07:00;50;65,00;realizada;sim;online;;
+ana.raquel@paciente.local;ANA RAQUEL;2026-05-21 07:00;50;65,00;realizada;sim;online;;
+ana.raquel@paciente.local;ANA RAQUEL;2026-05-28 07:00;50;65,00;realizada;sim;online;;
+ana.raquel@paciente.local;ANA RAQUEL;2026-06-04 07:00;50;65,00;cancelada;nao;online;;feriado
+ana.raquel@paciente.local;ANA RAQUEL;2026-06-11 07:00;50;65,00;cancelada;nao;online;;
+ana.raquel@paciente.local;ANA RAQUEL;2026-06-18 07:00;50;65,00;cancelada;nao;online;;
+ana.raquel@paciente.local;ANA RAQUEL;2026-06-25 07:00;50;65,00;cancelada;nao;online;;
+angela@paciente.local;ANGELA;2026-03-09 07:00;50;100,00;realizada;sim;online;;não cobrar
+angela@paciente.local;ANGELA;2026-03-18 07:00;50;100,00;realizada;sim;online;;
+angela@paciente.local;ANGELA;2026-03-25 07:00;50;100,00;realizada;sim;online;;
+angela@paciente.local;ANGELA;2026-04-01 07:00;50;100,00;realizada;sim;online;;
+angela@paciente.local;ANGELA;2026-04-08 07:00;50;100,00;realizada;sim;online;;
+angela@paciente.local;ANGELA;2026-04-15 07:00;50;100,00;realizada;sim;online;;
+angela@paciente.local;ANGELA;2026-04-22 07:00;50;100,00;cancelada;nao;online;;não fez, avisou no dia
+angela@paciente.local;ANGELA;2026-04-29 07:00;50;100,00;cancelada;nao;online;;
+bruna@paciente.local;BRUNA;2024-06-26 07:00;50;;realizada;sim;online;;
+bruna@paciente.local;BRUNA;2024-07-03 07:00;50;;realizada;sim;online;;
+bruna@paciente.local;BRUNA;2024-07-10 07:00;50;;realizada;sim;online;;
+bruna@paciente.local;BRUNA;2024-07-17 07:00;50;;realizada;sim;online;;
+bruna@paciente.local;BRUNA;2024-07-24 07:00;50;;realizada;sim;online;;
+bruna@paciente.local;BRUNA;2024-07-31 07:00;50;;realizada;sim;online;;
+bruna@paciente.local;BRUNA;2024-08-07 07:00;50;;realizada;sim;online;;
+bruna@paciente.local;BRUNA;2024-08-15 07:00;50;;realizada;sim;online;;
+catarina@paciente.local;CATARINA;2024-04-15 07:00;50;50,01;realizada;sim;online;;
+catarina@paciente.local;CATARINA;2024-04-21 07:00;50;50,01;cancelada;nao;online;;feriado
+catarina@paciente.local;CATARINA;2024-04-22 07:00;50;50,01;realizada;sim;online;;
+catarina@paciente.local;CATARINA;2024-04-29 07:00;50;50,01;realizada;sim;online;;
+catarina@paciente.local;CATARINA;2024-05-06 07:00;50;50,01;realizada;sim;online;;
+catarina@paciente.local;CATARINA;2024-05-13 07:00;50;50,01;realizada;sim;online;;
+catarina@paciente.local;CATARINA;2024-05-20 07:00;50;50,01;realizada;sim;online;;
+catarina@paciente.local;CATARINA;2024-05-27 07:00;50;50,01;realizada;sim;online;;
+catarina@paciente.local;CATARINA;2024-06-03 07:00;50;50,01;realizada;sim;online;;
+catarina@paciente.local;CATARINA;2024-06-10 07:00;50;50,01;realizada;sim;online;;
+catarina@paciente.local;CATARINA;2024-06-17 07:00;50;50,01;realizada;sim;online;;
+catarina@paciente.local;CATARINA;2024-06-24 07:00;50;50,01;realizada;sim;online;;
+catarina@paciente.local;CATARINA;2024-07-01 07:00;50;50,01;realizada;sim;online;;
+catarina@paciente.local;CATARINA;2024-07-08 07:00;50;50,01;realizada;sim;online;;
+catarina@paciente.local;CATARINA;2024-07-15 07:00;50;50,01;realizada;sim;online;;
+catarina@paciente.local;CATARINA;2024-07-22 07:00;50;50,01;realizada;sim;online;;
+catarina@paciente.local;CATARINA;2024-07-29 07:00;50;50,01;realizada;sim;online;;
+catarina@paciente.local;CATARINA;2024-08-05 07:00;50;50,01;realizada;sim;online;;
+catarina@paciente.local;CATARINA;2024-08-12 07:00;50;50,01;realizada;sim;online;;
+catarina@paciente.local;CATARINA;2024-08-19 07:00;50;50,01;realizada;sim;online;;
+catarina@paciente.local;CATARINA;2024-08-26 07:00;50;50,01;realizada;sim;online;;
+catarina@paciente.local;CATARINA;2024-09-02 07:00;50;50,01;realizada;sim;online;;
+catarina@paciente.local;CATARINA;2024-09-09 07:00;50;50,01;realizada;sim;online;;
+catarina@paciente.local;CATARINA;2024-09-16 07:00;50;50,01;cancelada;nao;online;;não fez a sessão
+catarina@paciente.local;CATARINA;2024-09-23 07:00;50;50,01;realizada;sim;online;;
+catarina@paciente.local;CATARINA;2024-09-30 07:00;50;50,01;realizada;sim;online;;
+catarina@paciente.local;CATARINA;2024-10-07 07:00;50;50,01;realizada;sim;online;;
+catarina@paciente.local;CATARINA;2024-10-14 07:00;50;50,01;cancelada;nao;online;;não conectou
+catarina@paciente.local;CATARINA;2024-10-21 07:00;50;50,01;realizada;sim;online;;
+catarina@paciente.local;CATARINA;2024-10-28 07:00;50;50,01;cancelada;nao;online;;não conectou
+catarina@paciente.local;CATARINA;2024-11-04 07:00;50;50,01;realizada;sim;online;;
+catarina@paciente.local;CATARINA;2024-11-11 07:00;50;50,01;falta_cobrada;nao;online;;não fez a sessão - não cobrar
+catarina@paciente.local;CATARINA;2024-11-18 07:00;50;50,01;realizada;sim;online;;
+catarina@paciente.local;CATARINA;2024-11-25 07:00;50;50,01;falta_cobrada;sim;online;;não conectou - cobrar
+catarina@paciente.local;CATARINA;2024-12-02 07:00;50;50,01;realizada;sim;online;;
+catarina@paciente.local;CATARINA;2024-12-09 07:00;50;50,01;realizada;sim;online;;
+catarina@paciente.local;CATARINA;2024-12-16 07:00;50;50,01;realizada;sim;online;;
+catarina@paciente.local;CATARINA;2024-12-23 07:00;50;50,01;cancelada;nao;online;;não fez, avisou
+catarina@paciente.local;CATARINA;2025-01-13 07:00;50;50,01;cancelada;nao;online;;não fez, avisou
+catarina@paciente.local;CATARINA;2025-01-27 07:00;50;50,01;realizada;sim;online;;
+catarina@paciente.local;CATARINA;2025-02-03 07:00;50;50,01;realizada;sim;online;;
+catarina@paciente.local;CATARINA;2025-02-10 07:00;50;50,01;realizada;sim;online;;
+catarina@paciente.local;CATARINA;2025-02-17 07:00;50;50,01;realizada;sim;online;;
+catarina@paciente.local;CATARINA;2025-02-24 07:00;50;50,01;realizada;sim;online;;
+catarina@paciente.local;CATARINA;2025-03-10 07:00;50;50,01;realizada;sim;online;;
+catarina@paciente.local;CATARINA;2025-03-17 07:00;50;50,01;realizada;sim;online;;
+catarina@paciente.local;CATARINA;2025-03-24 07:00;50;50,01;realizada;sim;online;;
+catarina@paciente.local;CATARINA;2025-03-31 07:00;50;50,01;cancelada;nao;online;;Não conectou
+catarina@paciente.local;CATARINA;2025-04-07 07:00;50;50,01;realizada;sim;online;;
+catarina@paciente.local;CATARINA;2025-04-14 07:00;50;50,01;realizada;sim;online;;
+catarina@paciente.local;CATARINA;2025-04-21 07:00;50;50,01;cancelada;nao;online;;feriado
+catarina@paciente.local;CATARINA;2025-04-28 07:00;50;50,01;cancelada;nao;online;;não fez a sessão
+catarina@paciente.local;CATARINA;2025-05-05 07:00;50;50,01;realizada;sim;online;;
+catarina@paciente.local;CATARINA;2025-05-12 07:00;50;50,01;realizada;sim;online;;
+catarina@paciente.local;CATARINA;2025-05-19 07:00;50;50,01;falta_cobrada;sim;online;;não conectou, não avisou, cobrar
+catarina@paciente.local;CATARINA;2025-05-26 07:00;50;50,01;realizada;sim;online;;
+catarina@paciente.local;CATARINA;2025-06-02 07:00;50;50,01;falta_cobrada;sim;online;;não fará a sessão,  cobrar
+catarina@paciente.local;CATARINA;2025-06-09 07:00;50;50,01;falta_cobrada;sim;online;;não compareceu - cobrar
+catarina@paciente.local;CATARINA;2025-06-16 07:00;50;50,01;realizada;sim;online;;
+catarina@paciente.local;CATARINA;2025-06-23 07:00;50;50,01;realizada;sim;online;;
+catarina@paciente.local;CATARINA;2025-06-30 07:00;50;50,01;realizada;sim;online;;
+catarina@paciente.local;CATARINA;2025-07-01 07:00;50;50,01;cancelada;nao;online;;minhas férias
+catarina@paciente.local;CATARINA;2025-07-07 07:00;50;50,01;cancelada;nao;online;;férias
+catarina@paciente.local;CATARINA;2025-07-21 07:00;50;50,01;cancelada;nao;online;;férias
+catarina@paciente.local;CATARINA;2025-07-28 07:00;50;50,01;falta_cobrada;nao;online;;não fará a sessão, não cobrar
+catarina@paciente.local;CATARINA;2025-08-04 07:00;50;50,01;falta_cobrada;nao;online;;não fez, não avisou
+catarina@paciente.local;CATARINA;2025-08-11 07:00;50;50,01;realizada;sim;online;;
+catarina@paciente.local;CATARINA;2025-08-18 07:00;50;50,01;realizada;sim;online;;
+catarina@paciente.local;CATARINA;2025-08-25 07:00;50;50,01;falta_cobrada;nao;online;;não fez, não avisou
+catarina@paciente.local;CATARINA;2025-09-01 07:00;50;50,01;realizada;sim;online;;
+catarina@paciente.local;CATARINA;2025-09-08 07:00;50;50,01;realizada;sim;online;;
+catarina@paciente.local;CATARINA;2025-09-15 07:00;50;50,01;realizada;sim;online;;
+catarina@paciente.local;CATARINA;2025-09-25 07:00;50;50,01;realizada;sim;online;;
+catarina@paciente.local;CATARINA;2025-09-29 07:00;50;50,01;realizada;sim;online;;
+catarina@paciente.local;CATARINA;2025-10-06 07:00;50;50,01;realizada;sim;online;;
+catarina@paciente.local;CATARINA;2025-10-15 07:00;50;50,01;realizada;sim;online;;
+catarina@paciente.local;CATARINA;2025-10-20 07:00;50;50,01;realizada;sim;online;;
+catarina@paciente.local;CATARINA;2025-10-27 07:00;50;50,01;realizada;sim;online;;
+catarina@paciente.local;CATARINA;2025-11-03 07:00;50;50,01;realizada;sim;online;;
+catarina@paciente.local;CATARINA;2025-11-11 07:00;50;50,01;realizada;sim;online;;
+catarina@paciente.local;CATARINA;2025-11-18 07:00;50;50,01;realizada;sim;online;;
+catarina@paciente.local;CATARINA;2025-11-24 07:00;50;50,01;cancelada;nao;online;;desmarcou no dia
+catarina@paciente.local;CATARINA;2025-12-01 07:00;50;50,01;falta_cobrada;nao;online;;não fez, não avisou
+catarina@paciente.local;CATARINA;2025-12-08 07:00;50;50,01;cancelada;nao;online;;não vai fazer
+catarina@paciente.local;CATARINA;2025-12-15 07:00;50;50,01;realizada;sim;online;;
+catarina@paciente.local;CATARINA;2025-12-22 07:00;50;50,01;falta_cobrada;nao;online;;não fez, não avisou
+catarina@paciente.local;CATARINA;2025-12-30 07:00;50;50,01;realizada;sim;online;;
+catarina@paciente.local;CATARINA;2026-01-06 07:00;50;50,01;realizada;sim;online;;
+catarina@paciente.local;CATARINA;2026-01-14 07:00;50;50,01;realizada;sim;online;;
+catarina@paciente.local;CATARINA;2026-01-22 07:00;50;50,01;realizada;sim;online;;
+catarina@paciente.local;CATARINA;2026-01-26 07:00;50;50,01;realizada;sim;online;;
+catarina@paciente.local;CATARINA;2026-01-30 07:00;50;50,01;realizada;sim;online;;
+catarina@paciente.local;CATARINA;2026-02-04 07:00;50;50,01;realizada;sim;online;;
+catarina@paciente.local;CATARINA;2026-02-10 07:00;50;50,01;falta_cobrada;sim;online;;não fez, cobrar
+catarina@paciente.local;CATARINA;2026-02-17 07:00;50;50,01;cancelada;nao;online;;carnaval
+catarina@paciente.local;CATARINA;2026-02-24 07:00;50;50,01;realizada;sim;online;;
+catarina@paciente.local;CATARINA;2026-03-05 07:00;50;50,01;realizada;sim;online;;
+catarina@paciente.local;CATARINA;2026-03-10 07:00;50;50,01;realizada;sim;online;;
+catarina@paciente.local;CATARINA;2026-03-17 07:00;50;50,01;falta_cobrada;nao;online;;não compareceu
+catarina@paciente.local;CATARINA;2026-03-24 07:00;50;50,01;cancelada;nao;online;;
+catarina@paciente.local;CATARINA;2026-03-31 07:00;50;50,01;realizada;sim;online;;
+catarina@paciente.local;CATARINA;2026-04-07 07:00;50;50,01;realizada;sim;online;;
+catarina@paciente.local;CATARINA;2026-04-14 07:00;50;50,01;cancelada;nao;online;;não fez, avisou no dia
+catarina@paciente.local;CATARINA;2026-04-28 07:00;50;50,01;realizada;sim;online;;
+catarina@paciente.local;CATARINA;2026-05-05 07:00;50;50,01;cancelada;nao;online;;dormiu
+catarina@paciente.local;CATARINA;2026-05-12 07:00;50;50,01;realizada;sim;online;;
+catarina@paciente.local;CATARINA;2026-05-19 07:00;50;50,01;realizada;sim;online;;
+catarina@paciente.local;CATARINA;2026-05-26 07:00;50;50,01;realizada;sim;online;;
+catarina@paciente.local;CATARINA;2026-06-02 07:00;50;50,01;falta_cobrada;sim;online;;não fez, cobrar
+catarina@paciente.local;CATARINA;2026-06-09 07:00;50;50,01;cancelada;nao;online;;
+catarina@paciente.local;CATARINA;2026-06-16 07:00;50;50,01;cancelada;nao;online;;
+catarina@paciente.local;CATARINA;2026-06-23 07:00;50;50,01;cancelada;nao;online;;
+catarina@paciente.local;CATARINA;2026-06-30 07:00;50;50,01;cancelada;nao;online;;
+claudio@paciente.local;CLÁUDIO;2025-05-16 07:00;50;;realizada;sim;online;;
+claudio@paciente.local;CLÁUDIO;2025-05-23 07:00;50;;realizada;sim;online;;
+claudio@paciente.local;CLÁUDIO;2025-05-30 07:00;50;;falta_cobrada;nao;online;;não fez a sessão, não cobrar
+claudio@paciente.local;CLÁUDIO;2025-06-06 07:00;50;;realizada;sim;online;;
+claudio@paciente.local;CLÁUDIO;2025-06-13 07:00;50;;realizada;sim;online;;
+claudio@paciente.local;CLÁUDIO;2025-06-20 07:00;50;;realizada;sim;online;;
+claudio@paciente.local;CLÁUDIO;2025-06-27 07:00;50;;realizada;sim;online;;
+claudio@paciente.local;CLÁUDIO;2025-07-04 07:00;50;;realizada;sim;online;;
+claudio@paciente.local;CLÁUDIO;2025-07-11 07:00;50;;realizada;sim;online;;
+claudio@paciente.local;CLÁUDIO;2025-07-25 07:00;50;;realizada;sim;online;;
+claudio@paciente.local;CLÁUDIO;2025-08-01 07:00;50;;realizada;sim;online;;
+claudio@paciente.local;CLÁUDIO;2025-08-08 07:00;50;;realizada;sim;online;;
+claudio@paciente.local;CLÁUDIO;2025-08-15 07:00;50;;realizada;sim;online;;
+claudio@paciente.local;CLÁUDIO;2025-08-22 07:00;50;;realizada;sim;online;;
+claudio@paciente.local;CLÁUDIO;2025-08-29 07:00;50;;realizada;sim;online;;
+claudio@paciente.local;CLÁUDIO;2025-09-05 07:00;50;;realizada;sim;online;;
+claudio@paciente.local;CLÁUDIO;2025-09-12 07:00;50;;cancelada;nao;online;;nao fará a sessão - avisou
+claudio@paciente.local;CLÁUDIO;2025-09-19 07:00;50;;realizada;sim;online;;
+claudio@paciente.local;CLÁUDIO;2025-09-26 07:00;50;;realizada;sim;online;;
+claudio@paciente.local;CLÁUDIO;2025-10-03 07:00;50;;realizada;sim;online;;
+claudio@paciente.local;CLÁUDIO;2025-10-10 07:00;50;;realizada;sim;online;;
+claudio@paciente.local;CLÁUDIO;2025-10-17 07:00;50;;realizada;sim;online;;
+claudio@paciente.local;CLÁUDIO;2025-10-24 07:00;50;;realizada;sim;online;;
+claudio@paciente.local;CLÁUDIO;2025-10-31 07:00;50;;cancelada;nao;online;;não foi, avisou antes
+claudio@paciente.local;CLÁUDIO;2025-11-07 07:00;50;;realizada;sim;online;;
+claudio@paciente.local;CLÁUDIO;2025-11-14 07:00;50;;falta_cobrada;sim;online;;não fez, cobrar
+claudio@paciente.local;CLÁUDIO;2025-11-21 07:00;50;;realizada;sim;online;;
+claudio@paciente.local;CLÁUDIO;2025-11-28 07:00;50;;realizada;sim;online;;
+claudio@paciente.local;CLÁUDIO;2025-12-05 07:00;50;;realizada;sim;online;;
+claudio@paciente.local;CLÁUDIO;2025-12-12 07:00;50;;falta_cobrada;nao;online;;não fez, não cobrar
+claudio@paciente.local;CLÁUDIO;2025-12-19 07:00;50;;falta_cobrada;nao;online;;nao fará - não cobrar
+claudio@paciente.local;CLÁUDIO;2026-01-16 07:00;50;;realizada;sim;online;;
+claudio@paciente.local;CLÁUDIO;2026-01-23 07:00;50;;realizada;sim;online;;
+claudio@paciente.local;CLÁUDIO;2026-02-06 07:00;50;;realizada;sim;online;;
+claudio@paciente.local;CLÁUDIO;2026-02-13 07:00;50;;falta_cobrada;nao;online;;não cobrar
+claudio@paciente.local;CLÁUDIO;2026-02-20 07:00;50;;falta_cobrada;nao;online;;não cobrar
+claudio@paciente.local;CLÁUDIO;2026-02-27 07:00;50;;realizada;sim;online;;
+claudio@paciente.local;CLÁUDIO;2026-03-06 07:00;50;;falta_cobrada;nao;online;;não fez, não cobrar
+claudio@paciente.local;CLÁUDIO;2026-03-13 07:00;50;;falta_cobrada;nao;online;;não fez, não cobrar
+danieli@paciente.local;DANIELI;2025-07-23 07:00;50;;realizada;sim;online;;
+danieli@paciente.local;DANIELI;2025-07-30 07:00;50;;realizada;sim;online;;
+danieli@paciente.local;DANIELI;2025-08-06 07:00;50;;realizada;sim;online;;
+danieli@paciente.local;DANIELI;2025-08-13 07:00;50;;realizada;sim;online;;
+danieli@paciente.local;DANIELI;2025-08-20 07:00;50;;falta_cobrada;sim;online;;não veio, não avisou - cobrar
+danieli@paciente.local;DANIELI;2025-08-25 07:00;50;400,00;cancelada;nao;online;;Pacote 2 - pagou 400,00 em 25/08/2025
+danieli@paciente.local;DANIELI;2025-08-27 07:00;50;;falta_cobrada;nao;online;;não fará a sessão, não cobrar
+danieli@paciente.local;DANIELI;2025-09-03 07:00;50;;falta_cobrada;nao;online;;não fará a sessão, não cobrar
+danieli@paciente.local;DANIELI;2025-09-10 07:00;50;;cancelada;nao;online;;avisou que não ia
+danieli@paciente.local;DANIELI;2025-09-17 07:00;50;;realizada;sim;online;;
+danieli@paciente.local;DANIELI;2025-09-25 07:00;50;;realizada;sim;online;;
+danieli@paciente.local;DANIELI;2025-10-01 07:00;50;;realizada;sim;online;;
+danieli@paciente.local;DANIELI;2025-10-10 07:00;50;;realizada;sim;online;;
+danieli@paciente.local;DANIELI;2025-10-17 07:00;50;;falta_cobrada;sim;online;;não fez, cobrar
+danieli@paciente.local;DANIELI;2025-10-24 07:00;50;;cancelada;nao;online;;desmarcou
+danieli@paciente.local;DANIELI;2025-10-31 07:00;50;;realizada;sim;online;;
+danieli@paciente.local;DANIELI;2025-11-07 07:00;50;;realizada;sim;online;;
+danieli@paciente.local;DANIELI;2025-11-14 07:00;50;;realizada;sim;online;;
+danieli@paciente.local;DANIELI;2025-11-21 07:00;50;;falta_cobrada;nao;online;;desmarcou, não cobrar
+danieli@paciente.local;DANIELI;2025-11-28 07:00;50;;cancelada;nao;online;;não fará - avisou
+danieli@paciente.local;DANIELI;2025-12-05 07:00;50;;realizada;sim;online;;
+danieli@paciente.local;DANIELI;2025-12-12 07:00;50;;cancelada;nao;online;;n]ao vai fzer, avisou
+danieli@paciente.local;DANIELI;2025-12-19 07:00;50;;falta_cobrada;sim;online;;não fez, cobrar
+danieli@paciente.local;DANIELI;2026-01-23 07:00;50;;realizada;sim;online;;
+drielle@paciente.local;DRIELLE;2024-10-12 07:00;50;80,00;realizada;sim;online;;
+drielle@paciente.local;DRIELLE;2024-10-19 07:00;50;80,00;realizada;sim;online;;
+drielle@paciente.local;DRIELLE;2024-10-26 07:00;50;80,00;realizada;sim;online;;
+drielle@paciente.local;DRIELLE;2024-11-02 07:00;50;80,00;realizada;sim;online;;
+drielle@paciente.local;DRIELLE;2024-11-08 07:00;50;80,00;realizada;sim;online;;
+drielle@paciente.local;DRIELLE;2024-11-16 07:00;50;80,00;falta_cobrada;nao;online;;não conectou, não cobrar
+drielle@paciente.local;DRIELLE;2024-11-20 07:00;50;80,00;realizada;sim;online;;
+drielle@paciente.local;DRIELLE;2024-11-23 07:00;50;80,00;realizada;sim;online;;
+drielle@paciente.local;DRIELLE;2024-11-30 07:00;50;80,00;falta_cobrada;nao;online;;não fez mas não avisou antes
+drielle@paciente.local;DRIELLE;2024-12-07 07:00;50;80,00;realizada;sim;online;;sinal ruim - não cobrar
+drielle@paciente.local;DRIELLE;2024-12-14 07:00;50;80,00;realizada;sim;online;;
+drielle@paciente.local;DRIELLE;2024-12-21 07:00;50;80,00;cancelada;nao;online;;não fez, só avisou depois
+drielle@paciente.local;DRIELLE;2025-01-11 07:00;50;80,00;realizada;sim;online;;
+drielle@paciente.local;DRIELLE;2025-01-18 07:00;50;80,00;realizada;sim;online;;
+drielle@paciente.local;DRIELLE;2025-02-13 07:00;50;80,00;realizada;sim;online;;
+drielle@paciente.local;DRIELLE;2025-03-13 07:00;50;80,00;realizada;sim;online;;
+drielle@paciente.local;DRIELLE;2026-02-19 07:00;50;80,00;realizada;sim;online;;
+drielle@paciente.local;DRIELLE;2026-02-26 07:00;50;80,00;realizada;sim;online;;
+drielle@paciente.local;DRIELLE;2026-03-05 07:00;50;80,00;realizada;sim;online;;
+drielle@paciente.local;DRIELLE;2026-03-12 07:00;50;80,00;realizada;sim;online;;
+drielle@paciente.local;DRIELLE;2026-05-28 07:00;50;80,00;realizada;sim;online;;
+drielle@paciente.local;DRIELLE;2026-06-04 07:00;50;80,00;cancelada;nao;online;;feriado
+drielle@paciente.local;DRIELLE;2026-06-11 07:00;50;80,00;cancelada;nao;online;;
+duda.berg@paciente.local;DUDA BERG;2021-04-08 07:00;50;90,00;realizada;sim;online;;
+duda.berg@paciente.local;DUDA BERG;2025-03-11 07:00;50;90,00;realizada;sim;online;;
+duda.berg@paciente.local;DUDA BERG;2025-03-18 07:00;50;90,00;cancelada;nao;online;;não fará a sessão
+duda.berg@paciente.local;DUDA BERG;2025-03-25 07:00;50;90,00;realizada;sim;online;;
+duda.berg@paciente.local;DUDA BERG;2025-04-01 07:00;50;90,00;realizada;sim;online;;
+duda.berg@paciente.local;DUDA BERG;2025-04-15 07:00;50;90,00;realizada;sim;online;;
+duda.berg@paciente.local;DUDA BERG;2025-04-22 07:00;50;90,00;realizada;sim;online;;
+duda.berg@paciente.local;DUDA BERG;2025-04-29 07:00;50;90,00;realizada;sim;online;;
+duda.berg@paciente.local;DUDA BERG;2025-05-06 07:00;50;90,00;realizada;sim;online;;
+duda.berg@paciente.local;DUDA BERG;2025-05-13 07:00;50;90,00;realizada;sim;online;;
+duda.berg@paciente.local;DUDA BERG;2025-05-15 07:00;50;90,00;realizada;sim;online;;
+duda.berg@paciente.local;DUDA BERG;2025-05-20 07:00;50;90,00;falta_cobrada;nao;online;;não cobrar
+duda.berg@paciente.local;DUDA BERG;2025-05-22 07:00;50;90,00;realizada;sim;online;;
+duda.berg@paciente.local;DUDA BERG;2025-05-27 07:00;50;90,00;realizada;sim;online;;
+duda.berg@paciente.local;DUDA BERG;2025-05-29 07:00;50;90,00;realizada;sim;online;;
+duda.berg@paciente.local;DUDA BERG;2025-06-03 07:00;50;90,00;cancelada;nao;online;;avisou - internada
+duda.berg@paciente.local;DUDA BERG;2025-06-05 07:00;50;90,00;realizada;sim;online;;
+duda.berg@paciente.local;DUDA BERG;2025-06-10 07:00;50;90,00;realizada;sim;online;;
+duda.berg@paciente.local;DUDA BERG;2025-06-12 07:00;50;90,00;realizada;sim;online;;
+duda.berg@paciente.local;DUDA BERG;2025-06-17 07:00;50;90,00;realizada;sim;online;;
+duda.berg@paciente.local;DUDA BERG;2025-06-20 07:00;50;90,00;realizada;sim;online;;
+duda.berg@paciente.local;DUDA BERG;2025-06-24 07:00;50;90,00;realizada;sim;online;;
+duda.berg@paciente.local;DUDA BERG;2025-06-26 07:00;50;90,00;realizada;sim;online;;
+duda.berg@paciente.local;DUDA BERG;2025-07-01 07:00;50;90,00;realizada;sim;online;;
+duda.berg@paciente.local;DUDA BERG;2025-07-03 07:00;50;90,00;realizada;sim;online;;
+duda.berg@paciente.local;DUDA BERG;2025-07-08 07:00;50;90,00;realizada;sim;online;;
+duda.berg@paciente.local;DUDA BERG;2025-07-10 07:00;50;90,00;realizada;sim;online;;
+duda.berg@paciente.local;DUDA BERG;2025-07-22 07:00;50;90,00;realizada;sim;online;;
+duda.berg@paciente.local;DUDA BERG;2025-07-24 07:00;50;90,00;realizada;sim;online;;
+duda.berg@paciente.local;DUDA BERG;2025-07-29 07:00;50;90,00;realizada;sim;online;;
+duda.berg@paciente.local;DUDA BERG;2025-07-31 07:00;50;90,00;realizada;sim;online;;
+duda.berg@paciente.local;DUDA BERG;2025-08-05 07:00;50;90,00;realizada;sim;online;;
+duda.berg@paciente.local;DUDA BERG;2025-08-07 07:00;50;90,00;realizada;sim;online;;
+duda.berg@paciente.local;DUDA BERG;2025-08-12 07:00;50;90,00;realizada;sim;online;;
+duda.berg@paciente.local;DUDA BERG;2025-08-14 07:00;50;90,00;realizada;sim;online;;
+duda.berg@paciente.local;DUDA BERG;2025-08-19 07:00;50;90,00;realizada;sim;online;;
+duda.berg@paciente.local;DUDA BERG;2025-08-21 07:00;50;90,00;cancelada;nao;online;;não veio - avisou
+duda.berg@paciente.local;DUDA BERG;2025-08-26 07:00;50;90,00;falta_cobrada;nao;online;;não veio e não avisou
+duda.berg@paciente.local;DUDA BERG;2025-08-28 07:00;50;90,00;realizada;sim;online;;
+duda.berg@paciente.local;DUDA BERG;2025-09-02 07:00;50;90,00;realizada;sim;online;;
+duda.berg@paciente.local;DUDA BERG;2025-09-04 07:00;50;90,00;realizada;sim;online;;
+duda.berg@paciente.local;DUDA BERG;2025-09-09 07:00;50;90,00;realizada;sim;online;;
+duda.berg@paciente.local;DUDA BERG;2025-09-11 07:00;50;90,00;realizada;sim;online;;
+duda.berg@paciente.local;DUDA BERG;2025-09-16 07:00;50;90,00;falta_cobrada;sim;online;;não fez, avisou no dia, cobrar
+duda.berg@paciente.local;DUDA BERG;2025-09-18 07:00;50;90,00;realizada;sim;online;;
+duda.berg@paciente.local;DUDA BERG;2025-09-23 07:00;50;90,00;falta_cobrada;nao;online;;não veio, não avisou
+duda.berg@paciente.local;DUDA BERG;2025-09-25 07:00;50;90,00;realizada;sim;online;;
+duda.berg@paciente.local;DUDA BERG;2025-09-30 07:00;50;90,00;cancelada;nao;online;;não fez
+duda.berg@paciente.local;DUDA BERG;2025-10-02 07:00;50;90,00;realizada;sim;online;;
+duda.berg@paciente.local;DUDA BERG;2025-10-07 07:00;50;90,00;realizada;sim;online;;
+duda.berg@paciente.local;DUDA BERG;2025-10-09 07:00;50;90,00;realizada;sim;online;;
+duda.berg@paciente.local;DUDA BERG;2025-10-14 07:00;50;90,00;realizada;sim;online;;
+duda.berg@paciente.local;DUDA BERG;2025-10-16 07:00;50;90,00;cancelada;nao;online;;não fez, avisou no dia
+duda.berg@paciente.local;DUDA BERG;2025-10-21 07:00;50;90,00;realizada;sim;online;;
+duda.berg@paciente.local;DUDA BERG;2025-10-23 07:00;50;90,00;realizada;sim;online;;
+duda.berg@paciente.local;DUDA BERG;2025-10-28 07:00;50;90,00;cancelada;nao;online;;férias
+duda.berg@paciente.local;DUDA BERG;2025-10-30 07:00;50;90,00;cancelada;nao;online;;férias
+duda.berg@paciente.local;DUDA BERG;2025-11-04 07:00;50;90,00;realizada;sim;online;;
+duda.berg@paciente.local;DUDA BERG;2025-11-06 07:00;50;90,00;realizada;sim;online;;
+duda.berg@paciente.local;DUDA BERG;2025-11-11 07:00;50;90,00;realizada;sim;online;;
+duda.berg@paciente.local;DUDA BERG;2025-11-13 07:00;50;90,00;realizada;sim;online;;
+duda.berg@paciente.local;DUDA BERG;2025-11-18 07:00;50;90,00;cancelada;nao;online;;não fez, avisou no dia
+duda.berg@paciente.local;DUDA BERG;2025-11-20 07:00;50;90,00;realizada;sim;online;;
+duda.berg@paciente.local;DUDA BERG;2025-11-25 07:00;50;90,00;realizada;sim;online;;
+duda.berg@paciente.local;DUDA BERG;2025-11-27 07:00;50;90,00;falta_cobrada;sim;online;;não fez, cobrar
+duda.berg@paciente.local;DUDA BERG;2025-12-02 07:00;50;90,00;realizada;sim;online;;
+duda.berg@paciente.local;DUDA BERG;2025-12-04 07:00;50;90,00;realizada;sim;online;;
+duda.berg@paciente.local;DUDA BERG;2025-12-09 07:00;50;90,00;realizada;sim;online;;
+duda.berg@paciente.local;DUDA BERG;2025-12-11 07:00;50;90,00;realizada;sim;online;;
+duda.berg@paciente.local;DUDA BERG;2025-12-16 07:00;50;90,00;realizada;sim;online;;
+duda.berg@paciente.local;DUDA BERG;2025-12-18 07:00;50;90,00;realizada;sim;online;;
+duda.berg@paciente.local;DUDA BERG;2025-12-23 07:00;50;90,00;realizada;sim;online;;
+duda.berg@paciente.local;DUDA BERG;2026-01-15 07:00;50;90,00;realizada;sim;online;;
+duda.berg@paciente.local;DUDA BERG;2026-01-20 07:00;50;90,00;realizada;sim;online;;
+duda.berg@paciente.local;DUDA BERG;2026-01-22 07:00;50;90,00;realizada;sim;online;;
+duda.berg@paciente.local;DUDA BERG;2026-01-27 07:00;50;90,00;cancelada;nao;online;;não fez, avisou no dia
+duda.berg@paciente.local;DUDA BERG;2026-01-29 07:00;50;90,00;realizada;sim;online;;
+duda.berg@paciente.local;DUDA BERG;2026-02-03 07:00;50;90,00;realizada;sim;online;;
+duda.berg@paciente.local;DUDA BERG;2026-02-05 07:00;50;90,00;realizada;sim;online;;
+duda.berg@paciente.local;DUDA BERG;2026-02-10 07:00;50;90,00;realizada;sim;online;;
+duda.berg@paciente.local;DUDA BERG;2026-02-12 07:00;50;90,00;realizada;sim;online;;
+duda.berg@paciente.local;DUDA BERG;2026-02-17 07:00;50;90,00;cancelada;nao;online;;carnaval
+duda.berg@paciente.local;DUDA BERG;2026-02-19 07:00;50;90,00;realizada;sim;online;;
+duda.berg@paciente.local;DUDA BERG;2026-02-24 07:00;50;90,00;realizada;sim;online;;
+duda.berg@paciente.local;DUDA BERG;2026-02-26 07:00;50;90,00;realizada;sim;online;;
+duda.berg@paciente.local;DUDA BERG;2026-03-03 07:00;50;90,00;realizada;sim;online;;
+duda.berg@paciente.local;DUDA BERG;2026-03-05 07:00;50;90,00;realizada;sim;online;;
+duda.berg@paciente.local;DUDA BERG;2026-03-10 07:00;50;90,00;realizada;sim;online;;
+duda.berg@paciente.local;DUDA BERG;2026-03-12 07:00;50;90,00;realizada;sim;online;;
+duda.berg@paciente.local;DUDA BERG;2026-03-17 07:00;50;90,00;realizada;sim;online;;
+duda.berg@paciente.local;DUDA BERG;2026-03-19 07:00;50;90,00;cancelada;nao;online;;desmarquei
+duda.berg@paciente.local;DUDA BERG;2026-03-24 07:00;50;90,00;realizada;sim;online;;
+duda.berg@paciente.local;DUDA BERG;2026-03-26 07:00;50;90,00;realizada;sim;online;;
+duda.berg@paciente.local;DUDA BERG;2026-03-31 07:00;50;90,00;falta_cobrada;nao;online;;não fez, não cobrar
+duda.berg@paciente.local;DUDA BERG;2026-04-02 07:00;50;90,00;realizada;sim;online;;
+duda.berg@paciente.local;DUDA BERG;2026-04-07 07:00;50;90,00;realizada;sim;online;;
+duda.berg@paciente.local;DUDA BERG;2026-04-09 07:00;50;90,00;realizada;sim;online;;
+duda.berg@paciente.local;DUDA BERG;2026-04-14 07:00;50;90,00;realizada;sim;online;;
+duda.berg@paciente.local;DUDA BERG;2026-04-16 07:00;50;90,00;realizada;sim;online;;
+duda.berg@paciente.local;DUDA BERG;2026-04-20 07:00;50;90,00;realizada;sim;online;;
+duda.berg@paciente.local;DUDA BERG;2026-04-23 07:00;50;90,00;realizada;sim;online;;
+duda.berg@paciente.local;DUDA BERG;2026-04-28 07:00;50;90,00;realizada;sim;online;;
+duda.berg@paciente.local;DUDA BERG;2026-04-30 07:00;50;90,00;falta_cobrada;sim;online;;cobrar
+duda.berg@paciente.local;DUDA BERG;2026-05-05 07:00;50;90,00;realizada;sim;online;;
+duda.berg@paciente.local;DUDA BERG;2026-05-07 07:00;50;90,00;realizada;sim;online;;
+duda.berg@paciente.local;DUDA BERG;2026-05-12 07:00;50;90,00;realizada;sim;online;;
+duda.berg@paciente.local;DUDA BERG;2026-05-14 07:00;50;90,00;realizada;sim;online;;
+duda.berg@paciente.local;DUDA BERG;2026-05-19 07:00;50;90,00;realizada;sim;online;;
+duda.berg@paciente.local;DUDA BERG;2026-05-21 07:00;50;90,00;realizada;sim;online;;
+duda.berg@paciente.local;DUDA BERG;2026-05-26 07:00;50;90,00;realizada;sim;online;;
+duda.berg@paciente.local;DUDA BERG;2026-05-28 07:00;50;90,00;realizada;sim;online;;
+duda.berg@paciente.local;DUDA BERG;2026-06-02 07:00;50;90,00;realizada;sim;online;;
+duda.berg@paciente.local;DUDA BERG;2026-06-04 07:00;50;90,00;realizada;sim;online;;
+eloa@paciente.local;ELOÁ;2024-04-10 07:00;50;60,00;cancelada;nao;online;;não fez a sessão, avisou no dia
+eloa@paciente.local;ELOÁ;2024-08-13 07:00;50;60,00;realizada;sim;online;;
+eloa@paciente.local;ELOÁ;2024-08-20 07:00;50;60,00;realizada;sim;online;;
+eloa@paciente.local;ELOÁ;2024-08-27 07:00;50;60,00;realizada;sim;online;;
+eloa@paciente.local;ELOÁ;2024-09-02 07:00;50;60,00;realizada;sim;online;;
+eloa@paciente.local;ELOÁ;2024-09-10 07:00;50;60,00;cancelada;nao;online;;não vai fazer a sessão
+eloa@paciente.local;ELOÁ;2024-09-12 07:00;50;60,00;cancelada;nao;online;;perdeu a hora
+eloa@paciente.local;ELOÁ;2024-09-13 07:00;50;60,00;realizada;sim;online;;
+eloa@paciente.local;ELOÁ;2024-09-17 07:00;50;60,00;falta_cobrada;sim;online;;perdeu a hora - cobrar
+eloa@paciente.local;ELOÁ;2024-09-24 07:00;50;60,00;realizada;sim;online;;
+eloa@paciente.local;ELOÁ;2024-10-01 07:00;50;60,00;realizada;sim;online;;
+eloa@paciente.local;ELOÁ;2024-10-08 07:00;50;60,00;cancelada;nao;online;;não conectou
+eloa@paciente.local;ELOÁ;2024-10-16 07:00;50;60,00;cancelada;nao;online;;não conectou
+eloa@paciente.local;ELOÁ;2024-10-23 07:00;50;60,00;realizada;sim;online;;
+eloa@paciente.local;ELOÁ;2024-10-28 07:00;50;60,00;realizada;sim;online;;
+eloa@paciente.local;ELOÁ;2024-11-04 07:00;50;60,00;realizada;sim;online;;
+eloa@paciente.local;ELOÁ;2024-11-11 07:00;50;60,00;realizada;sim;online;;
+eloa@paciente.local;ELOÁ;2024-11-18 07:00;50;60,00;realizada;sim;online;;
+eloa@paciente.local;ELOÁ;2024-11-25 07:00;50;60,00;realizada;sim;online;;
+eloa@paciente.local;ELOÁ;2024-12-02 07:00;50;60,00;realizada;sim;online;;
+eloa@paciente.local;ELOÁ;2024-12-09 07:00;50;60,00;realizada;sim;online;;
+eloa@paciente.local;ELOÁ;2024-12-16 07:00;50;60,00;realizada;sim;online;;
+eloa@paciente.local;ELOÁ;2024-12-23 07:00;50;60,00;realizada;sim;online;;
+eloa@paciente.local;ELOÁ;2025-01-06 07:00;50;60,00;realizada;sim;online;;
+eloa@paciente.local;ELOÁ;2025-01-13 07:00;50;60,00;realizada;sim;online;;
+eloa@paciente.local;ELOÁ;2025-01-27 07:00;50;60,00;realizada;sim;online;;
+eloa@paciente.local;ELOÁ;2025-02-03 07:00;50;60,00;cancelada;nao;online;;não fez a sessão, avisou
+eloa@paciente.local;ELOÁ;2025-02-10 07:00;50;60,00;realizada;sim;online;;
+eloa@paciente.local;ELOÁ;2025-02-17 07:00;50;60,00;realizada;sim;online;;
+eloa@paciente.local;ELOÁ;2025-02-24 07:00;50;60,00;realizada;sim;online;;
+eloa@paciente.local;ELOÁ;2025-03-03 07:00;50;60,00;realizada;sim;online;;
+eloa@paciente.local;ELOÁ;2025-03-08 07:00;50;60,00;realizada;sim;online;;
+eloa@paciente.local;ELOÁ;2025-03-12 07:00;50;60,00;realizada;sim;online;;
+eloa@paciente.local;ELOÁ;2025-03-19 07:00;50;60,00;realizada;sim;online;;
+eloa@paciente.local;ELOÁ;2025-03-27 07:00;50;60,00;realizada;sim;online;;
+eloa@paciente.local;ELOÁ;2025-04-02 07:00;50;60,00;realizada;sim;online;;
+eloa@paciente.local;ELOÁ;2025-04-17 07:00;50;60,00;realizada;sim;online;;
+eloa@paciente.local;ELOÁ;2025-04-17 07:00;50;60,00;cancelada;nao;online;;férias
+eloa@paciente.local;ELOÁ;2025-04-24 07:00;50;60,00;realizada;sim;online;;
+eloa@paciente.local;ELOÁ;2025-05-01 07:00;50;60,00;falta_cobrada;sim;online;;não veio, mas cobrar
+eloa@paciente.local;ELOÁ;2025-05-08 07:00;50;60,00;realizada;sim;online;;
+eloa@paciente.local;ELOÁ;2025-05-15 07:00;50;60,00;realizada;sim;online;;
+eloa@paciente.local;ELOÁ;2025-05-22 07:00;50;60,00;realizada;sim;online;;
+eloa@paciente.local;ELOÁ;2025-05-29 07:00;50;60,00;realizada;sim;online;;
+eloa@paciente.local;ELOÁ;2025-06-05 07:00;50;60,00;realizada;sim;online;;
+eloa@paciente.local;ELOÁ;2025-06-12 07:00;50;60,00;realizada;sim;online;;
+eloa@paciente.local;ELOÁ;2025-06-16 07:00;50;60,00;realizada;sim;online;;
+eloa@paciente.local;ELOÁ;2025-06-26 07:00;50;60,00;realizada;sim;online;;
+eloa@paciente.local;ELOÁ;2025-07-03 07:00;50;60,00;realizada;sim;online;;
+eloa@paciente.local;ELOÁ;2025-07-10 07:00;50;60,00;realizada;sim;online;;
+eloa@paciente.local;ELOÁ;2025-07-24 07:00;50;60,00;realizada;sim;online;;
+eloa@paciente.local;ELOÁ;2025-07-31 07:00;50;60,00;realizada;sim;online;;
+eloa@paciente.local;ELOÁ;2025-08-07 07:00;50;60,00;realizada;sim;online;;
+eloa@paciente.local;ELOÁ;2025-08-14 07:00;50;60,00;realizada;sim;online;;
+eloa@paciente.local;ELOÁ;2025-08-21 07:00;50;60,00;realizada;sim;online;;
+eloa@paciente.local;ELOÁ;2025-08-28 07:00;50;60,00;realizada;sim;online;;
+eloa@paciente.local;ELOÁ;2025-09-04 07:00;50;60,00;realizada;sim;online;;
+eloa@paciente.local;ELOÁ;2025-09-11 07:00;50;60,00;realizada;sim;online;;
+eloa@paciente.local;ELOÁ;2025-09-15 07:00;50;60,00;realizada;sim;online;;
+eloa@paciente.local;ELOÁ;2025-09-22 07:00;50;60,00;realizada;sim;online;;
+eloa@paciente.local;ELOÁ;2025-09-29 07:00;50;60,00;realizada;sim;online;;
+eloa@paciente.local;ELOÁ;2025-10-07 07:00;50;60,00;realizada;sim;online;;
+eloa@paciente.local;ELOÁ;2025-10-14 07:00;50;60,00;realizada;sim;online;;
+eloa@paciente.local;ELOÁ;2025-10-21 07:00;50;60,00;realizada;sim;online;;
+eloa@paciente.local;ELOÁ;2025-10-28 07:00;50;60,00;realizada;sim;online;;
+eloa@paciente.local;ELOÁ;2025-11-04 07:00;50;60,00;realizada;sim;online;;
+eloa@paciente.local;ELOÁ;2025-11-15 07:00;50;60,00;falta_cobrada;sim;online;;não fez, avisou no dia, cobrar
+eloa@paciente.local;ELOÁ;2025-11-22 07:00;50;60,00;realizada;sim;online;;
+eloa@paciente.local;ELOÁ;2025-11-29 07:00;50;60,00;falta_cobrada;nao;online;;não fez, não avisou
+eloa@paciente.local;ELOÁ;2026-01-17 07:00;50;60,00;realizada;sim;online;;
+eloa@paciente.local;ELOÁ;2026-01-22 07:00;50;60,00;realizada;sim;online;;
+eloa@paciente.local;ELOÁ;2026-01-29 07:00;50;60,00;realizada;sim;online;;
+eloa@paciente.local;ELOÁ;2026-02-07 07:00;50;60,00;realizada;sim;online;;
+eloa@paciente.local;ELOÁ;2026-02-14 07:00;50;60,00;cancelada;nao;online;;carnaval
+eloa@paciente.local;ELOÁ;2026-02-21 07:00;50;60,00;realizada;sim;online;;
+eloa@paciente.local;ELOÁ;2026-02-26 07:00;50;60,00;realizada;sim;online;;
+eloa@paciente.local;ELOÁ;2026-03-07 07:00;50;60,00;realizada;sim;online;;
+eloa@paciente.local;ELOÁ;2026-03-14 07:00;50;60,00;realizada;sim;online;;
+eloa@paciente.local;ELOÁ;2026-03-26 07:00;50;60,00;realizada;sim;online;;
+eloa@paciente.local;ELOÁ;2026-03-28 07:00;50;60,00;cancelada;nao;online;;desmarquei
+eloa@paciente.local;ELOÁ;2026-04-02 07:00;50;60,00;realizada;sim;online;;
+eloa@paciente.local;ELOÁ;2026-04-06 07:00;50;60,00;realizada;sim;online;;
+eloa@paciente.local;ELOÁ;2026-04-13 07:00;50;60,00;realizada;sim;online;;
+eloa@paciente.local;ELOÁ;2026-04-23 07:00;50;60,00;realizada;sim;online;;
+eloa@paciente.local;ELOÁ;2026-04-27 07:00;50;60,00;realizada;sim;online;;
+eloa@paciente.local;ELOÁ;2026-05-06 07:00;50;60,00;realizada;sim;online;;
+eloa@paciente.local;ELOÁ;2026-05-11 07:00;50;60,00;cancelada;nao;online;;não apareceu
+eloa@paciente.local;ELOÁ;2026-05-18 07:00;50;60,00;realizada;sim;online;;
+eloa@paciente.local;ELOÁ;2026-05-25 07:00;50;60,00;realizada;sim;online;;
+eloa@paciente.local;ELOÁ;2026-06-01 07:00;50;60,00;realizada;sim;online;;
+eloa@paciente.local;ELOÁ;2026-06-08 07:00;50;60,00;cancelada;nao;online;;
+eloa@paciente.local;ELOÁ;2026-06-15 07:00;50;60,00;cancelada;nao;online;;
+eloa@paciente.local;ELOÁ;2026-06-22 07:00;50;60,00;cancelada;nao;online;;
+eloa@paciente.local;ELOÁ;2026-06-29 07:00;50;60,00;cancelada;nao;online;;
+fernanda@paciente.local;FERNANDA;2025-08-09 07:00;50;100,00;realizada;sim;online;;
+fernanda@paciente.local;FERNANDA;2025-08-16 07:00;50;100,00;falta_cobrada;sim;online;;não fez, avisou no horário, cobrar
+fernanda@paciente.local;FERNANDA;2025-08-23 07:00;50;100,00;falta_cobrada;nao;online;;não fez, não cobrar
+fernanda@paciente.local;FERNANDA;2025-08-30 07:00;50;100,00;realizada;sim;online;;
+fernanda@paciente.local;FERNANDA;2025-09-06 07:00;50;100,00;realizada;sim;online;;
+fernanda@paciente.local;FERNANDA;2025-09-12 07:00;50;100,00;realizada;sim;online;;
+fernanda@paciente.local;FERNANDA;2025-09-20 07:00;50;100,00;falta_cobrada;sim;online;;não fez, avisou no dia, cobrar
+fernanda@paciente.local;FERNANDA;2025-09-27 07:00;50;100,00;realizada;sim;online;;
+fernanda@paciente.local;FERNANDA;2026-02-18 07:00;50;100,00;falta_cobrada;nao;online;;não fez, não cobrar
+fernanda@paciente.local;FERNANDA;2026-02-25 07:00;50;100,00;realizada;sim;online;;
+fernanda@paciente.local;FERNANDA;2026-03-04 07:00;50;100,00;realizada;sim;online;;
+fernanda@paciente.local;FERNANDA;2026-03-11 07:00;50;100,00;realizada;sim;online;;
+fernanda@paciente.local;FERNANDA;2026-03-18 07:00;50;100,00;cancelada;nao;online;;não fez, avisou no dia
+fernanda@paciente.local;FERNANDA;2026-03-27 07:00;50;100,00;cancelada;nao;online;;não fez
+fernanda@paciente.local;FERNANDA;2026-04-01 07:00;50;100,00;realizada;sim;online;;
+fernanda@paciente.local;FERNANDA;2026-04-08 07:00;50;100,00;falta_cobrada;nao;online;;cancelou, não cobrar
+fernanda@paciente.local;FERNANDA;2026-04-15 07:00;50;100,00;realizada;sim;online;;
+fernanda@paciente.local;FERNANDA;2026-04-22 07:00;50;100,00;realizada;sim;online;;
+fernanda@paciente.local;FERNANDA;2026-04-29 07:00;50;100,00;cancelada;nao;online;;desmarcou no dia
+fernanda@paciente.local;FERNANDA;2026-05-06 07:00;50;100,00;falta_cobrada;sim;online;;não fez, cobrar
+fernanda@paciente.local;FERNANDA;2026-05-13 07:00;50;100,00;realizada;sim;online;;
+fernanda@paciente.local;FERNANDA;2026-05-20 07:00;50;100,00;falta_cobrada;sim;online;;não fez, cobrar
+fernanda@paciente.local;FERNANDA;2026-05-27 07:00;50;100,00;realizada;sim;online;;
+fernanda@paciente.local;FERNANDA;2026-06-03 07:00;50;100,00;realizada;sim;online;;
+fernanda@paciente.local;FERNANDA;2026-06-10 07:00;50;100,00;cancelada;nao;online;;
+fernanda@paciente.local;FERNANDA;2026-06-17 07:00;50;100,00;cancelada;nao;online;;
+fernanda@paciente.local;FERNANDA;2026-06-24 07:00;50;100,00;cancelada;nao;online;;
+gabriela@paciente.local;GABRIELA;2024-08-19 07:00;50;50,00;realizada;sim;online;;
+gabriela@paciente.local;GABRIELA;2024-08-26 07:00;50;50,00;realizada;sim;online;;
+gabriela@paciente.local;GABRIELA;2024-09-02 07:00;50;50,00;realizada;sim;online;;
+gabriela@paciente.local;GABRIELA;2024-09-09 07:00;50;50,00;realizada;sim;online;;
+gabriela@paciente.local;GABRIELA;2024-09-16 07:00;50;50,00;realizada;sim;online;;
+gabriela@paciente.local;GABRIELA;2024-09-23 07:00;50;50,00;realizada;sim;online;;
+gabriela@paciente.local;GABRIELA;2024-09-30 07:00;50;50,00;realizada;sim;online;;
+gabriela@paciente.local;GABRIELA;2024-10-07 07:00;50;50,00;realizada;sim;online;;
+gabriela@paciente.local;GABRIELA;2024-10-14 07:00;50;50,00;realizada;sim;online;;
+gabriela@paciente.local;GABRIELA;2024-10-21 07:00;50;50,00;realizada;sim;online;;
+gabriela@paciente.local;GABRIELA;2024-10-28 07:00;50;50,00;realizada;sim;online;;
+gabriela@paciente.local;GABRIELA;2024-11-04 07:00;50;50,00;realizada;sim;online;;
+gabriela@paciente.local;GABRIELA;2024-11-11 07:00;50;50,00;realizada;sim;online;;
+gabriela@paciente.local;GABRIELA;2024-11-18 07:00;50;50,00;realizada;sim;online;;
+gabriela@paciente.local;GABRIELA;2024-11-25 07:00;50;50,00;realizada;sim;online;;
+gabriela@paciente.local;GABRIELA;2024-12-02 07:00;50;50,00;realizada;sim;online;;
+gabriela@paciente.local;GABRIELA;2024-12-09 07:00;50;50,00;realizada;sim;online;;
+gabriela@paciente.local;GABRIELA;2024-12-16 07:00;50;50,00;realizada;sim;online;;
+gabriela@paciente.local;GABRIELA;2024-12-23 07:00;50;50,00;realizada;sim;online;;
+gabriela@paciente.local;GABRIELA;2025-01-06 07:00;50;50,00;realizada;sim;online;;
+gabriela@paciente.local;GABRIELA;2025-01-13 07:00;50;50,00;realizada;sim;online;;
+gabriela@paciente.local;GABRIELA;2025-01-27 07:00;50;50,00;realizada;sim;online;;
+gabriela@paciente.local;GABRIELA;2025-02-03 07:00;50;50,00;realizada;sim;online;;
+gabriela@paciente.local;GABRIELA;2025-02-10 07:00;50;50,00;realizada;sim;online;;
+gabriela@paciente.local;GABRIELA;2025-02-17 07:00;50;50,00;realizada;sim;online;;
+gabriela@paciente.local;GABRIELA;2025-02-24 07:00;50;50,00;realizada;sim;online;;
+giulia@paciente.local;GIULIA;2026-04-08 07:00;50;100,00;realizada;sim;online;;gratuita
+giulia@paciente.local;GIULIA;2026-04-15 07:00;50;100,00;realizada;sim;online;;
+giulia@paciente.local;GIULIA;2026-04-22 07:00;50;100,00;realizada;sim;online;;
+giulia@paciente.local;GIULIA;2026-04-29 07:00;50;100,00;realizada;sim;online;;
+giulia@paciente.local;GIULIA;2026-05-06 07:00;50;100,00;realizada;sim;online;;
+giulia@paciente.local;GIULIA;2026-05-13 07:00;50;100,00;realizada;sim;online;;
+giulia@paciente.local;GIULIA;2026-05-20 07:00;50;100,00;realizada;sim;online;;
+giulia@paciente.local;GIULIA;2026-05-27 07:00;50;100,00;realizada;sim;online;;
+giulia@paciente.local;GIULIA;2026-06-03 07:00;50;100,00;realizada;sim;online;;
+giulia@paciente.local;GIULIA;2026-06-10 07:00;50;100,00;cancelada;nao;online;;
+giulia@paciente.local;GIULIA;2026-06-17 07:00;50;100,00;cancelada;nao;online;;
+giulia@paciente.local;GIULIA;2026-06-24 07:00;50;100,00;cancelada;nao;online;;
+gustavo@paciente.local;GUSTAVO;2025-01-02 07:00;50;80,00;realizada;sim;online;;
+gustavo@paciente.local;GUSTAVO;2025-07-09 07:00;50;80,00;realizada;sim;online;;
+gustavo@paciente.local;GUSTAVO;2025-07-16 07:00;50;80,00;cancelada;nao;online;;minhas férias
+gustavo@paciente.local;GUSTAVO;2025-07-23 07:00;50;80,00;realizada;sim;online;;
+gustavo@paciente.local;GUSTAVO;2025-08-01 07:00;50;80,00;cancelada;nao;online;;não fez
+gustavo@paciente.local;GUSTAVO;2025-08-06 07:00;50;80,00;realizada;sim;online;;
+gustavo@paciente.local;GUSTAVO;2025-08-13 07:00;50;80,00;realizada;sim;online;;
+gustavo@paciente.local;GUSTAVO;2025-08-18 07:00;50;80,00;realizada;sim;online;;
+gustavo@paciente.local;GUSTAVO;2025-08-27 07:00;50;80,00;realizada;sim;online;;
+gustavo@paciente.local;GUSTAVO;2025-09-03 07:00;50;80,00;falta_cobrada;sim;online;;não fez a sessão e avisou no dia, cobrar
+gustavo@paciente.local;GUSTAVO;2025-09-10 07:00;50;80,00;realizada;sim;online;;
+gustavo@paciente.local;GUSTAVO;2025-09-17 07:00;50;80,00;realizada;sim;online;;
+gustavo@paciente.local;GUSTAVO;2025-09-26 07:00;50;80,00;cancelada;nao;online;;não fez, avisou no dia
+gustavo@paciente.local;GUSTAVO;2025-10-01 07:00;50;80,00;realizada;sim;online;;
+gustavo@paciente.local;GUSTAVO;2025-10-08 07:00;50;80,00;falta_cobrada;sim;online;;não fez. Cobrar
+gustavo@paciente.local;GUSTAVO;2025-10-29 07:00;50;80,00;realizada;sim;online;;
+gustavo@paciente.local;GUSTAVO;2025-11-05 07:00;50;80,00;falta_cobrada;sim;online;;não fez, cobrar
+gustavo@paciente.local;GUSTAVO;2025-11-12 07:00;50;80,00;falta_cobrada;sim;online;;não fez, cobrar
+gustavo@paciente.local;GUSTAVO;2025-11-19 07:00;50;80,00;realizada;sim;online;;
+gustavo@paciente.local;GUSTAVO;2025-11-26 07:00;50;80,00;falta_cobrada;nao;online;;não fez, não cobrar
+gustavo@paciente.local;GUSTAVO;2025-12-02 07:00;50;80,00;realizada;sim;online;;
+gustavo@paciente.local;GUSTAVO;2025-12-09 07:00;50;80,00;falta_cobrada;nao;online;;não fez, não avisou
+gustavo@paciente.local;GUSTAVO;2025-12-16 07:00;50;80,00;realizada;sim;online;;
+gustavo@paciente.local;GUSTAVO;2025-12-22 07:00;50;80,00;realizada;sim;online;;
+gustavo@paciente.local;GUSTAVO;2026-01-14 07:00;50;80,00;falta_cobrada;nao;online;;não vei, não cobrar
+gustavo@paciente.local;GUSTAVO;2026-01-20 07:00;50;80,00;realizada;sim;online;;
+gustavo@paciente.local;GUSTAVO;2026-01-27 07:00;50;80,00;realizada;sim;online;;
+gustavo@paciente.local;GUSTAVO;2026-02-03 07:00;50;80,00;cancelada;nao;online;;não fez, avisou no dia
+gustavo@paciente.local;GUSTAVO;2026-02-10 07:00;50;80,00;cancelada;nao;online;;não fez, avisou no dia
+gustavo@paciente.local;GUSTAVO;2026-02-17 07:00;50;80,00;cancelada;nao;online;;carnaval
+gustavo@paciente.local;GUSTAVO;2026-02-24 07:00;50;80,00;falta_cobrada;sim;online;;não veio, não avisou, cobrar
+gustavo@paciente.local;GUSTAVO;2026-03-03 07:00;50;80,00;realizada;sim;online;;
+gustavo@paciente.local;GUSTAVO;2026-03-10 07:00;50;80,00;cancelada;nao;online;;não fez, avisou no dia
+gustavo@paciente.local;GUSTAVO;2026-03-18 07:00;50;80,00;realizada;sim;online;;
+gustavo@paciente.local;GUSTAVO;2026-03-25 07:00;50;80,00;falta_cobrada;sim;online;;não fez, cobrar
+gustavo@paciente.local;GUSTAVO;2026-03-31 07:00;50;80,00;realizada;sim;online;;
+gustavo@paciente.local;GUSTAVO;2026-04-07 07:00;50;80,00;realizada;sim;online;;
+gustavo@paciente.local;GUSTAVO;2026-04-14 07:00;50;80,00;cancelada;nao;online;;não fez, avisou no dia
+gustavo@paciente.local;GUSTAVO;2026-04-16 07:00;50;80,00;realizada;sim;online;;
+gustavo@paciente.local;GUSTAVO;2026-04-21 07:00;50;80,00;cancelada;nao;online;;não terá sessão
+gustavo@paciente.local;GUSTAVO;2026-04-28 07:00;50;80,00;realizada;sim;online;;
+gustavo@paciente.local;GUSTAVO;2026-05-05 07:00;50;80,00;falta_cobrada;sim;online;;não fez, cobrar
+gustavo@paciente.local;GUSTAVO;2026-05-12 07:00;50;80,00;realizada;sim;online;;
+gustavo@paciente.local;GUSTAVO;2026-05-19 07:00;50;80,00;falta_cobrada;nao;online;;não cobrar
+gustavo@paciente.local;GUSTAVO;2026-05-26 07:00;50;80,00;realizada;sim;online;;
+gustavo@paciente.local;GUSTAVO;2026-06-02 07:00;50;80,00;realizada;sim;online;;
+gustavo@paciente.local;GUSTAVO;2026-06-09 07:00;50;80,00;cancelada;nao;online;;
+gustavo@paciente.local;GUSTAVO;2026-06-16 07:00;50;80,00;cancelada;nao;online;;
+gustavo@paciente.local;GUSTAVO;2026-06-23 07:00;50;80,00;cancelada;nao;online;;
+gustavo@paciente.local;GUSTAVO;2026-06-30 07:00;50;80,00;cancelada;nao;online;;
+iris@paciente.local;IRIS;2026-02-12 07:00;50;100,00;realizada;sim;online;;
+iris@paciente.local;IRIS;2026-02-28 07:00;50;100,00;realizada;sim;online;;
+iris@paciente.local;IRIS;2026-03-07 07:00;50;100,00;falta_cobrada;sim;online;;não fez, não avisou, cobrar
+iris@paciente.local;IRIS;2026-03-14 07:00;50;100,00;realizada;sim;online;;
+iris@paciente.local;IRIS;2026-03-19 07:00;50;100,00;realizada;sim;online;;
+iris@paciente.local;IRIS;2026-03-26 07:00;50;100,00;realizada;sim;online;;
+iris@paciente.local;IRIS;2026-04-02 07:00;50;100,00;realizada;sim;online;;
+iris@paciente.local;IRIS;2026-04-09 07:00;50;100,00;realizada;sim;online;;
+iris@paciente.local;IRIS;2026-04-16 07:00;50;100,00;realizada;sim;online;;
+iris@paciente.local;IRIS;2026-04-23 07:00;50;100,00;cancelada;nao;online;;não fez, avisou no dia
+iris@paciente.local;IRIS;2026-04-30 07:00;50;100,00;realizada;sim;online;;
+iris@paciente.local;IRIS;2026-05-07 07:00;50;100,00;realizada;sim;online;;
+iris@paciente.local;IRIS;2026-05-15 07:00;50;100,00;realizada;sim;online;;
+iris@paciente.local;IRIS;2026-05-21 07:00;50;100,00;realizada;sim;online;;
+iris@paciente.local;IRIS;2026-05-28 07:00;50;100,00;realizada;sim;online;;
+iris@paciente.local;IRIS;2026-06-03 07:00;50;100,00;realizada;sim;online;;
+ivo@paciente.local;IVO;2025-11-29 07:00;50;;realizada;sim;online;;
+ivo@paciente.local;IVO;2025-12-02 07:00;50;;realizada;sim;online;;
+ivo@paciente.local;IVO;2025-12-09 07:00;50;;realizada;sim;online;;
+ivo@paciente.local;IVO;2025-12-16 07:00;50;;realizada;sim;online;;
+ivo@paciente.local;IVO;2025-12-23 07:00;50;;realizada;sim;online;;
+jacke.e.daniel@paciente.local;JACKE E DANIEL;2026-04-09 07:00;50;130,00;realizada;sim;online;;
+jacke.e.daniel@paciente.local;JACKE E DANIEL;2026-04-16 07:00;50;130,00;realizada;sim;online;;
+jacke.e.daniel@paciente.local;JACKE E DANIEL;2026-04-25 07:00;50;130,00;cancelada;nao;online;;não fez, avisou
+jacke.e.daniel@paciente.local;JACKE E DANIEL;2026-05-02 07:00;50;130,00;realizada;sim;online;;
+jacke.e.daniel@paciente.local;JACKE E DANIEL;2026-05-07 07:00;50;130,00;realizada;sim;online;;
+jacke.e.daniel@paciente.local;JACKE E DANIEL;2026-05-16 07:00;50;130,00;cancelada;nao;online;;eu desmarquei
+jacke.e.daniel@paciente.local;JACKE E DANIEL;2026-05-21 07:00;50;130,00;realizada;sim;online;;
+jacke.e.daniel@paciente.local;JACKE E DANIEL;2026-05-28 07:00;50;130,00;cancelada;nao;online;;não fez, avisou
+jacke.e.daniel@paciente.local;JACKE E DANIEL;2026-06-06 07:00;50;130,00;cancelada;nao;online;;
+jacke.e.daniel@paciente.local;JACKE E DANIEL;2026-06-13 07:00;50;130,00;cancelada;nao;online;;
+jacke.e.daniel@paciente.local;JACKE E DANIEL;2026-06-20 07:00;50;130,00;cancelada;nao;online;;
+jana.e.jairo@paciente.local;JANA E JAIRO;2026-02-27 07:00;50;120,00;realizada;sim;online;;
+jana.e.jairo@paciente.local;JANA E JAIRO;2026-03-06 07:00;50;120,00;realizada;sim;online;;
+jana.e.jairo@paciente.local;JANA E JAIRO;2026-03-13 07:00;50;120,00;realizada;sim;online;;
+jana.e.jairo@paciente.local;JANA E JAIRO;2026-03-20 07:00;50;120,00;realizada;sim;online;;
+jana.e.jairo@paciente.local;JANA E JAIRO;2026-03-27 07:00;50;120,00;realizada;sim;online;;
+jana.e.jairo@paciente.local;JANA E JAIRO;2026-04-16 07:00;50;120,00;realizada;sim;online;;
+jana.e.jairo@paciente.local;JANA E JAIRO;2026-04-17 07:00;50;120,00;cancelada;nao;online;;não fará a sessão
+jana.e.jairo@paciente.local;JANA E JAIRO;2026-04-24 07:00;50;120,00;cancelada;nao;online;;não fará a sessão
+jana.e.jairo@paciente.local;JANA E JAIRO;2026-05-08 07:00;50;120,00;realizada;sim;online;;
+jana.e.jairo@paciente.local;JANA E JAIRO;2026-05-15 07:00;50;120,00;realizada;sim;online;;
+jana.e.jairo@paciente.local;JANA E JAIRO;2026-05-22 07:00;50;120,00;cancelada;nao;online;;não fez, avisou
+jana.e.jairo@paciente.local;JANA E JAIRO;2026-05-29 07:00;50;120,00;realizada;sim;online;;
+jana.e.jairo@paciente.local;JANA E JAIRO;2026-06-05 07:00;50;120,00;cancelada;nao;online;;não fez, avisou
+jana.e.jairo@paciente.local;JANA E JAIRO;2026-06-12 07:00;50;120,00;cancelada;nao;online;;
+jana.e.jairo@paciente.local;JANA E JAIRO;2026-06-19 07:00;50;120,00;cancelada;nao;online;;
+jana.e.jairo@paciente.local;JANA E JAIRO;2026-06-26 07:00;50;120,00;cancelada;nao;online;;
+jaqueceli@paciente.local;JAQUECELI;2025-12-22 07:00;50;;realizada;sim;online;;
+jaqueceli@paciente.local;JAQUECELI;2026-01-12 07:00;50;;realizada;sim;online;;
+jaqueceli@paciente.local;JAQUECELI;2026-01-19 07:00;50;;realizada;sim;online;;
+jaqueceli@paciente.local;JAQUECELI;2026-01-26 07:00;50;;realizada;sim;online;;
+jaqueceli@paciente.local;JAQUECELI;2026-02-02 07:00;50;;realizada;sim;online;;
+jaqueceli@paciente.local;JAQUECELI;2026-02-09 07:00;50;;realizada;sim;online;;
+jaqueceli@paciente.local;JAQUECELI;2026-02-23 07:00;50;;realizada;sim;online;;
+jaqueceli@paciente.local;JAQUECELI;2026-03-03 07:00;50;;realizada;sim;online;;
+jaqueceli@paciente.local;JAQUECELI;2026-03-09 07:00;50;;realizada;sim;online;;pagou  em 16/03
+jaqueceli@paciente.local;JAQUECELI;2026-03-16 07:00;50;;realizada;sim;online;;pagou
+josi@paciente.local;JOSI;2024-11-16 07:00;50;;realizada;sim;online;;
+josi@paciente.local;JOSI;2024-11-22 07:00;50;;realizada;sim;online;;
+josi@paciente.local;JOSI;2024-11-29 07:00;50;;realizada;sim;online;;
+josi@paciente.local;JOSI;2024-12-04 07:00;50;;realizada;sim;online;;
+josi@paciente.local;JOSI;2024-12-20 07:00;50;;realizada;sim;online;;
+josi@paciente.local;JOSI;2025-01-17 07:00;50;;realizada;sim;online;;
+josi@paciente.local;JOSI;2025-01-31 07:00;50;;realizada;sim;online;;
+josi@paciente.local;JOSI;2025-02-07 07:00;50;;realizada;sim;online;;
+josi@paciente.local;JOSI;2025-02-14 07:00;50;;realizada;sim;online;;
+josi@paciente.local;JOSI;2025-02-21 07:00;50;;realizada;sim;online;;
+josi@paciente.local;JOSI;2025-02-28 07:00;50;;realizada;sim;online;;
+josi@paciente.local;JOSI;2025-03-07 07:00;50;;realizada;sim;online;;
+josi@paciente.local;JOSI;2025-03-14 07:00;50;;realizada;sim;online;;
+josi@paciente.local;JOSI;2025-03-21 07:00;50;;realizada;sim;online;;
+josi@paciente.local;JOSI;2025-03-28 07:00;50;;realizada;sim;online;;
+josi@paciente.local;JOSI;2025-04-04 07:00;50;;realizada;sim;online;;
+josi@paciente.local;JOSI;2025-04-11 07:00;50;;cancelada;nao;online;;eu desmarquei
+josi@paciente.local;JOSI;2025-04-16 07:00;50;;realizada;sim;online;;
+josi@paciente.local;JOSI;2025-05-02 07:00;50;;realizada;sim;online;;
+josi@paciente.local;JOSI;2025-05-09 07:00;50;;realizada;sim;online;;
+josi@paciente.local;JOSI;2025-05-16 07:00;50;;realizada;sim;online;;
+josi@paciente.local;JOSI;2025-05-23 07:00;50;;realizada;sim;online;;
+josi@paciente.local;JOSI;2025-05-30 07:00;50;;realizada;sim;online;;
+josi@paciente.local;JOSI;2025-06-06 07:00;50;;realizada;sim;online;;
+josi@paciente.local;JOSI;2025-06-13 07:00;50;;realizada;sim;online;;
+josi@paciente.local;JOSI;2025-06-20 07:00;50;;realizada;sim;online;;
+josi@paciente.local;JOSI;2025-06-27 07:00;50;;realizada;sim;online;;
+josi@paciente.local;JOSI;2025-07-04 07:00;50;;realizada;sim;online;;
+josi@paciente.local;JOSI;2025-07-11 07:00;50;;cancelada;nao;online;;não vai, não descontar
+josi@paciente.local;JOSI;2025-07-18 07:00;50;;cancelada;nao;online;;férias
+josi@paciente.local;JOSI;2025-07-25 07:00;50;;realizada;sim;online;;
+josi@paciente.local;JOSI;2025-08-01 07:00;50;;cancelada;nao;online;;não fez. avisou
+josi@paciente.local;JOSI;2025-08-08 07:00;50;;realizada;sim;online;;
+josi@paciente.local;JOSI;2025-08-15 07:00;50;;realizada;sim;online;;
+josi@paciente.local;JOSI;2025-08-22 07:00;50;;realizada;sim;online;;
+josi@paciente.local;JOSI;2025-08-29 07:00;50;;realizada;sim;online;;
+josi@paciente.local;JOSI;2025-09-05 07:00;50;;realizada;sim;online;;
+josi@paciente.local;JOSI;2025-09-12 07:00;50;;cancelada;nao;online;;não fará a sessão - avisou
+josi@paciente.local;JOSI;2025-09-19 07:00;50;;realizada;sim;online;;
+josi@paciente.local;JOSI;2025-09-26 07:00;50;;realizada;sim;online;;
+josi@paciente.local;JOSI;2025-10-03 07:00;50;;realizada;sim;online;;
+josi@paciente.local;JOSI;2025-10-10 07:00;50;;realizada;sim;online;;
+josi@paciente.local;JOSI;2025-10-17 07:00;50;;cancelada;nao;online;;em viagem
+josi@paciente.local;JOSI;2025-10-24 07:00;50;;realizada;sim;online;;
+josi@paciente.local;JOSI;2025-10-31 07:00;50;;realizada;sim;online;;
+josi@paciente.local;JOSI;2025-11-07 07:00;50;;cancelada;nao;online;;não fez, avisou
+josi@paciente.local;JOSI;2025-11-14 07:00;50;;realizada;sim;online;;
+josi@paciente.local;JOSI;2025-11-21 07:00;50;;cancelada;nao;online;;não fará, avisou
+josi@paciente.local;JOSI;2025-11-28 07:00;50;;realizada;sim;online;;
+josi@paciente.local;JOSI;2025-12-05 07:00;50;;realizada;sim;online;;
+josi@paciente.local;JOSI;2025-12-12 07:00;50;;cancelada;nao;online;;não vai, avisou
+josi@paciente.local;JOSI;2025-12-19 07:00;50;;realizada;sim;online;;
+josi@paciente.local;JOSI;2026-01-16 07:00;50;;realizada;sim;online;;
+josi@paciente.local;JOSI;2026-01-23 07:00;50;;realizada;sim;online;;
+josi@paciente.local;JOSI;2026-02-06 07:00;50;;realizada;sim;online;;
+josi@paciente.local;JOSI;2026-02-13 07:00;50;;cancelada;nao;online;;não fará a sessão
+josi@paciente.local;JOSI;2026-02-20 07:00;50;;realizada;sim;online;;
+josi@paciente.local;JOSI;2026-02-27 07:00;50;;realizada;sim;online;;
+josi@paciente.local;JOSI;2026-03-06 07:00;50;;realizada;sim;online;;
+josi@paciente.local;JOSI;2026-03-13 07:00;50;;falta_cobrada;nao;online;;não cobrar
+josi@paciente.local;JOSI;2026-03-20 07:00;50;;realizada;sim;online;;
+josi@paciente.local;JOSI;2026-03-27 07:00;50;;cancelada;nao;online;;cacelou com antecedência
+josi@paciente.local;JOSI;2026-04-25 07:00;50;;cancelada;nao;online;;não fará a sessão
+joyce@paciente.local;JOYCE;2024-02-11 07:00;50;90,00;realizada;sim;online;;
+joyce@paciente.local;JOYCE;2025-02-16 07:00;50;90,00;cancelada;nao;online;;carnaval
+joyce@paciente.local;JOYCE;2025-02-18 07:00;50;90,00;realizada;sim;online;;
+joyce@paciente.local;JOYCE;2025-03-01 07:00;50;90,00;realizada;sim;online;;
+joyce@paciente.local;JOYCE;2025-03-08 07:00;50;90,00;realizada;sim;online;;
+joyce@paciente.local;JOYCE;2025-03-17 07:00;50;90,00;realizada;sim;online;;
+joyce@paciente.local;JOYCE;2025-03-24 07:00;50;90,00;realizada;sim;online;;
+joyce@paciente.local;JOYCE;2025-03-31 07:00;50;90,00;realizada;sim;online;;
+joyce@paciente.local;JOYCE;2025-04-07 07:00;50;90,00;realizada;sim;online;;
+joyce@paciente.local;JOYCE;2025-04-14 07:00;50;90,00;realizada;sim;online;;
+joyce@paciente.local;JOYCE;2025-04-28 07:00;50;90,00;cancelada;nao;online;;não conectou
+joyce@paciente.local;JOYCE;2025-05-05 07:00;50;90,00;realizada;sim;online;;
+joyce@paciente.local;JOYCE;2025-05-15 07:00;50;90,00;realizada;sim;online;;
+joyce@paciente.local;JOYCE;2025-05-19 07:00;50;90,00;realizada;sim;online;;
+joyce@paciente.local;JOYCE;2025-05-26 07:00;50;90,00;realizada;sim;online;;
+joyce@paciente.local;JOYCE;2025-06-02 07:00;50;90,00;realizada;sim;online;;
+joyce@paciente.local;JOYCE;2025-06-09 07:00;50;90,00;realizada;sim;online;;
+joyce@paciente.local;JOYCE;2025-06-16 07:00;50;90,00;realizada;sim;online;;
+joyce@paciente.local;JOYCE;2025-06-26 07:00;50;90,00;falta_cobrada;nao;online;;não fez, não cobrar
+joyce@paciente.local;JOYCE;2025-06-30 07:00;50;90,00;realizada;sim;online;;
+joyce@paciente.local;JOYCE;2025-07-07 07:00;50;90,00;realizada;sim;online;;
+joyce@paciente.local;JOYCE;2025-07-14 07:00;50;90,00;cancelada;nao;online;;férias
+joyce@paciente.local;JOYCE;2025-07-21 07:00;50;90,00;realizada;sim;online;;
+joyce@paciente.local;JOYCE;2025-07-28 07:00;50;90,00;realizada;sim;online;;
+joyce@paciente.local;JOYCE;2025-08-04 07:00;50;90,00;realizada;sim;online;;
+joyce@paciente.local;JOYCE;2025-08-11 07:00;50;90,00;realizada;sim;online;;
+joyce@paciente.local;JOYCE;2025-08-18 07:00;50;90,00;realizada;sim;online;;
+joyce@paciente.local;JOYCE;2025-08-25 07:00;50;90,00;realizada;sim;online;;
+joyce@paciente.local;JOYCE;2025-09-01 07:00;50;90,00;realizada;sim;online;;
+joyce@paciente.local;JOYCE;2025-09-08 07:00;50;90,00;realizada;sim;online;;
+joyce@paciente.local;JOYCE;2025-09-15 07:00;50;90,00;realizada;sim;online;;
+joyce@paciente.local;JOYCE;2025-09-22 07:00;50;90,00;realizada;sim;online;;
+joyce@paciente.local;JOYCE;2025-09-29 07:00;50;90,00;cancelada;nao;online;;não fez, avisou no dia
+joyce@paciente.local;JOYCE;2025-10-09 07:00;50;90,00;realizada;sim;online;;
+joyce@paciente.local;JOYCE;2025-10-16 07:00;50;90,00;realizada;sim;online;;
+joyce@paciente.local;JOYCE;2025-10-23 07:00;50;90,00;realizada;sim;online;;
+joyce@paciente.local;JOYCE;2025-10-30 07:00;50;90,00;realizada;sim;online;;
+joyce@paciente.local;JOYCE;2025-11-06 07:00;50;90,00;realizada;sim;online;;
+joyce@paciente.local;JOYCE;2025-11-15 07:00;50;90,00;realizada;sim;online;;
+joyce@paciente.local;JOYCE;2025-11-20 07:00;50;90,00;cancelada;nao;online;;não fez, avisou na hora
+joyce@paciente.local;JOYCE;2025-11-27 07:00;50;90,00;realizada;sim;online;;
+joyce@paciente.local;JOYCE;2025-12-04 07:00;50;90,00;realizada;sim;online;;
+joyce@paciente.local;JOYCE;2025-12-11 07:00;50;90,00;cancelada;nao;online;;não fez, avisou no dia
+joyce@paciente.local;JOYCE;2025-12-18 07:00;50;90,00;realizada;sim;online;;
+joyce@paciente.local;JOYCE;2026-01-12 07:00;50;90,00;realizada;sim;online;;
+joyce@paciente.local;JOYCE;2026-01-19 07:00;50;90,00;realizada;sim;online;;
+joyce@paciente.local;JOYCE;2026-01-26 07:00;50;90,00;realizada;sim;online;;
+joyce@paciente.local;JOYCE;2026-02-02 07:00;50;90,00;realizada;sim;online;;
+joyce@paciente.local;JOYCE;2026-02-09 07:00;50;90,00;cancelada;nao;online;;não teve sessão, avisou
+joyce@paciente.local;JOYCE;2026-02-23 07:00;50;90,00;realizada;sim;online;;
+joyce@paciente.local;JOYCE;2026-03-02 07:00;50;90,00;realizada;sim;online;;
+joyce@paciente.local;JOYCE;2026-03-09 07:00;50;90,00;realizada;sim;online;;
+joyce@paciente.local;JOYCE;2026-03-16 07:00;50;90,00;realizada;sim;online;;
+joyce@paciente.local;JOYCE;2026-03-23 07:00;50;90,00;realizada;sim;online;;
+joyce@paciente.local;JOYCE;2026-03-30 07:00;50;90,00;realizada;sim;online;;
+joyce@paciente.local;JOYCE;2026-04-06 07:00;50;90,00;realizada;sim;online;;
+joyce@paciente.local;JOYCE;2026-04-13 07:00;50;90,00;realizada;sim;online;;
+joyce@paciente.local;JOYCE;2026-04-20 07:00;50;90,00;cancelada;nao;online;;feriado - cancelado
+joyce@paciente.local;JOYCE;2026-04-27 07:00;50;90,00;realizada;sim;online;;
+joyce@paciente.local;JOYCE;2026-05-04 07:00;50;90,00;realizada;sim;online;;
+joyce@paciente.local;JOYCE;2026-05-11 07:00;50;90,00;cancelada;nao;online;;em viagem
+joyce@paciente.local;JOYCE;2026-05-19 07:00;50;90,00;realizada;sim;online;;
+joyce@paciente.local;JOYCE;2026-05-25 07:00;50;90,00;realizada;sim;online;;
+joyce@paciente.local;JOYCE;2026-06-01 07:00;50;90,00;realizada;sim;online;;
+joyce@paciente.local;JOYCE;2026-06-08 07:00;50;90,00;cancelada;nao;online;;
+joyce@paciente.local;JOYCE;2026-06-15 07:00;50;90,00;cancelada;nao;online;;
+joyce@paciente.local;JOYCE;2026-06-22 07:00;50;90,00;cancelada;nao;online;;
+joyce@paciente.local;JOYCE;2026-06-29 07:00;50;90,00;cancelada;nao;online;;
+joao@paciente.local;JOÃO;2025-05-26 07:00;50;;realizada;sim;online;;
+joao@paciente.local;JOÃO;2025-06-02 07:00;50;;falta_cobrada;nao;online;;não compareceu, não avisou
+joao@paciente.local;JOÃO;2025-06-09 07:00;50;;realizada;sim;online;;
+joao@paciente.local;JOÃO;2025-06-23 07:00;50;;realizada;sim;online;;
+joao@paciente.local;JOÃO;2025-06-30 07:00;50;;cancelada;nao;online;;não veio, aniversário
+joao@paciente.local;JOÃO;2025-07-07 07:00;50;;falta_cobrada;nao;online;;não compareceu
+joao@paciente.local;JOÃO;2025-07-22 07:00;50;;realizada;sim;online;;
+joao@paciente.local;JOÃO;2025-07-29 07:00;50;;realizada;sim;online;;
+joao@paciente.local;JOÃO;2025-08-05 07:00;50;;realizada;sim;online;;
+joao@paciente.local;JOÃO;2025-08-12 07:00;50;;realizada;sim;online;;
+joao@paciente.local;JOÃO;2025-08-19 07:00;50;;falta_cobrada;nao;online;;não apareceu e não avisou
+joao@paciente.local;JOÃO;2025-08-26 07:00;50;;realizada;sim;online;;
+joao@paciente.local;JOÃO;2025-09-02 07:00;50;;falta_cobrada;nao;online;;não fez e não avisou
+joao@paciente.local;JOÃO;2025-09-09 07:00;50;;realizada;sim;online;;
+joao@paciente.local;JOÃO;2025-09-16 07:00;50;;realizada;sim;online;;
+joao@paciente.local;JOÃO;2025-09-23 07:00;50;;cancelada;nao;online;;não apareceu
+joao@paciente.local;JOÃO;2025-09-30 07:00;50;;cancelada;nao;online;;não apareceu
+joao@paciente.local;JOÃO;2025-10-07 07:00;50;;realizada;sim;online;;
+joao@paciente.local;JOÃO;2025-10-21 07:00;50;;realizada;sim;online;;
+joao@paciente.local;JOÃO;2025-10-28 07:00;50;;realizada;sim;online;;
+joao@paciente.local;JOÃO;2025-11-04 07:00;50;;cancelada;nao;online;;não fez, avisou no dia
+joao@paciente.local;JOÃO;2025-11-11 07:00;50;;realizada;sim;online;;
+joao@paciente.local;JOÃO;2025-11-18 07:00;50;;realizada;sim;online;;
+joao@paciente.local;JOÃO;2025-11-25 07:00;50;;realizada;sim;online;;
+joao@paciente.local;JOÃO;2025-12-02 07:00;50;;falta_cobrada;nao;online;;não fez e não avisou
+joao@paciente.local;JOÃO;2025-12-09 07:00;50;;cancelada;nao;online;;eu desmarquei
+joao@paciente.local;JOÃO;2025-12-16 07:00;50;;realizada;sim;online;;
+joao@paciente.local;JOÃO;2026-06-16 07:00;50;;falta_cobrada;nao;online;;não compareceu, avisou
+joao@paciente.local;JOÃO;2026-07-15 07:00;50;;cancelada;nao;online;;minhas férias
+joao.pancatawa@paciente.local;JOÃO PANCATAWA;2024-11-06 07:00;50;360,00;realizada;sim;online;;
+joao.pancatawa@paciente.local;JOÃO PANCATAWA;2024-11-13 07:00;50;360,00;realizada;sim;online;;
+joao.pancatawa@paciente.local;JOÃO PANCATAWA;2024-11-22 07:00;50;360,00;realizada;sim;online;;
+joao.pancatawa@paciente.local;JOÃO PANCATAWA;2024-11-29 07:00;50;360,00;realizada;sim;online;;
+joao.pancatawa@paciente.local;JOÃO PANCATAWA;2024-12-16 07:00;50;360,00;realizada;sim;online;;
+joao.pancatawa@paciente.local;JOÃO PANCATAWA;2024-12-20 07:00;50;360,00;realizada;sim;online;;
+joao.pancatawa@paciente.local;JOÃO PANCATAWA;2025-01-17 07:00;50;360,00;realizada;sim;online;;
+joao.pancatawa@paciente.local;JOÃO PANCATAWA;2025-01-31 07:00;50;360,00;realizada;sim;online;;
+joao.pancatawa@paciente.local;JOÃO PANCATAWA;2025-02-07 07:00;50;360,00;realizada;sim;online;;
+joao.pancatawa@paciente.local;JOÃO PANCATAWA;2025-02-14 07:00;50;360,00;realizada;sim;online;;
+joao.pancatawa@paciente.local;JOÃO PANCATAWA;2025-02-21 07:00;50;360,00;realizada;sim;online;;
+joao.pancatawa@paciente.local;JOÃO PANCATAWA;2025-02-28 07:00;50;360,00;realizada;sim;online;;
+joao.pancatawa@paciente.local;JOÃO PANCATAWA;2026-12-06 07:00;50;360,00;cancelada;nao;online;;não fez, desmarcou no dia
+julia.filha.da.laine@paciente.local;JULIA (filha da Laine);2024-10-09 07:00;50;30,00;realizada;sim;online;;
+julia.filha.da.laine@paciente.local;JULIA (filha da Laine);2024-10-15 07:00;50;30,00;realizada;sim;online;;
+julia.filha.da.laine@paciente.local;JULIA (filha da Laine);2024-10-22 07:00;50;30,00;realizada;sim;online;;
+julia.filha.da.laine@paciente.local;JULIA (filha da Laine);2024-10-29 07:00;50;30,00;realizada;sim;online;;
+julia.filha.da.laine@paciente.local;JULIA (filha da Laine);2024-11-05 07:00;50;30,00;realizada;sim;online;;
+julia.filha.da.laine@paciente.local;JULIA (filha da Laine);2024-11-12 07:00;50;30,00;realizada;sim;online;;
+julia.filha.da.laine@paciente.local;JULIA (filha da Laine);2024-11-19 07:00;50;30,00;realizada;sim;online;;
+julia.filha.da.laine@paciente.local;JULIA (filha da Laine);2024-12-10 07:00;50;30,00;realizada;sim;online;;
+julia.filha.da.laine@paciente.local;JULIA (filha da Laine);2024-12-17 07:00;50;30,00;realizada;sim;online;;
+julia.filha.da.laine@paciente.local;JULIA (filha da Laine);2024-12-19 07:00;50;30,00;realizada;sim;online;;
+julia.filha.da.laine@paciente.local;JULIA (filha da Laine);2025-01-07 07:00;50;30,00;realizada;sim;online;;
+julia.filha.da.laine@paciente.local;JULIA (filha da Laine);2025-01-14 07:00;50;30,00;realizada;sim;online;;
+julia.filha.da.laine@paciente.local;JULIA (filha da Laine);2025-01-28 07:00;50;30,00;realizada;sim;online;;
+julia.filha.da.laine@paciente.local;JULIA (filha da Laine);2025-02-04 07:00;50;30,00;realizada;sim;online;;
+julia.filha.da.laine@paciente.local;JULIA (filha da Laine);2025-02-11 07:00;50;30,00;realizada;sim;online;;
+julia.filha.da.laine@paciente.local;JULIA (filha da Laine);2025-02-18 07:00;50;30,00;realizada;sim;online;;
+julia.filha.da.laine@paciente.local;JULIA (filha da Laine);2025-02-25 07:00;50;30,00;realizada;sim;online;;
+julia.filha.da.laine@paciente.local;JULIA (filha da Laine);2025-03-11 07:00;50;30,00;realizada;sim;online;;
+julia.filha.da.laine@paciente.local;JULIA (filha da Laine);2025-03-18 07:00;50;30,00;realizada;sim;online;;
+julia.filha.da.laine@paciente.local;JULIA (filha da Laine);2025-03-25 07:00;50;30,00;realizada;sim;online;;
+julia.filha.da.laine@paciente.local;JULIA (filha da Laine);2025-04-01 07:00;50;30,00;realizada;sim;online;;
+julia.filha.da.laine@paciente.local;JULIA (filha da Laine);2025-04-08 07:00;50;30,00;realizada;sim;online;;
+julia.filha.da.laine@paciente.local;JULIA (filha da Laine);2025-04-15 07:00;50;30,00;realizada;sim;online;;
+julia.filha.da.laine@paciente.local;JULIA (filha da Laine);2025-04-22 07:00;50;30,00;realizada;sim;online;;
+julia.filha.da.laine@paciente.local;JULIA (filha da Laine);2025-04-29 07:00;50;30,00;realizada;sim;online;;
+julia.filha.da.laine@paciente.local;JULIA (filha da Laine);2025-05-05 07:00;50;30,00;realizada;sim;online;;
+julia.filha.da.laine@paciente.local;JULIA (filha da Laine);2025-05-13 07:00;50;30,00;realizada;sim;online;;
+julia.filha.da.laine@paciente.local;JULIA (filha da Laine);2025-05-20 07:00;50;30,00;realizada;sim;online;;
+julia.filha.da.laine@paciente.local;JULIA (filha da Laine);2025-05-27 07:00;50;30,00;realizada;sim;online;;
+julia.filha.da.laine@paciente.local;JULIA (filha da Laine);2025-06-03 07:00;50;30,00;realizada;sim;online;;
+julia.vieira@paciente.local;JULIA VIEIRA;2025-03-25 07:00;50;80,00;realizada;sim;online;;pagou 80,00
+julia.vieira@paciente.local;JULIA VIEIRA;2025-07-21 07:00;50;80,00;falta_cobrada;nao;online;;não fez, não cobrar
+julia.vieira@paciente.local;JULIA VIEIRA;2025-07-26 07:00;50;80,00;realizada;sim;online;;pagou 80,00 em 26/07
+julia.vieira@paciente.local;JULIA VIEIRA;2025-07-28 07:00;50;80,00;falta_cobrada;nao;online;;não fez, não avisou
+julia.vieira@paciente.local;JULIA VIEIRA;2025-08-04 07:00;50;80,00;falta_cobrada;nao;online;;não fez, não avisou
+julia.vieira@paciente.local;JULIA VIEIRA;2025-08-11 07:00;50;80,00;realizada;sim;online;;pagou 80,00 em 12/08
+julia.vieira@paciente.local;JULIA VIEIRA;2025-08-18 07:00;50;80,00;falta_cobrada;nao;online;;não compareceu e não avisou
+julia.vieira@paciente.local;JULIA VIEIRA;2026-03-31 07:00;50;80,00;realizada;sim;online;;pagou 80,00 em 31/03
+julia.vieira@paciente.local;JULIA VIEIRA;2026-04-06 07:00;50;80,00;realizada;sim;online;;
+julia.vieira@paciente.local;JULIA VIEIRA;2026-04-13 07:00;50;80,00;realizada;sim;online;;
+julia.vieira@paciente.local;JULIA VIEIRA;2026-04-20 07:00;50;80,00;realizada;sim;online;;
+julia.vieira@paciente.local;JULIA VIEIRA;2026-04-27 07:00;50;80,00;realizada;sim;online;;
+julia.vieira@paciente.local;JULIA VIEIRA;2026-05-05 07:00;50;80,00;realizada;sim;online;;
+julia.vieira@paciente.local;JULIA VIEIRA;2026-05-11 07:00;50;80,00;realizada;sim;online;;
+julia.vieira@paciente.local;JULIA VIEIRA;2026-05-18 07:00;50;80,00;realizada;sim;online;;
+julia.vieira@paciente.local;JULIA VIEIRA;2026-05-25 07:00;50;80,00;cancelada;nao;online;;Não fez, avisou
+julia.vieira@paciente.local;JULIA VIEIRA;2026-06-01 07:00;50;80,00;falta_cobrada;nao;online;;não fez, não avisou
+juliana@paciente.local;JULIANA;2025-07-07 07:00;50;;realizada;sim;online;;
+juliana@paciente.local;JULIANA;2025-07-21 07:00;50;;realizada;sim;online;;
+juliana@paciente.local;JULIANA;2025-07-29 07:00;50;;realizada;sim;online;;
+juliana@paciente.local;JULIANA;2025-08-04 07:00;50;;realizada;sim;online;;
+juliana@paciente.local;JULIANA;2025-08-11 07:00;50;;realizada;sim;online;;
+juliana@paciente.local;JULIANA;2025-08-19 07:00;50;;realizada;sim;online;;
+juliana@paciente.local;JULIANA;2025-08-27 07:00;50;;realizada;sim;online;;
+juliana@paciente.local;JULIANA;2025-09-01 07:00;50;;realizada;sim;online;;
+juliana@paciente.local;JULIANA;2025-09-08 07:00;50;;realizada;sim;online;;
+juliana@paciente.local;JULIANA;2025-09-15 07:00;50;;realizada;sim;online;;
+juliana@paciente.local;JULIANA;2026-07-14 07:00;50;;cancelada;nao;online;;minhas férias
+julieta@paciente.local;JULIETA;2026-01-14 07:00;50;100,00;realizada;sim;online;;
+julieta@paciente.local;JULIETA;2026-01-21 07:00;50;100,00;realizada;sim;online;;
+julieta@paciente.local;JULIETA;2026-01-28 07:00;50;100,00;realizada;sim;online;;
+julieta@paciente.local;JULIETA;2026-02-04 07:00;50;100,00;falta_cobrada;nao;online;;não cobrar
+julieta@paciente.local;JULIETA;2026-02-11 07:00;50;100,00;realizada;sim;online;;
+julieta@paciente.local;JULIETA;2026-02-18 07:00;50;100,00;falta_cobrada;nao;online;;não cobrar
+julieta@paciente.local;JULIETA;2026-02-25 07:00;50;100,00;realizada;sim;online;;
+julieta@paciente.local;JULIETA;2026-03-04 07:00;50;100,00;realizada;sim;online;;
+julieta@paciente.local;JULIETA;2026-03-11 07:00;50;100,00;realizada;sim;online;;
+julieta@paciente.local;JULIETA;2026-03-18 07:00;50;100,00;realizada;sim;online;;
+julieta@paciente.local;JULIETA;2026-03-21 07:00;50;100,00;realizada;sim;online;;
+julieta@paciente.local;JULIETA;2026-03-25 07:00;50;100,00;realizada;sim;online;;
+julieta@paciente.local;JULIETA;2026-04-01 07:00;50;100,00;realizada;sim;online;;
+julieta@paciente.local;JULIETA;2026-04-08 07:00;50;100,00;realizada;sim;online;;
+julieta@paciente.local;JULIETA;2026-04-15 07:00;50;100,00;falta_cobrada;nao;online;;não fez, não avisou
+julieta@paciente.local;JULIETA;2026-04-22 07:00;50;100,00;realizada;sim;online;;
+julieta@paciente.local;JULIETA;2026-04-29 07:00;50;100,00;realizada;sim;online;;
+julieta@paciente.local;JULIETA;2026-05-06 07:00;50;100,00;realizada;sim;online;;
+julieta@paciente.local;JULIETA;2026-05-13 07:00;50;100,00;falta_cobrada;nao;online;;não cobrar
+julieta@paciente.local;JULIETA;2026-05-20 07:00;50;100,00;realizada;sim;online;;
+julieta@paciente.local;JULIETA;2026-05-27 07:00;50;100,00;realizada;sim;online;;
+julieta@paciente.local;JULIETA;2026-06-03 07:00;50;100,00;cancelada;nao;online;;não fará, avisou
+julieta@paciente.local;JULIETA;2026-06-10 07:00;50;100,00;cancelada;nao;online;;
+julieta@paciente.local;JULIETA;2026-06-17 07:00;50;100,00;cancelada;nao;online;;
+julieta@paciente.local;JULIETA;2026-06-24 07:00;50;100,00;cancelada;nao;online;;
+kellen@paciente.local;KELLEN;2025-01-09 07:00;50;50,00;realizada;sim;online;;
+kellen@paciente.local;KELLEN;2025-01-16 07:00;50;50,00;realizada;sim;online;;
+kellen@paciente.local;KELLEN;2025-01-30 07:00;50;50,00;realizada;sim;online;;
+kellen@paciente.local;KELLEN;2025-02-06 07:00;50;50,00;realizada;sim;online;;
+kellen@paciente.local;KELLEN;2025-02-13 07:00;50;50,00;realizada;sim;online;;
+kellen@paciente.local;KELLEN;2025-02-20 07:00;50;50,00;realizada;sim;online;;
+kellen@paciente.local;KELLEN;2025-03-06 07:00;50;50,00;realizada;sim;online;;
+kellen@paciente.local;KELLEN;2025-03-13 07:00;50;50,00;realizada;sim;online;;
+kellen@paciente.local;KELLEN;2025-03-20 07:00;50;50,00;realizada;sim;online;;
+kellen@paciente.local;KELLEN;2025-03-27 07:00;50;50,00;realizada;sim;online;;
+kellen@paciente.local;KELLEN;2025-04-03 07:00;50;50,00;realizada;sim;online;;
+kellen@paciente.local;KELLEN;2025-04-10 07:00;50;50,00;realizada;sim;online;;
+kellen@paciente.local;KELLEN;2026-02-27 07:00;50;50,00;cancelada;nao;online;;eu desmarquei
+kellen@paciente.local;KELLEN;2026-04-17 07:00;50;50,00;cancelada;nao;online;;não apareceu
+kellen@paciente.local;KELLEN;2026-04-24 07:00;50;50,00;cancelada;nao;online;;não apareceu
+kellen@paciente.local;KELLEN;2026-11-07 07:00;50;50,00;cancelada;nao;online;;PAGO 50,00
+kellen@paciente.local;KELLEN;2026-11-14 07:00;50;50,00;cancelada;nao;online;;pago 50,00
+kellen@paciente.local;KELLEN;2026-11-21 07:00;50;50,00;cancelada;nao;online;;pago 50,00
+kellen@paciente.local;KELLEN;2026-11-28 07:00;50;50,00;cancelada;nao;online;;pago 50,00
+kellen@paciente.local;KELLEN;2026-12-04 07:00;50;50,00;cancelada;nao;online;;pago 50,00
+kellen@paciente.local;KELLEN;2026-12-12 07:00;50;50,00;cancelada;nao;online;;pagou 50,00
+kellen@paciente.local;KELLEN;2026-12-19 07:00;50;50,00;cancelada;nao;online;;pagou 50,00
+kesia@paciente.local;KESIA;2025-08-09 07:00;50;80,00;realizada;sim;online;;
+kesia@paciente.local;KESIA;2025-08-16 07:00;50;80,00;realizada;sim;online;;
+kesia@paciente.local;KESIA;2025-08-23 07:00;50;80,00;realizada;sim;online;;
+kesia@paciente.local;KESIA;2025-08-30 07:00;50;80,00;realizada;sim;online;;
+katia@paciente.local;KÁTIA;2024-01-06 07:00;50;80,00;realizada;sim;online;;
+katia@paciente.local;KÁTIA;2024-06-03 07:00;50;80,00;realizada;sim;online;;
+katia@paciente.local;KÁTIA;2024-06-10 07:00;50;80,00;realizada;sim;online;;
+katia@paciente.local;KÁTIA;2024-06-17 07:00;50;80,00;realizada;sim;online;;
+katia@paciente.local;KÁTIA;2024-06-24 07:00;50;80,00;realizada;sim;online;;
+katia@paciente.local;KÁTIA;2024-07-01 07:00;50;80,00;realizada;sim;online;;
+katia@paciente.local;KÁTIA;2024-07-08 07:00;50;80,00;realizada;sim;online;;
+katia@paciente.local;KÁTIA;2024-07-15 07:00;50;80,00;realizada;sim;online;;
+katia@paciente.local;KÁTIA;2024-07-22 07:00;50;80,00;realizada;sim;online;;
+katia@paciente.local;KÁTIA;2024-08-05 07:00;50;80,00;cancelada;nao;online;;férias
+katia@paciente.local;KÁTIA;2024-08-12 07:00;50;80,00;realizada;sim;online;;
+katia@paciente.local;KÁTIA;2024-08-19 07:00;50;80,00;cancelada;nao;online;;não fez a sessão
+katia@paciente.local;KÁTIA;2024-08-29 07:00;50;80,00;realizada;sim;online;;
+katia@paciente.local;KÁTIA;2024-09-02 07:00;50;80,00;realizada;sim;online;;
+katia@paciente.local;KÁTIA;2024-09-09 07:00;50;80,00;cancelada;nao;online;;não vai fazer a sessão
+katia@paciente.local;KÁTIA;2024-09-10 07:00;50;80,00;realizada;sim;online;;
+katia@paciente.local;KÁTIA;2024-09-16 07:00;50;80,00;realizada;sim;online;;
+katia@paciente.local;KÁTIA;2024-09-23 07:00;50;80,00;realizada;sim;online;;
+katia@paciente.local;KÁTIA;2024-09-30 07:00;50;80,00;realizada;sim;online;;
+katia@paciente.local;KÁTIA;2024-10-07 07:00;50;80,00;realizada;sim;online;;
+katia@paciente.local;KÁTIA;2024-10-14 07:00;50;80,00;realizada;sim;online;;
+katia@paciente.local;KÁTIA;2024-10-21 07:00;50;80,00;realizada;sim;online;;
+katia@paciente.local;KÁTIA;2024-10-28 07:00;50;80,00;realizada;sim;online;;
+katia@paciente.local;KÁTIA;2024-11-04 07:00;50;80,00;realizada;sim;online;;
+katia@paciente.local;KÁTIA;2024-11-11 07:00;50;80,00;realizada;sim;online;;
+katia@paciente.local;KÁTIA;2024-11-18 07:00;50;80,00;realizada;sim;online;;
+katia@paciente.local;KÁTIA;2024-11-25 07:00;50;80,00;realizada;sim;online;;
+katia@paciente.local;KÁTIA;2024-12-02 07:00;50;80,00;realizada;sim;online;;
+katia@paciente.local;KÁTIA;2024-12-09 07:00;50;80,00;realizada;sim;online;;
+katia@paciente.local;KÁTIA;2024-12-19 07:00;50;80,00;realizada;sim;online;;
+katia@paciente.local;KÁTIA;2024-12-23 07:00;50;80,00;cancelada;nao;online;;não fez - avisou
+katia@paciente.local;KÁTIA;2025-01-13 07:00;50;80,00;realizada;sim;online;;
+katia@paciente.local;KÁTIA;2025-01-27 07:00;50;80,00;realizada;sim;online;;
+katia@paciente.local;KÁTIA;2025-02-03 07:00;50;80,00;realizada;sim;online;;
+katia@paciente.local;KÁTIA;2025-02-10 07:00;50;80,00;realizada;sim;online;;
+katia@paciente.local;KÁTIA;2025-02-17 07:00;50;80,00;realizada;sim;online;;
+katia@paciente.local;KÁTIA;2025-02-24 07:00;50;80,00;realizada;sim;online;;
+katia@paciente.local;KÁTIA;2025-03-10 07:00;50;80,00;realizada;sim;online;;
+katia@paciente.local;KÁTIA;2025-03-17 07:00;50;80,00;realizada;sim;online;;
+katia@paciente.local;KÁTIA;2025-03-24 07:00;50;80,00;realizada;sim;online;;
+katia@paciente.local;KÁTIA;2025-03-31 07:00;50;80,00;cancelada;nao;online;;não conectou, avisou
+katia@paciente.local;KÁTIA;2025-04-03 07:00;50;80,00;realizada;sim;online;;
+katia@paciente.local;KÁTIA;2025-04-10 07:00;50;80,00;realizada;sim;online;;
+katia@paciente.local;KÁTIA;2025-04-17 07:00;50;80,00;realizada;sim;online;;
+katia@paciente.local;KÁTIA;2025-04-28 07:00;50;80,00;cancelada;nao;online;;não fez a sessão
+katia@paciente.local;KÁTIA;2025-05-05 07:00;50;80,00;falta_cobrada;sim;online;;não compareceu, cobrar
+katia@paciente.local;KÁTIA;2025-08-28 07:00;50;80,00;realizada;sim;online;;
+katia@paciente.local;KÁTIA;2025-09-04 07:00;50;80,00;realizada;sim;online;;
+katia@paciente.local;KÁTIA;2025-09-11 07:00;50;80,00;realizada;sim;online;;
+katia@paciente.local;KÁTIA;2025-09-18 07:00;50;80,00;realizada;sim;online;;
+katia@paciente.local;KÁTIA;2026-05-12 07:00;50;80,00;realizada;sim;online;;
+katia@paciente.local;KÁTIA;2026-05-19 07:00;50;80,00;realizada;sim;online;;
+katia@paciente.local;KÁTIA;2026-05-26 07:00;50;80,00;realizada;sim;online;;
+katia@paciente.local;KÁTIA;2026-06-02 07:00;50;80,00;realizada;sim;online;;
+katia@paciente.local;KÁTIA;2026-06-09 07:00;50;80,00;cancelada;nao;online;;
+katia@paciente.local;KÁTIA;2026-06-16 07:00;50;80,00;cancelada;nao;online;;
+katia@paciente.local;KÁTIA;2026-06-23 07:00;50;80,00;cancelada;nao;online;;
+katia@paciente.local;KÁTIA;2026-06-30 07:00;50;80,00;cancelada;nao;online;;
+larissa@paciente.local;LARISSA;2025-03-11 07:00;50;80,00;realizada;sim;online;;
+larissa@paciente.local;LARISSA;2025-03-18 07:00;50;80,00;realizada;sim;online;;
+larissa@paciente.local;LARISSA;2025-03-25 07:00;50;80,00;realizada;sim;online;;
+larissa@paciente.local;LARISSA;2025-04-01 07:00;50;80,00;realizada;sim;online;;
+leonardo@paciente.local;LEONARDO;2025-07-28 07:00;50;80,00;realizada;sim;online;;pagou 80,00 em 28/07
+leonardo@paciente.local;LEONARDO;2025-08-04 07:00;50;;falta_cobrada;nao;online;;não compareceu e não avisou
+leonardo@paciente.local;LEONARDO;2025-08-11 07:00;50;80,00;realizada;sim;online;;pagou 80,00 em 12/08
+leonardo@paciente.local;LEONARDO;2025-08-18 07:00;50;80,00;realizada;sim;online;;pagou 80,00
+leonardo@paciente.local;LEONARDO;2025-08-25 07:00;50;80,00;realizada;sim;online;;pagou 80,00
+leonardo@paciente.local;LEONARDO;2025-09-01 07:00;50;80,00;realizada;sim;online;;pagou 80,00
+leonardo@paciente.local;LEONARDO;2025-09-08 07:00;50;;cancelada;nao;online;;não fez mas pagou
+leonardo@paciente.local;LEONARDO;2025-09-15 07:00;50;80,00;realizada;sim;online;;pagou 80,00
+leonardo@paciente.local;LEONARDO;2025-09-22 07:00;50;;cancelada;nao;online;;eu desmarquei
+luca@paciente.local;LUCA;2025-10-02 07:00;50;;realizada;sim;online;;
+luca@paciente.local;LUCA;2025-10-09 07:00;50;;realizada;sim;online;;
+luca@paciente.local;LUCA;2025-10-16 07:00;50;;realizada;sim;online;;
+luca@paciente.local;LUCA;2025-10-23 07:00;50;;realizada;sim;online;;
+luca@paciente.local;LUCA;2025-10-30 07:00;50;;realizada;sim;online;;
+luca@paciente.local;LUCA;2025-11-06 07:00;50;;realizada;sim;online;;
+luca@paciente.local;LUCA;2025-11-13 07:00;50;;realizada;sim;online;;
+luca@paciente.local;LUCA;2025-11-20 07:00;50;;realizada;sim;online;;
+luca@paciente.local;LUCA;2025-11-27 07:00;50;;realizada;sim;online;;
+luca@paciente.local;LUCA;2025-12-04 07:00;50;;realizada;sim;online;;
+luca@paciente.local;LUCA;2025-12-11 07:00;50;;realizada;sim;online;;
+luca@paciente.local;LUCA;2025-12-18 07:00;50;;falta_cobrada;sim;online;;não fez, cobrar
+maria.eduarda@paciente.local;MARIA EDUARDA;2024-10-10 07:00;50;;realizada;sim;online;;
+maria.eduarda@paciente.local;MARIA EDUARDA;2024-10-17 07:00;50;;cancelada;nao;online;;não conectou
+maria.eduarda@paciente.local;MARIA EDUARDA;2024-10-24 07:00;50;;realizada;sim;online;;
+maria.eduarda@paciente.local;MARIA EDUARDA;2024-10-31 07:00;50;;realizada;sim;online;;
+maria.eduarda@paciente.local;MARIA EDUARDA;2024-11-07 07:00;50;;falta_cobrada;nao;online;;não conectou - não cobrar
+maria.eduarda@paciente.local;MARIA EDUARDA;2024-11-14 07:00;50;;realizada;sim;online;;
+maria.eduarda@paciente.local;MARIA EDUARDA;2024-11-21 07:00;50;;falta_cobrada;nao;online;;não veio, não cobrar
+maria.eduarda@paciente.local;MARIA EDUARDA;2024-11-28 07:00;50;;realizada;sim;online;;
+maria.eduarda@paciente.local;MARIA EDUARDA;2024-12-04 07:00;50;;realizada;sim;online;;
+maria.eduarda@paciente.local;MARIA EDUARDA;2024-12-12 07:00;50;;realizada;sim;online;;
+maria.eduarda@paciente.local;MARIA EDUARDA;2024-12-19 07:00;50;;cancelada;nao;online;;não fará a sessão - avisou
+maria.eduarda@paciente.local;MARIA EDUARDA;2025-01-06 07:00;50;;realizada;sim;online;;
+maria.eduarda@paciente.local;MARIA EDUARDA;2025-01-09 07:00;50;;cancelada;nao;online;;não fez, avisou
+maria.eduarda@paciente.local;MARIA EDUARDA;2025-01-16 07:00;50;;falta_cobrada;nao;online;;não fez e não avisou
+maria.eduarda@paciente.local;MARIA EDUARDA;2025-01-30 07:00;50;;cancelada;nao;online;;não fará a sessão - avisou
+maria.eduarda@paciente.local;MARIA EDUARDA;2025-02-06 07:00;50;;cancelada;nao;online;;não fará a sessão - avisou
+maria.eduarda@paciente.local;MARIA EDUARDA;2025-02-13 07:00;50;;realizada;sim;online;;
+maria.eduarda@paciente.local;MARIA EDUARDA;2025-02-20 07:00;50;;falta_cobrada;nao;online;;não fez, não cobrar
+maria.eduarda@paciente.local;MARIA EDUARDA;2025-03-06 07:00;50;;realizada;sim;online;;
+maria.eduarda@paciente.local;MARIA EDUARDA;2025-03-13 07:00;50;;realizada;sim;online;;
+maria.eduarda@paciente.local;MARIA EDUARDA;2025-03-20 07:00;50;;realizada;sim;online;;
+maria.eduarda@paciente.local;MARIA EDUARDA;2025-03-27 07:00;50;;cancelada;nao;online;;não conectou
+maria.eduarda@paciente.local;MARIA EDUARDA;2025-04-03 07:00;50;;cancelada;nao;online;;não conectou
+maria.eduarda@paciente.local;MARIA EDUARDA;2025-04-10 07:00;50;;realizada;sim;online;;
+maria.eduarda@paciente.local;MARIA EDUARDA;2025-04-17 07:00;50;50,00;realizada;sim;online;;pagou 50,00 em 17/04
+maria.eduarda@paciente.local;MARIA EDUARDA;2025-05-06 07:00;50;50,00;realizada;sim;online;;pagou 50,00 em 07/05
+maria.eduarda@paciente.local;MARIA EDUARDA;2025-05-15 07:00;50;;realizada;sim;online;;
+maria.eduarda@paciente.local;MARIA EDUARDA;2025-05-22 07:00;50;100,00;realizada;sim;online;;pagou 100 em 22/05
+maria.eduarda@paciente.local;MARIA EDUARDA;2025-05-29 07:00;50;;realizada;sim;online;;
+maria.eduarda@paciente.local;MARIA EDUARDA;2025-06-05 07:00;50;100,00;realizada;sim;online;;pagou 100,00 em 06/06/25
+maria.eduarda@paciente.local;MARIA EDUARDA;2025-06-12 07:00;50;;realizada;sim;online;;
+maria.eduarda@paciente.local;MARIA EDUARDA;2025-06-18 07:00;50;100,00;realizada;sim;online;;pagou 100 em 19/06
+maria.eduarda@paciente.local;MARIA EDUARDA;2025-06-26 07:00;50;;realizada;sim;online;;
+maria.eduarda@paciente.local;MARIA EDUARDA;2025-07-03 07:00;50;100,00;realizada;sim;online;;pagou 100 em 06/07
+maria.eduarda@paciente.local;MARIA EDUARDA;2025-07-10 07:00;50;;realizada;sim;online;;pagou em 21/07
+maria.eduarda@paciente.local;MARIA EDUARDA;2025-07-24 07:00;50;;realizada;sim;online;;
+maria.eduarda@paciente.local;MARIA EDUARDA;2025-07-31 07:00;50;100,00;realizada;sim;online;;pagou 100,00 em 02/08
+maria.eduarda@paciente.local;MARIA EDUARDA;2025-08-12 07:00;50;50,00;realizada;sim;online;;pagou 50,00
+maria.eduarda@paciente.local;MARIA EDUARDA;2026-02-27 07:00;50;;cancelada;nao;online;;eu desmarquei
+maria.eduarda@paciente.local;MARIA EDUARDA;2026-08-14 07:00;50;;falta_cobrada;nao;online;;não fez e não avisou, vai parar
+maria.julia@paciente.local;MARIA JÚLIA;2024-08-19 07:00;50;60,00;realizada;sim;online;;
+maria.julia@paciente.local;MARIA JÚLIA;2024-08-26 07:00;50;60,00;realizada;sim;online;;
+maria.julia@paciente.local;MARIA JÚLIA;2024-09-02 07:00;50;60,00;realizada;sim;online;;
+maria.julia@paciente.local;MARIA JÚLIA;2024-09-09 07:00;50;60,00;realizada;sim;online;;
+maria.julia@paciente.local;MARIA JÚLIA;2024-09-16 07:00;50;60,00;realizada;sim;online;;
+maria.julia@paciente.local;MARIA JÚLIA;2024-09-23 07:00;50;60,00;realizada;sim;online;;
+maria.julia@paciente.local;MARIA JÚLIA;2024-09-30 07:00;50;60,00;realizada;sim;online;;
+maria.julia@paciente.local;MARIA JÚLIA;2024-10-07 07:00;50;60,00;realizada;sim;online;;
+maria.julia@paciente.local;MARIA JÚLIA;2024-10-14 07:00;50;60,00;realizada;sim;online;;
+maria.julia@paciente.local;MARIA JÚLIA;2024-10-21 07:00;50;60,00;realizada;sim;online;;
+maria.julia@paciente.local;MARIA JÚLIA;2024-10-28 07:00;50;60,00;realizada;sim;online;;
+maria.julia@paciente.local;MARIA JÚLIA;2024-11-04 07:00;50;60,00;realizada;sim;online;;
+maria.julia@paciente.local;MARIA JÚLIA;2024-11-11 07:00;50;60,00;realizada;sim;online;;
+maria.julia@paciente.local;MARIA JÚLIA;2024-11-18 07:00;50;60,00;realizada;sim;online;;
+maria.julia@paciente.local;MARIA JÚLIA;2024-11-25 07:00;50;60,00;falta_cobrada;nao;online;;não fez, não cobrar
+maria.julia@paciente.local;MARIA JÚLIA;2024-11-28 07:00;50;60,00;realizada;sim;online;;
+maria.julia@paciente.local;MARIA JÚLIA;2024-12-02 07:00;50;60,00;realizada;sim;online;;
+maria.julia@paciente.local;MARIA JÚLIA;2024-12-09 07:00;50;60,00;realizada;sim;online;;
+maria.julia@paciente.local;MARIA JÚLIA;2024-12-16 07:00;50;60,00;realizada;sim;online;;
+maria.julia@paciente.local;MARIA JÚLIA;2024-12-23 07:00;50;60,00;realizada;sim;online;;
+maria.julia@paciente.local;MARIA JÚLIA;2025-01-06 07:00;50;60,00;realizada;sim;online;;
+maria.julia@paciente.local;MARIA JÚLIA;2025-01-13 07:00;50;60,00;realizada;sim;online;;
+maria.julia@paciente.local;MARIA JÚLIA;2025-01-27 07:00;50;60,00;cancelada;nao;online;;não fez - avisou no horário
+maria.julia@paciente.local;MARIA JÚLIA;2025-01-29 07:00;50;60,00;realizada;sim;online;;
+maria.julia@paciente.local;MARIA JÚLIA;2025-02-03 07:00;50;60,00;realizada;sim;online;;
+maria.julia@paciente.local;MARIA JÚLIA;2025-02-10 07:00;50;60,00;realizada;sim;online;;
+maria.julia@paciente.local;MARIA JÚLIA;2025-02-17 07:00;50;60,00;cancelada;nao;online;;não fez, avisou na hora
+maria.julia@paciente.local;MARIA JÚLIA;2025-02-24 07:00;50;60,00;realizada;sim;online;;
+maria.julia@paciente.local;MARIA JÚLIA;2025-03-10 07:00;50;60,00;realizada;sim;online;;
+maria.julia@paciente.local;MARIA JÚLIA;2025-03-17 07:00;50;60,00;realizada;sim;online;;
+maria.julia@paciente.local;MARIA JÚLIA;2025-03-24 07:00;50;60,00;realizada;sim;online;;
+maria.julia@paciente.local;MARIA JÚLIA;2025-03-31 07:00;50;60,00;realizada;sim;online;;
+maria.julia@paciente.local;MARIA JÚLIA;2025-04-07 07:00;50;60,00;realizada;sim;online;;
+maria.julia@paciente.local;MARIA JÚLIA;2025-04-14 07:00;50;60,00;realizada;sim;online;;
+maria.julia@paciente.local;MARIA JÚLIA;2025-05-01 07:00;50;60,00;realizada;sim;online;;
+maria.julia@paciente.local;MARIA JÚLIA;2025-05-05 07:00;50;60,00;realizada;sim;online;;
+maria.julia@paciente.local;MARIA JÚLIA;2025-05-12 07:00;50;60,00;realizada;sim;online;;
+maria.julia@paciente.local;MARIA JÚLIA;2025-05-19 07:00;50;60,00;realizada;sim;online;;
+maria.julia@paciente.local;MARIA JÚLIA;2025-05-26 07:00;50;60,00;realizada;sim;online;;
+maria.julia@paciente.local;MARIA JÚLIA;2025-06-02 07:00;50;60,00;realizada;sim;online;;
+maria.julia@paciente.local;MARIA JÚLIA;2025-06-09 07:00;50;60,00;realizada;sim;online;;
+maria.julia@paciente.local;MARIA JÚLIA;2025-06-16 07:00;50;60,00;realizada;sim;online;;
+maria.julia@paciente.local;MARIA JÚLIA;2025-06-23 07:00;50;60,00;realizada;sim;online;;
+maria.julia@paciente.local;MARIA JÚLIA;2025-06-30 07:00;50;60,00;realizada;sim;online;;
+maria.julia@paciente.local;MARIA JÚLIA;2025-07-01 07:00;50;60,00;cancelada;nao;online;;minhas férias
+maria.julia@paciente.local;MARIA JÚLIA;2025-07-07 07:00;50;60,00;realizada;sim;online;;
+maria.julia@paciente.local;MARIA JÚLIA;2025-07-21 07:00;50;60,00;realizada;sim;online;;
+maria.julia@paciente.local;MARIA JÚLIA;2025-07-28 07:00;50;60,00;realizada;sim;online;;
+maria.julia@paciente.local;MARIA JÚLIA;2025-08-04 07:00;50;60,00;realizada;sim;online;;
+maria.julia@paciente.local;MARIA JÚLIA;2025-08-11 07:00;50;60,00;realizada;sim;online;;
+maria.julia@paciente.local;MARIA JÚLIA;2025-08-18 07:00;50;60,00;realizada;sim;online;;
+maria.julia@paciente.local;MARIA JÚLIA;2025-08-25 07:00;50;60,00;realizada;sim;online;;
+maria.julia@paciente.local;MARIA JÚLIA;2025-09-01 07:00;50;60,00;realizada;sim;online;;
+maria.julia@paciente.local;MARIA JÚLIA;2025-09-08 07:00;50;60,00;realizada;sim;online;;
+maria.julia@paciente.local;MARIA JÚLIA;2025-09-15 07:00;50;60,00;realizada;sim;online;;
+maria.julia@paciente.local;MARIA JÚLIA;2025-09-22 07:00;50;60,00;realizada;sim;online;;
+maria.julia@paciente.local;MARIA JÚLIA;2025-09-29 07:00;50;60,00;realizada;sim;online;;
+maria.julia@paciente.local;MARIA JÚLIA;2025-10-06 07:00;50;60,00;realizada;sim;online;;
+maria.julia@paciente.local;MARIA JÚLIA;2025-10-13 07:00;50;60,00;realizada;sim;online;;
+maria.julia@paciente.local;MARIA JÚLIA;2025-10-20 07:00;50;60,00;realizada;sim;online;;
+maria.julia@paciente.local;MARIA JÚLIA;2025-10-27 07:00;50;60,00;realizada;sim;online;;
+maria.julia@paciente.local;MARIA JÚLIA;2025-11-03 07:00;50;60,00;realizada;sim;online;;
+maria.julia@paciente.local;MARIA JÚLIA;2025-11-10 07:00;50;60,00;realizada;sim;online;;
+maria.julia@paciente.local;MARIA JÚLIA;2025-11-20 07:00;50;60,00;falta_cobrada;nao;online;;0 não cobrar
+maria.julia@paciente.local;MARIA JÚLIA;2025-11-24 07:00;50;60,00;realizada;sim;online;;
+maria.julia@paciente.local;MARIA JÚLIA;2025-12-01 07:00;50;60,00;realizada;sim;online;;
+maria.julia@paciente.local;MARIA JÚLIA;2025-12-08 07:00;50;60,00;realizada;sim;online;;
+maria.julia@paciente.local;MARIA JÚLIA;2025-12-15 07:00;50;60,00;realizada;sim;online;;
+maria.julia@paciente.local;MARIA JÚLIA;2025-12-22 07:00;50;60,00;cancelada;nao;online;;não vai fazer
+maria.julia@paciente.local;MARIA JÚLIA;2026-01-15 07:00;50;60,00;realizada;sim;online;;
+maria.julia@paciente.local;MARIA JÚLIA;2026-01-23 07:00;50;60,00;falta_cobrada;nao;online;;não fez, não cobrar
+maria.julia@paciente.local;MARIA JÚLIA;2026-01-26 07:00;50;60,00;realizada;sim;online;;
+maria.julia@paciente.local;MARIA JÚLIA;2026-02-02 07:00;50;60,00;realizada;sim;online;;
+maria.julia@paciente.local;MARIA JÚLIA;2026-02-09 07:00;50;60,00;realizada;sim;online;;
+maria.julia@paciente.local;MARIA JÚLIA;2026-02-16 07:00;50;60,00;cancelada;nao;online;;carnaval
+maria.julia@paciente.local;MARIA JÚLIA;2026-02-23 07:00;50;60,00;realizada;sim;online;;
+maria.julia@paciente.local;MARIA JÚLIA;2026-03-02 07:00;50;60,00;realizada;sim;online;;
+maria.julia@paciente.local;MARIA JÚLIA;2026-03-09 07:00;50;60,00;realizada;sim;online;;
+maria.julia@paciente.local;MARIA JÚLIA;2026-03-16 07:00;50;60,00;realizada;sim;online;;
+maria.julia@paciente.local;MARIA JÚLIA;2026-03-23 07:00;50;60,00;realizada;sim;online;;
+maria.julia@paciente.local;MARIA JÚLIA;2026-03-30 07:00;50;60,00;realizada;sim;online;;
+maria.julia@paciente.local;MARIA JÚLIA;2026-04-06 07:00;50;60,00;realizada;sim;online;;
+maria.julia@paciente.local;MARIA JÚLIA;2026-04-13 07:00;50;60,00;realizada;sim;online;;
+maria.julia@paciente.local;MARIA JÚLIA;2026-04-20 07:00;50;60,00;cancelada;nao;online;;não vou atender
+maria.julia@paciente.local;MARIA JÚLIA;2026-05-04 07:00;50;60,00;realizada;sim;online;;
+maria.julia@paciente.local;MARIA JÚLIA;2026-05-11 07:00;50;60,00;realizada;sim;online;;
+maria.julia@paciente.local;MARIA JÚLIA;2026-05-18 07:00;50;60,00;realizada;sim;online;;
+maria.julia@paciente.local;MARIA JÚLIA;2026-05-25 07:00;50;60,00;realizada;sim;online;;
+maria.julia@paciente.local;MARIA JÚLIA;2026-06-01 07:00;50;60,00;realizada;sim;online;;
+maria.julia@paciente.local;MARIA JÚLIA;2026-06-08 07:00;50;60,00;cancelada;nao;online;;
+maria.julia@paciente.local;MARIA JÚLIA;2026-06-15 07:00;50;60,00;cancelada;nao;online;;
+maria.julia@paciente.local;MARIA JÚLIA;2026-06-22 07:00;50;60,00;cancelada;nao;online;;
+maria.julia@paciente.local;MARIA JÚLIA;2026-06-29 07:00;50;60,00;cancelada;nao;online;;
+meyla@paciente.local;MEYLA;2025-08-26 07:00;50;652611,00;realizada;sim;online;;
+meyla@paciente.local;MEYLA;2025-09-04 07:00;50;652611,00;realizada;sim;online;;
+meyla@paciente.local;MEYLA;2025-09-09 07:00;50;652611,00;realizada;sim;online;;
+meyla@paciente.local;MEYLA;2025-09-16 07:00;50;652611,00;realizada;sim;online;;
+meyla@paciente.local;MEYLA;2025-09-23 07:00;50;652611,00;realizada;sim;online;;
+meyla@paciente.local;MEYLA;2025-09-30 07:00;50;652611,00;realizada;sim;online;;
+meyla@paciente.local;MEYLA;2025-10-07 07:00;50;652611,00;falta_cobrada;nao;online;;não fez, não cobrar
+meyla@paciente.local;MEYLA;2025-10-14 07:00;50;652611,00;falta_cobrada;nao;online;;não fez, não cobrar
+meyla@paciente.local;MEYLA;2025-10-21 07:00;50;652611,00;realizada;sim;online;;
+meyla@paciente.local;MEYLA;2025-10-28 07:00;50;652611,00;realizada;sim;online;;
+meyla@paciente.local;MEYLA;2025-11-11 07:00;50;652611,00;realizada;sim;online;;
+meyla@paciente.local;MEYLA;2025-11-26 07:00;50;652611,00;falta_cobrada;nao;online;;não fez, não cobrar
+meyla@paciente.local;MEYLA;2025-12-02 07:00;50;652611,00;realizada;sim;online;;
+meyla@paciente.local;MEYLA;2025-12-09 07:00;50;652611,00;falta_cobrada;nao;online;;não cobrar
+meyla@paciente.local;MEYLA;2025-12-16 07:00;50;652611,00;realizada;sim;online;;
+meyla@paciente.local;MEYLA;2026-01-15 07:00;50;652611,00;realizada;sim;online;;
+meyla@paciente.local;MEYLA;2026-02-03 07:00;50;652611,00;realizada;sim;online;;
+meyla@paciente.local;MEYLA;2026-03-05 07:00;50;652611,00;realizada;sim;online;;
+meyla@paciente.local;MEYLA;2026-03-24 07:00;50;652611,00;realizada;sim;online;;
+meyla@paciente.local;MEYLA;2026-04-07 07:00;50;652611,00;realizada;sim;online;;
+meyla@paciente.local;MEYLA;2026-04-14 07:00;50;652611,00;realizada;sim;online;;
+meyla@paciente.local;MEYLA;2026-04-30 07:00;50;652611,00;realizada;sim;online;;
+meyla@paciente.local;MEYLA;2026-05-12 07:00;50;652611,00;realizada;sim;online;;
+meyla@paciente.local;MEYLA;2026-05-26 07:00;50;652611,00;realizada;sim;online;;
+michele@paciente.local;MICHELE;2025-05-29 07:00;50;;realizada;sim;online;;
+michele@paciente.local;MICHELE;2025-06-05 07:00;50;;realizada;sim;online;;
+michele@paciente.local;MICHELE;2025-06-12 07:00;50;;realizada;sim;online;;
+michele@paciente.local;MICHELE;2025-06-18 07:00;50;;realizada;sim;online;;
+michele@paciente.local;MICHELE;2025-06-26 07:00;50;;realizada;sim;online;;
+michele@paciente.local;MICHELE;2025-07-03 07:00;50;;realizada;sim;online;;
+michele@paciente.local;MICHELE;2025-07-10 07:00;50;;realizada;sim;online;;
+michele@paciente.local;MICHELE;2025-07-17 07:00;50;;cancelada;nao;online;;férias
+michele@paciente.local;MICHELE;2025-07-24 07:00;50;;realizada;sim;online;;
+michele@paciente.local;MICHELE;2025-07-31 07:00;50;;cancelada;nao;online;;não fez, avisou
+michele@paciente.local;MICHELE;2025-08-07 07:00;50;;realizada;sim;online;;
+michele@paciente.local;MICHELE;2025-08-14 07:00;50;;falta_cobrada;sim;online;;não fez, cobrar
+michele@paciente.local;MICHELE;2025-08-21 07:00;50;;realizada;sim;online;;
+michele@paciente.local;MICHELE;2025-08-28 07:00;50;;realizada;sim;online;;
+michele@paciente.local;MICHELE;2025-09-04 07:00;50;;cancelada;nao;online;;não fizemos a sessão, avisou
+michele@paciente.local;MICHELE;2025-09-11 07:00;50;;realizada;sim;online;;
+michele@paciente.local;MICHELE;2025-09-18 07:00;50;;realizada;sim;online;;
+michele@paciente.local;MICHELE;2025-09-25 07:00;50;;realizada;sim;online;;
+michele@paciente.local;MICHELE;2025-10-02 07:00;50;;realizada;sim;online;;
+mirella@paciente.local;MIRELLA;2026-02-27 07:00;50;107,00;realizada;sim;online;;
+mirella@paciente.local;MIRELLA;2026-03-06 07:00;50;107,00;realizada;sim;online;;
+mirella@paciente.local;MIRELLA;2026-03-13 07:00;50;107,00;realizada;sim;online;;
+mirella@paciente.local;MIRELLA;2026-03-20 07:00;50;107,00;cancelada;nao;online;;não fez, avisou
+mirella@paciente.local;MIRELLA;2026-03-27 07:00;50;107,00;realizada;sim;online;;
+mirella@paciente.local;MIRELLA;2026-04-10 07:00;50;107,00;realizada;sim;online;;
+mirella@paciente.local;MIRELLA;2026-04-17 07:00;50;107,00;cancelada;nao;online;;não fez, avisou no dia
+mirella@paciente.local;MIRELLA;2026-04-24 07:00;50;107,00;realizada;sim;online;;
+mirella@paciente.local;MIRELLA;2026-05-02 07:00;50;107,00;realizada;sim;online;;
+mirella@paciente.local;MIRELLA;2026-05-08 07:00;50;107,00;realizada;sim;online;;
+mirella@paciente.local;MIRELLA;2026-05-15 07:00;50;107,00;realizada;sim;online;;
+mirella@paciente.local;MIRELLA;2026-05-22 07:00;50;107,00;realizada;sim;online;;
+mirella@paciente.local;MIRELLA;2026-05-29 07:00;50;107,00;realizada;sim;online;;
+mirella@paciente.local;MIRELLA;2026-06-05 07:00;50;107,00;realizada;sim;online;;
+mirella@paciente.local;MIRELLA;2026-06-12 07:00;50;107,00;cancelada;nao;online;;
+monique@paciente.local;MONIQUE;2024-11-16 07:00;50;50,00;realizada;sim;online;;
+monique@paciente.local;MONIQUE;2024-11-30 07:00;50;50,00;realizada;sim;online;;
+monique@paciente.local;MONIQUE;2024-12-14 07:00;50;50,00;realizada;sim;online;;
+nadir@paciente.local;NADIR;2024-11-22 07:00;50;;realizada;sim;online;;
+nadir@paciente.local;NADIR;2024-11-29 07:00;50;;realizada;sim;online;;
+nadir@paciente.local;NADIR;2024-12-04 07:00;50;;realizada;sim;online;;
+nadir@paciente.local;NADIR;2024-12-18 07:00;50;;realizada;sim;online;;
+nadir@paciente.local;NADIR;2025-01-29 07:00;50;;realizada;sim;online;;
+nadir@paciente.local;NADIR;2025-02-05 07:00;50;;realizada;sim;online;;
+nadir@paciente.local;NADIR;2025-02-12 07:00;50;;realizada;sim;online;;
+nadir@paciente.local;NADIR;2025-02-19 07:00;50;;realizada;sim;online;;
+nadir@paciente.local;NADIR;2025-02-26 07:00;50;;realizada;sim;online;;
+nadir@paciente.local;NADIR;2025-03-06 07:00;50;;realizada;sim;online;;
+nadir@paciente.local;NADIR;2025-03-12 07:00;50;;realizada;sim;online;;
+nadir@paciente.local;NADIR;2025-03-19 07:00;50;;realizada;sim;online;;
+nadir@paciente.local;NADIR;2025-03-26 07:00;50;;realizada;sim;online;;
+nadir@paciente.local;NADIR;2025-04-02 07:00;50;;realizada;sim;online;;
+nadir@paciente.local;NADIR;2025-04-09 07:00;50;;realizada;sim;online;;
+nadir@paciente.local;NADIR;2025-04-16 07:00;50;;realizada;sim;online;;
+nadir@paciente.local;NADIR;2025-04-23 07:00;50;;realizada;sim;online;;
+nadir@paciente.local;NADIR;2025-04-30 07:00;50;;cancelada;nao;online;;não haverá sessão
+nadir@paciente.local;NADIR;2025-05-07 07:00;50;;cancelada;nao;online;;não haverá sessão
+nadir@paciente.local;NADIR;2025-05-14 07:00;50;;realizada;sim;online;;
+nadir@paciente.local;NADIR;2025-05-21 07:00;50;;realizada;sim;online;;
+nadir@paciente.local;NADIR;2025-05-28 07:00;50;;cancelada;nao;online;;não fará a sessão
+nadir@paciente.local;NADIR;2025-06-04 07:00;50;;falta_cobrada;sim;online;;não foi - cobrar
+nadir@paciente.local;NADIR;2025-06-13 07:00;50;;realizada;sim;online;;
+nadir@paciente.local;NADIR;2025-06-18 07:00;50;;falta_cobrada;sim;online;;não compareceu, cobrar
+nadir@paciente.local;NADIR;2025-06-25 07:00;50;;realizada;sim;online;;
+nadir@paciente.local;NADIR;2025-07-02 07:00;50;;realizada;sim;online;;
+nadir@paciente.local;NADIR;2025-07-09 07:00;50;;cancelada;nao;online;;feriado
+nadir@paciente.local;NADIR;2025-07-16 07:00;50;;cancelada;nao;online;;minhas férias
+nadir@paciente.local;NADIR;2025-07-23 07:00;50;;realizada;sim;online;;
+nadir@paciente.local;NADIR;2025-07-30 07:00;50;;realizada;sim;online;;
+nadir@paciente.local;NADIR;2025-08-06 07:00;50;;realizada;sim;online;;
+nadir@paciente.local;NADIR;2025-08-13 07:00;50;;realizada;sim;online;;
+nadir@paciente.local;NADIR;2025-08-20 07:00;50;;realizada;sim;online;;
+nadir@paciente.local;NADIR;2025-08-27 07:00;50;;realizada;sim;online;;
+nadir@paciente.local;NADIR;2025-09-03 07:00;50;;realizada;sim;online;;
+nadir@paciente.local;NADIR;2025-09-10 07:00;50;;realizada;sim;online;;demarcou no dia - cobrar
+nadir@paciente.local;NADIR;2025-09-17 07:00;50;;realizada;sim;online;;
+nadir@paciente.local;NADIR;2025-09-24 07:00;50;;cancelada;nao;online;;não fizemos, eu desmarquei
+nadir@paciente.local;NADIR;2025-10-01 07:00;50;;falta_cobrada;sim;online;;não foi, cobrar
+nelson@paciente.local;NELSON;2024-01-09 07:00;50;50,00;realizada;sim;online;;
+nelson@paciente.local;NELSON;2024-01-16 07:00;50;50,00;realizada;sim;online;;
+nelson@paciente.local;NELSON;2024-01-30 07:00;50;50,00;realizada;sim;online;;
+nelson@paciente.local;NELSON;2024-04-08 07:00;50;50,00;realizada;sim;online;;
+nelson@paciente.local;NELSON;2024-04-15 07:00;50;50,00;realizada;sim;online;;
+nelson@paciente.local;NELSON;2024-04-22 07:00;50;50,00;realizada;sim;online;;
+nelson@paciente.local;NELSON;2024-04-29 07:00;50;50,00;realizada;sim;online;;
+nelson@paciente.local;NELSON;2024-05-06 07:00;50;50,00;realizada;sim;online;;
+nelson@paciente.local;NELSON;2024-05-13 07:00;50;50,00;realizada;sim;online;;
+nelson@paciente.local;NELSON;2024-05-20 07:00;50;50,00;realizada;sim;online;;
+nelson@paciente.local;NELSON;2024-05-27 07:00;50;50,00;realizada;sim;online;;
+nelson@paciente.local;NELSON;2024-06-03 07:00;50;50,00;realizada;sim;online;;
+nelson@paciente.local;NELSON;2024-06-10 07:00;50;50,00;realizada;sim;online;;
+nelson@paciente.local;NELSON;2024-06-17 07:00;50;50,00;realizada;sim;online;;
+nelson@paciente.local;NELSON;2024-06-24 07:00;50;50,00;realizada;sim;online;;
+nelson@paciente.local;NELSON;2024-07-01 07:00;50;50,00;realizada;sim;online;;
+nelson@paciente.local;NELSON;2024-07-08 07:00;50;50,00;realizada;sim;online;;
+nelson@paciente.local;NELSON;2024-07-15 07:00;50;50,00;realizada;sim;online;;
+nelson@paciente.local;NELSON;2024-07-22 07:00;50;50,00;realizada;sim;online;;
+nelson@paciente.local;NELSON;2024-07-29 07:00;50;50,00;realizada;sim;online;;
+nelson@paciente.local;NELSON;2024-08-05 07:00;50;50,00;realizada;sim;online;;
+nelson@paciente.local;NELSON;2024-08-12 07:00;50;50,00;realizada;sim;online;;
+nelson@paciente.local;NELSON;2024-08-19 07:00;50;50,00;realizada;sim;online;;
+nelson@paciente.local;NELSON;2024-08-26 07:00;50;50,00;realizada;sim;online;;
+nelson@paciente.local;NELSON;2024-09-02 07:00;50;50,00;realizada;sim;online;;
+nelson@paciente.local;NELSON;2024-09-09 07:00;50;50,00;realizada;sim;online;;
+nelson@paciente.local;NELSON;2024-09-16 07:00;50;50,00;realizada;sim;online;;
+nelson@paciente.local;NELSON;2024-09-23 07:00;50;50,00;realizada;sim;online;;
+nelson@paciente.local;NELSON;2024-09-30 07:00;50;50,00;realizada;sim;online;;
+nelson@paciente.local;NELSON;2024-10-07 07:00;50;50,00;realizada;sim;online;;
+nelson@paciente.local;NELSON;2024-10-14 07:00;50;50,00;realizada;sim;online;;
+nelson@paciente.local;NELSON;2024-10-21 07:00;50;50,00;realizada;sim;online;;
+nelson@paciente.local;NELSON;2024-10-31 07:00;50;50,00;realizada;sim;online;;
+nelson@paciente.local;NELSON;2024-11-07 07:00;50;50,00;realizada;sim;online;;
+nelson@paciente.local;NELSON;2024-11-14 07:00;50;50,00;realizada;sim;online;;
+nelson@paciente.local;NELSON;2024-11-21 07:00;50;50,00;realizada;sim;online;;
+nelson@paciente.local;NELSON;2024-11-28 07:00;50;50,00;realizada;sim;online;;
+nelson@paciente.local;NELSON;2024-12-04 07:00;50;50,00;realizada;sim;online;;
+nelson@paciente.local;NELSON;2024-12-11 07:00;50;50,00;realizada;sim;online;;
+nelson@paciente.local;NELSON;2024-12-19 07:00;50;50,00;realizada;sim;online;;
+nelson@paciente.local;NELSON;2025-02-06 07:00;50;50,00;realizada;sim;online;;
+nelson@paciente.local;NELSON;2025-02-13 07:00;50;50,00;realizada;sim;online;;
+nelson@paciente.local;NELSON;2025-02-20 07:00;50;50,00;realizada;sim;online;;
+nelson@paciente.local;NELSON;2025-03-06 07:00;50;50,00;realizada;sim;online;;
+nelson@paciente.local;NELSON;2025-03-10 07:00;50;50,00;realizada;sim;online;;
+nelson@paciente.local;NELSON;2025-03-17 07:00;50;50,00;realizada;sim;online;;
+nelson@paciente.local;NELSON;2025-03-24 07:00;50;50,00;realizada;sim;online;;
+nelson@paciente.local;NELSON;2025-03-31 07:00;50;50,00;realizada;sim;online;;
+nelson@paciente.local;NELSON;2025-04-07 07:00;50;50,00;realizada;sim;online;;
+nelson@paciente.local;NELSON;2025-04-14 07:00;50;50,00;realizada;sim;online;;
+nelson@paciente.local;NELSON;2025-04-21 07:00;50;50,00;realizada;sim;online;;
+nelson@paciente.local;NELSON;2025-04-28 07:00;50;50,00;realizada;sim;online;;
+nelson@paciente.local;NELSON;2025-05-05 07:00;50;50,00;realizada;sim;online;;
+nelson@paciente.local;NELSON;2025-05-12 07:00;50;50,00;realizada;sim;online;;
+nelson@paciente.local;NELSON;2026-02-27 07:00;50;50,00;cancelada;nao;online;;eu desmarquei
+pedro@paciente.local;PEDRO;2025-09-20 07:00;50;80,00;realizada;sim;online;;
+pedro@paciente.local;PEDRO;2025-09-27 07:00;50;80,00;realizada;sim;online;;
+pedro@paciente.local;PEDRO;2025-10-04 07:00;50;80,00;falta_cobrada;nao;online;;não fez, não cobrar
+pedro@paciente.local;PEDRO;2025-10-11 07:00;50;80,00;realizada;sim;online;;
+pedro@paciente.local;PEDRO;2025-10-18 07:00;50;80,00;realizada;sim;online;;
+pedro@paciente.local;PEDRO;2025-10-25 07:00;50;80,00;realizada;sim;online;;
+pedro@paciente.local;PEDRO;2025-11-01 07:00;50;80,00;falta_cobrada;nao;online;;não fez, avisou, não cobrar
+pedro@paciente.local;PEDRO;2025-11-05 07:00;50;80,00;realizada;sim;online;;
+pedro@paciente.local;PEDRO;2025-11-10 07:00;50;80,00;realizada;sim;online;;
+pedro@paciente.local;PEDRO;2025-11-20 07:00;50;80,00;realizada;sim;online;;
+pedro@paciente.local;PEDRO;2025-11-24 07:00;50;80,00;falta_cobrada;nao;online;;não fez, não avisou
+pedro@paciente.local;PEDRO;2025-12-01 07:00;50;80,00;realizada;sim;online;;
+pedro@paciente.local;PEDRO;2025-12-08 07:00;50;80,00;realizada;sim;online;;
+pedro@paciente.local;PEDRO;2025-12-17 07:00;50;80,00;cancelada;nao;online;;
+pedro@paciente.local;PEDRO;2025-12-22 07:00;50;80,00;realizada;sim;online;;
+pedro@paciente.local;PEDRO;2026-01-12 07:00;50;80,00;realizada;sim;online;;
+pedro@paciente.local;PEDRO;2026-01-21 07:00;50;80,00;realizada;sim;online;;
+pedro@paciente.local;PEDRO;2026-01-26 07:00;50;80,00;realizada;sim;online;;
+pedro@paciente.local;PEDRO;2026-02-02 07:00;50;80,00;realizada;sim;online;;
+pedro@paciente.local;PEDRO;2026-02-09 07:00;50;80,00;realizada;sim;online;;
+pedro@paciente.local;PEDRO;2026-02-16 07:00;50;80,00;cancelada;nao;online;;carnaval
+pedro@paciente.local;PEDRO;2026-02-23 07:00;50;80,00;realizada;sim;online;;
+pedro@paciente.local;PEDRO;2026-03-02 07:00;50;80,00;realizada;sim;online;;
+pedro@paciente.local;PEDRO;2026-03-09 07:00;50;80,00;realizada;sim;online;;
+pedro@paciente.local;PEDRO;2026-03-16 07:00;50;80,00;realizada;sim;online;;
+pedro@paciente.local;PEDRO;2026-03-23 07:00;50;80,00;realizada;sim;online;;
+pedro@paciente.local;PEDRO;2026-03-30 07:00;50;80,00;realizada;sim;online;;
+pedro@paciente.local;PEDRO;2026-04-06 07:00;50;80,00;realizada;sim;online;;
+pedro@paciente.local;PEDRO;2026-04-13 07:00;50;80,00;realizada;sim;online;;
+pedro@paciente.local;PEDRO;2026-04-20 07:00;50;80,00;realizada;sim;online;;
+pedro@paciente.local;PEDRO;2026-04-27 07:00;50;80,00;realizada;sim;online;;
+pedro@paciente.local;PEDRO;2026-05-04 07:00;50;80,00;realizada;sim;online;;
+pedro@paciente.local;PEDRO;2026-05-11 07:00;50;80,00;realizada;sim;online;;
+pedro@paciente.local;PEDRO;2026-05-18 07:00;50;80,00;realizada;sim;online;;
+pedro@paciente.local;PEDRO;2026-05-25 07:00;50;80,00;realizada;sim;online;;
+pedro@paciente.local;PEDRO;2026-06-01 07:00;50;80,00;realizada;sim;online;;
+pedro@paciente.local;PEDRO;2026-06-08 07:00;50;80,00;cancelada;nao;online;;
+priscila.z@paciente.local;PRISCILA Z.;2025-01-04 07:00;50;80,01;realizada;sim;online;;
+priscila.z@paciente.local;PRISCILA Z.;2025-01-08 07:00;50;80,01;realizada;sim;online;;
+priscila.z@paciente.local;PRISCILA Z.;2025-01-17 07:00;50;80,01;realizada;sim;online;;
+priscila.z@paciente.local;PRISCILA Z.;2025-01-18 07:00;50;80,01;realizada;sim;online;;
+priscila.z@paciente.local;PRISCILA Z.;2025-01-31 07:00;50;80,01;realizada;sim;online;;
+priscila.z@paciente.local;PRISCILA Z.;2025-02-01 07:00;50;80,01;realizada;sim;online;;
+priscila.z@paciente.local;PRISCILA Z.;2025-02-08 07:00;50;80,01;realizada;sim;online;;
+priscila.z@paciente.local;PRISCILA Z.;2025-02-15 07:00;50;80,01;realizada;sim;online;;
+priscila.z@paciente.local;PRISCILA Z.;2025-02-22 07:00;50;80,01;realizada;sim;online;;
+priscila.z@paciente.local;PRISCILA Z.;2025-03-01 07:00;50;80,01;cancelada;nao;online;;ela desmarcou
+priscila.z@paciente.local;PRISCILA Z.;2025-03-05 07:00;50;80,01;realizada;sim;online;;
+priscila.z@paciente.local;PRISCILA Z.;2025-03-10 07:00;50;80,01;cancelada;nao;online;;esqueceu
+priscila.z@paciente.local;PRISCILA Z.;2025-03-15 07:00;50;80,01;cancelada;nao;online;;china
+priscila.z@paciente.local;PRISCILA Z.;2025-03-22 07:00;50;80,01;cancelada;nao;online;;china
+priscila.z@paciente.local;PRISCILA Z.;2025-03-29 07:00;50;80,01;realizada;sim;online;;
+priscila.z@paciente.local;PRISCILA Z.;2025-04-05 07:00;50;80,01;realizada;sim;online;;
+priscila.z@paciente.local;PRISCILA Z.;2025-04-12 07:00;50;80,01;realizada;sim;online;;
+priscila.z@paciente.local;PRISCILA Z.;2025-04-19 07:00;50;80,01;realizada;sim;online;;
+priscila.z@paciente.local;PRISCILA Z.;2025-04-26 07:00;50;80,01;cancelada;nao;online;;não teve sessão
+priscila.z@paciente.local;PRISCILA Z.;2025-05-01 07:00;50;80,01;realizada;sim;online;;
+priscila.z@paciente.local;PRISCILA Z.;2025-05-03 07:00;50;80,01;realizada;sim;online;;
+priscila.z@paciente.local;PRISCILA Z.;2025-05-10 07:00;50;80,01;realizada;sim;online;;
+priscila.z@paciente.local;PRISCILA Z.;2025-05-17 07:00;50;80,01;realizada;sim;online;;
+priscila.z@paciente.local;PRISCILA Z.;2025-05-22 07:00;50;80,01;falta_cobrada;sim;online;;não fez, cobrar
+priscila.z@paciente.local;PRISCILA Z.;2025-05-31 07:00;50;80,01;realizada;sim;online;;
+priscila.z@paciente.local;PRISCILA Z.;2025-06-07 07:00;50;80,01;realizada;sim;online;;
+priscila.z@paciente.local;PRISCILA Z.;2025-06-14 07:00;50;80,01;realizada;sim;online;;
+priscila.z@paciente.local;PRISCILA Z.;2025-06-21 07:00;50;80,01;realizada;sim;online;;
+priscila.z@paciente.local;PRISCILA Z.;2025-06-28 07:00;50;80,01;realizada;sim;online;;
+priscila.z@paciente.local;PRISCILA Z.;2025-07-05 07:00;50;80,01;realizada;sim;online;;
+priscila.z@paciente.local;PRISCILA Z.;2025-07-12 07:00;50;80,01;realizada;sim;online;;
+priscila.z@paciente.local;PRISCILA Z.;2025-07-19 07:00;50;80,01;cancelada;nao;online;;estarei em férias
+priscila.z@paciente.local;PRISCILA Z.;2025-07-26 07:00;50;80,01;falta_cobrada;nao;online;;não fará - não cobrar
+priscila.z@paciente.local;PRISCILA Z.;2025-07-31 07:00;50;80,01;realizada;sim;online;;
+priscila.z@paciente.local;PRISCILA Z.;2025-08-02 07:00;50;80,01;realizada;sim;online;;
+priscila.z@paciente.local;PRISCILA Z.;2025-08-09 07:00;50;80,01;realizada;sim;online;;
+priscila.z@paciente.local;PRISCILA Z.;2025-08-16 07:00;50;80,01;falta_cobrada;nao;online;;não fez, avisou, não cobrar
+priscila.z@paciente.local;PRISCILA Z.;2025-08-23 07:00;50;80,01;falta_cobrada;nao;online;;não fez, avisou, não cobrar
+priscila.z@paciente.local;PRISCILA Z.;2025-08-30 07:00;50;80,01;realizada;sim;online;;
+priscila.z@paciente.local;PRISCILA Z.;2025-09-06 07:00;50;80,01;realizada;sim;online;;
+priscila.z@paciente.local;PRISCILA Z.;2025-09-11 07:00;50;80,01;realizada;sim;online;;
+priscila.z@paciente.local;PRISCILA Z.;2025-09-20 07:00;50;80,01;realizada;sim;online;;
+priscila.z@paciente.local;PRISCILA Z.;2025-10-02 07:00;50;80,01;falta_cobrada;nao;online;;não fez, não cobrar
+priscila.z@paciente.local;PRISCILA Z.;2025-10-04 07:00;50;80,01;realizada;sim;online;;
+priscila.z@paciente.local;PRISCILA Z.;2025-10-11 07:00;50;80,01;realizada;sim;online;;
+priscila.z@paciente.local;PRISCILA Z.;2025-10-18 07:00;50;80,01;falta_cobrada;nao;online;;não fez, não cobrar
+priscila.z@paciente.local;PRISCILA Z.;2025-10-25 07:00;50;80,01;realizada;sim;online;;
+priscila.z@paciente.local;PRISCILA Z.;2025-11-01 07:00;50;80,01;realizada;sim;online;;
+priscila.z@paciente.local;PRISCILA Z.;2025-11-08 07:00;50;80,01;cancelada;nao;online;;EU DESMARQUEI
+priscila.z@paciente.local;PRISCILA Z.;2025-11-15 07:00;50;80,01;realizada;sim;online;;
+priscila.z@paciente.local;PRISCILA Z.;2025-11-22 07:00;50;80,01;realizada;sim;online;;
+priscila.z@paciente.local;PRISCILA Z.;2025-11-29 07:00;50;80,01;falta_cobrada;nao;online;;não fez, não cobrar
+priscila.z@paciente.local;PRISCILA Z.;2025-12-03 07:00;50;80,01;realizada;sim;online;;
+priscila.z@paciente.local;PRISCILA Z.;2025-12-13 07:00;50;80,01;cancelada;nao;online;;não fez, avisou no dia
+priscila.z@paciente.local;PRISCILA Z.;2025-12-20 07:00;50;80,01;realizada;sim;online;;
+priscila.z@paciente.local;PRISCILA Z.;2026-01-23 07:00;50;80,01;realizada;sim;online;;
+priscila.z@paciente.local;PRISCILA Z.;2026-02-12 07:00;50;80,01;realizada;sim;online;;
+priscila.z@paciente.local;PRISCILA Z.;2026-02-14 07:00;50;80,01;cancelada;nao;online;;(carnaval)
+priscila.z@paciente.local;PRISCILA Z.;2026-02-28 07:00;50;80,01;realizada;sim;online;;
+priscila.z@paciente.local;PRISCILA Z.;2026-03-07 07:00;50;80,01;falta_cobrada;nao;online;;não fez, não cobrar
+priscila.z@paciente.local;PRISCILA Z.;2026-03-14 07:00;50;80,01;realizada;sim;online;;
+priscila.z@paciente.local;PRISCILA Z.;2026-03-19 07:00;50;80,01;realizada;sim;online;;
+priscila.z@paciente.local;PRISCILA Z.;2026-03-31 07:00;50;80,01;realizada;sim;online;;
+priscila.z@paciente.local;PRISCILA Z.;2026-04-09 07:00;50;80,01;realizada;sim;online;;
+priscila.z@paciente.local;PRISCILA Z.;2026-04-15 07:00;50;80,01;realizada;sim;online;;
+priscila.z@paciente.local;PRISCILA Z.;2026-04-22 07:00;50;80,01;realizada;sim;online;;
+priscila.z@paciente.local;PRISCILA Z.;2026-04-29 07:00;50;80,01;realizada;sim;online;;
+priscila.z@paciente.local;PRISCILA Z.;2026-05-07 07:00;50;80,01;realizada;sim;online;;
+priscila.z@paciente.local;PRISCILA Z.;2026-05-13 07:00;50;80,01;falta_cobrada;nao;online;;não cobrar
+priscila.z@paciente.local;PRISCILA Z.;2026-05-20 07:00;50;80,01;falta_cobrada;nao;online;;não fez, não cobrar
+priscila.z@paciente.local;PRISCILA Z.;2026-05-25 07:00;50;80,01;realizada;sim;online;;
+priscila.z@paciente.local;PRISCILA Z.;2026-06-01 07:00;50;80,01;realizada;sim;online;;
+priscila.z@paciente.local;PRISCILA Z.;2026-06-08 07:00;50;80,01;cancelada;nao;online;;
+priscila.z@paciente.local;PRISCILA Z.;2026-06-15 07:00;50;80,01;cancelada;nao;online;;
+priscila.z@paciente.local;PRISCILA Z.;2026-06-22 07:00;50;80,01;cancelada;nao;online;;
+priscila.z@paciente.local;PRISCILA Z.;2026-06-29 07:00;50;80,01;cancelada;nao;online;;
+priscila.z@paciente.local;PRISCILA Z.;2026-08-21 07:00;50;80,01;realizada;sim;online;;
+rafael.paiva@paciente.local;RAFAEL PAIVA;2024-10-09 07:00;50;;realizada;sim;online;;cortesia
+rafael.paiva@paciente.local;RAFAEL PAIVA;2024-10-16 07:00;50;;realizada;sim;online;;
+rafael.paiva@paciente.local;RAFAEL PAIVA;2024-10-23 07:00;50;;realizada;sim;online;;fez dia 24
+rafael.paiva@paciente.local;RAFAEL PAIVA;2024-10-30 07:00;50;;realizada;sim;online;;
+rafael.paiva@paciente.local;RAFAEL PAIVA;2024-11-06 07:00;50;;realizada;sim;online;;
+rafael.paiva@paciente.local;RAFAEL PAIVA;2024-11-13 07:00;50;;realizada;sim;online;;
+rafael.paiva@paciente.local;RAFAEL PAIVA;2024-12-02 07:00;50;;realizada;sim;online;;
+rafael.paiva@paciente.local;RAFAEL PAIVA;2024-12-09 07:00;50;;realizada;sim;online;;
+rafael.paiva@paciente.local;RAFAEL PAIVA;2024-12-18 07:00;50;;realizada;sim;online;;
+rafael.paiva@paciente.local;RAFAEL PAIVA;2024-12-21 07:00;50;;cancelada;nao;online;;não fez, avisou
+rafael.paiva@paciente.local;RAFAEL PAIVA;2025-01-09 07:00;50;;realizada;sim;online;;
+rafael.paiva@paciente.local;RAFAEL PAIVA;2025-01-16 07:00;50;;realizada;sim;online;;
+rafael.paiva@paciente.local;RAFAEL PAIVA;2025-01-30 07:00;50;;realizada;sim;online;;
+rafael.paiva@paciente.local;RAFAEL PAIVA;2025-02-06 07:00;50;;realizada;sim;online;;
+rafael.paiva@paciente.local;RAFAEL PAIVA;2025-02-13 07:00;50;;realizada;sim;online;;
+rafael.paiva@paciente.local;RAFAEL PAIVA;2025-02-20 07:00;50;;realizada;sim;online;;
+rafael.paiva@paciente.local;RAFAEL PAIVA;2025-03-06 07:00;50;;realizada;sim;online;;
+rafael.paiva@paciente.local;RAFAEL PAIVA;2025-03-13 07:00;50;;realizada;sim;online;;
+rafael.paiva@paciente.local;RAFAEL PAIVA;2025-03-20 07:00;50;;realizada;sim;online;;
+rafael.paiva@paciente.local;RAFAEL PAIVA;2025-03-27 07:00;50;;cancelada;nao;online;;não conectou
+rafael.paiva@paciente.local;RAFAEL PAIVA;2025-04-03 07:00;50;;realizada;sim;online;;
+rafael.paiva@paciente.local;RAFAEL PAIVA;2025-04-10 07:00;50;;realizada;sim;online;;
+rafael.paiva@paciente.local;RAFAEL PAIVA;2025-04-17 07:00;50;;cancelada;nao;online;;não vai fazer a sessão
+rafael.paiva@paciente.local;RAFAEL PAIVA;2025-04-24 07:00;50;;cancelada;nao;online;;não fez a sessão
+rafael.paiva@paciente.local;RAFAEL PAIVA;2025-05-01 07:00;50;;realizada;sim;online;;
+rafael.paiva@paciente.local;RAFAEL PAIVA;2025-05-08 07:00;50;;realizada;sim;online;;
+rafael.paiva@paciente.local;RAFAEL PAIVA;2025-05-15 07:00;50;;realizada;sim;online;;
+rafael.paiva@paciente.local;RAFAEL PAIVA;2025-05-22 07:00;50;;realizada;sim;online;;
+rafael.paiva@paciente.local;RAFAEL PAIVA;2025-05-29 07:00;50;;realizada;sim;online;;
+rafael.paiva@paciente.local;RAFAEL PAIVA;2025-06-05 07:00;50;;realizada;sim;online;;
+rafael.paiva@paciente.local;RAFAEL PAIVA;2025-06-12 07:00;50;;realizada;sim;online;;
+rafael.paiva@paciente.local;RAFAEL PAIVA;2025-06-19 07:00;50;;cancelada;nao;online;;feriado
+rafael.paiva@paciente.local;RAFAEL PAIVA;2025-06-26 07:00;50;;realizada;sim;online;;
+rafael.paiva@paciente.local;RAFAEL PAIVA;2025-07-02 07:00;50;;falta_cobrada;nao;online;;não veio - não cobrar
+rafael.paiva@paciente.local;RAFAEL PAIVA;2025-07-10 07:00;50;;realizada;sim;online;;
+rafael.paiva@paciente.local;RAFAEL PAIVA;2025-07-16 07:00;50;;cancelada;nao;online;;férias
+rafael.paiva@paciente.local;RAFAEL PAIVA;2025-07-24 07:00;50;;falta_cobrada;nao;online;;não fez, não cobrar
+rafael.paiva@paciente.local;RAFAEL PAIVA;2025-07-31 07:00;50;;realizada;sim;online;;
+rafael.paiva@paciente.local;RAFAEL PAIVA;2025-08-07 07:00;50;;cancelada;nao;online;;não fez a sessão
+rafael.paiva@paciente.local;RAFAEL PAIVA;2025-08-12 07:00;50;;realizada;sim;online;;
+rafael.paiva@paciente.local;RAFAEL PAIVA;2025-08-19 07:00;50;;realizada;sim;online;;
+rafael.paiva@paciente.local;RAFAEL PAIVA;2025-08-26 07:00;50;;realizada;sim;online;;
+rafael.paiva@paciente.local;RAFAEL PAIVA;2025-09-02 07:00;50;;falta_cobrada;sim;online;;não fez a sessão, cobrar
+rafael.paiva@paciente.local;RAFAEL PAIVA;2025-09-09 07:00;50;;realizada;sim;online;;
+rafael.paiva@paciente.local;RAFAEL PAIVA;2025-09-16 07:00;50;;cancelada;nao;online;;não fez, avisou no dia
+rafael.paiva@paciente.local;RAFAEL PAIVA;2025-09-23 07:00;50;;realizada;sim;online;;
+rafael.paiva@paciente.local;RAFAEL PAIVA;2025-10-02 07:00;50;;cancelada;nao;online;;não fez, avisou no dia
+rafael.paiva@paciente.local;RAFAEL PAIVA;2025-10-07 07:00;50;;realizada;sim;online;;
+rafael.paiva@paciente.local;RAFAEL PAIVA;2025-10-14 07:00;50;;cancelada;nao;online;;não fez, avisou no dia
+rafael.paiva@paciente.local;RAFAEL PAIVA;2025-10-21 07:00;50;;realizada;sim;online;;
+rafael.paiva@paciente.local;RAFAEL PAIVA;2025-10-28 07:00;50;;cancelada;nao;online;;não fez avisou no dia
+rafael.paiva@paciente.local;RAFAEL PAIVA;2025-11-04 07:00;50;;falta_cobrada;sim;online;;não fez, cobrar
+rafael.paiva@paciente.local;RAFAEL PAIVA;2025-11-13 07:00;50;;realizada;sim;online;;
+rafael.paiva@paciente.local;RAFAEL PAIVA;2025-11-20 07:00;50;;cancelada;nao;online;;feriado
+rafael.paiva@paciente.local;RAFAEL PAIVA;2025-11-27 07:00;50;;realizada;sim;online;;
+rafael.paiva@paciente.local;RAFAEL PAIVA;2025-12-04 07:00;50;;cancelada;nao;online;;não fez, avisou
+rafael.paiva@paciente.local;RAFAEL PAIVA;2025-12-11 07:00;50;;falta_cobrada;nao;online;;não fez. Não cobrar
+rafael.paiva@paciente.local;RAFAEL PAIVA;2025-12-18 07:00;50;;falta_cobrada;nao;online;;não fez, não avisou
+rafael.paiva@paciente.local;RAFAEL PAIVA;2026-01-15 07:00;50;;falta_cobrada;nao;online;;não fez, não cobrar
+rafael.paiva@paciente.local;RAFAEL PAIVA;2026-01-22 07:00;50;;cancelada;nao;online;;
+rafael.paiva@paciente.local;RAFAEL PAIVA;2026-01-29 07:00;50;;realizada;sim;online;;
+rafael.paiva@paciente.local;RAFAEL PAIVA;2026-02-27 07:00;50;;cancelada;nao;online;;eu desmarquei
+raphael.da.dani@paciente.local;RAPHAEL DA DANI;2024-09-28 07:00;50;50,00;realizada;sim;online;;
+raphael.da.dani@paciente.local;RAPHAEL DA DANI;2024-10-05 07:00;50;50,00;realizada;sim;online;;
+raphael.da.dani@paciente.local;RAPHAEL DA DANI;2024-10-12 07:00;50;50,00;realizada;sim;online;;
+raphael.da.dani@paciente.local;RAPHAEL DA DANI;2024-11-12 07:00;50;50,00;realizada;sim;online;;
+raphael.da.dani@paciente.local;RAPHAEL DA DANI;2024-11-26 07:00;50;50,00;realizada;sim;online;;
+raphael.da.dani@paciente.local;RAPHAEL DA DANI;2024-12-17 07:00;50;50,00;realizada;sim;online;;
+raphael.da.dani@paciente.local;RAPHAEL DA DANI;2025-01-07 07:00;50;50,00;realizada;sim;online;;
+raphael.da.dani@paciente.local;RAPHAEL DA DANI;2025-01-14 07:00;50;50,00;realizada;sim;online;;
+raphael.da.dani@paciente.local;RAPHAEL DA DANI;2025-01-28 07:00;50;50,00;realizada;sim;online;;
+roberta@paciente.local;ROBERTA;2025-04-26 07:00;50;;realizada;sim;online;;
+roberta@paciente.local;ROBERTA;2025-05-02 07:00;50;;realizada;sim;online;;
+roberta@paciente.local;ROBERTA;2025-05-17 07:00;50;;realizada;sim;online;;
+roberta@paciente.local;ROBERTA;2025-05-23 07:00;50;;realizada;sim;online;;
+roberta@paciente.local;ROBERTA;2025-06-17 07:00;50;;realizada;sim;online;;
+roberta@paciente.local;ROBERTA;2025-06-28 07:00;50;;realizada;sim;online;;
+roberta@paciente.local;ROBERTA;2025-07-25 07:00;50;;realizada;sim;online;;
+roberta@paciente.local;ROBERTA;2025-08-16 07:00;50;;realizada;sim;online;;
+rodrigo@paciente.local;RODRIGO;2026-03-16 07:00;50;80,00;realizada;sim;online;;não cobrar
+rodrigo@paciente.local;RODRIGO;2026-03-23 07:00;50;80,00;realizada;sim;online;;pagou 80,00 em 24/03
+rodrigo@paciente.local;RODRIGO;2026-03-30 07:00;50;80,00;realizada;sim;online;;pagou 80,00
+rodrigo@paciente.local;RODRIGO;2026-04-06 07:00;50;80,00;realizada;sim;online;;pagou 80,00
+rodrigo@paciente.local;RODRIGO;2026-04-13 07:00;50;80,00;realizada;sim;online;;pagou 80,00
+roseli@paciente.local;ROSELI;2025-05-21 07:00;50;80,01;falta_cobrada;nao;online;;não fez, não cobrar
+roseli@paciente.local;ROSELI;2025-05-28 07:00;50;80,01;realizada;sim;online;;
+roseli@paciente.local;ROSELI;2025-06-04 07:00;50;80,01;realizada;sim;online;;
+roseli@paciente.local;ROSELI;2025-06-11 07:00;50;80,01;realizada;sim;online;;
+roseli@paciente.local;ROSELI;2025-06-20 07:00;50;80,01;realizada;sim;online;;
+roseli@paciente.local;ROSELI;2025-06-25 07:00;50;80,01;realizada;sim;online;;
+roseli@paciente.local;ROSELI;2025-07-02 07:00;50;80,01;realizada;sim;online;;
+roseli@paciente.local;ROSELI;2025-07-09 07:00;50;80,01;cancelada;nao;online;;férias
+roseli@paciente.local;ROSELI;2025-07-16 07:00;50;80,01;cancelada;nao;online;;férias
+roseli@paciente.local;ROSELI;2025-07-22 07:00;50;80,01;realizada;sim;online;;
+roseli@paciente.local;ROSELI;2025-07-30 07:00;50;80,01;realizada;sim;online;;
+roseli@paciente.local;ROSELI;2025-08-06 07:00;50;80,01;realizada;sim;online;;
+roseli@paciente.local;ROSELI;2025-08-13 07:00;50;80,01;cancelada;nao;online;;não fez, avisou
+roseli@paciente.local;ROSELI;2025-08-20 07:00;50;80,01;realizada;sim;online;;
+roseli@paciente.local;ROSELI;2025-08-27 07:00;50;80,01;realizada;sim;online;;
+roseli@paciente.local;ROSELI;2025-09-03 07:00;50;80,01;realizada;sim;online;;
+roseli@paciente.local;ROSELI;2025-09-10 07:00;50;80,01;realizada;sim;online;;
+roseli@paciente.local;ROSELI;2025-09-17 07:00;50;80,01;realizada;sim;online;;
+roseli@paciente.local;ROSELI;2025-09-24 07:00;50;80,01;cancelada;nao;online;;não fizemos, eu desmarquei
+roseli@paciente.local;ROSELI;2025-10-01 07:00;50;80,01;realizada;sim;online;;
+roseli@paciente.local;ROSELI;2025-10-08 07:00;50;80,01;realizada;sim;online;;
+roseli@paciente.local;ROSELI;2025-10-15 07:00;50;80,01;falta_cobrada;nao;online;;não fez, não cobrar
+roseli@paciente.local;ROSELI;2025-10-22 07:00;50;80,01;realizada;sim;online;;
+roseli@paciente.local;ROSELI;2025-10-29 07:00;50;80,01;realizada;sim;online;;
+roseli@paciente.local;ROSELI;2025-11-05 07:00;50;80,01;realizada;sim;online;;
+roseli@paciente.local;ROSELI;2025-11-12 07:00;50;80,01;realizada;sim;online;;
+roseli@paciente.local;ROSELI;2025-11-20 07:00;50;80,01;falta_cobrada;nao;online;;não fez, não cobrar
+roseli@paciente.local;ROSELI;2025-11-26 07:00;50;80,01;cancelada;nao;online;;não fez, avisou
+roseli@paciente.local;ROSELI;2025-12-03 07:00;50;80,01;realizada;sim;online;;
+roseli@paciente.local;ROSELI;2025-12-10 07:00;50;80,01;realizada;sim;online;;
+roseli@paciente.local;ROSELI;2025-12-17 07:00;50;80,01;falta_cobrada;nao;online;;não fez, avisou, não cobrar
+roseli@paciente.local;ROSELI;2026-01-21 07:00;50;80,01;realizada;sim;online;;
+roseli@paciente.local;ROSELI;2026-01-28 07:00;50;80,01;realizada;sim;online;;
+roseli@paciente.local;ROSELI;2026-02-04 07:00;50;80,01;realizada;sim;online;;
+roseli@paciente.local;ROSELI;2026-02-11 07:00;50;80,01;cancelada;nao;online;;não fez
+roseli@paciente.local;ROSELI;2026-02-18 07:00;50;80,01;falta_cobrada;nao;online;;0 não cobrar
+roseli@paciente.local;ROSELI;2026-02-25 07:00;50;80,01;realizada;sim;online;;
+roseli@paciente.local;ROSELI;2026-03-04 07:00;50;80,01;realizada;sim;online;;
+roseli@paciente.local;ROSELI;2026-03-17 07:00;50;80,01;realizada;sim;online;;
+roseli@paciente.local;ROSELI;2026-03-25 07:00;50;80,01;realizada;sim;online;;
+roseli@paciente.local;ROSELI;2026-04-01 07:00;50;80,01;realizada;sim;online;;
+roseli@paciente.local;ROSELI;2026-04-08 07:00;50;80,01;cancelada;nao;online;;desmarcou
+roseli@paciente.local;ROSELI;2026-04-15 07:00;50;80,01;realizada;sim;online;;
+roseli@paciente.local;ROSELI;2026-04-22 07:00;50;80,01;realizada;sim;online;;
+roseli@paciente.local;ROSELI;2026-04-29 07:00;50;80,01;realizada;sim;online;;
+roseli@paciente.local;ROSELI;2026-05-06 07:00;50;80,01;falta_cobrada;nao;online;;não cobrar
+roseli@paciente.local;ROSELI;2026-05-13 07:00;50;80,01;realizada;sim;online;;
+roseli@paciente.local;ROSELI;2026-05-21 07:00;50;80,01;falta_cobrada;nao;online;;não fez, não cobrar
+roseli@paciente.local;ROSELI;2026-05-27 07:00;50;80,01;realizada;sim;online;;
+roseli@paciente.local;ROSELI;2026-06-03 07:00;50;80,01;realizada;sim;online;;
+roseli@paciente.local;ROSELI;2026-06-10 07:00;50;80,01;cancelada;nao;online;;
+roseli@paciente.local;ROSELI;2026-06-17 07:00;50;80,01;cancelada;nao;online;;
+roseli@paciente.local;ROSELI;2026-06-24 07:00;50;80,01;cancelada;nao;online;;
+rosilene.lima@paciente.local;ROSILENE LIMA;2025-01-20 07:00;50;;realizada;sim;online;;
+rosilene.lima@paciente.local;ROSILENE LIMA;2025-01-27 07:00;50;;realizada;sim;online;;
+rosilene.lima@paciente.local;ROSILENE LIMA;2025-07-22 07:00;50;;realizada;sim;online;;
+rosilene.lima@paciente.local;ROSILENE LIMA;2025-07-29 07:00;50;;realizada;sim;online;;
+rosilene.lima@paciente.local;ROSILENE LIMA;2025-08-05 07:00;50;;realizada;sim;online;;
+rosilene.lima@paciente.local;ROSILENE LIMA;2025-08-12 07:00;50;;cancelada;nao;online;;não fará, avisou
+rosilene.lima@paciente.local;ROSILENE LIMA;2025-08-19 07:00;50;;realizada;sim;online;;
+rosilene.lima@paciente.local;ROSILENE LIMA;2025-08-26 07:00;50;;realizada;sim;online;;
+rosilene.lima@paciente.local;ROSILENE LIMA;2025-09-02 07:00;50;;realizada;sim;online;;
+rosilene.lima@paciente.local;ROSILENE LIMA;2025-09-09 07:00;50;;realizada;sim;online;;
+rosilene.lima@paciente.local;ROSILENE LIMA;2025-09-16 07:00;50;;realizada;sim;online;;
+rosilene.lima@paciente.local;ROSILENE LIMA;2025-09-23 07:00;50;;realizada;sim;online;;
+rosilene.lima@paciente.local;ROSILENE LIMA;2025-09-30 07:00;50;;realizada;sim;online;;
+rosilene.lima@paciente.local;ROSILENE LIMA;2025-10-07 07:00;50;;realizada;sim;online;;
+rosilene.lima@paciente.local;ROSILENE LIMA;2025-10-14 07:00;50;;realizada;sim;online;;
+rosilene.lima@paciente.local;ROSILENE LIMA;2025-10-21 07:00;50;;realizada;sim;online;;
+rosilene.lima@paciente.local;ROSILENE LIMA;2025-10-28 07:00;50;;realizada;sim;online;;
+rosilene.lima@paciente.local;ROSILENE LIMA;2025-11-04 07:00;50;;realizada;sim;online;;
+rosilene.lima@paciente.local;ROSILENE LIMA;2025-11-11 07:00;50;;realizada;sim;online;;
+rosilene.lima@paciente.local;ROSILENE LIMA;2025-11-18 07:00;50;;realizada;sim;online;;
+rosilene.lima@paciente.local;ROSILENE LIMA;2025-11-25 07:00;50;;realizada;sim;online;;
+rosilene.lima@paciente.local;ROSILENE LIMA;2025-12-02 07:00;50;;realizada;sim;online;;
+rosilene.lima@paciente.local;ROSILENE LIMA;2025-12-09 07:00;50;;realizada;sim;online;;
+rosilene.lima@paciente.local;ROSILENE LIMA;2026-02-03 07:00;50;;realizada;sim;online;;
+rosilene.lima@paciente.local;ROSILENE LIMA;2026-02-10 07:00;50;;realizada;sim;online;;
+rosilene.lima@paciente.local;ROSILENE LIMA;2026-02-24 07:00;50;;realizada;sim;online;;
+rosilene.lima@paciente.local;ROSILENE LIMA;2026-03-03 07:00;50;;realizada;sim;online;;
+rosilene.lima@paciente.local;ROSILENE LIMA;2026-03-10 07:00;50;;realizada;sim;online;;
+rosilene.lima@paciente.local;ROSILENE LIMA;2026-03-17 07:00;50;;realizada;sim;online;;
+samira@paciente.local;SAMIRA;2024-09-07 07:00;50;50,00;realizada;sim;online;;
+samira@paciente.local;SAMIRA;2024-09-14 07:00;50;50,00;realizada;sim;online;;
+samira@paciente.local;SAMIRA;2024-09-21 07:00;50;50,00;realizada;sim;online;;
+samira@paciente.local;SAMIRA;2024-09-26 07:00;50;50,00;realizada;sim;online;;
+samira@paciente.local;SAMIRA;2024-10-03 07:00;50;50,00;realizada;sim;online;;
+samira@paciente.local;SAMIRA;2024-10-10 07:00;50;50,00;realizada;sim;online;;
+samira@paciente.local;SAMIRA;2024-10-17 07:00;50;50,00;realizada;sim;online;;
+samira@paciente.local;SAMIRA;2024-10-24 07:00;50;50,00;realizada;sim;online;;
+samira@paciente.local;SAMIRA;2024-10-31 07:00;50;50,00;realizada;sim;online;;
+samira@paciente.local;SAMIRA;2024-11-07 07:00;50;50,00;realizada;sim;online;;
+samira@paciente.local;SAMIRA;2024-11-14 07:00;50;50,00;realizada;sim;online;;
+samira@paciente.local;SAMIRA;2024-11-21 07:00;50;50,00;realizada;sim;online;;
+sandra@paciente.local;SANDRA;2024-08-13 07:00;50;30,00;realizada;sim;online;;
+sandra@paciente.local;SANDRA;2024-08-20 07:00;50;30,00;realizada;sim;online;;
+sandra@paciente.local;SANDRA;2024-08-27 07:00;50;30,00;realizada;sim;online;;
+sandra@paciente.local;SANDRA;2024-09-03 07:00;50;30,00;realizada;sim;online;;
+sandra@paciente.local;SANDRA;2024-09-10 07:00;50;30,00;realizada;sim;online;;
+sandra@paciente.local;SANDRA;2024-09-17 07:00;50;30,00;realizada;sim;online;;
+sandra@paciente.local;SANDRA;2024-09-24 07:00;50;30,00;realizada;sim;online;;
+sandra@paciente.local;SANDRA;2024-10-01 07:00;50;30,00;realizada;sim;online;;
+sandra@paciente.local;SANDRA;2024-10-08 07:00;50;30,00;realizada;sim;online;;
+sandra@paciente.local;SANDRA;2024-10-15 07:00;50;30,00;realizada;sim;online;;
+sandra@paciente.local;SANDRA;2024-10-22 07:00;50;30,00;realizada;sim;online;;
+sandra@paciente.local;SANDRA;2024-10-29 07:00;50;30,00;realizada;sim;online;;
+sandra@paciente.local;SANDRA;2024-11-05 07:00;50;30,00;realizada;sim;online;;
+sandra@paciente.local;SANDRA;2024-11-12 07:00;50;30,00;realizada;sim;online;;
+sandra@paciente.local;SANDRA;2024-11-19 07:00;50;30,00;realizada;sim;online;;
+sandra@paciente.local;SANDRA;2026-11-26 07:00;50;30,00;cancelada;nao;online;;não fará a sessão
+savya@paciente.local;SAVYA;2025-10-25 07:00;50;;realizada;sim;online;;
+savya@paciente.local;SAVYA;2025-10-29 07:00;50;;realizada;sim;online;;
+savya@paciente.local;SAVYA;2025-11-03 07:00;50;;realizada;sim;online;;
+savya@paciente.local;SAVYA;2025-11-15 07:00;50;;cancelada;nao;online;;não fez, avisou
+savya@paciente.local;SAVYA;2025-11-22 07:00;50;;realizada;sim;online;;
+savya@paciente.local;SAVYA;2025-12-03 07:00;50;;realizada;sim;online;;
+savya@paciente.local;SAVYA;2025-12-08 07:00;50;;realizada;sim;online;;
+savya@paciente.local;SAVYA;2025-12-16 07:00;50;;falta_cobrada;sim;online;;cobrar
+savya@paciente.local;SAVYA;2026-01-20 07:00;50;;realizada;sim;online;;
+savya@paciente.local;SAVYA;2026-01-24 07:00;50;;realizada;sim;online;;
+savya@paciente.local;SAVYA;2026-02-07 07:00;50;;falta_cobrada;nao;online;;não cobrar
+savya@paciente.local;SAVYA;2026-02-14 07:00;50;;cancelada;nao;online;;carnaval
+savya@paciente.local;SAVYA;2026-02-18 07:00;50;;realizada;sim;online;;
+savya@paciente.local;SAVYA;2026-02-28 07:00;50;;realizada;sim;online;;
+savya@paciente.local;SAVYA;2026-03-07 07:00;50;;falta_cobrada;nao;online;;não fez, não cobrar
+suellen@paciente.local;SUELLEN;2024-07-11 07:00;50;50,00;realizada;sim;online;;
+suellen@paciente.local;SUELLEN;2024-07-18 07:00;50;50,00;realizada;sim;online;;
+suellen@paciente.local;SUELLEN;2024-07-25 07:00;50;50,00;realizada;sim;online;;
+suellen@paciente.local;SUELLEN;2024-08-01 07:00;50;50,00;realizada;sim;online;;
+suellen@paciente.local;SUELLEN;2024-08-08 07:00;50;50,00;realizada;sim;online;;
+suellen@paciente.local;SUELLEN;2024-08-15 07:00;50;50,00;realizada;sim;online;;
+suellen@paciente.local;SUELLEN;2024-08-22 07:00;50;50,00;realizada;sim;online;;
+suellen@paciente.local;SUELLEN;2024-08-29 07:00;50;50,00;realizada;sim;online;;
+suellen@paciente.local;SUELLEN;2024-09-05 07:00;50;50,00;realizada;sim;online;;
+suellen@paciente.local;SUELLEN;2024-09-12 07:00;50;50,00;realizada;sim;online;;
+suellen@paciente.local;SUELLEN;2024-09-19 07:00;50;50,00;realizada;sim;online;;
+suellen@paciente.local;SUELLEN;2024-09-26 07:00;50;50,00;realizada;sim;online;;
+suellen@paciente.local;SUELLEN;2024-10-03 07:00;50;50,00;realizada;sim;online;;
+suellen@paciente.local;SUELLEN;2024-10-10 07:00;50;50,00;realizada;sim;online;;
+suellen@paciente.local;SUELLEN;2024-10-17 07:00;50;50,00;realizada;sim;online;;
+suellen@paciente.local;SUELLEN;2024-10-24 07:00;50;50,00;realizada;sim;online;;
+suellen@paciente.local;SUELLEN;2024-11-07 07:00;50;50,00;realizada;sim;online;;
+suellen@paciente.local;SUELLEN;2024-11-14 07:00;50;50,00;realizada;sim;online;;
+suellen@paciente.local;SUELLEN;2024-11-21 07:00;50;50,00;realizada;sim;online;;
+suellen@paciente.local;SUELLEN;2024-11-28 07:00;50;50,00;realizada;sim;online;;
+suellen@paciente.local;SUELLEN;2024-12-05 07:00;50;50,00;realizada;sim;online;;
+suellen@paciente.local;SUELLEN;2026-10-31 07:00;50;50,00;cancelada;nao;online;;não fará sessão - avisou antes
+suellen.g@paciente.local;SUELLEN G;2025-03-17 07:00;50;;realizada;sim;online;;
+suellen.g@paciente.local;SUELLEN G;2025-03-24 07:00;50;;realizada;sim;online;;
+suellen.g@paciente.local;SUELLEN G;2025-03-31 07:00;50;;realizada;sim;online;;
+suellen.g@paciente.local;SUELLEN G;2025-04-07 07:00;50;;realizada;sim;online;;
+suellen.g@paciente.local;SUELLEN G;2025-04-16 07:00;50;;realizada;sim;online;;
+suellen.g@paciente.local;SUELLEN G;2025-04-23 07:00;50;;realizada;sim;online;;
+suellen.g@paciente.local;SUELLEN G;2025-04-28 07:00;50;;realizada;sim;online;;
+suellen.g@paciente.local;SUELLEN G;2025-05-05 07:00;50;;realizada;sim;online;;
+suellen.g@paciente.local;SUELLEN G;2025-05-12 07:00;50;;realizada;sim;online;;
+suellen.g@paciente.local;SUELLEN G;2025-05-19 07:00;50;;realizada;sim;online;;
+suellen.g@paciente.local;SUELLEN G;2025-05-27 07:00;50;;realizada;sim;online;;
+suellen.g@paciente.local;SUELLEN G;2025-06-02 07:00;50;;cancelada;nao;online;;sumiu
+suellen.g@paciente.local;SUELLEN G;2025-06-09 07:00;50;;realizada;sim;online;;
+suellen.g@paciente.local;SUELLEN G;2025-06-16 07:00;50;;realizada;sim;online;;
+suellen.g@paciente.local;SUELLEN G;2025-06-23 07:00;50;;realizada;sim;online;;
+suellen.g@paciente.local;SUELLEN G;2025-06-30 07:00;50;;realizada;sim;online;;
+suellen.g@paciente.local;SUELLEN G;2025-07-07 07:00;50;;realizada;sim;online;;
+suellen.g@paciente.local;SUELLEN G;2025-07-14 07:00;50;;cancelada;nao;online;;férias
+suellen.g@paciente.local;SUELLEN G;2025-07-21 07:00;50;;cancelada;nao;online;;férias dela
+suellen.g@paciente.local;SUELLEN G;2025-07-30 07:00;50;;cancelada;nao;online;;não fez, avisou
+suellen.g@paciente.local;SUELLEN G;2025-08-04 07:00;50;;realizada;sim;online;;
+suellen.g@paciente.local;SUELLEN G;2025-08-11 07:00;50;;realizada;sim;online;;
+suellen.g@paciente.local;SUELLEN G;2025-08-18 07:00;50;;realizada;sim;online;;
+suellen.g@paciente.local;SUELLEN G;2025-08-25 07:00;50;;realizada;sim;online;;
+suellen.g@paciente.local;SUELLEN G;2025-09-01 07:00;50;;realizada;sim;online;;
+suellen.g@paciente.local;SUELLEN G;2025-09-08 07:00;50;;realizada;sim;online;;
+suellen.g@paciente.local;SUELLEN G;2025-09-15 07:00;50;;realizada;sim;online;;
+suellen.g@paciente.local;SUELLEN G;2025-09-25 07:00;50;;falta_cobrada;sim;online;;não fez, cobrar
+suellen.g@paciente.local;SUELLEN G;2025-09-29 07:00;50;;realizada;sim;online;;
+suellen.g@paciente.local;SUELLEN G;2025-10-06 07:00;50;;realizada;sim;online;;
+suellen.g@paciente.local;SUELLEN G;2025-10-13 07:00;50;;realizada;sim;online;;
+suellen.g@paciente.local;SUELLEN G;2025-10-20 07:00;50;;realizada;sim;online;;
+suellen.g@paciente.local;SUELLEN G;2025-10-27 07:00;50;;realizada;sim;online;;
+suellen.g@paciente.local;SUELLEN G;2025-11-03 07:00;50;;realizada;sim;online;;
+suellen.g@paciente.local;SUELLEN G;2025-11-10 07:00;50;;realizada;sim;online;;
+suellen.g@paciente.local;SUELLEN G;2025-11-17 07:00;50;;realizada;sim;online;;
+suellen.g@paciente.local;SUELLEN G;2025-11-24 07:00;50;;falta_cobrada;nao;online;;não apareceu e não avisou
+suellen.g@paciente.local;SUELLEN G;2025-12-04 07:00;50;;realizada;sim;online;;
+suellen.g@paciente.local;SUELLEN G;2025-12-11 07:00;50;;realizada;sim;online;;
+sonia@paciente.local;SÔNIA;2025-02-06 07:00;50;80,00;realizada;sim;online;;
+sonia@paciente.local;SÔNIA;2025-02-13 07:00;50;80,00;realizada;sim;online;;
+sonia@paciente.local;SÔNIA;2025-02-20 07:00;50;80,00;realizada;sim;online;;
+sonia@paciente.local;SÔNIA;2025-02-27 07:00;50;80,00;cancelada;nao;online;;eu desmarquei
+sonia@paciente.local;SÔNIA;2025-03-03 07:00;50;80,00;realizada;sim;online;;
+sonia@paciente.local;SÔNIA;2025-03-13 07:00;50;80,00;realizada;sim;online;;
+sonia@paciente.local;SÔNIA;2025-03-20 07:00;50;80,00;realizada;sim;online;;
+sonia@paciente.local;SÔNIA;2025-03-27 07:00;50;80,00;realizada;sim;online;;
+sonia@paciente.local;SÔNIA;2025-04-03 07:00;50;80,00;realizada;sim;online;;
+sonia@paciente.local;SÔNIA;2025-04-10 07:00;50;80,00;realizada;sim;online;;
+sonia@paciente.local;SÔNIA;2025-04-17 07:00;50;80,00;realizada;sim;online;;
+sonia@paciente.local;SÔNIA;2025-04-24 07:00;50;80,00;realizada;sim;online;;
+sonia@paciente.local;SÔNIA;2025-04-30 07:00;50;80,00;realizada;sim;online;;
+sonia@paciente.local;SÔNIA;2025-05-09 07:00;50;80,00;realizada;sim;online;;
+sonia@paciente.local;SÔNIA;2025-05-15 07:00;50;80,00;realizada;sim;online;;
+sonia@paciente.local;SÔNIA;2025-05-22 07:00;50;80,00;realizada;sim;online;;
+sonia@paciente.local;SÔNIA;2025-05-29 07:00;50;80,00;realizada;sim;online;;
+sonia@paciente.local;SÔNIA;2025-06-05 07:00;50;80,00;realizada;sim;online;;
+sonia@paciente.local;SÔNIA;2025-06-12 07:00;50;80,00;realizada;sim;online;;
+sonia@paciente.local;SÔNIA;2025-06-19 07:00;50;80,00;cancelada;nao;online;;feriado
+sonia@paciente.local;SÔNIA;2025-06-26 07:00;50;80,00;realizada;sim;online;;
+sonia@paciente.local;SÔNIA;2025-07-04 07:00;50;80,00;realizada;sim;online;;
+sonia@paciente.local;SÔNIA;2025-07-10 07:00;50;80,00;realizada;sim;online;;
+sonia@paciente.local;SÔNIA;2025-07-16 07:00;50;80,00;cancelada;nao;online;;férias
+sonia@paciente.local;SÔNIA;2025-07-24 07:00;50;80,00;realizada;sim;online;;
+sonia@paciente.local;SÔNIA;2025-07-31 07:00;50;80,00;realizada;sim;online;;
+sonia@paciente.local;SÔNIA;2025-08-07 07:00;50;80,00;realizada;sim;online;;
+sonia@paciente.local;SÔNIA;2025-08-14 07:00;50;80,00;realizada;sim;online;;
+sonia@paciente.local;SÔNIA;2025-08-21 07:00;50;80,00;realizada;sim;online;;
+sonia@paciente.local;SÔNIA;2025-08-28 07:00;50;80,00;realizada;sim;online;;
+sonia@paciente.local;SÔNIA;2025-09-04 07:00;50;80,00;cancelada;nao;online;;não fizemos a sessão, avisou
+sonia@paciente.local;SÔNIA;2025-09-11 07:00;50;80,00;realizada;sim;online;;
+sonia@paciente.local;SÔNIA;2025-09-18 07:00;50;80,00;realizada;sim;online;;
+sonia@paciente.local;SÔNIA;2025-09-25 07:00;50;80,00;realizada;sim;online;;
+sonia@paciente.local;SÔNIA;2025-10-02 07:00;50;80,00;cancelada;nao;online;;não fez, avisou
+sonia@paciente.local;SÔNIA;2025-10-09 07:00;50;80,00;realizada;sim;online;;
+sonia@paciente.local;SÔNIA;2025-10-16 07:00;50;80,00;realizada;sim;online;;
+sonia@paciente.local;SÔNIA;2025-10-23 07:00;50;80,00;realizada;sim;online;;
+sonia@paciente.local;SÔNIA;2025-10-30 07:00;50;80,00;falta_cobrada;nao;online;;não fez, não cobrar
+sonia@paciente.local;SÔNIA;2025-11-06 07:00;50;80,00;realizada;sim;online;;
+sonia@paciente.local;SÔNIA;2025-11-13 07:00;50;80,00;realizada;sim;online;;
+sonia@paciente.local;SÔNIA;2026-05-12 07:00;50;80,00;realizada;sim;online;;
+sonia@paciente.local;SÔNIA;2026-05-19 07:00;50;80,00;realizada;sim;online;;
+sonia@paciente.local;SÔNIA;2026-05-26 07:00;50;80,00;realizada;sim;online;;
+sonia@paciente.local;SÔNIA;2026-06-02 07:00;50;80,00;realizada;sim;online;;
+sonia@paciente.local;SÔNIA;2026-06-09 07:00;50;80,00;cancelada;nao;online;;
+sonia@paciente.local;SÔNIA;2026-06-16 07:00;50;80,00;cancelada;nao;online;;
+sonia@paciente.local;SÔNIA;2026-06-23 07:00;50;80,00;cancelada;nao;online;;
+sonia@paciente.local;SÔNIA;2026-06-30 07:00;50;80,00;cancelada;nao;online;;
+tadeu@paciente.local;TADEU;2024-09-05 07:00;50;50,00;realizada;sim;online;;
+tadeu@paciente.local;TADEU;2024-09-10 07:00;50;50,00;realizada;sim;online;;
+tadeu@paciente.local;TADEU;2024-09-12 07:00;50;50,00;realizada;sim;online;;
+tadeu@paciente.local;TADEU;2024-09-17 07:00;50;50,00;realizada;sim;online;;
+tadeu@paciente.local;TADEU;2024-09-19 07:00;50;50,00;realizada;sim;online;;
+tadeu@paciente.local;TADEU;2024-09-24 07:00;50;50,00;realizada;sim;online;;
+tadeu@paciente.local;TADEU;2024-09-26 07:00;50;50,00;realizada;sim;online;;
+tadeu@paciente.local;TADEU;2024-10-01 07:00;50;50,00;realizada;sim;online;;
+tadeu@paciente.local;TADEU;2024-10-03 07:00;50;50,00;realizada;sim;online;;
+tadeu@paciente.local;TADEU;2024-10-17 07:00;50;50,00;realizada;sim;online;;
+tadeu@paciente.local;TADEU;2024-10-22 07:00;50;50,00;realizada;sim;online;;
+tadeu@paciente.local;TADEU;2026-10-08 07:00;50;50,00;cancelada;nao;online;;eu desmarquei
+tadeu@paciente.local;TADEU;2026-10-10 07:00;50;50,00;cancelada;nao;online;;ele não pode conectar
+tadeu@paciente.local;TADEU;2026-10-15 07:00;50;50,00;cancelada;nao;online;;ele não pode conectar
+thais@paciente.local;THAIS;2025-02-04 07:00;50;50,00;realizada;sim;online;;
+thais@paciente.local;THAIS;2025-02-11 07:00;50;50,00;realizada;sim;online;;
+thais@paciente.local;THAIS;2025-02-18 07:00;50;50,00;realizada;sim;online;;
+thais@paciente.local;THAIS;2025-02-25 07:00;50;50,00;realizada;sim;online;;
+thalia@paciente.local;THALIA;2025-01-06 07:00;50;80,00;realizada;sim;online;;
+thalia@paciente.local;THALIA;2025-01-30 07:00;50;80,00;realizada;sim;online;;
+thalia@paciente.local;THALIA;2025-02-06 07:00;50;80,00;realizada;sim;online;;
+thalia@paciente.local;THALIA;2025-02-13 07:00;50;80,00;realizada;sim;online;;
+thalia@paciente.local;THALIA;2025-02-20 07:00;50;80,00;realizada;sim;online;;
+thalia@paciente.local;THALIA;2025-03-06 07:00;50;80,00;realizada;sim;online;;
+thalia@paciente.local;THALIA;2025-03-13 07:00;50;80,00;realizada;sim;online;;
+thalia@paciente.local;THALIA;2025-03-20 07:00;50;80,00;realizada;sim;online;;
+thalia@paciente.local;THALIA;2025-03-27 07:00;50;80,00;realizada;sim;online;;
+thalia@paciente.local;THALIA;2025-04-10 07:00;50;80,00;realizada;sim;online;;
+thalia@paciente.local;THALIA;2025-04-17 07:00;50;80,00;realizada;sim;online;;
+thalia@paciente.local;THALIA;2025-05-01 07:00;50;80,00;realizada;sim;online;;
+thalia@paciente.local;THALIA;2026-02-27 07:00;50;80,00;cancelada;nao;online;;ela desmarcou
+thamys@paciente.local;THAMYS;2025-03-12 07:00;50;80,00;realizada;sim;online;;pagou 80,00
+thamys@paciente.local;THAMYS;2025-03-18 07:00;50;80,00;realizada;sim;online;;pagou 80,00
+thamys@paciente.local;THAMYS;2025-03-26 07:00;50;80,00;realizada;sim;online;;pagou 80,00
+thamys@paciente.local;THAMYS;2025-04-01 07:00;50;80,00;realizada;sim;online;;pagou 80,00
+thamys@paciente.local;THAMYS;2025-04-22 07:00;50;80,00;realizada;sim;online;;pagou 80,00
+thamys@paciente.local;THAMYS;2025-04-29 07:00;50;80,00;realizada;sim;online;;pagou 80,00
+thamys@paciente.local;THAMYS;2025-05-05 07:00;50;90,00;falta_cobrada;nao;online;;não compareceu  - avisou no dia
+thamys@paciente.local;THAMYS;2025-05-13 07:00;50;90,00;falta_cobrada;nao;online;;não compareceu  - avisou no dia
+thamys@paciente.local;THAMYS;2025-05-20 07:00;50;80,00;realizada;sim;online;;pagou 80,00
+thamys@paciente.local;THAMYS;2025-05-27 07:00;50;80,00;realizada;sim;online;;pagou 80,00
+thamys@paciente.local;THAMYS;2025-06-03 07:00;50;90,00;falta_cobrada;nao;online;;não compareceu - avisou no dia
+thamys@paciente.local;THAMYS;2025-06-10 07:00;50;80,00;realizada;sim;online;;pagou 80,00
+thamys@paciente.local;THAMYS;2025-06-17 07:00;50;80,00;realizada;sim;online;;pagou 80,00
+thamys@paciente.local;THAMYS;2025-06-24 07:00;50;80,00;realizada;sim;online;;pagou 80,00
+thamys@paciente.local;THAMYS;2025-07-01 07:00;50;80,00;realizada;sim;online;;pagou 80,00
+thamys@paciente.local;THAMYS;2025-07-08 07:00;50;90,00;cancelada;nao;online;;faltou
+thamys@paciente.local;THAMYS;2025-07-15 07:00;50;90,00;cancelada;nao;online;;minhas férias
+thamys@paciente.local;THAMYS;2025-07-22 07:00;50;90,00;cancelada;nao;online;;férias dela
+thamys@paciente.local;THAMYS;2025-07-29 07:00;50;90,00;realizada;sim;online;;
+thamys@paciente.local;THAMYS;2025-08-05 07:00;50;160,00;realizada;sim;online;;pagou 160 em 04/08
+thamys@paciente.local;THAMYS;2025-08-12 07:00;50;80,00;realizada;sim;online;;pagou 80,00 em 14/08
+thamys@paciente.local;THAMYS;2025-08-26 07:00;50;80,00;realizada;sim;online;;pagou 80,00 em 26/08
+thamys@paciente.local;THAMYS;2025-09-02 07:00;50;80,00;realizada;sim;online;;pagou 80,00
+thamys@paciente.local;THAMYS;2025-09-09 07:00;50;80,00;realizada;sim;online;;pagou 80,00
+thamys@paciente.local;THAMYS;2025-09-16 07:00;50;90,00;cancelada;nao;online;;não fez a sessão, avisou
+thamys@paciente.local;THAMYS;2025-09-23 07:00;50;80,00;realizada;sim;online;;pagou 80,00 em 24/09
+thamys@paciente.local;THAMYS;2025-09-30 07:00;50;80,00;realizada;sim;online;;pagou 80,00 em 01/10
+thamys@paciente.local;THAMYS;2025-10-07 07:00;50;80,00;realizada;sim;online;;pagou 80,00
+thamys@paciente.local;THAMYS;2025-10-14 07:00;50;90,00;cancelada;nao;online;;não fez, avisou
+thamys@paciente.local;THAMYS;2025-10-16 07:00;50;80,00;realizada;sim;online;;Pagou 80,00 em 17/10
+thamys@paciente.local;THAMYS;2025-10-21 07:00;50;90,00;cancelada;nao;online;;não fez, avisou
+thamys@paciente.local;THAMYS;2025-10-28 07:00;50;80,00;realizada;sim;online;;pagou 80,00 em 29/10
+thamys@paciente.local;THAMYS;2025-11-04 07:00;50;80,00;realizada;sim;online;;pagou 80,00 em 13/11
+thamys@paciente.local;THAMYS;2025-11-11 07:00;50;90,00;cancelada;nao;online;;avisou, não fez
+thamys@paciente.local;THAMYS;2025-11-18 07:00;50;90,00;cancelada;nao;online;;não fez, avisou no dia
+thamys@paciente.local;THAMYS;2025-11-25 07:00;50;80,00;realizada;sim;online;;pagou 80,00
+thamys@paciente.local;THAMYS;2025-12-02 07:00;50;80,00;realizada;sim;online;;pagou 80,00
+thamys@paciente.local;THAMYS;2025-12-09 07:00;50;90,00;cancelada;nao;online;;não fez, avisou
+thamys@paciente.local;THAMYS;2026-01-22 07:00;50;80,00;realizada;sim;online;;pagou 80,00
+thamys@paciente.local;THAMYS;2026-01-27 07:00;50;80,00;realizada;sim;online;;pagou 80,00
+thamys@paciente.local;THAMYS;2026-02-03 07:00;50;80,00;realizada;sim;online;;pagou 80,00 em 06/02
+thamys@paciente.local;THAMYS;2026-02-10 07:00;50;80,00;realizada;sim;online;;pagou 80,00
+thamys@paciente.local;THAMYS;2026-02-24 07:00;50;80,00;realizada;sim;online;;pagou 80,00
+thamys@paciente.local;THAMYS;2026-03-10 07:00;50;80,00;realizada;sim;online;;pagou 80,00 em 11/03
+thamys@paciente.local;THAMYS;2026-03-17 07:00;50;80,00;realizada;sim;online;;pagou 80,00 em 18/03
+thamys@paciente.local;THAMYS;2026-03-30 07:00;50;80,00;realizada;sim;online;;pagou 80,00 em 01/04
+thamys@paciente.local;THAMYS;2026-04-06 07:00;50;90,00;realizada;sim;online;;pagou 90,00 em 08/04
+thamys@paciente.local;THAMYS;2026-04-13 07:00;50;90,00;realizada;sim;online;;pagou 90,00 em 16/04
+thamys@paciente.local;THAMYS;2026-04-28 07:00;50;90,00;realizada;sim;online;;pagou 90,00 em 07/05
+thamys@paciente.local;THAMYS;2026-05-04 07:00;50;90,00;realizada;sim;online;;pagou 90,00 em 07/05
+thamys@paciente.local;THAMYS;2026-05-11 07:00;50;90,00;realizada;sim;online;;pagou 90,00 em 18/05
+thamys@paciente.local;THAMYS;2026-05-18 07:00;50;90,00;realizada;sim;online;;pagou 90,00 em 21/05
+thamys@paciente.local;THAMYS;2026-05-25 07:00;50;90,00;realizada;sim;online;;
+vinicius@paciente.local;VINÍCIUS;2024-09-11 07:00;50;80,00;realizada;sim;online;;
+vinicius@paciente.local;VINÍCIUS;2024-09-18 07:00;50;80,00;realizada;sim;online;;
+vinicius@paciente.local;VINÍCIUS;2024-09-25 07:00;50;80,00;realizada;sim;online;;
+vinicius@paciente.local;VINÍCIUS;2024-10-02 07:00;50;80,00;realizada;sim;online;;
+vinicius@paciente.local;VINÍCIUS;2024-10-09 07:00;50;80,00;realizada;sim;online;;
+vinicius@paciente.local;VINÍCIUS;2024-10-16 07:00;50;80,00;realizada;sim;online;;
+vinicius@paciente.local;VINÍCIUS;2024-10-23 07:00;50;80,00;realizada;sim;online;;
+vinicius@paciente.local;VINÍCIUS;2024-10-30 07:00;50;80,00;realizada;sim;online;;
+vinicius@paciente.local;VINÍCIUS;2026-06-05 07:00;50;80,00;cancelada;nao;online;;
+vinicius@paciente.local;VINÍCIUS;2026-06-11 07:00;50;80,00;cancelada;nao;online;;
+vinicius@paciente.local;VINÍCIUS;2026-06-18 07:00;50;80,00;cancelada;nao;online;;
+vinicius@paciente.local;VINÍCIUS;2026-06-25 07:00;50;80,00;cancelada;nao;online;;
+yasmin@paciente.local;YASMIN;2025-05-21 07:00;50;80,01;realizada;sim;online;;
+yasmin@paciente.local;YASMIN;2025-05-28 07:00;50;80,01;falta_cobrada;nao;online;;NÃO FEZ, NÃO COBRAR
+yasmin@paciente.local;YASMIN;2025-06-04 07:00;50;80,01;realizada;sim;online;;
+yasmin@paciente.local;YASMIN;2025-06-11 07:00;50;80,01;realizada;sim;online;;
+yasmin@paciente.local;YASMIN;2025-06-18 07:00;50;80,01;realizada;sim;online;;
+yasmin@paciente.local;YASMIN;2025-06-25 07:00;50;80,01;realizada;sim;online;;
+yasmin@paciente.local;YASMIN;2025-07-02 07:00;50;80,01;realizada;sim;online;;
+yasmin@paciente.local;YASMIN;2025-07-09 07:00;50;80,01;cancelada;nao;online;;não consegue conectar - não descontar
+yasmin@paciente.local;YASMIN;2025-07-16 07:00;50;80,01;cancelada;nao;online;;férias
+yasmin@paciente.local;YASMIN;2025-07-23 07:00;50;80,01;realizada;sim;online;;
+yasmin@paciente.local;YASMIN;2025-07-30 07:00;50;80,01;realizada;sim;online;;
+yasmin@paciente.local;YASMIN;2025-08-06 07:00;50;80,01;cancelada;nao;online;;não fez, avisou no dia
+yasmin@paciente.local;YASMIN;2025-08-13 07:00;50;80,01;realizada;sim;online;;
+yasmin@paciente.local;YASMIN;2025-08-20 07:00;50;80,01;realizada;sim;online;;
+yasmin@paciente.local;YASMIN;2025-08-27 07:00;50;80,01;realizada;sim;online;;
+yasmin@paciente.local;YASMIN;2025-09-03 07:00;50;80,01;realizada;sim;online;;
+yasmin@paciente.local;YASMIN;2025-09-10 07:00;50;80,01;realizada;sim;online;;
+yasmin@paciente.local;YASMIN;2025-09-17 07:00;50;80,01;realizada;sim;online;;
+yasmin@paciente.local;YASMIN;2025-09-24 07:00;50;80,01;cancelada;nao;online;;não fizemos, eu desmarquei
+yasmin@paciente.local;YASMIN;2025-10-01 07:00;50;80,01;cancelada;nao;online;;
+yasmin@paciente.local;YASMIN;2025-10-06 07:00;50;80,01;realizada;sim;online;;
+yasmin@paciente.local;YASMIN;2025-10-13 07:00;50;80,01;realizada;sim;online;;
+yasmin@paciente.local;YASMIN;2025-10-20 07:00;50;80,01;falta_cobrada;sim;online;;não fez, cobrar
+yasmin@paciente.local;YASMIN;2025-10-27 07:00;50;80,01;realizada;sim;online;;
+yasmin@paciente.local;YASMIN;2025-11-03 07:00;50;80,01;cancelada;nao;online;;não fez, avisou
+yasmin@paciente.local;YASMIN;2025-11-10 07:00;50;80,01;realizada;sim;online;;
+yasmin@paciente.local;YASMIN;2025-11-17 07:00;50;80,01;realizada;sim;online;;
+yasmin@paciente.local;YASMIN;2025-11-24 07:00;50;80,01;realizada;sim;online;;
+yasmin@paciente.local;YASMIN;2025-12-01 07:00;50;80,01;realizada;sim;online;;
+yasmin@paciente.local;YASMIN;2025-12-08 07:00;50;80,01;cancelada;nao;online;;não vai fazer, avisou
+yasmin@paciente.local;YASMIN;2025-12-16 07:00;50;80,01;realizada;sim;online;;
+yasmin@paciente.local;YASMIN;2025-12-22 07:00;50;80,01;realizada;sim;online;;
+yasmin@paciente.local;YASMIN;2026-01-12 07:00;50;80,01;realizada;sim;online;;
+yasmin@paciente.local;YASMIN;2026-01-19 07:00;50;80,01;realizada;sim;online;;
+yasmin@paciente.local;YASMIN;2026-01-26 07:00;50;80,01;realizada;sim;online;;
+yasmin@paciente.local;YASMIN;2026-02-09 07:00;50;80,01;realizada;sim;online;;
+yasmin@paciente.local;YASMIN;2026-02-16 07:00;50;80,01;cancelada;nao;online;;carnaval
+yasmin@paciente.local;YASMIN;2026-02-26 07:00;50;80,01;realizada;sim;online;;
+yasmin@paciente.local;YASMIN;2026-03-02 07:00;50;80,01;realizada;sim;online;;
+yasmin@paciente.local;YASMIN;2026-03-09 07:00;50;80,01;realizada;sim;online;;
+yasmin@paciente.local;YASMIN;2026-03-16 07:00;50;80,01;realizada;sim;online;;
+yasmin@paciente.local;YASMIN;2026-03-23 07:00;50;80,01;realizada;sim;online;;
+yasmin@paciente.local;YASMIN;2026-03-30 07:00;50;80,01;cancelada;nao;online;;não fez, avisou no dia
+yasmin@paciente.local;YASMIN;2026-04-06 07:00;50;80,01;cancelada;nao;online;;não fez. Avisou no dia
+yasmin@paciente.local;YASMIN;2026-04-13 07:00;50;80,01;realizada;sim;online;;
+yasmin@paciente.local;YASMIN;2026-04-20 07:00;50;80,01;realizada;sim;online;;
+yasmin@paciente.local;YASMIN;2026-04-27 07:00;50;80,01;realizada;sim;online;;
+yasmin@paciente.local;YASMIN;2026-05-04 07:00;50;80,01;realizada;sim;online;;
+yasmin@paciente.local;YASMIN;2026-05-11 07:00;50;80,01;realizada;sim;online;;
+yasmin@paciente.local;YASMIN;2026-05-18 07:00;50;80,01;realizada;sim;online;;
+yasmin@paciente.local;YASMIN;2026-05-25 07:00;50;80,01;realizada;sim;online;;
+yasmin@paciente.local;YASMIN;2026-06-01 07:00;50;80,01;realizada;sim;online;;
+yasmin@paciente.local;YASMIN;2026-06-08 07:00;50;80,01;cancelada;nao;online;;
+yasmin@paciente.local;YASMIN;2026-06-15 07:00;50;80,01;cancelada;nao;online;;
+yasmin@paciente.local;YASMIN;2026-06-22 07:00;50;80,01;cancelada;nao;online;;
+yasmin@paciente.local;YASMIN;2026-06-29 07:00;50;80,01;cancelada;nao;online;;
+yasmin@paciente.local;YASMIN;2026-09-02 07:00;50;80,01;cancelada;nao;online;;não fará a sessão, avisou
+ian@paciente.local;IAN;2026-05-27 07:00;50;100,00;realizada;sim;online;;
+ian@paciente.local;IAN;2026-06-03 07:00;50;100,00;realizada;sim;online;;
+ian@paciente.local;IAN;2026-06-10 07:00;50;100,00;cancelada;nao;online;;
+ian@paciente.local;IAN;2026-06-17 07:00;50;100,00;cancelada;nao;online;;
+ian@paciente.local;IAN;2026-06-24 07:00;50;100,00;cancelada;nao;online;;
+heitor@paciente.local;HEITOR;2026-05-13 07:00;50;120,00;falta_cobrada;nao;online;;entrevista, não cobrar
+heitor@paciente.local;HEITOR;2026-05-15 07:00;50;120,00;realizada;sim;online;;
+heitor@paciente.local;HEITOR;2026-05-22 07:00;50;120,00;realizada;sim;online;;
+heitor@paciente.local;HEITOR;2026-05-29 07:00;50;120,00;realizada;sim;online;;
+heitor@paciente.local;HEITOR;2026-06-05 07:00;50;120,00;realizada;sim;online;;
+heitor@paciente.local;HEITOR;2026-06-12 07:00;50;120,00;cancelada;nao;online;;
+heitor@paciente.local;HEITOR;2026-06-19 07:00;50;120,00;cancelada;nao;online;;
+heitor@paciente.local;HEITOR;2026-06-26 07:00;50;120,00;cancelada;nao;online;;
+manu@paciente.local;MANU;2026-06-03 07:00;50;100,00;realizada;sim;online;;
+rafa@paciente.local;RAFA;2026-06-03 07:00;50;100,00;cancelada;nao;online;;cortesia
+nutricao@paciente.local;Nutrição;2025-04-18 07:00;50;;realizada;sim;online;;
+nutricao@paciente.local;Nutrição;2025-04-26 07:00;50;;realizada;sim;online;;
+nutricao@paciente.local;Nutrição;2025-05-02 07:00;50;;realizada;sim;online;;
+nutricao@paciente.local;Nutrição;2025-05-23 07:00;50;;realizada;sim;online;;
+nutricao@paciente.local;Nutrição;2025-06-17 07:00;50;;realizada;sim;online;;
+nutricao@paciente.local;Nutrição;2025-06-28 07:00;50;;realizada;sim;online;;
+nutricao@paciente.local;Nutrição;2025-07-25 07:00;50;;realizada;sim;online;;
+pacote@paciente.local;Pacote;2024-10-09 07:00;50;20241009000000,00;realizada;sim;online;;
+pacote@paciente.local;Pacote;2024-10-16 07:00;50;20241009000000,00;realizada;sim;online;;
+pacote@paciente.local;Pacote;2024-10-23 07:00;50;20241009000000,00;realizada;sim;online;;
+pacote@paciente.local;Pacote;2024-10-30 07:00;50;20241009000000,00;realizada;sim;online;;
+pacote@paciente.local;Pacote;2024-11-06 07:00;50;20241009000000,00;realizada;sim;online;;
+pacote@paciente.local;Pacote;2024-11-13 07:00;50;20241009000000,00;realizada;sim;online;;
+pacote@paciente.local;Pacote;2024-12-02 07:00;50;20241009000000,00;realizada;sim;online;;
+pacote@paciente.local;Pacote;2024-12-09 07:00;50;20241009000000,00;realizada;sim;online;;
+pacote@paciente.local;Pacote;2024-12-18 07:00;50;20241009000000,00;realizada;sim;online;;
+pacote@paciente.local;Pacote;2024-12-21 07:00;50;20241009000000,00;realizada;sim;online;;
+pacote@paciente.local;Pacote;2025-01-09 07:00;50;20241009000000,00;realizada;sim;online;;
+pacote@paciente.local;Pacote;2025-01-16 07:00;50;20241009000000,00;realizada;sim;online;;
+pacote@paciente.local;Pacote;2025-01-30 07:00;50;20241009000000,00;realizada;sim;online;;
+pacote@paciente.local;Pacote;2025-02-06 07:00;50;20241009000000,00;realizada;sim;online;;
+pacote@paciente.local;Pacote;2025-02-13 07:00;50;20241009000000,00;realizada;sim;online;;
+pacote@paciente.local;Pacote;2025-02-20 07:00;50;20241009000000,00;realizada;sim;online;;
+pacote@paciente.local;Pacote;2025-03-06 07:00;50;20241009000000,00;realizada;sim;online;;
+pacote@paciente.local;Pacote;2025-03-13 07:00;50;20241009000000,00;realizada;sim;online;;
+pacote@paciente.local;Pacote;2025-03-20 07:00;50;20241009000000,00;realizada;sim;online;;
+pacote@paciente.local;Pacote;2025-03-27 07:00;50;20241009000000,00;realizada;sim;online;;
+pacote@paciente.local;Pacote;2025-04-03 07:00;50;20241009000000,00;realizada;sim;online;;
+pacote@paciente.local;Pacote;2025-04-10 07:00;50;20241009000000,00;realizada;sim;online;;
+pacote@paciente.local;Pacote;2025-04-17 07:00;50;20241009000000,00;realizada;sim;online;;
+pacote@paciente.local;Pacote;2025-04-24 07:00;50;20241009000000,00;realizada;sim;online;;
+pacote@paciente.local;Pacote;2025-05-01 07:00;50;20241009000000,00;realizada;sim;online;;
+pacote@paciente.local;Pacote;2025-05-08 07:00;50;20241009000000,00;realizada;sim;online;;
+pacote@paciente.local;Pacote;2025-05-15 07:00;50;20241009000000,00;realizada;sim;online;;
+pacote@paciente.local;Pacote;2025-05-22 07:00;50;20241009000000,00;realizada;sim;online;;
+pacote@paciente.local;Pacote;2025-05-29 07:00;50;20241009000000,00;realizada;sim;online;;
+pacote@paciente.local;Pacote;2025-06-05 07:00;50;20241009000000,00;realizada;sim;online;;
+pacote@paciente.local;Pacote;2025-06-12 07:00;50;20241009000000,00;realizada;sim;online;;
+pacote@paciente.local;Pacote;2025-06-19 07:00;50;20241009000000,00;realizada;sim;online;;
+pacote@paciente.local;Pacote;2025-06-26 07:00;50;20241009000000,00;realizada;sim;online;;
+pacote@paciente.local;Pacote;2025-07-02 07:00;50;20241009000000,00;realizada;sim;online;;
+pacote@paciente.local;Pacote;2025-07-10 07:00;50;20241009000000,00;realizada;sim;online;;
+pacote@paciente.local;Pacote;2025-07-16 07:00;50;20241009000000,00;realizada;sim;online;;
+pacote@paciente.local;Pacote;2025-07-24 07:00;50;20241009000000,00;realizada;sim;online;;
+pacote@paciente.local;Pacote;2025-07-31 07:00;50;20241009000000,00;realizada;sim;online;;
+pacote@paciente.local;Pacote;2025-08-07 07:00;50;20241009000000,00;realizada;sim;online;;
+pacote@paciente.local;Pacote;2025-08-12 07:00;50;20241009000000,00;realizada;sim;online;;
+pacote@paciente.local;Pacote;2025-08-19 07:00;50;20241009000000,00;realizada;sim;online;;
+pacote@paciente.local;Pacote;2025-08-26 07:00;50;20241009000000,00;realizada;sim;online;;
+pacote@paciente.local;Pacote;2025-09-02 07:00;50;20241009000000,00;realizada;sim;online;;
+pacote@paciente.local;Pacote;2025-09-09 07:00;50;20241009000000,00;realizada;sim;online;;
+pacote@paciente.local;Pacote;2025-09-16 07:00;50;20241009000000,00;realizada;sim;online;;
+pacote@paciente.local;Pacote;2025-09-23 07:00;50;20241009000000,00;realizada;sim;online;;
+pacote@paciente.local;Pacote;2025-10-02 07:00;50;20241009000000,00;realizada;sim;online;;
+pacote@paciente.local;Pacote;2025-10-07 07:00;50;20241009000000,00;realizada;sim;online;;
+pacote@paciente.local;Pacote;2025-10-14 07:00;50;20241009000000,00;realizada;sim;online;;
+pacote@paciente.local;Pacote;2025-10-21 07:00;50;20241009000000,00;realizada;sim;online;;
+pacote@paciente.local;Pacote;2025-10-28 07:00;50;20241009000000,00;realizada;sim;online;;
+pacote@paciente.local;Pacote;2025-11-04 07:00;50;20241009000000,00;realizada;sim;online;;
+pacote@paciente.local;Pacote;2025-11-13 07:00;50;20241009000000,00;realizada;sim;online;;
+pacote@paciente.local;Pacote;2025-11-20 07:00;50;20241009000000,00;realizada;sim;online;;
+pacote@paciente.local;Pacote;2025-11-27 07:00;50;20241009000000,00;realizada;sim;online;;
+pacote@paciente.local;Pacote;2025-12-04 07:00;50;20241009000000,00;realizada;sim;online;;
+pacote@paciente.local;Pacote;2025-12-11 07:00;50;20241009000000,00;realizada;sim;online;;
+pacote@paciente.local;Pacote;2025-12-18 07:00;50;20241009000000,00;realizada;sim;online;;
+pacote@paciente.local;Pacote;2026-01-15 07:00;50;20241009000000,00;realizada;sim;online;;
+pacote@paciente.local;Pacote;2026-01-22 07:00;50;20241009000000,00;realizada;sim;online;;
+pacote@paciente.local;Pacote;2026-01-29 07:00;50;20241009000000,00;realizada;sim;online;;
+pacote@paciente.local;Pacote;2026-02-27 07:00;50;20241009000000,00;cancelada;nao;online;;eu desmarquei
+pacote.fechar.mensal@paciente.local;Pacote - fechar mensal;2025-10-02 07:00;50;20251002000000,00;realizada;sim;online;;
+pacote.fechar.mensal@paciente.local;Pacote - fechar mensal;2025-10-09 07:00;50;20251002000000,00;realizada;sim;online;;
+pacote.fechar.mensal@paciente.local;Pacote - fechar mensal;2025-10-16 07:00;50;20251002000000,00;realizada;sim;online;;
+pacote.fechar.mensal@paciente.local;Pacote - fechar mensal;2025-10-23 07:00;50;20251002000000,00;realizada;sim;online;;
+pacote.fechar.mensal@paciente.local;Pacote - fechar mensal;2025-10-30 07:00;50;20251002000000,00;realizada;sim;online;;
+pacote.fechar.mensal@paciente.local;Pacote - fechar mensal;2025-11-06 07:00;50;20251002000000,00;realizada;sim;online;;
+pacote.fechar.mensal@paciente.local;Pacote - fechar mensal;2025-11-13 07:00;50;20251002000000,00;realizada;sim;online;;
+pacote.fechar.mensal@paciente.local;Pacote - fechar mensal;2025-11-20 07:00;50;20251002000000,00;realizada;sim;online;;
+pacote.fechar.mensal@paciente.local;Pacote - fechar mensal;2025-11-27 07:00;50;20251002000000,00;realizada;sim;online;;
+pacote.fechar.mensal@paciente.local;Pacote - fechar mensal;2025-12-04 07:00;50;20251002000000,00;realizada;sim;online;;
+pacote.fechar.mensal@paciente.local;Pacote - fechar mensal;2025-12-11 07:00;50;20251002000000,00;realizada;sim;online;;
+pacote.fechar.mensal@paciente.local;Pacote - fechar mensal;2025-12-18 07:00;50;20251002000000,00;realizada;sim;online;;
+pacote.4.sessoes@paciente.local;Pacote 4 SESSÕES;2025-05-16 07:00;50;20250704000000,00;realizada;sim;online;;
+pacote.4.sessoes@paciente.local;Pacote 4 SESSÕES;2025-05-23 07:00;50;20250704000000,00;realizada;sim;online;;
+pacote.4.sessoes@paciente.local;Pacote 4 SESSÕES;2025-05-30 07:00;50;20250704000000,00;realizada;sim;online;;
+pacote.4.sessoes@paciente.local;Pacote 4 SESSÕES;2025-06-06 07:00;50;20250704000000,00;realizada;sim;online;;
+pacote.4.sessoes@paciente.local;Pacote 4 SESSÕES;2025-06-13 07:00;50;20250704000000,00;realizada;sim;online;;
+pacote.4.sessoes@paciente.local;Pacote 4 SESSÕES;2025-06-20 07:00;50;20250704000000,00;realizada;sim;online;;
+pacote.4.sessoes@paciente.local;Pacote 4 SESSÕES;2025-06-27 07:00;50;20250704000000,00;realizada;sim;online;;
+pacote.4.sessoes@paciente.local;Pacote 4 SESSÕES;2025-07-04 07:00;50;20250704000000,00;realizada;sim;online;;
+pacote.4.sessoes@paciente.local;Pacote 4 SESSÕES;2025-07-11 07:00;50;20250704000000,00;realizada;sim;online;;
+pacote.4.sessoes@paciente.local;Pacote 4 SESSÕES;2025-07-25 07:00;50;20250704000000,00;realizada;sim;online;;
+pacote.4.sessoes@paciente.local;Pacote 4 SESSÕES;2025-08-01 07:00;50;20250704000000,00;realizada;sim;online;;
+pacote.4.sessoes@paciente.local;Pacote 4 SESSÕES;2025-08-08 07:00;50;20250704000000,00;realizada;sim;online;;
+pacote.4.sessoes@paciente.local;Pacote 4 SESSÕES;2025-08-15 07:00;50;20250704000000,00;realizada;sim;online;;
+pacote.4.sessoes@paciente.local;Pacote 4 SESSÕES;2025-08-22 07:00;50;20250704000000,00;realizada;sim;online;;
+pacote.4.sessoes@paciente.local;Pacote 4 SESSÕES;2025-08-29 07:00;50;20250704000000,00;realizada;sim;online;;
+pacote.4.sessoes@paciente.local;Pacote 4 SESSÕES;2025-09-05 07:00;50;20250704000000,00;realizada;sim;online;;
+pacote.4.sessoes@paciente.local;Pacote 4 SESSÕES;2025-09-12 07:00;50;20250704000000,00;realizada;sim;online;;
+pacote.4.sessoes@paciente.local;Pacote 4 SESSÕES;2025-09-19 07:00;50;20250704000000,00;realizada;sim;online;;
+pacote.4.sessoes@paciente.local;Pacote 4 SESSÕES;2025-09-26 07:00;50;20250704000000,00;realizada;sim;online;;
+pacote.4.sessoes@paciente.local;Pacote 4 SESSÕES;2025-10-03 07:00;50;20250704000000,00;realizada;sim;online;;
+pacote.4.sessoes@paciente.local;Pacote 4 SESSÕES;2025-10-10 07:00;50;20250704000000,00;realizada;sim;online;;
+pacote.4.sessoes@paciente.local;Pacote 4 SESSÕES;2025-10-17 07:00;50;20250704000000,00;realizada;sim;online;;
+pacote.4.sessoes@paciente.local;Pacote 4 SESSÕES;2025-10-24 07:00;50;20250704000000,00;realizada;sim;online;;
+pacote.4.sessoes@paciente.local;Pacote 4 SESSÕES;2025-10-31 07:00;50;20250704000000,00;realizada;sim;online;;
+pacote.4.sessoes@paciente.local;Pacote 4 SESSÕES;2025-11-07 07:00;50;20250704000000,00;realizada;sim;online;;
+pacote.4.sessoes@paciente.local;Pacote 4 SESSÕES;2025-11-14 07:00;50;20250704000000,00;realizada;sim;online;;
+pacote.4.sessoes@paciente.local;Pacote 4 SESSÕES;2025-11-21 07:00;50;20250704000000,00;realizada;sim;online;;
+pacote.4.sessoes@paciente.local;Pacote 4 SESSÕES;2025-11-28 07:00;50;20250704000000,00;realizada;sim;online;;
+pacote.4.sessoes@paciente.local;Pacote 4 SESSÕES;2025-12-05 07:00;50;20250704000000,00;realizada;sim;online;;
+pacote.4.sessoes@paciente.local;Pacote 4 SESSÕES;2025-12-12 07:00;50;20250704000000,00;realizada;sim;online;;
+pacote.4.sessoes@paciente.local;Pacote 4 SESSÕES;2025-12-19 07:00;50;20250704000000,00;realizada;sim;online;;
+pacote.4.sessoes@paciente.local;Pacote 4 SESSÕES;2026-01-16 07:00;50;20250704000000,00;realizada;sim;online;;
+pacote.4.sessoes@paciente.local;Pacote 4 SESSÕES;2026-01-23 07:00;50;20250704000000,00;realizada;sim;online;;
+pacote.4.sessoes@paciente.local;Pacote 4 SESSÕES;2026-02-06 07:00;50;20250704000000,00;realizada;sim;online;;
+pacote.4.sessoes@paciente.local;Pacote 4 SESSÕES;2026-02-13 07:00;50;20250704000000,00;realizada;sim;online;;
+pacote.4.sessoes@paciente.local;Pacote 4 SESSÕES;2026-02-20 07:00;50;20250704000000,00;realizada;sim;online;;
+pacote.4.sessoes@paciente.local;Pacote 4 SESSÕES;2026-02-27 07:00;50;20250704000000,00;realizada;sim;online;;
+pacote.4.sessoes@paciente.local;Pacote 4 SESSÕES;2026-03-06 07:00;50;20250704000000,00;realizada;sim;online;;
+pacote.4.sessoes@paciente.local;Pacote 4 SESSÕES;2026-03-13 07:00;50;20250704000000,00;realizada;sim;online;;
+pacote.quinz@paciente.local;Pacote QUINZ;2025-12-22 07:00;50;20251222000000,00;realizada;sim;online;;
+pacote.quinz@paciente.local;Pacote QUINZ;2026-01-12 07:00;50;20251222000000,00;realizada;sim;online;;
+pacote.quinz@paciente.local;Pacote QUINZ;2026-01-19 07:00;50;20251222000000,00;realizada;sim;online;;
+pacote.quinz@paciente.local;Pacote QUINZ;2026-01-26 07:00;50;20251222000000,00;realizada;sim;online;;
+pacote.quinz@paciente.local;Pacote QUINZ;2026-02-02 07:00;50;20251222000000,00;realizada;sim;online;;
+pacote.quinz@paciente.local;Pacote QUINZ;2026-02-09 07:00;50;20251222000000,00;realizada;sim;online;;
+pacote.quinz@paciente.local;Pacote QUINZ;2026-02-23 07:00;50;20251222000000,00;realizada;sim;online;;
+pacote.quinz@paciente.local;Pacote QUINZ;2026-03-03 07:00;50;20251222000000,00;realizada;sim;online;;
+pacote.quinz@paciente.local;Pacote QUINZ;2026-03-09 07:00;50;20251222000000,00;realizada;sim;online;;
+pacote.quinz@paciente.local;Pacote QUINZ;2026-03-16 07:00;50;20251222000000,00;realizada;sim;online;;
+pacote.mensal@paciente.local;Pacote MENSAL;2026-03-09 07:00;50;20260309000000,00;realizada;sim;online;;
+pacote.mensal@paciente.local;Pacote MENSAL;2026-03-18 07:00;50;20260309000000,00;realizada;sim;online;;
+pacote.mensal@paciente.local;Pacote MENSAL;2026-03-25 07:00;50;20260309000000,00;realizada;sim;online;;
+pacote.mensal@paciente.local;Pacote MENSAL;2026-04-01 07:00;50;20260309000000,00;realizada;sim;online;;
+pacote.mensal@paciente.local;Pacote MENSAL;2026-04-08 07:00;50;20260309000000,00;realizada;sim;online;;
+pacote.mensal@paciente.local;Pacote MENSAL;2026-04-15 07:00;50;20260309000000,00;realizada;sim;online;;
+pacote.mensal@paciente.local;Pacote MENSAL;2026-04-22 07:00;50;20260309000000,00;realizada;sim;online;;
+pacote.mensal@paciente.local;Pacote MENSAL;2026-04-29 07:00;50;20260309000000,00;realizada;sim;online;;
+pacote.mensal@paciente.local;Pacote MENSAL;2026-05-06 07:00;50;20260309000000,00;realizada;sim;online;;
+pacote.mensal@paciente.local;Pacote MENSAL;2026-05-13 07:00;50;20260309000000,00;realizada;sim;online;;
+pacote.mensal@paciente.local;Pacote MENSAL;2026-05-20 07:00;50;20260309000000,00;realizada;sim;online;;
+pacote.mensal@paciente.local;Pacote MENSAL;2026-05-27 07:00;50;20260309000000,00;realizada;sim;online;;
+avulso@paciente.local;Avulso;2026-03-16 07:00;50;20260316000000,00;cancelada;nao;online;;não cobrar
+avulso@paciente.local;Avulso;2026-03-23 07:00;50;20260316000000,00;realizada;sim;online;;
+avulso@paciente.local;Avulso;2026-03-30 07:00;50;20260316000000,00;realizada;sim;online;;
+avulso@paciente.local;Avulso;2026-04-06 07:00;50;20260316000000,00;realizada;sim;online;;
+avulso@paciente.local;Avulso;2026-04-13 07:00;50;20260316000000,00;realizada;sim;online;;
+avulso@paciente.local;Avulso;2026-04-27 07:00;50;20260316000000,00;realizada;sim;online;;
+avulso@paciente.local;Avulso;2026-05-05 07:00;50;20260316000000,00;realizada;sim;online;;
+avulso@paciente.local;Avulso;2026-05-11 07:00;50;20260316000000,00;realizada;sim;online;;
+avulso@paciente.local;Avulso;2026-05-19 07:00;50;20260316000000,00;realizada;sim;online;;
+avulso@paciente.local;Avulso;2026-05-26 07:00;50;20260316000000,00;realizada;sim;online;;
+avulso@paciente.local;Avulso;2026-06-02 07:00;50;20260316000000,00;realizada;sim;online;;
