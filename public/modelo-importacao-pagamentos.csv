@@ -1,0 +1,4 @@
+﻿paciente_email;paciente_nome;data;valor;metodo;status;pacote;observacao
+maria.oliveira@email.com;Maria Oliveira;2024-03-05;200,00;pix;pago;;Sessão 04/03
+carlos.souza@email.com;Carlos Souza;2024-03-01;720,00;transferencia;pago;P1;Pacote de 4 sessões
+maria.oliveira@email.com;Maria Oliveira;2024-04-05;200,00;cartao;pendente;;Aguardando confirmação

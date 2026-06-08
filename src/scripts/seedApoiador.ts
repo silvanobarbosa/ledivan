@@ -6,11 +6,11 @@ runSeed({
   name: "Dra. Helena Moraes",
   password: "ledivan12345",
   bookingSlug: "helena-moraes",
-  months: 30,
-  active: 30,
-  paused: 4,
-  inactive: 8,
-  prospects: 12,
+  months: 24,
+  active: 25,
+  paused: 10,
+  inactive: 25,
+  prospects: 14,
 })
   .then(() => process.exit(0))
   .catch((e) => { console.error("❌", e); process.exit(1); });

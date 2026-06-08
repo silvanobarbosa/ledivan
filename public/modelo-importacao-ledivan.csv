@@ -1,0 +1,4 @@
+﻿nome;email;telefone;data_nascimento;status;valor_sessao;recorrencia;formato_pagamento;tamanho_pacote;dia_pagamento;modalidade;endereco_atendimento;queixa;etiquetas;observacoes;emergencia_nome;emergencia_telefone;emergencia_parentesco;data_inicio
+Maria Oliveira;maria.oliveira@email.com;(11) 99999-0001;1990-04-12;ativo;200,00;semanal;avulso;;5;online;;Ansiedade generalizada;TCC|ansiedade;Encaminhada por colega.;João Oliveira;(11) 98888-0001;Cônjuge;2024-02-01
+Carlos Souza;carlos.souza@email.com;(11) 99999-0002;1985-09-30;ativo;180,00;quinzenal;pacote;4;10;presencial;Consultório Centro — Av. Paulista 1000, sala 52;Estresse no trabalho;burnout;Prefere horário noturno.;Ana Souza;(11) 98888-0002;Irmã;2023-08-15
+Beatriz Lima;;;;inativo;220,00;mensal;mensal;;20;misto;Clínica Jardins — Rua Oscar Freire 200;Luto;luto;Encerrou em 2024.;;;;2022-05-10

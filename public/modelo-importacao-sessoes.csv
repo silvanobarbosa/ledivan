@@ -1,0 +1,4 @@
+﻿paciente_email;paciente_nome;data_hora;duracao_min;valor;status;cobrar;modalidade;local;evolucao
+maria.oliveira@email.com;Maria Oliveira;2024-03-04 14:00;50;200,00;realizada;sim;online;;Trabalhamos reestruturação cognitiva.
+carlos.souza@email.com;Carlos Souza;2024-03-06 19:00;50;180,00;realizada;sim;presencial;Consultório Centro;Exposição gradual; boa adesão.
+maria.oliveira@email.com;Maria Oliveira;2024-03-11 14:00;50;200,00;cancelada;nao;online;;Paciente remarcou.

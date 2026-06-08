@@ -60,6 +60,38 @@ const DEBT_REASONS = [
   "Aguardando reembolso do convênio para quitar.",
 ];
 
+// Apaga todos os dados de domínio de um usuário (mantém a conta).
+export async function wipeUserData(uid: string) {
+  const pats = await db.query.patients.findMany({ where: eq(patients.userId, uid) });
+  const patIds = pats.map((p) => p.id);
+  if (patIds.length) {
+    await db.delete(patientStatusHistory).where(inArray(patientStatusHistory.patientId, patIds));
+    await db.delete(patientPriceHistory).where(inArray(patientPriceHistory.patientId, patIds));
+  }
+  await db.delete(patientPackages).where(eq(patientPackages.userId, uid));
+  await db.delete(sessionPayments).where(eq(sessionPayments.userId, uid));
+  await db.delete(patientRecords).where(eq(patientRecords.userId, uid));
+  await db.delete(assignments).where(eq(assignments.userId, uid));
+  await db.delete(scaleApplications).where(eq(scaleApplications.userId, uid));
+  await db.delete(moodLogs).where(eq(moodLogs.userId, uid));
+  await db.delete(treatmentGoals).where(eq(treatmentGoals.userId, uid));
+  await db.delete(socialPosts).where(eq(socialPosts.userId, uid));
+  await db.delete(therapySessions).where(eq(therapySessions.userId, uid));
+  await db.delete(patients).where(eq(patients.userId, uid));
+  await db.delete(transactions).where(eq(transactions.userId, uid));
+  await db.delete(goals).where(eq(goals.userId, uid));
+  await db.delete(achievements).where(eq(achievements.userId, uid));
+  await db.delete(financialAccounts).where(eq(financialAccounts.userId, uid));
+}
+
+// Zera (sem recriar) os dados de um usuário pelo e-mail.
+export async function wipeUser(email: string) {
+  const u = await db.query.users.findFirst({ where: eq(users.email, email) });
+  if (!u) { console.log(`(wipe) usuário ${email} não existe — nada a fazer.`); return; }
+  await wipeUserData(u.id);
+  console.log(`🧹 ${email} zerado (conta mantida, sem dados).`);
+}
+
 export async function runSeed(cfg: SeedCfg) {
   const { email: EMAIL, name: NAME, months: MONTHS } = cfg;
   console.log(`🌱 Seed ${EMAIL} — ${MONTHS} meses...`);
@@ -75,26 +107,7 @@ export async function runSeed(cfg: SeedCfg) {
     console.log(`👤 Usuário criado: ${user.id}`);
   } else {
     console.log(`👤 Usuário existente: ${user.id} — limpando domínio...`);
-    const pats = await db.query.patients.findMany({ where: eq(patients.userId, user.id) });
-    const patIds = pats.map((p) => p.id);
-    if (patIds.length) {
-      await db.delete(patientStatusHistory).where(inArray(patientStatusHistory.patientId, patIds));
-      await db.delete(patientPriceHistory).where(inArray(patientPriceHistory.patientId, patIds));
-    }
-    await db.delete(patientPackages).where(eq(patientPackages.userId, user.id));
-    await db.delete(sessionPayments).where(eq(sessionPayments.userId, user.id));
-    await db.delete(patientRecords).where(eq(patientRecords.userId, user.id));
-    await db.delete(assignments).where(eq(assignments.userId, user.id));
-    await db.delete(scaleApplications).where(eq(scaleApplications.userId, user.id));
-    await db.delete(moodLogs).where(eq(moodLogs.userId, user.id));
-    await db.delete(treatmentGoals).where(eq(treatmentGoals.userId, user.id));
-    await db.delete(socialPosts).where(eq(socialPosts.userId, user.id));
-    await db.delete(therapySessions).where(eq(therapySessions.userId, user.id));
-    await db.delete(patients).where(eq(patients.userId, user.id));
-    await db.delete(transactions).where(eq(transactions.userId, user.id));
-    await db.delete(goals).where(eq(goals.userId, user.id));
-    await db.delete(achievements).where(eq(achievements.userId, user.id));
-    await db.delete(financialAccounts).where(eq(financialAccounts.userId, user.id));
+    await wipeUserData(user.id);
     await db.update(users).set(userPatch).where(eq(users.id, user.id));
   }
   const userId = user.id;
@@ -279,56 +292,53 @@ export async function runSeed(cfg: SeedCfg) {
       });
       if (hasNote) recordRows.push({ id: uuid(), userId, patientId: p.id, sessionId: sid, type: "evolucao", title: null, content: pick(evolucoes), createdAt: new Date(cur) });
 
-      if (realizadaPast && chargeable) {
-        consumedByPatient[p.id] = (consumedByPatient[p.id] ?? 0) + p.fee;
-        const paysNow = p.behavior === "emdia" || p.behavior === "credito" ? true : p.behavior === "devedor" ? chance(0.5) : false;
-        if (paysNow) {
-          const payDate = new Date(cur);
-          const txId = uuid();
-          const payMethod = pick(["pix", "pix", "pix", "card", "transfer", "cash"]);
-          const txForm = payMethod === "card" ? "credito" : payMethod === "transfer" ? "transferencia" : payMethod === "cash" ? "dinheiro" : "pix";
-          txRows.push({ id: txId, userId, accountId: contaPJ.id, amount: money(p.fee), type: "income", categoryId: catSessions, description: `Sessão — ${p.name}`, date: payDate, source: "session_payment", method: txForm });
-          paymentRows.push({ userId, patientId: p.id, sessionId: sid, amount: money(p.fee), date: payDate, method: payMethod, status: "paid", linkedTransactionId: txId });
-        }
-      }
+      if (realizadaPast && chargeable) consumedByPatient[p.id] = (consumedByPatient[p.id] ?? 0) + p.fee;
       cur.setDate(cur.getDate() + step);
     }
     recordRows.push({ id: uuid(), userId, patientId: p.id, sessionId: null, type: "anamnese", title: "Anamnese inicial", content: `Queixa principal: ${p.queixa}. História: paciente buscou atendimento por demanda relacionada a ${p.queixa.toLowerCase()}. Sem internações prévias. Rede de apoio presente.`, createdAt: p.startedAt });
   }
 
-  // Créditos de pacote (kind="pacote", sem receita) → saldo positivo/negativo
-  for (const p of activePats) {
+  // Pagamentos → saldo-alvo por comportamento, com DÉBITO LIMITADO a no máx. 4 sessões.
+  // balance = pago − cobrado; geramos pagamentos parcelados (com receita) até o alvo.
+  for (const p of allPats) {
+    if (p.status === "prospect") continue;
     const consumed = consumedByPatient[p.id] ?? 0;
-    let creditTotal = 0;
-    if (p.behavior === "credito") creditTotal = p.fee * rnd(2, 5);
-    else if (p.behavior === "pacote") creditTotal = consumed * (1 + rnd(5, 30) / 100);
-    else if (p.behavior === "pacote_renovar") creditTotal = consumed * (rnd(70, 92) / 100);
-    if (creditTotal <= 1) continue;
-    const packAmount = p.fee * (p.sessionsInPacket || 4);
-    let remaining = creditTotal;
-    let when = new Date(p.startedAt); when.setDate(when.getDate() + rnd(5, 20));
-    let guard = 0;
-    while (remaining > 1 && guard++ < 40) {
-      const amt = Math.min(packAmount, remaining);
-      when = new Date(when); when.setDate(when.getDate() + rnd(20, 60));
-      const d = when > now ? new Date(now.getTime() - rnd(1, 20) * 86400000) : when;
-      paymentRows.push({ userId, patientId: p.id, sessionId: null, amount: money(amt), date: d, method: "pix", status: "paid", kind: "pacote", linkedTransactionId: null });
-      remaining -= amt;
+    const fee = p.fee;
+    let targetBalance = 0; // em R$
+    if (p.status !== "ativo") targetBalance = 0; // pausados/inativos quitados
+    else if (p.behavior === "credito") targetBalance = fee * rnd(1, 4);   // crédito ≤ 4 sessões
+    else if (p.behavior === "emdia") targetBalance = chance(0.5) ? 0 : fee * rnd(0, 1);
+    else if (p.behavior === "devedor") targetBalance = -fee * rnd(1, 4);  // dívida ≤ 4 sessões
+    else if (p.behavior === "pacote") targetBalance = fee * rnd(0, 2);
+    else if (p.behavior === "pacote_renovar") targetBalance = -fee * rnd(1, 4);
+    let payTotal = consumed + targetBalance;
+    if (payTotal < 0) payTotal = 0;
+    if (payTotal <= 0) continue;
+    // parcela em pagamentos mensais ao longo do período de atendimento
+    const months = Math.max(1, Math.min(24, Math.round((now.getTime() - p.startedAt.getTime()) / (30 * 86400000))));
+    const k = Math.max(1, Math.min(months, Math.round(payTotal / fee))) || 1;
+    const per = payTotal / k;
+    for (let i = 0; i < k; i++) {
+      const d = new Date(p.startedAt); d.setMonth(d.getMonth() + Math.floor((i / k) * months) + 1); d.setDate(pick([5, 10, 15, 20]));
+      if (d > now) d.setTime(now.getTime() - rnd(1, 25) * 86400000);
+      const txId = uuid();
+      const payMethod = pick(["pix", "pix", "pix", "card", "transfer", "cash"]);
+      const txForm = payMethod === "card" ? "credito" : payMethod === "transfer" ? "transferencia" : payMethod === "cash" ? "dinheiro" : "pix";
+      txRows.push({ id: txId, userId, accountId: contaPJ.id, amount: money(per), type: "income", categoryId: catSessions, description: `Pagamento — ${p.name}`, date: d, source: "session_payment", method: txForm });
+      paymentRows.push({ userId, patientId: p.id, sessionId: null, amount: money(per), date: d, method: payMethod, status: "paid", linkedTransactionId: txId });
     }
   }
 
-  // Pacotes numerados (P1, P2, ...) p/ pacientes com pacote — variar abertos/esgotados/sobrepostos
+  // Pacotes numerados (P1, P2, ...) — sessões EM ABERTO no máx. 4 no total.
   const packageRows: any[] = [];
   for (const p of activePats) {
     if (p.behavior !== "pacote" && p.behavior !== "pacote_renovar") continue;
-    const n = p.behavior === "pacote_renovar" ? rnd(2, 3) : rnd(1, 2); // renovar tende a ter mais histórico
+    const n = rnd(1, 3); // histórico de pacotes (anteriores esgotados)
+    const openTarget = p.behavior === "pacote_renovar" ? rnd(0, 1) : rnd(1, 4); // restantes ≤ 4
     for (let seq = 1; seq <= n; seq++) {
-      const sessions = pick([2, 4, 8]);
       const isLast = seq === n;
-      // últimos pacotes podem ter saldo (pacote) ou estar quase esgotados (renovar)
-      const used = isLast
-        ? (p.behavior === "pacote" ? rnd(0, Math.max(0, sessions - 1)) : sessions - rnd(0, 1))
-        : sessions; // pacotes antigos esgotados
+      const sessions = pick([2, 4]);
+      const used = isLast ? Math.max(0, sessions - Math.min(openTarget, sessions)) : sessions; // só o último tem saldo
       packageRows.push({ userId, patientId: p.id, seq, sessions, used: Math.min(used, sessions), fee: money(p.fee) });
     }
   }
