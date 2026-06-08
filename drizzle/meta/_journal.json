@@ -176,6 +176,13 @@
       "when": 1780871667270,
       "tag": "0024_remarkable_wolf_cub",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1780879747457,
+      "tag": "0025_tiny_longshot",
+      "breakpoints": true
     }
   ]
 }

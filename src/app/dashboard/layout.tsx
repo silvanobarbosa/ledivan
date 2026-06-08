@@ -11,6 +11,8 @@ import { db } from "@/db";
 import { auth } from "@/auth";
 import { eq } from "drizzle-orm";
 import { users } from "@/db/schema";
+import { redirect } from "next/navigation";
+import { isAdminUser } from "@/lib/admin";
 import Link from "next/link";
 
 export default async function DashboardLayout({
@@ -19,9 +21,16 @@ export default async function DashboardLayout({
   children: React.ReactNode;
 }) {
   const session = await auth();
-  const user = session?.user?.id 
+  const user = session?.user?.id
     ? await db.query.users.findFirst({ where: eq(users.id, session.user.id) })
     : null;
+
+  // Consentimento obrigatório no 1º acesso (contas demo são isentas).
+  if (user && !user.isDemo && (!user.acceptedTermsAt || !user.acceptedPrivacyAt)) {
+    redirect("/consentimento");
+  }
+  const isAdmin = isAdminUser(user);
+  const isDemo = !!user?.isDemo;
 
   return (
     <div className="flex min-h-screen bg-surface selection:bg-primary selection:text-white">
@@ -38,6 +47,11 @@ export default async function DashboardLayout({
           </div>
 
           <div className="flex items-center gap-2 lg:gap-4 ml-4">
+            {isAdmin && (
+              <Link href="/dashboard/admin" className="hidden sm:inline-flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-2xl bg-primary/10 text-primary hover:bg-primary/20 transition">
+                ★ Admin
+              </Link>
+            )}
             <HelpButton />
             <button aria-label="Notificações" className="p-2 lg:p-3 bg-white border border-border rounded-2xl text-foreground/60 hover:text-primary hover:border-primary transition-all">
               <Bell className="w-5 h-5" />
@@ -49,6 +63,11 @@ export default async function DashboardLayout({
           </div>
         </header>
 
+        {isDemo && (
+          <div className="bg-[#dbeafe] border-b border-[#93c5fd] text-[#1e40af] text-xs sm:text-sm px-4 py-2 text-center shrink-0">
+            🧪 <strong>Modo demonstração</strong> — explore à vontade. Tudo que você fizer é descartado ao fim da visita (até 2h). Os dados originais ficam intactos.
+          </div>
+        )}
         <main className="flex-1 overflow-y-auto p-6 lg:p-12 space-y-12 pb-32 lg:pb-12">
           {children}
         </main>

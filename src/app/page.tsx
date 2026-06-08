@@ -82,6 +82,9 @@ function Header() {
           <a href="#pricing" className="hover:text-ink transition">Preço</a>
         </nav>
         <div className="flex items-center gap-2">
+          <Link href="/demo" className="hidden sm:inline-flex items-center rounded-full px-4 py-2 text-sm font-medium text-ink/80 hover:text-ink hover:bg-white/60 transition">
+            Ver demonstração
+          </Link>
           <Link href="/login" className="hidden sm:inline-flex items-center rounded-full px-4 py-2 text-sm font-medium text-ink/80 hover:text-ink hover:bg-white/60 transition">
             Entrar
           </Link>
@@ -117,9 +120,9 @@ function Hero() {
               Experimentar grátis
               <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
             </Link>
-            <a href="#how" className="inline-flex items-center gap-2 rounded-full border border-[rgba(43,24,48,0.12)] bg-white/60 px-6 py-3.5 text-sm font-medium text-ink hover:bg-white transition">
-              Ver como funciona
-            </a>
+            <Link href="/demo" className="inline-flex items-center gap-2 rounded-full border border-[rgba(43,24,48,0.12)] bg-white/60 px-6 py-3.5 text-sm font-medium text-ink hover:bg-white transition">
+              Testar a demonstração
+            </Link>
           </div>
           <div className="mt-8 flex flex-wrap items-center gap-6 text-xs text-[color:var(--muted-foreground)]">
             <span className="inline-flex items-center gap-1.5"><Check className="h-3.5 w-3.5 text-[color:var(--accent-violet)]" /> 14 dias grátis</span>

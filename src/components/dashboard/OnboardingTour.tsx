@@ -6,19 +6,28 @@ import {
   Users, CalendarDays, Activity, Wallet, HeartHandshake, Settings, X, ArrowRight, ArrowLeft, Sparkles, HelpCircle,
 } from "lucide-react";
 
-const KEY = "ledivan_onboarded_v1";
+const KEY = "ledivan_onboarded_v2";
 
-type Step = { icon: typeof Users; title: string; text: string; href?: string; cta?: string };
+type Step = { icon: typeof Users; title: string; text: string; href?: string; cta?: string; phase?: string };
 
 const STEPS: Step[] = [
-  { icon: Sparkles, title: "Bem-vindo(a) ao Ledivan!", text: "Em 1 minuto te mostro onde fica cada coisa. Você pode refazer este tour quando quiser pela Ajuda." },
-  { icon: Users, title: "Pacientes", text: "Cadastre pacientes, veja histórico, prontuário, sessões e pagamentos de cada um. O botão 'Novo paciente' fica no topo.", href: "/dashboard/patients", cta: "Ver pacientes" },
-  { icon: CalendarDays, title: "Agenda", text: "Grade semanal estilo Google Calendar. Clique numa sessão para mudar o status (realizada, cancelada...) ou entrar na sala de vídeo.", href: "/dashboard/agenda", cta: "Abrir agenda" },
-  { icon: Activity, title: "Atenção clínica", text: "Mostra os pacientes que merecem um olhar agora: risco de falta, escala em alerta, humor baixo ou pagamento atrasado.", href: "/dashboard/clinico", cta: "Ver alertas" },
-  { icon: HeartHandshake, title: "Espaço do Paciente", text: "Dentro de cada paciente, a aba 'Espaço' tem tarefas (lição de casa com foto/áudio), diário de humor e escalas (PHQ-9/GAD-7). Tudo por link enviado ao paciente." },
-  { icon: Wallet, title: "Financeiro", text: "Transações, relatórios mês a mês, metas. Pagamentos de sessão podem virar receita automaticamente (você decide).", href: "/dashboard/transactions", cta: "Ver financeiro" },
-  { icon: Settings, title: "Ajustes e integrações", text: "Conecte seu WhatsApp (QR), Telegram, e-mail próprio e Google Meet. Crie seu link de autoagendamento. Tudo em Ajustes.", href: "/dashboard/settings", cta: "Abrir ajustes" },
-  { icon: HelpCircle, title: "Ajuda sempre à mão", text: "Dúvidas? Use o menu 'Ajuda' ou o ícone (i) ao lado dos campos. Bom trabalho!", href: "/dashboard/ajuda", cta: "Central de ajuda" },
+  { icon: Sparkles, title: "Bem-vindo(a) ao Ledivan!", text: "Vou te guiar de ponta a ponta: primeiro a parte CLÍNICA (atender), depois a FINANCEIRA (receber). Pode refazer este tour quando quiser pela Ajuda." },
+
+  // ——— Parte clínica ———
+  { phase: "Parte clínica", icon: Users, title: "1. Cadastre o paciente", text: "Em 'Pacientes' → 'Novo paciente': nome, contato, valor da sessão, modalidade (online/presencial/misto) e etiquetas. É o ponto de partida.", href: "/dashboard/patients", cta: "Ver pacientes" },
+  { phase: "Parte clínica", icon: Users, title: "2. A ficha do paciente", text: "Ao abrir um paciente você vê 4 cards no topo: Reservadas, Agendadas futuras, Status de crédito e Realizadas. Abas: Dados, Prontuário, Atividades, Sessões, Financeiro e Linha do tempo." },
+  { phase: "Parte clínica", icon: CalendarDays, title: "3. Agende ou reserve", text: "Na Agenda (grade semanal) crie a sessão. Pode 'Confirmar' ou 'Só reservar' (amarelo) — e 'Reserva recorrente' (azul) cria toda semana até a data. Cores: roxo=agendada, verde=realizada, vermelho=não realizada.", href: "/dashboard/agenda", cta: "Abrir agenda" },
+  { phase: "Parte clínica", icon: HeartHandshake, title: "4. Atenda", text: "No horário, clique 'Atender': abre a sala de vídeo (Jitsi) + o prontuário lado a lado. Registre a evolução e, ao Finalizar, escolha se a sessão será cobrada." },
+  { phase: "Parte clínica", icon: Activity, title: "5. Atividades do paciente", text: "Na aba 'Atividades': tarefas (lição de casa com foto/áudio), diário de humor e escalas PHQ-9/GAD-7 — tudo por link enviado ao paciente. O Prontuário reúne a evolução." },
+  { phase: "Parte clínica", icon: Activity, title: "6. Atenção clínica", text: "O painel 'Atenção clínica' destaca quem precisa de olhar agora: risco de falta, escala em alerta ou humor baixo.", href: "/dashboard/clinico", cta: "Ver alertas" },
+
+  // ——— Parte financeira ———
+  { phase: "Parte financeira", icon: Wallet, title: "7. Financeiro do paciente", text: "Na aba 'Financeiro' do paciente: contadores (sessões previstas, crédito, valor), o fluxo (cada sessão cobrada desconta, cada pagamento soma) e 'Ajustes' (recorrência, valor com vigência, incluir pacote)." },
+  { phase: "Parte financeira", icon: Wallet, title: "8. Pacotes e créditos", text: "Inclua pacotes numerados (P1, P2...). Cada sessão realizada+cobrar abate 1. 'Gestão de Créditos' lista todos por saldo; o dashboard avisa quem está com pacote acabando.", href: "/dashboard/creditos", cta: "Gestão de créditos" },
+  { phase: "Parte financeira", icon: Wallet, title: "9. Caixa do consultório", text: "Transações, Relatórios mês a mês e Metas. Ao registrar um pagamento, ele pode virar receita no financeiro automaticamente (você decide).", href: "/dashboard/transactions", cta: "Ver financeiro" },
+  { phase: "Parte financeira", icon: Settings, title: "10. Integrações", text: "Conecte WhatsApp (QR), Telegram, e-mail próprio e Google Meet. Registre gastos por mensagem ou foto de recibo (IA). Crie seu link de autoagendamento.", href: "/dashboard/settings", cta: "Abrir ajustes" },
+
+  { icon: HelpCircle, title: "Pronto! 🌿", text: "Você viu o caminho completo: do cadastro ao recebimento. Dúvidas? Menu 'Ajuda' ou o ícone (i) nos campos.", href: "/dashboard/ajuda", cta: "Central de ajuda" },
 ];
 
 export function OnboardingTour() {
@@ -51,6 +60,9 @@ export function OnboardingTour() {
           <X className="w-4 h-4" />
         </button>
 
+        {step.phase && (
+          <span className={`inline-block mb-3 text-[10px] font-bold uppercase tracking-widest px-2.5 py-1 rounded-full ${step.phase === "Parte clínica" ? "bg-[#ecfdf5] text-[#047857]" : "bg-[#eff6ff] text-[#1e40af]"}`}>{step.phase}</span>
+        )}
         <div className="w-14 h-14 rounded-2xl bg-primary/10 text-primary flex items-center justify-center mb-4">
           <step.icon className="w-7 h-7" />
         </div>

@@ -42,6 +42,13 @@ export const users = pgTable("user", {
   attendanceLocations: text("attendance_locations"),
 
   preferences: text("preferences"), // JSON string
+  role: text("role").default("user").notNull(), // user | admin (super admin)
+  // Conta demo efêmera (sandbox): clone descartável, expira e é apagada
+  isDemo: boolean("is_demo").default(false).notNull(),
+  demoExpires: timestamp("demo_expires"),
+  // Consentimento (LGPD): obrigatório no 1º acesso
+  acceptedTermsAt: timestamp("accepted_terms_at"),
+  acceptedPrivacyAt: timestamp("accepted_privacy_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
