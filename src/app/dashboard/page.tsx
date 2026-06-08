@@ -133,7 +133,7 @@ export default async function DashboardPage() {
             </Link>
           )}
           {pacotesAcabando > 0 && (
-            <Link href="/dashboard/creditos" className="flex items-center gap-3 bg-[#eff6ff] border border-[#bfdbfe] rounded-[28px] p-5 hover:shadow-md transition group">
+            <Link href="/dashboard/pacotes-acabando" className="flex items-center gap-3 bg-[#eff6ff] border border-[#bfdbfe] rounded-[28px] p-5 hover:shadow-md transition group">
               <div className="w-12 h-12 rounded-2xl bg-[#dbeafe] text-[#1e40af] flex items-center justify-center text-xl shrink-0">📦</div>
               <div className="flex-1 min-w-0">
                 <p className="font-bold text-[#1e40af]">{pacotesAcabando} paciente(s) com pacote acabando</p>
