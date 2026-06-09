@@ -13,7 +13,7 @@ const DAYS = ["segunda", "terça", "quarta", "quinta", "sexta", "sábado", "domi
 
 export type PatientFormData = {
   name?: string; phone?: string | null; email?: string | null; patientStatus?: string;
-  startedAt?: string | null; birthDate?: string | null; category?: string | null; cpf?: string | null; address?: string | null;
+  startedAt?: string | null; birthDate?: string | null; category?: string | null; gender?: string | null; cpf?: string | null; address?: string | null;
   guardianName?: string | null; guardianCpf?: string | null; guardianPhone?: string | null; guardianEmail?: string | null;
   emergencyName?: string | null; emergencyPhone?: string | null; emergencyEmail?: string | null; emergencyRelationship?: string | null;
   attendanceMode?: string | null; attendanceLocation?: string | null; attendanceDay?: string | null; attendanceTime?: string | null;
@@ -64,6 +64,9 @@ export function PatientFormFields({ p, locations }: { p?: PatientFormData; locat
   const [tab, setTab] = useState("dados");
   const [format, setFormat] = useState(p?.paymentFormat || "avulso");
   const [lock, setLock] = useState("nao");
+  const GENDERS = ["feminino", "masculino", "nao-binario"];
+  const initialGender = p?.gender ? (GENDERS.includes(p.gender) ? p.gender : "outro") : "";
+  const [gender, setGender] = useState(initialGender);
   const dateVal = (d?: string | null) => (d ? new Date(d).toISOString().slice(0, 10) : "");
   const show = (k: string) => (tab === k ? "space-y-4" : "hidden");
 
@@ -101,6 +104,19 @@ export function PatientFormFields({ p, locations }: { p?: PatientFormData; locat
                 <option value="casal">Casal</option>
               </select>
             </div>
+            <div>
+              <label className={labelCls}>Gênero</label>
+              <select name="gender" value={gender} onChange={(e) => setGender(e.target.value)} className={inputCls}>
+                <option value="">—</option>
+                <option value="feminino">Feminino</option>
+                <option value="masculino">Masculino</option>
+                <option value="nao-binario">Não-binário</option>
+                <option value="outro">Outro</option>
+              </select>
+            </div>
+            {gender === "outro" && (
+              <div><label className={labelCls}>Qual gênero?</label><input name="genderOther" defaultValue={GENDERS.includes(p?.gender || "") ? "" : (p?.gender ?? "")} className={inputCls} placeholder="Descreva" /></div>
+            )}
             <div><label className={labelCls}>CPF</label><input name="cpf" defaultValue={p?.cpf ?? ""} className={inputCls} placeholder="000.000.000-00" /></div>
             <div><label className={labelCls}>Início</label><input name="startedAt" type="date" defaultValue={dateVal(p?.startedAt)} className={inputCls} /></div>
           </div>

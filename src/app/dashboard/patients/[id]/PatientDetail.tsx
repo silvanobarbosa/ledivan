@@ -46,7 +46,7 @@ type Patient = {
 type ContractEntry = { id: string; type: string; from: string | null; to: string | null; description: string | null; date: string };
 type Finance = { fee: number; balance: number; totalPaid: number; totalDebit: number; atendimentos: number; lastPaymentDate: string | null; lastPaymentAmount: number | null; creditSessions: number; debtSessions: number };
 type LedgerEntry = { id: string; date: string; kind: "pagamento" | "sessao"; desc: string; amount: number; balance: number; payId: string | null };
-type Session = { id: string; date: string; duration: number; fee: string; status: string; notes: string | null; isOnline: boolean; patientSummary: string | null; meetingUrl: string | null; pendingConfirmation: boolean; recurring: boolean };
+type Session = { id: string; date: string; duration: number; fee: string; status: string; notes: string | null; isOnline: boolean; patientSummary: string | null; meetingUrl: string | null; pendingConfirmation: boolean; recurring: boolean; chargeable: boolean };
 type Payment = { id: string; date: string; amount: string; method: string; status: string; linkedTransactionId: string | null };
 type StatusEntry = { id: string; status: string; date: string };
 type PriceEntry = { id: string; valor: string; dataEfetiva: string };
@@ -464,7 +464,7 @@ export function PatientDetail({
                   <div className="flex items-center justify-between gap-3">
                     <div>
                       <p className="font-semibold flex items-center gap-1.5">{formatDateTime(s.date)}{s.isOnline ? <Video className="w-3.5 h-3.5 text-primary" /> : <MapPin className="w-3.5 h-3.5 text-foreground/40" />}</p>
-                      <p className="text-sm text-foreground/50">{s.duration}min · {formatBRL(s.fee)} · {s.isOnline ? "Online" : "Presencial"}</p>
+                      <p className="text-sm text-foreground/50">{s.duration}min · {formatBRL(s.fee)} {s.status === "nao_realizada" ? null : s.chargeable ? <span className="text-[#047857] font-semibold">(cobrada)</span> : <span className="text-foreground/40 font-semibold">(não cobrada)</span>} · {s.isOnline ? "Online" : "Presencial"}</p>
                     </div>
                     {s.isOnline && (
                       s.meetingUrl?.includes("meet.google.com") ? (
@@ -624,8 +624,7 @@ export function PatientDetail({
                   editPkgId === p.id ? (
                     <form key={p.id} action={editPackage.bind(null, p.id)} onSubmit={() => setEditPkgId(null)} className="flex flex-wrap items-end gap-2 py-2 border-b border-border last:border-0">
                       <span className="font-semibold text-sm">P{p.seq}</span>
-                      <div><label className="text-[10px] text-foreground/50 block">Total</label><input name="sessions" type="number" min={1} max={200} defaultValue={p.sessions} className="w-20 px-2 py-1.5 rounded-lg bg-white border border-border text-sm" /></div>
-                      <div><label className="text-[10px] text-foreground/50 block">Usadas</label><input name="used" type="number" min={0} max={200} defaultValue={p.used} className="w-20 px-2 py-1.5 rounded-lg bg-white border border-border text-sm" /></div>
+                      <div><label className="text-[10px] text-foreground/50 block">Total de sessões</label><input name="sessions" type="number" min={1} max={200} defaultValue={p.sessions} className="w-24 px-2 py-1.5 rounded-lg bg-white border border-border text-sm" /></div>
                       <button className="bg-primary text-white px-3 py-1.5 rounded-lg font-bold text-xs">Salvar</button>
                       <button type="button" onClick={() => setEditPkgId(null)} className="text-foreground/40 text-xs">cancelar</button>
                     </form>
@@ -643,10 +642,14 @@ export function PatientDetail({
                   )
                 ))}
               </div>
-              <form action={includePackage.bind(null, patient.id)} className="mt-3 pt-3 border-t border-border flex items-end gap-2">
+              <form action={includePackage.bind(null, patient.id)} className="mt-3 pt-3 border-t border-border flex items-end gap-2 flex-wrap">
                 <div>
                   <label className="text-[11px] font-semibold text-foreground/50 block">Incluir pacote — sessões</label>
-                  <input name="sessionsInPacket" type="number" min={1} max={200} required placeholder="ex: 8" className="w-28 px-3 py-2 rounded-lg bg-white border border-border text-sm" />
+                  <input name="sessionsInPacket" type="number" min={1} max={200} required placeholder="ex: 8" className="w-24 px-3 py-2 rounded-lg bg-white border border-border text-sm" />
+                </div>
+                <div>
+                  <label className="text-[11px] font-semibold text-foreground/50 block">Valor/sessão (R$)</label>
+                  <input name="fee" inputMode="decimal" defaultValue={patient.sessionFee} className="w-28 px-3 py-2 rounded-lg bg-white border border-border text-sm" />
                 </div>
                 <button className="bg-primary text-white px-4 py-2 rounded-lg font-bold text-sm">+ Incluir</button>
               </form>

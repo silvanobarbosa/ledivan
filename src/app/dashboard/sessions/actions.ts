@@ -1,9 +1,9 @@
 "use server";
 
 import { db } from "@/db";
-import { therapySessions, patients, patientPackages } from "@/db/schema";
+import { therapySessions, patients } from "@/db/schema";
 import { auth } from "@/auth";
-import { and, eq, asc, desc, gt, lt, sql } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getPreferences } from "@/lib/preferences";
@@ -11,22 +11,9 @@ import { createMeetLink } from "@/lib/googleCalendar";
 
 type SessionStatus = "realizada" | "nao_realizada" | "cancelada" | "realocada" | "agendada";
 
-// Consome 1 sessão do pacote ABERTO mais antigo (P menor com used<sessions).
-async function consumePackage(userId: string, patientId: string) {
-  const pkg = await db.query.patientPackages.findFirst({
-    where: and(eq(patientPackages.userId, userId), eq(patientPackages.patientId, patientId), lt(patientPackages.used, sql`${patientPackages.sessions}`)),
-    orderBy: [asc(patientPackages.seq)],
-  });
-  if (pkg) await db.update(patientPackages).set({ used: pkg.used + 1 }).where(eq(patientPackages.id, pkg.id));
-}
-// Devolve 1 sessão ao pacote mais recente com used>0 (revert).
-async function restorePackage(userId: string, patientId: string) {
-  const pkg = await db.query.patientPackages.findFirst({
-    where: and(eq(patientPackages.userId, userId), eq(patientPackages.patientId, patientId), gt(patientPackages.used, 0)),
-    orderBy: [desc(patientPackages.seq)],
-  });
-  if (pkg) await db.update(patientPackages).set({ used: pkg.used - 1 }).where(eq(patientPackages.id, pkg.id));
-}
+// NOTA: o consumo de pacote é DERIVADO das sessões realizadas+cobráveis na página do
+// paciente (oldest-first). Não há mais incremento/decremento manual de `used` aqui —
+// isso garante coerência mesmo p/ sessões criadas antes do pacote (import/seed).
 
 // Cria uma RESERVA RECORRENTE: gera sessões semanais (reservas) da data inicial até "até".
 export async function createRecurring(formData: FormData): Promise<{ ok: boolean; error?: string; count?: number }> {
@@ -114,10 +101,6 @@ export async function createSession(formData: FormData) {
     meetingUrl,
   });
 
-  if ((formData.get("status") as string) === "realizada" && formData.get("chargeable") !== "false") {
-    await consumePackage(userId, patientId);
-  }
-
   revalidatePath(`/dashboard/patients/${patientId}`);
   revalidatePath("/dashboard/agenda");
   redirect(`/dashboard/patients/${patientId}`);
@@ -163,10 +146,6 @@ export async function createSessionFromAgenda(formData: FormData): Promise<{ ok:
     pendingConfirmation: formData.get("reserva") === "true",
     meetingUrl,
   });
-
-  if (((formData.get("status") as string) || "agendada") === "realizada" && formData.get("chargeable") !== "false") {
-    await consumePackage(userId, patientId);
-  }
 
   revalidatePath("/dashboard/agenda");
   revalidatePath(`/dashboard/patients/${patientId}`);
@@ -250,13 +229,7 @@ export async function updateSessionStatus(sessionId: string, status: SessionStat
     .set({ status, justificativa: justificativa || null, ...(chargeable !== undefined ? { chargeable } : {}) })
     .where(and(eq(therapySessions.id, sessionId), eq(therapySessions.userId, userId)));
 
-  // Abate/restaura 1 sessão do pacote conforme transição p/ "realizada" + cobrável
-  const was = existing.status === "realizada" && existing.chargeable;
-  const willCharge = chargeable !== undefined ? chargeable : existing.chargeable;
-  const now = status === "realizada" && willCharge;
-  if (!was && now) await consumePackage(userId, existing.patientId);
-  else if (was && !now) await restorePackage(userId, existing.patientId);
-
+  // (consumo de pacote é derivado na página do paciente — sem update manual aqui)
   revalidatePath("/dashboard/agenda");
   revalidatePath(`/dashboard/patients/${existing.patientId}`);
 }

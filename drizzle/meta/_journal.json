@@ -204,6 +204,13 @@
       "when": 1780976227025,
       "tag": "0028_remarkable_pepper_potts",
       "breakpoints": true
+    },
+    {
+      "idx": 29,
+      "version": "7",
+      "when": 1780978265504,
+      "tag": "0029_tricky_stryfe",
+      "breakpoints": true
     }
   ]
 }

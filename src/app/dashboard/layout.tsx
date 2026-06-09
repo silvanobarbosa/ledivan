@@ -3,6 +3,7 @@ import { MobileSidebar } from "@/components/dashboard/MobileSidebar";
 import { ScanButton } from "@/components/dashboard/ScanButton";
 import { BottomNavBar } from "@/components/dashboard/BottomNavBar";
 import { OnboardingTour } from "@/components/dashboard/OnboardingTour";
+import { AreaTint } from "@/components/dashboard/AreaTint";
 import { HelpButton } from "@/components/dashboard/HelpButton";
 import { HeaderUser } from "@/components/dashboard/HeaderUser";
 import { photoSrc } from "@/lib/photo";
@@ -68,8 +69,8 @@ export default async function DashboardLayout({
             🧪 <strong>Modo demonstração</strong> — explore à vontade. Tudo que você fizer é descartado ao fim da visita (até 2h). Os dados originais ficam intactos.
           </div>
         )}
-        <main className="flex-1 overflow-y-auto p-6 lg:p-12 space-y-12 pb-32 lg:pb-12">
-          {children}
+        <main className="flex-1 overflow-y-auto">
+          <AreaTint>{children}</AreaTint>
         </main>
       </div>
 

@@ -205,6 +205,7 @@ export const patients = pgTable("patients", {
   startedAt: timestamp("started_at"),
   birthDate: timestamp("birth_date"),
   category: text("category"), // crianca | adolescente | adulto | idoso | casal
+  gender: text("gender"), // gênero (texto livre quando "outro")
   cpf: text("cpf"),
   guardianName: text("guardian_name"), // responsável (menores/incapazes)
   guardianCpf: text("guardian_cpf"),

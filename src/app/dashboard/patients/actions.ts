@@ -72,6 +72,13 @@ function num(v: FormDataEntryValue | null, fallback = "0") {
 
 const DOW: Record<string, number> = { domingo: 0, segunda: 1, "terça": 2, terca: 2, quarta: 3, quinta: 4, sexta: 5, "sábado": 6, sabado: 6 };
 
+// Gênero: usa o texto livre quando "outro".
+function genderOf(formData: FormData): string | null {
+  const g = (formData.get("gender") as string) || "";
+  if (g === "outro") return ((formData.get("genderOther") as string) || "").trim() || "outro";
+  return g || null;
+}
+
 // Trava agenda: gera sessões semanais no dia/hora do paciente, entre as datas escolhidas.
 async function maybeLockAgenda(userId: string, pf: { patientId: string; attendanceDay: string | null; attendanceTime: string | null; attendanceMode: string | null; attendanceLocation: string | null; sessionFee: string }, formData: FormData) {
   const lock = (formData.get("lockAgenda") as string) || "nao";
@@ -122,6 +129,7 @@ export async function createPatient(formData: FormData) {
     startedAt: startedAtRaw ? new Date(startedAtRaw) : new Date(),
     birthDate: formData.get("birthDate") ? new Date(formData.get("birthDate") as string) : null,
     category: (formData.get("category") as string) || null,
+    gender: genderOf(formData),
     cpf: (formData.get("cpf") as string) || null,
     guardianName: (formData.get("guardianName") as string) || null,
     guardianCpf: (formData.get("guardianCpf") as string) || null,
@@ -201,6 +209,7 @@ export async function updatePatient(patientId: string, formData: FormData) {
     patientStatus: newStatus,
     birthDate: formData.get("birthDate") ? new Date(formData.get("birthDate") as string) : existing.birthDate,
     category: (formData.get("category") as string) ?? existing.category,
+    gender: formData.has("gender") ? genderOf(formData) : existing.gender,
     cpf: (formData.get("cpf") as string) ?? existing.cpf,
     guardianName: (formData.get("guardianName") as string) ?? existing.guardianName,
     guardianCpf: (formData.get("guardianCpf") as string) ?? existing.guardianCpf,
@@ -316,13 +325,18 @@ export async function includePackage(patientId: string, formData: FormData) {
   if (!patient) throw new Error("Paciente não encontrado");
   const qty = formData.get("sessionsInPacket") ? parseInt(formData.get("sessionsInPacket") as string) : 0;
   if (qty < 1) throw new Error("Quantidade inválida");
+  // valor: traz o atual, com possibilidade de alterar (gera histórico de preço)
+  const newFee = num(formData.get("fee"), patient.sessionFee);
 
   // próximo número de pacote do paciente
   const [{ maxSeq }] = await db.select({ maxSeq: sql<number>`coalesce(max(${patientPackages.seq}), 0)::int` }).from(patientPackages).where(eq(patientPackages.patientId, patientId));
   const seq = (maxSeq || 0) + 1;
-  await db.insert(patientPackages).values({ userId, patientId, seq, sessions: qty, fee: patient.sessionFee });
-  await db.update(patients).set({ contractType: "pacote", paymentFormat: "pacote" }).where(and(eq(patients.id, patientId), eq(patients.userId, userId)));
-  await db.insert(patientContractHistory).values({ patientId, type: "model", from: patient.paymentFormat || "avulso", to: `Pacote P${seq}`, description: `Pacote P${seq} incluído: ${qty} sessões` });
+  await db.insert(patientPackages).values({ userId, patientId, seq, sessions: qty, fee: newFee });
+  await db.update(patients).set({ contractType: "pacote", paymentFormat: "pacote", sessionFee: newFee }).where(and(eq(patients.id, patientId), eq(patients.userId, userId)));
+  if (newFee !== patient.sessionFee) {
+    await db.insert(patientPriceHistory).values({ patientId, valor: newFee, dataEfetiva: new Date() });
+  }
+  await db.insert(patientContractHistory).values({ patientId, type: "model", from: patient.paymentFormat || "avulso", to: `Pacote P${seq}`, description: `Pacote P${seq} incluído: ${qty} sessões · ${newFee}` });
   revalidatePath(`/dashboard/patients/${patientId}`);
 }
 

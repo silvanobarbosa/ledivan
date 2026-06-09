@@ -51,9 +51,17 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
     lastRealizada: lastRealizada ? new Date(lastRealizada).toISOString() : null,
   };
 
-  // Pacotes (P1, P2, ...) + abertos
-  const packages = packagesList.map((p) => ({ id: p.id, seq: p.seq, sessions: p.sessions, used: p.used, remaining: Math.max(0, p.sessions - p.used) }));
+  // Pacotes (P1, P2, ...): consumo DERIVADO das sessões realizadas+cobráveis (oldest-first),
+  // assim o saldo é sempre coerente independe de quando o pacote/sessão foi criado.
+  const realizedChargeableCount = sessionsList.filter((s) => s.status === "realizada" && s.chargeable).length;
+  let remCount = realizedChargeableCount;
+  const packages = packagesList.map((p) => {
+    const used = Math.min(p.sessions, remCount);
+    remCount -= used;
+    return { id: p.id, seq: p.seq, sessions: p.sessions, used, remaining: p.sessions - used };
+  });
   const openPkgs = packages.filter((p) => p.remaining > 0);
+  const pkgSeqById = new Map(packagesList.map((p) => [p.id, p.seq]));
   const packageInfo = {
     list: packages,
     openSessions: openPkgs.reduce((a, p) => a + p.remaining, 0),
@@ -77,7 +85,7 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
   const paidPayments = paymentsList.filter((p) => p.status === "paid");
   type LedgerItem = { id: string; date: string; kind: "pagamento" | "sessao"; desc: string; amount: number; payId: string | null };
   const ledgerRaw: LedgerItem[] = [
-    ...paidPayments.map((p) => ({ id: `p${p.id}`, date: p.date as unknown as string, kind: "pagamento" as const, desc: p.kind === "pacote" ? "Crédito de pacote" : "Pagamento recebido", amount: parseFloat(p.amount), payId: p.kind === "pacote" ? null : p.id })),
+    ...paidPayments.map((p) => ({ id: `p${p.id}`, date: p.date as unknown as string, kind: "pagamento" as const, desc: p.kind === "pacote" ? "Crédito de pacote" : (p.packageId && pkgSeqById.has(p.packageId)) ? `Pagamento — Pacote P${pkgSeqById.get(p.packageId)}` : "Pagamento recebido", amount: parseFloat(p.amount), payId: p.kind === "pacote" ? null : p.id })),
     ...sessionsList
       .filter((s) => s.status === "realizada" && s.chargeable)
       .map((s) => ({ id: `s${s.id}`, date: s.date as unknown as string, kind: "sessao" as const, desc: "Sessão realizada (cobrança)", amount: -parseFloat(s.fee), payId: null })),
