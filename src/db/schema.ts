@@ -208,12 +208,15 @@ export const patients = pgTable("patients", {
   cpf: text("cpf"),
   guardianName: text("guardian_name"), // responsável (menores/incapazes)
   guardianCpf: text("guardian_cpf"),
+  guardianPhone: text("guardian_phone"),
+  guardianEmail: text("guardian_email"),
   attendanceDay: text("attendance_day"), // dia da semana preferencial (seg..dom)
   attendanceTime: text("attendance_time"), // hora preferencial HH:MM
   address: text("address"),
   // contato de emergencia (embutido)
   emergencyName: text("emergency_name"),
   emergencyPhone: text("emergency_phone"),
+  emergencyEmail: text("emergency_email"),
   emergencyRelationship: text("emergency_relationship"),
   // dados de prospeccao (embutido; tela Prospects filtra patientStatus='prospect')
   prospectDate: timestamp("prospect_date"),

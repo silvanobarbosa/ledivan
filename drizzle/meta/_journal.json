@@ -197,6 +197,13 @@
       "when": 1780962918331,
       "tag": "0027_sparkling_moonstone",
       "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "7",
+      "when": 1780976227025,
+      "tag": "0028_remarkable_pepper_potts",
+      "breakpoints": true
     }
   ]
 }

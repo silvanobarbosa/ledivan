@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@/db";
-import { patients, patientStatusHistory, patientPriceHistory, patientContractHistory, patientRecords, assignments, scaleApplications, treatmentGoals, patientPackages } from "@/db/schema";
+import { patients, patientStatusHistory, patientPriceHistory, patientContractHistory, patientRecords, assignments, scaleApplications, treatmentGoals, patientPackages, therapySessions } from "@/db/schema";
 import { auth } from "@/auth";
 import { and, eq, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
@@ -70,6 +70,34 @@ function num(v: FormDataEntryValue | null, fallback = "0") {
   return String(v).replace(",", ".");
 }
 
+const DOW: Record<string, number> = { domingo: 0, segunda: 1, "terça": 2, terca: 2, quarta: 3, quinta: 4, sexta: 5, "sábado": 6, sabado: 6 };
+
+// Trava agenda: gera sessões semanais no dia/hora do paciente, entre as datas escolhidas.
+async function maybeLockAgenda(userId: string, pf: { patientId: string; attendanceDay: string | null; attendanceTime: string | null; attendanceMode: string | null; attendanceLocation: string | null; sessionFee: string }, formData: FormData) {
+  const lock = (formData.get("lockAgenda") as string) || "nao";
+  if (lock === "nao") return;
+  const day = (pf.attendanceDay || "").toLowerCase();
+  const time = pf.attendanceTime || "";
+  const startStr = formData.get("lockStart") as string;
+  const endStr = formData.get("lockEnd") as string;
+  const wd = DOW[day];
+  if (wd === undefined || !time || !startStr || !endStr) return;
+  const [hh, mm] = time.split(":").map((x) => parseInt(x) || 0);
+  const end = new Date(`${endStr}T23:59:59`);
+  const cur = new Date(`${startStr}T00:00:00`);
+  while (cur.getDay() !== wd) cur.setDate(cur.getDate() + 1);
+  const reserva = lock === "reservada";
+  const isOnline = pf.attendanceMode === "online";
+  const rows: typeof therapySessions.$inferInsert[] = [];
+  let guard = 0;
+  while (cur <= end && guard++ < 70) {
+    const d = new Date(cur); d.setHours(hh, mm, 0, 0);
+    rows.push({ userId, patientId: pf.patientId, date: d, duration: 50, fee: pf.sessionFee, status: "agendada", chargeable: true, isOnline, location: isOnline ? null : pf.attendanceLocation, pendingConfirmation: reserva });
+    cur.setDate(cur.getDate() + 7);
+  }
+  if (rows.length) await db.insert(therapySessions).values(rows);
+}
+
 export async function createPatient(formData: FormData) {
   const session = await auth();
   if (!session?.user?.id) throw new Error("Não autorizado");
@@ -97,6 +125,9 @@ export async function createPatient(formData: FormData) {
     cpf: (formData.get("cpf") as string) || null,
     guardianName: (formData.get("guardianName") as string) || null,
     guardianCpf: (formData.get("guardianCpf") as string) || null,
+    guardianPhone: (formData.get("guardianPhone") as string) || null,
+    guardianEmail: (formData.get("guardianEmail") as string) || null,
+    emergencyEmail: (formData.get("emergencyEmail") as string) || null,
     attendanceDay: (formData.get("attendanceDay") as string) || null,
     attendanceTime: (formData.get("attendanceTime") as string) || null,
     paymentFormat: (formData.get("paymentFormat") as string) || "avulso",
@@ -138,7 +169,10 @@ export async function createPatient(formData: FormData) {
     dataEfetiva: created.startedAt ?? new Date(),
   });
 
+  await maybeLockAgenda(userId, { patientId: created.id, attendanceDay: created.attendanceDay, attendanceTime: created.attendanceTime, attendanceMode: created.attendanceMode, attendanceLocation: created.attendanceLocation, sessionFee: created.sessionFee }, formData);
+
   revalidatePath("/dashboard/patients");
+  revalidatePath("/dashboard/agenda");
   redirect(`/dashboard/patients/${created.id}`);
 }
 
@@ -170,11 +204,14 @@ export async function updatePatient(patientId: string, formData: FormData) {
     cpf: (formData.get("cpf") as string) ?? existing.cpf,
     guardianName: (formData.get("guardianName") as string) ?? existing.guardianName,
     guardianCpf: (formData.get("guardianCpf") as string) ?? existing.guardianCpf,
+    guardianPhone: (formData.get("guardianPhone") as string) ?? existing.guardianPhone,
+    guardianEmail: (formData.get("guardianEmail") as string) ?? existing.guardianEmail,
     attendanceDay: (formData.get("attendanceDay") as string) ?? existing.attendanceDay,
     attendanceTime: (formData.get("attendanceTime") as string) ?? existing.attendanceTime,
     address: (formData.get("address") as string) ?? existing.address,
     emergencyName: (formData.get("emergencyName") as string) ?? existing.emergencyName,
     emergencyPhone: (formData.get("emergencyPhone") as string) ?? existing.emergencyPhone,
+    emergencyEmail: (formData.get("emergencyEmail") as string) ?? existing.emergencyEmail,
     emergencyRelationship: (formData.get("emergencyRelationship") as string) ?? existing.emergencyRelationship,
     paymentDay: formData.get("paymentDay") ? parseInt(formData.get("paymentDay") as string) : existing.paymentDay,
     paymentFormat: newFormat,
@@ -215,8 +252,18 @@ export async function updatePatient(patientId: string, formData: FormData) {
     });
   }
 
+  await maybeLockAgenda(session.user.id, {
+    patientId,
+    attendanceDay: (formData.get("attendanceDay") as string) ?? existing.attendanceDay,
+    attendanceTime: (formData.get("attendanceTime") as string) ?? existing.attendanceTime,
+    attendanceMode: (formData.get("attendanceMode") as string) || existing.attendanceMode,
+    attendanceLocation: (formData.get("attendanceLocation") as string) ?? existing.attendanceLocation,
+    sessionFee: newFee,
+  }, formData);
+
   revalidatePath(`/dashboard/patients/${patientId}`);
   revalidatePath("/dashboard/patients");
+  revalidatePath("/dashboard/agenda");
 }
 
 // Ajuste de valor da sessão: registra no histórico de preços, atualiza o valor
