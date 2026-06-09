@@ -1,7 +1,7 @@
 "use client";
 
 import { cn } from "@/lib/utils";
-import { ChevronRight, User } from "lucide-react";
+import { User } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { NAV_GROUPS, type NavItem } from "./nav";
@@ -19,15 +19,15 @@ export function NavList({ onNavigate }: { onNavigate?: () => void }) {
         onClick={onNavigate}
         aria-current={isActive ? "page" : undefined}
         className={cn(
-          "flex items-center gap-3 px-6 py-3.5 rounded-[20px] font-semibold transition-all duration-200 group",
+          "flex items-center gap-3 px-6 py-3 rounded-[18px] font-medium transition-all duration-200 group",
           isActive
-            ? "bg-primary text-white shadow-lg shadow-primary/20"
-            : "text-foreground/60 hover:bg-surface-container hover:text-primary"
+            ? "bg-primary/10 text-primary font-semibold"
+            : "text-foreground/55 hover:bg-white/70 hover:text-primary"
         )}
       >
-        <item.icon className={cn("w-5 h-5 shrink-0", isActive ? "text-white" : "group-hover:text-primary")} />
+        <item.icon className={cn("w-5 h-5 shrink-0", isActive ? "text-primary" : "group-hover:text-primary")} />
         <span>{item.label}</span>
-        {isActive && <ChevronRight className="w-4 h-4 ml-auto" />}
+        {isActive && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-primary" />}
       </Link>
     );
   };

@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Search, ChevronRight } from "lucide-react";
+import { Search, ChevronRight, ChevronDown } from "lucide-react";
 import { formatBRL, patientStatusColor, paymentStatusColor, PAYMENT_STATUS_LABELS } from "@/lib/therapy";
 import { MessagePatient } from "@/components/dashboard/MessagePatient";
 
@@ -62,64 +62,64 @@ export function PatientsClient({ patients }: { patients: PatientCard[] }) {
     filtered.sort((a, b) => key(a).localeCompare(key(b)));
   }
 
+  const selCls = "appearance-none w-full pl-3.5 pr-8 py-2.5 rounded-full bg-white/70 border border-border text-sm font-medium text-foreground/70 hover:bg-white outline-none transition cursor-pointer capitalize";
+  const Sel = ({ value, onChange, children }: { value: string; onChange: (v: string) => void; children: React.ReactNode }) => (
+    <div className="relative">
+      <select value={value} onChange={(e) => onChange(e.target.value)} className={selCls}>{children}</select>
+      <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-foreground/40" />
+    </div>
+  );
+
+  const activeChips = [
+    fmt && { label: FORMATS.find((f) => f.k === fmt)?.l, clear: () => setFmt(null) },
+    day && { label: day, clear: () => setDay(null) },
+    tag && { label: tag, clear: () => setTag(null) },
+    sortHour && { label: "Por horário", clear: () => setSortHour(false) },
+  ].filter(Boolean) as { label: string; clear: () => void }[];
+
   return (
-    <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1">
+    <div className="space-y-4">
+      <div className="flex flex-col lg:flex-row gap-3">
+        <div className="relative flex-1 min-w-0">
           <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-foreground/40" />
           <input
             value={query}
             onChange={(e) => setQuery(e.target.value)}
             placeholder="Buscar paciente..."
-            className="w-full pl-12 pr-4 py-3.5 rounded-2xl bg-white/70 backdrop-blur border border-border focus:ring-2 focus:ring-accent/20 focus:border-accent outline-none transition"
+            className="w-full pl-12 pr-4 py-3 rounded-full bg-white/70 backdrop-blur border border-border outline-none transition"
           />
         </div>
-        <div className="flex gap-2 overflow-x-auto no-scrollbar">
-          {FILTERS.map((f) => (
-            <button
-              key={f.key}
-              onClick={() => setFilter(f.key)}
-              className={`px-4 py-2 rounded-full text-sm font-semibold whitespace-nowrap transition ${
-                filter === f.key ? "bg-primary text-white" : "bg-white/60 text-foreground/60 hover:bg-white"
-              }`}
-            >
-              {f.label}
-            </button>
-          ))}
-          <button
-            onClick={() => setSortHour((s) => !s)}
-            title="Ordenar por hora de atendimento"
-            className={`px-4 py-2 rounded-full text-sm font-semibold whitespace-nowrap transition ${sortHour ? "bg-primary text-white" : "bg-white/60 text-foreground/60 hover:bg-white"}`}
-          >
-            🕐 {sortHour ? "Por horário" : "Horário"}
-          </button>
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:flex gap-2">
+          <Sel value={filter} onChange={setFilter}>
+            {FILTERS.map((f) => <option key={f.key} value={f.key}>{f.key === "todos" ? "Status: todos" : f.label}</option>)}
+          </Sel>
+          <Sel value={fmt ?? "todos"} onChange={(v) => setFmt(v === "todos" ? null : v)}>
+            <option value="todos">Tipo: todos</option>
+            {FORMATS.map((f) => <option key={f.k} value={f.k}>{f.l}</option>)}
+          </Sel>
+          <Sel value={day ?? "todos"} onChange={(v) => setDay(v === "todos" ? null : v)}>
+            <option value="todos">Dia: todos</option>
+            {WEEK_DAYS.map((d) => <option key={d} value={d}>{d}</option>)}
+          </Sel>
+          {allTags.length > 0 && (
+            <Sel value={tag ?? "todas"} onChange={(v) => setTag(v === "todas" ? null : v)}>
+              <option value="todas">Etiqueta: todas</option>
+              {allTags.map((t) => <option key={t} value={t}>{t}</option>)}
+            </Sel>
+          )}
+          <Sel value={sortHour ? "hora" : "alfa"} onChange={(v) => setSortHour(v === "hora")}>
+            <option value="alfa">Ordem: A–Z</option>
+            <option value="hora">Ordem: horário</option>
+          </Sel>
         </div>
       </div>
 
-      <div className="flex gap-2 flex-wrap items-center">
-        <span className="text-xs font-semibold text-foreground/40 mr-1">Tipo:</span>
-        <button onClick={() => setFmt(null)} className={`px-3 py-1 rounded-full text-xs font-semibold transition ${!fmt ? "bg-primary text-white" : "bg-white/60 text-foreground/50 hover:bg-white"}`}>Todos</button>
-        {FORMATS.map((f) => (
-          <button key={f.k} onClick={() => setFmt(fmt === f.k ? null : f.k)} className={`px-3 py-1 rounded-full text-xs font-semibold transition ${fmt === f.k ? "bg-primary text-white" : "bg-white/60 text-foreground/50 hover:bg-white"}`}>{f.l}</button>
-        ))}
-      </div>
-
-      <div className="flex gap-2 flex-wrap items-center">
-        <span className="text-xs font-semibold text-foreground/40 mr-1">Dia:</span>
-        <button onClick={() => setDay(null)} className={`px-3 py-1 rounded-full text-xs font-semibold transition ${!day ? "bg-primary text-white" : "bg-white/60 text-foreground/50 hover:bg-white"}`}>Todos</button>
-        {WEEK_DAYS.map((d) => (
-          <button key={d} onClick={() => setDay(day === d ? null : d)} className={`px-3 py-1 rounded-full text-xs font-semibold capitalize transition ${day === d ? "bg-primary text-white" : "bg-white/60 text-foreground/50 hover:bg-white"}`}>{d}</button>
-        ))}
-      </div>
-
-      {allTags.length > 0 && (
-        <div className="flex gap-2 flex-wrap">
-          <button onClick={() => setTag(null)} className={`px-3 py-1 rounded-full text-xs font-semibold transition ${!tag ? "bg-primary text-white" : "bg-white/60 text-foreground/50 hover:bg-white"}`}>
-            Todas etiquetas
-          </button>
-          {allTags.map((t) => (
-            <button key={t} onClick={() => setTag(tag === t ? null : t)} className={`px-3 py-1 rounded-full text-xs font-semibold transition ${tag === t ? "bg-accent text-white" : "bg-secondary-container/30 text-primary hover:bg-secondary-container/50"}`}>
-              {t}
+      {activeChips.length > 0 && (
+        <div className="flex gap-2 flex-wrap items-center text-xs">
+          <span className="text-foreground/40">Filtros:</span>
+          {activeChips.map((c, i) => (
+            <button key={i} onClick={c.clear} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full bg-secondary-container/30 text-primary font-semibold capitalize hover:bg-secondary-container/50 transition">
+              {c.label} <span className="text-foreground/40">✕</span>
             </button>
           ))}
         </div>
