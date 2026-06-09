@@ -38,6 +38,7 @@ type Patient = {
   emergencyName: string | null; emergencyPhone: string | null; emergencyRelationship: string | null;
   contractType: string | null; paymentDay: number | null;
   attendanceMode: string | null; attendanceLocation: string | null; attendanceDay: string | null; attendanceTime: string | null;
+  category: string | null; spouseName: string | null;
   priceReviewDate: string | null;
   sessionsInPacket: number | null; packageCreditsUsed: number; deductPackageOnSession: boolean;
   tags: string | null;
@@ -143,7 +144,7 @@ export function PatientDetail({
         </div>
         <div className="flex-1 min-w-0">
           <div className="flex items-center gap-2 flex-wrap">
-            <h1 className="text-2xl font-display font-bold text-primary">{patient.name}</h1>
+            <h1 className="text-2xl font-display font-bold text-primary leading-tight">{patient.name}</h1>
             <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase ${patientStatusColor(patient.patientStatus)}`}>
               {patient.patientStatus}
             </span>
@@ -153,6 +154,9 @@ export function PatientDetail({
               </span>
             )}
           </div>
+          {patient.category === "casal" && patient.spouseName && (
+            <p className="text-sm text-foreground/50 -mt-0.5">com {patient.spouseName}</p>
+          )}
           {/* Linha compacta: dia de atendimento · status financeiro/crédito · mensagem */}
           <div className="flex items-center gap-2 mt-1.5 flex-wrap text-xs">
             {(patient.attendanceDay || patient.attendanceTime) && (

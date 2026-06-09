@@ -83,9 +83,17 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
   // --- Fluxo financeiro universal: pagamentos (+) e sessões realizadas+cobráveis (−) ---
   const fee = parseFloat(patient.sessionFee || "0") || 0;
   const paidPayments = paymentsList.filter((p) => p.status === "paid");
+  // índice X/N por pagamento vinculado a pacote (X = enésimo pagamento desse pacote)
+  const pkgSessById = new Map(packagesList.map((p) => [p.id, p.sessions]));
+  const payPkgIdx = new Map<string, number>();
+  const pkgCnt: Record<string, number> = {};
+  [...paidPayments].filter((p) => p.packageId).sort((a, b) => new Date(a.date as unknown as string).getTime() - new Date(b.date as unknown as string).getTime()).forEach((p) => {
+    pkgCnt[p.packageId!] = (pkgCnt[p.packageId!] || 0) + 1;
+    payPkgIdx.set(p.id, pkgCnt[p.packageId!]);
+  });
   type LedgerItem = { id: string; date: string; kind: "pagamento" | "sessao"; desc: string; amount: number; payId: string | null };
   const ledgerRaw: LedgerItem[] = [
-    ...paidPayments.map((p) => ({ id: `p${p.id}`, date: p.date as unknown as string, kind: "pagamento" as const, desc: p.kind === "pacote" ? "Crédito de pacote" : (p.packageId && pkgSeqById.has(p.packageId)) ? `Pagamento — Pacote P${pkgSeqById.get(p.packageId)}` : "Pagamento recebido", amount: parseFloat(p.amount), payId: p.kind === "pacote" ? null : p.id })),
+    ...paidPayments.map((p) => ({ id: `p${p.id}`, date: p.date as unknown as string, kind: "pagamento" as const, desc: p.kind === "pacote" ? "Crédito de pacote" : (p.packageId && pkgSeqById.has(p.packageId)) ? `Pagamento — Pacote P${pkgSeqById.get(p.packageId)} · ${payPkgIdx.get(p.id) ?? 1}/${pkgSessById.get(p.packageId) ?? "?"}` : "Pagamento recebido", amount: parseFloat(p.amount), payId: p.kind === "pacote" ? null : p.id })),
     ...sessionsList
       .filter((s) => s.status === "realizada" && s.chargeable)
       .map((s) => ({ id: `s${s.id}`, date: s.date as unknown as string, kind: "sessao" as const, desc: "Sessão realizada (cobrança)", amount: -parseFloat(s.fee), payId: null })),

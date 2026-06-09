@@ -211,6 +211,11 @@ export const patients = pgTable("patients", {
   guardianCpf: text("guardian_cpf"),
   guardianPhone: text("guardian_phone"),
   guardianEmail: text("guardian_email"),
+  // cônjuge (quando classificação = casal)
+  spouseName: text("spouse_name"),
+  spousePhone: text("spouse_phone"),
+  spouseEmail: text("spouse_email"),
+  spouseCpf: text("spouse_cpf"),
   attendanceDay: text("attendance_day"), // dia da semana preferencial (seg..dom)
   attendanceTime: text("attendance_time"), // hora preferencial HH:MM
   address: text("address"),

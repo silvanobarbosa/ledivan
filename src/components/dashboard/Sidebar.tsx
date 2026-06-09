@@ -34,14 +34,17 @@ export function NavList({ onNavigate }: { onNavigate?: () => void }) {
 
   return (
     <nav className="flex-1 px-4 space-y-1 overflow-y-auto no-scrollbar">
-      {NAV_GROUPS.map((group, i) => (
-        <div key={group.title}>
-          <p className={cn("px-6 pb-1 text-[10px] font-bold text-foreground/40 uppercase tracking-widest", i === 0 ? "pt-2" : "pt-5")}>
-            {group.title}
-          </p>
-          {group.items.map(renderItem)}
-        </div>
-      ))}
+      {NAV_GROUPS.map((group, i) => {
+        const finance = group.title === "Financeiro";
+        return (
+          <div key={group.title} className={cn(finance && "bg-[#e9f3fb] rounded-2xl py-1 mt-3")}>
+            <p className={cn("px-6 pb-1 text-[10px] font-bold uppercase tracking-widest", finance ? "text-[#1e40af] pt-3" : "text-foreground/40", i === 0 ? "pt-2" : "pt-5", finance && "pt-3")}>
+              {group.title}
+            </p>
+            {group.items.map(renderItem)}
+          </div>
+        );
+      })}
     </nav>
   );
 }

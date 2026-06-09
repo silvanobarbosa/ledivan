@@ -15,6 +15,7 @@ export type PatientFormData = {
   name?: string; phone?: string | null; email?: string | null; patientStatus?: string;
   startedAt?: string | null; birthDate?: string | null; category?: string | null; gender?: string | null; cpf?: string | null; address?: string | null;
   guardianName?: string | null; guardianCpf?: string | null; guardianPhone?: string | null; guardianEmail?: string | null;
+  spouseName?: string | null; spousePhone?: string | null; spouseEmail?: string | null; spouseCpf?: string | null;
   emergencyName?: string | null; emergencyPhone?: string | null; emergencyEmail?: string | null; emergencyRelationship?: string | null;
   attendanceMode?: string | null; attendanceLocation?: string | null; attendanceDay?: string | null; attendanceTime?: string | null;
   sessionFee?: string | null; frequency?: string | null; paymentFormat?: string | null; sessionsInPacket?: number | null; paymentDay?: number | null; priceReviewDate?: string | null;
@@ -67,6 +68,7 @@ export function PatientFormFields({ p, locations }: { p?: PatientFormData; locat
   const GENDERS = ["feminino", "masculino", "nao-binario"];
   const initialGender = p?.gender ? (GENDERS.includes(p.gender) ? p.gender : "outro") : "";
   const [gender, setGender] = useState(initialGender);
+  const [category, setCategory] = useState(p?.category || "");
   const dateVal = (d?: string | null) => (d ? new Date(d).toISOString().slice(0, 10) : "");
   const show = (k: string) => (tab === k ? "space-y-4" : "hidden");
 
@@ -95,7 +97,7 @@ export function PatientFormFields({ p, locations }: { p?: PatientFormData; locat
             <div><label className={labelCls}>Data de nascimento</label><input name="birthDate" type="date" defaultValue={dateVal(p?.birthDate)} className={inputCls} /></div>
             <div>
               <label className={labelCls}>Classificação</label>
-              <select name="category" className={inputCls} defaultValue={p?.category || ""}>
+              <select name="category" value={category} onChange={(e) => setCategory(e.target.value)} className={inputCls}>
                 <option value="">—</option>
                 <option value="crianca">Criança</option>
                 <option value="adolescente">Adolescente</option>
@@ -132,6 +134,17 @@ export function PatientFormFields({ p, locations }: { p?: PatientFormData; locat
             <div><label className={labelCls}>E-mail do responsável</label><input name="guardianEmail" type="email" defaultValue={p?.guardianEmail ?? ""} className={inputCls} placeholder="email@exemplo.com" /></div>
           </div>
         </Card>
+
+        {category === "casal" && (
+          <Card title="Dados do cônjuge">
+            <div className="grid sm:grid-cols-2 gap-4">
+              <div><label className={labelCls}>Nome do cônjuge</label><input name="spouseName" defaultValue={p?.spouseName ?? ""} className={inputCls} placeholder="Nome completo" /></div>
+              <div><label className={labelCls}>CPF do cônjuge</label><input name="spouseCpf" defaultValue={p?.spouseCpf ?? ""} className={inputCls} placeholder="000.000.000-00" /></div>
+              <PhoneInput name="spousePhone" defaultValue={p?.spousePhone} label="Telefone do cônjuge" />
+              <div><label className={labelCls}>E-mail do cônjuge</label><input name="spouseEmail" type="email" defaultValue={p?.spouseEmail ?? ""} className={inputCls} placeholder="email@exemplo.com" /></div>
+            </div>
+          </Card>
+        )}
 
         <Card title="Contato de emergência">
           <div className="grid sm:grid-cols-2 gap-4">
