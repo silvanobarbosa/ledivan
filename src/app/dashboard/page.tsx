@@ -3,9 +3,7 @@ import { auth } from "@/auth";
 import { users, transactions, goals, categories, achievements, patients, therapySessions, patientPackages } from "@/db/schema";
 import { eq, sum, desc, sql, count, and } from "drizzle-orm";
 import { formatBRL, formatDateTime } from "@/lib/therapy";
-import { getClinicalFlags } from "@/lib/clinical";
-import { FlagChips } from "@/components/dashboard/FlagChips";
-import { Users as UsersIcon, CalendarCheck, Clock, Activity, ChevronRight } from "lucide-react";
+import { Users as UsersIcon, CalendarCheck, Clock, ChevronRight } from "lucide-react";
 import { BalanceCard } from "@/components/dashboard/BalanceCard";
 import { RecentTransactions } from "@/components/dashboard/RecentTransactions";
 import { CapiInsights } from "@/components/dashboard/CapiInsights";
@@ -43,7 +41,7 @@ export default async function DashboardPage() {
   const [
     balanceRows, recentTransactionsData, userGoals, userAchievementsData, tCountRows,
     chartData, categoryDistribution, activeRows, weekRows, sessionIncomeRows,
-    flagged, upcomingSessions, reservasRows, pkgEndingRows,
+    upcomingSessions, reservasRows, pkgEndingRows,
   ] = await Promise.all([
     db.select({
       total: sum(transactions.amount),
@@ -65,7 +63,6 @@ export default async function DashboardPage() {
     db.select({ val: count() }).from(patients).where(and(eq(patients.userId, user.id), eq(patients.patientStatus, "ativo"))),
     db.select({ val: count() }).from(therapySessions).where(sql`${therapySessions.userId} = ${user.id} AND ${therapySessions.date} >= ${weekStart} AND ${therapySessions.date} < ${weekEnd}`),
     db.select({ val: sum(transactions.amount) }).from(transactions).where(sql`${transactions.userId} = ${user.id} AND ${transactions.source} = 'session_payment' AND ${transactions.date} >= ${monthStart}`),
-    getClinicalFlags(user.id),
     db.query.therapySessions.findMany({
       where: sql`${therapySessions.userId} = ${user.id} AND ${therapySessions.date} >= ${now} AND ${therapySessions.status} = 'agendada' AND ${therapySessions.pendingConfirmation} = false`,
       with: { patient: { columns: { name: true, id: true } } },
@@ -173,29 +170,6 @@ export default async function DashboardPage() {
         )}
       </section>
 
-      {/* Atenção clínica */}
-      {flagged.length > 0 && (
-        <section className="bg-white rounded-[40px] shadow-sm border border-border p-8 space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="text-xl font-display font-bold text-primary flex items-center gap-2">
-              <Activity className="w-5 h-5" /> Atenção clínica
-            </h3>
-            <Link href="/dashboard/clinico" className="text-sm font-semibold text-accent hover:underline">Ver todos ({flagged.length})</Link>
-          </div>
-          <div className="grid gap-2">
-            {flagged.slice(0, 4).map(({ id, name, flags }) => (
-              <Link key={id} href={`/dashboard/patients/${id}`} className="flex items-center gap-3 bg-surface/60 rounded-2xl px-4 py-3 hover:bg-surface transition group">
-                <span className="w-9 h-9 rounded-xl bg-primary/10 text-primary flex items-center justify-center font-display font-bold text-sm shrink-0">{name.charAt(0).toUpperCase()}</span>
-                <div className="flex-1 min-w-0">
-                  <p className="font-semibold truncate text-sm">{name}</p>
-                  <div className="mt-1"><FlagChips flags={flags} /></div>
-                </div>
-                <ChevronRight className="w-4 h-4 text-foreground/30 group-hover:text-primary transition" />
-              </Link>
-            ))}
-          </div>
-        </section>
-      )}
 
       <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
         <BalanceCard

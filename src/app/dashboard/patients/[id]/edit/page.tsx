@@ -10,6 +10,7 @@ import { SubmitButton } from "@/components/SubmitButton";
 import { InfoTip } from "@/components/InfoTip";
 import { PhotoSlots } from "@/components/dashboard/PhotoSlots";
 import { AttendanceFields } from "@/components/dashboard/AttendanceFields";
+import { CadastroFields } from "@/components/dashboard/CadastroFields";
 import { REMINDER_LEAD_OPTIONS } from "@/lib/reminderLead";
 import { users } from "@/db/schema";
 import { parseLocations } from "@/lib/locations";
@@ -79,7 +80,16 @@ export default async function EditPatientPage({ params }: { params: Promise<{ id
           <label className={labelCls}>Endereço</label>
           <input name="address" defaultValue={patient.address ?? ""} className={inputCls} />
         </div>
-        <p className="text-xs text-foreground/50">💡 Valor, contrato/pacote e dia de pagamento ficam na aba <strong>Financeiro</strong> do paciente.</p>
+
+        <CadastroFields p={{
+          birthDate: patient.birthDate ? (patient.birthDate as Date).toISOString() : null,
+          category: patient.category, cpf: patient.cpf,
+          guardianName: patient.guardianName, guardianCpf: patient.guardianCpf,
+          attendanceDay: patient.attendanceDay, attendanceTime: patient.attendanceTime,
+          sessionFee: patient.sessionFee, frequency: patient.frequency, paymentFormat: patient.paymentFormat,
+          sessionsInPacket: patient.sessionsInPacket, paymentDay: patient.paymentDay,
+          priceReviewDate: patient.priceReviewDate ? (patient.priceReviewDate as Date).toISOString() : null,
+        }} />
 
         <div className="pt-2 border-t border-border">
           <p className="text-xs font-bold text-foreground/40 uppercase tracking-widest mb-3 mt-3">Contato de emergência</p>

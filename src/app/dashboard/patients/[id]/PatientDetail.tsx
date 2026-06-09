@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createSession, deleteSession, updateSession } from "../../sessions/actions";
 import { createPayment } from "../../payments/actions";
-import { createRecord, deleteRecord, updatePatientNotes, editPackage, deletePackage } from "../actions";
+import { createRecord, deleteRecord, updatePatientNotes, editPackage, deletePackage, includePackage } from "../actions";
 import { FinanceAdjust } from "./FinanceAdjust";
 import { ATTENDANCE_MODE_LABELS } from "@/lib/locations";
 import { MessagePatient } from "@/components/dashboard/MessagePatient";
@@ -593,16 +593,18 @@ export function PatientDetail({
           </div>
 
           {/* Pacotes (P1, P2, ...) */}
-          {packageInfo.list.length > 0 && (
-            <div className="glass-card rounded-[24px] p-5">
+          <div className="glass-card rounded-[24px] p-5">
               <div className="flex items-center justify-between mb-2">
                 <p className="text-xs font-bold text-foreground/40 uppercase tracking-widest">Pacotes</p>
-                <span className="text-sm">
-                  Em aberto: <strong className="text-primary">{packageInfo.openSessions}</strong> sessão(ões)
-                  {packageInfo.currentLabel && <span className="text-foreground/50"> · vigente {packageInfo.currentLabel}</span>}
-                </span>
+                {packageInfo.list.length > 0 && (
+                  <span className="text-sm">
+                    Em aberto: <strong className="text-primary">{packageInfo.openSessions}</strong> sessão(ões)
+                    {packageInfo.currentLabel && <span className="text-foreground/50"> · vigente {packageInfo.currentLabel}</span>}
+                  </span>
+                )}
               </div>
               <div className="space-y-1">
+                {packageInfo.list.length === 0 && <p className="text-sm text-foreground/40">Nenhum pacote.</p>}
                 {packageInfo.list.map((p) => (
                   editPkgId === p.id ? (
                     <form key={p.id} action={editPackage.bind(null, p.id)} onSubmit={() => setEditPkgId(null)} className="flex flex-wrap items-end gap-2 py-2 border-b border-border last:border-0">
@@ -626,11 +628,17 @@ export function PatientDetail({
                   )
                 ))}
               </div>
-            </div>
-          )}
+              <form action={includePackage.bind(null, patient.id)} className="mt-3 pt-3 border-t border-border flex items-end gap-2">
+                <div>
+                  <label className="text-[11px] font-semibold text-foreground/50 block">Incluir pacote — sessões</label>
+                  <input name="sessionsInPacket" type="number" min={1} max={200} required placeholder="ex: 8" className="w-28 px-3 py-2 rounded-lg bg-white border border-border text-sm" />
+                </div>
+                <button className="bg-primary text-white px-4 py-2 rounded-lg font-bold text-sm">+ Incluir</button>
+              </form>
+          </div>
 
-          {/* Ajustes (recolhível): recorrência, valor, pacote + históricos editáveis */}
-          <FinanceAdjust patientId={patient.id} frequency={patient.frequency} priceHistory={priceHistory} contractHistory={contractHistory} />
+          {/* Histórico financeiro (valor + recorrência) — editável */}
+          <FinanceAdjust priceHistory={priceHistory} contractHistory={contractHistory} />
 
           {/* Fluxo financeiro (no rodapé): pagamentos (+) e sessões realizadas cobráveis (−) */}
           <div className="glass-card rounded-[24px] p-5">

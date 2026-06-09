@@ -16,10 +16,14 @@ type PatientCard = {
   sessionFee: string;
   frequency: string | null;
   tags: string | null;
+  attendanceDay: string | null;
+  attendanceTime: string | null;
   balance: number;
   creditSessions: number;
   debtSessions: number;
 };
+
+const DAY_ORDER: Record<string, number> = { segunda: 1, "terça": 2, terca: 2, quarta: 3, quinta: 4, sexta: 5, "sábado": 6, sabado: 6, domingo: 7 };
 
 function parseTags(t: string | null): string[] {
   return (t || "").split(",").map((x) => x.trim()).filter(Boolean);
@@ -36,6 +40,7 @@ export function PatientsClient({ patients }: { patients: PatientCard[] }) {
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState("todos");
   const [tag, setTag] = useState<string | null>(null);
+  const [sortHour, setSortHour] = useState(false);
 
   const allTags = Array.from(new Set(patients.flatMap((p) => parseTags(p.tags)))).sort();
 
@@ -45,6 +50,10 @@ export function PatientsClient({ patients }: { patients: PatientCard[] }) {
     const matchTag = !tag || parseTags(p.tags).includes(tag);
     return matchQuery && matchFilter && matchTag;
   });
+  if (sortHour) {
+    const key = (p: PatientCard) => `${p.attendanceTime || "99:99"}#${DAY_ORDER[p.attendanceDay || ""] ?? 9}`;
+    filtered.sort((a, b) => key(a).localeCompare(key(b)));
+  }
 
   return (
     <div className="space-y-6">
@@ -70,6 +79,13 @@ export function PatientsClient({ patients }: { patients: PatientCard[] }) {
               {f.label}
             </button>
           ))}
+          <button
+            onClick={() => setSortHour((s) => !s)}
+            title="Ordenar por hora de atendimento"
+            className={`px-4 py-2 rounded-full text-sm font-semibold whitespace-nowrap transition ${sortHour ? "bg-primary text-white" : "bg-white/60 text-foreground/60 hover:bg-white"}`}
+          >
+            🕐 {sortHour ? "Por horário" : "Horário"}
+          </button>
         </div>
       </div>
 
@@ -103,7 +119,7 @@ export function PatientsClient({ patients }: { patients: PatientCard[] }) {
                       {p.patientStatus}
                     </span>
                   </div>
-                  <p className="text-sm text-foreground/50 truncate">{formatBRL(p.sessionFee)}/sessão</p>
+                  <p className="text-sm text-foreground/50 truncate">{formatBRL(p.sessionFee)}/sessão{(p.attendanceDay || p.attendanceTime) ? <span className="text-foreground/40"> · 🕐 <span className="capitalize">{p.attendanceDay || ""}</span> {p.attendanceTime || ""}</span> : null}</p>
                   <div className="mt-1">
                     {p.balance < 0 ? (
                       <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full bg-[#fef2f2] text-[#b91c1c]">⚠️ Devendo {p.debtSessions} sessão(ões)</span>

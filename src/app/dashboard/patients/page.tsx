@@ -1,7 +1,7 @@
 import { db } from "@/db";
 import { auth } from "@/auth";
 import { patients, sessionPayments, therapySessions } from "@/db/schema";
-import { and, eq, desc, ne, sql } from "drizzle-orm";
+import { and, eq, asc, ne, sql } from "drizzle-orm";
 import Link from "next/link";
 import { Plus } from "lucide-react";
 import { PatientsClient } from "./PatientsClient";
@@ -15,7 +15,7 @@ export default async function PatientsPage() {
   const [list, paysByPatient, debitByPatient] = await Promise.all([
     db.query.patients.findMany({
       where: and(eq(patients.userId, userId), ne(patients.patientStatus, "prospect")),
-      orderBy: [desc(patients.createdAt)],
+      orderBy: [asc(patients.name)],
     }),
     db.select({ pid: sessionPayments.patientId, total: sql<string>`sum(${sessionPayments.amount})` })
       .from(sessionPayments)
@@ -60,6 +60,8 @@ export default async function PatientsPage() {
             sessionFee: p.sessionFee,
             frequency: p.frequency,
             tags: p.tags,
+            attendanceDay: p.attendanceDay,
+            attendanceTime: p.attendanceTime,
             balance: bal,
             creditSessions,
             debtSessions,

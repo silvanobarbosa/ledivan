@@ -92,12 +92,21 @@ export async function createPatient(formData: FormData) {
     patientStatus: (formData.get("patientStatus") as string) || "ativo",
     prospectDate: (formData.get("patientStatus") as string) === "prospect" ? new Date() : null,
     startedAt: startedAtRaw ? new Date(startedAtRaw) : new Date(),
+    birthDate: formData.get("birthDate") ? new Date(formData.get("birthDate") as string) : null,
+    category: (formData.get("category") as string) || null,
+    cpf: (formData.get("cpf") as string) || null,
+    guardianName: (formData.get("guardianName") as string) || null,
+    guardianCpf: (formData.get("guardianCpf") as string) || null,
+    attendanceDay: (formData.get("attendanceDay") as string) || null,
+    attendanceTime: (formData.get("attendanceTime") as string) || null,
+    paymentFormat: (formData.get("paymentFormat") as string) || "avulso",
+    priceReviewDate: formData.get("priceReviewDate") ? new Date(formData.get("priceReviewDate") as string) : null,
     address: (formData.get("address") as string) || null,
     emergencyName: (formData.get("emergencyName") as string) || null,
     emergencyPhone: (formData.get("emergencyPhone") as string) || null,
     emergencyRelationship: (formData.get("emergencyRelationship") as string) || null,
     paymentDay: formData.get("paymentDay") ? parseInt(formData.get("paymentDay") as string) : null,
-    contractType: ((formData.get("contractType") as string) || "avulso") as "pacote" | "avulso",
+    contractType: ((formData.get("paymentFormat") as string) === "pacote" ? "pacote" : "avulso") as "pacote" | "avulso",
     attendanceMode: (formData.get("attendanceMode") as string) || "presencial",
     attendanceLocation: (formData.get("attendanceLocation") as string) || null,
     sessionsInPacket: formData.get("sessionsInPacket")
@@ -144,29 +153,38 @@ export async function updatePatient(patientId: string, formData: FormData) {
 
   const newFee = num(formData.get("sessionFee"), existing.sessionFee);
   const newStatus = (formData.get("patientStatus") as string) || existing.patientStatus;
+  const newFreq = (formData.get("frequency") as string) || existing.frequency;
+  const newFormat = (formData.get("paymentFormat") as string) || existing.paymentFormat;
+  const isPacote = newFormat === "pacote";
 
   await db.update(patients).set({
     name: (formData.get("name") as string) || existing.name,
     email: (formData.get("email") as string) ?? existing.email,
     phone: (formData.get("phone") as string) ?? existing.phone,
     sessionFee: newFee,
-    frequency: (formData.get("frequency") as string) ?? existing.frequency,
+    frequency: newFreq,
     notes: existing.notes, // editado no Prontuário
     patientStatus: newStatus,
+    birthDate: formData.get("birthDate") ? new Date(formData.get("birthDate") as string) : existing.birthDate,
+    category: (formData.get("category") as string) ?? existing.category,
+    cpf: (formData.get("cpf") as string) ?? existing.cpf,
+    guardianName: (formData.get("guardianName") as string) ?? existing.guardianName,
+    guardianCpf: (formData.get("guardianCpf") as string) ?? existing.guardianCpf,
+    attendanceDay: (formData.get("attendanceDay") as string) ?? existing.attendanceDay,
+    attendanceTime: (formData.get("attendanceTime") as string) ?? existing.attendanceTime,
     address: (formData.get("address") as string) ?? existing.address,
     emergencyName: (formData.get("emergencyName") as string) ?? existing.emergencyName,
     emergencyPhone: (formData.get("emergencyPhone") as string) ?? existing.emergencyPhone,
     emergencyRelationship: (formData.get("emergencyRelationship") as string) ?? existing.emergencyRelationship,
     paymentDay: formData.get("paymentDay") ? parseInt(formData.get("paymentDay") as string) : existing.paymentDay,
-    contractType: ((formData.get("contractType") as string) || existing.contractType) as "pacote" | "avulso",
+    paymentFormat: newFormat,
+    contractType: (isPacote ? "pacote" : "avulso") as "pacote" | "avulso",
+    priceReviewDate: formData.get("priceReviewDate") ? new Date(formData.get("priceReviewDate") as string) : existing.priceReviewDate,
     attendanceMode: (formData.get("attendanceMode") as string) || existing.attendanceMode,
     attendanceLocation: (formData.get("attendanceLocation") as string) ?? existing.attendanceLocation,
-    sessionsInPacket: formData.get("sessionsInPacket")
-      ? parseInt(formData.get("sessionsInPacket") as string)
-      : existing.sessionsInPacket,
-    deductPackageOnSession: (formData.get("contractType") as string) === "pacote"
-      ? formData.get("deductPackageOnSession") === "on"
-      : existing.deductPackageOnSession,
+    sessionsInPacket: isPacote
+      ? (formData.get("sessionsInPacket") ? parseInt(formData.get("sessionsInPacket") as string) : existing.sessionsInPacket)
+      : null,
     reminderEnabled: formData.get("reminderEnabled") === "on",
     reminderChannel: (formData.get("reminderChannel") as string) || existing.reminderChannel,
     reminderLeadMinutes: formData.get("reminderLeadMinutes")
@@ -184,7 +202,17 @@ export async function updatePatient(patientId: string, formData: FormData) {
     await db.insert(patientStatusHistory).values({ patientId, status: newStatus });
   }
   if (newFee !== existing.sessionFee) {
-    await db.insert(patientPriceHistory).values({ patientId, valor: newFee, dataEfetiva: new Date() });
+    const efetiva = formData.get("dataEfetiva") ? new Date(formData.get("dataEfetiva") as string) : new Date();
+    await db.insert(patientPriceHistory).values({ patientId, valor: newFee, dataEfetiva: efetiva });
+  }
+  if ((existing.paymentFormat || "avulso") !== (newFormat || "avulso") || (existing.frequency || "") !== (newFreq || "")) {
+    const FMT: Record<string, string> = { avulso: "Avulso", mensal: "Mensal", quinzenal: "Quinzenal", pacote: "Pacote" };
+    await db.insert(patientContractHistory).values({
+      patientId, type: "model",
+      from: `${existing.frequency || "—"} · ${FMT[existing.paymentFormat || "avulso"] || existing.paymentFormat}`,
+      to: `${newFreq || "—"} · ${FMT[newFormat || "avulso"] || newFormat}`,
+      description: `Modelo: ${newFreq || "—"} · ${FMT[newFormat || "avulso"] || newFormat}`,
+    });
   }
 
   revalidatePath(`/dashboard/patients/${patientId}`);

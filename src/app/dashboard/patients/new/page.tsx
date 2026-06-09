@@ -5,6 +5,7 @@ import { InfoTip } from "@/components/InfoTip";
 import { SubmitButton } from "@/components/SubmitButton";
 import { PhotoSlots } from "@/components/dashboard/PhotoSlots";
 import { AttendanceFields } from "@/components/dashboard/AttendanceFields";
+import { CadastroFields } from "@/components/dashboard/CadastroFields";
 import { REMINDER_LEAD_OPTIONS } from "@/lib/reminderLead";
 import { auth } from "@/auth";
 import { db } from "@/db";
@@ -67,7 +68,7 @@ export default async function NewPatientPage() {
           </div>
         </div>
 
-        <p className="text-xs text-foreground/50 -mt-2">💡 Valor da sessão, contrato/pacote e dia de pagamento são definidos depois, na aba <strong>Financeiro</strong> do paciente.</p>
+        <CadastroFields />
 
         <div className="pt-2 border-t border-border">
           <p className="text-xs font-bold text-foreground/40 uppercase tracking-widest mb-3 mt-3">Contato de emergência</p>

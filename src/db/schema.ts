@@ -204,6 +204,12 @@ export const patients = pgTable("patients", {
   patientStatus: text("patient_status").default("ativo").notNull(), // ativo | inativo | prospect | pausado
   startedAt: timestamp("started_at"),
   birthDate: timestamp("birth_date"),
+  category: text("category"), // crianca | adolescente | adulto | idoso | casal
+  cpf: text("cpf"),
+  guardianName: text("guardian_name"), // responsável (menores/incapazes)
+  guardianCpf: text("guardian_cpf"),
+  attendanceDay: text("attendance_day"), // dia da semana preferencial (seg..dom)
+  attendanceTime: text("attendance_time"), // hora preferencial HH:MM
   address: text("address"),
   // contato de emergencia (embutido)
   emergencyName: text("emergency_name"),
