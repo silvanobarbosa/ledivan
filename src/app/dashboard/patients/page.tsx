@@ -59,6 +59,7 @@ export default async function PatientsPage() {
             paymentStatus: p.paymentStatus,
             sessionFee: p.sessionFee,
             frequency: p.frequency,
+            paymentFormat: p.paymentFormat,
             tags: p.tags,
             attendanceDay: p.attendanceDay,
             attendanceTime: p.attendanceTime,

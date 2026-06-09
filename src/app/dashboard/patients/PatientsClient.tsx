@@ -15,6 +15,7 @@ type PatientCard = {
   paymentStatus: string;
   sessionFee: string;
   frequency: string | null;
+  paymentFormat: string | null;
   tags: string | null;
   attendanceDay: string | null;
   attendanceTime: string | null;
@@ -35,12 +36,14 @@ const FILTERS = [
   { key: "inativo", label: "Inativos" },
 ];
 const WEEK_DAYS = ["segunda", "terça", "quarta", "quinta", "sexta", "sábado", "domingo"];
+const FORMATS = [{ k: "avulso", l: "Avulso" }, { k: "mensal", l: "Mensal" }, { k: "quinzenal", l: "Quinzenal" }, { k: "pacote", l: "Pacote" }];
 
 export function PatientsClient({ patients }: { patients: PatientCard[] }) {
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState("todos");
   const [tag, setTag] = useState<string | null>(null);
   const [day, setDay] = useState<string | null>(null);
+  const [fmt, setFmt] = useState<string | null>(null);
   const [sortHour, setSortHour] = useState(false);
 
   const allTags = Array.from(new Set(patients.flatMap((p) => parseTags(p.tags)))).sort();
@@ -51,7 +54,8 @@ export function PatientsClient({ patients }: { patients: PatientCard[] }) {
     const matchFilter = filter === "todos" || p.patientStatus === filter;
     const matchTag = !tag || parseTags(p.tags).includes(tag);
     const matchDay = !day || norm(p.attendanceDay) === day;
-    return matchQuery && matchFilter && matchTag && matchDay;
+    const matchFmt = !fmt || (p.paymentFormat || "avulso") === fmt;
+    return matchQuery && matchFilter && matchTag && matchDay && matchFmt;
   });
   if (sortHour) {
     const key = (p: PatientCard) => `${p.attendanceTime || "99:99"}#${DAY_ORDER[p.attendanceDay || ""] ?? 9}`;
@@ -90,6 +94,14 @@ export function PatientsClient({ patients }: { patients: PatientCard[] }) {
             🕐 {sortHour ? "Por horário" : "Horário"}
           </button>
         </div>
+      </div>
+
+      <div className="flex gap-2 flex-wrap items-center">
+        <span className="text-xs font-semibold text-foreground/40 mr-1">Tipo:</span>
+        <button onClick={() => setFmt(null)} className={`px-3 py-1 rounded-full text-xs font-semibold transition ${!fmt ? "bg-primary text-white" : "bg-white/60 text-foreground/50 hover:bg-white"}`}>Todos</button>
+        {FORMATS.map((f) => (
+          <button key={f.k} onClick={() => setFmt(fmt === f.k ? null : f.k)} className={`px-3 py-1 rounded-full text-xs font-semibold transition ${fmt === f.k ? "bg-primary text-white" : "bg-white/60 text-foreground/50 hover:bg-white"}`}>{f.l}</button>
+        ))}
       </div>
 
       <div className="flex gap-2 flex-wrap items-center">
