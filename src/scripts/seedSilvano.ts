@@ -6,10 +6,10 @@ runSeed({
   name: "Silvano Barbosa",
   bookingSlug: "silvano-barbosa",
   months: 24,
-  active: 48,
-  paused: 6,
-  inactive: 12,
-  prospects: 16,
+  active: 30,
+  paused: 12,
+  inactive: 30,
+  prospects: 18,
 })
   .then(() => process.exit(0))
   .catch((e) => { console.error("❌", e); process.exit(1); });

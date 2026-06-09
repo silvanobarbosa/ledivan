@@ -50,6 +50,7 @@ const LOCATIONS = [
   { name: "Espaço Pinheiros", address: "Rua dos Pinheiros, 850 — São Paulo/SP" },
 ];
 const locLabel = (l: { name: string; address: string }) => `${l.name} — ${l.address}`;
+const WEEK_DAYS = ["segunda", "terça", "quarta", "quinta", "sexta", "sábado"];
 
 // Motivos de inadimplência (para "por que está devendo")
 const DEBT_REASONS = [
@@ -174,6 +175,16 @@ export async function runSeed(cfg: SeedCfg) {
     const devedorAtivo = status === "ativo" && (behavior === "devedor" || behavior === "pacote_renovar");
     const overdue = devedorAtivo || (status === "ativo" && chance(0.1));
 
+    // classificação + nascimento coerente + responsável (menores)
+    const category = pick(["crianca", "adolescente", "adulto", "adulto", "adulto", "idoso", "casal"]);
+    const ageRange: Record<string, [number, number]> = { crianca: [6, 11], adolescente: [12, 17], adulto: [20, 58], idoso: [61, 84], casal: [28, 50] };
+    const [aMin, aMax] = ageRange[category];
+    const birth = new Date(now); birth.setFullYear(birth.getFullYear() - rnd(aMin, aMax)); birth.setMonth(rnd(0, 11)); birth.setDate(rnd(1, 28));
+    const isMinor = category === "crianca" || category === "adolescente";
+    const cpf = `${rnd(100, 999)}.${rnd(100, 999)}.${rnd(100, 999)}-${rnd(10, 99)}`;
+    const attDay = pick(WEEK_DAYS);
+    const attTime = pick(["08:00", "09:00", "10:00", "11:00", "14:00", "15:00", "16:00", "17:00", "18:00", "19:00"]);
+
     let notes = queixa + (chance(0.4) ? ". " + pick(["Boa adesão.", "Encaminhado por colega.", "Uso de medicação acompanhada por psiquiatra.", "Histórico familiar relevante."]) : "");
     if (devedorAtivo) notes += " " + pick(DEBT_REASONS);
 
@@ -186,14 +197,21 @@ export async function runSeed(cfg: SeedCfg) {
       paymentStatus: status === "inativo" ? "pending" : overdue ? "overdue" : "paid",
       contractType, sessionsInPacket, timesPerPeriod, paymentFormat,
       attendanceMode: mode, attendanceLocation: chosenLoc,
+      attendanceDay: attDay, attendanceTime: attTime,
+      category, cpf, birthDate: birth,
+      guardianName: isMinor ? `${pick(firstNames)} ${pick(lastNames)}` : null,
+      guardianCpf: isMinor ? `${rnd(100, 999)}.${rnd(100, 999)}.${rnd(100, 999)}-${rnd(10, 99)}` : null,
+      guardianPhone: isMinor ? `(11) 9${rnd(1000, 9999)}-${rnd(1000, 9999)}` : null,
+      guardianEmail: isMinor ? `resp.${slug}@email.com` : null,
       priceReviewDate: status === "ativo" && chance(0.4) ? (() => { const d = new Date(now); d.setMonth(d.getMonth() + rnd(-1, 5)); return d; })() : null,
       packageCreditsUsed: 0,
       paymentDay: pick([5, 10, 15, 20]),
       startedAt,
       address: chance(0.5) ? `Rua ${pick(lastNames)}, ${rnd(10, 999)} — São Paulo/SP` : null,
-      emergencyName: chance(0.4) ? `${pick(firstNames)} ${pick(lastNames)}` : null,
-      emergencyPhone: chance(0.4) ? `(11) 9${rnd(1000, 9999)}-${rnd(1000, 9999)}` : null,
-      emergencyRelationship: chance(0.4) ? pick(["Cônjuge", "Mãe", "Pai", "Irmão(ã)", "Amigo(a)"]) : null,
+      emergencyName: chance(0.5) ? `${pick(firstNames)} ${pick(lastNames)}` : null,
+      emergencyPhone: chance(0.5) ? `(11) 9${rnd(1000, 9999)}-${rnd(1000, 9999)}` : null,
+      emergencyEmail: chance(0.3) ? `emerg.${slug}@email.com` : null,
+      emergencyRelationship: chance(0.5) ? pick(["Cônjuge", "Mãe", "Pai", "Irmão(ã)", "Amigo(a)"]) : null,
       reminderEnabled: chance(0.7),
       reminderChannel: pick(["whatsapp", "whatsapp", "email", "telegram"]),
       reminderLeadMinutes: pick([30, 60, 60, 120, 1440]),
