@@ -37,7 +37,7 @@ type Patient = {
   patientStatus: string; paymentStatus: string; startedAt: string | null; address: string | null;
   emergencyName: string | null; emergencyPhone: string | null; emergencyRelationship: string | null;
   contractType: string | null; paymentDay: number | null;
-  attendanceMode: string | null; attendanceLocation: string | null;
+  attendanceMode: string | null; attendanceLocation: string | null; attendanceDay: string | null; attendanceTime: string | null;
   priceReviewDate: string | null;
   sessionsInPacket: number | null; packageCreditsUsed: number; deductPackageOnSession: boolean;
   tags: string | null;
