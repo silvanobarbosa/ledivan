@@ -31,6 +31,9 @@ import {
 } from "@/lib/therapy";
 import { Phone, Mail, MapPin, Plus, Link2, Pencil, Trash2, Video, Mic, Loader2, Receipt, FileText, Stethoscope, Repeat } from "lucide-react";
 
+const FMT_LABEL: Record<string, string> = { avulso: "Avulso", mensal: "Mensal", quinzenal: "Quinzenal", pacote: "Pacote" };
+const CAT_LABEL: Record<string, string> = { crianca: "Criança", adolescente: "Adolescente", adulto: "Adulto", idoso: "Idoso", casal: "Casal" };
+
 type Patient = {
   id: string; name: string; email: string | null; phone: string | null;
   sessionFee: string; frequency: string | null; notes: string | null;
@@ -172,13 +175,21 @@ export function PatientDetail({
             )}
             <MessagePatient patient={{ id: patient.id, name: patient.name, phone: patient.phone, email: patient.email }} compact />
           </div>
-          <p className="text-foreground/50 mt-1.5 text-sm">
-            {patient.frequency || "—"} · {formatBRL(patient.sessionFee)}/sessão · {patient.contractType}
+          <p className="text-foreground/50 mt-1.5 text-sm capitalize">
+            {patient.frequency || "—"} · {formatBRL(patient.sessionFee)}/sessão · {FMT_LABEL[patient.paymentFormat || "avulso"] ?? "Avulso"}
+            {patient.category ? <span className="text-foreground/40"> · {CAT_LABEL[patient.category] ?? patient.category}</span> : null}
           </p>
           <div className="flex gap-4 mt-2 text-sm text-foreground/60 flex-wrap">
             {patient.phone && <span className="flex items-center gap-1.5"><Phone className="w-4 h-4" />{patient.phone}</span>}
             {patient.email && <span className="flex items-center gap-1.5"><Mail className="w-4 h-4" />{patient.email}</span>}
           </div>
+          {patient.tags && patient.tags.trim() && (
+            <div className="flex gap-1.5 flex-wrap mt-2">
+              {patient.tags.split(",").map((t) => t.trim()).filter(Boolean).map((t) => (
+                <span key={t} className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-secondary-container/30 text-primary">{t}</span>
+              ))}
+            </div>
+          )}
         </div>
         <div className="flex items-center gap-2 shrink-0">
           <MessagePatient patient={{ id: patient.id, name: patient.name, phone: patient.phone, email: patient.email }} />

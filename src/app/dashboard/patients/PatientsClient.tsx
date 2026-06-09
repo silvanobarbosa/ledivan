@@ -141,6 +141,9 @@ export function PatientsClient({ patients }: { patients: PatientCard[] }) {
                     <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wide ${patientStatusColor(p.patientStatus)}`}>
                       {p.patientStatus}
                     </span>
+                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-secondary-container/30 text-primary">
+                      {FORMATS.find((f) => f.k === (p.paymentFormat || "avulso"))?.l ?? "Avulso"}
+                    </span>
                   </div>
                   <p className="text-sm text-foreground/50 truncate">{formatBRL(p.sessionFee)}/sessão{(p.attendanceDay || p.attendanceTime) ? <span className="text-foreground/40"> · 🕐 <span className="capitalize">{p.attendanceDay || ""}</span> {p.attendanceTime || ""}</span> : null}</p>
                   <div className="mt-1">
