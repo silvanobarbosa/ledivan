@@ -76,26 +76,41 @@
   --accent-violet: #8b5cf6;
   --accent-soft: #c4b5fd;
   --muted-foreground: #6b5b6f;
-  --shadow-glass: 0 1px 2px rgba(43, 24, 48, 0.04), 0 8px 24px -12px rgba(43, 24, 48, 0.08);
-  --shadow-glass-lg: 0 2px 4px rgba(43, 24, 48, 0.05), 0 24px 48px -20px rgba(43, 24, 48, 0.18);
-  --shadow-eggplant: 0 20px 40px -20px rgba(43, 24, 48, 0.45);
+  /* Sombras mais suaves e difusas — sensação leve e refinada */
+  --shadow-glass: 0 1px 2px rgba(43, 24, 48, 0.03), 0 10px 30px -16px rgba(43, 24, 48, 0.10);
+  --shadow-glass-lg: 0 1px 3px rgba(43, 24, 48, 0.04), 0 28px 60px -28px rgba(43, 24, 48, 0.16);
+  --shadow-eggplant: 0 18px 38px -18px rgba(43, 24, 48, 0.38);
 }
 
 @layer base {
   * {
     border-color: var(--border);
   }
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
   body {
     background-color: var(--background);
     color: var(--foreground);
     font-family: var(--font-sans);
     min-height: 100dvh;
+    line-height: 1.6;
+    letter-spacing: -0.006em;
+    font-feature-settings: "ss01", "cv11", "kern";
   }
-  /* Tipografia (handoff): títulos em Fraunces com tracking -0.02em */
+  /* Tipografia (handoff): títulos em Fraunces, tracking refinado e optical sizing */
   h1, h2, h3, h4, .font-display {
     font-family: var(--font-display);
-    letter-spacing: -0.02em;
+    font-optical-sizing: auto;
+    letter-spacing: -0.022em;
+    line-height: 1.12;
   }
+  /* Rótulos micro em caixa-alta ficam mais elegantes com tracking maior e peso médio */
+  .tracking-widest { letter-spacing: 0.14em; }
+  p { text-wrap: pretty; }
+  h1, h2, h3 { text-wrap: balance; }
   /* Tailwind v4 zera o cursor de button → devolve o "clicável" */
   button:not(:disabled),
   [role="button"]:not([aria-disabled="true"]),
@@ -112,33 +127,50 @@
   a[role="button"]:not([aria-disabled="true"]):active {
     transform: scale(0.98);
   }
+  /* Transições suaves e foco delicado em campos */
+  input, select, textarea {
+    transition: border-color 180ms ease, box-shadow 180ms ease, background-color 180ms ease;
+  }
+  input:focus-visible, select:focus-visible, textarea:focus-visible {
+    box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.16);
+    border-color: var(--accent-violet);
+    outline: none;
+  }
+  button, a { transition: color 160ms ease, background-color 160ms ease, border-color 160ms ease, box-shadow 200ms ease, transform 120ms ease; }
+  ::selection { background: rgba(139, 92, 246, 0.22); color: var(--brand-eggplant); }
+  /* Scrollbar fina e discreta (não toca .no-scrollbar) */
+  *:not(.no-scrollbar)::-webkit-scrollbar { width: 10px; height: 10px; }
+  *:not(.no-scrollbar)::-webkit-scrollbar-thumb { background: rgba(43, 24, 48, 0.14); border-radius: 9999px; border: 3px solid transparent; background-clip: padding-box; }
+  *:not(.no-scrollbar)::-webkit-scrollbar-thumb:hover { background: rgba(43, 24, 48, 0.26); background-clip: padding-box; }
+  *:not(.no-scrollbar)::-webkit-scrollbar-track { background: transparent; }
 }
 
 @layer components {
   .glass-card {
-    background: rgba(255, 255, 255, 0.72);
-    backdrop-filter: saturate(140%) blur(12px);
-    -webkit-backdrop-filter: saturate(140%) blur(12px);
-    border: 1px solid rgba(43, 24, 48, 0.06);
-    box-shadow: var(--shadow-glass);
+    background: rgba(255, 255, 255, 0.74);
+    backdrop-filter: saturate(135%) blur(12px);
+    -webkit-backdrop-filter: saturate(135%) blur(12px);
+    border: 1px solid rgba(43, 24, 48, 0.05);
+    box-shadow: var(--shadow-glass), inset 0 1px 0 rgba(255, 255, 255, 0.55);
     border-radius: 1.5rem;
   }
 
   .glass-card-lg {
-    background: rgba(255, 255, 255, 0.78);
-    backdrop-filter: saturate(140%) blur(14px);
-    -webkit-backdrop-filter: saturate(140%) blur(14px);
-    border: 1px solid rgba(43, 24, 48, 0.06);
-    box-shadow: var(--shadow-glass-lg);
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: saturate(135%) blur(14px);
+    -webkit-backdrop-filter: saturate(135%) blur(14px);
+    border: 1px solid rgba(43, 24, 48, 0.05);
+    box-shadow: var(--shadow-glass-lg), inset 0 1px 0 rgba(255, 255, 255, 0.6);
     border-radius: 2rem;
   }
 
+  /* Ornamentos de fundo: névoa lilás suave e acolhedora */
   .bg-ornaments {
     background-color: var(--cream);
     background-image:
-      radial-gradient(900px 500px at 88% -10%, rgba(139, 92, 246, 0.18), transparent 60%),
-      radial-gradient(700px 500px at -10% 10%, rgba(43, 24, 48, 0.08), transparent 60%),
-      radial-gradient(800px 600px at 50% 110%, rgba(196, 181, 253, 0.22), transparent 65%);
+      radial-gradient(820px 460px at 90% -12%, rgba(139, 92, 246, 0.14), transparent 62%),
+      radial-gradient(680px 480px at -8% 6%, rgba(196, 181, 253, 0.20), transparent 62%),
+      radial-gradient(760px 560px at 50% 116%, rgba(196, 181, 253, 0.16), transparent 66%);
   }
 
   .primary-gradient {
