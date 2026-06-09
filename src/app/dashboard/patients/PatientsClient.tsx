@@ -32,23 +32,26 @@ function parseTags(t: string | null): string[] {
 const FILTERS = [
   { key: "todos", label: "Todos" },
   { key: "ativo", label: "Ativos" },
-  { key: "pausado", label: "Pausados" },
   { key: "inativo", label: "Inativos" },
 ];
+const WEEK_DAYS = ["segunda", "terça", "quarta", "quinta", "sexta", "sábado", "domingo"];
 
 export function PatientsClient({ patients }: { patients: PatientCard[] }) {
   const [query, setQuery] = useState("");
   const [filter, setFilter] = useState("todos");
   const [tag, setTag] = useState<string | null>(null);
+  const [day, setDay] = useState<string | null>(null);
   const [sortHour, setSortHour] = useState(false);
 
   const allTags = Array.from(new Set(patients.flatMap((p) => parseTags(p.tags)))).sort();
+  const norm = (d: string | null) => (d || "").toLowerCase().replace("terca", "terça").replace("sabado", "sábado");
 
   const filtered = patients.filter((p) => {
     const matchQuery = p.name.toLowerCase().includes(query.toLowerCase());
     const matchFilter = filter === "todos" || p.patientStatus === filter;
     const matchTag = !tag || parseTags(p.tags).includes(tag);
-    return matchQuery && matchFilter && matchTag;
+    const matchDay = !day || norm(p.attendanceDay) === day;
+    return matchQuery && matchFilter && matchTag && matchDay;
   });
   if (sortHour) {
     const key = (p: PatientCard) => `${p.attendanceTime || "99:99"}#${DAY_ORDER[p.attendanceDay || ""] ?? 9}`;
@@ -87,6 +90,14 @@ export function PatientsClient({ patients }: { patients: PatientCard[] }) {
             🕐 {sortHour ? "Por horário" : "Horário"}
           </button>
         </div>
+      </div>
+
+      <div className="flex gap-2 flex-wrap items-center">
+        <span className="text-xs font-semibold text-foreground/40 mr-1">Dia:</span>
+        <button onClick={() => setDay(null)} className={`px-3 py-1 rounded-full text-xs font-semibold transition ${!day ? "bg-primary text-white" : "bg-white/60 text-foreground/50 hover:bg-white"}`}>Todos</button>
+        {WEEK_DAYS.map((d) => (
+          <button key={d} onClick={() => setDay(day === d ? null : d)} className={`px-3 py-1 rounded-full text-xs font-semibold capitalize transition ${day === d ? "bg-primary text-white" : "bg-white/60 text-foreground/50 hover:bg-white"}`}>{d}</button>
+        ))}
       </div>
 
       {allTags.length > 0 && (

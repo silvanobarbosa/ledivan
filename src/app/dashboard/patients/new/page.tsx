@@ -1,21 +1,13 @@
 import { createPatient } from "../actions";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
-import { InfoTip } from "@/components/InfoTip";
 import { SubmitButton } from "@/components/SubmitButton";
-import { PhotoSlots } from "@/components/dashboard/PhotoSlots";
-import { AttendanceFields } from "@/components/dashboard/AttendanceFields";
-import { CadastroFields } from "@/components/dashboard/CadastroFields";
-import { REMINDER_LEAD_OPTIONS } from "@/lib/reminderLead";
+import { PatientFormFields } from "@/components/dashboard/PatientFormFields";
 import { auth } from "@/auth";
 import { db } from "@/db";
 import { users } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { parseLocations } from "@/lib/locations";
-
-const inputCls =
-  "w-full px-4 py-3 rounded-2xl bg-white/70 border border-border focus:ring-2 focus:ring-accent/20 focus:border-accent outline-none transition";
-const labelCls = "block text-sm font-semibold text-foreground/70 mb-1.5";
 
 export default async function NewPatientPage() {
   const session = await auth();
@@ -32,91 +24,8 @@ export default async function NewPatientPage() {
         <p className="text-foreground/50 mt-1">Cadastre os dados do paciente</p>
       </div>
 
-      <form action={createPatient} className="glass-card rounded-[32px] p-6 lg:p-8 space-y-5">
-        <div>
-          <label className={labelCls}>Nome *</label>
-          <input name="name" required className={inputCls} placeholder="Nome completo" />
-        </div>
-
-        <div className="grid sm:grid-cols-2 gap-4">
-          <div>
-            <label className={labelCls}>Telefone</label>
-            <input name="phone" className={inputCls} placeholder="(00) 00000-0000" />
-          </div>
-          <div>
-            <label className={labelCls}>E-mail</label>
-            <input name="email" type="email" className={inputCls} placeholder="email@exemplo.com" />
-          </div>
-        </div>
-
-        <div>
-          <label className={labelCls}>Início</label>
-          <input name="startedAt" type="date" className={inputCls} />
-        </div>
-
-        <AttendanceFields locations={locations} />
-
-        <div className="grid sm:grid-cols-2 gap-4">
-          <div>
-            <label className={labelCls}>Status</label>
-            <select name="patientStatus" className={inputCls} defaultValue="ativo">
-              <option value="ativo">Ativo</option>
-              <option value="prospect">Prospect</option>
-              <option value="pausado">Pausado</option>
-              <option value="inativo">Inativo</option>
-            </select>
-          </div>
-        </div>
-
-        <CadastroFields />
-
-        <div className="pt-2 border-t border-border">
-          <p className="text-xs font-bold text-foreground/40 uppercase tracking-widest mb-3 mt-3">Contato de emergência</p>
-          <div className="grid sm:grid-cols-3 gap-4">
-            <input name="emergencyName" className={inputCls} placeholder="Nome" />
-            <input name="emergencyPhone" className={inputCls} placeholder="Telefone" />
-            <input name="emergencyRelationship" className={inputCls} placeholder="Parentesco" />
-          </div>
-        </div>
-
-        <div>
-          <label className={labelCls}>Endereço</label>
-          <input name="address" className={inputCls} placeholder="Endereço" />
-        </div>
-
-        <div className="pt-2 border-t border-border">
-          <p className="text-xs font-bold text-foreground/40 uppercase tracking-widest mb-3 mt-3">Lembrete de sessão<InfoTip text="Se ligado, o sistema envia um lembrete automático antes da sessão pelo canal escolhido (precisa ter o canal conectado em Ajustes)." /></p>
-          <label className="flex items-center gap-2 text-sm mb-3 cursor-pointer">
-            <input type="checkbox" name="reminderEnabled" className="accent-primary w-4 h-4" />
-            Enviar lembrete automático antes da sessão
-          </label>
-          <div className="grid sm:grid-cols-2 gap-4">
-            <div>
-              <label className={labelCls}>Canal do lembrete</label>
-              <select name="reminderChannel" className={inputCls} defaultValue="whatsapp">
-                <option value="whatsapp">WhatsApp</option>
-                <option value="email">E-mail</option>
-                <option value="telegram">Telegram</option>
-              </select>
-            </div>
-            <div>
-              <label className={labelCls}>Antecedência<InfoTip text="Quanto tempo antes da sessão o lembrete é enviado." /></label>
-              <select name="reminderLeadMinutes" className={inputCls} defaultValue={60}>
-                {REMINDER_LEAD_OPTIONS.map((o) => (
-                  <option key={o.value} value={o.value}>{o.label}</option>
-                ))}
-              </select>
-            </div>
-          </div>
-        </div>
-
-        <div className="pt-2 border-t border-border">
-          <p className="text-xs font-bold text-foreground/40 uppercase tracking-widest mb-3 mt-3">Fotos<InfoTip text="A foto 3x4 é a referência do cadastro. As outras 3 são opcionais." /></p>
-          <PhotoSlots />
-        </div>
-
-        <p className="text-xs text-foreground/50">💡 Etiquetas e observações ficam no <strong>Prontuário</strong> do paciente (com histórico de alterações).</p>
-
+      <form action={createPatient} className="space-y-5">
+        <PatientFormFields locations={locations} />
         <div className="flex gap-3 pt-2">
           <SubmitButton pendingLabel="Cadastrando…" className="flex-1 inline-flex items-center justify-center gap-2 bg-primary text-white py-3.5 rounded-2xl font-bold shadow-lg shadow-primary/20 hover:scale-[1.01] transition">
             Cadastrar paciente
