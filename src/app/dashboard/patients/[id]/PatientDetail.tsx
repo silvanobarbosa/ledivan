@@ -153,10 +153,25 @@ export function PatientDetail({
               </span>
             )}
           </div>
-          <p className="text-foreground/50 mt-1">
+          {/* Linha compacta: dia de atendimento · status financeiro/crédito · mensagem */}
+          <div className="flex items-center gap-2 mt-1.5 flex-wrap text-xs">
+            {(patient.attendanceDay || patient.attendanceTime) && (
+              <span className="inline-flex items-center gap-1 text-foreground/60">🕐 <span className="capitalize">{patient.attendanceDay || ""}</span> {patient.attendanceTime || ""}</span>
+            )}
+            <span>·</span>
+            {finance.balance < 0 ? (
+              <span className="inline-flex items-center gap-1 font-bold px-2 py-0.5 rounded-full bg-[#fef2f2] text-[#b91c1c]">⚠️ Devendo {finance.debtSessions} sessão(ões)</span>
+            ) : finance.creditSessions > 0 ? (
+              <span className="inline-flex items-center gap-1 font-bold px-2 py-0.5 rounded-full bg-[#ecfdf5] text-[#047857]">💳 {finance.creditSessions} sessão(ões) de crédito</span>
+            ) : (
+              <span className="inline-flex items-center gap-1 font-bold px-2 py-0.5 rounded-full bg-surface text-foreground/50">Financeiro em dia</span>
+            )}
+            <MessagePatient patient={{ id: patient.id, name: patient.name, phone: patient.phone, email: patient.email }} compact />
+          </div>
+          <p className="text-foreground/50 mt-1.5 text-sm">
             {patient.frequency || "—"} · {formatBRL(patient.sessionFee)}/sessão · {patient.contractType}
           </p>
-          <div className="flex gap-4 mt-3 text-sm text-foreground/60 flex-wrap">
+          <div className="flex gap-4 mt-2 text-sm text-foreground/60 flex-wrap">
             {patient.phone && <span className="flex items-center gap-1.5"><Phone className="w-4 h-4" />{patient.phone}</span>}
             {patient.email && <span className="flex items-center gap-1.5"><Mail className="w-4 h-4" />{patient.email}</span>}
           </div>

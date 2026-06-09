@@ -10,7 +10,7 @@ const CHANNELS = [
   { key: "email", label: "E-mail", icon: Mail },
 ];
 
-export function MessagePatient({ patient }: { patient: { id: string; name: string; phone: string | null; email: string | null } }) {
+export function MessagePatient({ patient, compact = false }: { patient: { id: string; name: string; phone: string | null; email: string | null }; compact?: boolean }) {
   const [open, setOpen] = useState(false);
   const [channel, setChannel] = useState<string | null>(null);
   const [text, setText] = useState("");
@@ -31,13 +31,23 @@ export function MessagePatient({ patient }: { patient: { id: string; name: strin
 
   return (
     <>
-      <button
-        onClick={(e) => { e.preventDefault(); e.stopPropagation(); setOpen(true); }}
-        title="Enviar mensagem"
-        className="shrink-0 p-2.5 rounded-2xl bg-white border border-border text-primary hover:border-primary hover:bg-primary/5 transition"
-      >
-        <MessageCircle className="w-5 h-5" />
-      </button>
+      {compact ? (
+        <button
+          onClick={(e) => { e.preventDefault(); e.stopPropagation(); setOpen(true); }}
+          title="Enviar mensagem"
+          className="inline-flex items-center gap-1 font-bold px-2 py-0.5 rounded-full bg-secondary-container/30 text-primary hover:bg-secondary-container/50 transition"
+        >
+          <MessageCircle className="w-3.5 h-3.5" /> Mensagem
+        </button>
+      ) : (
+        <button
+          onClick={(e) => { e.preventDefault(); e.stopPropagation(); setOpen(true); }}
+          title="Enviar mensagem"
+          className="shrink-0 p-2.5 rounded-2xl bg-white border border-border text-primary hover:border-primary hover:bg-primary/5 transition"
+        >
+          <MessageCircle className="w-5 h-5" />
+        </button>
+      )}
 
       {open && (
         <div className="fixed inset-0 z-[80] flex items-end sm:items-center justify-center bg-black/30 p-4" onClick={close}>
