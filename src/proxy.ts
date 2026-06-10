@@ -7,7 +7,7 @@ export default auth(async function proxy(req) {
   const isLoggedIn = !!session;
 
   // Permite APIs públicas e Auth.js
-  if (pathname.includes("/api/auth") || pathname.startsWith("/api/telegram") || pathname.startsWith("/api/whatsapp") || pathname.startsWith("/api/cron")) {
+  if (pathname.includes("/api/auth") || pathname.startsWith("/api/telegram") || pathname.startsWith("/api/whatsapp") || pathname.startsWith("/api/cron") || pathname.startsWith("/api/health") || pathname.startsWith("/api/conformity")) {
     return NextResponse.next();
   }
 
