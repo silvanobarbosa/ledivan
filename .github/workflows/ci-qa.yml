@@ -1,0 +1,47 @@
+name: CI-QA (ReverbLabs)
+# QA de código da frota: build (gate) + deps audit + Semgrep + Trivy (report).
+# Endurecer depois: trocar os "|| true" / exit-code por falha real quando o app estiver limpo.
+on:
+  push:
+    branches: ["**"]
+  pull_request:
+permissions:
+  contents: read
+  security-events: write
+jobs:
+  qa:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+
+      - name: Install deps
+        run: npm ci || npm install || echo "sem package-lock/deps"
+
+      - name: Build (gate)
+        run: npm run build --if-present
+
+      - name: npm audit (deps, report)
+        run: npm audit --audit-level=high || echo "::warning::npm audit achou vulnerabilidades (high+)"
+
+      - name: Semgrep SAST (report)
+        run: |
+          python3 -m pip install --quiet semgrep
+          semgrep scan --config p/security-audit --config p/secrets --config p/owasp-top-ten \
+            --severity ERROR --sarif --output semgrep.sarif || echo "::warning::Semgrep achou possíveis problemas"
+        continue-on-error: true
+
+      - name: Trivy (vuln+secret+misconfig, report)
+        uses: aquasecurity/trivy-action@0.28.0
+        with:
+          scan-type: fs
+          scanners: vuln,secret,misconfig
+          severity: HIGH,CRITICAL
+          exit-code: "0"
+          format: table
+        continue-on-error: true
