@@ -22,7 +22,8 @@ export function decryptSecret(blob: string): string {
   const iv = Buffer.from(ivB, "base64");
   const tag = Buffer.from(tagB, "base64");
   const enc = Buffer.from(encB, "base64");
-  const decipher = crypto.createDecipheriv("aes-256-gcm", getKey(), iv);
+  if (iv.length !== 12 || tag.length !== 16) throw new Error("Blob criptografado inválido.");
+  const decipher = crypto.createDecipheriv("aes-256-gcm", getKey(), iv, { authTagLength: 16 });
   decipher.setAuthTag(tag);
   return Buffer.concat([decipher.update(enc), decipher.final()]).toString("utf8");
 }
