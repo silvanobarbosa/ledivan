@@ -31,17 +31,14 @@ jobs:
 
       - name: Semgrep SAST (report)
         run: |
-          python3 -m pip install --quiet semgrep
+          python3 -m pip install --break-system-packages --quiet semgrep || pipx install semgrep || echo "semgrep skip"
           semgrep scan --config p/security-audit --config p/secrets --config p/owasp-top-ten \
-            --severity ERROR --sarif --output semgrep.sarif || echo "::warning::Semgrep achou possíveis problemas"
+            --severity ERROR --error || echo "::warning::Semgrep achou possíveis problemas"
         continue-on-error: true
 
       - name: Trivy (vuln+secret+misconfig, report)
-        uses: aquasecurity/trivy-action@0.28.0
-        with:
-          scan-type: fs
-          scanners: vuln,secret,misconfig
-          severity: HIGH,CRITICAL
-          exit-code: "0"
-          format: table
+        run: |
+          curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin
+          trivy fs --scanners vuln,secret,misconfig --severity HIGH,CRITICAL --exit-code 0 --no-progress . \
+            || echo "::warning::Trivy achou possíveis problemas"
         continue-on-error: true
