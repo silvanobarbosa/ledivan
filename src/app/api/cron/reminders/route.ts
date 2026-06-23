@@ -7,12 +7,14 @@ import { sendSessionReminder } from "@/lib/reminders";
 // Cron diário (Vercel). Envia lembrete das sessões agendadas nas próximas ~28h
 // para pacientes que optaram por receber, pelo canal escolhido. Idempotente via reminderSentAt.
 export async function GET(req: NextRequest) {
+  // Fail-closed: sem CRON_SECRET configurado o endpoint NÃO roda (evita disparo aberto de lembretes).
   const secret = process.env.CRON_SECRET;
-  if (secret) {
-    const auth = req.headers.get("authorization");
-    if (auth !== `Bearer ${secret}`) {
-      return NextResponse.json({ ok: false }, { status: 401 });
-    }
+  if (!secret) {
+    return NextResponse.json({ ok: false, error: "CRON_SECRET não configurado" }, { status: 500 });
+  }
+  const auth = req.headers.get("authorization");
+  if (auth !== `Bearer ${secret}`) {
+    return NextResponse.json({ ok: false }, { status: 401 });
   }
 
   const now = new Date();
