@@ -23,7 +23,7 @@ const STEPS: Step[] = [
 
   // ——— Parte financeira ———
   { phase: "Parte financeira", icon: Wallet, title: "7. Financeiro do paciente", text: "Na aba 'Financeiro' do paciente: contadores (sessões previstas, crédito, valor), o fluxo (cada sessão cobrada desconta, cada pagamento soma) e 'Ajustes' (recorrência, valor com vigência, incluir pacote)." },
-  { phase: "Parte financeira", icon: Wallet, title: "8. Pacotes e créditos", text: "Inclua pacotes numerados (P1, P2...). Cada sessão realizada+cobrar abate 1. 'Gestão de Créditos' lista todos por saldo; o dashboard avisa quem está com pacote acabando.", href: "/dashboard/creditos", cta: "Gestão de créditos" },
+  { phase: "Parte financeira", icon: Wallet, title: "8. Pacotes e créditos", text: "Inclua pacotes numerados (P1, P2...) na aba Financeiro do paciente. Cada sessão realizada+cobrar abate 1; o dashboard avisa quem está com pacote acabando." },
   { phase: "Parte financeira", icon: Wallet, title: "9. Caixa do consultório", text: "Transações, Relatórios mês a mês e Metas. Ao registrar um pagamento, ele pode virar receita no financeiro automaticamente (você decide).", href: "/dashboard/transactions", cta: "Ver financeiro" },
   { phase: "Parte financeira", icon: Settings, title: "10. Integrações", text: "Conecte WhatsApp (QR), Telegram, e-mail próprio e Google Meet. Registre gastos por mensagem ou foto de recibo (IA). Crie seu link de autoagendamento.", href: "/dashboard/settings", cta: "Abrir ajustes" },
 

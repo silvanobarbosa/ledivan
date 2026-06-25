@@ -25,7 +25,6 @@ export const NAV_GROUPS: NavGroup[] = [
       { icon: LayoutDashboard, label: "Dashboard", href: "/dashboard" },
       { icon: Users, label: "Pacientes", href: "/dashboard/patients" },
       { icon: CalendarDays, label: "Agenda", href: "/dashboard/agenda" },
-      { icon: Wallet, label: "Gestão de Créditos", href: "/dashboard/creditos" },
       { icon: PieChart, label: "Analíticos", href: "/dashboard/analiticos" },
       { icon: UserPlus, label: "Prospects", href: "/dashboard/prospects" },
     ],
