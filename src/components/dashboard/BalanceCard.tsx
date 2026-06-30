@@ -19,7 +19,7 @@ export function BalanceCard({ title, amount, trend, icon, variant = "white", cla
 
   return (
     <div className={cn(
-      "p-6 rounded-[40px] shadow-sm border border-border space-y-4 transition-all hover:scale-[1.02]",
+      "p-6 rounded-[28px] shadow-sm border border-border space-y-3 transition-all hover:scale-[1.02]",
       variant === "primary" && "primary-gradient text-white border-transparent",
       variant === "secondary" && "bg-secondary-container text-on-secondary-container border-transparent",
       variant === "accent" && "bg-accent text-primary border-transparent",
@@ -40,7 +40,7 @@ export function BalanceCard({ title, amount, trend, icon, variant = "white", cla
           {icon}
         </div>
       </div>
-      <div className="text-2xl lg:text-3xl font-bold tracking-tight break-words tabular-nums leading-tight">
+      <div className="text-lg sm:text-xl font-bold tracking-tight break-words tabular-nums leading-tight">
         {formatCurrency(amount)}
       </div>
       {trend && (
