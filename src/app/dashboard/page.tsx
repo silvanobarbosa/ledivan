@@ -1,41 +1,64 @@
 import { db } from "@/db";
 import { auth } from "@/auth";
 import { users, patients, therapySessions, patientPackages } from "@/db/schema";
-import { eq, sql, count, and } from "drizzle-orm";
-import { formatDateTime } from "@/lib/therapy";
-import { Users as UsersIcon, CalendarCheck, Clock, ChevronRight } from "lucide-react";
+import { and, eq, gte, lte, sql, count } from "drizzle-orm";
+import { formatDateTime, SESSION_STATUS_LABELS } from "@/lib/therapy";
+import { Users as UsersIcon, CalendarCheck, Clock, ChevronRight, Video, MapPin, UserCheck, CalendarX, AlertTriangle } from "lucide-react";
+import { AnaliticosCharts } from "@/components/dashboard/AnaliticosCharts";
 import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 
-export default async function DashboardPage() {
+const PERIODS: Record<string, { label: string; months: number | null }> = {
+  "1m": { label: "Mês", months: 1 },
+  "6m": { label: "6 meses", months: 6 },
+  "12m": { label: "12 meses", months: 12 },
+  all: { label: "Tudo", months: null },
+};
+const MES = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
+const DOW = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+
+export default async function DashboardPage({ searchParams }: { searchParams: Promise<{ period?: string; from?: string; to?: string }> }) {
+  const { period, from, to } = await searchParams;
   const session = await auth();
   if (!session?.user?.id) return <div>Você precisa estar logado para acessar o dashboard.</div>;
   const user = await db.query.users.findFirst({ where: eq(users.id, session.user.id) });
   if (!user) return <div>Usuário não encontrado.</div>;
+  const userId = user.id;
 
   const weekStart = new Date(); weekStart.setHours(0, 0, 0, 0); weekStart.setDate(weekStart.getDate() - weekStart.getDay());
   const weekEnd = new Date(weekStart); weekEnd.setDate(weekEnd.getDate() + 7);
   const now = new Date();
-  const ninetyDaysAgo = new Date(); ninetyDaysAgo.setDate(ninetyDaysAgo.getDate() - 90);
   const todayStart = (() => { const d = new Date(); d.setHours(0, 0, 0, 0); return d.getTime(); })();
 
-  const [activeRows, weekRows, upcomingSessions, reservasRows, pkgEndingRows, analiticosRows] = await Promise.all([
-    db.select({ val: count() }).from(patients).where(and(eq(patients.userId, user.id), eq(patients.patientStatus, "ativo"))),
-    db.select({ val: count() }).from(therapySessions).where(sql`${therapySessions.userId} = ${user.id} AND ${therapySessions.date} >= ${weekStart} AND ${therapySessions.date} < ${weekEnd}`),
+  // Janela dos analíticos
+  const custom = period === "custom" && (from || to);
+  const activePeriod = custom ? "custom" : period && PERIODS[period] ? period : "12m";
+  let cutoff: Date | null = null, end: Date | null = null;
+  if (custom) {
+    if (from) { cutoff = new Date(from); cutoff.setHours(0, 0, 0, 0); }
+    if (to) { end = new Date(to); end.setHours(23, 59, 59, 999); }
+  } else {
+    const months = PERIODS[activePeriod].months;
+    if (months) { cutoff = new Date(); cutoff.setHours(0, 0, 0, 0); cutoff.setMonth(cutoff.getMonth() - months); }
+  }
+  const anConds = [eq(therapySessions.userId, userId)];
+  if (cutoff) anConds.push(gte(therapySessions.date, cutoff));
+  if (end) anConds.push(lte(therapySessions.date, end));
+
+  const [activeRows, weekRows, upcomingSessions, reservasRows, pkgEndingRows, anRows, pats] = await Promise.all([
+    db.select({ val: count() }).from(patients).where(and(eq(patients.userId, userId), eq(patients.patientStatus, "ativo"))),
+    db.select({ val: count() }).from(therapySessions).where(sql`${therapySessions.userId} = ${userId} AND ${therapySessions.date} >= ${weekStart} AND ${therapySessions.date} < ${weekEnd}`),
     db.query.therapySessions.findMany({
-      where: sql`${therapySessions.userId} = ${user.id} AND ${therapySessions.date} >= ${now} AND ${therapySessions.status} = 'agendada' AND ${therapySessions.pendingConfirmation} = false`,
-      with: { patient: { columns: { name: true, id: true } } },
-      orderBy: [therapySessions.date],
-      limit: 6,
+      where: sql`${therapySessions.userId} = ${userId} AND ${therapySessions.date} >= ${now} AND ${therapySessions.status} = 'agendada' AND ${therapySessions.pendingConfirmation} = false`,
+      with: { patient: { columns: { name: true, id: true } } }, orderBy: [therapySessions.date], limit: 6,
     }),
-    db.select({ val: count() }).from(therapySessions).where(sql`${therapySessions.userId} = ${user.id} AND ${therapySessions.date} >= ${now} AND ${therapySessions.pendingConfirmation} = true`),
+    db.select({ val: count() }).from(therapySessions).where(sql`${therapySessions.userId} = ${userId} AND ${therapySessions.date} >= ${now} AND ${therapySessions.pendingConfirmation} = true`),
     db.select({ pid: patientPackages.patientId, rem: sql<number>`sum(${patientPackages.sessions} - ${patientPackages.used})::int` })
       .from(patientPackages).innerJoin(patients, eq(patientPackages.patientId, patients.id))
-      .where(and(eq(patientPackages.userId, user.id), eq(patients.patientStatus, "ativo"), eq(patients.contractType, "pacote")))
-      .groupBy(patientPackages.patientId),
-    db.select({ status: therapySessions.status, isOnline: therapySessions.isOnline })
-      .from(therapySessions).where(sql`${therapySessions.userId} = ${user.id} AND ${therapySessions.date} >= ${ninetyDaysAgo} AND ${therapySessions.date} <= ${now}`),
+      .where(and(eq(patientPackages.userId, userId), eq(patients.patientStatus, "ativo"), eq(patients.contractType, "pacote"))).groupBy(patientPackages.patientId),
+    db.select({ isOnline: therapySessions.isOnline, location: therapySessions.location, status: therapySessions.status, date: therapySessions.date }).from(therapySessions).where(and(...anConds)),
+    db.select({ status: patients.patientStatus, prospectDate: patients.prospectDate, prospectFechou: patients.prospectFechou, paymentStatus: patients.paymentStatus }).from(patients).where(eq(patients.userId, userId)),
   ]);
 
   const activePatients = Number(activeRows[0]?.val || 0);
@@ -43,20 +66,53 @@ export default async function DashboardPage() {
   const reservasCount = Number(reservasRows[0]?.val || 0);
   const pacotesAcabando = pkgEndingRows.filter((r) => Number(r.rem) === 1).length;
 
-  const anRealizados = analiticosRows.filter((r) => r.status === "realizada");
-  const anTotal = anRealizados.length;
-  const anOnline = anRealizados.filter((r) => r.isOnline).length;
-  const anPresencial = anTotal - anOnline;
-  const anFaltas = analiticosRows.filter((r) => r.status === "nao_realizada").length;
-  const anCancel = analiticosRows.filter((r) => r.status === "cancelada").length;
-  const anPct = (n: number) => (anTotal ? Math.round((n / anTotal) * 100) : 0);
+  // ---- Analíticos ----
+  const done = anRows.filter((r) => r.status === "realizada");
+  const total = done.length;
+  const online = done.filter((r) => r.isOnline).length;
+  const presencial = total - online;
+  const pct = (n: number) => (total ? Math.round((n / total) * 100) : 0);
+
+  const byLocation = new Map<string, number>();
+  for (const r of done) { if (r.isOnline) continue; const k = (r.location || "Sem local definido").trim() || "Sem local definido"; byLocation.set(k, (byLocation.get(k) ?? 0) + 1); }
+  const locList = [...byLocation.entries()].sort((a, b) => b[1] - a[1]);
+  const maxLoc = Math.max(1, ...locList.map(([, n]) => n));
+
+  const byStatus = new Map<string, number>();
+  for (const r of anRows) byStatus.set(r.status, (byStatus.get(r.status) ?? 0) + 1);
+
+  const monthMap = new Map<string, number>();
+  const dowArr = [0, 0, 0, 0, 0, 0, 0];
+  for (const r of done) { const d = new Date(r.date as unknown as string); monthMap.set(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`, (monthMap.get(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`) ?? 0) + 1); dowArr[d.getDay()]++; }
+  const chartMonthly = [...monthMap.entries()].sort((a, b) => a[0].localeCompare(b[0])).slice(-12).map(([k, v]) => { const [y, m] = k.split("-"); return { label: `${MES[parseInt(m) - 1]}/${y.slice(2)}`, count: v }; });
+  const chartWeekday = dowArr.map((v, i) => ({ label: DOW[i], count: v }));
+  const chartMode = [{ name: "Online", value: online }, { name: "Presencial", value: presencial }];
+
+  // Prospecção (prospectDate na janela)
+  const inWin = (d: Date | null) => { if (!d) return false; const t = new Date(d).getTime(); if (cutoff && t < cutoff.getTime()) return false; if (end && t > end.getTime()) return false; return true; };
+  const prospectados = pats.filter((p) => p.prospectDate && inWin(p.prospectDate as Date));
+  const fechados = prospectados.filter((p) => p.status !== "prospect").length;
+  const naoFechou = prospectados.filter((p) => p.status === "prospect" && (p.prospectFechou || "") === "Não fechou").length;
+  const emAberto = prospectados.length - fechados - naoFechou;
+  const taxaConv = prospectados.length ? Math.round((fechados / prospectados.length) * 100) : 0;
+  const atrasos = pats.filter((p) => p.paymentStatus === "overdue").length;
+
+  // Faltas
+  const faltasRows = anRows.filter((r) => r.status === "nao_realizada");
+  const cancelados = anRows.filter((r) => r.status === "cancelada").length;
+  const faltasDow = [0, 0, 0, 0, 0, 0, 0];
+  const faltasMonthMap = new Map<string, number>();
+  for (const r of faltasRows) { const d = new Date(r.date as unknown as string); faltasDow[d.getDay()]++; const k = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`; faltasMonthMap.set(k, (faltasMonthMap.get(k) ?? 0) + 1); }
+  const maxFaltaDow = Math.max(1, ...faltasDow);
+  const chartFaltasMonthly = [...faltasMonthMap.entries()].sort((a, b) => a[0].localeCompare(b[0])).slice(-12).map(([k, v]) => { const [y, m] = k.split("-"); return { label: `${MES[parseInt(m) - 1]}/${y.slice(2)}`, count: v }; });
+  const maxFaltaMonth = Math.max(1, ...chartFaltasMonthly.map((c) => c.count));
 
   return (
     <div className="max-w-7xl mx-auto space-y-8 pb-20">
       <section className="space-y-1">
         <div className="inline-flex items-center gap-2 text-xs font-bold uppercase tracking-widest text-primary bg-[#ede4fb] px-3 py-1.5 rounded-full mb-2">🌿 Atendimento</div>
         <h2 className="text-3xl lg:text-4xl font-display font-bold text-foreground tracking-tight">Olá, {(user.name || "Terapeuta").split(" ")[0]}!</h2>
-        <p className="text-foreground/40 font-medium">Resumo do seu consultório hoje.</p>
+        <p className="text-foreground/40 font-medium">Resumo do seu consultório e analíticos de atendimento.</p>
       </section>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
@@ -101,14 +157,12 @@ export default async function DashboardPage() {
           <div className="grid gap-2">
             {upcomingSessions.map((s) => {
               const past = new Date(s.date as unknown as string).getTime() < todayStart;
-              const Row = (
-                <>
-                  <span className="font-mono text-sm font-semibold text-primary shrink-0">{formatDateTime(s.date as unknown as string)}</span>
-                  <span className="flex-1 font-medium truncate">{s.patient?.name ?? "—"}</span>
-                  <span className="text-xs text-foreground/40">{s.duration}min</span>
-                  {!past && <span className="text-[11px] font-bold text-accent opacity-0 group-hover:opacity-100 transition">Atender →</span>}
-                </>
-              );
+              const Row = (<>
+                <span className="font-mono text-sm font-semibold text-primary shrink-0">{formatDateTime(s.date as unknown as string)}</span>
+                <span className="flex-1 font-medium truncate">{s.patient?.name ?? "—"}</span>
+                <span className="text-xs text-foreground/40">{s.duration}min</span>
+                {!past && <span className="text-[11px] font-bold text-accent opacity-0 group-hover:opacity-100 transition">Atender →</span>}
+              </>);
               return past
                 ? <div key={s.id} className="flex items-center gap-3 bg-surface/60 rounded-2xl px-4 py-3">{Row}</div>
                 : <Link key={s.id} href={`/atender/${s.id}`} className="flex items-center gap-3 bg-surface/60 rounded-2xl px-4 py-3 hover:bg-surface transition group">{Row}</Link>;
@@ -117,17 +171,84 @@ export default async function DashboardPage() {
         )}
       </div>
 
-      {/* Analíticos (90 dias) */}
-      <div className="bg-white rounded-[28px] border border-border p-6 space-y-4">
-        <div className="flex items-center justify-between">
-          <h3 className="text-lg font-display font-bold text-primary">Analíticos · últimos 90 dias</h3>
-          <Link href="/dashboard/analiticos" className="text-sm font-semibold text-accent hover:underline">Ver tudo</Link>
+      {/* ===== Analíticos de atendimento ===== */}
+      <div className="space-y-6 pt-2">
+        <div className="flex items-end justify-between gap-4 flex-wrap">
+          <h3 className="text-2xl font-display font-bold text-primary">Analíticos de atendimento</h3>
+          <div className="flex flex-wrap items-center gap-2">
+            {Object.entries(PERIODS).map(([key, p]) => (
+              <Link key={key} href={`/dashboard?period=${key}`} className={`px-4 py-2 rounded-full text-sm font-semibold transition ${activePeriod === key ? "bg-primary text-white" : "bg-white/60 text-foreground/60 hover:bg-white"}`}>{p.label}</Link>
+            ))}
+            <form method="get" className="flex items-center gap-1.5 rounded-full bg-white/60 px-2 py-1">
+              <input type="hidden" name="period" value="custom" />
+              <input type="date" name="from" defaultValue={from || ""} className="text-xs bg-transparent outline-none px-1 py-1" />
+              <span className="text-xs text-foreground/40">→</span>
+              <input type="date" name="to" defaultValue={to || ""} className="text-xs bg-transparent outline-none px-1 py-1" />
+              <button className={`px-3 py-1 rounded-full text-xs font-bold transition ${activePeriod === "custom" ? "bg-primary text-white" : "bg-primary/10 text-primary hover:bg-primary/20"}`}>Aplicar</button>
+            </form>
+          </div>
         </div>
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          <div className="rounded-2xl bg-surface/60 border border-border px-4 py-3"><p className="text-xl font-display font-bold text-primary">{anTotal}</p><p className="text-xs text-foreground/50">Realizados</p></div>
-          <div className="rounded-2xl bg-surface/60 border border-border px-4 py-3"><p className="text-xl font-display font-bold text-accent">{anOnline} <span className="text-xs font-normal text-foreground/40">({anPct(anOnline)}%)</span></p><p className="text-xs text-foreground/50">Online</p></div>
-          <div className="rounded-2xl bg-surface/60 border border-border px-4 py-3"><p className="text-xl font-display font-bold text-[#047857]">{anPresencial} <span className="text-xs font-normal text-foreground/40">({anPct(anPresencial)}%)</span></p><p className="text-xs text-foreground/50">Presencial</p></div>
-          <div className="rounded-2xl bg-[#fef2f2] border border-[#fecaca] px-4 py-3"><p className="text-xl font-display font-bold text-[#b91c1c]">{anFaltas}</p><p className="text-xs text-foreground/50">Faltas{anCancel ? ` · ${anCancel} canc.` : ""}</p></div>
+
+        <div className="grid sm:grid-cols-3 gap-4">
+          <div className="glass-card rounded-[28px] p-6 flex items-center gap-4"><div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center"><CalendarCheck className="w-6 h-6" /></div><div><p className="text-2xl font-display font-bold text-primary leading-none">{total}</p><p className="text-sm text-foreground/50 mt-1">Atendimentos realizados</p></div></div>
+          <div className="glass-card rounded-[28px] p-6 flex items-center gap-4"><div className="w-12 h-12 rounded-2xl bg-accent/10 text-accent flex items-center justify-center"><Video className="w-6 h-6" /></div><div><p className="text-2xl font-display font-bold text-primary leading-none">{online} <span className="text-sm font-normal text-foreground/40">({pct(online)}%)</span></p><p className="text-sm text-foreground/50 mt-1">Online</p></div></div>
+          <div className="glass-card rounded-[28px] p-6 flex items-center gap-4"><div className="w-12 h-12 rounded-2xl bg-[#ecfdf5] text-[#047857] flex items-center justify-center"><MapPin className="w-6 h-6" /></div><div><p className="text-2xl font-display font-bold text-primary leading-none">{presencial} <span className="text-sm font-normal text-foreground/40">({pct(presencial)}%)</span></p><p className="text-sm text-foreground/50 mt-1">Presencial</p></div></div>
+        </div>
+
+        <AnaliticosCharts monthly={chartMonthly} weekday={chartWeekday} mode={chartMode} />
+
+        {/* Por local */}
+        <div className="glass-card rounded-[28px] p-6 space-y-4">
+          <h3 className="font-display text-lg font-bold text-primary flex items-center gap-2"><MapPin className="w-5 h-5" /> Atendimentos por local</h3>
+          {total === 0 ? <p className="text-foreground/40 text-sm">Sem atendimentos no período.</p> : (
+            <div className="space-y-3">
+              <div className="space-y-1"><div className="flex justify-between text-sm"><span className="font-semibold flex items-center gap-1.5"><Video className="w-4 h-4 text-accent" /> Online</span><span className="font-bold text-primary">{online}</span></div><div className="h-2.5 rounded-full bg-accent" style={{ width: `${(online / Math.max(maxLoc, online, 1)) * 100}%`, minWidth: online ? "8px" : 0 }} /></div>
+              {locList.map(([loc, n]) => (<div key={loc} className="space-y-1"><div className="flex justify-between text-sm"><span className="font-semibold flex items-center gap-1.5"><MapPin className="w-4 h-4 text-[#047857]" /> {loc}</span><span className="font-bold text-primary">{n}</span></div><div className="h-2.5 rounded-full bg-[#047857]" style={{ width: `${(n / Math.max(maxLoc, online, 1)) * 100}%`, minWidth: "8px" }} /></div>))}
+            </div>
+          )}
+        </div>
+
+        {/* Prospecção */}
+        <div className="glass-card rounded-[28px] p-6 space-y-4">
+          <h3 className="font-display text-lg font-bold text-primary flex items-center gap-2"><UserCheck className="w-5 h-5" /> Prospecção — fechado x prospectado</h3>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div className="rounded-2xl bg-surface/60 border border-border px-4 py-3"><p className="text-2xl font-display font-bold text-primary">{prospectados.length}</p><p className="text-xs text-foreground/50">Prospectados</p></div>
+            <div className="rounded-2xl bg-[#ecfdf5] border border-[#a7f3d0] px-4 py-3"><p className="text-2xl font-display font-bold text-[#047857]">{fechados}</p><p className="text-xs text-foreground/50">Fechados</p></div>
+            <div className="rounded-2xl bg-[#fffbeb] border border-[#fde68a] px-4 py-3"><p className="text-2xl font-display font-bold text-[#92400e]">{emAberto}</p><p className="text-xs text-foreground/50">Em aberto</p></div>
+            <div className="rounded-2xl bg-primary/5 border border-border px-4 py-3"><p className="text-2xl font-display font-bold text-primary">{taxaConv}%</p><p className="text-xs text-foreground/50">Taxa de conversão</p></div>
+          </div>
+          {prospectados.length > 0 && (<div className="flex h-3 rounded-full overflow-hidden bg-surface"><div className="bg-[#047857]" style={{ width: `${(fechados / prospectados.length) * 100}%` }} /><div className="bg-[#f59e0b]" style={{ width: `${(emAberto / prospectados.length) * 100}%` }} /><div className="bg-[#b91c1c]" style={{ width: `${(naoFechou / prospectados.length) * 100}%` }} /></div>)}
+        </div>
+
+        {/* Faltas */}
+        <div className="glass-card rounded-[28px] p-6 space-y-5">
+          <div className="flex items-center justify-between flex-wrap gap-2"><h3 className="font-display text-lg font-bold text-primary flex items-center gap-2"><CalendarX className="w-5 h-5" /> Faltas</h3><span className="text-sm text-foreground/50">{faltasRows.length} falta(s) · {cancelados} cancelamento(s)</span></div>
+          <div><p className="text-xs font-bold text-foreground/40 uppercase tracking-widest mb-2">Por dia da semana</p>
+            <div className="flex items-end gap-2 h-28">
+              {chartWeekday.map((c, i) => (<div key={c.label} className="flex-1 flex flex-col items-center gap-1"><div className="w-full flex items-end justify-center" style={{ height: "100%" }}><div className="w-full max-w-[34px] rounded-t-lg bg-[#ef4444]/80" style={{ height: `${(faltasDow[i] / maxFaltaDow) * 100}%`, minHeight: faltasDow[i] ? "4px" : 0 }} /></div><span className="text-[11px] text-foreground/50">{c.label}</span><span className="text-[10px] font-bold text-foreground/60">{faltasDow[i]}</span></div>))}
+            </div>
+          </div>
+          {chartFaltasMonthly.length > 0 && (
+            <div><p className="text-xs font-bold text-foreground/40 uppercase tracking-widest mb-2">Por mês</p>
+              <div className="flex items-end gap-2 h-24 overflow-x-auto no-scrollbar">
+                {chartFaltasMonthly.map((c) => (<div key={c.label} className="flex flex-col items-center gap-1 min-w-[36px]"><div className="flex-1 flex items-end" style={{ height: "100%" }}><div className="w-7 rounded-t-lg bg-[#ef4444]/60" style={{ height: `${(c.count / maxFaltaMonth) * 100}%`, minHeight: c.count ? "4px" : 0 }} /></div><span className="text-[10px] text-foreground/50 whitespace-nowrap">{c.label}</span><span className="text-[10px] font-bold text-foreground/60">{c.count}</span></div>))}
+              </div>
+            </div>
+          )}
+        </div>
+
+        <div className="grid sm:grid-cols-2 gap-4">
+          <Link href="/dashboard/patients" className="glass-card rounded-[28px] p-6 flex items-center gap-4 hover:shadow-md transition">
+            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${atrasos > 0 ? "bg-[#fef2f2] text-[#b91c1c]" : "bg-[#ecfdf5] text-[#047857]"}`}><AlertTriangle className="w-6 h-6" /></div>
+            <div><p className="text-2xl font-display font-bold text-primary leading-none">{atrasos}</p><p className="text-sm text-foreground/50 mt-1">Pagamentos em atraso</p></div>
+          </Link>
+          <div className="glass-card rounded-[28px] p-6">
+            <h3 className="font-display text-lg font-bold text-primary mb-3">Por status (no período)</h3>
+            <div className="grid grid-cols-2 gap-2">
+              {[...byStatus.entries()].sort((a, b) => b[1] - a[1]).slice(0, 6).map(([st, n]) => (<div key={st} className="rounded-xl bg-surface/60 border border-border px-3 py-2"><p className="text-lg font-display font-bold text-primary">{n}</p><p className="text-[11px] text-foreground/50">{SESSION_STATUS_LABELS[st] ?? st}</p></div>))}
+              {byStatus.size === 0 && <p className="text-foreground/40 text-sm">Sem dados.</p>}
+            </div>
+          </div>
         </div>
       </div>
     </div>

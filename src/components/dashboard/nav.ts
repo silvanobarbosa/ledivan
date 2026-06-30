@@ -9,7 +9,6 @@ import {
   Trophy,
   BarChart3,
   Megaphone,
-  PieChart,
   Scale,
   HelpCircle,
 } from "lucide-react";
@@ -25,7 +24,6 @@ export const NAV_GROUPS: NavGroup[] = [
       { icon: LayoutDashboard, label: "Dashboard", href: "/dashboard" },
       { icon: Users, label: "Pacientes", href: "/dashboard/patients" },
       { icon: CalendarDays, label: "Agenda", href: "/dashboard/agenda" },
-      { icon: PieChart, label: "Analíticos", href: "/dashboard/analiticos" },
       { icon: UserPlus, label: "Prospects", href: "/dashboard/prospects" },
     ],
   },
