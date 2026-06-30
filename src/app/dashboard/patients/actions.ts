@@ -294,47 +294,6 @@ export async function updatePatient(patientId: string, formData: FormData) {
   revalidatePath("/dashboard/agenda");
 }
 
-// Ajuste de valor da sessão: registra no histórico de preços, atualiza o valor
-// atual e (opcional) define a data de vencimento p/ lembrar de reajustar.
-export async function addPriceChange(patientId: string, formData: FormData) {
-  const session = await auth();
-  if (!session?.user?.id) throw new Error("Não autorizado");
-  const userId = session.user.id;
-
-  const patient = await db.query.patients.findFirst({
-    where: and(eq(patients.id, patientId), eq(patients.userId, userId)),
-  });
-  if (!patient) throw new Error("Paciente não encontrado");
-
-  const valor = num(formData.get("valor"), patient.sessionFee);
-  const efetivaRaw = formData.get("dataEfetiva") as string;
-  const vencRaw = formData.get("priceReviewDate") as string;
-  const dataEfetiva = efetivaRaw ? new Date(efetivaRaw) : new Date();
-
-  await db.insert(patientPriceHistory).values({ patientId, valor, dataEfetiva });
-  await db.update(patients)
-    .set({ sessionFee: valor, priceReviewDate: vencRaw ? new Date(vencRaw) : null })
-    .where(and(eq(patients.id, patientId), eq(patients.userId, userId)));
-
-  revalidatePath(`/dashboard/patients/${patientId}`);
-}
-
-// Ajuste: Recorrência (sem vínculo com qtd/valor). Gera histórico.
-export async function setRecorrencia(patientId: string, formData: FormData) {
-  const session = await auth();
-  if (!session?.user?.id) throw new Error("Não autorizado");
-  const userId = session.user.id;
-  const patient = await db.query.patients.findFirst({ where: and(eq(patients.id, patientId), eq(patients.userId, userId)) });
-  if (!patient) throw new Error("Paciente não encontrado");
-  const rec = (formData.get("recorrencia") as string) || patient.frequency || "semanal";
-  const L: Record<string, string> = { semanal: "Semanal", quinzenal: "Quinzenal", mensal: "Mensal" };
-  if (rec !== patient.frequency) {
-    await db.update(patients).set({ frequency: rec }).where(and(eq(patients.id, patientId), eq(patients.userId, userId)));
-    await db.insert(patientContractHistory).values({ patientId, type: "recorrencia", from: L[patient.frequency || ""] || patient.frequency, to: L[rec] || rec, description: `Recorrência: ${L[patient.frequency || ""] || patient.frequency || "—"} → ${L[rec] || rec}` });
-  }
-  revalidatePath(`/dashboard/patients/${patientId}`);
-}
-
 // Ajuste: Incluir Pacote → cria um pacote numerado (P1, P2, ...) com N sessões.
 export async function includePackage(patientId: string, formData: FormData) {
   const session = await auth();
