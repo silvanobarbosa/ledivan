@@ -38,12 +38,12 @@ const FILTERS = [
 const WEEK_DAYS = ["segunda", "terça", "quarta", "quinta", "sexta", "sábado", "domingo"];
 const FORMATS = [{ k: "avulso", l: "Avulso" }, { k: "mensal", l: "Mensal" }, { k: "quinzenal", l: "Quinzenal" }, { k: "pacote", l: "Pacote" }];
 
-export function PatientsClient({ patients }: { patients: PatientCard[] }) {
+export function PatientsClient({ patients, initial }: { patients: PatientCard[]; initial?: { status?: string; tipo?: string; dia?: string; tag?: string } }) {
   const [query, setQuery] = useState("");
-  const [filter, setFilter] = useState("todos");
-  const [tag, setTag] = useState<string | null>(null);
-  const [day, setDay] = useState<string | null>(null);
-  const [fmt, setFmt] = useState<string | null>(null);
+  const [filter, setFilter] = useState(initial?.status || "todos");
+  const [tag, setTag] = useState<string | null>(initial?.tag || null);
+  const [day, setDay] = useState<string | null>(initial?.dia || null);
+  const [fmt, setFmt] = useState<string | null>(initial?.tipo || null);
   const [sortHour, setSortHour] = useState(false);
 
   const allTags = Array.from(new Set(patients.flatMap((p) => parseTags(p.tags)))).sort();

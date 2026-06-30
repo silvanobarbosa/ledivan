@@ -87,6 +87,7 @@
     border-color: var(--border);
   }
   html {
+    font-size: 15px; /* base levemente menor → respira melhor dentro dos cards */
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;

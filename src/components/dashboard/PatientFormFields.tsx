@@ -18,7 +18,7 @@ export type PatientFormData = {
   spouseName?: string | null; spousePhone?: string | null; spouseEmail?: string | null; spouseCpf?: string | null;
   emergencyName?: string | null; emergencyPhone?: string | null; emergencyEmail?: string | null; emergencyRelationship?: string | null;
   attendanceMode?: string | null; attendanceLocation?: string | null; attendanceDay?: string | null; attendanceTime?: string | null;
-  sessionFee?: string | null; frequency?: string | null; paymentFormat?: string | null; sessionsInPacket?: number | null; paymentDay?: number | null; priceReviewDate?: string | null;
+  sessionFee?: string | null; frequency?: string | null; timesPerPeriod?: number | null; paymentFormat?: string | null; sessionsInPacket?: number | null; paymentDay?: number | null; priceReviewDate?: string | null;
   reminderEnabled?: boolean; reminderChannel?: string | null; reminderLeadMinutes?: number | null;
   photo3x4?: string | null; photoExtra1?: string | null; photoExtra2?: string | null; photoExtra3?: string | null;
 };
@@ -69,6 +69,7 @@ export function PatientFormFields({ p, locations }: { p?: PatientFormData; locat
   const initialGender = p?.gender ? (GENDERS.includes(p.gender) ? p.gender : "outro") : "";
   const [gender, setGender] = useState(initialGender);
   const [category, setCategory] = useState(p?.category || "");
+  const initialRec = (p?.frequency === "semanal" && (p?.timesPerPeriod ?? 1) >= 2) ? "2x_semana" : (p?.frequency || "semanal");
   const dateVal = (d?: string | null) => (d ? new Date(d).toISOString().slice(0, 10) : "");
   const show = (k: string) => (tab === k ? "space-y-4" : "hidden");
 
@@ -170,7 +171,15 @@ export function PatientFormFields({ p, locations }: { p?: PatientFormData; locat
                 <option value="inativo">Inativo</option>
               </select>
             </div>
-            <div></div>
+            <div>
+              <label className={labelCls}>Recorrência de atendimento<InfoTip text="Quantas vezes e em que período o paciente é atendido. É a referência usada também no financeiro." /></label>
+              <select name="recorrencia" className={inputCls} defaultValue={initialRec}>
+                <option value="semanal">Semanal</option>
+                <option value="quinzenal">Quinzenal</option>
+                <option value="mensal">Mensal</option>
+                <option value="2x_semana">2x por semana</option>
+              </select>
+            </div>
             <div>
               <label className={labelCls}>Dia de atendimento</label>
               <select name="attendanceDay" className={inputCls} defaultValue={p?.attendanceDay || ""}>
@@ -231,12 +240,6 @@ export function PatientFormFields({ p, locations }: { p?: PatientFormData; locat
         <Card title="Financeiro">
           <div className="grid sm:grid-cols-2 gap-4">
             <div><label className={labelCls}>Valor da sessão (R$)</label><input name="sessionFee" inputMode="decimal" defaultValue={p?.sessionFee ?? ""} className={inputCls} placeholder="ex: 200,00" /></div>
-            <div>
-              <label className={labelCls}>Recorrência<InfoTip text="Frequência do atendimento. Não vincula valor nem quantidade." /></label>
-              <select name="frequency" className={inputCls} defaultValue={p?.frequency || "semanal"}>
-                <option value="semanal">Semanal</option><option value="quinzenal">Quinzenal</option><option value="mensal">Mensal</option>
-              </select>
-            </div>
             <div>
               <label className={labelCls}>Formato de pagamento</label>
               <select name="paymentFormat" className={inputCls} value={format} onChange={(e) => setFormat(e.target.value)}>

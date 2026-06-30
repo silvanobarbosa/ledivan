@@ -72,6 +72,13 @@ function num(v: FormDataEntryValue | null, fallback = "0") {
 
 const DOW: Record<string, number> = { domingo: 0, segunda: 1, "terça": 2, terca: 2, quarta: 3, quinta: 4, sexta: 5, "sábado": 6, sabado: 6 };
 
+// Recorrência de atendimento (Atendimento) → frequência + vezes por período.
+function recorrenciaOf(formData: FormData): { frequency: string; timesPerPeriod: number } {
+  const r = (formData.get("recorrencia") as string) || "semanal";
+  if (r === "2x_semana") return { frequency: "semanal", timesPerPeriod: 2 };
+  return { frequency: r, timesPerPeriod: 1 };
+}
+
 // Gênero: usa o texto livre quando "outro".
 function genderOf(formData: FormData): string | null {
   const g = (formData.get("gender") as string) || "";
@@ -115,6 +122,7 @@ export async function createPatient(formData: FormData) {
 
   const startedAtRaw = formData.get("startedAt") as string;
   const sessionFee = num(formData.get("sessionFee"));
+  const rec = recorrenciaOf(formData);
 
   const [created] = await db.insert(patients).values({
     userId,
@@ -122,7 +130,8 @@ export async function createPatient(formData: FormData) {
     email: (formData.get("email") as string) || null,
     phone: (formData.get("phone") as string) || null,
     sessionFee,
-    frequency: (formData.get("frequency") as string) || null,
+    frequency: rec.frequency,
+    timesPerPeriod: rec.timesPerPeriod,
     notes: (formData.get("notes") as string) || null,
     patientStatus: (formData.get("patientStatus") as string) || "ativo",
     prospectDate: (formData.get("patientStatus") as string) === "prospect" ? new Date() : null,
@@ -199,7 +208,8 @@ export async function updatePatient(patientId: string, formData: FormData) {
 
   const newFee = num(formData.get("sessionFee"), existing.sessionFee);
   const newStatus = (formData.get("patientStatus") as string) || existing.patientStatus;
-  const newFreq = (formData.get("frequency") as string) || existing.frequency;
+  const rec = formData.has("recorrencia") ? recorrenciaOf(formData) : { frequency: existing.frequency || "semanal", timesPerPeriod: existing.timesPerPeriod };
+  const newFreq = rec.frequency;
   const newFormat = (formData.get("paymentFormat") as string) || existing.paymentFormat;
   const isPacote = newFormat === "pacote";
 
@@ -209,6 +219,7 @@ export async function updatePatient(patientId: string, formData: FormData) {
     phone: (formData.get("phone") as string) ?? existing.phone,
     sessionFee: newFee,
     frequency: newFreq,
+    timesPerPeriod: rec.timesPerPeriod,
     notes: existing.notes, // editado no Prontuário
     patientStatus: newStatus,
     birthDate: formData.get("birthDate") ? new Date(formData.get("birthDate") as string) : existing.birthDate,

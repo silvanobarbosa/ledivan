@@ -6,7 +6,8 @@ import Link from "next/link";
 import { Plus } from "lucide-react";
 import { PatientsClient } from "./PatientsClient";
 
-export default async function PatientsPage() {
+export default async function PatientsPage({ searchParams }: { searchParams: Promise<{ status?: string; tipo?: string; dia?: string; tag?: string }> }) {
+  const sp = await searchParams;
   const session = await auth();
   if (!session?.user?.id) return null;
   const userId = session.user.id;
@@ -68,6 +69,7 @@ export default async function PatientsPage() {
             debtSessions,
           };
         })}
+        initial={{ status: sp.status, tipo: sp.tipo, dia: sp.dia, tag: sp.tag }}
       />
     </div>
   );

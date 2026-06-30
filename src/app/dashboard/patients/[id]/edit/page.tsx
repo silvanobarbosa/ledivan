@@ -47,7 +47,7 @@ export default async function EditPatientPage({ params }: { params: Promise<{ id
           spouseName: patient.spouseName, spousePhone: patient.spousePhone, spouseEmail: patient.spouseEmail, spouseCpf: patient.spouseCpf,
           emergencyName: patient.emergencyName, emergencyPhone: patient.emergencyPhone, emergencyEmail: patient.emergencyEmail, emergencyRelationship: patient.emergencyRelationship,
           attendanceMode: patient.attendanceMode, attendanceLocation: patient.attendanceLocation, attendanceDay: patient.attendanceDay, attendanceTime: patient.attendanceTime,
-          sessionFee: patient.sessionFee, frequency: patient.frequency, paymentFormat: patient.paymentFormat, sessionsInPacket: patient.sessionsInPacket, paymentDay: patient.paymentDay, priceReviewDate: iso(patient.priceReviewDate),
+          sessionFee: patient.sessionFee, frequency: patient.frequency, timesPerPeriod: patient.timesPerPeriod, paymentFormat: patient.paymentFormat, sessionsInPacket: patient.sessionsInPacket, paymentDay: patient.paymentDay, priceReviewDate: iso(patient.priceReviewDate),
           reminderEnabled: patient.reminderEnabled, reminderChannel: patient.reminderChannel, reminderLeadMinutes: patient.reminderLeadMinutes,
           photo3x4: patient.photo3x4, photoExtra1: patient.photoExtra1, photoExtra2: patient.photoExtra2, photoExtra3: patient.photoExtra3,
         }} />

@@ -210,30 +210,30 @@ export function PatientDetail({
         </div>
       </div>
 
-      {/* Status Financeiro */}
+      {/* Cards de resumo — cada um leva ao detalhe correspondente */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
-        <div className="glass-card rounded-[20px] p-4">
+        <Link href="/dashboard/reservas" className="glass-card rounded-[20px] p-4 hover:shadow-md transition">
           <p className="text-2xl font-display font-bold text-primary">{sessionStats.reservadas}</p>
           <p className="text-xs text-foreground/50">Sessões reservadas</p>
           <p className="text-[10px] text-foreground/40">criadas e não confirmadas</p>
-        </div>
-        <div className="glass-card rounded-[20px] p-4">
+        </Link>
+        <Link href="/dashboard/agenda" className="glass-card rounded-[20px] p-4 hover:shadow-md transition">
           <p className="text-2xl font-display font-bold text-primary">{sessionStats.agendadasFuturas}</p>
           <p className="text-xs text-foreground/50">Agendadas futuras</p>
           <p className="text-[10px] text-foreground/40">inclui reservas</p>
-        </div>
-        <button onClick={() => setTab("Financeiro")} className={`rounded-[20px] p-4 text-left border ${finance.balance < 0 ? "bg-[#fef2f2] border-[#fecaca]" : "bg-[#ecfdf5] border-[#a7f3d0]"}`}>
+        </Link>
+        <button onClick={() => setTab("Financeiro")} className={`rounded-[20px] p-4 text-left border transition hover:shadow-md ${finance.balance < 0 ? "bg-[#fef2f2] border-[#fecaca]" : "bg-[#ecfdf5] border-[#a7f3d0]"}`}>
           <p className={`text-2xl font-display font-bold ${finance.balance < 0 ? "text-[#b91c1c]" : "text-[#047857]"}`}>
             {finance.balance < 0 ? `-${finance.debtSessions}` : finance.creditSessions}<span className="text-sm"> sess.</span>
           </p>
           <p className="text-xs text-foreground/50">Status de crédito</p>
           <p className={`text-[10px] font-semibold ${finance.balance < 0 ? "text-[#b91c1c]" : "text-[#047857]"}`}>{finance.balance < 0 ? "Devendo " : "Crédito "}{formatBRL(Math.abs(finance.balance).toFixed(2))}</p>
         </button>
-        <div className="glass-card rounded-[20px] p-4">
+        <button onClick={() => setTab("Sessões")} className="glass-card rounded-[20px] p-4 text-left hover:shadow-md transition">
           <p className="text-2xl font-display font-bold text-primary">{sessionStats.realizadasCount}</p>
           <p className="text-xs text-foreground/50">Sessões realizadas</p>
           <p className="text-[10px] text-foreground/40">{sessionStats.lastRealizada ? `última: ${formatDate(sessionStats.lastRealizada)}` : "—"}</p>
-        </div>
+        </button>
       </div>
 
       {recurring && (
