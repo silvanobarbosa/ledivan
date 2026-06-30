@@ -5,6 +5,7 @@ import { db } from "@/db";
 import { patients, patientRecords } from "@/db/schema";
 import { and, eq } from "drizzle-orm";
 import { getPreferences } from "@/lib/preferences";
+import { rateLimit } from "@/lib/rateLimit";
 
 export const maxDuration = 60;
 
@@ -15,6 +16,10 @@ export async function POST(req: NextRequest) {
   const session = await auth();
   if (!session?.user?.id) return NextResponse.json({ ok: false, error: "Não autorizado" }, { status: 401 });
   const userId = session.user.id;
+
+  if (!(await rateLimit(userId, "transcribe", 30, 3600))) {
+    return NextResponse.json({ ok: false, error: "Muitas solicitações. Tente novamente em alguns minutos." }, { status: 429 });
+  }
 
   const prefs = await getPreferences(userId);
   if (!prefs.transcriptionEnabled) {

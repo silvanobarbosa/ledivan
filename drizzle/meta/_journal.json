@@ -218,6 +218,13 @@
       "when": 1780978953612,
       "tag": "0030_cheerful_pride",
       "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "7",
+      "when": 1782852589259,
+      "tag": "0031_equal_banshee",
+      "breakpoints": true
     }
   ]
 }

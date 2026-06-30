@@ -399,6 +399,13 @@ export const patientPackages = pgTable("patient_packages", {
   index("pkg_user_idx").on(t.userId),
 ]);
 
+// Rate limit por janela fixa (chave = userId:rota). Protege endpoints de IA (custo).
+export const rateLimits = pgTable("rate_limits", {
+  key: text("key").primaryKey(),
+  count: integer("count").default(0).notNull(),
+  windowStart: timestamp("window_start").defaultNow().notNull(),
+});
+
 // --- Relations ---
 
 export const transactionsRelations = relations(transactions, ({ one }) => ({

@@ -6,6 +6,7 @@ import { eq } from "drizzle-orm";
 import { checkAchievements } from "@/lib/achievements";
 
 import { auth } from "@/auth";
+import { rateLimit } from "@/lib/rateLimit";
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -21,6 +22,9 @@ export async function POST(req: Request) {
 
     if (!image || !userId) {
       return NextResponse.json({ error: "Não autorizado ou imagem ausente." }, { status: 401 });
+    }
+    if (!(await rateLimit(userId, "scan", 40, 3600))) {
+      return NextResponse.json({ error: "Muitas solicitações. Tente novamente em alguns minutos." }, { status: 429 });
     }
 
     // Chama a API do OpenAI (GPT-4o ou Vision)
