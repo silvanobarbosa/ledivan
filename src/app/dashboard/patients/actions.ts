@@ -328,7 +328,7 @@ export async function editPackage(packageId: string, formData: FormData) {
   const sessions = formData.get("sessions") ? Math.max(1, parseInt(formData.get("sessions") as string)) : pkg.sessions;
   const usedRaw = formData.get("used") ? parseInt(formData.get("used") as string) : pkg.used;
   const used = Math.max(0, Math.min(usedRaw, sessions));
-  await db.update(patientPackages).set({ sessions, used }).where(eq(patientPackages.id, packageId));
+  await db.update(patientPackages).set({ sessions, used }).where(and(eq(patientPackages.id, packageId), eq(patientPackages.userId, userId)));
   revalidatePath(`/dashboard/patients/${pkg.patientId}`);
 }
 
@@ -339,7 +339,7 @@ export async function deletePackage(packageId: string) {
   const userId = session.user.id;
   const pkg = await db.query.patientPackages.findFirst({ where: and(eq(patientPackages.id, packageId), eq(patientPackages.userId, userId)) });
   if (!pkg) return;
-  await db.delete(patientPackages).where(eq(patientPackages.id, packageId));
+  await db.delete(patientPackages).where(and(eq(patientPackages.id, packageId), eq(patientPackages.userId, userId)));
   revalidatePath(`/dashboard/patients/${pkg.patientId}`);
 }
 
@@ -353,7 +353,7 @@ export async function editPriceHistory(historyId: string, formData: FormData) {
   if (!owner) return;
   const valor = num(formData.get("valor"), row.valor);
   const efetivaRaw = formData.get("dataEfetiva") as string;
-  await db.update(patientPriceHistory).set({ valor, ...(efetivaRaw ? { dataEfetiva: new Date(efetivaRaw) } : {}) }).where(eq(patientPriceHistory.id, historyId));
+  await db.update(patientPriceHistory).set({ valor, ...(efetivaRaw ? { dataEfetiva: new Date(efetivaRaw) } : {}) }).where(and(eq(patientPriceHistory.id, historyId), eq(patientPriceHistory.patientId, owner.id)));
   revalidatePath(`/dashboard/patients/${row.patientId}`);
 }
 
@@ -364,7 +364,7 @@ export async function deletePriceHistory(historyId: string) {
   if (!row) return;
   const owner = await db.query.patients.findFirst({ where: and(eq(patients.id, row.patientId), eq(patients.userId, session.user.id)) });
   if (!owner) return;
-  await db.delete(patientPriceHistory).where(eq(patientPriceHistory.id, historyId));
+  await db.delete(patientPriceHistory).where(and(eq(patientPriceHistory.id, historyId), eq(patientPriceHistory.patientId, owner.id)));
   revalidatePath(`/dashboard/patients/${row.patientId}`);
 }
 
