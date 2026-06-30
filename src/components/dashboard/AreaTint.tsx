@@ -5,6 +5,7 @@ import { usePathname } from "next/navigation";
 // Tinge o fundo da área financeira diferente da clínica — passa a sensação de
 // "dois produtos em um". Clínica = creme (warm); Financeiro = verde-água (cool).
 const FINANCE_PREFIXES = [
+  "/dashboard/financeiro",
   "/dashboard/transactions",
   "/dashboard/reports",
   "/dashboard/conciliacao",
