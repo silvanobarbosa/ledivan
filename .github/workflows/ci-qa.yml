@@ -1,6 +1,7 @@
 name: CI-QA (ReverbLabs)
-# QA de código da frota: build (gate) + deps audit + Semgrep + Trivy (report).
-# Endurecer depois: trocar os "|| true" / exit-code por falha real quando o app estiver limpo.
+# QA de código da frota (report-mode): build (gate) + deps audit + Semgrep + Trivy
+#   + complexidade ciclomática (ESLint) + estrutura de deps (dependency-cruiser) + dead-code (knip).
+# Endurecer depois: trocar os "|| echo" / --exit-code / continue-on-error por falha real quando o app estiver limpo.
 on:
   push:
     branches: ["**"]
@@ -41,4 +42,62 @@ jobs:
           curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin
           trivy fs --scanners vuln,secret,misconfig --severity HIGH,CRITICAL --exit-code 0 --no-progress . \
             || echo "::warning::Trivy achou possíveis problemas"
+        continue-on-error: true
+
+      # ---- QA de qualidade/estrutura (report). Tools no node_modules do repo p/ acharem o typescript. ----
+      - name: QA tools (instala complexity/deps/dead-code)
+        run: npm i --no-save eslint@9 typescript-eslint@8 dependency-cruiser@16 knip@5 || echo "::warning::falha instalando QA tools"
+        continue-on-error: true
+
+      - name: Complexidade ciclomática (ESLint, report)
+        run: |
+          cat > eslint.qa.mjs <<'EOF'
+          import tseslint from 'typescript-eslint';
+          export default [
+            { ignores: ['**/node_modules/**','**/.next/**','**/dist/**','**/build/**','**/out/**','**/coverage/**','**/*.config.*','**/*.d.ts','**/eslint.qa.mjs','**/.depcruise.qa.cjs'] },
+            {
+              files: ['**/*.{ts,tsx,js,jsx,mjs,cjs}'],
+              languageOptions: { parser: tseslint.parser, parserOptions: { ecmaFeatures: { jsx: true }, sourceType: 'module' } },
+              rules: {
+                complexity: ['warn', 12],
+                'max-depth': ['warn', 4],
+                'max-params': ['warn', 5],
+                'max-nested-callbacks': ['warn', 4],
+                'max-lines-per-function': ['warn', { max: 80, skipComments: true, skipBlankLines: true }],
+              },
+            },
+          ];
+          EOF
+          npx --no-install eslint --no-config-lookup --no-inline-config --config eslint.qa.mjs . \
+            || echo "::warning::ESLint: complexidade/tamanho acima do limite (report)"
+        continue-on-error: true
+
+      - name: Estrutura de dependências (dependency-cruiser, report)
+        run: |
+          cat > .depcruise.qa.cjs <<'EOF'
+          module.exports = {
+            forbidden: [
+              { name: 'no-circular', severity: 'warn', comment: 'ciclo de dependencia',
+                from: {}, to: { circular: true } },
+              { name: 'no-dev-in-prod', severity: 'warn', comment: 'prod importando devDependency',
+                from: { pathNot: '[.](spec|test|config)[.]|[.]qa[.]cjs$' }, to: { dependencyTypes: ['npm-dev'] } },
+            ],
+            options: {
+              doNotFollow: { path: 'node_modules' },
+              exclude: 'node_modules|[.]next|dist|build|out|coverage',
+              tsPreCompilationDeps: true,
+              tsConfig: { fileName: 'tsconfig.json' },
+              enhancedResolveOptions: { extensions: ['.js','.jsx','.ts','.tsx','.mjs','.cjs','.json'] },
+            },
+          };
+          EOF
+          [ -f tsconfig.json ] || sed -i '/tsConfig:/d' .depcruise.qa.cjs
+          SRC=""; for d in src app lib components pages server; do [ -d "$d" ] && SRC="$SRC $d"; done
+          [ -z "$SRC" ] && SRC="."
+          npx --no-install depcruise --config .depcruise.qa.cjs --no-progress --output-type err-long $SRC \
+            || echo "::warning::dependency-cruiser: ciclos/violacoes de estrutura (report)"
+        continue-on-error: true
+
+      - name: Dead code / deps nao usadas (knip, report)
+        run: npx --no-install knip --no-exit-code --reporter compact || echo "::warning::knip achou codigo/deps sem uso (report)"
         continue-on-error: true
