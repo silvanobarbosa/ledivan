@@ -5,6 +5,7 @@ import { and, eq, gte, lte, sql, count } from "drizzle-orm";
 import { formatDateTime, SESSION_STATUS_LABELS } from "@/lib/therapy";
 import { Users as UsersIcon, CalendarCheck, Clock, ChevronRight, Video, MapPin, UserCheck, CalendarX, AlertTriangle } from "lucide-react";
 import { AnaliticosCharts } from "@/components/dashboard/AnaliticosCharts";
+import { AnalyticsFilters } from "@/components/dashboard/AnalyticsFilters";
 import Link from "next/link";
 
 export const dynamic = "force-dynamic";
@@ -18,8 +19,8 @@ const PERIODS: Record<string, { label: string; months: number | null }> = {
 const MES = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
 const DOW = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 
-export default async function DashboardPage({ searchParams }: { searchParams: Promise<{ period?: string; from?: string; to?: string }> }) {
-  const { period, from, to } = await searchParams;
+export default async function DashboardPage({ searchParams }: { searchParams: Promise<{ period?: string; from?: string; to?: string; patient?: string }> }) {
+  const { period, from, to, patient } = await searchParams;
   const session = await auth();
   if (!session?.user?.id) return <div>Você precisa estar logado para acessar o dashboard.</div>;
   const user = await db.query.users.findFirst({ where: eq(users.id, session.user.id) });
@@ -45,6 +46,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   const anConds = [eq(therapySessions.userId, userId)];
   if (cutoff) anConds.push(gte(therapySessions.date, cutoff));
   if (end) anConds.push(lte(therapySessions.date, end));
+  if (patient) anConds.push(eq(therapySessions.patientId, patient));
 
   const [activeRows, weekRows, upcomingSessions, reservasRows, pkgEndingRows, anRows, pats] = await Promise.all([
     db.select({ val: count() }).from(patients).where(and(eq(patients.userId, userId), eq(patients.patientStatus, "ativo"))),
@@ -58,8 +60,10 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
       .from(patientPackages).innerJoin(patients, eq(patientPackages.patientId, patients.id))
       .where(and(eq(patientPackages.userId, userId), eq(patients.patientStatus, "ativo"), eq(patients.contractType, "pacote"))).groupBy(patientPackages.patientId),
     db.select({ isOnline: therapySessions.isOnline, location: therapySessions.location, status: therapySessions.status, date: therapySessions.date }).from(therapySessions).where(and(...anConds)),
-    db.select({ status: patients.patientStatus, prospectDate: patients.prospectDate, prospectFechou: patients.prospectFechou, paymentStatus: patients.paymentStatus }).from(patients).where(eq(patients.userId, userId)),
+    db.select({ id: patients.id, name: patients.name, status: patients.patientStatus, prospectDate: patients.prospectDate, prospectFechou: patients.prospectFechou, paymentStatus: patients.paymentStatus }).from(patients).where(eq(patients.userId, userId)),
   ]);
+  const patientList = pats.filter((p) => p.status !== "prospect").map((p) => ({ id: p.id, name: p.name })).sort((a, b) => a.name.localeCompare(b.name));
+  const selectedPatientName = patient ? patientList.find((p) => p.id === patient)?.name : null;
 
   const activePatients = Number(activeRows[0]?.val || 0);
   const weekSessions = Number(weekRows[0]?.val || 0);
@@ -174,19 +178,11 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
       {/* ===== Analíticos de atendimento ===== */}
       <div className="space-y-6 pt-2">
         <div className="flex items-end justify-between gap-4 flex-wrap">
-          <h3 className="text-2xl font-display font-bold text-primary">Analíticos de atendimento</h3>
-          <div className="flex flex-wrap items-center gap-2">
-            {Object.entries(PERIODS).map(([key, p]) => (
-              <Link key={key} href={`/dashboard?period=${key}`} className={`px-4 py-2 rounded-full text-sm font-semibold transition ${activePeriod === key ? "bg-primary text-white" : "bg-white/60 text-foreground/60 hover:bg-white"}`}>{p.label}</Link>
-            ))}
-            <form method="get" className="flex items-center gap-1.5 rounded-full bg-white/60 px-2 py-1">
-              <input type="hidden" name="period" value="custom" />
-              <input type="date" name="from" defaultValue={from || ""} className="text-xs bg-transparent outline-none px-1 py-1" />
-              <span className="text-xs text-foreground/40">→</span>
-              <input type="date" name="to" defaultValue={to || ""} className="text-xs bg-transparent outline-none px-1 py-1" />
-              <button className={`px-3 py-1 rounded-full text-xs font-bold transition ${activePeriod === "custom" ? "bg-primary text-white" : "bg-primary/10 text-primary hover:bg-primary/20"}`}>Aplicar</button>
-            </form>
+          <div>
+            <h3 className="text-2xl font-display font-bold text-primary">Analíticos de atendimento</h3>
+            {selectedPatientName && <p className="text-sm text-foreground/50">Filtrado por: <strong>{selectedPatientName}</strong></p>}
           </div>
+          <AnalyticsFilters patients={patientList} activePeriod={activePeriod} patient={patient} from={from} to={to} />
         </div>
 
         <div className="grid sm:grid-cols-3 gap-4">
@@ -209,6 +205,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
         </div>
 
         {/* Prospecção */}
+        {!patient && (
         <div className="glass-card rounded-[28px] p-6 space-y-4">
           <h3 className="font-display text-lg font-bold text-primary flex items-center gap-2"><UserCheck className="w-5 h-5" /> Prospecção — fechado x prospectado</h3>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
@@ -219,6 +216,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
           </div>
           {prospectados.length > 0 && (<div className="flex h-3 rounded-full overflow-hidden bg-surface"><div className="bg-[#047857]" style={{ width: `${(fechados / prospectados.length) * 100}%` }} /><div className="bg-[#f59e0b]" style={{ width: `${(emAberto / prospectados.length) * 100}%` }} /><div className="bg-[#b91c1c]" style={{ width: `${(naoFechou / prospectados.length) * 100}%` }} /></div>)}
         </div>
+        )}
 
         {/* Faltas */}
         <div className="glass-card rounded-[28px] p-6 space-y-5">
@@ -238,10 +236,12 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
         </div>
 
         <div className="grid sm:grid-cols-2 gap-4">
-          <Link href="/dashboard/patients" className="glass-card rounded-[28px] p-6 flex items-center gap-4 hover:shadow-md transition">
+          {!patient && (
+          <Link href="/dashboard/visao-financeira" className="glass-card rounded-[28px] p-6 flex items-center gap-4 hover:shadow-md transition">
             <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${atrasos > 0 ? "bg-[#fef2f2] text-[#b91c1c]" : "bg-[#ecfdf5] text-[#047857]"}`}><AlertTriangle className="w-6 h-6" /></div>
             <div><p className="text-2xl font-display font-bold text-primary leading-none">{atrasos}</p><p className="text-sm text-foreground/50 mt-1">Pagamentos em atraso</p></div>
           </Link>
+          )}
           <div className="glass-card rounded-[28px] p-6">
             <h3 className="font-display text-lg font-bold text-primary mb-3">Por status (no período)</h3>
             <div className="grid grid-cols-2 gap-2">

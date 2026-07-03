@@ -31,6 +31,7 @@ export const NAV_GROUPS: NavGroup[] = [
     title: "Financeiro",
     items: [
       { icon: LayoutDashboard, label: "Visão geral", href: "/dashboard/financeiro" },
+      { icon: Wallet, label: "Visão financeira", href: "/dashboard/visao-financeira" },
       { icon: ArrowLeftRight, label: "Transações", href: "/dashboard/transactions" },
       { icon: BarChart3, label: "Relatórios", href: "/dashboard/reports" },
       { icon: Scale, label: "Conciliação", href: "/dashboard/conciliacao" },

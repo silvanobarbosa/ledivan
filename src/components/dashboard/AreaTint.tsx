@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 // "dois produtos em um". Clínica = creme (warm); Financeiro = verde-água (cool).
 const FINANCE_PREFIXES = [
   "/dashboard/financeiro",
+  "/dashboard/visao-financeira",
   "/dashboard/transactions",
   "/dashboard/reports",
   "/dashboard/conciliacao",
