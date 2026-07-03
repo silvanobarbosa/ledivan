@@ -101,3 +101,12 @@ jobs:
       - name: Dead code / deps nao usadas (knip, report)
         run: npx --no-install knip --no-exit-code --reporter compact || echo "::warning::knip achou codigo/deps sem uso (report)"
         continue-on-error: true
+
+      - name: Testes + coverage (report; roda se o app tiver script "test")
+        run: |
+          if node -e "process.exit(require('./package.json').scripts?.test?0:1)" 2>/dev/null; then
+            echo "rodando testes do app…"; npm test || echo "::warning::testes/coverage falharam (report)"
+          else
+            echo "sem script \"test\" — pulando (molde Vitest: hub adiciona nos apps novos)"
+          fi
+        continue-on-error: true
