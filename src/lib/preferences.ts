@@ -2,11 +2,16 @@ import { db } from "@/db";
 import { users } from "@/db/schema";
 import { eq } from "drizzle-orm";
 
+// Direção da 1ª sincronização com o Google:
+// pull = Google atualiza o Ledivan; push = Ledivan é principal e sobrepõe o Google; both = sincroniza ambos igualmente.
+export type GoogleSyncMode = "pull" | "push" | "both";
+
 export type Integrations = {
   googleCalendar?: boolean;
   gmail?: boolean;
   whatsapp?: boolean;
   whatsappNumber?: string;
+  googleSyncMode?: GoogleSyncMode;
 };
 
 export type UserPreferences = {
