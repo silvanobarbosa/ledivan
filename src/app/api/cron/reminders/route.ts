@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
-import { therapySessions } from "@/db/schema";
-import { and, eq, gte, lt, isNull, sql } from "drizzle-orm";
+import { therapySessions, accounts } from "@/db/schema";
+import { and, eq, gte, lt, isNull, isNotNull, sql } from "drizzle-orm";
 import { sendSessionReminder } from "@/lib/reminders";
+import { syncCalendar } from "@/lib/googleCalendar";
 
 // Cron diário (Vercel). Envia lembrete das sessões agendadas nas próximas ~28h
 // para pacientes que optaram por receber, pelo canal escolhido. Idempotente via reminderSentAt.
@@ -58,5 +59,17 @@ export async function GET(req: NextRequest) {
     }
   }
 
-  return NextResponse.json({ ok: true, candidates: sessions.length, sent, skipped });
+  // Sincronização Google (best-effort) p/ quem conectou a Agenda + concedeu escopo.
+  let synced = 0;
+  try {
+    const googleUsers = await db.select({ userId: accounts.userId, scope: accounts.scope })
+      .from(accounts).where(and(eq(accounts.provider, "google"), isNotNull(accounts.refresh_token)));
+    for (const g of googleUsers) {
+      if (!g.scope?.includes("calendar")) continue;
+      const r = await syncCalendar(g.userId); // checa preferências (googleCalendar on) internamente
+      if (r.ok) synced++;
+    }
+  } catch (e) { console.error("cron sync google:", e); }
+
+  return NextResponse.json({ ok: true, candidates: sessions.length, sent, skipped, synced });
 }

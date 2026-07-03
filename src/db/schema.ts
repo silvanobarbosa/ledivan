@@ -318,6 +318,7 @@ export const therapySessions = pgTable("therapy_sessions", {
   pendingConfirmation: boolean("pending_confirmation").default(false).notNull(), // agendamento público aguardando confirmação
   recurring: boolean("recurring").default(false).notNull(), // reserva recorrente (semanal)
   recurrenceUntil: timestamp("recurrence_until"), // data limite da recorrência
+  googleEventId: text("google_event_id"), // vínculo com evento no Google Calendar (sync)
   meetingUrl: text("meeting_url"), // link Google Meet (se gerado); senão usa Jitsi derivado do id
   reminderSentAt: timestamp("reminder_sent_at"), // evita lembrete duplicado
   patientSummary: text("patient_summary"), // resumo pós-sessão para o paciente (IA)

@@ -154,6 +154,16 @@ export async function setBookingSlug(raw: string) {
 }
 
 // Liga/desliga uma integração (google calendar / gmail / whatsapp) e salva número do WhatsApp.
+// Sincroniza a agenda com o Google agora (respeita a direção googleSyncMode).
+export async function syncGoogleNow(): Promise<{ ok: boolean; pushed?: number; pulled?: number; error?: string }> {
+  const session = await auth();
+  if (!session?.user?.id) return { ok: false, error: "Não autorizado" };
+  const { syncCalendar } = await import("@/lib/googleCalendar");
+  const r = await syncCalendar(session.user.id);
+  revalidatePath("/dashboard/agenda");
+  return r;
+}
+
 export async function setIntegration(patch: Integrations) {
   const session = await auth();
   if (!session?.user?.id) throw new Error("Não autorizado");

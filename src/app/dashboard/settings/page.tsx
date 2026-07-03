@@ -19,7 +19,7 @@ import { WhatsappCard } from "./WhatsappCard";
 import { MeetingCard } from "./MeetingCard";
 import { PasswordCard } from "./PasswordCard";
 import { getPreferences } from "@/lib/preferences";
-import { hasGoogleAccount } from "@/lib/googleCalendar";
+import { hasGoogleAccount, hasCalendarScope } from "@/lib/googleCalendar";
 
 export const dynamic = "force-dynamic";
 
@@ -35,6 +35,7 @@ export default async function SettingsPage() {
 
   const prefs = await getPreferences(user.id);
   const googleConnected = await hasGoogleAccount(user.id);
+  const calendarAuthorized = await hasCalendarScope(user.id);
 
   return (
     <div className="max-w-4xl mx-auto space-y-12 pb-20">
@@ -135,7 +136,7 @@ export default async function SettingsPage() {
 
           <BookingCard initialSlug={user.bookingSlug} initialAutoConfirm={!!prefs.bookingAutoConfirm} />
 
-          <IntegrationsCard initial={prefs.integrations ?? {}} />
+          <IntegrationsCard initial={prefs.integrations ?? {}} calendarAuthorized={calendarAuthorized} />
 
           <AutoLinkToggle initial={!!prefs.autoLinkPayments} />
 

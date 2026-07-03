@@ -2,7 +2,7 @@
 
 import { useState, useTransition } from "react";
 import { Calendar, Mail, MessageCircle, Check, Plug, RefreshCw, ArrowRight, ArrowLeft, ArrowLeftRight, X } from "lucide-react";
-import { setIntegration } from "./actions";
+import { setIntegration, syncGoogleNow } from "./actions";
 import type { Integrations, GoogleSyncMode } from "@/lib/preferences";
 
 const MODE_LABEL: Record<GoogleSyncMode, string> = {
@@ -11,10 +11,19 @@ const MODE_LABEL: Record<GoogleSyncMode, string> = {
   both: "Sincronizar ambos igualmente",
 };
 
-export function IntegrationsCard({ initial }: { initial: Integrations }) {
+export function IntegrationsCard({ initial, calendarAuthorized = false }: { initial: Integrations; calendarAuthorized?: boolean }) {
   const [state, setState] = useState<Integrations>(initial ?? {});
   const [pending, startTransition] = useTransition();
   const [syncModal, setSyncModal] = useState<null | "connect" | "edit">(null);
+  const [syncMsg, setSyncMsg] = useState<string | null>(null);
+
+  const doSync = () => {
+    setSyncMsg(null);
+    startTransition(async () => {
+      const r = await syncGoogleNow();
+      setSyncMsg(r.ok ? `Sincronizado ✓ (${r.pushed ?? 0} enviadas, ${r.pulled ?? 0} atualizadas do Google)` : (r.error || "Falha na sincronização."));
+    });
+  };
 
   const commit = (patch: Integrations, next: Integrations) => {
     setState(next);
@@ -93,8 +102,20 @@ export function IntegrationsCard({ initial }: { initial: Integrations }) {
           <div className="flex-1 min-w-0">
             <p className="text-xs font-bold text-[#1e40af] uppercase tracking-widest">1ª sincronização</p>
             <p className="text-sm text-foreground/70">{state.googleSyncMode ? MODE_LABEL[state.googleSyncMode] : "Não definida"}</p>
+            {syncMsg && <p className="text-xs mt-1 text-[#047857]">{syncMsg}</p>}
           </div>
-          <button onClick={() => setSyncModal("edit")} className="shrink-0 text-sm font-semibold text-[#1e40af] hover:underline">Alterar</button>
+          <div className="flex flex-col items-end gap-1.5 shrink-0">
+            <button onClick={() => setSyncModal("edit")} className="text-sm font-semibold text-[#1e40af] hover:underline">Alterar direção</button>
+            {calendarAuthorized ? (
+              <button onClick={doSync} disabled={pending} className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full bg-primary text-white disabled:opacity-60">
+                <RefreshCw className={`w-3.5 h-3.5 ${pending ? "animate-spin" : ""}`} /> {pending ? "Sincronizando…" : "Sincronizar agora"}
+              </button>
+            ) : (
+              <a href="/api/google/authorize" className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-full bg-[#4285F4] text-white">
+                Autorizar acesso ao Agenda
+              </a>
+            )}
+          </div>
         </div>
       )}
 
