@@ -1,0 +1,24 @@
+name: dependabot-automerge
+# #9 upgrades gated: PR do Dependabot -> CI-QA verde -> auto-merge (só patch/minor).
+# Major fica pro humano. O gate real é o CI-QA (typecheck+lint+test+build+semgrep).
+on: pull_request
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  automerge:
+    if: github.actor == 'dependabot[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - name: metadata
+        id: meta
+        uses: dependabot/fetch-metadata@21025c705c08248db411dc16f3619e6b5f9ea21a # v2
+        with: { github-token: "${{ secrets.GITHUB_TOKEN }}" }
+      - name: enable auto-merge (patch/minor)
+        if: steps.meta.outputs.update-type == 'version-update:semver-patch' || steps.meta.outputs.update-type == 'version-update:semver-minor'
+        run: gh pr merge --auto --squash "$PR_URL"
+        env:
+          PR_URL: ${{ github.event.pull_request.html_url }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}

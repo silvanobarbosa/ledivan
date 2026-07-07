@@ -1,0 +1,33 @@
+rules:
+  # Aprendido pela frota (#10 loop de auto-melhoria) → vira regra no baseline
+  # pra apps futuros já nascerem imunes. Roda no CI-QA (job security).
+
+  # 1. CORS que reflete qualquer origin COM credentials = exfil de sessão.
+  #    Origem: 'hono cors reflete qualquer origin com credential' (3 apps).
+  - id: rl-cors-reflect-any-origin-with-credentials
+    languages: [typescript, javascript]
+    severity: ERROR
+    message: >-
+      CORS reflete a origin do request com credentials:true — qualquer site lê
+      respostas autenticadas (roubo de sessão). Use allowlist fixa de origins.
+    patterns:
+      - pattern-either:
+          - pattern: |
+              cors({ ..., origin: (...) => $O, credentials: true, ... })
+          - pattern: |
+              cors({ ..., origin: true, credentials: true, ... })
+          - pattern: |
+              { ..., "Access-Control-Allow-Origin": $REQ.headers.get("origin"), ... }
+
+  # 2. xlsx (SheetJS) tem high sem fix no npm → prototype pollution/ReDoS.
+  #    Origem: 'xlsx (sheetjs) high sem fix no npm — migrar p/ exceljs' (2 apps).
+  - id: rl-banned-sheetjs-xlsx
+    languages: [typescript, javascript]
+    severity: ERROR
+    message: >-
+      'xlsx'/SheetJS tem vuln high sem fix publicado no npm. Migre para 'exceljs'.
+    patterns:
+      - pattern-either:
+          - pattern: import $X from "xlsx"
+          - pattern: import { ... } from "xlsx"
+          - pattern: require("xlsx")

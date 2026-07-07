@@ -1,0 +1,42 @@
+name: reverblabs-gates
+# Propagado do golden template (aditivo). Regras-baseline da casa + SBOM assinado.
+on:
+  push: { branches: [main, master] }
+  pull_request:
+permissions:
+  contents: read
+  id-token: write
+jobs:
+  security-baseline:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v5
+      - name: semgrep baseline da casa (bloqueia em finding, tolera engine)
+        run: |
+          python3 -m pip install --quiet semgrep || pipx install semgrep
+          semgrep scan --config .semgrep/reverblabs-baseline.yml --severity ERROR .; ec=$?
+          if [ "$ec" -eq 1 ]; then echo "::error::viola regra de baseline da casa"; exit 1; fi
+          if [ "$ec" -eq 2 ]; then echo "::warning::semgrep baseline (engine) — nao bloqueia"; fi
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v6
+        with: { node-version: 24 }
+      - name: npm audit (high, report)
+        run: npm i --package-lock-only --silent 2>/dev/null; npm audit --audit-level=high || echo "::warning::npm audit high+"
+  provenance:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    permissions: { id-token: write, contents: read }
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v5
+      - name: SBOM (CycloneDX via Syft)
+        uses: anchore/sbom-action@e22c389904149dbc22b58101806040fa8d37a610 # v0.24.0
+        with: { path: ., format: cyclonedx-json, output-file: sbom.cdx.json }
+      - uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
+      - name: assina SBOM (cosign keyless)
+        run: cosign sign-blob --yes sbom.cdx.json --bundle sbom.cdx.json.sigstore.json
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: sbom-signed
+          path: |
+            sbom.cdx.json
+            sbom.cdx.json.sigstore.json
+          retention-days: 30
