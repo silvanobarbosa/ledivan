@@ -1,6 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { PWARegistration } from "@/components/PWARegistration";
+import { SupportWidget } from "@/components/SupportWidget";
 
 export const metadata: Metadata = {
   title: "Ledivan — Gestão de consultório e finanças",
@@ -33,6 +34,7 @@ export default function RootLayout({
       <body>
         <PWARegistration />
         {children}
+        <SupportWidget />
       </body>
     </html>
   );
