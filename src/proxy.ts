@@ -1,7 +1,24 @@
 import { auth } from "@/auth";
 import { NextResponse } from "next/server";
+import { immuneCheck } from "@/lib/immune-client";
 
 export default auth(async function proxy(req) {
+  // Sistema imunológico da frota (1º portão) — barra IP fichado/ataque. Next 16 usa proxy.ts
+  // (não middleware.ts), então o imune roda AQUI. Wrap defensivo: nunca derruba o request.
+  try {
+    const ip =
+      req.headers.get("x-real-ip") ||
+      (req.headers.get("x-forwarded-for") || "").split(",")[0].trim() ||
+      "0.0.0.0";
+    const immune = await immuneCheck(
+      { ip, path: req.nextUrl.pathname + req.nextUrl.search, ua: req.headers.get("user-agent") || "" },
+      Date.now(),
+    );
+    if (immune.block) return NextResponse.json({ error: "forbidden" }, { status: 403 });
+  } catch {
+    // qualquer falha no imune não pode derrubar o app → segue o fluxo normal
+  }
+
   const { nextUrl, auth: session } = req;
   const { pathname } = nextUrl;
   const isLoggedIn = !!session;
