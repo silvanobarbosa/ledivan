@@ -58,6 +58,17 @@ export default function LoginPage() {
               </SubmitButton>
             </form>
 
+            <form
+              action={async () => {
+                "use server";
+                await signIn("reverblabs", { redirectTo: "/dashboard" });
+              }}
+            >
+              <SubmitButton pendingLabel="Conectando ao ReverbLabs…">
+                <Sparkles size={16} /> Login com ReverbLabs
+              </SubmitButton>
+            </form>
+
             <div className="my-6 flex items-center gap-3 text-[10px] uppercase tracking-[0.18em] text-[color:var(--muted-foreground)]">
               <span className="h-px flex-1 bg-[rgba(43,24,48,0.1)]" />
               ou com e-mail

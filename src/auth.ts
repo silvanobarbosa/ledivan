@@ -11,6 +11,16 @@ import { eq } from "drizzle-orm";
 export const { handlers, auth, signIn, signOut } = NextAuth({
   adapter: DrizzleAdapter(db),
   providers: [
+    {
+      id: "reverblabs",
+      name: "ReverbLabs",
+      type: "oidc",
+      issuer: process.env.AUTHENTIK_ISSUER ?? "https://id.reverblabs.com.br/application/o/reverblabs-hub/",
+      clientId: process.env.AUTHENTIK_CLIENT_ID ?? "",
+      clientSecret: process.env.AUTHENTIK_CLIENT_SECRET ?? "",
+      authorization: { params: { scope: "openid email profile" } },
+      allowDangerousEmailAccountLinking: true,
+    },
     Google({
       clientId: process.env.GOOGLE_CLIENT_ID,
       clientSecret: process.env.GOOGLE_CLIENT_SECRET,
