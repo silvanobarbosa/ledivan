@@ -11,7 +11,9 @@ permissions:
   security-events: write
 jobs:
   qa:
-    runs-on: ubuntu-latest
+    # Runner self-hosted na VPS (GitHub-hosted bloqueado por billing da conta).
+    # Cada repo da frota tem sua propria instancia de runner na VPS (conta pessoal nao tem runner de org).
+    runs-on: [self-hosted, vps]
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
@@ -32,14 +34,28 @@ jobs:
 
       - name: Semgrep SAST (report)
         run: |
-          python3 -m pip install --break-system-packages --quiet semgrep || pipx install semgrep || echo "semgrep skip"
+          # Na VPS o semgrep ja esta preinstalado (/usr/local/bin, venv /opt/semgrep-venv).
+          # O fallback cobre qualquer runner que ainda nao o tenha.
+          command -v semgrep >/dev/null 2>&1 \
+            || python3 -m pip install --break-system-packages --quiet semgrep \
+            || pipx install semgrep \
+            || echo "::warning::semgrep indisponivel — pulando"
+          command -v semgrep >/dev/null 2>&1 || exit 0
           semgrep scan --config p/security-audit --config p/secrets --config p/owasp-top-ten \
             --severity ERROR --error || echo "::warning::Semgrep achou possíveis problemas"
         continue-on-error: true
 
       - name: Trivy (vuln+secret+misconfig, report)
         run: |
-          curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh | sh -s -- -b /usr/local/bin
+          # Idem: preinstalado na VPS. Sem sudo o install script nao escreve em /usr/local/bin,
+          # entao o fallback instala em ~/.local/bin.
+          if ! command -v trivy >/dev/null 2>&1; then
+            mkdir -p "$HOME/.local/bin"
+            curl -sfL https://raw.githubusercontent.com/aquasecurity/trivy/main/contrib/install.sh \
+              | sh -s -- -b "$HOME/.local/bin" || echo "::warning::falha instalando Trivy"
+            export PATH="$HOME/.local/bin:$PATH"
+          fi
+          command -v trivy >/dev/null 2>&1 || exit 0
           trivy fs --scanners vuln,secret,misconfig --severity HIGH,CRITICAL --exit-code 0 --no-progress . \
             || echo "::warning::Trivy achou possíveis problemas"
         continue-on-error: true
