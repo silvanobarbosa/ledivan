@@ -38,4 +38,11 @@ next-env.d.ts
 src/stitch/*
 !src/stitch/tokens.json
 
+# playwright mcp (snapshots/logs de sessão de navegador)
+.playwright-mcp/
+
 .vercel
+
+# dados do consultório (não versionar)
+Gi/
+*.xlsx
