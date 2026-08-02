@@ -1,34 +1,45 @@
-import { auth } from "@/auth";
-import { NextResponse } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
+import { auth0 } from "@/lib/auth0";
 import { immuneCheck } from "@/lib/immune-client";
 
-export default auth(async function proxy(req) {
-  // Sistema imunológico da frota (1º portão) — barra IP fichado/ataque. Next 16 usa proxy.ts
-  // (não middleware.ts), então o imune roda AQUI. Wrap defensivo: nunca derruba o request.
+/**
+ * Proxy (middleware do Next 16) — migrado next-auth → Auth0 (02/08/2026).
+ *  1. Auth0 monta /auth/* (login/callback/logout) + renova a sessão.
+ *  2. Sistema imunológico (fail-open, no-op sem IMMUNE_HUB_URL).
+ *  3. Gate deny-by-default: rota não-pública sem sessão Auth0 → /auth/login.
+ */
+export default async function proxy(req: NextRequest) {
+  const { pathname } = req.nextUrl;
+
+  const authRes = await auth0.middleware(req);
+  if (pathname.startsWith("/auth")) return authRes;
+
   try {
     const ip =
       req.headers.get("x-real-ip") ||
       (req.headers.get("x-forwarded-for") || "").split(",")[0].trim() ||
       "0.0.0.0";
     const immune = await immuneCheck(
-      { ip, path: req.nextUrl.pathname + req.nextUrl.search, ua: req.headers.get("user-agent") || "" },
+      { ip, path: pathname + req.nextUrl.search, ua: req.headers.get("user-agent") || "" },
       Date.now(),
     );
     if (immune.block) return NextResponse.json({ error: "forbidden" }, { status: 403 });
   } catch {
-    // qualquer falha no imune não pode derrubar o app → segue o fluxo normal
+    /* fail-open */
   }
 
-  const { nextUrl, auth: session } = req;
-  const { pathname } = nextUrl;
-  const isLoggedIn = !!session;
-
-  // Permite APIs públicas e Auth.js
-  if (pathname.includes("/api/auth") || pathname.startsWith("/api/telegram") || pathname.startsWith("/api/whatsapp") || pathname.startsWith("/api/cron") || pathname.startsWith("/api/health") || pathname.startsWith("/api/conformity")) {
-    return NextResponse.next();
+  // APIs públicas / sem sessão
+  if (
+    pathname.startsWith("/api/auth") ||
+    pathname.startsWith("/api/telegram") ||
+    pathname.startsWith("/api/whatsapp") ||
+    pathname.startsWith("/api/cron") ||
+    pathname.startsWith("/api/health") ||
+    pathname.startsWith("/api/conformity")
+  ) {
+    return authRes;
   }
 
-  // Define rotas públicas
   const isPublicRoute =
     pathname === "/" ||
     pathname.startsWith("/login") ||
@@ -42,23 +53,21 @@ export default auth(async function proxy(req) {
     pathname.startsWith("/api/scan") ||
     pathname.startsWith("/api/insights");
 
+  const session = await auth0.getSession(req).catch(() => null);
+
   if (isPublicRoute) {
-    // Se já estiver logado e tentar ir para /login, manda pro dashboard
-    if (isLoggedIn && pathname.startsWith("/login")) {
-      return NextResponse.redirect(new URL("/dashboard", nextUrl));
+    if (session && pathname.startsWith("/login")) {
+      return NextResponse.redirect(new URL("/dashboard", req.nextUrl));
     }
-    return NextResponse.next();
+    return authRes;
   }
 
-  // Protege o resto
-  if (!isLoggedIn) {
-    return NextResponse.redirect(new URL("/login", nextUrl));
+  if (!session) {
+    return NextResponse.redirect(new URL("/auth/login", req.nextUrl));
   }
-
-  return NextResponse.next();
-});
+  return authRes;
+}
 
 export const config = {
-  // Ignora estáticos do Next, favicon e arquivos de /public (imagens, fontes, manifest, sw).
   matcher: ["/((?!_next/static|_next/image|favicon.ico|.*\\.(?:png|jpg|jpeg|gif|svg|ico|webp|woff2?|json|js|html)$).*)"],
 };
