@@ -9,15 +9,6 @@ const nextConfig: NextConfig = {
       },
     ],
   },
-  async redirects() {
-    return [
-      {
-        source: "/auth/login",
-        destination: "/login",
-        permanent: true,
-      },
-    ];
-  },
   async headers() {
     return [
       {
