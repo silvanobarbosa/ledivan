@@ -18,7 +18,9 @@
     "wipe": "npx tsx --env-file=.env.local src/scripts/wipeUser.ts",
     "delete-user": "npx tsx --env-file=.env.local src/scripts/deleteUsers.ts",
     "import:gi": "npx tsx --env-file=.env.local src/scripts/importGi.ts",
-    "auth:google": "npx tsx --env-file=.env.local src/scripts/getGoogleToken.ts"
+    "auth:google": "npx tsx --env-file=.env.local src/scripts/getGoogleToken.ts",
+    "create-gisele": "npx tsx --env-file=.env.local scripts/create-gisele-user.ts",
+    "populate-gisele": "npx tsx --env-file=.env.local scripts/populate-gisele-data.ts"
   },
   "dependencies": {
     "@auth/drizzle-adapter": "^1.11.3",
