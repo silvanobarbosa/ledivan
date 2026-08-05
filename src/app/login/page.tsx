@@ -41,8 +41,8 @@ function LoginForm() {
   };
 
   const handleGoogleLogin = () => {
-    // Login com Google - validação segura
-    window.location.href = `/api/auth/google?action=login&returnTo=${encodeURIComponent(returnTo)}`;
+    // Login com Google - redirecionar para seleção de conta
+    window.location.href = `/auth/google/select?returnTo=${encodeURIComponent(returnTo)}`;
   };
 
   const handleDemoLogin = async () => {
