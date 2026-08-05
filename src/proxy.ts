@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { auth0 } from "@/lib/auth0";
 import { immuneCheck } from "@/lib/immune-client";
+import * as jose from "jose";
 
 /**
  * Proxy (middleware do Next 16) — migrado next-auth → Auth0 (02/08/2026).
@@ -40,8 +41,55 @@ export default async function proxy(req: NextRequest) {
     return NextResponse.next();
   }
 
+  // Verificar se é sessão demo
+  const isDemoCookie = req.cookies.get('is-demo');
+  const demoSession = req.cookies.get('ledivan-demo-session');
+
+  // Se é uma sessão demo, validar e adicionar headers
+  if (isDemoCookie?.value === 'true' && demoSession) {
+    try {
+      const JWT_SECRET = new TextEncoder().encode(
+        process.env.JWT_SECRET || 'ledivan-demo-secret-2026'
+      );
+
+      // Verificar token JWT
+      await jose.jwtVerify(demoSession.value, JWT_SECRET);
+
+      // Bloquear ações sensíveis em modo demo
+      const blockedPaths = [
+        '/api/patients/create',
+        '/api/patients/update',
+        '/api/patients/delete',
+        '/api/transactions/create',
+        '/api/transactions/update',
+        '/api/transactions/delete'
+      ];
+
+      for (const blockedPath of blockedPaths) {
+        if (pathname.startsWith(blockedPath)) {
+          return NextResponse.json(
+            { error: 'Esta ação não está disponível no modo demonstração' },
+            { status: 403 }
+          );
+        }
+      }
+
+      // Adicionar header para identificar sessão demo
+      const response = NextResponse.next();
+      response.headers.set('X-Demo-Session', 'true');
+      return response;
+    } catch (error) {
+      // Token inválido ou expirado, limpar cookies
+      const response = NextResponse.redirect(new URL('/', req.url));
+      response.cookies.delete('is-demo');
+      response.cookies.delete('ledivan-demo-session');
+      return response;
+    }
+  }
+
   const isPublicRoute =
     pathname === "/" ||
+    pathname === "/demo" ||
     pathname.startsWith("/login") ||
     pathname.startsWith("/privacidade") ||
     pathname.startsWith("/termos") ||
