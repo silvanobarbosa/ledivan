@@ -11,8 +11,8 @@ import { immuneCheck } from "@/lib/immune-client";
 export default async function proxy(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
-  const authRes = await auth0.middleware(req);
-  if (pathname.startsWith("/auth")) return authRes;
+  // Auth routes são tratadas pelo route handler, não pelo proxy
+  if (pathname.startsWith("/auth")) return NextResponse.next();
 
   try {
     const ip =
@@ -37,7 +37,7 @@ export default async function proxy(req: NextRequest) {
     pathname.startsWith("/api/health") ||
     pathname.startsWith("/api/conformity")
   ) {
-    return authRes;
+    return NextResponse.next();
   }
 
   const isPublicRoute =
@@ -53,19 +53,19 @@ export default async function proxy(req: NextRequest) {
     pathname.startsWith("/api/scan") ||
     pathname.startsWith("/api/insights");
 
-  const session = await auth0.getSession(req).catch(() => null);
+  const session = await auth0.getSession().catch(() => null);
 
   if (isPublicRoute) {
     if (session && pathname.startsWith("/login")) {
       return NextResponse.redirect(new URL("/dashboard", req.nextUrl));
     }
-    return authRes;
+    return NextResponse.next();
   }
 
   if (!session) {
     return NextResponse.redirect(new URL("/auth/login", req.nextUrl));
   }
-  return authRes;
+  return NextResponse.next();
 }
 
 export const config = {

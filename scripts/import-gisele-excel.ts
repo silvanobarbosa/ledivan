@@ -145,12 +145,20 @@ async function importGiseleExcelData() {
   if (existingPatients.length > 0) {
     console.log("⚠️  Usuário já possui dados. Limpando dados anteriores...");
 
-    // Limpar dados existentes
+    // Limpar dados existentes na ordem correta
+    // Primeiro, obter IDs dos pacientes
+    const patientIds = existingPatients.map(p => p.id);
+
+    // Deletar históricos relacionados aos pacientes
+    for (const patientId of patientIds) {
+      await db.delete(patientStatusHistory).where(eq(patientStatusHistory.patientId, patientId));
+      await db.delete(patientPriceHistory).where(eq(patientPriceHistory.patientId, patientId));
+      await db.delete(patientContractHistory).where(eq(patientContractHistory.patientId, patientId));
+    }
+
+    // Depois deletar dados do usuário
     await db.delete(sessionPayments).where(eq(sessionPayments.userId, userId));
     await db.delete(therapySessions).where(eq(therapySessions.userId, userId));
-    await db.delete(patientStatusHistory).where(eq(patientStatusHistory.userId, userId));
-    await db.delete(patientPriceHistory).where(eq(patientPriceHistory.userId, userId));
-    await db.delete(patientContractHistory).where(eq(patientContractHistory.userId, userId));
     await db.delete(patients).where(eq(patients.userId, userId));
     await db.delete(transactions).where(eq(transactions.userId, userId));
 

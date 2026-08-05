@@ -1,0 +1,19 @@
+{
+  "domain": "reverblabs.us.auth0.com",
+  "clientId": "dev-ledivan-client-1785878092354",
+  "clientSecret": "dev-secret-MC45NTA0NTQ1OTI4Mjg0MjA3",
+  "connections": [
+    "ledivan-db",
+    "google-oauth2"
+  ],
+  "users": [
+    {
+      "email": "giselebarrossantos@gmail.com",
+      "name": "Gisele Barroso Santos",
+      "connection": "ledivan-db"
+    }
+  ],
+  "enabled": true,
+  "mock": true,
+  "localMode": true
+}

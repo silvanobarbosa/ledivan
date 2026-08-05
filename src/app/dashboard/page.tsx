@@ -7,6 +7,8 @@ import { Users as UsersIcon, CalendarCheck, Clock, ChevronRight, Video, MapPin, 
 import { AnaliticosCharts } from "@/components/dashboard/AnaliticosCharts";
 import { AnalyticsFilters } from "@/components/dashboard/AnalyticsFilters";
 import Link from "next/link";
+import { cookies } from "next/headers";
+import { DEMO_DATA } from "@/lib/demo-data";
 
 export const dynamic = "force-dynamic";
 
@@ -19,8 +21,19 @@ const PERIODS: Record<string, { label: string; months: number | null }> = {
 const MES = ["jan", "fev", "mar", "abr", "mai", "jun", "jul", "ago", "set", "out", "nov", "dez"];
 const DOW = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 
-export default async function DashboardPage({ searchParams }: { searchParams: Promise<{ period?: string; from?: string; to?: string; patient?: string }> }) {
-  const { period, from, to, patient } = await searchParams;
+export default async function DashboardPage({ searchParams }: { searchParams: Promise<{ period?: string; from?: string; to?: string; patient?: string; demo?: string }> }) {
+  const { period, from, to, patient, demo } = await searchParams;
+
+  // Verificar se é modo demo
+  const cookieStore = await cookies();
+  const isDemo = cookieStore.get('is-demo')?.value === 'true' || demo === 'true';
+
+  // Se for modo demo, usar dados fictícios
+  if (isDemo) {
+    return renderDemoDashboard({ period, from, to, patient });
+  }
+
+  // Caso contrário, continuar com fluxo normal
   const session = await auth();
   if (!session?.user?.id) return <div>Você precisa estar logado para acessar o dashboard.</div>;
   const user = await db.query.users.findFirst({ where: eq(users.id, session.user.id) });
@@ -250,6 +263,154 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
             </div>
           </div>
         </div>
+      </div>
+    </div>
+  );
+}
+
+// Função para renderizar dashboard demo com dados fictícios
+function renderDemoDashboard({ period, from, to, patient }: { period?: string; from?: string; to?: string; patient?: string }) {
+  return (
+    <div className="space-y-6">
+      {/* Banner de Modo Demo */}
+      <div className="glass-card rounded-2xl p-4 bg-amber-50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-800">
+        <div className="flex items-center gap-3">
+          <AlertTriangle className="w-5 h-5 text-amber-600" />
+          <div>
+            <p className="font-semibold text-amber-900 dark:text-amber-100">Modo Demonstração</p>
+            <p className="text-sm text-amber-700 dark:text-amber-200">
+              Você está explorando o Ledivan com dados fictícios. As alterações não serão salvas.
+            </p>
+          </div>
+        </div>
+      </div>
+
+      {/* Header */}
+      <div>
+        <p className="text-foreground/50 font-display text-lg mb-2">🌿 Atendimento</p>
+        <h2 className="text-4xl font-display font-bold text-primary">Olá, Usuário Demo!</h2>
+        <p className="text-foreground/60 mt-1">Explore todas as funcionalidades com dados de exemplo.</p>
+      </div>
+
+      {/* Métricas */}
+      <div className="grid sm:grid-cols-2 gap-4">
+        <Link href="/dashboard/patients?status=ativo" className="glass-card rounded-[28px] p-6 flex items-center gap-4 hover:shadow-md transition">
+          <div className="w-12 h-12 rounded-2xl bg-[#ecfdf5] flex items-center justify-center text-[#047857]">
+            <UsersIcon className="w-6 h-6" />
+          </div>
+          <div className="flex-1">
+            <p className="text-2xl font-display font-bold text-primary leading-none">{DEMO_DATA.analytics.activePatients}</p>
+            <p className="text-sm text-foreground/50 mt-1">Pacientes ativos <ChevronRight className="w-3 h-3 inline-block" /></p>
+          </div>
+        </Link>
+        <Link href="/dashboard/agenda" className="glass-card rounded-[28px] p-6 flex items-center gap-4 hover:shadow-md transition">
+          <div className="w-12 h-12 rounded-2xl bg-[#fef3c7] flex items-center justify-center text-[#b45309]">
+            <CalendarCheck className="w-6 h-6" />
+          </div>
+          <div className="flex-1">
+            <p className="text-2xl font-display font-bold text-primary leading-none">{DEMO_DATA.analytics.weekSessions}</p>
+            <p className="text-sm text-foreground/50 mt-1">Sessões na semana <ChevronRight className="w-3 h-3 inline-block" /></p>
+          </div>
+        </Link>
+      </div>
+
+      {/* Próximas sessões */}
+      <div className="glass-card rounded-[28px] p-6">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-display text-lg font-bold text-primary">
+            <CalendarCheck className="w-5 h-5 inline-block mr-2" />
+            Próximas sessões (exemplo)
+          </h3>
+          <Link href="/dashboard/agenda" className="text-sm text-primary hover:underline">Ver agenda</Link>
+        </div>
+        <div className="space-y-2">
+          {DEMO_DATA.sessions.slice(0, 3).map((session) => (
+            <div key={session.id} className="flex items-center justify-between p-3 rounded-xl bg-surface/60 border border-border">
+              <div className="flex items-center gap-3">
+                <div className="text-center">
+                  <p className="text-xs text-foreground/50">{new Date(session.date).toLocaleDateString('pt-BR', { weekday: 'short' })}</p>
+                  <p className="text-lg font-bold text-primary">{session.time}</p>
+                </div>
+                <div>
+                  <p className="font-medium text-foreground">{session.patientName}</p>
+                  <p className="text-xs text-foreground/50">{session.type === 'online' ? '🎥 Online' : '📍 Presencial'}</p>
+                </div>
+              </div>
+              <span className={`px-2 py-1 rounded-full text-xs ${session.status === 'confirmada' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
+                {session.status}
+              </span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Analytics simplificados */}
+      <div className="glass-card rounded-[28px] p-6">
+        <h3 className="font-display text-lg font-bold text-primary mb-4">Analíticos de atendimento</h3>
+
+        <div className="grid grid-cols-3 gap-4 mb-6">
+          <div className="glass-card rounded-[20px] p-4">
+            <div className="w-8 h-8 rounded-xl bg-primary/10 flex items-center justify-center text-primary mb-3">
+              <Clock className="w-4 h-4" />
+            </div>
+            <p className="text-2xl font-display font-bold text-primary">{DEMO_DATA.analytics.completionRate}%</p>
+            <p className="text-xs text-foreground/50">Taxa de conclusão</p>
+          </div>
+          <div className="glass-card rounded-[20px] p-4">
+            <div className="w-8 h-8 rounded-xl bg-blue-100 flex items-center justify-center text-blue-600 mb-3">
+              <Video className="w-4 h-4" />
+            </div>
+            <p className="text-2xl font-display font-bold text-primary">60%</p>
+            <p className="text-xs text-foreground/50">Online</p>
+          </div>
+          <div className="glass-card rounded-[20px] p-4">
+            <div className="w-8 h-8 rounded-xl bg-green-100 flex items-center justify-center text-green-600 mb-3">
+              <MapPin className="w-4 h-4" />
+            </div>
+            <p className="text-2xl font-display font-bold text-primary">40%</p>
+            <p className="text-xs text-foreground/50">Presencial</p>
+          </div>
+        </div>
+
+        <div className="p-4 rounded-xl bg-surface/60 border border-border">
+          <p className="text-sm text-foreground/50 mb-2">Receita vs Despesas (últimos 30 dias)</p>
+          <div className="space-y-2">
+            <div>
+              <div className="flex justify-between text-sm mb-1">
+                <span className="text-green-600">Receitas</span>
+                <span className="font-semibold">R$ {DEMO_DATA.analytics.monthRevenue.toFixed(2)}</span>
+              </div>
+              <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                <div className="h-full bg-green-500" style={{ width: '70%' }}></div>
+              </div>
+            </div>
+            <div>
+              <div className="flex justify-between text-sm mb-1">
+                <span className="text-red-600">Despesas</span>
+                <span className="font-semibold">R$ {DEMO_DATA.analytics.monthExpenses.toFixed(2)}</span>
+              </div>
+              <div className="h-2 bg-gray-200 rounded-full overflow-hidden">
+                <div className="h-full bg-red-500" style={{ width: '30%' }}></div>
+              </div>
+            </div>
+          </div>
+          <p className="text-sm text-foreground/50 mt-3 text-center">
+            Saldo: <span className="font-semibold text-green-600">
+              R$ {(DEMO_DATA.analytics.monthRevenue - DEMO_DATA.analytics.monthExpenses).toFixed(2)}
+            </span>
+          </p>
+        </div>
+      </div>
+
+      {/* Call to Action */}
+      <div className="glass-card rounded-[28px] p-6 bg-gradient-to-br from-primary/10 to-primary/5">
+        <h3 className="font-display text-lg font-bold text-primary mb-2">Pronto para começar?</h3>
+        <p className="text-sm text-foreground/60 mb-4">
+          Crie sua conta e comece a organizar seu consultório hoje mesmo.
+        </p>
+        <Link href="/login" className="btn btn-primary">
+          Criar minha conta →
+        </Link>
       </div>
     </div>
   );

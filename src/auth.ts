@@ -18,9 +18,11 @@ export type Session = {
 export async function auth(): Promise<Session> {
   try {
     const s = await auth0.getSession();
-    const email = s?.user?.email?.toLowerCase();
-    if (!email) return null;
-    const rows = await db.select().from(users).where(dsql`lower(${users.email}) = ${email}`).limit(1);
+    if (!s?.user?.sub) return null;
+
+    // sub contém o userId
+    const userId = s.user.sub;
+    const rows = await db.select().from(users).where(dsql`${users.id} = ${userId}`).limit(1);
     if (!rows.length) return null;
     const u = rows[0];
     return {

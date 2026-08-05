@@ -21,7 +21,9 @@
     "auth:google": "npx tsx --env-file=.env.local src/scripts/getGoogleToken.ts",
     "create-gisele": "npx tsx --env-file=.env.local scripts/create-gisele-user.ts",
     "populate-gisele": "npx tsx --env-file=.env.local scripts/populate-gisele-data.ts",
-    "import-gisele-excel": "npx tsx --env-file=.env.local scripts/import-gisele-excel.ts"
+    "import-gisele-excel": "npx tsx --env-file=.env.local scripts/import-gisele-excel.ts",
+    "test:parallel": "npx tsx --env-file=.env.local tests/test-ledivan-parallel.ts",
+    "superqa": "npx tsx --env-file=.env.local tests/superqa-ledivan.ts"
   },
   "dependencies": {
     "@auth/drizzle-adapter": "^1.11.3",
