@@ -3,50 +3,35 @@
 import { Suspense, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
+import Link from "next/link";
 
-function LoginForm() {
+function SignupForm() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const returnTo = searchParams.get("returnTo") || "/dashboard";
 
+  const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
-    setLoading(true);
 
-    try {
-      const res = await fetch("/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
-      });
-
-      const data = await res.json();
-
-      if (res.ok && data.success) {
-        router.push(data.redirectTo || returnTo);
-      } else {
-        setError(data.error || "Erro ao fazer login");
-      }
-    } catch (err) {
-      setError("Erro ao conectar com o servidor");
-    } finally {
-      setLoading(false);
+    // Validações
+    if (password.length < 8) {
+      setError("A senha deve ter pelo menos 8 caracteres");
+      return;
     }
-  };
 
-  const handleGoogleLogin = () => {
-    // Login com Google - redirecionar para seleção de conta
-    window.location.href = `/api/auth/google?action=select&returnTo=${encodeURIComponent(returnTo)}`;
-  };
+    if (password !== confirmPassword) {
+      setError("As senhas não coincidem");
+      return;
+    }
 
-  const handleDemoLogin = async () => {
-    setError("");
     setLoading(true);
 
     try {
@@ -54,23 +39,30 @@ function LoginForm() {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          email: "demo@ledivan.com.br",
-          password: "ledivan-demo-2026"
+          email,
+          password,
+          name,
+          signup: true
         }),
       });
 
       const data = await res.json();
 
       if (res.ok && data.success) {
-        router.push(data.redirectTo || "/dashboard");
+        router.push(data.redirectTo || returnTo);
       } else {
-        setError("Erro ao acessar conta demo");
+        setError(data.error || "Erro ao criar conta");
       }
     } catch (err) {
       setError("Erro ao conectar com o servidor");
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleGoogleSignup = () => {
+    // Signup com Google - mesmo fluxo do login
+    window.location.href = `/api/auth/google?action=select&returnTo=${encodeURIComponent(returnTo)}`;
   };
 
   return (
@@ -91,10 +83,10 @@ function LoginForm() {
 
           {/* Título */}
           <h1 className="text-2xl font-bold text-center text-gray-800 mb-2">
-            Bem-vindo ao Ledivan Plus
+            Criar Nova Conta
           </h1>
           <p className="text-center text-gray-600 mb-8">
-            Sistema de Gestão de Consultório
+            Comece a usar o Ledivan Plus gratuitamente
           </p>
 
           {/* Formulário */}
@@ -104,6 +96,23 @@ function LoginForm() {
                 {error}
               </div>
             )}
+
+            <div>
+              <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
+                Nome Completo
+              </label>
+              <input
+                id="name"
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                placeholder="Seu nome completo"
+                required
+                disabled={loading}
+                autoComplete="name"
+              />
+            </div>
 
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
@@ -132,10 +141,29 @@ function LoginForm() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                placeholder="••••••••"
+                placeholder="Mínimo 8 caracteres"
                 required
                 disabled={loading}
-                autoComplete="current-password"
+                autoComplete="new-password"
+                minLength={8}
+              />
+            </div>
+
+            <div>
+              <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-1">
+                Confirmar Senha
+              </label>
+              <input
+                id="confirmPassword"
+                type="password"
+                value={confirmPassword}
+                onChange={(e) => setConfirmPassword(e.target.value)}
+                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                placeholder="Digite a senha novamente"
+                required
+                disabled={loading}
+                autoComplete="new-password"
+                minLength={8}
               />
             </div>
 
@@ -144,7 +172,7 @@ function LoginForm() {
               disabled={loading}
               className="w-full bg-purple-600 hover:bg-purple-700 text-white font-medium py-2.5 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? "Entrando..." : "Entrar"}
+              {loading ? "Criando conta..." : "Criar Conta"}
             </button>
           </form>
 
@@ -158,10 +186,10 @@ function LoginForm() {
             </div>
           </div>
 
-          {/* Login com Google */}
+          {/* Signup com Google */}
           <button
             type="button"
-            onClick={handleGoogleLogin}
+            onClick={handleGoogleSignup}
             disabled={loading}
             className="w-full flex items-center justify-center gap-3 bg-white hover:bg-gray-50 text-gray-700 font-medium py-2.5 px-4 rounded-lg border border-gray-300 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
           >
@@ -183,38 +211,33 @@ function LoginForm() {
                 d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
               />
             </svg>
-            <span>Continuar com Google</span>
+            <span>Criar conta com Google</span>
           </button>
 
-          {/* Link para conta demo */}
-          <div className="mt-4">
-            <button
-              type="button"
-              onClick={handleDemoLogin}
-              disabled={loading}
-              className="w-full text-sm text-purple-600 hover:text-purple-700 font-medium py-2 transition-colors disabled:opacity-50"
-            >
-              🎯 Experimentar com conta demonstração
-            </button>
-          </div>
-          {/* Link para criar conta */}
+          {/* Link para login */}
           <div className="mt-6 text-center">
             <p className="text-sm text-gray-600">
-              Não tem uma conta?{" "}
-              <a href="/signup" className="text-purple-600 hover:text-purple-700 font-medium">
-                Criar conta grátis
-              </a>
+              Já tem uma conta?{" "}
+              <Link
+                href="/login"
+                className="text-purple-600 hover:text-purple-700 font-medium"
+              >
+                Fazer login
+              </Link>
             </p>
           </div>
-
 
           {/* Footer */}
           <div className="mt-6 pt-4 border-t border-gray-200">
             <p className="text-xs text-center text-gray-500">
-              © 2024 Ledivan Plus. Todos os direitos reservados.
-            </p>
-            <p className="text-xs text-center text-gray-400 mt-1">
-              Sistema profissional de gestão de consultórios e clínicas
+              Ao criar uma conta, você concorda com nossos{" "}
+              <Link href="/termos" className="text-purple-600 hover:underline">
+                Termos de Uso
+              </Link>{" "}
+              e{" "}
+              <Link href="/privacidade" className="text-purple-600 hover:underline">
+                Política de Privacidade
+              </Link>
             </p>
           </div>
         </div>
@@ -223,14 +246,14 @@ function LoginForm() {
   );
 }
 
-export default function LoginPage() {
+export default function SignupPage() {
   return (
     <Suspense fallback={
       <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-purple-50 to-pink-50">
         <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-purple-600"></div>
       </div>
     }>
-      <LoginForm />
+      <SignupForm />
     </Suspense>
   );
 }
