@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import OpenAI from "openai";
+import { getOpenAI } from "@/lib/openai-client";
 import { db } from "@/db";
 import { transactions, categories, users } from "@/db/schema";
 import { eq } from "drizzle-orm";
@@ -8,9 +8,6 @@ import { checkAchievements } from "@/lib/achievements";
 import { auth } from "@/auth";
 import { rateLimit } from "@/lib/rateLimit";
 
-const openai = new OpenAI({
-  apiKey: process.env.OPENAI_API_KEY,
-});
 
 export async function POST(req: Request) {
   try {
@@ -28,7 +25,7 @@ export async function POST(req: Request) {
     }
 
     // Chama a API do OpenAI (GPT-4o ou Vision)
-    const response = await openai.chat.completions.create({
+    const response = await getOpenAI().chat.completions.create({
       model: "gpt-4o-mini",
       messages: [
         {

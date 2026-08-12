@@ -1,7 +1,9 @@
 // src/telegram/index.mts
-import { bot } from "../lib/telegram";
+import { getBot } from "../lib/telegram";
 
 console.log("🚀 Iniciando bot Ledivan em modo Polling (Local)...");
+
+const bot = getBot();
 
 bot.launch().then(() => {
   console.log("🤖 Bot Ledivan online e ouvindo!");
