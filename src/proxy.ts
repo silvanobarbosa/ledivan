@@ -29,8 +29,12 @@ export default async function proxy(req: NextRequest) {
     /* fail-open */
   }
 
-  // APIs públicas / sem sessão
+  // APIs públicas / sem sessão de cookie.
+  // /api/app/* é o app nativo: autentica por token BEARER (não cookie), então o gate de cookie
+  // aqui não se aplica — cada rota /api/app cuida da própria auth (login e version são públicas;
+  // resumo e as demais exigem o bearer via userFromBearer).
   if (
+    pathname.startsWith("/api/app") ||
     pathname.startsWith("/api/auth") ||
     pathname.startsWith("/api/telegram") ||
     pathname.startsWith("/api/whatsapp") ||
