@@ -5,7 +5,7 @@ import { db } from "@/db";
 import { users } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import bcrypt from "bcryptjs";
-import * as jose from "jose";
+import { assinarSessao } from "@/lib/session-secret";
 
 /**
  * Auth0 Route Handler Simplificado
@@ -13,15 +13,8 @@ import * as jose from "jose";
  * Path: /auth/*
  */
 
-const JWT_SECRET = new TextEncoder().encode(
-  process.env.AUTH0_SECRET || "default-secret-change-in-production"
-);
-
 async function createSession(userId: string) {
-  const token = await new jose.SignJWT({ userId })
-    .setProtectedHeader({ alg: "HS256" })
-    .setExpirationTime("7d")
-    .sign(JWT_SECRET);
+  const token = await assinarSessao(userId);
 
   const cookieStore = await cookies();
   cookieStore.set("auth-session", token, {

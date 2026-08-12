@@ -378,7 +378,7 @@ class SuperQA {
     const packageJson = JSON.parse(fs.readFileSync(path.join(process.cwd(), 'package.json'), 'utf-8'));
 
     // Verificar versões antigas
-    const criticalDeps = ['next', 'react', '@auth0/nextjs-auth0'];
+    const criticalDeps = ['next', 'react', 'next-auth'];
     const outdated: string[] = [];
 
     for (const dep of criticalDeps) {
