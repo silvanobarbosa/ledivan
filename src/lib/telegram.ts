@@ -2,12 +2,11 @@ import { Telegraf } from "telegraf";
 import { db } from "@/db";
 import { users, transactions } from "@/db/schema";
 import { eq, desc, and, gt } from "drizzle-orm";
-import OpenAI from "openai";
+import { getOpenAI } from "@/lib/openai-client";
 
 const token = process.env.TELEGRAM_BOT_TOKEN;
 if (!token) throw new Error("TELEGRAM_BOT_TOKEN must be set");
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
 export const bot = new Telegraf(token);
 
 // Middleware para verificar usuário vinculado
@@ -107,7 +106,7 @@ bot.command("insights", async (ctx) => {
   ctx.reply("🤔 Analisando seus dados...");
 
   const prompt = `Analise estas transações financeiras e dê uma dica curta e profissional de gestão para o usuário: ${JSON.stringify(result)}`;
-  const response = await openai.chat.completions.create({
+  const response = await getOpenAI().chat.completions.create({
     model: "gpt-4o-mini",
     messages: [{ role: "user", content: prompt }],
   });
