@@ -17,7 +17,7 @@ jobs:
           semgrep scan --config .semgrep/reverblabs-baseline.yml --severity ERROR .; ec=$?
           if [ "$ec" -eq 1 ]; then echo "::error::viola regra de baseline da casa"; exit 1; fi
           if [ "$ec" -eq 2 ]; then echo "::warning::semgrep baseline (engine) — nao bloqueia"; fi
-      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v6
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v6
         with: { node-version: 24 }
       - name: npm audit (high, report)
         run: npm i --package-lock-only --silent 2>/dev/null; npm audit --audit-level=high || echo "::warning::npm audit high+"
