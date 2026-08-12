@@ -13,7 +13,8 @@ import { assinarSessao } from "@/lib/session-secret";
 
 // Emails autorizados para login com Google
 const AUTHORIZED_GOOGLE_EMAILS = [
-  "giselebarrossantos@gmail.com", // Gisele - usuária principal
+  "giselesantosbarbosa@gmail.com", // Gisele - conta principal (é onde estão os dados)
+  "giselebarrossantos@gmail.com",  // e-mail antigo dela (conta sem dados; mantido por segurança)
 ];
 
 async function createSession(userId: string) {
