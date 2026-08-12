@@ -4,10 +4,19 @@ import { users, transactions } from "@/db/schema";
 import { eq, desc, and, gt } from "drizzle-orm";
 import { getOpenAI } from "@/lib/openai-client";
 
-const token = process.env.TELEGRAM_BOT_TOKEN;
-if (!token) throw new Error("TELEGRAM_BOT_TOKEN must be set");
+// O bot é construído sob demanda, não no import. Antes o módulo fazia `new Telegraf(token)` e
+// `throw` no topo — o que quebrava o `next build`, que importa /api/telegram para coletar dados
+// num ambiente sem TELEGRAM_BOT_TOKEN (o preview não recebe envs marcadas só como production).
+// Com a fábrica memoizada, o import fica barato e a exigência do token só aparece quando o bot
+// é de fato usado (webhook ou polling), que é quando o token existe.
+let _bot: Telegraf | null = null;
 
-export const bot = new Telegraf(token);
+export function getBot(): Telegraf {
+  if (_bot) return _bot;
+
+  const token = process.env.TELEGRAM_BOT_TOKEN;
+  if (!token) throw new Error("TELEGRAM_BOT_TOKEN must be set");
+  const bot = new Telegraf(token);
 
 // Middleware para verificar usuário vinculado
 bot.use(async (ctx, next) => {
@@ -138,3 +147,7 @@ bot.on("text", async (ctx) => {
     }
   }
 });
+
+  _bot = bot;
+  return _bot;
+}

@@ -1,4 +1,4 @@
-import { bot } from "@/lib/telegram";
+import { getBot } from "@/lib/telegram";
 import { NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
@@ -13,7 +13,7 @@ export async function POST(req: Request) {
     }
 
     const body = await req.json();
-    await bot.handleUpdate(body);
+    await getBot().handleUpdate(body);
     return NextResponse.json({ ok: true });
   } catch (error) {
     console.error("Error in Telegram Webhook:", error);
