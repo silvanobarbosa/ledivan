@@ -3,8 +3,8 @@ import { cookies } from "next/headers";
 import { db } from "@/db";
 import { users } from "@/db/schema";
 import { eq } from "drizzle-orm";
-import * as jose from "jose";
 import crypto from "crypto";
+import { assinarSessao } from "@/lib/session-secret";
 
 /**
  * Auth0 OAuth Handler com segurança real
@@ -14,9 +14,6 @@ import crypto from "crypto";
 const AUTH0_DOMAIN = process.env.AUTH0_DOMAIN || "reverblabs.us.auth0.com";
 const AUTH0_CLIENT_ID = process.env.AUTH0_CLIENT_ID || "2VXKwNQwG0AWiCKJGYoOgOW5EL8zJNjS";
 const AUTH0_CLIENT_SECRET = process.env.AUTH0_CLIENT_SECRET!;
-const JWT_SECRET = new TextEncoder().encode(
-  process.env.AUTH0_SECRET || crypto.randomBytes(32).toString("hex")
-);
 
 // Armazena states temporários para validação
 const pendingStates = new Map<string, {
@@ -45,10 +42,7 @@ function generatePKCE() {
 }
 
 async function createSession(userId: string) {
-  const token = await new jose.SignJWT({ userId })
-    .setProtectedHeader({ alg: "HS256" })
-    .setExpirationTime("7d")
-    .sign(JWT_SECRET);
+  const token = await assinarSessao(userId);
 
   const cookieStore = await cookies();
   cookieStore.set("auth-session", token, {
