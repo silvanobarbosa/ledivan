@@ -1,6 +1,6 @@
 "use client";
 
-import { Suspense, useState } from "react";
+import { Suspense, useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
 
@@ -12,6 +12,15 @@ function LoginForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  // Link de download do app Android. Vem de /api/app/version → sempre a versão atual (nunca preso
+  // a um APK velho hardcoded). O card só aparece quando há um apkUrl publicado.
+  const [app, setApp] = useState<{ version: string; apkUrl: string } | null>(null);
+  useEffect(() => {
+    fetch("/api/app/version")
+      .then((r) => r.json())
+      .then((d) => { if (d?.apkUrl) setApp({ version: d.version, apkUrl: d.apkUrl }); })
+      .catch(() => {});
+  }, []);
   const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -207,6 +216,22 @@ function LoginForm() {
             </p>
           </div>
 
+
+          {/* Baixar o app Android — link sempre da versão atual (/api/app/version) */}
+          {app && (
+            <div className="mt-6 pt-4 border-t border-gray-200">
+              <a
+                href={app.apkUrl}
+                className="flex items-center justify-center gap-2 w-full rounded-xl border-2 border-purple-200 bg-purple-50 py-3 text-sm font-semibold text-purple-700 hover:bg-purple-100 transition-colors"
+              >
+                <span>📱</span>
+                <span>Baixar app Android v{app.version}</span>
+              </a>
+              <p className="text-xs text-center text-gray-400 mt-2">
+                Instale o app para registrar sessões mesmo sem internet.
+              </p>
+            </div>
+          )}
 
           {/* Footer */}
           <div className="mt-6 pt-4 border-t border-gray-200">
