@@ -15,5 +15,7 @@ export async function GET() {
   const apkUrl = process.env.APK_URL || "";
   const notes = process.env.APP_NOTES || "";
   const mandatory = process.env.APP_MANDATORY === "1";
-  return NextResponse.json({ version, apkUrl, notes, mandatory });
+  // a tela de login usa isso pra so mostrar o botao "Entrar com Google" quando ele esta configurado
+  const googleEnabled = !!process.env.GOOGLE_CLIENT_ID;
+  return NextResponse.json({ version, apkUrl, notes, mandatory, googleEnabled });
 }
