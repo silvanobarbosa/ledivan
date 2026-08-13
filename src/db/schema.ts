@@ -478,3 +478,15 @@ export const sessionPaymentsRelations = relations(sessionPayments, ({ one }) => 
   session: one(therapySessions, { fields: [sessionPayments.sessionId], references: [therapySessions.id] }),
   linkedTransaction: one(transactions, { fields: [sessionPayments.linkedTransactionId], references: [transactions.id] }),
 }));
+
+// --- Push (app nativo) ---
+// Guarda o token Expo de cada aparelho para enviar notificação (lembrete de consulta + aviso de
+// atualização do app). Um usuário pode ter vários aparelhos; a chave é o token.
+export const pushTokens = pgTable("push_tokens", {
+  token: text("token").primaryKey(),
+  userId: text("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
+  platform: text("platform"), // 'android' | 'ios'
+  appVersion: text("app_version"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (t) => [index("push_user_idx").on(t.userId)]);
