@@ -2,9 +2,43 @@
 import { db } from "@/db";
 import { accounts, therapySessions } from "@/db/schema";
 import { and, eq, gte, lte, ne, isNotNull } from "drizzle-orm";
-import { getPreferences } from "@/lib/preferences";
+import { getPreferences, setPreferences } from "@/lib/preferences";
 
-export const CALENDAR_SCOPE = "https://www.googleapis.com/auth/calendar.events";
+// Precisa de calendar.events (eventos) + calendar (criar o calendário dedicado).
+export const CALENDAR_SCOPE = "https://www.googleapis.com/auth/calendar";
+
+/**
+ * Devolve o id do calendário DEDICADO "Pacientes" no Google. Se ainda não existe, cria um
+ * calendário separado e guarda o id nas preferências.
+ *
+ * Por que dedicado: as sessões dos pacientes vão SÓ para esse calendário, nunca para o principal
+ * ("primary"). Assim a agenda pessoal da terapeuta não se mistura com a dos pacientes, e uma
+ * eventual leitura de volta lê só esse calendário — os eventos pessoais nunca entram no Ledivan.
+ * Se a criação falhar, cai em "primary" (nunca trava o fluxo).
+ */
+async function getCalendarId(userId: string, token: string): Promise<string> {
+  const prefs = await getPreferences(userId);
+  const existente = prefs.integrations?.googleCalendarId;
+  if (existente) return existente;
+
+  try {
+    const res = await fetch("https://www.googleapis.com/calendar/v3/calendars", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
+      body: JSON.stringify({
+        summary: "Pacientes — Ledivan",
+        description: "Agenda dos pacientes, criada e mantida pelo Ledivan. Suas sessões aparecem aqui, separadas da sua agenda pessoal.",
+        timeZone: "America/Sao_Paulo",
+      }),
+    });
+    if (!res.ok) return "primary";
+    const cal = await res.json();
+    await setPreferences(userId, { integrations: { ...prefs.integrations, googleCalendarId: cal.id } });
+    return cal.id as string;
+  } catch {
+    return "primary";
+  }
+}
 
 // Verifica se o profissional tem conta Google vinculada (token disponível).
 export async function hasGoogleAccount(userId: string): Promise<boolean> {
@@ -66,13 +100,14 @@ export async function createMeetLink(
 ): Promise<string | null> {
   const token = await getAccessToken(userId);
   if (!token) return null;
+  const calId = await getCalendarId(userId, token);
 
   const start = new Date(opts.startISO);
   const end = new Date(start.getTime() + opts.durationMin * 60000);
 
   try {
     const res = await fetch(
-      "https://www.googleapis.com/calendar/v3/calendars/primary/events?conferenceDataVersion=1",
+      `https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calId)}/events?conferenceDataVersion=1`,
       {
         method: "POST",
         headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
@@ -112,7 +147,7 @@ const SESS_LABELS: Record<string, string> = { agendada: "Sessão", realizada: "S
 type SessLite = { id: string; date: Date; duration: number; status: string; googleEventId: string | null; isOnline: boolean; location: string | null; patientName: string };
 
 // Cria/atualiza (upsert) o evento no Google p/ uma sessão. Retorna o eventId.
-async function pushEvent(token: string, s: SessLite): Promise<string | null> {
+async function pushEvent(token: string, calId: string, s: SessLite): Promise<string | null> {
   const start = new Date(s.date);
   const end = new Date(start.getTime() + (s.duration || 50) * 60000);
   const body = {
@@ -122,10 +157,11 @@ async function pushEvent(token: string, s: SessLite): Promise<string | null> {
     end: { dateTime: end.toISOString() },
     extendedProperties: { private: { ledivan: "1", ledivanSessionId: s.id } },
   };
+  const cal = encodeURIComponent(calId);
   try {
     const url = s.googleEventId
-      ? `https://www.googleapis.com/calendar/v3/calendars/primary/events/${s.googleEventId}`
-      : "https://www.googleapis.com/calendar/v3/calendars/primary/events";
+      ? `https://www.googleapis.com/calendar/v3/calendars/${cal}/events/${s.googleEventId}`
+      : `https://www.googleapis.com/calendar/v3/calendars/${cal}/events`;
     const res = await fetch(url, {
       method: s.googleEventId ? "PATCH" : "POST",
       headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
@@ -133,7 +169,7 @@ async function pushEvent(token: string, s: SessLite): Promise<string | null> {
     });
     if (res.status === 404 && s.googleEventId) {
       // evento sumiu no Google → recria
-      return pushEvent(token, { ...s, googleEventId: null });
+      return pushEvent(token, calId, { ...s, googleEventId: null });
     }
     if (!res.ok) return s.googleEventId; // mantém id atual em erro
     const ev = await res.json();
@@ -143,9 +179,9 @@ async function pushEvent(token: string, s: SessLite): Promise<string | null> {
   }
 }
 
-async function getEventStart(token: string, eventId: string): Promise<Date | null> {
+async function getEventStart(token: string, calId: string, eventId: string): Promise<Date | null> {
   try {
-    const res = await fetch(`https://www.googleapis.com/calendar/v3/calendars/primary/events/${eventId}`, { headers: { Authorization: `Bearer ${token}` } });
+    const res = await fetch(`https://www.googleapis.com/calendar/v3/calendars/${encodeURIComponent(calId)}/events/${eventId}`, { headers: { Authorization: `Bearer ${token}` } });
     if (!res.ok) return null;
     const ev = await res.json();
     if (ev.status === "cancelled") return null;
@@ -163,6 +199,8 @@ export async function syncCalendar(userId: string): Promise<{ ok: boolean; pushe
   const mode = integ.googleSyncMode || "push";
   const token = await getAccessToken(userId);
   if (!token) return { ok: false, error: "Reautorize o acesso ao Google Agenda." };
+  // calendário DEDICADO — nunca o principal. As sessões vão só pra ele.
+  const calId = await getCalendarId(userId, token);
 
   const from = new Date(); from.setDate(from.getDate() - 7); from.setHours(0, 0, 0, 0);
   const to = new Date(); to.setDate(to.getDate() + 60); to.setHours(23, 59, 59, 999);
@@ -177,7 +215,7 @@ export async function syncCalendar(userId: string): Promise<{ ok: boolean; pushe
 
   if (mode === "push" || mode === "both") {
     for (const s of sess) {
-      const id = await pushEvent(token, s);
+      const id = await pushEvent(token, calId, s);
       if (id && id !== s.googleEventId) {
         await db.update(therapySessions).set({ googleEventId: id }).where(eq(therapySessions.id, s.id));
         pushed++;
@@ -192,7 +230,7 @@ export async function syncCalendar(userId: string): Promise<{ ok: boolean; pushe
       columns: { id: true, date: true, googleEventId: true },
     });
     for (const s of linked) {
-      const gStart = await getEventStart(token, s.googleEventId!);
+      const gStart = await getEventStart(token, calId, s.googleEventId!);
       if (gStart && Math.abs(gStart.getTime() - new Date(s.date as Date).getTime()) > 60000) {
         await db.update(therapySessions).set({ date: gStart }).where(eq(therapySessions.id, s.id));
         pulled++;
