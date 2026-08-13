@@ -12,6 +12,9 @@ export type Integrations = {
   whatsapp?: boolean;
   whatsappNumber?: string;
   googleSyncMode?: GoogleSyncMode;
+  // id do calendário DEDICADO "Pacientes" no Google (criado pelo Ledivan). As sessões vão só pra
+  // ele — a agenda pessoal da terapeuta nunca é lida nem misturada.
+  googleCalendarId?: string;
 };
 
 export type UserPreferences = {

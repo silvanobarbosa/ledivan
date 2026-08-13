@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Calendar, Mail, MessageCircle, Check, Plug, RefreshCw, ArrowRight, ArrowLeft, ArrowLeftRight, X } from "lucide-react";
+import { Calendar, Mail, MessageCircle, Check, Plug, RefreshCw, ArrowRight, ArrowLeft, ArrowLeftRight, X, CalendarCheck, ShieldCheck } from "lucide-react";
 import { setIntegration, syncGoogleNow } from "./actions";
 import type { Integrations, GoogleSyncMode } from "@/lib/preferences";
 
@@ -93,6 +93,33 @@ export function IntegrationsCard({ initial, calendarAuthorized = false }: { init
             </div>
           );
         })}
+      </div>
+
+      {/* Tutorial: como a Agenda funciona (calendário dedicado, sem misturar com o pessoal) */}
+      <div className="rounded-2xl border border-[#bfdbfe] bg-[#eff6ff] p-5 space-y-3">
+        <div className="flex items-center gap-2">
+          <CalendarCheck className="w-5 h-5 text-[#1e40af]" />
+          <p className="font-bold text-[#1e40af]">Como a sua agenda de pacientes funciona</p>
+        </div>
+        <div className="flex items-start gap-2 text-sm text-foreground/70">
+          <ShieldCheck className="w-4 h-4 mt-0.5 text-[#047857] shrink-0" />
+          <p>
+            As sessões vão para um calendário <strong>separado só seu</strong>, chamado{" "}
+            <strong>“Pacientes — Ledivan”</strong>, criado automaticamente no seu Google. Sua{" "}
+            <strong>agenda pessoal não é lida nem misturada</strong> — os dois ficam lado a lado,
+            e você liga/desliga “Pacientes” quando quiser no Google Agenda.
+          </p>
+        </div>
+        <ol className="text-sm text-foreground/70 space-y-1.5 list-none">
+          <li className="flex gap-2"><span className="font-bold text-[#1e40af]">1.</span> Toque em <strong>Conectar</strong> no “Google Agenda” acima.</li>
+          <li className="flex gap-2"><span className="font-bold text-[#1e40af]">2.</span> Escolha a <strong>direção</strong> (recomendado: “O Ledivan é o principal”).</li>
+          <li className="flex gap-2"><span className="font-bold text-[#1e40af]">3.</span> Toque em <strong>Autorizar acesso ao Agenda</strong> e faça login no Google.</li>
+          <li className="flex gap-2"><span className="font-bold text-[#1e40af]">4.</span> Toque em <strong>Sincronizar agora</strong>. Na primeira vez, o calendário “Pacientes — Ledivan” é criado e suas sessões aparecem lá.</li>
+        </ol>
+        <p className="text-xs text-foreground/50">
+          Dica: no app do Google Agenda, o calendário “Pacientes — Ledivan” aparece na lista à esquerda.
+          Desmarque-o para ocultar as sessões sem mexer na sua agenda pessoal.
+        </p>
       </div>
 
       {/* Direção da sincronização Google */}
