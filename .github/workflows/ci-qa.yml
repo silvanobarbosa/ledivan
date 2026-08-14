@@ -13,7 +13,7 @@ jobs:
   qa:
     # Runner self-hosted na VPS (GitHub-hosted bloqueado por billing da conta).
     # Cada repo da frota tem sua propria instancia de runner na VPS (conta pessoal nao tem runner de org).
-    runs-on: [self-hosted, vps]
+    runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v4
