@@ -2,8 +2,8 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { Send, MessageCircle } from "lucide-react";
-import { replyMessage } from "./actions";
+import { Send, MessageCircle, Sparkles, Loader2 } from "lucide-react";
+import { replyMessage, suggestReply } from "./actions";
 
 export type ThreadMsg = { direction: string; text: string; channel: string; at: string };
 export type Thread = { key: string; patientId: string | null; contact: string | null; name: string; messages: ThreadMsg[] };
@@ -13,8 +13,19 @@ export function MensagensClient({ threads }: { threads: Thread[] }) {
   const [text, setText] = useState("");
   const [pending, start] = useTransition();
   const [err, setErr] = useState<string | null>(null);
+  const [aiBusy, setAiBusy] = useState(false);
   const router = useRouter();
   const active = threads.find((t) => t.key === sel) ?? null;
+
+  const suggest = async () => {
+    if (!active || !text.trim()) return;
+    setErr(null); setAiBusy(true);
+    try {
+      const r = await suggestReply({ intent: text, patientName: active.name });
+      if (r.ok && r.text) setText(r.text);
+      else setErr(r.error ?? "IA indisponível.");
+    } finally { setAiBusy(false); }
+  };
 
   const fmt = (iso: string) => new Date(iso).toLocaleString("pt-BR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" });
 
@@ -70,7 +81,8 @@ export function MensagensClient({ threads }: { threads: Thread[] }) {
             <div className="border-t border-border p-3">
               {err && <p className="text-xs text-red-600 mb-1">{err}</p>}
               <div className="flex gap-2">
-                <input value={text} onChange={(e) => setText(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") send(); }} placeholder="Responder…" className="flex-1 px-3 py-2 rounded-xl bg-surface border border-border outline-none text-sm" />
+                <input value={text} onChange={(e) => setText(e.target.value)} onKeyDown={(e) => { if (e.key === "Enter") send(); }} placeholder="Responder… (ou escreva a intenção e toque ✨)" className="flex-1 px-3 py-2 rounded-xl bg-surface border border-border outline-none text-sm" />
+                <button title="Sugerir com IA" disabled={aiBusy || pending || !text.trim()} onClick={suggest} className="px-3 rounded-xl bg-surface border border-border text-primary disabled:opacity-50">{aiBusy ? <Loader2 className="w-4 h-4 animate-spin" /> : <Sparkles className="w-4 h-4" />}</button>
                 <button disabled={pending || !text.trim()} onClick={send} className="px-4 rounded-xl bg-primary text-white disabled:opacity-50"><Send className="w-4 h-4" /></button>
               </div>
             </div>
