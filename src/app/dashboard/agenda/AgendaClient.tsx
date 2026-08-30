@@ -12,7 +12,7 @@ type PatientLite = { id: string; name: string; status: string; attendanceMode: s
 type LocationLite = { name: string; address: string };
 
 type SessionStatus = "realizada" | "nao_realizada" | "cancelada" | "realocada" | "agendada";
-type AgendaSession = { id: string; date: string; duration: number; status: string; patientName: string; isOnline: boolean; risk: string; meetingUrl: string | null; meetingOpenedAt: string | null; guestJoinedAt: string | null; meetingEndedAt: string | null; pendingConfirmation: boolean; location: string | null; recurring: boolean };
+type AgendaSession = { id: string; date: string; duration: number; status: string; patientName: string; isOnline: boolean; risk: string; meetingUrl: string | null; meetingOpenedAt: string | null; guestJoinedAt: string | null; meetingEndedAt: string | null; pendingConfirmation: boolean; patientConfirmed: boolean; rescheduleRequested: boolean; location: string | null; recurring: boolean };
 
 const blockColor = (s: AgendaSession) => sessionColorClasses(s.status, s.pendingConfirmation, s.recurring);
 
@@ -260,6 +260,8 @@ export function AgendaClient({ sessions, patients = [], locations = [], holidays
                           <p className="text-[10px] font-bold leading-tight flex items-center gap-1">
                             {time}
                             {s.pendingConfirmation && <span title="Aguardando confirmação">⏳</span>}
+                            {s.rescheduleRequested && <span title="Paciente pediu remarcação">🔁</span>}
+                            {s.patientConfirmed && !s.rescheduleRequested && <span title="Paciente confirmou presença" style={{ color: "#16a34a" }}>✓</span>}
                             {s.status === "agendada" && (s.risk === "alto" || s.risk === "medio") && (
                               <AlertTriangle className={`w-2.5 h-2.5 ${s.risk === "alto" ? "text-[#b91c1c]" : "text-[#b45309]"}`} />
                             )}

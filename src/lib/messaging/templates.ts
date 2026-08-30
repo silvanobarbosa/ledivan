@@ -16,6 +16,8 @@ export type TemplateVars = {
   meetingLink?: string;
   amount?: string;        // "R$ 150,00"
   text?: string;          // corpo livre p/ event "custom"
+  confirmLink?: string;   // link assinado p/ o paciente confirmar presença
+  rescheduleLink?: string;// link assinado p/ o paciente pedir remarcação
 };
 
 export function renderTemplate(event: MsgEvent, v: TemplateVars): { subject: string; body: string } {
@@ -25,6 +27,7 @@ export function renderTemplate(event: MsgEvent, v: TemplateVars): { subject: str
     case "session_reminder": {
       let body = `Olá, ${nome}! 🌿\nLembrete da sua sessão: *${v.when}*.`;
       if (v.isOnline && v.meetingLink) body += `\n\nAtendimento online — entre por aqui no horário:\n${v.meetingLink}`;
+      if (v.confirmLink) body += `\n\nConfirma presença?\n✅ Sim: ${v.confirmLink}${v.rescheduleLink ? `\n🔁 Preciso remarcar: ${v.rescheduleLink}` : ""}`;
       body += `\n\nAté lá!${ass}`;
       return { subject: "Lembrete da sua sessão", body };
     }

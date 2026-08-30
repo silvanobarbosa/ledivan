@@ -17,7 +17,7 @@ export default async function AgendaPage() {
   const [list, pats, me] = await Promise.all([
     db.query.therapySessions.findMany({
       where: and(eq(therapySessions.userId, session.user.id), gte(therapySessions.date, windowStart)),
-      columns: { id: true, patientId: true, date: true, duration: true, status: true, isOnline: true, meetingUrl: true, meetingOpenedAt: true, guestJoinedAt: true, meetingEndedAt: true, pendingConfirmation: true, location: true, recurring: true },
+      columns: { id: true, patientId: true, date: true, duration: true, status: true, isOnline: true, meetingUrl: true, meetingOpenedAt: true, guestJoinedAt: true, meetingEndedAt: true, pendingConfirmation: true, patientConfirmedAt: true, rescheduleRequestedAt: true, location: true, recurring: true },
       with: { patient: { columns: { name: true } } },
     }),
     db.query.patients.findMany({
@@ -66,6 +66,8 @@ export default async function AgendaPage() {
           guestJoinedAt: s.guestJoinedAt ? (s.guestJoinedAt as unknown as string) : null,
           meetingEndedAt: s.meetingEndedAt ? (s.meetingEndedAt as unknown as string) : null,
           pendingConfirmation: s.pendingConfirmation,
+          patientConfirmed: !!s.patientConfirmedAt,
+          rescheduleRequested: !!s.rescheduleRequestedAt,
           location: s.location,
           recurring: s.recurring,
         }))}
