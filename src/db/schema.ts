@@ -98,6 +98,17 @@ export const messages = pgTable("messages", {
   index("messages_user_created_idx").on(t.userId, t.createdAt),
 ]));
 
+// Código de login do paciente (app nativo) — enviado por WhatsApp, curto TTL. Posse do número = auth.
+export const patientAuthCode = pgTable("patient_auth_code", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  patientId: uuid("patient_id").references(() => patients.id, { onDelete: "cascade" }).notNull(),
+  code: text("code").notNull(),
+  expiresAt: timestamp("expires_at").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (t) => ([
+  index("patient_auth_code_patient_idx").on(t.patientId),
+]));
+
 export const accounts = pgTable("account", {
     userId: text("userId").notNull().references(() => users.id, { onDelete: "cascade" }),
     type: text("type").$type<AdapterAccountType>().notNull(),
