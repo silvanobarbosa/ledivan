@@ -7,6 +7,7 @@ import { sendWhatsappFromUser } from "@/lib/whatsappEvolution";
 import { sendProEmail } from "@/lib/email";
 import { escapeHtml } from "@/lib/html";
 import { sendSms, smsConfigured } from "@/lib/messaging/sms";
+import { recordOutbound } from "@/lib/messaging/inbox";
 import { renderTemplate, type MsgEvent, type TemplateVars } from "@/lib/messaging/templates";
 
 export type Channel = "whatsapp" | "email" | "sms";
@@ -105,7 +106,10 @@ export async function notify(input: NotifyInput): Promise<NotifyResult> {
 
     await log(userId, patient.id, event, channel, dest, ok, error);
     tried.push({ channel, ok, error });
-    if (ok) return { ok: true, channel, tried };
+    if (ok) {
+      await recordOutbound(userId, patient.id, channel, body, dest).catch(() => {});
+      return { ok: true, channel, tried };
+    }
   }
   return { ok: false, tried };
 }

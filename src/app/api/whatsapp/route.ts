@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { handleWhatsappMessage } from "@/lib/whatsapp";
+import { recordInbound, isTherapistPhone } from "@/lib/messaging/inbox";
 
 // Webhook do Evolution API. Configure no Evolution para enviar o evento
 // "messages.upsert" para: https://SEU-DOMINIO/api/whatsapp
@@ -21,6 +22,8 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ ok: true, ignored: event });
     }
 
+    // instância que recebeu (ledivan_<userId>) → identifica o terapeuta dono
+    const instance: string = body?.instance || body?.data?.instance || "";
     // data pode ser objeto ou array
     const items = Array.isArray(body?.data) ? body.data : [body?.data].filter(Boolean);
 
@@ -39,7 +42,10 @@ export async function POST(req: NextRequest) {
         "";
       if (!text) continue;
 
-      await handleWhatsappMessage(from, text);
+      // Grava a conversa (inbox 2-via): casa terapeuta (pela instância) + paciente (pelo telefone).
+      await recordInbound(instance, from, text);
+      // Bot de comando roda SÓ se quem mandou é um terapeuta (evita auto-resposta a paciente).
+      if (await isTherapistPhone(from)) await handleWhatsappMessage(from, text);
     }
 
     return NextResponse.json({ ok: true });
