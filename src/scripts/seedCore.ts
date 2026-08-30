@@ -4,9 +4,9 @@
 // Idempotente: limpa os dados de domínio do usuário e recria.
 import { db } from "../db";
 import {
-  users, categories, financialAccounts, transactions, goals, achievements,
+  users, categories, financialAccounts, transactions,
   patients, patientStatusHistory, patientPriceHistory, therapySessions, sessionPayments,
-  patientRecords, assignments, scaleApplications, moodLogs, treatmentGoals, socialPosts, patientPackages,
+  patientRecords, assignments, scaleApplications, moodLogs, treatmentGoals, patientPackages,
 } from "../db/schema";
 import { eq, inArray } from "drizzle-orm";
 import bcrypt from "bcryptjs";
@@ -76,12 +76,9 @@ export async function wipeUserData(uid: string) {
   await db.delete(scaleApplications).where(eq(scaleApplications.userId, uid));
   await db.delete(moodLogs).where(eq(moodLogs.userId, uid));
   await db.delete(treatmentGoals).where(eq(treatmentGoals.userId, uid));
-  await db.delete(socialPosts).where(eq(socialPosts.userId, uid));
   await db.delete(therapySessions).where(eq(therapySessions.userId, uid));
   await db.delete(patients).where(eq(patients.userId, uid));
   await db.delete(transactions).where(eq(transactions.userId, uid));
-  await db.delete(goals).where(eq(goals.userId, uid));
-  await db.delete(achievements).where(eq(achievements.userId, uid));
   await db.delete(financialAccounts).where(eq(financialAccounts.userId, uid));
 }
 
@@ -478,30 +475,6 @@ export async function runSeed(cfg: SeedCfg) {
   }
   await chunkInsert(treatmentGoals, goalRows);
   console.log(`🧩 ${assignmentRows.length} tarefas · 😊 ${moodRows.length} humores · 📈 ${scaleRows.length} escalas · 🎯 ${goalRows.length} objetivos.`);
-
-  await db.insert(goals).values([
-    { userId, title: "Reserva de emergência", targetAmount: "30000.00", currentAmount: money(rnd(18000, 27000)), createdAt: start },
-    { userId, title: "Curso de especialização", targetAmount: "8000.00", currentAmount: money(rnd(3000, 7000)) },
-    { userId, title: "Equipamento novo (consultório)", targetAmount: "5000.00", currentAmount: money(rnd(1000, 4800)) },
-  ]);
-
-  const ach = (type: string, title: string, description: string, monthsAgo: number) => {
-    const d = new Date(now); d.setMonth(d.getMonth() - monthsAgo);
-    return { userId, type, title, description, earnedAt: d };
-  };
-  await db.insert(achievements).values([
-    ach("first_transaction", "Primeiro Passo", "Você registrou sua primeira transação no Ledivan!", MONTHS - 1),
-    ach("ten_patients", "Consultório Cheio", "10 pacientes ativos!", Math.max(1, MONTHS - 6)),
-    ach("goal_met", "Mestre do Planejamento", "Você atingiu uma meta!", 10),
-    ach("streak", "Constância", "3 meses seguidos com lançamentos em dia.", 5),
-    ach("financial_guru", "Guru Financeiro", "Gestão e metas em dia.", 2),
-  ]);
-
-  await db.insert(socialPosts).values([
-    { userId, theme: "Ansiedade", network: "instagram", tone: "acolhedor", content: "Respirar é o primeiro passo. 🌿 A ansiedade fala alto, mas você pode aprender a ouvir o que ela tenta proteger. Terapia ajuda nesse caminho.", hashtags: "#ansiedade #saudemental #terapia #autocuidado" },
-    { userId, theme: "Autocuidado", network: "instagram", tone: "inspirador", content: "Cuidar de si não é egoísmo, é base. Reserve hoje 10 minutos só seus. 💜", hashtags: "#autocuidado #bemestar #psicologia" },
-    { userId, theme: "Terapia online", network: "linkedin", tone: "profissional", content: "Atendimento psicológico online: mesma escuta qualificada, com a flexibilidade que a sua rotina pede.", hashtags: "#terapiaonline #psicologia #saudemental" },
-  ]);
 
   console.log(`\n✨ Pronto! ${EMAIL} populado com ~${MONTHS} meses de uso.`);
 }

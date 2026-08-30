@@ -2,7 +2,7 @@
 import { db } from "./index";
 import * as schema from "./schema";
 
-const { users, categories, transactions, goals, financialAccounts, patients, therapySessions, sessionPayments } = schema;
+const { users, categories, transactions, financialAccounts, patients, therapySessions, sessionPayments } = schema;
 
 async function seed() {
   console.log("🌱 Iniciando o semeio do banco de dados...");
@@ -76,17 +76,7 @@ async function seed() {
 
   console.log("💰 Transações criadas.");
 
-  // 5. Criar Metas
-  await db.insert(goals).values({
-    userId,
-    title: "Reserva de Emergência",
-    targetAmount: "10000.00",
-    currentAmount: "6500.00",
-  });
-
-  console.log("🎯 Meta inicial criada.");
-
-  // 6. Criar Pacientes (dominio Terapia)
+  // 5. Criar Pacientes (dominio Terapia)
   const [ana] = await db.insert(patients).values({
     userId,
     name: "Ana Souza",

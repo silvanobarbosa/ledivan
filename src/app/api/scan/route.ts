@@ -3,7 +3,6 @@ import { getOpenAI } from "@/lib/openai-client";
 import { db } from "@/db";
 import { transactions, categories, users } from "@/db/schema";
 import { eq } from "drizzle-orm";
-import { checkAchievements } from "@/lib/achievements";
 
 import { auth } from "@/auth";
 import { rateLimit } from "@/lib/rateLimit";
@@ -62,9 +61,6 @@ export async function POST(req: Request) {
       source: "scan",
       date: result.date ? new Date(result.date) : new Date(),
     }).returning();
-
-    // Verificar se desbloqueou alguma conquista
-    await checkAchievements(userId);
 
     return NextResponse.json({ 
       success: true, 

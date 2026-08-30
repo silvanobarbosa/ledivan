@@ -3,7 +3,7 @@ import { db } from "@/db";
 import {
   users, patients, therapySessions, sessionPayments, patientPackages, transactions,
   financialAccounts, patientRecords, assignments, scaleApplications, moodLogs, treatmentGoals,
-  patientStatusHistory, patientPriceHistory, patientContractHistory, goals, achievements, socialPosts,
+  patientStatusHistory, patientPriceHistory, patientContractHistory,
 } from "@/db/schema";
 import { eq, inArray } from "drizzle-orm";
 import { wipeUserData } from "@/scripts/seedCore";
@@ -102,10 +102,4 @@ export async function resetDemoFromSource(): Promise<void> {
     await chunkInsert(patientContractHistory, ch.map(remap));
   }
 
-  const gs = await db.query.goals.findMany({ where: eq(goals.userId, srcId) });
-  await chunkInsert(goals, gs.map((r) => ({ ...r, id: uid(), userId: dst })));
-  const ach = await db.query.achievements.findMany({ where: eq(achievements.userId, srcId) });
-  await chunkInsert(achievements, ach.map((r) => ({ ...r, id: uid(), userId: dst })));
-  const sp = await db.query.socialPosts.findMany({ where: eq(socialPosts.userId, srcId) });
-  await chunkInsert(socialPosts, sp.map((r) => ({ ...r, id: uid(), userId: dst })));
 }
