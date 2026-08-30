@@ -34,3 +34,10 @@ export function parseOverrides(json: string | null | undefined): FeatureOverride
   if (!json) return {};
   try { const o = JSON.parse(json); return o && typeof o === "object" ? o : {}; } catch { return {}; }
 }
+
+/** Resolve TODOS os recursos pra um paciente (pro app saber o que mostrar). */
+export function resolveAll(modes: FeatureModes | undefined, overrides: FeatureOverrides): Record<FeatureKey, boolean> {
+  const out = {} as Record<FeatureKey, boolean>;
+  for (const f of FEATURES) out[f.key] = resolveFeature(modes?.[f.key], overrides[f.key]);
+  return out;
+}

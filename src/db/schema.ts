@@ -361,6 +361,7 @@ export const therapySessions = pgTable("therapy_sessions", {
   rescheduleRequestedAt: timestamp("reschedule_requested_at"), // paciente pediu p/ remarcar (botão/link)
   timerStartedAt: timestamp("timer_started_at"), // cronômetro da sessão iniciado
   timerEndedAt: timestamp("timer_ended_at"), // cronômetro encerrado
+  patientArrivedAt: timestamp("patient_arrived_at"), // paciente tocou "Cheguei" (sala de espera)
   recurring: boolean("recurring").default(false).notNull(), // reserva recorrente (semanal)
   recurrenceUntil: timestamp("recurrence_until"), // data limite da recorrência
   googleEventId: text("google_event_id"), // vínculo com evento no Google Calendar (sync)
