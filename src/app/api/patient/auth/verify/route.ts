@@ -3,6 +3,7 @@ import { eq, desc } from "drizzle-orm";
 import { db } from "@/db";
 import { patients, patientAuthCode } from "@/db/schema";
 import { signPatient } from "@/lib/patient-token";
+import { rateLimit } from "@/lib/rateLimit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -16,6 +17,11 @@ export async function POST(req: Request) {
   const key = last11(b.phone);
   const code = (b.code || "").replace(/\D/g, "");
   if (key.length < 10 || code.length !== 6) return NextResponse.json({ ok: false, error: "Dados inválidos." }, { status: 400 });
+
+  // Anti-brute-force: máx 6 tentativas por telefone a cada 10min (código de 6 díg seria forçável senão).
+  if (!(await rateLimit(`patient-verify:${key}`, "patient-verify", 6, 600))) {
+    return NextResponse.json({ ok: false, error: "Muitas tentativas. Aguarde alguns minutos e peça um novo código." }, { status: 429 });
+  }
 
   const pats = await db.select({ id: patients.id, userId: patients.userId, name: patients.name, phone: patients.phone }).from(patients);
   const patient = pats.find((p) => last11(p.phone) === key);
