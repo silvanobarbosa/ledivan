@@ -57,3 +57,14 @@ export async function todosTokens(): Promise<string[]> {
   const rows = await db.select({ token: pushTokens.token }).from(pushTokens);
   return rows.map((r) => r.token);
 }
+
+/** Push para o(s) aparelho(s) do terapeuta. Best-effort (nunca lança). */
+export async function pushToTherapist(userId: string, title: string, body: string, data?: Record<string, unknown>) {
+  try {
+    const tokens = await tokensDoUsuario(userId);
+    if (!tokens.length) return { enviados: 0, invalidos: 0 };
+    return await enviarPush(tokens, title, body, data);
+  } catch {
+    return { enviados: 0, invalidos: 0 };
+  }
+}
