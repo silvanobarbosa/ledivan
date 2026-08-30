@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { ChevronLeft, ChevronRight, X, Plus, Stethoscope, Repeat, Video, AlertTriangle, MapPin, Pencil } from "lucide-react";
 import { SESSION_STATUS_LABELS, sessionStatusColor, sessionColorClasses, RISK_LABELS, riskColor, type RiskLevel } from "@/lib/therapy";
 import { updateSessionStatus, confirmSession, createSessionFromAgenda, updateSession, createRecurring } from "../sessions/actions";
+import { HolidaySetup } from "@/components/dashboard/HolidaySetup";
+import { HOLIDAY_STYLE, type Holiday, type HolidayCity } from "@/lib/holidays-style";
 
 type PatientLite = { id: string; name: string; status: string; attendanceMode: string | null; attendanceLocation: string | null };
 type LocationLite = { name: string; address: string };
@@ -27,7 +29,7 @@ function startOfWeek(d: Date) {
   return out;
 }
 
-export function AgendaClient({ sessions, patients = [], locations = [] }: { sessions: AgendaSession[]; patients?: PatientLite[]; locations?: LocationLite[] }) {
+export function AgendaClient({ sessions, patients = [], locations = [], holidays = {}, holidayCities = [] }: { sessions: AgendaSession[]; patients?: PatientLite[]; locations?: LocationLite[]; holidays?: Record<string, Holiday[]>; holidayCities?: HolidayCity[] }) {
   const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date()));
   const [selected, setSelected] = useState<AgendaSession | null>(null);
   const [pending, startTransition] = useTransition();
@@ -80,6 +82,9 @@ export function AgendaClient({ sessions, patients = [], locations = [] }: { sess
       const sd = new Date(s.date);
       return sd.getFullYear() === day.getFullYear() && sd.getMonth() === day.getMonth() && sd.getDate() === day.getDate();
     });
+
+  const dayKey = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  const holidaysForDay = (d: Date): Holiday[] => holidays[dayKey(d)] ?? [];
 
   const shift = (delta: number) => {
     const next = new Date(weekStart);
@@ -142,6 +147,8 @@ export function AgendaClient({ sessions, patients = [], locations = [] }: { sess
         </button>
       </div>
 
+      <HolidaySetup cities={holidayCities} />
+
       {/* Nav */}
       <div className="flex items-center justify-between glass-card rounded-2xl px-4 py-3">
         <button onClick={() => shift(-1)} className="p-2 rounded-xl hover:bg-white/60 transition"><ChevronLeft className="w-5 h-5" /></button>
@@ -159,6 +166,16 @@ export function AgendaClient({ sessions, patients = [], locations = [] }: { sess
         <span className="inline-flex items-center gap-1"><span className="w-3 h-3 rounded bg-[#ede9fe] border border-[#8b5cf6]" /> Agendada</span>
         <span className="inline-flex items-center gap-1"><span className="w-3 h-3 rounded bg-[#dcfce7] border border-[#22c55e]" /> Realizada</span>
         <span className="inline-flex items-center gap-1"><span className="w-3 h-3 rounded bg-[#fee2e2] border border-[#ef4444]" /> Não realizada</span>
+        {holidayCities.length > 0 && (
+          <>
+            <span className="w-px h-3 bg-border mx-1" />
+            {(["NACIONAL", "ESTADUAL", "MUNICIPAL", "FACULTATIVO"] as const).map((t) => (
+              <span key={t} className="inline-flex items-center gap-1">
+                <span className="w-3 h-3 rounded" style={{ background: HOLIDAY_STYLE[t].bg, border: `1px solid ${HOLIDAY_STYLE[t].border}` }} /> {HOLIDAY_STYLE[t].label}
+              </span>
+            ))}
+          </>
+        )}
       </div>
 
       {/* Grade */}
@@ -170,12 +187,28 @@ export function AgendaClient({ sessions, patients = [], locations = [] }: { sess
               <div className="w-14 shrink-0" />
               {days.map((day) => {
                 const isToday = day.toDateString() === new Date().toDateString();
+                const hs = holidaysForDay(day);
+                const top = hs[0];
                 return (
-                  <div key={day.toISOString()} className="flex-1 text-center py-3 border-l border-border">
+                  <div key={day.toISOString()} className="flex-1 text-center py-3 border-l border-border" style={top ? { background: HOLIDAY_STYLE[top.tipo].bg } : undefined}>
                     <p className="text-[11px] font-bold uppercase tracking-widest text-foreground/40">{DAY_NAMES[day.getDay()]}</p>
-                    <p className={`text-lg font-display font-bold mt-0.5 inline-flex items-center justify-center w-9 h-9 rounded-full ${isToday ? "bg-primary text-white" : "text-primary"}`}>
+                    <p
+                      className={`text-lg font-display font-bold mt-0.5 inline-flex items-center justify-center w-9 h-9 rounded-full ${isToday ? "bg-primary text-white" : top ? "" : "text-primary"}`}
+                      style={!isToday && top ? { color: HOLIDAY_STYLE[top.tipo].fg } : undefined}
+                    >
                       {day.getDate()}
                     </p>
+                    {hs.length > 0 && (
+                      <div className="mt-1 px-1 space-y-0.5">
+                        {hs.slice(0, 2).map((h, i) => (
+                          <p key={i} className="text-[9px] leading-tight font-semibold truncate flex items-center gap-1 justify-center" title={`${h.nome}${h.cityName ? ` — ${h.cityName}` : ""} · ${HOLIDAY_STYLE[h.tipo].label}`} style={{ color: HOLIDAY_STYLE[h.tipo].fg }}>
+                            <span className="inline-block px-1 rounded shrink-0" style={{ background: HOLIDAY_STYLE[h.tipo].bg, border: `1px solid ${HOLIDAY_STYLE[h.tipo].border}` }}>{HOLIDAY_STYLE[h.tipo].short}</span>
+                            <span className="truncate">{h.nome}</span>
+                          </p>
+                        ))}
+                        {hs.length > 2 && <p className="text-[9px] text-foreground/40">+{hs.length - 2} feriado(s)</p>}
+                      </div>
+                    )}
                   </div>
                 );
               })}
@@ -195,8 +228,9 @@ export function AgendaClient({ sessions, patients = [], locations = [] }: { sess
               {/* Colunas dos dias */}
               {days.map((day) => {
                 const isToday = day.toDateString() === new Date().toDateString();
+                const topHol = holidaysForDay(day)[0];
                 return (
-                  <div key={day.toISOString()} className={`flex-1 relative border-l border-border ${isToday ? "bg-accent/[0.04]" : ""}`}>
+                  <div key={day.toISOString()} className={`flex-1 relative border-l border-border ${isToday ? "bg-accent/[0.04]" : ""}`} style={topHol ? { backgroundColor: `${HOLIDAY_STYLE[topHol.tipo].bg}55` } : undefined}>
                     {/* linhas de hora */}
                     {hours.map((h) => (
                       <div key={h} className="absolute w-full border-t border-border/40" style={{ top: (h - START_HOUR) * HOUR_PX }} />

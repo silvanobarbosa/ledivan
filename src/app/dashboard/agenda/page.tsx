@@ -5,6 +5,7 @@ import { and, eq, ne, gte } from "drizzle-orm";
 import { AgendaClient } from "./AgendaClient";
 import { riskFromSessions } from "@/lib/therapy";
 import { parseLocations } from "@/lib/locations";
+import { parseHolidayCities, holidaysByDate } from "@/lib/holidays";
 
 export default async function AgendaPage() {
   const session = await auth();
@@ -27,6 +28,13 @@ export default async function AgendaPage() {
     db.query.users.findFirst({ where: eq(users.id, session.user.id) }),
   ]);
   const locations = parseLocations(me?.attendanceLocations);
+
+  // Feriados: cidades escolhidas pelo usuário (até 3). Busca anos relevantes (janela + ano atual + próximo).
+  const holidayCities = parseHolidayCities(me?.holidayCities);
+  const now = new Date();
+  const years = Array.from(new Set([windowStart.getFullYear(), now.getFullYear(), now.getFullYear() + 1]));
+  const holidayMap = await holidaysByDate(holidayCities, years);
+  const holidays = Object.fromEntries(holidayMap);
 
   // risco de falta por paciente (calculado sobre o histórico completo)
   const byPatient = new Map<string, { status: string; date: Date }[]>();
@@ -63,6 +71,8 @@ export default async function AgendaPage() {
         }))}
         patients={pats.map((p) => ({ id: p.id, name: p.name, status: p.patientStatus, attendanceMode: p.attendanceMode, attendanceLocation: p.attendanceLocation }))}
         locations={locations}
+        holidays={holidays}
+        holidayCities={holidayCities}
       />
     </div>
   );
