@@ -124,6 +124,20 @@ export const patientDiary = pgTable("patient_diary", {
   index("patient_diary_patient_idx").on(t.patientId),
 ]));
 
+// Avaliação pós-sessão (#9/rating): feedback rápido do paciente. Uma avaliação por sessão.
+export const sessionRatings = pgTable("session_ratings", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: text("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
+  patientId: uuid("patient_id").references(() => patients.id, { onDelete: "cascade" }).notNull(),
+  sessionId: uuid("session_id").references(() => therapySessions.id, { onDelete: "cascade" }).notNull(),
+  score: integer("score").notNull(), // 1-5
+  comment: text("comment"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (t) => ([
+  uniqueIndex("session_ratings_session_uq").on(t.sessionId),
+  index("session_ratings_patient_idx").on(t.patientId),
+]));
+
 // Código de login do paciente (app nativo) — enviado por WhatsApp, curto TTL. Posse do número = auth.
 export const patientAuthCode = pgTable("patient_auth_code", {
   id: uuid("id").primaryKey().defaultRandom(),

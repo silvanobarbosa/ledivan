@@ -71,7 +71,7 @@ const inputCls = "w-full px-4 py-2.5 rounded-xl bg-white/70 border border-border
 const TABS = ["Dados", "Prontuário", "Atividades", "Materiais", "Sessões", "Financeiro", "Linha do tempo"] as const;
 
 export function PatientDetail({
-  patient, sessions, payments, statusHistory, priceHistory, records, autoLinkPayments, transcriptionEnabled, risk, assignments, moodToken, moodLogs, scales, treatmentGoals, diaryEntries = [], locations = [], contractHistory = [], finance, ledger = [], sessionStats, packageInfo, recurring,
+  patient, sessions, payments, statusHistory, priceHistory, records, autoLinkPayments, transcriptionEnabled, risk, assignments, moodToken, moodLogs, scales, treatmentGoals, diaryEntries = [], ratings = [], locations = [], contractHistory = [], finance, ledger = [], sessionStats, packageInfo, recurring,
 }: {
   patient: Patient; sessions: Session[]; payments: Payment[];
   statusHistory: StatusEntry[]; priceHistory: PriceEntry[]; records: RecordEntry[];
@@ -89,6 +89,7 @@ export function PatientDetail({
   scales: { id: string; token: string; scaleType: string; status: string; score: number | null; severity: string | null; appliedAt: string | null }[];
   treatmentGoals: { id: string; title: string; description: string | null; status: string; progress: number; targetDate: string | null }[];
   diaryEntries?: { id: string; content: string; mood: number | null; createdAt: string }[];
+  ratings?: { id: string; score: number; comment: string | null; createdAt: string }[];
   locations?: { name: string; address: string }[];
 }) {
   const router = useRouter();
@@ -417,6 +418,25 @@ export function PatientDetail({
       {tab === "Atividades" && (
         <>
           <AssignmentsTab patientId={patient.id} assignments={assignments} moodToken={moodToken} moodLogs={moodLogs} scales={scales} />
+          {ratings.length > 0 && (
+            <div className="mt-6">
+              <h3 className="text-sm font-semibold text-gray-700 mb-2">
+                ⭐ Avaliações das sessões
+                <span className="ml-2 font-normal text-gray-400">média {(ratings.reduce((a, r) => a + r.score, 0) / ratings.length).toFixed(1)} · {ratings.length}</span>
+              </h3>
+              <div className="space-y-2">
+                {ratings.map((r) => (
+                  <div key={r.id} className="rounded-lg border border-gray-200 bg-white p-3">
+                    <div className="flex items-center justify-between text-xs text-gray-400">
+                      <span>{"★".repeat(r.score)}<span className="text-gray-200">{"★".repeat(5 - r.score)}</span></span>
+                      <span>{new Date(r.createdAt).toLocaleDateString("pt-BR", { day: "2-digit", month: "short" })}</span>
+                    </div>
+                    {r.comment ? <p className="mt-1 whitespace-pre-wrap text-sm text-gray-700">{r.comment}</p> : null}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
           {diaryEntries.length > 0 && (
             <div className="mt-6">
               <h3 className="text-sm font-semibold text-gray-700 mb-2">📓 Diário do paciente</h3>
