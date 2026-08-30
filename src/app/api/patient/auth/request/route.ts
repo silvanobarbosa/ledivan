@@ -4,6 +4,7 @@ import { randomInt } from "node:crypto";
 import { db } from "@/db";
 import { patients, patientAuthCode } from "@/db/schema";
 import { sendWhatsappFromUser } from "@/lib/whatsappEvolution";
+import { rateLimit } from "@/lib/rateLimit";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -17,6 +18,11 @@ export async function POST(req: Request) {
   try { b = await req.json(); } catch { return NextResponse.json({ ok: false }, { status: 400 }); }
   const key = last11(b.phone);
   if (key.length < 10) return NextResponse.json({ ok: false, error: "Telefone inválido." }, { status: 400 });
+
+  // Anti-spam: máx 3 códigos por telefone a cada 10min. Silencioso (anti-enumeração): responde ok sem enviar.
+  if (!(await rateLimit(`patient-request:${key}`, "patient-request", 3, 600))) {
+    return NextResponse.json({ ok: true });
+  }
 
   const pats = await db.select({ id: patients.id, userId: patients.userId, phone: patients.phone }).from(patients);
   const patient = pats.find((p) => last11(p.phone) === key);
