@@ -2,6 +2,7 @@
 import { meetingUrl } from "@/lib/therapy";
 import { jaasConfigured } from "@/lib/jaas";
 import { notify } from "@/lib/messaging/engine";
+import { signSession } from "@/lib/messaging/confirm-token";
 
 type PatientLite = {
   id?: string | null;
@@ -25,11 +26,14 @@ function patientMeetingLink(s: SessionLite): string {
 // Retorna true se entregou por algum canal. userId = terapeuta dono (tenant).
 export async function sendSessionReminder(userId: string, p: PatientLite, s: SessionLite): Promise<boolean> {
   const when = new Date(s.date).toLocaleString("pt-BR", { weekday: "long", day: "2-digit", month: "long", hour: "2-digit", minute: "2-digit" });
+  const base = (process.env.APP_URL || "https://ledivan.com.br").replace(/\/$/, "");
+  const confirmLink = `${base}/api/sessions/confirm?s=${s.id}&a=confirm&t=${signSession(s.id, "confirm")}`;
+  const rescheduleLink = `${base}/api/sessions/confirm?s=${s.id}&a=reschedule&t=${signSession(s.id, "reschedule")}`;
   const r = await notify({
     userId,
     patient: { id: p.id ?? null, name: p.name, phone: p.phone, email: p.email, reminderChannel: p.reminderChannel },
     event: "session_reminder",
-    vars: { when, isOnline: s.isOnline, meetingLink: s.isOnline ? patientMeetingLink(s) : undefined },
+    vars: { when, isOnline: s.isOnline, meetingLink: s.isOnline ? patientMeetingLink(s) : undefined, confirmLink, rescheduleLink },
   });
   return r.ok;
 }

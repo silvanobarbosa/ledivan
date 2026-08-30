@@ -315,6 +315,8 @@ export const therapySessions = pgTable("therapy_sessions", {
   isOnline: boolean("is_online").default(false).notNull(), // atendimento por vídeo
   location: text("location"), // local presencial (endereço/rótulo) quando não-online
   pendingConfirmation: boolean("pending_confirmation").default(false).notNull(), // agendamento público aguardando confirmação
+  patientConfirmedAt: timestamp("patient_confirmed_at"), // paciente confirmou presença (botão/link do lembrete)
+  rescheduleRequestedAt: timestamp("reschedule_requested_at"), // paciente pediu p/ remarcar (botão/link)
   recurring: boolean("recurring").default(false).notNull(), // reserva recorrente (semanal)
   recurrenceUntil: timestamp("recurrence_until"), // data limite da recorrência
   googleEventId: text("google_event_id"), // vínculo com evento no Google Calendar (sync)

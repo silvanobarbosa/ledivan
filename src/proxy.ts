@@ -40,7 +40,8 @@ export default async function proxy(req: NextRequest) {
     pathname.startsWith("/api/whatsapp") ||
     pathname.startsWith("/api/cron") ||
     pathname.startsWith("/api/health") ||
-    pathname.startsWith("/api/conformity")
+    pathname.startsWith("/api/conformity") ||
+    pathname.startsWith("/api/sessions/confirm") // paciente confirma/remarca via link assinado (HMAC), sem login
   ) {
     return NextResponse.next();
   }
