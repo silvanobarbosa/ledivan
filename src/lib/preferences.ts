@@ -23,6 +23,8 @@ export type UserPreferences = {
   meetingProvider?: "jitsi" | "meet"; // provedor de vídeo para sessões online
   bookingAutoConfirm?: boolean; // agendamento público entra automático (true) ou requer confirmação (false)
   integrations?: Integrations;
+  features?: Record<string, "off" | "all" | "per-patient">; // modo de cada recurso do paciente (ver lib/features)
+  timerShowToPatient?: boolean; // mostrar o cronômetro da sessão ao paciente
   [key: string]: unknown;
 };
 

@@ -11,6 +11,7 @@ import { ATTENDANCE_MODE_LABELS } from "@/lib/locations";
 import { MessagePatient } from "@/components/dashboard/MessagePatient";
 import { AssignmentsTab } from "./AssignmentsTab";
 import { MaterialsTab } from "./MaterialsTab";
+import { PatientFeatures } from "./PatientFeatures";
 import { SessionSummary } from "./SessionSummary";
 import { TreatmentPlan } from "./TreatmentPlan";
 import { TimelineTab } from "./TimelineTab";
@@ -242,6 +243,8 @@ export function PatientDetail({
           <Repeat className="w-4 h-4" /> <span><strong>Agenda recorrente:</strong> {recurring.day} {recurring.time}{recurring.until ? ` · até ${formatDate(recurring.until)}` : ""}</span>
         </div>
       )}
+
+      <PatientFeatures patientId={patient.id} />
 
       {/* Tabs */}
       <div className="flex gap-2 bg-white/50 p-1.5 rounded-2xl w-fit">
