@@ -19,6 +19,7 @@ import { WhatsappCard } from "./WhatsappCard";
 import { MeetingCard } from "./MeetingCard";
 import { PasswordCard } from "./PasswordCard";
 import { getPreferences } from "@/lib/preferences";
+import { FeaturesCard } from "./FeaturesCard";
 import { hasGoogleAccount, hasCalendarScope } from "@/lib/googleCalendar";
 
 export const dynamic = "force-dynamic";
@@ -141,6 +142,8 @@ export default async function SettingsPage() {
           <AutoLinkToggle initial={!!prefs.autoLinkPayments} />
 
           <TranscriptionToggle initial={!!prefs.transcriptionEnabled} />
+
+          <FeaturesCard initial={{ modes: prefs.features ?? {}, timerShow: !!prefs.timerShowToPatient }} />
 
           <div className="p-10 bg-primary/5 rounded-[48px] border border-primary/10 flex items-center gap-6">
             <div className="w-16 h-16 bg-white rounded-3xl flex items-center justify-center text-3xl shadow-sm">

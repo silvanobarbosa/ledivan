@@ -242,6 +242,7 @@ export const patients = pgTable("patients", {
   paymentStatus: paymentStatusEnum("payment_status").default("pending").notNull(),
   patientStatus: text("patient_status").default("ativo").notNull(), // ativo | inativo | prospect | pausado
   lastReactivationAt: timestamp("last_reactivation_at"), // última mensagem de reativação (throttle da campanha)
+  featureOverrides: text("feature_overrides"), // JSON: liga/desliga recursos "por paciente" (ver lib/features)
   startedAt: timestamp("started_at"),
   birthDate: timestamp("birth_date"),
   category: text("category"), // crianca | adolescente | adulto | idoso | casal
@@ -358,6 +359,8 @@ export const therapySessions = pgTable("therapy_sessions", {
   pendingConfirmation: boolean("pending_confirmation").default(false).notNull(), // agendamento público aguardando confirmação
   patientConfirmedAt: timestamp("patient_confirmed_at"), // paciente confirmou presença (botão/link do lembrete)
   rescheduleRequestedAt: timestamp("reschedule_requested_at"), // paciente pediu p/ remarcar (botão/link)
+  timerStartedAt: timestamp("timer_started_at"), // cronômetro da sessão iniciado
+  timerEndedAt: timestamp("timer_ended_at"), // cronômetro encerrado
   recurring: boolean("recurring").default(false).notNull(), // reserva recorrente (semanal)
   recurrenceUntil: timestamp("recurrence_until"), // data limite da recorrência
   googleEventId: text("google_event_id"), // vínculo com evento no Google Calendar (sync)
