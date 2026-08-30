@@ -313,6 +313,7 @@ export const moodLogs = pgTable("mood_logs", {
   patientId: uuid("patient_id").references(() => patients.id, { onDelete: "cascade" }).notNull(),
   mood: integer("mood").notNull(), // 1 a 5
   note: text("note"),
+  context: text("context").default("free").notNull(), // free | pre | post (check-in pré/pós sessão)
   loggedAt: timestamp("logged_at").defaultNow().notNull(),
 }, (t) => [
   index("mood_patient_idx").on(t.patientId),
