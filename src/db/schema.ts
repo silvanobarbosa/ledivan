@@ -131,26 +131,6 @@ export const transactions = pgTable("transactions", {
   index("tx_user_date_idx").on(t.userId, t.date),
 ]);
 
-export const goals = pgTable("goals", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  userId: text("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
-  title: text("title").notNull(),
-  targetAmount: numeric("target_amount", { precision: 12, scale: 2 }).notNull(),
-  currentAmount: numeric("current_amount", { precision: 12, scale: 2 }).default("0").notNull(),
-  deadline: timestamp("deadline"),
-  isCompleted: boolean("is_completed").default(false).notNull(),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-});
-
-export const achievements = pgTable("achievements", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  userId: text("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
-  type: text("type").notNull(),
-  title: text("title").notNull(),
-  description: text("description"),
-  earnedAt: timestamp("earned_at").defaultNow().notNull(),
-});
-
 // Espaço do Paciente: tarefas (lição de casa) com resposta multimídia.
 export const assignments = pgTable("assignments", {
   id: uuid("id").primaryKey().defaultRandom(),
@@ -168,18 +148,6 @@ export const assignments = pgTable("assignments", {
   responseFileType: text("response_file_type"),
   respondedAt: timestamp("responded_at"),
   therapistComment: text("therapist_comment"),
-  createdAt: timestamp("created_at").defaultNow().notNull(),
-});
-
-// Divulgação: posts para redes sociais gerados com IA.
-export const socialPosts = pgTable("social_posts", {
-  id: uuid("id").primaryKey().defaultRandom(),
-  userId: text("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
-  theme: text("theme"),
-  network: text("network").default("instagram").notNull(),
-  tone: text("tone"),
-  content: text("content").notNull(),
-  hashtags: text("hashtags"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
 
@@ -426,8 +394,6 @@ export const categoriesRelations = relations(categories, ({ many }) => ({
 
 export const usersRelations = relations(users, ({ many }) => ({
   transactions: many(transactions),
-  goals: many(goals),
-  achievements: many(achievements),
   accounts: many(accounts),
   sessions: many(sessions),
   financialAccounts: many(financialAccounts),

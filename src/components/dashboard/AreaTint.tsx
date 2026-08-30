@@ -10,9 +10,6 @@ const FINANCE_PREFIXES = [
   "/dashboard/transactions",
   "/dashboard/reports",
   "/dashboard/conciliacao",
-  "/dashboard/goals",
-  "/dashboard/gamification",
-  "/dashboard/social",
 ];
 
 export function AreaTint({ children }: { children: React.ReactNode }) {

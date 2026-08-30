@@ -6,9 +6,7 @@ import {
   Users,
   CalendarDays,
   UserPlus,
-  Trophy,
   BarChart3,
-  Megaphone,
   Scale,
   HelpCircle,
 } from "lucide-react";
@@ -35,9 +33,6 @@ export const NAV_GROUPS: NavGroup[] = [
       { icon: ArrowLeftRight, label: "Transações", href: "/dashboard/transactions" },
       { icon: BarChart3, label: "Relatórios", href: "/dashboard/reports" },
       { icon: Scale, label: "Conciliação", href: "/dashboard/conciliacao" },
-      { icon: Wallet, label: "Metas", href: "/dashboard/goals" },
-      { icon: Trophy, label: "Conquistas", href: "/dashboard/gamification" },
-      { icon: Megaphone, label: "Divulgação", href: "/dashboard/social" },
     ],
   },
   {
