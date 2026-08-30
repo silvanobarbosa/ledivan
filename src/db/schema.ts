@@ -216,6 +216,7 @@ export const patients = pgTable("patients", {
   notes: text("notes"),
   paymentStatus: paymentStatusEnum("payment_status").default("pending").notNull(),
   patientStatus: text("patient_status").default("ativo").notNull(), // ativo | inativo | prospect | pausado
+  lastReactivationAt: timestamp("last_reactivation_at"), // última mensagem de reativação (throttle da campanha)
   startedAt: timestamp("started_at"),
   birthDate: timestamp("birth_date"),
   category: text("category"), // crianca | adolescente | adulto | idoso | casal
