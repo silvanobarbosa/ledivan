@@ -66,6 +66,23 @@ export const holidayCache = pgTable("holiday_cache", {
   uniqueIndex("holiday_cache_city_year").on(t.cityIbge, t.year),
 ]));
 
+// Log de mensagens enviadas ao paciente (motor de mensageria). Uma linha por tentativa de canal:
+// base pra painel de mensagens, cascata (fallback) e telemetria de entrega. Sem PII no corpo.
+export const messageLog = pgTable("message_log", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: text("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
+  patientId: uuid("patient_id"), // ref lógica a patients (sem FK dura p/ preservar o log se o paciente sair)
+  event: text("event").notNull(), // session_reminder | session_confirmed | ...
+  channel: text("channel").notNull(), // whatsapp | email | telegram | push | sms
+  destination: text("destination"), // telefone/e-mail alvo
+  status: text("status").notNull(), // sent | failed | skipped
+  error: text("error"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (t) => ([
+  index("message_log_user_idx").on(t.userId),
+  index("message_log_patient_idx").on(t.patientId),
+]));
+
 export const accounts = pgTable("account", {
     userId: text("userId").notNull().references(() => users.id, { onDelete: "cascade" }),
     type: text("type").$type<AdapterAccountType>().notNull(),
