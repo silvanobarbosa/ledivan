@@ -1,4 +1,4 @@
-import { pgTable, text, numeric, timestamp, uuid, pgEnum, boolean, integer, primaryKey, index } from "drizzle-orm/pg-core";
+import { pgTable, text, numeric, timestamp, uuid, pgEnum, boolean, integer, primaryKey, index, uniqueIndex } from "drizzle-orm/pg-core";
 import { relations } from "drizzle-orm";
 import type { AdapterAccountType } from "next-auth/adapters"
 
@@ -40,6 +40,8 @@ export const users = pgTable("user", {
   whatsappConnected: boolean("whatsapp_connected").default(false).notNull(),
   // Endereços de atendimento presencial (até 3): JSON [{name, address}]
   attendanceLocations: text("attendance_locations"),
+  // Cidades p/ feriados na agenda (até 3): JSON [{ibge, nome, uf}]. Vazio/null = feriados não ativados.
+  holidayCities: text("holiday_cities"),
 
   preferences: text("preferences"), // JSON string
   role: text("role").default("user").notNull(), // user | admin (super admin)
@@ -51,6 +53,18 @@ export const users = pgTable("user", {
   acceptedPrivacyAt: timestamp("accepted_privacy_at"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 });
+
+// Cache de feriados por cidade+ano (fonte: feriadosapi.com). Global (não por-usuário):
+// os feriados de uma cidade valem pra todos. 1 fetch por cidade/ano → respeita a cota da API.
+export const holidayCache = pgTable("holiday_cache", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  cityIbge: integer("city_ibge").notNull(),
+  year: integer("year").notNull(),
+  data: text("data").notNull(), // JSON: [{ date: "YYYY-MM-DD", nome, tipo }]
+  fetchedAt: timestamp("fetched_at").defaultNow().notNull(),
+}, (t) => ([
+  uniqueIndex("holiday_cache_city_year").on(t.cityIbge, t.year),
+]));
 
 export const accounts = pgTable("account", {
     userId: text("userId").notNull().references(() => users.id, { onDelete: "cascade" }),
