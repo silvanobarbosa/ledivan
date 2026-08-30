@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useState, useEffect, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Video, MapPin, ArrowLeftRight, ExternalLink, Check, Loader2, X, FileText, Stethoscope } from "lucide-react";
@@ -8,14 +8,15 @@ import { JitsiRoom } from "@/components/dashboard/JitsiRoom";
 import { MobileSidebar } from "@/components/dashboard/MobileSidebar";
 import { createRecord } from "@/app/dashboard/patients/actions";
 import { updateSessionStatus, setSessionOnline, confirmSession } from "@/app/dashboard/sessions/actions";
+import { startSessionTimer, stopSessionTimer } from "./timer-actions";
 
-type S = { id: string; patientId: string; patientName: string; date: string; duration: number; isOnline: boolean; location: string | null; status: string; pendingConfirmation?: boolean };
+type S = { id: string; patientId: string; patientName: string; date: string; duration: number; isOnline: boolean; location: string | null; status: string; pendingConfirmation?: boolean; timerStartedAt?: string | null };
 type Rec = { id: string; type: string; title: string | null; content: string; createdAt: string };
 type Meeting = { domain: string; room: string; jwt: string | null };
 
 const REC_LABEL: Record<string, string> = { evolucao: "Evolução", anamnese: "Anamnese", nota: "Nota" };
 
-export function AtenderClient({ session, records, meeting, therapistName }: { session: S; records: Rec[]; meeting: Meeting; therapistName: string }) {
+export function AtenderClient({ session, records, meeting, therapistName, timerEnabled = false }: { session: S; records: Rec[]; meeting: Meeting; therapistName: string; timerEnabled?: boolean }) {
   const router = useRouter();
   const [started, setStarted] = useState(false);
   const [online, setOnline] = useState(session.isOnline);
@@ -24,6 +25,15 @@ export function AtenderClient({ session, records, meeting, therapistName }: { se
   const [pending, start] = useTransition();
   const [patientOpen, setPatientOpen] = useState(false);
   const [askCharge, setAskCharge] = useState(false);
+
+  // Cronômetro da sessão (só quando o recurso está ligado pra este paciente).
+  const [timerStart, setTimerStart] = useState<string | null>(session.timerStartedAt ?? null);
+  const [nowTick, setNowTick] = useState(Date.now());
+  useEffect(() => { if (!timerStart) return; const i = setInterval(() => setNowTick(Date.now()), 1000); return () => clearInterval(i); }, [timerStart]);
+  const elapsed = timerStart ? Math.max(0, Math.floor((nowTick - new Date(timerStart).getTime()) / 1000)) : 0;
+  const mmss = (s: number) => `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
+  const startTimer = () => start(async () => { const r = await startSessionTimer(session.id); if (r.ok && r.startedAt) setTimerStart(r.startedAt); });
+  const stopTimer = () => start(async () => { await stopSessionTimer(session.id); setTimerStart(null); });
 
   const dt = new Date(session.date).toLocaleString("pt-BR", { weekday: "long", day: "2-digit", month: "long", hour: "2-digit", minute: "2-digit" });
 
@@ -62,7 +72,7 @@ export function AtenderClient({ session, records, meeting, therapistName }: { se
           )}
           <div className="flex gap-3 pt-2">
             <Link href="/dashboard/agenda" className="flex-1 py-3 rounded-2xl font-semibold text-foreground/60 hover:bg-white/60 transition">Voltar</Link>
-            <button disabled={pending} onClick={() => { if (session.pendingConfirmation) start(async () => { await confirmSession(session.id); }); setStarted(true); }} className="flex-1 bg-primary text-white py-3 rounded-2xl font-bold shadow-lg shadow-primary/20 active:scale-[0.98] transition disabled:opacity-60">
+            <button disabled={pending} onClick={() => { if (session.pendingConfirmation) start(async () => { await confirmSession(session.id); }); if (timerEnabled && !timerStart) startTimer(); setStarted(true); }} className="flex-1 bg-primary text-white py-3 rounded-2xl font-bold shadow-lg shadow-primary/20 active:scale-[0.98] transition disabled:opacity-60">
               Sim, iniciar
             </button>
           </div>
@@ -84,6 +94,16 @@ export function AtenderClient({ session, records, meeting, therapistName }: { se
           <p className="font-bold text-primary truncate leading-tight">{session.patientName}</p>
           <p className="text-[11px] text-foreground/40 capitalize truncate">{dt}</p>
         </div>
+        {timerEnabled && (
+          <div className="flex items-center gap-1.5 shrink-0">
+            <span className="font-display font-bold text-primary tabular-nums text-base">{mmss(elapsed)}</span>
+            {timerStart ? (
+              <button onClick={stopTimer} title="Parar cronômetro" className="text-[10px] font-bold px-2 py-1 rounded-lg bg-[#fee2e2] text-[#b91c1c]">Parar</button>
+            ) : (
+              <button onClick={startTimer} title="Iniciar cronômetro" className="text-[10px] font-bold px-2 py-1 rounded-lg bg-primary/10 text-primary">Iniciar</button>
+            )}
+          </div>
+        )}
         <button onClick={toggleOnline} disabled={pending} className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-xl bg-surface hover:bg-surface-container transition disabled:opacity-60">
           <ArrowLeftRight className="w-4 h-4" /> {online ? "Converter p/ presencial" : "Converter p/ online"}
         </button>

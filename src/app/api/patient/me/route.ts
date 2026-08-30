@@ -1,8 +1,10 @@
 import { NextResponse } from "next/server";
-import { and, eq, gte, asc } from "drizzle-orm";
+import { and, eq, gte, asc, desc, isNull, isNotNull } from "drizzle-orm";
 import { db } from "@/db";
 import { patients, users, therapySessions } from "@/db/schema";
 import { patientFromBearer } from "@/lib/patient-auth";
+import { getPreferences } from "@/lib/preferences";
+import { resolveFeature, parseOverrides } from "@/lib/features";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -20,9 +22,22 @@ export async function GET(req: Request) {
     .where(and(eq(therapySessions.userId, p.userId), eq(therapySessions.patientId, p.patientId), eq(therapySessions.status, "agendada"), gte(therapySessions.date, new Date())))
     .orderBy(asc(therapySessions.date)).limit(1);
 
+  // Cronômetro ativo — só se o recurso está ligado pra este paciente E o terapeuta escolheu mostrar.
+  let activeTimer: { startedAt: string } | null = null;
+  const prefs = await getPreferences(p.userId);
+  const [pov] = await db.select({ ov: patients.featureOverrides }).from(patients).where(eq(patients.id, p.patientId)).limit(1);
+  if (resolveFeature(prefs.features?.timer, parseOverrides(pov?.ov).timer) && !!prefs.timerShowToPatient) {
+    const [t] = await db.select({ startedAt: therapySessions.timerStartedAt })
+      .from(therapySessions)
+      .where(and(eq(therapySessions.userId, p.userId), eq(therapySessions.patientId, p.patientId), isNotNull(therapySessions.timerStartedAt), isNull(therapySessions.timerEndedAt)))
+      .orderBy(desc(therapySessions.timerStartedAt)).limit(1);
+    if (t?.startedAt) activeTimer = { startedAt: (t.startedAt as Date).toISOString() };
+  }
+
   return NextResponse.json({
     patient: { name: patient.name },
     therapist: { name: therapist?.name ?? "Seu terapeuta" },
     nextSession: next ? { id: next.id, date: (next.date as Date).toISOString(), isOnline: next.isOnline } : null,
+    activeTimer,
   });
 }

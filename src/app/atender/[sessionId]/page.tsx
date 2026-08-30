@@ -5,6 +5,8 @@ import { and, eq, desc } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import { AtenderClient } from "./AtenderClient";
 import { jaasConfigured, jaasRoom, generateJaasJwt, JAAS_DOMAIN } from "@/lib/jaas";
+import { getPreferences } from "@/lib/preferences";
+import { resolveFeature, parseOverrides } from "@/lib/features";
 
 export const dynamic = "force-dynamic";
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -18,9 +20,12 @@ export default async function AtenderPage({ params }: { params: Promise<{ sessio
 
   const s = await db.query.therapySessions.findFirst({
     where: and(eq(therapySessions.id, sessionId), eq(therapySessions.userId, userId)),
-    with: { patient: { columns: { id: true, name: true, attendanceLocation: true } } },
+    with: { patient: { columns: { id: true, name: true, attendanceLocation: true, featureOverrides: true } } },
   });
   if (!s) notFound();
+
+  const prefs = await getPreferences(userId);
+  const timerEnabled = resolveFeature(prefs.features?.timer, parseOverrides(s.patient?.featureOverrides).timer);
 
   const records = await db.query.patientRecords.findMany({
     where: eq(patientRecords.patientId, s.patientId),
@@ -46,7 +51,9 @@ export default async function AtenderPage({ params }: { params: Promise<{ sessio
         date: (s.date as Date).toISOString(), duration: s.duration, isOnline: s.isOnline,
         location: s.patient?.attendanceLocation ?? null, status: s.status,
         pendingConfirmation: s.pendingConfirmation,
+        timerStartedAt: s.timerEndedAt ? null : (s.timerStartedAt ? (s.timerStartedAt as Date).toISOString() : null),
       }}
+      timerEnabled={timerEnabled}
       records={JSON.parse(JSON.stringify(records))}
       meeting={meeting}
       therapistName={me?.name || "Terapeuta"}
