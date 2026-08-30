@@ -6,9 +6,10 @@ import { messageLog } from "@/db/schema";
 import { sendWhatsappFromUser } from "@/lib/whatsappEvolution";
 import { sendProEmail } from "@/lib/email";
 import { escapeHtml } from "@/lib/html";
+import { sendSms, smsConfigured } from "@/lib/messaging/sms";
 import { renderTemplate, type MsgEvent, type TemplateVars } from "@/lib/messaging/templates";
 
-export type Channel = "whatsapp" | "email";
+export type Channel = "whatsapp" | "email" | "sms";
 
 export type NotifyPatient = {
   id?: string | null;
@@ -61,7 +62,10 @@ function channelOrder(patient: NotifyPatient): Channel[] {
   if (pref === "none") return [];
   const base: Channel[] = pref === "email" ? ["email", "whatsapp"] : ["whatsapp", "email"];
   // só canais com destino
-  return base.filter((c) => (c === "whatsapp" ? !!patient.phone : !!patient.email));
+  const order = base.filter((c) => (c === "email" ? !!patient.email : !!patient.phone));
+  // SMS = ÚLTIMO recurso (paga): só se configurado e o paciente tem telefone.
+  if (smsConfigured() && patient.phone) order.push("sms");
+  return order;
 }
 
 /**
@@ -79,12 +83,15 @@ export async function notify(input: NotifyInput): Promise<NotifyResult> {
   const { subject, body } = renderTemplate(event, { patientName: patient.name, ...input.vars });
 
   for (const channel of order) {
-    const dest = channel === "whatsapp" ? patient.phone! : patient.email!;
+    const dest = channel === "email" ? patient.email! : patient.phone!;
     let ok = false, error: string | undefined;
     try {
       if (channel === "whatsapp") {
         ok = await sendWhatsappFromUser(userId, dest, body);
         if (!ok) error = "whatsapp não entregou";
+      } else if (channel === "sms") {
+        ok = await sendSms(dest, body);
+        if (!ok) error = "sms não entregou";
       } else {
         const r = await sendProEmail(userId, dest, subject, wrapHtml(body));
         ok = r.ok;
