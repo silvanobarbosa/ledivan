@@ -2,6 +2,7 @@
 
 import { db } from "@/db";
 import { users, patients, therapySessions } from "@/db/schema";
+import { pushToTherapist } from "@/lib/push";
 import { and, eq, or, gte, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { getPreferences } from "@/lib/preferences";
@@ -76,6 +77,12 @@ export async function createPublicBooking(slug: string, formData: FormData) {
 
   revalidatePath("/dashboard/agenda");
   revalidatePath("/dashboard/prospects");
+
+  // Avisa o terapeuta no app (push) quando precisa confirmar um horário pedido pelo link público.
+  if (!auto) {
+    const quando = new Date(dateRaw).toLocaleString("pt-BR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" });
+    await pushToTherapist(userId, "Novo agendamento 🗓️", `${name} pediu um horário (${quando}). Toque para confirmar.`, { type: "booking", sessionId: created.id });
+  }
 
   // Link de vídeo do convidado (só faz sentido se online e confirmado automaticamente)
   const base = (process.env.APP_URL || "https://ledivan.com.br").replace(/\/$/, "");
