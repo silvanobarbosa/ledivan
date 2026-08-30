@@ -98,6 +98,20 @@ export const messages = pgTable("messages", {
   index("messages_user_created_idx").on(t.userId, t.createdAt),
 ]));
 
+// Material/documento compartilhado do terapeuta PARA o paciente (aparece no app). Texto ou link.
+// (Diferente de patient_records, que são notas clínicas confidenciais do terapeuta.)
+export const patientDocument = pgTable("patient_document", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: text("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
+  patientId: uuid("patient_id").references(() => patients.id, { onDelete: "cascade" }).notNull(),
+  title: text("title").notNull(),
+  kind: text("kind").default("text").notNull(), // text | link
+  content: text("content").notNull(), // texto do material OU url
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (t) => ([
+  index("patient_document_patient_idx").on(t.patientId),
+]));
+
 // Código de login do paciente (app nativo) — enviado por WhatsApp, curto TTL. Posse do número = auth.
 export const patientAuthCode = pgTable("patient_auth_code", {
   id: uuid("id").primaryKey().defaultRandom(),

@@ -10,6 +10,7 @@ import { FinanceAdjust } from "./FinanceAdjust";
 import { ATTENDANCE_MODE_LABELS } from "@/lib/locations";
 import { MessagePatient } from "@/components/dashboard/MessagePatient";
 import { AssignmentsTab } from "./AssignmentsTab";
+import { MaterialsTab } from "./MaterialsTab";
 import { SessionSummary } from "./SessionSummary";
 import { TreatmentPlan } from "./TreatmentPlan";
 import { TimelineTab } from "./TimelineTab";
@@ -66,7 +67,7 @@ const PATIENT_STATUS_LABELS: Record<string, string> = { ativo: "Ativo", pausado:
 
 const inputCls = "w-full px-4 py-2.5 rounded-xl bg-white/70 border border-border focus:ring-2 focus:ring-accent/20 focus:border-accent outline-none transition text-sm";
 
-const TABS = ["Dados", "Prontuário", "Atividades", "Sessões", "Financeiro", "Linha do tempo"] as const;
+const TABS = ["Dados", "Prontuário", "Atividades", "Materiais", "Sessões", "Financeiro", "Linha do tempo"] as const;
 
 export function PatientDetail({
   patient, sessions, payments, statusHistory, priceHistory, records, autoLinkPayments, transcriptionEnabled, risk, assignments, moodToken, moodLogs, scales, treatmentGoals, locations = [], contractHistory = [], finance, ledger = [], sessionStats, packageInfo, recurring,
@@ -410,6 +411,8 @@ export function PatientDetail({
 
       {/* Espaço do Paciente: humor + tarefas */}
       {tab === "Atividades" && <AssignmentsTab patientId={patient.id} assignments={assignments} moodToken={moodToken} moodLogs={moodLogs} scales={scales} />}
+
+      {tab === "Materiais" && <MaterialsTab patientId={patient.id} />}
 
       {/* Sessões */}
       {tab === "Sessões" && (
