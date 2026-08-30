@@ -112,6 +112,18 @@ export const patientDocument = pgTable("patient_document", {
   index("patient_document_patient_idx").on(t.patientId),
 ]));
 
+// Diário entre sessões (#6/diary): o paciente escreve; o terapeuta lê antes da próxima sessão.
+export const patientDiary = pgTable("patient_diary", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: text("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
+  patientId: uuid("patient_id").references(() => patients.id, { onDelete: "cascade" }).notNull(),
+  content: text("content").notNull(),
+  mood: integer("mood"), // 1-5 opcional
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (t) => ([
+  index("patient_diary_patient_idx").on(t.patientId),
+]));
+
 // Código de login do paciente (app nativo) — enviado por WhatsApp, curto TTL. Posse do número = auth.
 export const patientAuthCode = pgTable("patient_auth_code", {
   id: uuid("id").primaryKey().defaultRandom(),
