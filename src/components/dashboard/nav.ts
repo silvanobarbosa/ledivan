@@ -9,6 +9,7 @@ import {
   BarChart3,
   Scale,
   HelpCircle,
+  MessageCircle,
 } from "lucide-react";
 
 export type NavItem = { icon: typeof LayoutDashboard; label: string; href: string };
@@ -22,6 +23,7 @@ export const NAV_GROUPS: NavGroup[] = [
       { icon: LayoutDashboard, label: "Dashboard", href: "/dashboard" },
       { icon: Users, label: "Pacientes", href: "/dashboard/patients" },
       { icon: CalendarDays, label: "Agenda", href: "/dashboard/agenda" },
+      { icon: MessageCircle, label: "Mensagens", href: "/dashboard/mensagens" },
       { icon: UserPlus, label: "Prospects", href: "/dashboard/prospects" },
     ],
   },

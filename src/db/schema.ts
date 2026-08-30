@@ -83,6 +83,21 @@ export const messageLog = pgTable("message_log", {
   index("message_log_patient_idx").on(t.patientId),
 ]));
 
+// Conversa 2-via com o paciente (inbox). Guarda o TEXTO (entrada do paciente + saída do terapeuta).
+export const messages = pgTable("messages", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: text("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
+  patientId: uuid("patient_id"), // ref lógica; null = contato não casado com paciente
+  direction: text("direction").notNull(), // in (paciente→terapeuta) | out (terapeuta→paciente)
+  channel: text("channel").notNull(), // whatsapp | email | sms
+  contact: text("contact"), // número/e-mail do contato
+  text: text("text").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (t) => ([
+  index("messages_user_patient_idx").on(t.userId, t.patientId),
+  index("messages_user_created_idx").on(t.userId, t.createdAt),
+]));
+
 export const accounts = pgTable("account", {
     userId: text("userId").notNull().references(() => users.id, { onDelete: "cascade" }),
     type: text("type").$type<AdapterAccountType>().notNull(),
