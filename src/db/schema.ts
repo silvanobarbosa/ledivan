@@ -138,6 +138,30 @@ export const sessionRatings = pgTable("session_ratings", {
   index("session_ratings_patient_idx").on(t.patientId),
 ]));
 
+// Termo de consentimento do terapeuta (#11/consent): um termo ativo por terapeuta.
+export const consentForms = pgTable("consent_forms", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: text("user_id").references(() => users.id, { onDelete: "cascade" }).notNull().unique(),
+  title: text("title").notNull(),
+  body: text("body").notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Aceite do paciente (snapshot do termo no momento do aceite + carimbo).
+export const patientConsents = pgTable("patient_consents", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: text("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
+  patientId: uuid("patient_id").references(() => patients.id, { onDelete: "cascade" }).notNull(),
+  title: text("title").notNull(),
+  body: text("body").notNull(), // snapshot do termo aceito
+  acceptedName: text("accepted_name").notNull(),
+  formUpdatedAt: timestamp("form_updated_at").notNull(), // versão do termo aceita
+  ip: text("ip"),
+  acceptedAt: timestamp("accepted_at").defaultNow().notNull(),
+}, (t) => ([
+  index("patient_consents_patient_idx").on(t.patientId),
+]));
+
 // Código de login do paciente (app nativo) — enviado por WhatsApp, curto TTL. Posse do número = auth.
 export const patientAuthCode = pgTable("patient_auth_code", {
   id: uuid("id").primaryKey().defaultRandom(),
