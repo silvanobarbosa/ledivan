@@ -480,6 +480,9 @@ export const sessionPayments = pgTable("session_payments", {
   packageId: uuid("package_id"), // vínculo opcional com um pacote (patient_packages)
   // VINCULO OPCIONAL com o financeiro: se preenchido, este pagamento gerou uma transacao de receita.
   linkedTransactionId: uuid("linked_transaction_id").references(() => transactions.id, { onDelete: "set null" }),
+  // Receita Saúde (recibo eletrônico da RF, emissão manual no app): controle de emissão por pagamento.
+  receiptNumber: text("receipt_number"), // nº do recibo Receita Saúde (preenchido após emitir no app)
+  receiptIssuedAt: timestamp("receipt_issued_at"), // quando o terapeuta marcou como emitido
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (t) => [
   index("sp_patient_idx").on(t.patientId),
