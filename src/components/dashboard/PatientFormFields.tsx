@@ -12,6 +12,7 @@ const labelCls = "block text-sm font-semibold text-foreground/70 mb-1.5";
 const DAYS = ["segunda", "terça", "quarta", "quinta", "sexta", "sábado", "domingo"];
 
 export type PatientFormData = {
+  registrationNumber?: number | null; agendaId?: string | null; dueDateType?: string | null; dueDate?: string | null;
   name?: string; phone?: string | null; email?: string | null; patientStatus?: string;
   startedAt?: string | null; birthDate?: string | null; category?: string | null; gender?: string | null; cpf?: string | null; address?: string | null;
   guardianName?: string | null; guardianCpf?: string | null; guardianPhone?: string | null; guardianEmail?: string | null;
@@ -64,6 +65,7 @@ const TABS = [
 export function PatientFormFields({ p, locations }: { p?: PatientFormData; locations: { name: string; address: string }[] }) {
   const [tab, setTab] = useState("dados");
   const [format, setFormat] = useState(p?.paymentFormat || "avulso");
+  const [dueType, setDueType] = useState(p?.dueDateType || "");
   const [lock, setLock] = useState("nao");
   const GENDERS = ["feminino", "masculino", "nao-binario"];
   const initialGender = p?.gender ? (GENDERS.includes(p.gender) ? p.gender : "outro") : "";
@@ -88,6 +90,17 @@ export function PatientFormFields({ p, locations }: { p?: PatientFormData; locat
       {/* DADOS: pessoais + responsável + emergência */}
       <div className={show("dados")}>
         <Card title="Dados pessoais">
+          <div className="grid sm:grid-cols-2 gap-4">
+            <div>
+              <label className={labelCls}>Número do cadastro</label>
+              <input
+                value={p?.registrationNumber != null ? String(p.registrationNumber).padStart(4, "0") : "Gerado automaticamente"}
+                readOnly disabled
+                className={`${inputCls} bg-black/5 text-foreground/50`}
+              />
+            </div>
+            <div><label className={labelCls}>ID Agenda</label><input name="agendaId" defaultValue={p?.agendaId ?? ""} className={inputCls} placeholder="Identificação na agenda" /></div>
+          </div>
           <div>
             <label className={labelCls}>Nome *</label>
             <input name="name" required defaultValue={p?.name ?? ""} className={inputCls} placeholder="Nome completo" />
@@ -250,6 +263,21 @@ export function PatientFormFields({ p, locations }: { p?: PatientFormData; locat
               <div><label className={labelCls}>Sessões no pacote</label><input name="sessionsInPacket" type="number" min={1} max={200} defaultValue={p?.sessionsInPacket ?? ""} className={inputCls} placeholder="ex: 8" /></div>
             )}
             <div><label className={labelCls}>Dia de pagamento</label><input name="paymentDay" type="number" min={1} max={31} defaultValue={p?.paymentDay ?? ""} className={inputCls} placeholder="ex: 5" /></div>
+            <div>
+              <label className={labelCls}>Vencimento<InfoTip text="Escolha uma condição (à vista, prazos) ou uma data específica." /></label>
+              <select name="dueDateType" className={inputCls} value={dueType} onChange={(e) => setDueType(e.target.value)}>
+                <option value="">—</option>
+                <option value="avista">À vista</option>
+                <option value="7d">7 dias</option>
+                <option value="15d">15 dias</option>
+                <option value="30d">30 dias</option>
+                <option value="fim_mes">Fim do mês</option>
+                <option value="data">Data específica</option>
+              </select>
+            </div>
+            {dueType === "data" && (
+              <div><label className={labelCls}>Data de vencimento</label><input name="dueDate" type="date" defaultValue={dateVal(p?.dueDate)} className={inputCls} /></div>
+            )}
             <div><label className={labelCls}>Próximo reajuste<InfoTip text="Data prevista para revisar o valor." /></label><input name="priceReviewDate" type="date" defaultValue={dateVal(p?.priceReviewDate)} className={inputCls} /></div>
           </div>
         </Card>
