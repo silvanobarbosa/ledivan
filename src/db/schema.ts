@@ -335,10 +335,16 @@ export const patients = pgTable("patients", {
   reminderLeadMinutes: integer("reminder_lead_minutes").default(60).notNull(), // antecedência (min) do lembrete
   moodToken: text("mood_token").unique(), // link do diário de humor: /humor/<token>
   tags: text("tags"), // etiquetas separadas por vírgula
+  // Cadastro (form): número sequencial por terapeuta + identificação na agenda + vencimento.
+  registrationNumber: integer("registration_number"), // sequencial por terapeuta (0001, 0002…); gerado no create
+  agendaId: text("agenda_id"), // identificação do paciente na agenda
+  dueDateType: text("due_date_type"), // avista | 7d | 15d | 30d | fim_mes | data
+  dueDate: timestamp("due_date"), // data específica (quando dueDateType = "data")
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (t) => [
   index("pat_user_idx").on(t.userId),
   index("pat_user_status_idx").on(t.userId, t.patientStatus),
+  index("pat_user_regnum_idx").on(t.userId, t.registrationNumber),
 ]);
 
 // Escalas de desfecho (PHQ-9/GAD-7) aplicadas ao paciente via link mágico.

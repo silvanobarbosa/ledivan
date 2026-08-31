@@ -124,8 +124,20 @@ export async function createPatient(formData: FormData) {
   const sessionFee = num(formData.get("sessionFee"));
   const rec = recorrenciaOf(formData);
 
+  // Número do cadastro: sequencial por terapeuta (0001, 0002…).
+  const [{ maxNum }] = await db.select({ maxNum: sql<number>`coalesce(max(${patients.registrationNumber}), 0)` })
+    .from(patients).where(eq(patients.userId, userId));
+  const registrationNumber = Number(maxNum) + 1;
+
+  const dueDateType = (formData.get("dueDateType") as string) || null;
+  const dueDate = dueDateType === "data" && formData.get("dueDate") ? new Date(formData.get("dueDate") as string) : null;
+
   const [created] = await db.insert(patients).values({
     userId,
+    registrationNumber,
+    agendaId: (formData.get("agendaId") as string)?.trim() || null,
+    dueDateType,
+    dueDate,
     name: name.trim(),
     email: (formData.get("email") as string) || null,
     phone: (formData.get("phone") as string) || null,
@@ -213,8 +225,17 @@ export async function updatePatient(patientId: string, formData: FormData) {
   const newFormat = (formData.get("paymentFormat") as string) || existing.paymentFormat;
   const isPacote = newFormat === "pacote";
 
+  // Vencimento: termo (à vista/7d/…) ou data específica. registrationNumber não muda no update.
+  const dueDateType = formData.has("dueDateType") ? ((formData.get("dueDateType") as string) || null) : existing.dueDateType;
+  const dueDate = dueDateType === "data"
+    ? (formData.get("dueDate") ? new Date(formData.get("dueDate") as string) : existing.dueDate)
+    : null;
+
   await db.update(patients).set({
     name: (formData.get("name") as string) || existing.name,
+    agendaId: formData.has("agendaId") ? ((formData.get("agendaId") as string)?.trim() || null) : existing.agendaId,
+    dueDateType,
+    dueDate,
     email: (formData.get("email") as string) ?? existing.email,
     phone: (formData.get("phone") as string) ?? existing.phone,
     sessionFee: newFee,
