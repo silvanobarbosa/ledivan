@@ -12,7 +12,7 @@ type PatientLite = { id: string; name: string; status: string; attendanceMode: s
 type LocationLite = { name: string; address: string };
 
 type SessionStatus = "realizada" | "nao_realizada" | "cancelada" | "realocada" | "agendada";
-type AgendaSession = { id: string; date: string; duration: number; status: string; patientName: string; isOnline: boolean; risk: string; meetingUrl: string | null; meetingOpenedAt: string | null; guestJoinedAt: string | null; meetingEndedAt: string | null; pendingConfirmation: boolean; patientConfirmed: boolean; rescheduleRequested: boolean; patientArrived: boolean; location: string | null; recurring: boolean };
+type AgendaSession = { id: string; date: string; duration: number; status: string; patientName: string; isOnline: boolean; risk: string; meetingUrl: string | null; meetingOpenedAt: string | null; guestJoinedAt: string | null; meetingEndedAt: string | null; pendingConfirmation: boolean; patientConfirmed: boolean; rescheduleRequested: boolean; patientArrived: boolean; location: string | null; recurring: boolean; recurrenceFreq?: string | null; patientId?: string };
 
 const blockColor = (s: AgendaSession) => sessionColorClasses(s.status, s.pendingConfirmation, s.recurring);
 
@@ -82,6 +82,31 @@ export function AgendaClient({ sessions, patients = [], locations = [], holidays
       const sd = new Date(s.date);
       return sd.getFullYear() === day.getFullYear() && sd.getMonth() === day.getMonth() && sd.getDate() === day.getDate();
     });
+
+  // "Vago Quinzenal": nas semanas ALTERNADAS de um paciente quinzenal, o slot fica livre.
+  // Detecta olhando 7 dias antes/depois: se há sessão quinzenal no mesmo horário a ±7 dias
+  // e nada ocupando o slot neste dia, mostra um ghost clicável (encaixe pontual / outro quinzenal).
+  const quinzenais = sessions.filter((s) => s.recurring && s.recurrenceFreq === "quinzenal");
+  const midOf = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+  type Ghost = { hour: number; minute: number; duration: number; patientName: string };
+  const ghostsForDay = (day: Date): Ghost[] => {
+    const out: Ghost[] = [];
+    const seen = new Set<string>();
+    const dayMid = midOf(day);
+    for (const q of quinzenais) {
+      const qd = new Date(q.date);
+      const diffDays = Math.round((midOf(qd) - dayMid) / 86400000);
+      if (Math.abs(diffDays) !== 7) continue; // semana alternada
+      const key = `${q.patientName}-${qd.getHours()}:${qd.getMinutes()}`;
+      if (seen.has(key)) continue;
+      // se já existe sessão real neste dia e horário (outro quinzenal encaixado), não é vago
+      const occupied = sessionsByDay(day).some((s) => { const sd = new Date(s.date); return sd.getHours() === qd.getHours() && sd.getMinutes() === qd.getMinutes(); });
+      if (occupied) continue;
+      seen.add(key);
+      out.push({ hour: qd.getHours(), minute: qd.getMinutes(), duration: q.duration, patientName: q.patientName });
+    }
+    return out;
+  };
 
   const dayKey = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
   const holidaysForDay = (d: Date): Holiday[] => holidays[dayKey(d)] ?? [];
@@ -245,6 +270,24 @@ export function AgendaClient({ sessions, patients = [], locations = [], holidays
                         style={{ top: (h - START_HOUR) * HOUR_PX, height: HOUR_PX }}
                       />
                     ))}
+                    {/* ghosts "Vago Quinzenal" (semana alternada do quinzenal) — clicável p/ encaixar */}
+                    {ghostsForDay(day).map((g, gi) => {
+                      const top = Math.max(0, (((g.hour - START_HOUR) * 60 + g.minute) / 60) * HOUR_PX);
+                      const height = Math.max(26, (g.duration / 60) * HOUR_PX - 2);
+                      const hh = `${pad(g.hour)}:${pad(g.minute)}`;
+                      return (
+                        <button
+                          key={`ghost-${gi}`}
+                          onClick={() => openNew(day, g.hour)}
+                          title={`Vago nesta semana — quinzenal de ${g.patientName}. Clique para encaixar.`}
+                          style={{ top: top + 1, height }}
+                          className="absolute left-1 right-1 rounded-lg px-2 py-1 text-left overflow-hidden border-l-[3px] border-dashed border-amber-400 bg-amber-400/10 hover:bg-amber-400/20 transition"
+                        >
+                          <p className="text-[10px] font-bold leading-tight text-amber-700">{hh}</p>
+                          <p className="text-[11px] font-semibold leading-tight truncate text-amber-700">Vago Quinzenal</p>
+                        </button>
+                      );
+                    })}
                     {/* blocos de sessão */}
                     {sessionsByDay(day).map((s) => {
                       const { top, height } = blockGeom(s);
