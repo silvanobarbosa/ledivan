@@ -419,6 +419,7 @@ export const therapySessions = pgTable("therapy_sessions", {
   timerStartedAt: timestamp("timer_started_at"), // cronômetro da sessão iniciado
   timerEndedAt: timestamp("timer_ended_at"), // cronômetro encerrado
   patientArrivedAt: timestamp("patient_arrived_at"), // paciente tocou "Cheguei" (sala de espera)
+  sessionKind: text("session_kind").default("consulta").notNull(), // consulta | devolutiva (devolutiva a responsáveis)
   recurring: boolean("recurring").default(false).notNull(), // reserva recorrente
   recurrenceFreq: text("recurrence_freq"), // semanal | quinzenal | mensal (base p/ "Vago Quinzenal" na agenda)
   recurrenceUntil: timestamp("recurrence_until"), // data limite da recorrência
