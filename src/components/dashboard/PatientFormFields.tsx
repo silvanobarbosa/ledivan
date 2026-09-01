@@ -67,6 +67,7 @@ export function PatientFormFields({ p, locations }: { p?: PatientFormData; locat
   const [format, setFormat] = useState(p?.paymentFormat || "avulso");
   const [dueType, setDueType] = useState(p?.dueDateType || "");
   const [lock, setLock] = useState("nao");
+  const [lockMode, setLockMode] = useState("duracao"); // duracao | data
   const GENDERS = ["feminino", "masculino", "nao-binario"];
   const initialGender = p?.gender ? (GENDERS.includes(p.gender) ? p.gender : "outro") : "";
   const [gender, setGender] = useState(initialGender);
@@ -205,24 +206,46 @@ export function PatientFormFields({ p, locations }: { p?: PatientFormData; locat
 
           {/* Travar agenda no dia/horário escolhido */}
           <div className="pt-2 border-t border-border">
-            <p className="text-xs font-bold text-foreground/40 uppercase tracking-widest mb-3 mt-3">Travar agenda<InfoTip text="Gera sessões semanais no dia/horário escolhido, entre as datas. 'Agendada' = confirmada; 'Reservada' = aguardando confirmação." /></p>
+            <p className="text-xs font-bold text-foreground/40 uppercase tracking-widest mb-3 mt-3">Reservar agenda<InfoTip text="Reserva o dia/horário na recorrência escolhida (semanal/quinzenal/mensal), pelo período definido. 'Agendada' = confirmada; 'Reservada' = aguardando confirmação. Protege o slot de outra recorrência sobreposta." /></p>
             <div className="grid sm:grid-cols-3 gap-4 items-end">
               <div>
-                <label className={labelCls}>Travar como</label>
+                <label className={labelCls}>Reservar como</label>
                 <select name="lockAgenda" className={inputCls} value={lock} onChange={(e) => setLock(e.target.value)}>
-                  <option value="nao">Não travar</option>
+                  <option value="nao">Não reservar</option>
                   <option value="agendada">Agendada (confirmada)</option>
                   <option value="reservada">Reservada (a confirmar)</option>
                 </select>
               </div>
               {lock !== "nao" && (
-                <>
-                  <div><label className={labelCls}>De</label><input name="lockStart" type="date" className={inputCls} /></div>
-                  <div><label className={labelCls}>Até</label><input name="lockEnd" type="date" className={inputCls} /></div>
-                </>
+                <div>
+                  <label className={labelCls}>Período por</label>
+                  <select name="lockEndMode" className={inputCls} value={lockMode} onChange={(e) => setLockMode(e.target.value)}>
+                    <option value="duracao">Duração (meses/anos)</option>
+                    <option value="data">Data específica</option>
+                  </select>
+                </div>
               )}
             </div>
-            {lock !== "nao" && <p className="text-[11px] text-foreground/50 mt-2">Usa o <strong>dia</strong> e a <strong>hora</strong> escolhidos acima. Cria 1 sessão por semana no período.</p>}
+            {lock !== "nao" && (
+              <div className="grid sm:grid-cols-3 gap-4 items-end mt-4">
+                <div><label className={labelCls}>Início</label><input name="lockStart" type="date" className={inputCls} /></div>
+                {lockMode === "duracao" ? (
+                  <>
+                    <div><label className={labelCls}>Por</label><input name="lockDurationValue" type="number" min={1} max={5} defaultValue={1} className={inputCls} /></div>
+                    <div>
+                      <label className={labelCls}>Unidade</label>
+                      <select name="lockDurationUnit" className={inputCls} defaultValue="anos">
+                        <option value="anos">Ano(s)</option>
+                        <option value="meses">Mês(es)</option>
+                      </select>
+                    </div>
+                  </>
+                ) : (
+                  <div className="sm:col-span-2"><label className={labelCls}>Até</label><input name="lockEnd" type="date" className={inputCls} /></div>
+                )}
+              </div>
+            )}
+            {lock !== "nao" && <p className="text-[11px] text-foreground/50 mt-2">Usa o <strong>dia</strong>, a <strong>hora</strong> e a <strong>recorrência</strong> escolhidos acima. Sem início definido, começa hoje.</p>}
           </div>
 
           <div className="pt-2 border-t border-border">

@@ -10,6 +10,7 @@ import { put } from "@vercel/blob";
 import { sendWhatsappFromUser } from "@/lib/whatsappEvolution";
 import { sendProEmail } from "@/lib/email";
 import { escapeHtml } from "@/lib/html";
+import { endFromDuration, occurrences, type LockFreq } from "@/lib/recurrence";
 
 // Envia mensagem ao paciente pelo canal escolhido (WhatsApp do Ledivan, Telegram ou e-mail).
 export async function sendPatientMessage(patientId: string, channel: string, text: string): Promise<{ ok: boolean; error?: string }> {
@@ -92,23 +93,40 @@ async function maybeLockAgenda(userId: string, pf: { patientId: string; attendan
   if (lock === "nao") return;
   const day = (pf.attendanceDay || "").toLowerCase();
   const time = pf.attendanceTime || "";
-  const startStr = formData.get("lockStart") as string;
-  const endStr = formData.get("lockEnd") as string;
   const wd = DOW[day];
-  if (wd === undefined || !time || !startStr || !endStr) return;
+  if (wd === undefined || !time) return;
   const [hh, mm] = time.split(":").map((x) => parseInt(x) || 0);
-  const end = new Date(`${endStr}T23:59:59`);
-  const cur = new Date(`${startStr}T00:00:00`);
-  while (cur.getDay() !== wd) cur.setDate(cur.getDate() + 1);
+
+  // Início: data escolhida ou hoje.
+  const startStr = formData.get("lockStart") as string;
+  const start = startStr ? new Date(`${startStr}T00:00:00`) : new Date();
+  start.setHours(0, 0, 0, 0);
+
+  // Fim: por DURAÇÃO ("X meses/anos") ou por DATA específica.
+  const mode = (formData.get("lockEndMode") as string) || "duracao";
+  let end: Date;
+  if (mode === "data") {
+    const endStr = formData.get("lockEnd") as string;
+    if (!endStr) return;
+    end = new Date(`${endStr}T23:59:59`);
+  } else {
+    const val = parseInt(formData.get("lockDurationValue") as string) || 1;
+    const unit = ((formData.get("lockDurationUnit") as string) || "anos") === "anos" ? "anos" : "meses";
+    end = endFromDuration(start, val, unit);
+  }
+
+  // Passo pela recorrência: semanal (7d), quinzenal (14d), mensal (mês a mês). 2x_semana trata como semanal.
+  const freq = (formData.get("recorrencia") as string) || "semanal";
+  const recFreq: LockFreq = freq === "quinzenal" ? "quinzenal" : freq === "mensal" ? "mensal" : "semanal";
   const reserva = lock === "reservada";
   const isOnline = pf.attendanceMode === "online";
-  const rows: typeof therapySessions.$inferInsert[] = [];
-  let guard = 0;
-  while (cur <= end && guard++ < 70) {
-    const d = new Date(cur); d.setHours(hh, mm, 0, 0);
-    rows.push({ userId, patientId: pf.patientId, date: d, duration: 50, fee: pf.sessionFee, status: "agendada", chargeable: true, isOnline, location: isOnline ? null : pf.attendanceLocation, pendingConfirmation: reserva });
-    cur.setDate(cur.getDate() + 7);
-  }
+
+  const dates = occurrences({ weekday: wd, hour: hh, minute: mm, start, end, freq: recFreq });
+  const rows: typeof therapySessions.$inferInsert[] = dates.map((d) => ({
+    userId, patientId: pf.patientId, date: d, duration: 50, fee: pf.sessionFee, status: "agendada",
+    chargeable: true, isOnline, location: isOnline ? null : pf.attendanceLocation, pendingConfirmation: reserva,
+    recurring: true, recurrenceFreq: recFreq, recurrenceUntil: end,
+  }));
   if (rows.length) await db.insert(therapySessions).values(rows);
 }
 
