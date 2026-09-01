@@ -52,7 +52,7 @@ type Patient = {
 type ContractEntry = { id: string; type: string; from: string | null; to: string | null; description: string | null; date: string };
 type Finance = { fee: number; balance: number; totalPaid: number; totalDebit: number; atendimentos: number; lastPaymentDate: string | null; lastPaymentAmount: number | null; creditSessions: number; debtSessions: number };
 type LedgerEntry = { id: string; date: string; kind: "pagamento" | "sessao"; desc: string; amount: number; balance: number; payId: string | null };
-type Session = { id: string; date: string; duration: number; fee: string; status: string; notes: string | null; isOnline: boolean; patientSummary: string | null; meetingUrl: string | null; pendingConfirmation: boolean; recurring: boolean; chargeable: boolean };
+type Session = { id: string; date: string; duration: number; fee: string; status: string; notes: string | null; isOnline: boolean; patientSummary: string | null; meetingUrl: string | null; pendingConfirmation: boolean; recurring: boolean; chargeable: boolean; sessionKind?: string };
 type Payment = { id: string; date: string; amount: string; method: string; status: string; linkedTransactionId: string | null };
 type StatusEntry = { id: string; status: string; date: string };
 type PriceEntry = { id: string; valor: string; dataEfetiva: string };
@@ -541,7 +541,7 @@ export function PatientDetail({
                 <div key={s.id} style={{ borderLeftColor: sessHex(s.status, s.pendingConfirmation, s.recurring) }} className="glass-card rounded-2xl p-4 space-y-3 group border-l-4">
                   <div className="flex items-center justify-between gap-3">
                     <div>
-                      <p className="font-semibold flex items-center gap-1.5">{formatDateTime(s.date)}{s.isOnline ? <Video className="w-3.5 h-3.5 text-primary" /> : <MapPin className="w-3.5 h-3.5 text-foreground/40" />}</p>
+                      <p className="font-semibold flex items-center gap-1.5">{formatDateTime(s.date)}{s.isOnline ? <Video className="w-3.5 h-3.5 text-primary" /> : <MapPin className="w-3.5 h-3.5 text-foreground/40" />}{s.sessionKind === "devolutiva" && <span className="text-[9px] font-bold uppercase tracking-wide text-primary bg-primary/10 px-1.5 py-0.5 rounded">Devolutiva</span>}</p>
                       <p className="text-sm text-foreground/50">{s.duration}min · {formatBRL(s.fee)} {s.status === "nao_realizada" ? null : s.chargeable ? <span className="text-[#047857] font-semibold">(cobrada)</span> : <span className="text-foreground/40 font-semibold">(não cobrada)</span>} · {s.isOnline ? "Online" : "Presencial"}</p>
                     </div>
                     {s.isOnline && (

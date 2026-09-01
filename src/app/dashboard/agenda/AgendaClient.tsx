@@ -12,7 +12,7 @@ type PatientLite = { id: string; name: string; status: string; attendanceMode: s
 type LocationLite = { name: string; address: string };
 
 type SessionStatus = "realizada" | "nao_realizada" | "cancelada" | "realocada" | "agendada";
-type AgendaSession = { id: string; date: string; duration: number; status: string; patientName: string; isOnline: boolean; risk: string; meetingUrl: string | null; meetingOpenedAt: string | null; guestJoinedAt: string | null; meetingEndedAt: string | null; pendingConfirmation: boolean; patientConfirmed: boolean; rescheduleRequested: boolean; patientArrived: boolean; location: string | null; recurring: boolean; recurrenceFreq?: string | null; patientId?: string };
+type AgendaSession = { id: string; date: string; duration: number; status: string; patientName: string; isOnline: boolean; risk: string; meetingUrl: string | null; meetingOpenedAt: string | null; guestJoinedAt: string | null; meetingEndedAt: string | null; pendingConfirmation: boolean; patientConfirmed: boolean; rescheduleRequested: boolean; patientArrived: boolean; location: string | null; recurring: boolean; recurrenceFreq?: string | null; patientId?: string; sessionKind?: string };
 
 const blockColor = (s: AgendaSession) => sessionColorClasses(s.status, s.pendingConfirmation, s.recurring);
 
@@ -41,6 +41,8 @@ export function AgendaClient({ sessions, patients = [], locations = [], holidays
   const [newPatient, setNewPatient] = useState("");
   const [newOnline, setNewOnline] = useState(false);
   const [newRecorrente, setNewRecorrente] = useState(false);
+  const [newKind, setNewKind] = useState("consulta");
+  const [newCharge, setNewCharge] = useState(true);
   const [newError, setNewError] = useState<string | null>(null);
 
   function pad(n: number) { return String(n).padStart(2, "0"); }
@@ -315,6 +317,7 @@ export function AgendaClient({ sessions, patients = [], locations = [], holidays
                             {s.isOnline ? <Video className="w-2.5 h-2.5 shrink-0" /> : <MapPin className="w-2.5 h-2.5 shrink-0" />}
                             <span className="truncate">{s.patientName}</span>
                           </p>
+                          {s.sessionKind === "devolutiva" && <p className="text-[9px] font-bold uppercase tracking-wide text-primary/70">Devolutiva</p>}
                         </button>
                       );
                     })}
@@ -471,6 +474,23 @@ export function AgendaClient({ sessions, patients = [], locations = [], holidays
                 <input name="duration" type="number" defaultValue={50} className="w-full px-3 py-2.5 rounded-xl bg-surface border border-border outline-none text-sm" />
               </div>
             </div>
+
+            <div>
+              <label className="text-xs font-semibold text-foreground/60">Tipo</label>
+              <select name="sessionKind" value={newKind} onChange={(e) => setNewKind(e.target.value)} className="w-full px-4 py-2.5 rounded-xl bg-surface border border-border outline-none text-sm">
+                <option value="consulta">Consulta</option>
+                <option value="devolutiva">Devolutiva (aos responsáveis)</option>
+              </select>
+            </div>
+
+            {newKind === "devolutiva" && (
+              <label className="flex items-center gap-2 text-sm cursor-pointer rounded-xl bg-[#f3e8ff] px-3 py-2">
+                <input type="checkbox" name="chargeable" checked={newCharge} onChange={(e) => setNewCharge(e.target.checked)} value="true" className="accent-primary w-4 h-4" />
+                Cobrar esta devolutiva
+              </label>
+            )}
+            {/* Sem cobrar marcado explicitamente => envia false (a devolutiva pode ser cortesia). */}
+            {newKind === "devolutiva" && !newCharge && <input type="hidden" name="chargeable" value="false" />}
 
             <label className="flex items-center gap-2 text-sm cursor-pointer">
               <input type="checkbox" name="isOnline" checked={newOnline} onChange={(e) => setNewOnline(e.target.checked)} className="accent-primary w-4 h-4" />

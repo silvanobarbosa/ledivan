@@ -144,6 +144,7 @@ export async function createSessionFromAgenda(formData: FormData): Promise<{ ok:
     isOnline,
     location: isOnline ? null : ((formData.get("location") as string) || patient.attendanceLocation || null),
     pendingConfirmation: formData.get("reserva") === "true",
+    sessionKind: (formData.get("sessionKind") as string) === "devolutiva" ? "devolutiva" : "consulta",
     meetingUrl,
   });
 
