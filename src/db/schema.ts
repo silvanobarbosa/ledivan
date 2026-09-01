@@ -419,7 +419,8 @@ export const therapySessions = pgTable("therapy_sessions", {
   timerStartedAt: timestamp("timer_started_at"), // cronômetro da sessão iniciado
   timerEndedAt: timestamp("timer_ended_at"), // cronômetro encerrado
   patientArrivedAt: timestamp("patient_arrived_at"), // paciente tocou "Cheguei" (sala de espera)
-  recurring: boolean("recurring").default(false).notNull(), // reserva recorrente (semanal)
+  recurring: boolean("recurring").default(false).notNull(), // reserva recorrente
+  recurrenceFreq: text("recurrence_freq"), // semanal | quinzenal | mensal (base p/ "Vago Quinzenal" na agenda)
   recurrenceUntil: timestamp("recurrence_until"), // data limite da recorrência
   googleEventId: text("google_event_id"), // vínculo com evento no Google Calendar (sync)
   meetingUrl: text("meeting_url"), // link Google Meet (se gerado); senão usa Jitsi derivado do id
