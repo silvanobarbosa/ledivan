@@ -31,7 +31,7 @@ import {
   riskColor,
   type RiskLevel,
 } from "@/lib/therapy";
-import { Phone, Mail, MapPin, Plus, Link2, Pencil, Trash2, Video, Mic, Loader2, Receipt, FileText, Stethoscope, Repeat } from "lucide-react";
+import { Phone, Mail, MapPin, Plus, Link2, Pencil, Trash2, Video, Mic, Loader2, Receipt, FileText, Stethoscope, Repeat, Download } from "lucide-react";
 
 const FMT_LABEL: Record<string, string> = { avulso: "Avulso", mensal: "Mensal", quinzenal: "Quinzenal", pacote: "Pacote" };
 const CAT_LABEL: Record<string, string> = { crianca: "Criança", adolescente: "Adolescente", adulto: "Adulto", idoso: "Idoso", casal: "Casal" };
@@ -206,6 +206,13 @@ export function PatientDetail({
             className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/60 text-primary font-semibold text-sm hover:bg-white transition"
           >
             <FileText className="w-4 h-4" /> Prontuário PDF
+          </a>
+          <a
+            href={`/api/patients/${patient.id}/export`}
+            title="Baixar todos os dados deste paciente (LGPD — portabilidade)"
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/60 text-primary font-semibold text-sm hover:bg-white transition"
+          >
+            <Download className="w-4 h-4" /> Exportar dados
           </a>
           <Link
             href={`/dashboard/patients/${patient.id}/edit`}

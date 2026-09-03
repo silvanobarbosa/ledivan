@@ -127,30 +127,46 @@ export function AtenderClient({ session, records, meeting, therapistName, timerE
         </div>
       )}
 
-      {/* Conteúdo */}
-      <div className="flex-1 flex flex-col min-h-0">
+      {/* Conteúdo.
+          Notebook (lg+) com vídeo: DUAS COLUNAS — esquerda o paciente (vídeo), direita
+          o prontuário desta sessão em cima e o histórico embaixo, cada um com rolagem própria.
+          Sem vídeo (presencial) ou no celular: volta ao empilhado. */}
+      <div className={`flex-1 min-h-0 ${online ? "flex flex-col lg:flex-row" : "flex flex-col"}`}>
         {online && (
-          <div className="h-[48vh] lg:h-[55vh] shrink-0 border-b border-border">
+          <div className="h-[42vh] lg:h-auto lg:w-1/2 shrink-0 border-b lg:border-b-0 lg:border-r border-border bg-black">
             <JitsiRoom roomName={meeting.room} displayName={therapistName} sessionId={session.id} domain={meeting.domain} jwt={meeting.jwt} inline onLeaveHref={`/atender/${session.id}`} />
           </div>
         )}
 
-        {/* Prontuário */}
-        <div className="flex-1 overflow-y-auto p-4 lg:p-6">
-          <div className="max-w-3xl mx-auto space-y-4">
+        {/* Prontuário + histórico */}
+        <div className={`flex-1 min-h-0 flex flex-col ${online ? "lg:w-1/2" : ""}`}>
+          {/* Em cima: evolução DESTA sessão */}
+          <div className="shrink-0 border-b border-border bg-white/40 p-4 lg:p-5 space-y-3">
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-xs font-bold text-foreground/40 uppercase tracking-widest">Evolução da sessão</p>
+              <span className="text-[11px] text-foreground/40 capitalize truncate">{dt} · {session.duration}min</span>
+            </div>
             {!online && session.location && (
               <p className="text-sm text-foreground/60 inline-flex items-center gap-1.5"><MapPin className="w-4 h-4" /> {session.location}</p>
             )}
-            <div className="glass-card rounded-[24px] p-5 space-y-3">
-              <p className="text-xs font-bold text-foreground/40 uppercase tracking-widest">Evolução da sessão</p>
-              <textarea value={note} onChange={(e) => setNote(e.target.value)} rows={6} placeholder="Registre a evolução do atendimento…" className="w-full px-4 py-3 rounded-2xl bg-white/70 border border-border outline-none text-sm focus:border-accent resize-none" />
-              <button onClick={saveNote} disabled={pending || !note.trim()} className="inline-flex items-center gap-2 bg-primary text-white px-5 py-2.5 rounded-xl font-bold text-sm disabled:opacity-50">
-                {pending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />} Salvar evolução
-              </button>
-            </div>
+            <textarea
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              rows={online ? 7 : 6}
+              placeholder="Registre a evolução do atendimento…"
+              className="w-full px-4 py-3 rounded-2xl bg-white/80 border border-border outline-none text-sm focus:border-accent resize-none"
+            />
+            <button onClick={saveNote} disabled={pending || !note.trim()} className="inline-flex items-center gap-2 bg-primary text-white px-5 py-2.5 rounded-xl font-bold text-sm disabled:opacity-50">
+              {pending ? <Loader2 className="w-4 h-4 animate-spin" /> : <Check className="w-4 h-4" />} Salvar evolução
+            </button>
+          </div>
 
+          {/* Embaixo: histórico do paciente (rolagem própria) */}
+          <div className="flex-1 min-h-0 overflow-y-auto p-4 lg:p-5">
+            <p className="text-xs font-bold text-foreground/40 uppercase tracking-widest mb-2">
+              Histórico do paciente{recs.length > 0 ? ` · ${recs.length}` : ""}
+            </p>
             <div className="space-y-2">
-              <p className="text-xs font-bold text-foreground/40 uppercase tracking-widest">Registros anteriores</p>
               {recs.length === 0 ? <p className="text-sm text-foreground/40">Nenhum registro ainda.</p> : recs.map((r) => (
                 <div key={r.id} className="glass-card rounded-2xl p-4">
                   <p className="text-[11px] font-bold uppercase tracking-wide text-foreground/40">{REC_LABEL[r.type] || r.type}{r.title ? ` · ${r.title}` : ""} · {new Date(r.createdAt).toLocaleDateString("pt-BR")}</p>

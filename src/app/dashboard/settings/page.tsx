@@ -22,6 +22,7 @@ import { FeaturesCard } from "./FeaturesCard";
 import { ConsentCard } from "./ConsentCard";
 import { getConsentForm } from "./consent-actions";
 import { PixCard } from "./PixCard";
+import { AiKeyCard } from "./AiKeyCard";
 import { hasGoogleAccount, hasCalendarScope } from "@/lib/googleCalendar";
 
 export const dynamic = "force-dynamic";
@@ -143,6 +144,8 @@ export default async function SettingsPage() {
           <IntegrationsCard initial={prefs.integrations ?? {}} calendarAuthorized={calendarAuthorized} />
 
           <TranscriptionToggle initial={!!prefs.transcriptionEnabled} />
+
+          <AiKeyCard configured={!!user.aiKeyEnc} provider={user.aiProvider} />
 
           <FeaturesCard initial={{ modes: prefs.features ?? {}, timerShow: !!prefs.timerShowToPatient }} />
 

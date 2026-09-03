@@ -35,6 +35,10 @@ export const users = pgTable("user", {
   smtpPassEnc: text("smtp_pass_enc"), // senha de app, criptografada
   smtpFromName: text("smtp_from_name"),
   emailConfigured: boolean("email_configured").default(false).notNull(),
+  // IA do próprio terapeuta (BYOK) — usada na transcrição/redação da evolução.
+  // O app NÃO carrega chave de provedor: o áudio vai para o provedor DELA, com a chave DELA.
+  aiProvider: text("ai_provider"), // openai | groq
+  aiKeyEnc: text("ai_key_enc"), // chave do provedor, cifrada (AES-256-GCM)
   // WhatsApp do profissional (instância Evolution própria) — por tenant
   whatsappInstance: text("whatsapp_instance"),
   whatsappConnected: boolean("whatsapp_connected").default(false).notNull(),
