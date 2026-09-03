@@ -593,8 +593,10 @@ export const sessionPaymentsRelations = relations(sessionPayments, ({ one }) => 
 export const pushTokens = pgTable("push_tokens", {
   token: text("token").primaryKey(),
   userId: text("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
+  // Null = aparelho do TERAPEUTA. Preenchido = aparelho do PACIENTE (app do paciente).
+  patientId: uuid("patient_id").references(() => patients.id, { onDelete: "cascade" }),
   platform: text("platform"), // 'android' | 'ios'
   appVersion: text("app_version"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
-}, (t) => [index("push_user_idx").on(t.userId)]);
+}, (t) => [index("push_user_idx").on(t.userId), index("push_patient_idx").on(t.patientId)]);
