@@ -6,13 +6,14 @@ import { MessageCircle } from "lucide-react";
 import { AttendanceFields } from "@/components/dashboard/AttendanceFields";
 import { PhotoSlots } from "@/components/dashboard/PhotoSlots";
 import { REMINDER_LEAD_OPTIONS } from "@/lib/reminderLead";
+import { QUEIXAS } from "@/lib/queixas";
 
 const inputCls = "w-full px-4 py-3 rounded-2xl bg-white/70 border border-border focus:ring-2 focus:ring-accent/20 focus:border-accent outline-none transition";
 const labelCls = "block text-sm font-semibold text-foreground/70 mb-1.5";
 const DAYS = ["segunda", "terça", "quarta", "quinta", "sexta", "sábado", "domingo"];
 
 export type PatientFormData = {
-  registrationNumber?: number | null; agendaId?: string | null; dueDateType?: string | null; dueDate?: string | null;
+  registrationNumber?: number | null; agendaId?: string | null; dueDateType?: string | null; dueDate?: string | null; queixaPrincipal?: string | null;
   name?: string; phone?: string | null; email?: string | null; patientStatus?: string;
   startedAt?: string | null; birthDate?: string | null; category?: string | null; gender?: string | null; cpf?: string | null; address?: string | null;
   guardianName?: string | null; guardianCpf?: string | null; guardianPhone?: string | null; guardianEmail?: string | null;
@@ -72,6 +73,8 @@ export function PatientFormFields({ p, locations }: { p?: PatientFormData; locat
   const initialGender = p?.gender ? (GENDERS.includes(p.gender) ? p.gender : "outro") : "";
   const [gender, setGender] = useState(initialGender);
   const [category, setCategory] = useState(p?.category || "");
+  const initialQueixa = p?.queixaPrincipal ? ((QUEIXAS as readonly string[]).includes(p.queixaPrincipal) ? p.queixaPrincipal : "Outro") : "";
+  const [queixa, setQueixa] = useState(initialQueixa);
   const initialRec = (p?.frequency === "semanal" && (p?.timesPerPeriod ?? 1) >= 2) ? "2x_semana" : (p?.frequency || "semanal");
   const dateVal = (d?: string | null) => (d ? new Date(d).toISOString().slice(0, 10) : "");
   const show = (k: string) => (tab === k ? "space-y-4" : "hidden");
@@ -121,6 +124,17 @@ export function PatientFormFields({ p, locations }: { p?: PatientFormData; locat
                 <option value="casal">Casal</option>
               </select>
             </div>
+            <div>
+              <label className={labelCls}>Queixa principal<InfoTip text="Demanda/queixa principal do paciente. Usada nos filtros do painel. Se não estiver na lista, escolha 'Outro'." /></label>
+              <select value={queixa} onChange={(e) => setQueixa(e.target.value)} name={queixa === "Outro" ? undefined : "queixaPrincipal"} className={inputCls}>
+                <option value="">—</option>
+                {QUEIXAS.map((q) => <option key={q} value={q}>{q}</option>)}
+                <option value="Outro">Outro</option>
+              </select>
+            </div>
+            {queixa === "Outro" && (
+              <div><label className={labelCls}>Qual queixa?</label><input name="queixaPrincipal" defaultValue={initialQueixa === "Outro" ? (p?.queixaPrincipal ?? "") : ""} className={inputCls} placeholder="Descreva a queixa" /></div>
+            )}
             <div>
               <label className={labelCls}>Gênero</label>
               <select name="gender" value={gender} onChange={(e) => setGender(e.target.value)} className={inputCls}>
