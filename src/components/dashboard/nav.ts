@@ -11,6 +11,7 @@ import {
   HelpCircle,
   MessageCircle,
   Receipt,
+  TrendingUp,
 } from "lucide-react";
 
 export type NavItem = { icon: typeof LayoutDashboard; label: string; href: string };
@@ -34,6 +35,7 @@ export const NAV_GROUPS: NavGroup[] = [
       { icon: LayoutDashboard, label: "Visão geral", href: "/dashboard/financeiro" },
       { icon: Wallet, label: "Visão financeira", href: "/dashboard/visao-financeira" },
       { icon: ArrowLeftRight, label: "Transações", href: "/dashboard/transactions" },
+      { icon: TrendingUp, label: "Previsão", href: "/dashboard/previsao" },
       { icon: BarChart3, label: "Relatórios", href: "/dashboard/reports" },
       { icon: Scale, label: "Conciliação", href: "/dashboard/conciliacao" },
       { icon: Receipt, label: "Receita Saúde", href: "/dashboard/receita-saude" },
