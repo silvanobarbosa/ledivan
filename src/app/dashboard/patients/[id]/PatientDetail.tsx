@@ -71,7 +71,7 @@ const inputCls = "w-full px-4 py-2.5 rounded-xl bg-white/70 border border-border
 const TABS = ["Dados", "Prontuário", "Atividades", "Materiais", "Sessões", "Financeiro", "Linha do tempo"] as const;
 
 export function PatientDetail({
-  patient, sessions, payments, statusHistory, priceHistory, records, autoLinkPayments, transcriptionEnabled, risk, assignments, moodToken, moodLogs, scales, treatmentGoals, diaryEntries = [], ratings = [], consents = [], packageLabels = {}, locations = [], contractHistory = [], finance, ledger = [], sessionStats, packageInfo, recurring,
+  patient, sessions, payments, statusHistory, priceHistory, records, transcriptionEnabled, risk, assignments, moodToken, moodLogs, scales, treatmentGoals, diaryEntries = [], ratings = [], consents = [], packageLabels = {}, locations = [], contractHistory = [], finance, ledger = [], sessionStats, packageInfo, recurring,
 }: {
   patient: Patient; sessions: Session[]; payments: Payment[];
   statusHistory: StatusEntry[]; priceHistory: PriceEntry[]; records: RecordEntry[];
@@ -81,7 +81,7 @@ export function PatientDetail({
   sessionStats: { reservadas: number; agendadasFuturas: number; realizadasCount: number; lastRealizada: string | null };
   packageInfo: { list: { id: string; seq: number; sessions: number; used: number; remaining: number }[]; openSessions: number; currentLabel: string | null; openLabels: string[]; totalSessions: number };
   recurring: { day: string; time: string; until: string | null } | null;
-  autoLinkPayments: boolean; transcriptionEnabled: boolean;
+  transcriptionEnabled: boolean;
   risk: { level: RiskLevel; rate: number; faltas: number; total: number };
   assignments: AssignmentEntry[];
   moodToken: string | null;
@@ -637,12 +637,10 @@ export function PatientDetail({
                     {packageInfo.list.map((p) => <option key={p.id} value={p.id}>P{p.seq} · {p.sessions} sessões ({p.remaining} restantes)</option>)}
                   </select></div>
               )}
-              <label className="sm:col-span-2 flex items-center gap-2 text-sm bg-secondary-container/30 rounded-xl px-3 py-2.5 cursor-pointer">
-                <input type="checkbox" name="link" value="on" defaultChecked={autoLinkPayments} className="accent-primary w-4 h-4" />
-                <Link2 className="w-4 h-4 text-primary" />
-                <span>Lançar como receita no financeiro</span>
-                <InfoTip text="Se marcado, este pagamento vira uma transação de receita no Financeiro (categoria Sessões). Pode ligar/desligar caso a caso." />
-              </label>
+              <p className="sm:col-span-2 flex items-center gap-2 text-xs text-foreground/50 bg-secondary-container/30 rounded-xl px-3 py-2.5">
+                <Link2 className="w-4 h-4 text-primary shrink-0" />
+                <span>Pagamentos <b>pagos</b> entram automaticamente no Financeiro (categoria Sessões). Créditos de pacote não contam como receita.</span>
+              </p>
               <button className="sm:col-span-2 bg-primary text-white py-2.5 rounded-xl font-bold">Salvar pagamento</button>
             </form>
           )}

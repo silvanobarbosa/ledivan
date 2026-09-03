@@ -6,7 +6,6 @@ import { auth } from "@/auth";
 import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
-import { getPreferences } from "@/lib/preferences";
 
 type PaymentMethod = "pix" | "card" | "transfer" | "cash";
 type PaymentStatus = "paid" | "pending" | "overdue";
@@ -50,17 +49,12 @@ export async function createPayment(formData: FormData) {
   const status = ((formData.get("status") as string) || "paid") as PaymentStatus;
   const sessionId = (formData.get("sessionId") as string) || null;
 
-  // Decide se vincula ao financeiro: toggle do form OU preferencia do terapeuta.
-  // O form manda "link" = "on" | "off" | "" (vazio = usar preferencia).
-  const linkField = formData.get("link") as string | null;
-  const prefs = await getPreferences(userId);
-  const shouldLink =
-    linkField === "on" ? true : linkField === "off" ? false : !!prefs.autoLinkPayments;
-
+  const kind = (formData.get("kind") as string) || null; // "pacote" = crédito de pacote (NÃO é receita)
   let linkedTransactionId: string | null = null;
 
-  // Só vira receita se de fato foi pago.
-  if (shouldLink && status === "paid") {
+  // Unificado: todo pagamento PAGO (que não seja crédito de pacote) SEMPRE reflete no caixa/relatórios.
+  // Sem toggle — antes, com autoLinkPayments off, o pagamento sumia do caixa (divergência).
+  if (status === "paid" && kind !== "pacote") {
     const categoryId = await ensureSessionCategory();
     const account = await db.query.financialAccounts.findFirst({
       where: eq(financialAccounts.userId, userId),
@@ -87,6 +81,7 @@ export async function createPayment(formData: FormData) {
     date,
     method,
     status,
+    kind,
     linkedTransactionId,
     packageId: (formData.get("packageId") as string) || null, // vínculo opcional com pacote
   });

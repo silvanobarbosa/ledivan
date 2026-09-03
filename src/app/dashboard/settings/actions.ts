@@ -110,15 +110,6 @@ export async function disableSmtp() {
   revalidatePath("/dashboard/settings");
 }
 
-// Liga/desliga o vínculo automático de pagamentos de sessão com o financeiro.
-export async function setAutoLinkPayments(enabled: boolean) {
-  const session = await auth();
-  if (!session?.user?.id) throw new Error("Não autorizado");
-
-  await setPreferences(session.user.id, { autoLinkPayments: enabled });
-  revalidatePath("/dashboard/settings");
-}
-
 // Liga/desliga a transcrição de sessão por IA (opt-in do terapeuta).
 export async function setTranscriptionEnabled(enabled: boolean) {
   const session = await auth();
