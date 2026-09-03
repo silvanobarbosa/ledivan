@@ -138,7 +138,6 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
         statusHistory={JSON.parse(JSON.stringify(statusHist))}
         priceHistory={JSON.parse(JSON.stringify(priceHist))}
         records={JSON.parse(JSON.stringify(recordsList))}
-        autoLinkPayments={!!prefs.autoLinkPayments}
         transcriptionEnabled={!!prefs.transcriptionEnabled}
         risk={riskFromSessions(sessionsList.map((s) => ({ status: s.status, date: s.date as Date })))}
         assignments={JSON.parse(JSON.stringify(assignmentsList))}

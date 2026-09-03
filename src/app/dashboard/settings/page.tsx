@@ -10,7 +10,6 @@ import { SinglePhoto } from "@/components/dashboard/PhotoSlots";
 import { LocationsCard } from "./LocationsCard";
 import { parseLocations } from "@/lib/locations";
 import { TelegramSync } from "./TelegramSync";
-import { AutoLinkToggle } from "./AutoLinkToggle";
 import { IntegrationsCard } from "./IntegrationsCard";
 import { BookingCard } from "./BookingCard";
 import { TranscriptionToggle } from "./TranscriptionToggle";
@@ -142,8 +141,6 @@ export default async function SettingsPage() {
           <BookingCard initialSlug={user.bookingSlug} initialAutoConfirm={!!prefs.bookingAutoConfirm} />
 
           <IntegrationsCard initial={prefs.integrations ?? {}} calendarAuthorized={calendarAuthorized} />
-
-          <AutoLinkToggle initial={!!prefs.autoLinkPayments} />
 
           <TranscriptionToggle initial={!!prefs.transcriptionEnabled} />
 
