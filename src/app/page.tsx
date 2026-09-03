@@ -7,9 +7,10 @@ import {
   Wallet,
   Repeat2,
   ScanLine,
-  MessageCircle,
   BarChart3,
-  Target,
+  Activity,
+  TrendingUp,
+  Receipt,
   ShieldCheck,
   Sparkles,
   ArrowRight,
@@ -319,16 +320,17 @@ function Problem() {
 
 function Features() {
   const feats = [
-    { icon: Users, t: "Pacientes", d: "Cadastro completo, status, valor, contrato e histórico de reajustes." },
-    { icon: CalendarDays, t: "Agenda visual", d: "Grade semanal estilo Google Calendar, status em 1 clique." },
-    { icon: Mail, t: "Mensagens com pacientes", d: "Fale direto com seus pacientes por WhatsApp, Telegram e e-mail, sem sair do app." },
-    { icon: Video, t: "Vídeo no Google Meet", d: "Links de atendimento online criados automaticamente na agenda." },
-    { icon: Wallet, t: "Financeiro", d: "Receitas, despesas, contas e categorias num lugar só." },
-    { icon: Repeat2, t: "Pagamento vira receita", d: "Vínculo automático e opcional — você decide." },
+    { icon: Users, t: "Pacientes e prontuário", d: "Cadastro completo, queixa principal, responsável, evolução, anamnese e metas." },
+    { icon: CalendarDays, t: "Agenda com recorrência", d: "Semanal, quinzenal ou mensal. Reserva o horário pelo período que você definir." },
+    { icon: Repeat2, t: "Pacotes numerados", d: "Reserva as sessões do pacote já como 1/4, 2/4 — e renumera sozinho se você remarcar." },
+    { icon: Activity, t: "Tarefas e escalas", d: "Lição de casa com foto ou vídeo, diário de humor e PHQ-9/GAD-7 com pontuação automática." },
+    { icon: Video, t: "Atendimento online", d: "Sala de vídeo criada na agenda, com prontuário e cronômetro lado a lado." },
+    { icon: Mail, t: "Mensagens com pacientes", d: "Fale direto por WhatsApp, Telegram e e-mail, sem sair do app." },
+    { icon: Wallet, t: "Pagamentos e cobrança", d: "Esperado, pago e em aberto mês a mês — e cobre quem está devendo pelo seu WhatsApp." },
+    { icon: TrendingUp, t: "Previsão de ganhos", d: "Receita dos próximos 12 meses: agendado, pacotes, recorrência e reajustes." },
+    { icon: Receipt, t: "Receita Saúde", d: "Campos prontos para emitir o recibo eletrônico e controle do que falta emitir." },
     { icon: ScanLine, t: "Scan de recibo com IA", d: "Foto do comprovante e a IA lança a despesa." },
-    { icon: MessageCircle, t: "Lançamentos por mensagem", d: "Registre gastos pelo WhatsApp ou Telegram, por texto ou voz." },
     { icon: BarChart3, t: "Relatórios mensais", d: "Receita, despesa e saldo com filtro de período." },
-    { icon: Target, t: "Metas e poupança", d: "Objetivos com barra de progresso e prazo." },
     { icon: ShieldCheck, t: "Segurança", d: "Cada conta com espaço isolado e protegido." },
   ];
   return (

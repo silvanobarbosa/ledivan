@@ -4,9 +4,12 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import {
   Users, CalendarDays, Activity, Wallet, HeartHandshake, Settings, X, ArrowRight, ArrowLeft, Sparkles, HelpCircle,
+  ClipboardList, Smartphone, Banknote, TrendingUp, Receipt,
 } from "lucide-react";
 
-const KEY = "ledivan_onboarded_v2";
+// v3: tour reescrito (prontuário, app do paciente, pagamentos, previsão, Receita Saúde).
+// Trocar a chave faz o tour reaparecer uma vez para quem já tinha visto a versão antiga.
+const KEY = "ledivan_onboarded_v3";
 
 type Step = { icon: typeof Users; title: string; text: string; href?: string; cta?: string; phase?: string };
 
@@ -14,18 +17,23 @@ const STEPS: Step[] = [
   { icon: Sparkles, title: "Bem-vindo(a) ao Ledivan!", text: "Vou te guiar de ponta a ponta: primeiro a parte CLÍNICA (atender), depois a FINANCEIRA (receber). Pode refazer este tour quando quiser pela Ajuda." },
 
   // ——— Parte clínica ———
-  { phase: "Parte clínica", icon: Users, title: "1. Cadastre o paciente", text: "Em 'Pacientes' → 'Novo paciente': nome, contato, valor da sessão, modalidade (online/presencial/misto) e etiquetas. É o ponto de partida.", href: "/dashboard/patients", cta: "Ver pacientes" },
-  { phase: "Parte clínica", icon: Users, title: "2. A ficha do paciente", text: "Ao abrir um paciente você vê 4 cards no topo: Reservadas, Agendadas futuras, Status de crédito e Realizadas. Abas: Dados, Prontuário, Atividades, Sessões, Financeiro e Linha do tempo." },
-  { phase: "Parte clínica", icon: CalendarDays, title: "3. Agende ou reserve", text: "Na Agenda (grade semanal) crie a sessão. Pode 'Confirmar' ou 'Só reservar' (amarelo) — e 'Reserva recorrente' (azul) cria toda semana até a data. Cores: roxo=agendada, verde=realizada, vermelho=não realizada.", href: "/dashboard/agenda", cta: "Abrir agenda" },
-  { phase: "Parte clínica", icon: HeartHandshake, title: "4. Atenda", text: "No horário, clique 'Atender': abre a sala de vídeo (Jitsi) + o prontuário lado a lado. Registre a evolução e, ao Finalizar, escolha se a sessão será cobrada." },
-  { phase: "Parte clínica", icon: Activity, title: "5. Atividades do paciente", text: "Na aba 'Atividades': tarefas (lição de casa com foto/áudio), diário de humor e escalas PHQ-9/GAD-7 — tudo por link enviado ao paciente. O Prontuário reúne a evolução." },
-  { phase: "Parte clínica", icon: Activity, title: "6. Atenção clínica", text: "O painel 'Atenção clínica' destaca quem precisa de olhar agora: risco de falta, escala em alerta ou humor baixo.", href: "/dashboard/clinico", cta: "Ver alertas" },
+  { phase: "Parte clínica", icon: Users, title: "1. Cadastre o paciente", text: "Em 'Pacientes' → 'Novo paciente': nome, contato, CPF, endereço, responsável, valor da sessão, modalidade e a queixa principal. O número do cadastro é gerado sozinho (0001, 0002…).", href: "/dashboard/patients", cta: "Ver pacientes" },
+  { phase: "Parte clínica", icon: Users, title: "2. A ficha do paciente", text: "Ao abrir um paciente você vê os cards do topo (reservadas, agendadas, crédito, realizadas) e as abas: Dados, Prontuário, Atividades, Materiais, Sessões, Financeiro e Linha do tempo." },
+  { phase: "Parte clínica", icon: CalendarDays, title: "3. Agende ou reserve", text: "Na Agenda crie a sessão e escolha a repetição: Pontual, Semanal, Quinzenal ou Mensal. Todo agendamento nasce como reserva (confirme depois). No quinzenal, a semana livre aparece marcada como 'Vago Quinzenal'.", href: "/dashboard/agenda", cta: "Abrir agenda" },
+  { phase: "Parte clínica", icon: CalendarDays, title: "4. Devolutivas e aniversários", text: "Ao criar um atendimento escolha o Tipo: Consulta ou Devolutiva (aos responsáveis) — na devolutiva você decide se cobra. A agenda também mostra aniversários dos pacientes e lembra as devolutivas próximas." },
+  { phase: "Parte clínica", icon: HeartHandshake, title: "5. Atenda", text: "No horário, clique 'Atender': abre a sala de vídeo + o prontuário lado a lado, com cronômetro da sessão. Registre a evolução e, ao Finalizar, escolha se a sessão será cobrada." },
+  { phase: "Parte clínica", icon: Activity, title: "6. Atividades e materiais", text: "Na aba 'Atividades': tarefas (o paciente responde com texto, foto ou vídeo), humor e escalas PHQ-9/GAD-7 com pontuação automática. Em 'Materiais' você compartilha textos, links e arquivos (PDF/imagem)." },
+  { phase: "Parte clínica", icon: ClipboardList, title: "7. Prontuário", text: "O menu 'Prontuário' abre a busca por paciente e reúne evolução, anamnese, escalas e metas terapêuticas num lugar só.", href: "/dashboard/prontuario", cta: "Abrir prontuário" },
+  { phase: "Parte clínica", icon: Smartphone, title: "8. App do paciente", text: "Em Configurações → 'Recursos do paciente' você liga cada recurso: Desligado, Todos ou Por paciente. Cronômetro, sala de espera, humor, diário, metas, questionários, reagendar, avaliação, consentimento e pagamento Pix.", href: "/dashboard/settings", cta: "Configurar recursos" },
 
   // ——— Parte financeira ———
-  { phase: "Parte financeira", icon: Wallet, title: "7. Financeiro do paciente", text: "Na aba 'Financeiro' do paciente: contadores (sessões previstas, crédito, valor), o fluxo (cada sessão cobrada desconta, cada pagamento soma) e 'Ajustes' (recorrência, valor com vigência, incluir pacote)." },
-  { phase: "Parte financeira", icon: Wallet, title: "8. Pacotes e créditos", text: "Inclua pacotes numerados (P1, P2...) na aba Financeiro do paciente. Cada sessão realizada+cobrar abate 1; o dashboard avisa quem está com pacote acabando." },
-  { phase: "Parte financeira", icon: Wallet, title: "9. Caixa do consultório", text: "Transações, Relatórios mês a mês e Metas. Ao registrar um pagamento, ele pode virar receita no financeiro automaticamente (você decide).", href: "/dashboard/transactions", cta: "Ver financeiro" },
-  { phase: "Parte financeira", icon: Settings, title: "10. Integrações", text: "Conecte WhatsApp (QR), Telegram, e-mail próprio e Google Meet. Registre gastos por mensagem ou foto de recibo (IA). Crie seu link de autoagendamento.", href: "/dashboard/settings", cta: "Abrir ajustes" },
+  { phase: "Parte financeira", icon: Wallet, title: "9. Financeiro do paciente", text: "Na aba 'Financeiro' do paciente: contadores, o fluxo (cada sessão cobrada desconta, cada pagamento soma) e 'Ajustes' (recorrência, valor com vigência, incluir pacote)." },
+  { phase: "Parte financeira", icon: Wallet, title: "10. Pacotes", text: "Ao incluir um pacote (P1, P2…) o sistema já reserva as N sessões na agenda, numeradas 1/4, 2/4… Se você cancelar ou mover uma, as seguintes renumeram sozinhas." },
+  { phase: "Parte financeira", icon: Banknote, title: "11. Pagamentos", text: "A tela 'Pagamentos' traz dois quadros: por mês com todos os pacientes (esperado, pago e em aberto) e por paciente mês a mês. Dá para cobrar quem está em aberto pelo seu WhatsApp — no botão ou automático.", href: "/dashboard/pagamentos", cta: "Ver pagamentos" },
+  { phase: "Parte financeira", icon: TrendingUp, title: "12. Previsão de ganhos", text: "Veja a receita prevista dos próximos 12 meses, separada em: agendado, pacotes a receber, recorrência projetada e reajustes — no total e por paciente.", href: "/dashboard/previsao", cta: "Ver previsão" },
+  { phase: "Parte financeira", icon: Receipt, title: "13. Receita Saúde", text: "O Ledivan monta os campos prontos (CPF do beneficiário e do pagador, valor, data) para você emitir o recibo no app da Receita Federal, e acompanha o que falta emitir.", href: "/dashboard/receita-saude", cta: "Abrir Receita Saúde" },
+  { phase: "Parte financeira", icon: Wallet, title: "14. Caixa do consultório", text: "Transações e Relatórios mês a mês. Todo pagamento registrado como pago entra automaticamente como receita no financeiro (categoria Sessões).", href: "/dashboard/transactions", cta: "Ver financeiro" },
+  { phase: "Parte financeira", icon: Settings, title: "15. Integrações", text: "Conecte WhatsApp (QR), Telegram, e-mail próprio e Google. Cadastre sua chave Pix, o termo de consentimento e crie seu link de autoagendamento.", href: "/dashboard/settings", cta: "Abrir ajustes" },
 
   { icon: HelpCircle, title: "Pronto! 🌿", text: "Você viu o caminho completo: do cadastro ao recebimento. Dúvidas? Menu 'Ajuda' ou o ícone (i) nos campos.", href: "/dashboard/ajuda", cta: "Central de ajuda" },
 ];

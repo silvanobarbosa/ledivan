@@ -88,7 +88,7 @@ function LoginForm() {
           {/* Logo */}
           <div className="flex justify-center mb-8">
             <Image
-              src="/ledivancolor.png"
+              src="/ledivan-color.png"
               alt="Ledivan Plus"
               width={180}
               height={60}
