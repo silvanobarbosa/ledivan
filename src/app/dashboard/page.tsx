@@ -1,10 +1,11 @@
 import { db } from "@/db";
 import { auth } from "@/auth";
 import { users, patients, therapySessions, patientPackages } from "@/db/schema";
-import { and, eq, gte, lte, sql, count } from "drizzle-orm";
+import { and, eq, gte, lte, sql, count, inArray } from "drizzle-orm";
 import { formatDateTime, SESSION_STATUS_LABELS } from "@/lib/therapy";
 import { Users as UsersIcon, CalendarCheck, Clock, ChevronRight, Video, MapPin, UserCheck, CalendarX, AlertTriangle } from "lucide-react";
 import { AnaliticosCharts } from "@/components/dashboard/AnaliticosCharts";
+import { DashboardPanels } from "@/components/dashboard/DashboardPanels";
 import { AnalyticsFilters } from "@/components/dashboard/AnalyticsFilters";
 import Link from "next/link";
 import { cookies } from "next/headers";
@@ -73,12 +74,27 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
       .from(patientPackages).innerJoin(patients, eq(patientPackages.patientId, patients.id))
       .where(and(eq(patientPackages.userId, userId), eq(patients.patientStatus, "ativo"), eq(patients.contractType, "pacote"))).groupBy(patientPackages.patientId),
     db.select({ isOnline: therapySessions.isOnline, location: therapySessions.location, status: therapySessions.status, date: therapySessions.date }).from(therapySessions).where(and(...anConds)),
-    db.select({ id: patients.id, name: patients.name, status: patients.patientStatus, prospectDate: patients.prospectDate, prospectFechou: patients.prospectFechou, paymentStatus: patients.paymentStatus }).from(patients).where(eq(patients.userId, userId)),
+    db.select({ id: patients.id, name: patients.name, status: patients.patientStatus, prospectDate: patients.prospectDate, prospectFechou: patients.prospectFechou, paymentStatus: patients.paymentStatus, gender: patients.gender, birthDate: patients.birthDate, address: patients.address, queixaPrincipal: patients.queixaPrincipal, startedAt: patients.startedAt }).from(patients).where(eq(patients.userId, userId)),
     // Consumo de pacote = fonte única DERIVADA: sessões realizadas+cobráveis por paciente.
     db.select({ pid: therapySessions.patientId, cnt: sql<number>`count(*)::int` })
       .from(therapySessions).where(and(eq(therapySessions.userId, userId), eq(therapySessions.status, "realizada"), eq(therapySessions.chargeable, true))).groupBy(therapySessions.patientId),
   ]);
   const pkgRealizedMap = new Map(pkgRealizedRows.map((r) => [r.pid, Number(r.cnt)]));
+
+  // Presença dos últimos 24 meses (para o bloco Presença: filtro por data/idade).
+  const presStart = new Date(); presStart.setMonth(presStart.getMonth() - 24);
+  const presenceRows = await db.select({ patientId: therapySessions.patientId, status: therapySessions.status, date: therapySessions.date })
+    .from(therapySessions)
+    .where(and(eq(therapySessions.userId, userId), gte(therapySessions.date, presStart), inArray(therapySessions.status, ["realizada", "nao_realizada"])));
+  const panelPatients = pats.map((p) => ({
+    id: p.id, name: p.name, status: p.status,
+    gender: p.gender, birthDate: p.birthDate ? (p.birthDate as unknown as string) : null,
+    address: p.address, queixaPrincipal: p.queixaPrincipal, paymentStatus: p.paymentStatus,
+    prospectDate: p.prospectDate ? (p.prospectDate as unknown as string) : null, prospectFechou: p.prospectFechou,
+    startedAt: p.startedAt ? (p.startedAt as unknown as string) : null,
+  }));
+  const panelPresence = presenceRows.map((r) => ({ patientId: r.patientId, presente: r.status === "realizada", date: r.date as unknown as string }));
+
   const patientList = pats.filter((p) => p.status !== "prospect").map((p) => ({ id: p.id, name: p.name })).sort((a, b) => a.name.localeCompare(b.name));
   const selectedPatientName = patient ? patientList.find((p) => p.id === patient)?.name : null;
 
@@ -135,6 +151,8 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
         <h2 className="text-3xl lg:text-4xl font-display font-bold text-foreground tracking-tight">Olá, {(user.name || "Terapeuta").split(" ")[0]}!</h2>
         <p className="text-foreground/40 font-medium">Resumo do seu consultório e analíticos de atendimento.</p>
       </section>
+
+      <DashboardPanels patients={panelPatients} presence={panelPresence} />
 
       <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         <Link href="/dashboard/patients?status=ativo" className="glass-card rounded-[28px] p-6 flex items-center gap-4 hover:scale-[1.02] active:scale-[0.99] transition group">
