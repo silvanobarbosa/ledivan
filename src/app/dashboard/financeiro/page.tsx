@@ -37,9 +37,9 @@ export default async function FinanceiroDashboard() {
     db.select({ val: sum(transactions.amount) }).from(transactions).where(sql`${transactions.userId} = ${user.id} AND ${transactions.source} = 'session_payment' AND ${transactions.date} >= ${monthStart}`),
   ]);
 
-  const totalBalance = parseFloat(balanceRows[0]?.total || "0");
   const totalIncome = parseFloat(balanceRows[0]?.income || "0");
   const totalExpense = parseFloat(balanceRows[0]?.expense || "0");
+  const totalBalance = totalIncome - totalExpense; // saldo = receitas − despesas (antes somava sem sinal)
   const sessionIncomeMonth = parseFloat(sessionIncomeRows[0]?.val || "0");
 
   return (

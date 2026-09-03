@@ -61,7 +61,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   if (end) anConds.push(lte(therapySessions.date, end));
   if (patient) anConds.push(eq(therapySessions.patientId, patient));
 
-  const [activeRows, weekRows, upcomingSessions, reservasRows, pkgEndingRows, anRows, pats] = await Promise.all([
+  const [activeRows, weekRows, upcomingSessions, reservasRows, pkgEndingRows, anRows, pats, pkgRealizedRows] = await Promise.all([
     db.select({ val: count() }).from(patients).where(and(eq(patients.userId, userId), eq(patients.patientStatus, "ativo"))),
     db.select({ val: count() }).from(therapySessions).where(sql`${therapySessions.userId} = ${userId} AND ${therapySessions.date} >= ${weekStart} AND ${therapySessions.date} < ${weekEnd}`),
     db.query.therapySessions.findMany({
@@ -69,19 +69,23 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
       with: { patient: { columns: { name: true, id: true } } }, orderBy: [therapySessions.date], limit: 6,
     }),
     db.select({ val: count() }).from(therapySessions).where(sql`${therapySessions.userId} = ${userId} AND ${therapySessions.date} >= ${now} AND ${therapySessions.pendingConfirmation} = true`),
-    db.select({ pid: patientPackages.patientId, rem: sql<number>`sum(${patientPackages.sessions} - ${patientPackages.used})::int` })
+    db.select({ pid: patientPackages.patientId, total: sql<number>`sum(${patientPackages.sessions})::int` })
       .from(patientPackages).innerJoin(patients, eq(patientPackages.patientId, patients.id))
       .where(and(eq(patientPackages.userId, userId), eq(patients.patientStatus, "ativo"), eq(patients.contractType, "pacote"))).groupBy(patientPackages.patientId),
     db.select({ isOnline: therapySessions.isOnline, location: therapySessions.location, status: therapySessions.status, date: therapySessions.date }).from(therapySessions).where(and(...anConds)),
     db.select({ id: patients.id, name: patients.name, status: patients.patientStatus, prospectDate: patients.prospectDate, prospectFechou: patients.prospectFechou, paymentStatus: patients.paymentStatus }).from(patients).where(eq(patients.userId, userId)),
+    // Consumo de pacote = fonte única DERIVADA: sessões realizadas+cobráveis por paciente.
+    db.select({ pid: therapySessions.patientId, cnt: sql<number>`count(*)::int` })
+      .from(therapySessions).where(and(eq(therapySessions.userId, userId), eq(therapySessions.status, "realizada"), eq(therapySessions.chargeable, true))).groupBy(therapySessions.patientId),
   ]);
+  const pkgRealizedMap = new Map(pkgRealizedRows.map((r) => [r.pid, Number(r.cnt)]));
   const patientList = pats.filter((p) => p.status !== "prospect").map((p) => ({ id: p.id, name: p.name })).sort((a, b) => a.name.localeCompare(b.name));
   const selectedPatientName = patient ? patientList.find((p) => p.id === patient)?.name : null;
 
   const activePatients = Number(activeRows[0]?.val || 0);
   const weekSessions = Number(weekRows[0]?.val || 0);
   const reservasCount = Number(reservasRows[0]?.val || 0);
-  const pacotesAcabando = pkgEndingRows.filter((r) => Number(r.rem) === 1).length;
+  const pacotesAcabando = pkgEndingRows.filter((r) => (Number(r.total) - (pkgRealizedMap.get(r.pid) ?? 0)) === 1).length;
 
   // ---- Analíticos ----
   const done = anRows.filter((r) => r.status === "realizada");

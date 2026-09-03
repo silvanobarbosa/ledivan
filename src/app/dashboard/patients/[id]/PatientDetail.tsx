@@ -270,7 +270,7 @@ export function PatientDetail({
         <div className="space-y-4">
         <div className="glass-card rounded-[24px] p-6 space-y-4">
           <Field label="Status" value={PATIENT_STATUS_LABELS[patient.patientStatus] || patient.patientStatus} />
-          <Field label="Modelo de contratação" value={patient.contractType === "pacote" ? `Pacote${patient.sessionsInPacket ? ` · ${patient.sessionsInPacket} sessões` : ""}${patient.sessionsInPacket ? ` · ${Math.max(0, patient.sessionsInPacket - patient.packageCreditsUsed)} restantes` : ""}` : "Avulso"} />
+          <Field label="Modelo de contratação" value={patient.contractType === "pacote" ? `Pacote${packageInfo.totalSessions ? ` · ${packageInfo.totalSessions} sessões` : ""}${packageInfo.list.length ? ` · ${packageInfo.openSessions} restantes` : ""}` : "Avulso"} />
           <Field label="Valor da sessão" value={formatBRL(patient.sessionFee)} />
           <Field label="Modo de atendimento" value={ATTENDANCE_MODE_LABELS[patient.attendanceMode || "presencial"] || "—"} />
           {patient.attendanceMode !== "online" && patient.attendanceLocation && <Field label="Local" value={patient.attendanceLocation} icon={<MapPin className="w-4 h-4" />} />}
