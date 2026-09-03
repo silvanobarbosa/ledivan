@@ -58,7 +58,9 @@ export default function PrivacidadePage() {
             <ul className="list-disc pl-5 space-y-1">
               <li><strong>Vercel</strong> — hospedagem e armazenamento de arquivos (Blob, privado).</li>
               <li><strong>Neon</strong> — banco de dados (PostgreSQL).</li>
-              <li><strong>OpenAI</strong> — recursos de IA (leitura de recibos, transcrição de sessão, resumos, insights). Dados enviados via API não são usados para treinar modelos.</li>
+              <li><strong>Provedor de IA do próprio profissional</strong> — a transcrição da sessão usa a conta e a chave de IA
+                cadastradas pelo profissional (ex.: OpenAI ou Groq). O áudio vai direto para esse provedor, sob contrato dele,
+                e o Ledivan não armazena o áudio. Sem chave cadastrada, o recurso fica indisponível.</li>
               <li><strong>Google</strong> — login, e (opcional) Google Agenda/Meet, conforme autorização do profissional.</li>
               <li><strong>Resend</strong> — envio do e-mail de acesso (login).</li>
               <li><strong>Evolution API / WhatsApp</strong> e <strong>Telegram</strong> — envio de lembretes e lançamentos, quando o profissional conecta esses canais.</li>
@@ -76,8 +78,10 @@ export default function PrivacidadePage() {
           <Section n="6" t="Retenção e exclusão">
             <p>
               Os dados são mantidos enquanto a conta estiver ativa e pelo prazo necessário às finalidades e obrigações legais
-              do profissional (ex.: guarda de prontuário conforme normas do conselho de classe). O profissional pode solicitar
-              a exclusão de dados; atendemos no prazo legal, ressalvadas obrigações de retenção.
+              do profissional. Para <strong>prontuário</strong>, a guarda mínima é de <strong>5 anos</strong> a contar do
+              último registro, conforme a Resolução CFP nº 001/2009 (podendo ser estendida por decisão do profissional ou
+              exigência legal). O profissional pode excluir um paciente a qualquer momento — a exclusão remove sessões,
+              prontuário, pagamentos e anexos vinculados, e é <strong>irreversível</strong>.
             </p>
           </Section>
 
