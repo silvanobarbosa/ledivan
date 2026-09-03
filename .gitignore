@@ -46,3 +46,7 @@ src/stitch/*
 # dados do consultório (não versionar)
 Gi/
 *.xlsx
+
+# Python cache
+__pycache__/
+*.pyc
