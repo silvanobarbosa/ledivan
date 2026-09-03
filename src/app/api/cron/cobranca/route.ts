@@ -4,7 +4,7 @@ import { therapySessions, sessionPayments, patients, users } from "@/db/schema";
 import { and, eq, gte, lte } from "drizzle-orm";
 import { getPreferences } from "@/lib/preferences";
 import { monthlyReport, type PgSession, type PgPayment } from "@/lib/pagamentos";
-import { cobrancaTexto } from "@/app/dashboard/pagamentos/actions";
+import { cobrancaTexto } from "@/lib/cobranca";
 import { sendWhatsappFromUser } from "@/lib/whatsappEvolution";
 
 export const runtime = "nodejs";
