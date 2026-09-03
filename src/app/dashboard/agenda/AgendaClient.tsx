@@ -12,7 +12,7 @@ type PatientLite = { id: string; name: string; status: string; attendanceMode: s
 type LocationLite = { name: string; address: string };
 
 type SessionStatus = "realizada" | "nao_realizada" | "cancelada" | "realocada" | "agendada";
-type AgendaSession = { id: string; date: string; duration: number; status: string; patientName: string; isOnline: boolean; risk: string; meetingUrl: string | null; meetingOpenedAt: string | null; guestJoinedAt: string | null; meetingEndedAt: string | null; pendingConfirmation: boolean; patientConfirmed: boolean; rescheduleRequested: boolean; patientArrived: boolean; location: string | null; recurring: boolean; recurrenceFreq?: string | null; patientId?: string; sessionKind?: string };
+type AgendaSession = { id: string; date: string; duration: number; status: string; patientName: string; isOnline: boolean; risk: string; meetingUrl: string | null; meetingOpenedAt: string | null; guestJoinedAt: string | null; meetingEndedAt: string | null; pendingConfirmation: boolean; patientConfirmed: boolean; rescheduleRequested: boolean; patientArrived: boolean; location: string | null; recurring: boolean; recurrenceFreq?: string | null; patientId?: string; sessionKind?: string; pkg?: { seq: number; index: number; total: number } | null };
 
 const blockColor = (s: AgendaSession) => sessionColorClasses(s.status, s.pendingConfirmation, s.recurring);
 
@@ -318,6 +318,7 @@ export function AgendaClient({ sessions, patients = [], locations = [], holidays
                             <span className="truncate">{s.patientName}</span>
                           </p>
                           {s.sessionKind === "devolutiva" && <p className="text-[9px] font-bold uppercase tracking-wide text-primary/70">Devolutiva</p>}
+                          {s.pkg && <p className="text-[9px] font-bold uppercase tracking-wide text-emerald-700/80">{s.pendingConfirmation ? "Reserva pacote" : "Pacote"} P{s.pkg.seq} · {s.pkg.index}/{s.pkg.total}</p>}
                         </button>
                       );
                     })}

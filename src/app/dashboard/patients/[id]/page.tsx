@@ -8,6 +8,7 @@ import { ArrowLeft } from "lucide-react";
 import { PatientDetail } from "./PatientDetail";
 import { riskFromSessions } from "@/lib/therapy";
 import { parseLocations } from "@/lib/locations";
+import { derivePackageLabels } from "@/lib/packages";
 
 export default async function PatientPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -129,6 +130,10 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
       <PatientDetail
         patient={JSON.parse(JSON.stringify(patient))}
         sessions={JSON.parse(JSON.stringify(sessionsList))}
+        packageLabels={Object.fromEntries(derivePackageLabels(
+          sessionsList.map((s) => ({ id: s.id, date: s.date as unknown as string, status: s.status, packageId: s.packageId })),
+          packagesList.map((p) => ({ id: p.id, seq: p.seq, sessions: p.sessions })),
+        ))}
         payments={JSON.parse(JSON.stringify(paymentsList))}
         statusHistory={JSON.parse(JSON.stringify(statusHist))}
         priceHistory={JSON.parse(JSON.stringify(priceHist))}

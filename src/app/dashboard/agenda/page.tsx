@@ -1,11 +1,12 @@
 import { db } from "@/db";
 import { auth } from "@/auth";
-import { therapySessions, patients, users } from "@/db/schema";
-import { and, eq, ne, gte } from "drizzle-orm";
+import { therapySessions, patients, users, patientPackages } from "@/db/schema";
+import { and, eq, ne, gte, isNotNull } from "drizzle-orm";
 import { AgendaClient } from "./AgendaClient";
 import { riskFromSessions } from "@/lib/therapy";
 import { parseLocations } from "@/lib/locations";
 import { parseHolidayCities, holidaysByDate } from "@/lib/holidays";
+import { derivePackageLabels } from "@/lib/packages";
 
 export default async function AgendaPage() {
   const session = await auth();
@@ -17,7 +18,7 @@ export default async function AgendaPage() {
   const [list, pats, me] = await Promise.all([
     db.query.therapySessions.findMany({
       where: and(eq(therapySessions.userId, session.user.id), gte(therapySessions.date, windowStart)),
-      columns: { id: true, patientId: true, date: true, duration: true, status: true, isOnline: true, meetingUrl: true, meetingOpenedAt: true, guestJoinedAt: true, meetingEndedAt: true, pendingConfirmation: true, patientConfirmedAt: true, rescheduleRequestedAt: true, patientArrivedAt: true, location: true, recurring: true, recurrenceFreq: true, sessionKind: true },
+      columns: { id: true, patientId: true, date: true, duration: true, status: true, isOnline: true, meetingUrl: true, meetingOpenedAt: true, guestJoinedAt: true, meetingEndedAt: true, pendingConfirmation: true, patientConfirmedAt: true, rescheduleRequestedAt: true, patientArrivedAt: true, location: true, recurring: true, recurrenceFreq: true, sessionKind: true, packageId: true },
       with: { patient: { columns: { name: true } } },
     }),
     db.query.patients.findMany({
@@ -27,6 +28,18 @@ export default async function AgendaPage() {
     }),
     db.query.users.findFirst({ where: eq(users.id, session.user.id) }),
   ]);
+
+  // Numeração 1/N do pacote (derivada por data) — sobre TODAS as sessões do pacote, não só a janela.
+  const [pkgSessions, pkgs] = await Promise.all([
+    db.select({ id: therapySessions.id, date: therapySessions.date, status: therapySessions.status, packageId: therapySessions.packageId })
+      .from(therapySessions).where(and(eq(therapySessions.userId, session.user.id), isNotNull(therapySessions.packageId))),
+    db.select({ id: patientPackages.id, seq: patientPackages.seq, sessions: patientPackages.sessions })
+      .from(patientPackages).where(eq(patientPackages.userId, session.user.id)),
+  ]);
+  const pkgLabels = derivePackageLabels(
+    pkgSessions.map((s) => ({ id: s.id, date: s.date, status: s.status, packageId: s.packageId })),
+    pkgs,
+  );
   const locations = parseLocations(me?.attendanceLocations);
 
   // Feriados: cidades escolhidas pelo usuário (até 3). Busca anos relevantes (janela + ano atual + próximo).
@@ -74,6 +87,7 @@ export default async function AgendaPage() {
           recurrenceFreq: s.recurrenceFreq ?? null,
           patientId: s.patientId,
           sessionKind: s.sessionKind ?? "consulta",
+          pkg: pkgLabels.get(s.id) ?? null,
         }))}
         patients={pats.map((p) => ({ id: p.id, name: p.name, status: p.patientStatus, attendanceMode: p.attendanceMode, attendanceLocation: p.attendanceLocation }))}
         locations={locations}
