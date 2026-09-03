@@ -23,7 +23,7 @@ export default async function AgendaPage() {
     }),
     db.query.patients.findMany({
       where: and(eq(patients.userId, session.user.id), ne(patients.patientStatus, "inativo")),
-      columns: { id: true, name: true, patientStatus: true, attendanceMode: true, attendanceLocation: true },
+      columns: { id: true, name: true, patientStatus: true, attendanceMode: true, attendanceLocation: true, birthDate: true },
       orderBy: [patients.name],
     }),
     db.query.users.findFirst({ where: eq(users.id, session.user.id) }),
@@ -90,6 +90,7 @@ export default async function AgendaPage() {
           pkg: pkgLabels.get(s.id) ?? null,
         }))}
         patients={pats.map((p) => ({ id: p.id, name: p.name, status: p.patientStatus, attendanceMode: p.attendanceMode, attendanceLocation: p.attendanceLocation }))}
+        birthdays={pats.filter((p) => p.birthDate).map((p) => { const b = new Date(p.birthDate as unknown as string); return { name: p.name, month: b.getMonth() + 1, day: b.getDate() }; })}
         locations={locations}
         holidays={holidays}
         holidayCities={holidayCities}

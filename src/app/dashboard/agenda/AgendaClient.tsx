@@ -29,7 +29,9 @@ function startOfWeek(d: Date) {
   return out;
 }
 
-export function AgendaClient({ sessions, patients = [], locations = [], holidays = {}, holidayCities = [] }: { sessions: AgendaSession[]; patients?: PatientLite[]; locations?: LocationLite[]; holidays?: Record<string, Holiday[]>; holidayCities?: HolidayCity[] }) {
+type Birthday = { name: string; month: number; day: number };
+
+export function AgendaClient({ sessions, patients = [], birthdays = [], locations = [], holidays = {}, holidayCities = [] }: { sessions: AgendaSession[]; patients?: PatientLite[]; birthdays?: Birthday[]; locations?: LocationLite[]; holidays?: Record<string, Holiday[]>; holidayCities?: HolidayCity[] }) {
   const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date()));
   const [selected, setSelected] = useState<AgendaSession | null>(null);
   const [pending, startTransition] = useTransition();
@@ -40,7 +42,8 @@ export function AgendaClient({ sessions, patients = [], locations = [], holidays
   const [newDate, setNewDate] = useState("");
   const [newPatient, setNewPatient] = useState("");
   const [newOnline, setNewOnline] = useState(false);
-  const [newRecorrente, setNewRecorrente] = useState(false);
+  const [newFreq, setNewFreq] = useState("pontual");
+  const newRecorrente = newFreq !== "pontual";
   const [newKind, setNewKind] = useState("consulta");
   const [newCharge, setNewCharge] = useState(true);
   const [newError, setNewError] = useState<string | null>(null);
@@ -55,7 +58,7 @@ export function AgendaClient({ sessions, patients = [], locations = [], holidays
     setNewDate(toLocalInput(d));
     setNewPatient("");
     setNewOnline(false);
-    setNewRecorrente(false);
+    setNewFreq("pontual");
     setNewError(null);
     setShowNew(true);
   }
@@ -63,7 +66,7 @@ export function AgendaClient({ sessions, patients = [], locations = [], holidays
     setNewError(null);
     startTransition(async () => {
       const res = newRecorrente ? await createRecurring(formData) : await createSessionFromAgenda(formData);
-      if (res.ok) { setShowNew(false); setNewRecorrente(false); router.refresh(); }
+      if (res.ok) { setShowNew(false); setNewFreq("pontual"); router.refresh(); }
       else setNewError(res.error || "Falha ao agendar.");
     });
   }
@@ -112,6 +115,7 @@ export function AgendaClient({ sessions, patients = [], locations = [], holidays
 
   const dayKey = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
   const holidaysForDay = (d: Date): Holiday[] => holidays[dayKey(d)] ?? [];
+  const birthdaysForDay = (d: Date): Birthday[] => birthdays.filter((b) => b.month === d.getMonth() + 1 && b.day === d.getDate());
 
   const shift = (delta: number) => {
     const next = new Date(weekStart);
@@ -205,6 +209,26 @@ export function AgendaClient({ sessions, patients = [], locations = [], holidays
         )}
       </div>
 
+      {/* Devolutivas próximas (lembrete) */}
+      {(() => {
+        const now = Date.now();
+        const devs = sessions.filter((s) => s.sessionKind === "devolutiva" && new Date(s.date).getTime() >= now)
+          .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()).slice(0, 6);
+        if (!devs.length) return null;
+        return (
+          <div className="glass-card rounded-2xl p-4 border-l-4 border-primary/50">
+            <p className="text-xs font-bold uppercase tracking-wide text-primary/70 mb-2">📋 Devolutivas próximas</p>
+            <div className="flex flex-wrap gap-2">
+              {devs.map((d) => (
+                <button key={d.id} onClick={() => { setSelected(d); }} className="text-xs bg-primary/5 hover:bg-primary/10 rounded-full px-3 py-1.5 transition">
+                  {d.patientName} · {new Date(d.date).toLocaleDateString("pt-BR", { day: "2-digit", month: "short" })}
+                </button>
+              ))}
+            </div>
+          </div>
+        );
+      })()}
+
       {/* Grade */}
       <div className="glass-card rounded-[24px] overflow-hidden">
         <div className="overflow-x-auto">
@@ -234,6 +258,15 @@ export function AgendaClient({ sessions, patients = [], locations = [], holidays
                           </p>
                         ))}
                         {hs.length > 2 && <p className="text-[9px] text-foreground/40">+{hs.length - 2} feriado(s)</p>}
+                      </div>
+                    )}
+                    {birthdaysForDay(day).length > 0 && (
+                      <div className="mt-1 px-1 space-y-0.5">
+                        {birthdaysForDay(day).slice(0, 2).map((b, i) => (
+                          <p key={i} className="text-[9px] leading-tight font-semibold truncate flex items-center gap-0.5 justify-center text-pink-600" title={`Aniversário: ${b.name}`}>
+                            🎂 <span className="truncate">{b.name.split(" ")[0]}</span>
+                          </p>
+                        ))}
                       </div>
                     )}
                   </div>
@@ -513,22 +546,30 @@ export function AgendaClient({ sessions, patients = [], locations = [], holidays
               </div>
             )}
 
-            {!newRecorrente && (
-              <select name="reserva" className="w-full px-4 py-2.5 rounded-xl bg-surface border border-border outline-none text-sm" defaultValue="false">
-                <option value="false">Confirmar agenda</option>
-                <option value="true">Só reservar (confirmar depois)</option>
+            <div className="rounded-xl bg-[#dbeafe] px-3 py-2.5 space-y-2">
+              <label className="flex items-center gap-2 text-sm font-semibold text-[#1e40af]">
+                <Repeat className="w-4 h-4" /> Repetição
+              </label>
+              <select name="freq" value={newFreq} onChange={(e) => setNewFreq(e.target.value)} className="w-full px-3 py-2 rounded-xl bg-white border border-[#bfdbfe] outline-none text-sm">
+                <option value="pontual">Pontual (uma vez)</option>
+                <option value="semanal">Semanal (1x na semana)</option>
+                <option value="quinzenal">Quinzenal</option>
+                <option value="mensal">Mensal</option>
               </select>
-            )}
-            <label className="flex items-center gap-2 text-sm cursor-pointer rounded-xl bg-[#dbeafe] px-3 py-2">
-              <input type="checkbox" checked={newRecorrente} onChange={(e) => setNewRecorrente(e.target.checked)} className="accent-[#3b82f6] w-4 h-4" />
-              <Repeat className="w-4 h-4 text-[#1e40af]" /> Reserva recorrente (semanal)
-            </label>
-            {newRecorrente && (
-              <div>
-                <label className="text-xs font-semibold text-foreground/60">Recorrente até</label>
-                <input name="until" type="date" required className="w-full px-3 py-2.5 rounded-xl bg-surface border border-border outline-none text-sm" />
-                <p className="text-[11px] text-foreground/50 mt-1">Cria uma reserva por semana, no mesmo dia/horário, até a data escolhida.</p>
-              </div>
+              {newRecorrente && (
+                <div>
+                  <label className="text-[11px] font-semibold text-[#1e40af]/80">Repetir até</label>
+                  <input name="until" type="date" required className="w-full px-3 py-2 rounded-xl bg-white border border-[#bfdbfe] outline-none text-sm" />
+                </div>
+              )}
+              <p className="text-[11px] text-[#1e40af]/70">Para 2x na semana, crie duas repetições semanais (uma por dia).</p>
+            </div>
+
+            {!newRecorrente && (
+              <select name="reserva" className="w-full px-4 py-2.5 rounded-xl bg-surface border border-border outline-none text-sm" defaultValue="true">
+                <option value="true">Só reservar (confirmar depois)</option>
+                <option value="false">Confirmar agenda</option>
+              </select>
             )}
             <select name="status" className="w-full px-4 py-2.5 rounded-xl bg-surface border border-border outline-none text-sm" defaultValue="agendada">
               {(Object.entries(SESSION_STATUS_LABELS)).map(([k, v]) => <option key={k} value={k}>{v}</option>)}

@@ -368,7 +368,8 @@ export async function includePackage(patientId: string, formData: FormData) {
       await db.insert(therapySessions).values(dates.map((d) => ({
         userId, patientId, date: d, duration: 50, fee: newFee, status: "agendada" as const,
         chargeable: true, isOnline, location: isOnline ? null : patient.attendanceLocation,
-        pendingConfirmation: true, packageId: pkg.id, recurring: true, recurrenceFreq: freq,
+        // Pacote entra como AGENDAMENTO confirmado (não reserva) — decisão do dono.
+        pendingConfirmation: false, packageId: pkg.id, recurring: true, recurrenceFreq: freq,
       })));
     }
   }
