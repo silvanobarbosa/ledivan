@@ -35,16 +35,25 @@ export async function createRecurring(formData: FormData): Promise<{ ok: boolean
   const isOnline = formData.get("isOnline") === "on";
   const location = isOnline ? null : ((formData.get("location") as string) || patient.attendanceLocation || null);
 
+  // Frequência da recorrência: semanal (7d) | quinzenal (14d) | mensal (mês a mês).
+  const freqRaw = (formData.get("freq") as string) || "semanal";
+  const freq = freqRaw === "quinzenal" ? "quinzenal" : freqRaw === "mensal" ? "mensal" : "semanal";
+  const advance = (d: Date) => {
+    if (freq === "mensal") d.setMonth(d.getMonth() + 1);
+    else if (freq === "quinzenal") d.setDate(d.getDate() + 14);
+    else d.setDate(d.getDate() + 7);
+  };
+
   const rows: typeof therapySessions.$inferInsert[] = [];
   const cur = new Date(first);
   let guard = 0;
-  while (cur <= until && guard++ < 120) {
+  while (cur <= until && guard++ < 260) {
     rows.push({
       userId, patientId, date: new Date(cur), duration, fee: patient.sessionFee,
       status: "agendada", chargeable: true, isOnline, location,
-      pendingConfirmation: true, recurring: true, recurrenceUntil: until,
+      pendingConfirmation: true, recurring: true, recurrenceFreq: freq, recurrenceUntil: until,
     });
-    cur.setDate(cur.getDate() + 7);
+    advance(cur);
   }
   if (!rows.length) return { ok: false, error: "Nenhuma data gerada." };
   await db.insert(therapySessions).values(rows);
