@@ -42,7 +42,8 @@ export default async function proxy(req: NextRequest) {
     pathname.startsWith("/api/health") ||
     pathname.startsWith("/api/conformity") ||
     pathname.startsWith("/api/sessions/confirm") || // paciente confirma/remarca via link assinado (HMAC), sem login
-    pathname.startsWith("/api/patient") // app do paciente: autentica por Bearer (token do paciente), cada rota cuida
+    pathname.startsWith("/api/patient") || // app do paciente: autentica por Bearer (token do paciente), cada rota cuida
+    pathname.startsWith("/api/files") // download de arquivo: a própria rota exige sessão do terapeuta OU bearer do paciente
   ) {
     return NextResponse.next();
   }
