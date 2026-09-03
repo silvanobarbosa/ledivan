@@ -20,6 +20,7 @@ import {
   Leaf,
   Mail,
   Video,
+  Mic,
 } from "lucide-react";
 import { Logo } from "@/components/landing/Logo";
 import { Reveal } from "@/components/landing/Reveal";
@@ -324,7 +325,8 @@ function Features() {
     { icon: CalendarDays, t: "Agenda com recorrência", d: "Semanal, quinzenal ou mensal. Reserva o horário pelo período que você definir." },
     { icon: Repeat2, t: "Pacotes numerados", d: "Reserva as sessões do pacote já como 1/4, 2/4 — e renumera sozinho se você remarcar." },
     { icon: Activity, t: "Tarefas e escalas", d: "Lição de casa com foto ou vídeo, diário de humor e PHQ-9/GAD-7 com pontuação automática." },
-    { icon: Video, t: "Atendimento online", d: "Sala de vídeo criada na agenda, com prontuário e cronômetro lado a lado." },
+    { icon: Video, t: "Atendimento em tela dividida", d: "No notebook: o paciente de um lado, a evolução da sessão e o histórico do outro. Sem trocar de aba." },
+    { icon: Mic, t: "Transcrição por IA", d: "Grave a sessão e receba a evolução redigida. Com a sua própria conta de IA — a chave é sua." },
     { icon: Mail, t: "Mensagens com pacientes", d: "Fale direto por WhatsApp, Telegram e e-mail, sem sair do app." },
     { icon: Wallet, t: "Pagamentos e cobrança", d: "Esperado, pago e em aberto mês a mês — e cobre quem está devendo pelo seu WhatsApp." },
     { icon: TrendingUp, t: "Previsão de ganhos", d: "Receita dos próximos 12 meses: agendado, pacotes, recorrência e reajustes." },
@@ -563,6 +565,8 @@ function FAQ() {
     { q: "Funciona bem no celular?", a: "Sim, é totalmente responsivo. A agenda, pacientes e financeiro foram pensados para uso no celular entre sessões." },
     { q: "Integra com o Google Agenda e Google Meet?", a: "Sim. Você sincroniza sessões com o Google Agenda e os links de atendimento online no Google Meet são gerados automaticamente." },
     { q: "Como funciona o bot do WhatsApp e Telegram?", a: "Você manda uma mensagem ou foto de recibo e o lançamento entra direto no financeiro, já categorizado." },
+    { q: "Como funciona a transcrição da sessão?", a: "Você cadastra a sua própria chave de IA (OpenAI ou Groq). O áudio vai direto para o seu provedor, sob o seu contrato — o Ledivan não usa chave própria nem guarda o áudio. Sua chave fica criptografada e o recurso só liga se você quiser." },
+    { q: "Preciso de dois monitores para atender online?", a: "Não. No notebook a tela se divide sozinha: o paciente de um lado, a evolução da sessão e o histórico do outro." },
   ];
   return (
     <section id="faq" className="mx-auto max-w-3xl px-6 py-24">
