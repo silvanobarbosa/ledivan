@@ -10,7 +10,7 @@ import { put } from "@vercel/blob";
 import { sendWhatsappFromUser } from "@/lib/whatsappEvolution";
 import { sendProEmail } from "@/lib/email";
 import { escapeHtml } from "@/lib/html";
-import { endFromDuration, occurrences, type LockFreq } from "@/lib/recurrence";
+import { endFromDuration, occurrences, occurrencesByCount, weekdayIndex, type LockFreq } from "@/lib/recurrence";
 
 // Envia mensagem ao paciente pelo canal escolhido (WhatsApp do Ledivan, Telegram ou e-mail).
 export async function sendPatientMessage(patientId: string, channel: string, text: string): Promise<{ ok: boolean; error?: string }> {
@@ -348,8 +348,28 @@ export async function includePackage(patientId: string, formData: FormData) {
   // próximo número de pacote do paciente
   const [{ maxSeq }] = await db.select({ maxSeq: sql<number>`coalesce(max(${patientPackages.seq}), 0)::int` }).from(patientPackages).where(eq(patientPackages.patientId, patientId));
   const seq = (maxSeq || 0) + 1;
-  await db.insert(patientPackages).values({ userId, patientId, seq, sessions: qty, fee: newFee });
+  const [pkg] = await db.insert(patientPackages).values({ userId, patientId, seq, sessions: qty, fee: newFee }).returning({ id: patientPackages.id });
   await db.update(patients).set({ contractType: "pacote", paymentFormat: "pacote", sessionFee: newFee }).where(and(eq(patients.id, patientId), eq(patients.userId, userId)));
+
+  // Reserva-pacote: cria N reservas no dia/hora recorrente do paciente, vinculadas ao pacote.
+  // Numeração 1/N é derivada por data (lib/packages). Só reserva se houver dia+hora definidos.
+  const wd = weekdayIndex(patient.attendanceDay);
+  const time = patient.attendanceTime || "";
+  if (wd !== undefined && time && qty >= 1) {
+    const [hh, mm] = time.split(":").map((x) => parseInt(x) || 0);
+    const startRaw = formData.get("packageStart") as string;
+    const start = startRaw ? new Date(`${startRaw}T00:00:00`) : new Date();
+    const freq: LockFreq = patient.frequency === "quinzenal" ? "quinzenal" : patient.frequency === "mensal" ? "mensal" : "semanal";
+    const isOnline = patient.attendanceMode === "online";
+    const dates = occurrencesByCount(wd, hh, mm, start, freq, qty);
+    if (dates.length) {
+      await db.insert(therapySessions).values(dates.map((d) => ({
+        userId, patientId, date: d, duration: 50, fee: newFee, status: "agendada" as const,
+        chargeable: true, isOnline, location: isOnline ? null : patient.attendanceLocation,
+        pendingConfirmation: true, packageId: pkg.id, recurring: true, recurrenceFreq: freq,
+      })));
+    }
+  }
   if (newFee !== patient.sessionFee) {
     await db.insert(patientPriceHistory).values({ patientId, valor: newFee, dataEfetiva: new Date() });
   }

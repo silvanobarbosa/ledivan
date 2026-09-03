@@ -71,7 +71,7 @@ const inputCls = "w-full px-4 py-2.5 rounded-xl bg-white/70 border border-border
 const TABS = ["Dados", "Prontuário", "Atividades", "Materiais", "Sessões", "Financeiro", "Linha do tempo"] as const;
 
 export function PatientDetail({
-  patient, sessions, payments, statusHistory, priceHistory, records, autoLinkPayments, transcriptionEnabled, risk, assignments, moodToken, moodLogs, scales, treatmentGoals, diaryEntries = [], ratings = [], consents = [], locations = [], contractHistory = [], finance, ledger = [], sessionStats, packageInfo, recurring,
+  patient, sessions, payments, statusHistory, priceHistory, records, autoLinkPayments, transcriptionEnabled, risk, assignments, moodToken, moodLogs, scales, treatmentGoals, diaryEntries = [], ratings = [], consents = [], packageLabels = {}, locations = [], contractHistory = [], finance, ledger = [], sessionStats, packageInfo, recurring,
 }: {
   patient: Patient; sessions: Session[]; payments: Payment[];
   statusHistory: StatusEntry[]; priceHistory: PriceEntry[]; records: RecordEntry[];
@@ -91,6 +91,7 @@ export function PatientDetail({
   diaryEntries?: { id: string; content: string; mood: number | null; createdAt: string }[];
   ratings?: { id: string; score: number; comment: string | null; createdAt: string }[];
   consents?: { id: string; title: string; acceptedName: string; acceptedAt: string; formUpdatedAt: string }[];
+  packageLabels?: Record<string, { seq: number; index: number; total: number }>;
   locations?: { name: string; address: string }[];
 }) {
   const router = useRouter();
@@ -541,7 +542,7 @@ export function PatientDetail({
                 <div key={s.id} style={{ borderLeftColor: sessHex(s.status, s.pendingConfirmation, s.recurring) }} className="glass-card rounded-2xl p-4 space-y-3 group border-l-4">
                   <div className="flex items-center justify-between gap-3">
                     <div>
-                      <p className="font-semibold flex items-center gap-1.5">{formatDateTime(s.date)}{s.isOnline ? <Video className="w-3.5 h-3.5 text-primary" /> : <MapPin className="w-3.5 h-3.5 text-foreground/40" />}{s.sessionKind === "devolutiva" && <span className="text-[9px] font-bold uppercase tracking-wide text-primary bg-primary/10 px-1.5 py-0.5 rounded">Devolutiva</span>}</p>
+                      <p className="font-semibold flex items-center gap-1.5">{formatDateTime(s.date)}{s.isOnline ? <Video className="w-3.5 h-3.5 text-primary" /> : <MapPin className="w-3.5 h-3.5 text-foreground/40" />}{s.sessionKind === "devolutiva" && <span className="text-[9px] font-bold uppercase tracking-wide text-primary bg-primary/10 px-1.5 py-0.5 rounded">Devolutiva</span>}{packageLabels[s.id] && <span className="text-[9px] font-bold uppercase tracking-wide text-emerald-700 bg-emerald-500/10 px-1.5 py-0.5 rounded">Pacote P{packageLabels[s.id].seq} · {packageLabels[s.id].index}/{packageLabels[s.id].total}</span>}</p>
                       <p className="text-sm text-foreground/50">{s.duration}min · {formatBRL(s.fee)} {s.status === "nao_realizada" ? null : s.chargeable ? <span className="text-[#047857] font-semibold">(cobrada)</span> : <span className="text-foreground/40 font-semibold">(não cobrada)</span>} · {s.isOnline ? "Online" : "Presencial"}</p>
                     </div>
                     {s.isOnline && (

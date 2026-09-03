@@ -34,6 +34,25 @@ function advance(d: Date, freq: LockFreq): void {
   else d.setDate(d.getDate() + 7);
 }
 
+// Gera EXATAMENTE `count` ocorrências a partir de start, no dia da semana e frequência dados.
+// Usado pela reserva de PACOTE (N sessões fixas), independente de data-fim.
+export function occurrencesByCount(
+  weekday: number, hour: number, minute: number, start: Date, freq: LockFreq, count: number,
+): Date[] {
+  const cur = new Date(start); cur.setHours(0, 0, 0, 0);
+  while (cur.getDay() !== weekday) cur.setDate(cur.getDate() + 1);
+  const out: Date[] = [];
+  const n = Math.max(0, Math.min(60, Math.floor(count)));
+  for (let i = 0; i < n; i++) {
+    const d = new Date(cur); d.setHours(hour, minute, 0, 0);
+    out.push(d);
+    if (freq === "mensal") cur.setMonth(cur.getMonth() + 1);
+    else if (freq === "quinzenal") cur.setDate(cur.getDate() + 14);
+    else cur.setDate(cur.getDate() + 7);
+  }
+  return out;
+}
+
 // Gera as datas (com hora) das ocorrências entre start e end, no dia da semana e frequência dados.
 export function occurrences(spec: LockSpec): Date[] {
   const { weekday, hour, minute, start, end, freq } = spec;
