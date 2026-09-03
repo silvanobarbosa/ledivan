@@ -1,6 +1,6 @@
 import { db } from "@/db";
 import { auth } from "@/auth";
-import { patients, patientPackages } from "@/db/schema";
+import { patients, patientPackages, therapySessions } from "@/db/schema";
 import { and, eq, sql } from "drizzle-orm";
 import { Package, ChevronRight } from "lucide-react";
 import Link from "next/link";
@@ -12,15 +12,21 @@ export default async function PacotesAcabandoPage() {
   if (!session?.user?.id) return null;
   const userId = session.user.id;
 
-  // pacientes ativos com pacote cujo saldo de sessões em aberto == 1
-  const rows = await db
-    .select({ id: patients.id, name: patients.name, rem: sql<number>`sum(${patientPackages.sessions} - ${patientPackages.used})::int` })
-    .from(patientPackages)
-    .innerJoin(patients, eq(patientPackages.patientId, patients.id))
-    .where(and(eq(patientPackages.userId, userId), eq(patients.patientStatus, "ativo"), eq(patients.contractType, "pacote")))
-    .groupBy(patients.id, patients.name)
-    .having(sql`sum(${patientPackages.sessions} - ${patientPackages.used}) = 1`)
-    .orderBy(patients.name);
+  // Restantes = fonte única DERIVADA: total do(s) pacote(s) − sessões realizadas+cobráveis.
+  const [pkgRows, realizedRows] = await Promise.all([
+    db.select({ id: patients.id, name: patients.name, total: sql<number>`sum(${patientPackages.sessions})::int` })
+      .from(patientPackages)
+      .innerJoin(patients, eq(patientPackages.patientId, patients.id))
+      .where(and(eq(patientPackages.userId, userId), eq(patients.patientStatus, "ativo"), eq(patients.contractType, "pacote")))
+      .groupBy(patients.id, patients.name),
+    db.select({ pid: therapySessions.patientId, cnt: sql<number>`count(*)::int` })
+      .from(therapySessions).where(and(eq(therapySessions.userId, userId), eq(therapySessions.status, "realizada"), eq(therapySessions.chargeable, true))).groupBy(therapySessions.patientId),
+  ]);
+  const realizedMap = new Map(realizedRows.map((r) => [r.pid, Number(r.cnt)]));
+  const rows = pkgRows
+    .map((r) => ({ id: r.id, name: r.name, rem: Number(r.total) - (realizedMap.get(r.id) ?? 0) }))
+    .filter((r) => r.rem === 1)
+    .sort((a, b) => a.name.localeCompare(b.name));
 
   return (
     <div className="max-w-3xl space-y-6 pb-20">
