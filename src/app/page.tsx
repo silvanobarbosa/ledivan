@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { AppsSection } from "@/components/landing/AppsSection";
 import {
   Users,
   CalendarDays,
@@ -57,6 +58,7 @@ export default function Landing() {
         <Manifesto />
         <Problem />
         <Features />
+        <AppsSection />
         <Integrations />
         <HowItWorks />
         <Highlight />
@@ -77,6 +79,7 @@ function Header() {
         <Logo />
         <nav className="hidden md:flex items-center gap-8 text-sm text-[color:var(--muted-foreground)]">
           <a href="#features" className="hover:text-ink transition">Funcionalidades</a>
+          <a href="#apps" className="hover:text-ink transition">Apps</a>
           <a href="#integrations" className="hover:text-ink transition">Integrações</a>
           <a href="#how" className="hover:text-ink transition">Como funciona</a>
           <a href="#pricing" className="hover:text-ink transition">Preço</a>
