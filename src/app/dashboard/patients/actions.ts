@@ -11,6 +11,7 @@ import { sendWhatsappFromUser } from "@/lib/whatsappEvolution";
 import { sendProEmail } from "@/lib/email";
 import { escapeHtml } from "@/lib/html";
 import { endFromDuration, occurrences, occurrencesByCount, weekdayIndex, type LockFreq } from "@/lib/recurrence";
+import { pushToPatient } from "@/lib/push";
 
 // Envia mensagem ao paciente pelo canal escolhido (WhatsApp do Ledivan, Telegram ou e-mail).
 export async function sendPatientMessage(patientId: string, channel: string, text: string): Promise<{ ok: boolean; error?: string }> {
@@ -617,6 +618,9 @@ export async function createAssignment(patientId: string, formData: FormData) {
     responseType: (formData.get("responseType") as string) || "texto",
     dueDate: dueRaw ? new Date(dueRaw) : null,
   });
+
+  // Avisa o paciente no app (best-effort; se ele não tiver o app, nada acontece).
+  await pushToPatient(patientId, "Nova tarefa 📋", title, { type: "task" });
 
   revalidatePath(`/dashboard/patients/${patientId}`);
 }

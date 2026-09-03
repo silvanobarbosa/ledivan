@@ -6,6 +6,7 @@ import { and, eq } from "drizzle-orm";
 import { auth } from "@/auth";
 import { sendWhatsappFromUser } from "@/lib/whatsappEvolution";
 import { recordOutbound } from "@/lib/messaging/inbox";
+import { pushToPatient } from "@/lib/push";
 import { draftMessage, aiDraftConfigured } from "@/lib/ai-draft";
 import { revalidatePath } from "next/cache";
 
@@ -27,6 +28,8 @@ export async function replyMessage(input: { patientId?: string | null; contact?:
 
   const ok = await sendWhatsappFromUser(session.user.id, phone, text);
   if (ok) await recordOutbound(session.user.id, patientId, "whatsapp", text, phone);
+  // Espelha no app do paciente (se ele tiver o app instalado).
+  if (ok && patientId) await pushToPatient(patientId, "Mensagem do seu terapeuta 💬", text.slice(0, 120), { type: "message" });
   revalidatePath("/dashboard/mensagens");
   return ok ? { ok: true } : { ok: false, error: "Não enviou — confira se seu WhatsApp está conectado em Configurações." };
 }
