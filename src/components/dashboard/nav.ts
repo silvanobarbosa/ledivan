@@ -12,6 +12,7 @@ import {
   Receipt,
   TrendingUp,
   ClipboardList,
+  Banknote,
 } from "lucide-react";
 
 export type NavItem = { icon: typeof LayoutDashboard; label: string; href: string };
@@ -32,6 +33,7 @@ export const NAV_GROUPS: NavGroup[] = [
   {
     title: "Financeiro",
     items: [
+      { icon: Banknote, label: "Pagamentos", href: "/dashboard/pagamentos" },
       { icon: LayoutDashboard, label: "Visão geral", href: "/dashboard/financeiro" },
       { icon: Wallet, label: "Visão financeira", href: "/dashboard/visao-financeira" },
       { icon: ArrowLeftRight, label: "Transações", href: "/dashboard/transactions" },

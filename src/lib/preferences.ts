@@ -24,6 +24,7 @@ export type UserPreferences = {
   integrations?: Integrations;
   features?: Record<string, "off" | "all" | "per-patient">; // modo de cada recurso do paciente (ver lib/features)
   timerShowToPatient?: boolean; // mostrar o cronômetro da sessão ao paciente
+  autoCobranca?: boolean; // cobrança automática mensal dos valores em aberto (cron)
   pix?: { key: string; name: string; city: string }; // chave Pix estática (pagamento no app do paciente)
   [key: string]: unknown;
 };
