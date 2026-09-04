@@ -1,6 +1,6 @@
 "use server";
 
-import { randomInt } from "crypto";
+import { randomBytes } from "crypto";
 
 import { db } from "@/db";
 import { users } from "@/db/schema";
@@ -218,7 +218,12 @@ export async function generateTelegramCode() {
   const session = await auth();
   if (!session?.user?.id) throw new Error("Não autorizado");
 
-  const code = randomInt(100000, 1000000).toString();
+  // Código de ALTA ENTROPIA (10 hex ≈ 40 bits), não 6 dígitos. O vínculo (linkByCode em
+  // telegram.ts) casa o código contra QUALQUER conta com código ativo — não é amarrado a um
+  // usuário-alvo. Com 6 dígitos (10^6) e sem rate-limit no bot, um atacante mandando códigos em
+  // massa acabaria vinculando o próprio Telegram à conta de quem estivesse conectando. Com 40
+  // bits isso deixa de ser viável. Segue de uso único + expiração de 10min.
+  const code = randomBytes(5).toString("hex");
   const expires = new Date(Date.now() + 10 * 60 * 1000); // 10 minutos
 
   await db.update(users)
