@@ -3,7 +3,8 @@
 import { db } from "@/db";
 import { users, transactions } from "@/db/schema";
 import { eq, desc } from "drizzle-orm";
-import OpenAI from "openai";
+import { getUserAiClient, SemChaveIA } from "@/lib/ai-client";
+import { parseMoedaBR } from "@/lib/money";
 
 const EVO_URL = process.env.EVOLUTION_API_URL;       // ex: https://evo.seuservidor.com
 const EVO_KEY = process.env.EVOLUTION_API_KEY;       // apikey global ou da instância
@@ -77,12 +78,12 @@ export async function handleWhatsappMessage(from: string, rawText: string) {
     const last = await db.query.transactions.findMany({ where: eq(transactions.userId, user.id), limit: 15 });
     await sendWhatsapp(from, "🤔 Analisando seus dados...");
     try {
-      const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
+      const ai = await getUserAiClient(user.id); // IA do próprio terapeuta (BYOK)
       const prompt = `Analise estas transações e dê uma dica curta e profissional de gestão financeira: ${JSON.stringify(last)}`;
-      const r = await openai.chat.completions.create({ model: "gpt-4o-mini", messages: [{ role: "user", content: prompt }] });
+      const r = await ai.openai.chat.completions.create({ model: ai.chatModel, messages: [{ role: "user", content: prompt }] });
       await sendWhatsapp(from, `💡 *Insight:* ${r.choices[0].message.content}`);
-    } catch {
-      await sendWhatsapp(from, "Não consegui gerar o insight agora.");
+    } catch (e) {
+      await sendWhatsapp(from, e instanceof SemChaveIA ? "Cadastre sua chave de IA em Configurações para usar os insights." : "Não consegui gerar o insight agora.");
     }
     return;
   }
@@ -97,7 +98,7 @@ export async function handleWhatsappMessage(from: string, rawText: string) {
   // /entrada valor descrição  → receita
   const incomeMatch = text.match(/^\/entrada\s+(\d+(?:[.,]\d+)?)\s+(.+)$/i);
   if (incomeMatch) {
-    const amount = incomeMatch[1].replace(",", ".");
+    const amount = parseMoedaBR(incomeMatch[1]) ?? "0";
     const description = incomeMatch[2];
     await db.insert(transactions).values({ userId: user.id, amount, type: "income", description, source: "manual" });
     await sendWhatsapp(from, `✅ Receita registrada: ${fmtBRL(parseFloat(amount))} — "${description}".`);
@@ -107,7 +108,7 @@ export async function handleWhatsappMessage(from: string, rawText: string) {
   // "valor descrição"  (ou /add valor descrição) → despesa
   const expenseMatch = text.replace(/^\/add\s+/i, "").match(/^(\d+(?:[.,]\d+)?)\s+(.+)$/);
   if (expenseMatch) {
-    const amount = expenseMatch[1].replace(",", ".");
+    const amount = parseMoedaBR(expenseMatch[1]) ?? "0";
     const description = expenseMatch[2];
     await db.insert(transactions).values({ userId: user.id, amount, type: "expense", description, source: "manual" });
     await sendWhatsapp(from, `✅ Despesa registrada: ${fmtBRL(parseFloat(amount))} — "${description}".`);
