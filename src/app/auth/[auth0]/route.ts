@@ -46,24 +46,12 @@ export async function GET(
       cookieStore.delete("auth-session");
       return NextResponse.redirect(new URL("/", request.url));
 
-    case "callback":
-      // Processar callback (simplificado para desenvolvimento)
-      // Em produção, validar token OAuth
-      const email = searchParams.get("email");
-      if (email) {
-        const user = await db.query.users.findFirst({
-          where: eq(users.email, email.toLowerCase()),
-        });
-
-        if (user) {
-          await createSession(user.id);
-          return NextResponse.redirect(
-            new URL(searchParams.get("returnTo") || "/dashboard", request.url)
-          );
-        }
-      }
-      return NextResponse.redirect(new URL("/login?error=auth", request.url));
-
+    // ATENÇÃO: NÃO reintroduzir um "callback" que emita sessão a partir de um e-mail na query.
+    // Existiu aqui um `case "callback"` que fazia exatamente isso — `?email=<x>` → cookie de
+    // sessão daquela conta, sem senha, sem code/state/PKCE. Era bypass TOTAL de autenticação
+    // (acesso a prontuário/dado de saúde = LGPD). Removido. O login OAuth de verdade mora em
+    // /api/auth/auth0 e /api/auth/google (com state assinado + PKCE); o login por senha, no POST
+    // abaixo. Qualquer ação não tratada cai no 404.
     default:
       return new Response("Not found", { status: 404 });
   }
