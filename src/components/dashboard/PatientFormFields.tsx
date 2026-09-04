@@ -107,7 +107,11 @@ export function PatientFormFields({ p, locations }: { p?: PatientFormData; locat
           </div>
           <div>
             <label className={labelCls}>Nome *</label>
-            <input name="name" required defaultValue={p?.name ?? ""} className={inputCls} placeholder="Nome completo" />
+            {/* onInvalid pula p/ a aba "Dados". As abas ficam todas montadas e a inativa só
+                recebe `hidden` (display:none); um campo required escondido NÃO é focável, então
+                o Chrome abortava o submit em silêncio — botão "Cadastrar" parecia morto. Trazer
+                a aba de volta torna o campo visível e o balão de validação aparece. */}
+            <input name="name" required onInvalid={() => setTab("dados")} defaultValue={p?.name ?? ""} className={inputCls} placeholder="Nome completo" />
           </div>
           <div className="grid sm:grid-cols-2 gap-4">
             <PhoneInput name="phone" defaultValue={p?.phone} />
