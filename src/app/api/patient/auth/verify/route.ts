@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { eq, desc } from "drizzle-orm";
+import { eq, desc, sql } from "drizzle-orm";
 import { db } from "@/db";
 import { patients, patientAuthCode } from "@/db/schema";
 import { signPatient } from "@/lib/patient-token";
@@ -18,13 +18,23 @@ export async function POST(req: Request) {
   const code = (b.code || "").replace(/\D/g, "");
   if (key.length < 10 || code.length !== 6) return NextResponse.json({ ok: false, error: "Dados inválidos." }, { status: 400 });
 
-  // Anti-brute-force: máx 6 tentativas por telefone a cada 10min (código de 6 díg seria forçável senão).
+  // Rate-limit por IP (o por-telefone é burlável variando o número) + anti-brute-force por
+  // telefone (código de 6 díg seria forçável senão). Ambos fail-closed.
+  const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "ip-desconhecido";
+  if (!(await rateLimit(ip, "patient-verify-ip", 60, 600, { failClosed: true }))) {
+    return NextResponse.json({ ok: false, error: "Muitas tentativas. Aguarde alguns minutos." }, { status: 429 });
+  }
   if (!(await rateLimit(`patient-verify:${key}`, "patient-verify", 6, 600, { failClosed: true }))) {
     return NextResponse.json({ ok: false, error: "Muitas tentativas. Aguarde alguns minutos e peça um novo código." }, { status: 429 });
   }
 
-  const pats = await db.select({ id: patients.id, userId: patients.userId, name: patients.name, phone: patients.phone }).from(patients);
-  const patient = pats.find((p) => last11(p.phone) === key);
+  // Filtra no banco pelos últimos 11 dígitos (antes: full scan + filtro em JS a cada request).
+  const rows = await db
+    .select({ id: patients.id, userId: patients.userId, name: patients.name, phone: patients.phone })
+    .from(patients)
+    .where(sql`right(regexp_replace(coalesce(${patients.phone}, ''), '[^0-9]', '', 'g'), 11) = ${key}`)
+    .limit(1);
+  const patient = rows[0];
   if (!patient) return NextResponse.json({ ok: false, error: "Código inválido." }, { status: 401 });
 
   const [row] = await db.select().from(patientAuthCode)
