@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import {
   Users, CalendarDays, Activity, Wallet, HeartHandshake, Settings, X, ArrowRight, ArrowLeft, Sparkles, HelpCircle,
   ClipboardList, Smartphone, Banknote, TrendingUp, Receipt,
@@ -41,16 +42,25 @@ const STEPS: Step[] = [
 export function OnboardingTour() {
   const [open, setOpen] = useState(false);
   const [i, setI] = useState(0);
+  const pathname = usePathname();
 
   useEffect(() => {
     try {
       const url = new URL(window.location.href);
-      if (url.searchParams.get("tour") === "1" || !localStorage.getItem(KEY)) setOpen(true);
+      // Pedido explícito (?tour=1 ou o botão da Ajuda) abre em qualquer tela.
+      const pedido = url.searchParams.get("tour") === "1";
+      // Auto-abrir SÓ na home do dashboard. Este componente é montado no layout, então
+      // antes ele aparecia sobre QUALQUER página filha — inclusive o formulário de novo
+      // paciente. Como o modal é um backdrop `fixed inset-0 z-[100]`, ele engole o primeiro
+      // clique: quem apertava "Cadastrar paciente" só fechava o tour, e o cadastro parecia
+      // não funcionar. Piorou quando a KEY virou v3, que reabre o tour para quem já o viu.
+      const naHome = pathname === "/dashboard";
+      if (pedido || (naHome && !localStorage.getItem(KEY))) setOpen(true);
     } catch {}
     const handler = () => { setI(0); setOpen(true); };
     window.addEventListener("ledivan-open-tour", handler);
     return () => window.removeEventListener("ledivan-open-tour", handler);
-  }, []);
+  }, [pathname]);
 
   function close() {
     setOpen(false);

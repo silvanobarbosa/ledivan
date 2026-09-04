@@ -4,6 +4,7 @@ import { users } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import { assinarSessao } from "@/lib/session-secret";
+import { rateLimit } from "@/lib/rateLimit";
 
 export const dynamic = "force-dynamic";
 
@@ -27,6 +28,15 @@ export async function POST(req: Request) {
   const password = String(body.password || "");
   if (!email || !password) {
     return NextResponse.json({ error: "Informe e-mail e senha." }, { status: 400 });
+  }
+
+  // Mesma barreira do login web: fail-closed por e-mail e por IP (dado de paciente atrás).
+  const ip = req.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "ip-desconhecido";
+  if (
+    !(await rateLimit(email, "app-login-email", 10, 900, { failClosed: true })) ||
+    !(await rateLimit(ip, "app-login-ip", 30, 900, { failClosed: true }))
+  ) {
+    return NextResponse.json({ error: "Muitas tentativas. Aguarde alguns minutos." }, { status: 429 });
   }
 
   const user = await db.query.users.findFirst({ where: eq(users.email, email) });

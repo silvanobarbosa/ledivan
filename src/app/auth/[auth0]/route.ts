@@ -6,6 +6,7 @@ import { users } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import { assinarSessao } from "@/lib/session-secret";
+import { rateLimit } from "@/lib/rateLimit";
 
 /**
  * Auth0 Route Handler Simplificado
@@ -46,24 +47,12 @@ export async function GET(
       cookieStore.delete("auth-session");
       return NextResponse.redirect(new URL("/", request.url));
 
-    case "callback":
-      // Processar callback (simplificado para desenvolvimento)
-      // Em produção, validar token OAuth
-      const email = searchParams.get("email");
-      if (email) {
-        const user = await db.query.users.findFirst({
-          where: eq(users.email, email.toLowerCase()),
-        });
-
-        if (user) {
-          await createSession(user.id);
-          return NextResponse.redirect(
-            new URL(searchParams.get("returnTo") || "/dashboard", request.url)
-          );
-        }
-      }
-      return NextResponse.redirect(new URL("/login?error=auth", request.url));
-
+    // ATENÇÃO: NÃO reintroduzir um "callback" que emita sessão a partir de um e-mail na query.
+    // Existiu aqui um `case "callback"` que fazia exatamente isso — `?email=<x>` → cookie de
+    // sessão daquela conta, sem senha, sem code/state/PKCE. Era bypass TOTAL de autenticação
+    // (acesso a prontuário/dado de saúde = LGPD). Removido. O login OAuth de verdade mora em
+    // /api/auth/auth0 e /api/auth/google (com state assinado + PKCE); o login por senha, no POST
+    // abaixo. Qualquer ação não tratada cai no 404.
     default:
       return new Response("Not found", { status: 404 });
   }
@@ -87,6 +76,20 @@ export async function POST(
       );
     }
 
+    const emailLower = String(email).toLowerCase();
+    // Rate-limit fail-closed contra força bruta / credential stuffing. Por e-mail (alvo) e por IP.
+    // Este endpoint guarda os prontuários — antes ia direto de req.json() para bcrypt, sem barreira.
+    const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "ip-desconhecido";
+    if (
+      !(await rateLimit(emailLower, "login-email", 10, 900, { failClosed: true })) ||
+      !(await rateLimit(ip, "login-ip", 30, 900, { failClosed: true }))
+    ) {
+      return NextResponse.json(
+        { error: "Muitas tentativas. Aguarde alguns minutos e tente de novo." },
+        { status: 429 }
+      );
+    }
+
     // Modo de criação de nova conta
     if (signup) {
       if (!name) {
@@ -96,9 +99,18 @@ export async function POST(
         );
       }
 
+      // Força mínima de senha validada NO SERVIDOR (o mínimo de 8 do signup/page.tsx é só no
+      // cliente e é contornável mandando o POST direto).
+      if (String(password).length < 8) {
+        return NextResponse.json(
+          { error: "A senha precisa ter ao menos 8 caracteres." },
+          { status: 400 }
+        );
+      }
+
       // Verificar se usuário já existe
       const existingUser = await db.query.users.findFirst({
-        where: eq(users.email, email.toLowerCase()),
+        where: eq(users.email, emailLower),
       });
 
       if (existingUser) {
@@ -111,7 +123,7 @@ export async function POST(
       // Criar novo usuário
       const passwordHash = await bcrypt.hash(password, 10);
       const [newUser] = await db.insert(users).values({
-        email: email.toLowerCase(),
+        email: emailLower,
         name: name,
         passwordHash: passwordHash,
         emailVerified: new Date(),
@@ -125,7 +137,7 @@ export async function POST(
 
     // Modo de login normal
     const user = await db.query.users.findFirst({
-      where: eq(users.email, email.toLowerCase()),
+      where: eq(users.email, emailLower),
     });
 
     if (!user || !user.passwordHash) {

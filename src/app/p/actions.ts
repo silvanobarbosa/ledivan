@@ -11,6 +11,13 @@ export async function submitAssignmentResponse(token: string, formData: FormData
   const assignment = await db.query.assignments.findFirst({ where: eq(assignments.token, token) });
   if (!assignment) return { ok: false, error: "Tarefa não encontrada." };
 
+  // Já respondida = não reabre. Antes, quem tivesse o link podia SOBRESCREVER a resposta
+  // enviada (apagando a original) e reenviar arquivos de até 50MB no Blob indefinidamente
+  // (custo). A tarefa é de uso único: uma resposta, e pronto.
+  if (assignment.status === "respondida") {
+    return { ok: false, error: "Esta tarefa já foi respondida." };
+  }
+
   const text = ((formData.get("responseText") as string) || "").trim() || null;
   const file = formData.get("file") as File | null;
 

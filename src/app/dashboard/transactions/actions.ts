@@ -5,6 +5,7 @@ import { transactions, financialAccounts, sessionPayments } from "@/db/schema";
 import { auth } from "@/auth";
 import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import { parseMoedaBR, moedaOuPadrao } from "@/lib/money";
 
 type TxType = "income" | "expense";
 
@@ -13,20 +14,30 @@ export async function createTransaction(formData: FormData) {
   if (!session?.user?.id) throw new Error("Não autorizado");
   const userId = session.user.id;
 
-  const amount = (formData.get("amount") as string)?.replace(",", ".");
+  const amount = parseMoedaBR(formData.get("amount"));
   if (!amount) throw new Error("Valor obrigatório");
 
   const type = ((formData.get("type") as string) || "expense") as TxType;
   const categoryId = (formData.get("categoryId") as string) || null;
-  const accountId = (formData.get("accountId") as string) || null;
+  const rawAccountId = (formData.get("accountId") as string) || null;
   const dateRaw = formData.get("date") as string;
+
+  // Valida posse da conta: o id vem do form e poderia apontar para a conta de OUTRO terapeuta.
+  // Só aceita se pertencer ao usuário da sessão; senão, null.
+  let accountId: string | null = null;
+  if (rawAccountId) {
+    const own = await db.query.financialAccounts.findFirst({
+      where: and(eq(financialAccounts.id, rawAccountId), eq(financialAccounts.userId, userId)),
+    });
+    accountId = own ? rawAccountId : null;
+  }
 
   await db.insert(transactions).values({
     userId,
     amount,
     type,
     categoryId: categoryId || null,
-    accountId: accountId || null,
+    accountId,
     description: (formData.get("description") as string) || null,
     date: dateRaw ? new Date(dateRaw) : new Date(),
     source: "manual",
@@ -65,7 +76,7 @@ export async function createFinancialAccount(formData: FormData) {
     userId: session.user.id,
     name: name.trim(),
     type: (formData.get("type") as string) || "checking",
-    balance: ((formData.get("balance") as string) || "0").replace(",", "."),
+    balance: moedaOuPadrao(formData.get("balance"), "0"),
     color: "#8b5cf6",
   });
 
