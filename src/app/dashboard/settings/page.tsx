@@ -38,7 +38,7 @@ export default async function SettingsPage() {
   if (!user) return null;
 
   const prefs = await getPreferences(user.id);
-  const consentForm = await getConsentForm(user.id);
+  const consentForm = await getConsentForm();
   const googleConnected = await hasGoogleAccount(user.id);
   const calendarAuthorized = await hasCalendarScope(user.id);
 

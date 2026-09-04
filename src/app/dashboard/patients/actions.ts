@@ -266,6 +266,9 @@ export async function updatePatient(patientId: string, formData: FormData) {
     notes: existing.notes, // editado no Prontuário
     patientStatus: newStatus,
     birthDate: formData.get("birthDate") ? new Date(formData.get("birthDate") as string) : existing.birthDate,
+    // "Início" (startedAt): o form envia o campo, mas ele NÃO estava no .set() — editar a data
+    // de início não salvava (sem erro). Agora persiste.
+    startedAt: formData.get("startedAt") ? new Date(formData.get("startedAt") as string) : existing.startedAt,
     category: (formData.get("category") as string) ?? existing.category,
     queixaPrincipal: formData.has("queixaPrincipal") ? ((formData.get("queixaPrincipal") as string)?.trim() || null) : existing.queixaPrincipal,
     gender: formData.has("gender") ? genderOf(formData) : existing.gender,
@@ -299,10 +302,14 @@ export async function updatePatient(patientId: string, formData: FormData) {
     reminderLeadMinutes: formData.get("reminderLeadMinutes")
       ? parseInt(formData.get("reminderLeadMinutes") as string)
       : existing.reminderLeadMinutes,
-    photo3x4: (formData.get("photo3x4") as string) || existing.photo3x4,
-    photoExtra1: (formData.get("photoExtra1") as string) || existing.photoExtra1,
-    photoExtra2: (formData.get("photoExtra2") as string) || existing.photoExtra2,
-    photoExtra3: (formData.get("photoExtra3") as string) || existing.photoExtra3,
+    // Fotos: o `|| existing` impedia APAGAR — o botão "remover" manda "", que caía no `||` e
+    // restaurava a foto antiga. Agora: campo presente → usa o valor ("" vira null = apaga);
+    // ausente → mantém. O PhotoSlots reenvia o valor atual (existing quando intocado), então
+    // uma edição sem mexer na foto a preserva.
+    photo3x4: formData.has("photo3x4") ? ((formData.get("photo3x4") as string) || null) : existing.photo3x4,
+    photoExtra1: formData.has("photoExtra1") ? ((formData.get("photoExtra1") as string) || null) : existing.photoExtra1,
+    photoExtra2: formData.has("photoExtra2") ? ((formData.get("photoExtra2") as string) || null) : existing.photoExtra2,
+    photoExtra3: formData.has("photoExtra3") ? ((formData.get("photoExtra3") as string) || null) : existing.photoExtra3,
     tags: existing.tags, // editado no Prontuário
   }).where(and(eq(patients.id, patientId), eq(patients.userId, session.user.id)));
 
