@@ -48,8 +48,12 @@ export async function createPublicBooking(slug: string, formData: FormData) {
   }
 
   if (!patient) {
+    // número de cadastro sequencial por terapeuta (antes o agendamento público nascia sem número)
+    const [{ maxNum }] = await db.select({ maxNum: sql<number>`coalesce(max(${patients.registrationNumber}), 0)` })
+      .from(patients).where(eq(patients.userId, userId));
     [patient] = await db.insert(patients).values({
       userId,
+      registrationNumber: Number(maxNum) + 1,
       name,
       phone,
       email,
