@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
-import { getOpenAI } from "@/lib/openai-client";
+import { getUserAiClient, SemChaveIA } from "@/lib/ai-client";
 import { db } from "@/db";
-import { transactions, categories, users } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { transactions, categories } from "@/db/schema";
+import { and, eq } from "drizzle-orm";
 
 import { auth } from "@/auth";
 import { rateLimit } from "@/lib/rateLimit";
@@ -23,16 +23,16 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Muitas solicitações. Tente novamente em alguns minutos." }, { status: 429 });
     }
 
-    // Chama a API do OpenAI (GPT-4o ou Vision)
-    const response = await getOpenAI().chat.completions.create({
-      model: "gpt-4o-mini",
+    const ai = await getUserAiClient(userId); // IA do próprio terapeuta (BYOK)
+    const response = await ai.openai.chat.completions.create({
+      model: ai.chatModel,
       messages: [
         {
           role: "user",
           content: [
-            { 
-              type: "text", 
-              text: "Analise esta nota fiscal/recibo e extraia os seguintes dados em JSON: { 'amount': number, 'description': string, 'category': string, 'date': string (ISO format) }. Se não tiver certeza da categoria, use uma das seguintes: Alimentação, Transporte, Lazer, Saúde, Outros." 
+            {
+              type: "text",
+              text: "Analise esta nota fiscal/recibo e extraia os seguintes dados em JSON: { 'amount': number, 'description': string, 'category': string, 'date': string (ISO format) }. Se não tiver certeza da categoria, use uma das seguintes: Alimentação, Transporte, Lazer, Saúde, Outros."
             },
             {
               type: "image_url",
@@ -44,31 +44,46 @@ export async function POST(req: Request) {
       response_format: { type: "json_object" },
     });
 
-    const result = JSON.parse(response.choices[0].message.content || "{}");
+    // A saída do modelo é DADO não confiável: validar antes de gravar. Antes, `result.amount
+    // .toString()` estourava (TypeError → 500) quando o modelo omitia `amount`.
+    let result: any;
+    try { result = JSON.parse(response.choices[0].message.content || "{}"); }
+    catch { return NextResponse.json({ error: "Não consegui ler os dados do recibo." }, { status: 422 }); }
 
-    // Tentar encontrar a categoria no banco
+    const amount = Number(result?.amount);
+    if (!Number.isFinite(amount) || amount < 0) {
+      return NextResponse.json({ error: "Não consegui identificar o valor no recibo." }, { status: 422 });
+    }
+    const description = typeof result?.description === "string" ? result.description.slice(0, 300) : "Recibo";
+    const parsedDate = result?.date ? new Date(result.date) : new Date();
+    const date = Number.isNaN(parsedDate.getTime()) ? new Date() : parsedDate;
+
+    // Categoria: só do próprio terapeuta (a tabela ainda é global; filtra pelo que existe).
     const categoryList = await db.query.categories.findMany();
-    const category = categoryList.find(c => c.name.toLowerCase() === result.category?.toLowerCase()) || 
-                     categoryList.find(c => c.name === "Outros");
+    const wanted = typeof result?.category === "string" ? result.category.toLowerCase() : "";
+    const category = categoryList.find(c => c.name.toLowerCase() === wanted)
+                  || categoryList.find(c => c.name === "Outros");
 
-    // Salvar no banco
     const [newTransaction] = await db.insert(transactions).values({
       userId,
-      amount: result.amount.toString(),
-      description: result.description,
+      amount: amount.toFixed(2),
+      description,
       categoryId: category?.id,
       type: "expense",
       source: "scan",
-      date: result.date ? new Date(result.date) : new Date(),
+      date,
     }).returning();
 
-    return NextResponse.json({ 
-      success: true, 
+    return NextResponse.json({
+      success: true,
       transaction: newTransaction,
-      aiAnalysis: result 
+      aiAnalysis: result
     });
 
   } catch (error: any) {
+    if (error instanceof SemChaveIA) {
+      return NextResponse.json({ error: error.message }, { status: 400 });
+    }
     console.error("Erro no scan de recibo:", error);
     return NextResponse.json({ error: "Falha ao processar imagem." }, { status: 500 });
   }

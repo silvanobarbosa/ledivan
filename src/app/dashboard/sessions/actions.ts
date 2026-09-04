@@ -9,6 +9,7 @@ import { redirect } from "next/navigation";
 import { getPreferences } from "@/lib/preferences";
 import { createMeetLink } from "@/lib/googleCalendar";
 import { parseMoedaBR } from "@/lib/money";
+import { getUserAiClient, SemChaveIA } from "@/lib/ai-client";
 
 type SessionStatus = "realizada" | "nao_realizada" | "cancelada" | "realocada" | "agendada";
 
@@ -259,10 +260,10 @@ export async function generateSessionSummary(sessionId: string): Promise<{ ok: b
   if (!s.notes || !s.notes.trim()) return { ok: false, error: "Adicione notas à sessão antes de gerar o resumo." };
 
   try {
-    const OpenAI = (await import("openai")).default;
-    const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY });
-    const r = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
+    // IA do terapeuta (BYOK) — nota clínica do paciente NÃO sai por chave compartilhada.
+    const ai = await getUserAiClient(userId);
+    const r = await ai.openai.chat.completions.create({
+      model: ai.chatModel,
       messages: [
         {
           role: "system",
@@ -279,6 +280,7 @@ export async function generateSessionSummary(sessionId: string): Promise<{ ok: b
     revalidatePath(`/dashboard/patients/${s.patientId}`);
     return { ok: true, summary };
   } catch (e) {
+    if (e instanceof SemChaveIA) return { ok: false, error: e.message };
     console.error("Erro no resumo pós-sessão:", e);
     return { ok: false, error: "Falha ao gerar o resumo." };
   }

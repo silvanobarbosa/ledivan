@@ -2,7 +2,8 @@ import { Telegraf } from "telegraf";
 import { db } from "@/db";
 import { users, transactions } from "@/db/schema";
 import { eq, desc, and, gt } from "drizzle-orm";
-import { getOpenAI } from "@/lib/openai-client";
+import { getUserAiClient, SemChaveIA } from "@/lib/ai-client";
+import { parseMoedaBR } from "@/lib/money";
 
 // O bot é construído sob demanda, não no import. Antes o módulo fazia `new Telegraf(token)` e
 // `throw` no topo — o que quebrava o `next build`, que importa /api/telegram para coletar dados
@@ -114,13 +115,17 @@ bot.command("insights", async (ctx) => {
   
   ctx.reply("🤔 Analisando seus dados...");
 
-  const prompt = `Analise estas transações financeiras e dê uma dica curta e profissional de gestão para o usuário: ${JSON.stringify(result)}`;
-  const response = await getOpenAI().chat.completions.create({
-    model: "gpt-4o-mini",
-    messages: [{ role: "user", content: prompt }],
-  });
-
-  ctx.reply(`💡 *Insight:* ${response.choices[0].message.content}`, { parse_mode: "Markdown" });
+  try {
+    const ai = await getUserAiClient(user.id); // IA do próprio terapeuta (BYOK)
+    const prompt = `Analise estas transações financeiras e dê uma dica curta e profissional de gestão para o usuário: ${JSON.stringify(result)}`;
+    const response = await ai.openai.chat.completions.create({
+      model: ai.chatModel,
+      messages: [{ role: "user", content: prompt }],
+    });
+    ctx.reply(`💡 *Insight:* ${response.choices[0].message.content}`, { parse_mode: "Markdown" });
+  } catch (e) {
+    ctx.reply(e instanceof SemChaveIA ? "Cadastre sua chave de IA em Configurações para usar os insights." : "Não consegui gerar o insight agora.");
+  }
 });
 
 bot.on("text", async (ctx) => {
@@ -128,7 +133,7 @@ bot.on("text", async (ctx) => {
   const match = text.match(/^(\d+(?:[.,]\d+)?)\s+(.+)$/);
 
   if (match) {
-    const amount = match[1].replace(",", ".");
+    const amount = parseMoedaBR(match[1]) ?? "0";
     const description = match[2];
     const user = (ctx as any).dbUser;
     if (!user) return;
