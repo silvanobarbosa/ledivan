@@ -6,6 +6,7 @@ import { auth } from "@/auth";
 import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { parseMoedaBR } from "@/lib/money";
 
 type PaymentMethod = "pix" | "card" | "transfer" | "cash";
 type PaymentStatus = "paid" | "pending" | "overdue";
@@ -40,7 +41,7 @@ export async function createPayment(formData: FormData) {
   });
   if (!patient) throw new Error("Paciente não encontrado");
 
-  const amount = (formData.get("amount") as string)?.replace(",", ".");
+  const amount = parseMoedaBR(formData.get("amount"));
   if (!amount) throw new Error("Valor obrigatório");
 
   const dateRaw = formData.get("date") as string;

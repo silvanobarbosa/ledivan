@@ -6,6 +6,7 @@ import { auth } from "@/auth";
 import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
+import { moedaOuPadrao } from "@/lib/money";
 
 export async function createProspect(formData: FormData) {
   const session = await auth();
@@ -27,7 +28,7 @@ export async function createProspect(formData: FormData) {
     prospectDate,
     prospectFechou: (formData.get("prospectFechou") as string) || "",
     prospectObservacoes: (formData.get("prospectObservacoes") as string) || null,
-    sessionFee: ((formData.get("sessionFee") as string) || "0").replace(",", "."),
+    sessionFee: moedaOuPadrao(formData.get("sessionFee"), "0"),
   }).returning();
 
   // histórico começa já na fase de prospect (se soma ao prontuário depois)

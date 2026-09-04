@@ -8,6 +8,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getPreferences } from "@/lib/preferences";
 import { createMeetLink } from "@/lib/googleCalendar";
+import { parseMoedaBR } from "@/lib/money";
 
 type SessionStatus = "realizada" | "nao_realizada" | "cancelada" | "realocada" | "agendada";
 
@@ -77,7 +78,7 @@ export async function createSession(formData: FormData) {
   if (!patient) throw new Error("Paciente não encontrado");
 
   const dateRaw = formData.get("date") as string;
-  const fee = (formData.get("fee") as string)?.replace(",", ".") || patient.sessionFee;
+  const fee = parseMoedaBR(formData.get("fee")) || patient.sessionFee;
   const isOnline = formData.get("isOnline") === "on";
   const date = dateRaw ? new Date(dateRaw) : new Date();
   const duration = formData.get("duration") ? parseInt(formData.get("duration") as string) : 50;

@@ -5,6 +5,7 @@ import { transactions, financialAccounts, sessionPayments } from "@/db/schema";
 import { auth } from "@/auth";
 import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import { parseMoedaBR, moedaOuPadrao } from "@/lib/money";
 
 type TxType = "income" | "expense";
 
@@ -13,7 +14,7 @@ export async function createTransaction(formData: FormData) {
   if (!session?.user?.id) throw new Error("Não autorizado");
   const userId = session.user.id;
 
-  const amount = (formData.get("amount") as string)?.replace(",", ".");
+  const amount = parseMoedaBR(formData.get("amount"));
   if (!amount) throw new Error("Valor obrigatório");
 
   const type = ((formData.get("type") as string) || "expense") as TxType;
@@ -65,7 +66,7 @@ export async function createFinancialAccount(formData: FormData) {
     userId: session.user.id,
     name: name.trim(),
     type: (formData.get("type") as string) || "checking",
-    balance: ((formData.get("balance") as string) || "0").replace(",", "."),
+    balance: moedaOuPadrao(formData.get("balance"), "0"),
     color: "#8b5cf6",
   });
 

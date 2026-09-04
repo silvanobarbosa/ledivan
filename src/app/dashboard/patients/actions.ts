@@ -10,6 +10,7 @@ import { put } from "@vercel/blob";
 import { sendWhatsappFromUser } from "@/lib/whatsappEvolution";
 import { sendProEmail } from "@/lib/email";
 import { escapeHtml } from "@/lib/html";
+import { moedaOuPadrao } from "@/lib/money";
 import { endFromDuration, occurrences, occurrencesByCount, weekdayIndex, type LockFreq } from "@/lib/recurrence";
 import { pushToPatient } from "@/lib/push";
 
@@ -67,9 +68,10 @@ export async function uploadPhoto(formData: FormData): Promise<{ ok: boolean; pa
   }
 }
 
+// Valor monetário do formulário (pt-BR) → decimal canônico. Ver src/lib/money.ts:
+// o antigo `replace(",", ".")` trocava só a 1ª ocorrência e quebrava "1.500,00".
 function num(v: FormDataEntryValue | null, fallback = "0") {
-  if (v == null || v === "") return fallback;
-  return String(v).replace(",", ".");
+  return moedaOuPadrao(v, fallback);
 }
 
 const DOW: Record<string, number> = { domingo: 0, segunda: 1, "terça": 2, terca: 2, quarta: 3, quinta: 4, sexta: 5, "sábado": 6, sabado: 6 };
