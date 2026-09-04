@@ -1,27 +1,38 @@
 import { db } from "@/db";
-import { rateLimits } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { sql } from "drizzle-orm";
 
 // Rate limit por janela fixa, persistido no banco (funciona em serverless).
 // Retorna true se permitido; false se estourou o limite na janela.
-export async function rateLimit(userId: string, route: string, limit: number, windowSec: number): Promise<boolean> {
+//
+// `failClosed`: o que fazer quando o BANCO falha. Endpoints comuns (insights, scan) preferem
+// fail-open — não bloquear o usuário por soluço de infra. Mas endpoints de AUTENTICAÇÃO (login,
+// código de 6 dígitos do paciente) devem passar `failClosed: true`: aí o rate-limit é a ÚNICA
+// barreira contra força bruta, e "abrir na falha" entrega justamente a janela que o atacante quer.
+export async function rateLimit(
+  userId: string,
+  route: string,
+  limit: number,
+  windowSec: number,
+  opts: { failClosed?: boolean } = {},
+): Promise<boolean> {
   const key = `${userId}:${route}`;
   const now = new Date();
+  const cutoff = new Date(now.getTime() - windowSec * 1000);
   try {
-    const row = await db.query.rateLimits.findFirst({ where: eq(rateLimits.key, key) });
-    if (!row) {
-      await db.insert(rateLimits).values({ key, count: 1, windowStart: now }).onConflictDoNothing();
-      return true;
-    }
-    const elapsed = (now.getTime() - new Date(row.windowStart).getTime()) / 1000;
-    if (elapsed >= windowSec) {
-      await db.update(rateLimits).set({ count: 1, windowStart: now }).where(eq(rateLimits.key, key));
-      return true;
-    }
-    if (row.count >= limit) return false;
-    await db.update(rateLimits).set({ count: row.count + 1 }).where(eq(rateLimits.key, key));
-    return true;
+    // Incremento ATÔMICO: um único UPSERT decide reset-de-janela vs +1, evitando a corrida do
+    // read-then-write (dois requests concorrentes que liam o mesmo count e ambos passavam).
+    const rows = await db.execute(sql`
+      INSERT INTO rate_limits (key, count, window_start)
+      VALUES (${key}, 1, ${now})
+      ON CONFLICT (key) DO UPDATE SET
+        count = CASE WHEN rate_limits.window_start < ${cutoff} THEN 1 ELSE rate_limits.count + 1 END,
+        window_start = CASE WHEN rate_limits.window_start < ${cutoff} THEN ${now} ELSE rate_limits.window_start END
+      RETURNING count
+    `);
+    const r = (rows as unknown as { rows?: Array<{ count: number }> }).rows ?? (rows as unknown as Array<{ count: number }>);
+    const count = Number(r?.[0]?.count ?? 1);
+    return count <= limit;
   } catch {
-    return true; // fail-open: nunca bloquear por erro de infra
+    return !opts.failClosed; // comum: fail-open; auth: fail-closed
   }
 }

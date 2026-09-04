@@ -6,6 +6,7 @@ import { users } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import { assinarSessao } from "@/lib/session-secret";
+import { rateLimit } from "@/lib/rateLimit";
 
 /**
  * Auth0 Route Handler Simplificado
@@ -75,6 +76,20 @@ export async function POST(
       );
     }
 
+    const emailLower = String(email).toLowerCase();
+    // Rate-limit fail-closed contra força bruta / credential stuffing. Por e-mail (alvo) e por IP.
+    // Este endpoint guarda os prontuários — antes ia direto de req.json() para bcrypt, sem barreira.
+    const ip = request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "ip-desconhecido";
+    if (
+      !(await rateLimit(emailLower, "login-email", 10, 900, { failClosed: true })) ||
+      !(await rateLimit(ip, "login-ip", 30, 900, { failClosed: true }))
+    ) {
+      return NextResponse.json(
+        { error: "Muitas tentativas. Aguarde alguns minutos e tente de novo." },
+        { status: 429 }
+      );
+    }
+
     // Modo de criação de nova conta
     if (signup) {
       if (!name) {
@@ -84,9 +99,18 @@ export async function POST(
         );
       }
 
+      // Força mínima de senha validada NO SERVIDOR (o mínimo de 8 do signup/page.tsx é só no
+      // cliente e é contornável mandando o POST direto).
+      if (String(password).length < 8) {
+        return NextResponse.json(
+          { error: "A senha precisa ter ao menos 8 caracteres." },
+          { status: 400 }
+        );
+      }
+
       // Verificar se usuário já existe
       const existingUser = await db.query.users.findFirst({
-        where: eq(users.email, email.toLowerCase()),
+        where: eq(users.email, emailLower),
       });
 
       if (existingUser) {
@@ -99,7 +123,7 @@ export async function POST(
       // Criar novo usuário
       const passwordHash = await bcrypt.hash(password, 10);
       const [newUser] = await db.insert(users).values({
-        email: email.toLowerCase(),
+        email: emailLower,
         name: name,
         passwordHash: passwordHash,
         emailVerified: new Date(),
@@ -113,7 +137,7 @@ export async function POST(
 
     // Modo de login normal
     const user = await db.query.users.findFirst({
-      where: eq(users.email, email.toLowerCase()),
+      where: eq(users.email, emailLower),
     });
 
     if (!user || !user.passwordHash) {

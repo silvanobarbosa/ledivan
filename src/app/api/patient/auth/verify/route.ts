@@ -19,7 +19,7 @@ export async function POST(req: Request) {
   if (key.length < 10 || code.length !== 6) return NextResponse.json({ ok: false, error: "Dados inválidos." }, { status: 400 });
 
   // Anti-brute-force: máx 6 tentativas por telefone a cada 10min (código de 6 díg seria forçável senão).
-  if (!(await rateLimit(`patient-verify:${key}`, "patient-verify", 6, 600))) {
+  if (!(await rateLimit(`patient-verify:${key}`, "patient-verify", 6, 600, { failClosed: true }))) {
     return NextResponse.json({ ok: false, error: "Muitas tentativas. Aguarde alguns minutos e peça um novo código." }, { status: 429 });
   }
 
