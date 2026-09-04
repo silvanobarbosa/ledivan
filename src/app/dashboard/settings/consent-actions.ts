@@ -22,7 +22,14 @@ export async function saveConsentForm(title: string, body: string): Promise<{ ok
   return { ok: true };
 }
 
-export async function getConsentForm(userId: string) {
-  const [row] = await db.select().from(consentForms).where(eq(consentForms.userId, userId)).limit(1);
+// Como este arquivo é "use server", todo export vira uma server action invocável por POST
+// externo. A versão antiga recebia `userId` e lia o termo daquele id SEM checar sessão — dava
+// pra ler o consentimento de outro terapeuta passando o id dele. Agora ignora qualquer
+// parâmetro e usa SEMPRE o dono da sessão. O único chamador (settings/page.tsx) já passava o
+// próprio id, então nada muda para ele.
+export async function getConsentForm() {
+  const s = await auth();
+  if (!s?.user?.id) return null;
+  const [row] = await db.select().from(consentForms).where(eq(consentForms.userId, s.user.id)).limit(1);
   return row ?? null;
 }
