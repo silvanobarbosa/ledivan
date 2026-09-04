@@ -1,10 +1,13 @@
 // Token bearer do PACIENTE (app nativo). JWT-like assinado por HMAC (sem lib externa).
 // Payload: pid (paciente), uid (terapeuta dono), exp. Segredo = PATIENT_JWT_SECRET | AUTH0_SECRET.
 import { createHmac, timingSafeEqual } from "node:crypto";
+import { segredoObrigatorio } from "@/lib/secret";
 
 type Payload = { pid: string; uid: string; exp: number };
 
-const secret = () => process.env.PATIENT_JWT_SECRET || process.env.AUTH0_SECRET || "ledivan-patient-fallback";
+// Sem literal de fallback: segredo ausente FALHA (ver src/lib/secret.ts). Um fallback público
+// no repo permitiria forjar bearer de qualquer paciente.
+const secret = () => segredoObrigatorio("PATIENT_JWT_SECRET", "AUTH0_SECRET");
 const b64 = (s: string) => Buffer.from(s).toString("base64url");
 const unb64 = (s: string) => Buffer.from(s, "base64url").toString();
 

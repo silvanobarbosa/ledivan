@@ -20,7 +20,7 @@ export async function POST(req: Request) {
   if (key.length < 10) return NextResponse.json({ ok: false, error: "Telefone inválido." }, { status: 400 });
 
   // Anti-spam: máx 3 códigos por telefone a cada 10min. Silencioso (anti-enumeração): responde ok sem enviar.
-  if (!(await rateLimit(`patient-request:${key}`, "patient-request", 3, 600))) {
+  if (!(await rateLimit(`patient-request:${key}`, "patient-request", 3, 600, { failClosed: true }))) {
     return NextResponse.json({ ok: true });
   }
 
