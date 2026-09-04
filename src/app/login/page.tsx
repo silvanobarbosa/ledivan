@@ -3,6 +3,7 @@
 import { Suspense, useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Image from "next/image";
+import { startDemo } from "@/app/demo/actions";
 
 function LoginForm() {
   const router = useRouter();
@@ -56,27 +57,12 @@ function LoginForm() {
   const handleDemoLogin = async () => {
     setError("");
     setLoading(true);
-
     try {
-      const res = await fetch("/auth/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          email: "demo@ledivan.com.br",
-          password: "ledivan-demo-2026"
-        }),
-      });
-
-      const data = await res.json();
-
-      if (res.ok && data.success) {
-        router.push(data.redirectTo || "/dashboard");
-      } else {
-        setError("Erro ao acessar conta demo");
-      }
+      // A senha da demo NÃO fica mais no cliente. A server action prepara o sandbox e abre a
+      // sessão no servidor; ela mesma redireciona para /dashboard ao final.
+      await startDemo();
     } catch (err) {
-      setError("Erro ao conectar com o servidor");
-    } finally {
+      setError("Erro ao acessar conta demo");
       setLoading(false);
     }
   };
