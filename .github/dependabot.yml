@@ -8,6 +8,12 @@ updates:
       # agrupa patch+minor num PR só (menos ruído; major fica separado p/ revisão)
       minor-and-patch:
         update-types: [minor, patch]
+    ignore:
+      # @types/node acompanha o RUNTIME da Vercel (hoje nodeVersion 24.x), não o último major
+      # publicado. Tipo à frente do runtime deixa o código compilar usando API que não existe
+      # em produção — quebra só na hora de rodar. Ao subir o Node na Vercel, subir aqui junto.
+      - dependency-name: "@types/node"
+        update-types: ["version-update:semver-major"]
     labels: [dependencies]
   - package-ecosystem: github-actions
     directory: "/"
