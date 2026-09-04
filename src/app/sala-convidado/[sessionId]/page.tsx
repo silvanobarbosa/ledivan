@@ -17,9 +17,20 @@ export default async function SalaConvidadoPage({ params }: { params: Promise<{ 
 
   const s = await db.query.therapySessions.findFirst({
     where: eq(therapySessions.id, sessionId),
-    columns: { id: true, isOnline: true, meetingUrl: true },
+    columns: { id: true, isOnline: true, meetingUrl: true, date: true, status: true },
   });
   if (!s || !s.isOnline) notFound();
+
+  // Janela de tempo: o link é público (UUID imprevisível, mas ainda assim um link). Sem janela,
+  // quem tivesse o link entrava na sala a QUALQUER momento — semanas depois, ou durante o
+  // atendimento seguinte no mesmo id. Libera só de 15min antes até 3h depois do horário, e
+  // recusa sessão cancelada/remarcada/não realizada.
+  if (["cancelada", "realocada", "nao_realizada"].includes(s.status ?? "")) notFound();
+  if (s.date) {
+    const inicio = new Date(s.date).getTime();
+    const agora = Date.now();
+    if (agora < inicio - 15 * 60000 || agora > inicio + 3 * 3600000) notFound();
+  }
 
   // Google Meet salvo → manda direto
   if (s.meetingUrl && s.meetingUrl.includes("meet.google.com")) redirect(s.meetingUrl);

@@ -3,7 +3,7 @@
 import { db } from "@/db";
 import { patients, patientStatusHistory } from "@/db/schema";
 import { auth } from "@/auth";
-import { and, eq } from "drizzle-orm";
+import { and, eq, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { moedaOuPadrao } from "@/lib/money";
@@ -19,8 +19,15 @@ export async function createProspect(formData: FormData) {
   const dateRaw = formData.get("prospectDate") as string;
 
   const prospectDate = dateRaw ? new Date(dateRaw) : new Date();
+
+  // Número do cadastro sequencial por terapeuta — o prospect também recebe (antes nascia vazio
+  // e, convertido em paciente, ficava sem número para sempre).
+  const [{ maxNum }] = await db.select({ maxNum: sql<number>`coalesce(max(${patients.registrationNumber}), 0)` })
+    .from(patients).where(eq(patients.userId, userId));
+
   const [created] = await db.insert(patients).values({
     userId,
+    registrationNumber: Number(maxNum) + 1,
     name: name.trim(),
     phone: (formData.get("phone") as string) || null,
     email: (formData.get("email") as string) || null,

@@ -19,15 +19,25 @@ export async function createTransaction(formData: FormData) {
 
   const type = ((formData.get("type") as string) || "expense") as TxType;
   const categoryId = (formData.get("categoryId") as string) || null;
-  const accountId = (formData.get("accountId") as string) || null;
+  const rawAccountId = (formData.get("accountId") as string) || null;
   const dateRaw = formData.get("date") as string;
+
+  // Valida posse da conta: o id vem do form e poderia apontar para a conta de OUTRO terapeuta.
+  // Só aceita se pertencer ao usuário da sessão; senão, null.
+  let accountId: string | null = null;
+  if (rawAccountId) {
+    const own = await db.query.financialAccounts.findFirst({
+      where: and(eq(financialAccounts.id, rawAccountId), eq(financialAccounts.userId, userId)),
+    });
+    accountId = own ? rawAccountId : null;
+  }
 
   await db.insert(transactions).values({
     userId,
     amount,
     type,
     categoryId: categoryId || null,
-    accountId: accountId || null,
+    accountId,
     description: (formData.get("description") as string) || null,
     date: dateRaw ? new Date(dateRaw) : new Date(),
     source: "manual",

@@ -1,7 +1,6 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { auth0 } from "@/lib/auth0";
 import { immuneCheck } from "@/lib/immune-client";
-import * as jose from "jose";
 
 /**
  * Proxy (middleware do Next 16) — migrado next-auth → Auth0 (02/08/2026).
@@ -48,51 +47,13 @@ export default async function proxy(req: NextRequest) {
     return NextResponse.next();
   }
 
-  // Verificar se é sessão demo
-  const isDemoCookie = req.cookies.get('is-demo');
-  const demoSession = req.cookies.get('ledivan-demo-session');
-
-  // Se é uma sessão demo, validar e adicionar headers
-  if (isDemoCookie?.value === 'true' && demoSession) {
-    try {
-      const JWT_SECRET = new TextEncoder().encode(
-        process.env.JWT_SECRET || 'ledivan-demo-secret-2026'
-      );
-
-      // Verificar token JWT
-      await jose.jwtVerify(demoSession.value, JWT_SECRET);
-
-      // Bloquear ações sensíveis em modo demo
-      const blockedPaths = [
-        '/api/patients/create',
-        '/api/patients/update',
-        '/api/patients/delete',
-        '/api/transactions/create',
-        '/api/transactions/update',
-        '/api/transactions/delete'
-      ];
-
-      for (const blockedPath of blockedPaths) {
-        if (pathname.startsWith(blockedPath)) {
-          return NextResponse.json(
-            { error: 'Esta ação não está disponível no modo demonstração' },
-            { status: 403 }
-          );
-        }
-      }
-
-      // Adicionar header para identificar sessão demo
-      const response = NextResponse.next();
-      response.headers.set('X-Demo-Session', 'true');
-      return response;
-    } catch (error) {
-      // Token inválido ou expirado, limpar cookies
-      const response = NextResponse.redirect(new URL('/', req.url));
-      response.cookies.delete('is-demo');
-      response.cookies.delete('ledivan-demo-session');
-      return response;
-    }
-  }
+  // (Removido) Bloco de "sessão demo" por cookie `ledivan-demo-session`: era assinado com
+  // `JWT_SECRET || 'ledivan-demo-secret-2026'` — um segredo público (está no repo). Como o
+  // fallback vale quando `JWT_SECRET` não está no ambiente (é o caso), um atacante assinava o
+  // próprio cookie e o proxy devolvia `next()` ANTES do gate de rota/sessão, furando o
+  // perímetro para qualquer caminho. A rota que emitia esse cookie (/api/demo) foi removida —
+  // a demo agora entra pela sessão normal (`auth-session`), ver src/app/demo/actions.ts (#95).
+  // O bloqueio de "ações sensíveis" apontava para rotas que nem existem no app.
 
   const isPublicRoute =
     pathname === "/" ||
