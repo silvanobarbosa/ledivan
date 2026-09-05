@@ -45,9 +45,11 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "E-mail ou senha incorretos." }, { status: 401 });
   }
 
-  const token = await assinarSessao(String(user.id));
+  // Conta demo (Dr. Sócrates): o bearer também carrega o claim `demo` → o proxy recusa qualquer
+  // escrita feita pelo app com esse token. Read-only no app igual ao navegador.
+  const token = await assinarSessao(String(user.id), "7d", { demo: user.isDemo });
   return NextResponse.json({
     token,
-    user: { id: String(user.id), email: user.email, name: user.name, role: user.role },
+    user: { id: String(user.id), email: user.email, name: user.name, role: user.role, isDemo: user.isDemo },
   });
 }
