@@ -680,7 +680,30 @@ export async function seedExtras(userId: string) {
   await chunkInsert(messages, msgRows);
   await chunkInsert(messageLog, logRows);
 
-  console.log(`   consentimentos:${consentRows.length} contrato:${contractRows.length} diário:${diaryRows.length} materiais:${docRows.length} avaliações:${ratingRows.length} timers:${timerPatched} devolutivas:${devoRows.length} recibos:${receiptPatched} em-aberto:${openPayRows.length} mensagens:${msgRows.length}`);
+  // Status do dia: uma amostra de pacientes ATIVOS registra status (emoji+texto), alguns já
+  // reagidos. Assim a feature aparece em vários pacientes do demo, não só na Dionísia.
+  const EMO = [
+    { e: "😰", m: 2, t: "Cheguei ansioso hoje." }, { e: "🙂", m: 4, t: "Dia tranquilo." },
+    { e: "😴", m: 2, t: "Dormi mal." }, { e: "😢", m: 2, t: "Semana pesada." },
+    { e: "😄", m: 5, t: "Tô bem hoje!" }, { e: "😐", m: 3, t: null }, { e: "💪", m: 4, t: "Enfrentei um medo." },
+  ];
+  const statusRows: any[] = [];
+  const cadencePatch: string[] = [];
+  for (const p of active.slice(0, 12)) {
+    const n = rnd(2, 5);
+    for (let i = 0; i < n; i++) {
+      const s = pick(EMO);
+      const when = new Date(now); when.setDate(when.getDate() - (i * 2 + rnd(0, 1))); when.setHours(pick([8, 9, 17, 18]), rnd(0, 59), 0, 0);
+      const reacted = i > 0 && chance(0.5);
+      statusRows.push({ userId, patientId: p.id, emoji: s.e, mood: s.m, text: s.t,
+        reactionEmoji: reacted ? pick(["❤️", "🫂", "👍", "🌱"]) : null, reactionAt: reacted ? when : null, seenByTherapistAt: reacted ? when : null, createdAt: when });
+    }
+    if (chance(0.6)) cadencePatch.push(p.id);
+  }
+  await chunkInsert(patientDailyStatus, statusRows);
+  if (cadencePatch.length) await db.update(patients).set({ statusReminderDays: pick([1, 2, 3, 7]) }).where(inArray(patients.id, cadencePatch));
+
+  console.log(`   consentimentos:${consentRows.length} contrato:${contractRows.length} diário:${diaryRows.length} materiais:${docRows.length} avaliações:${ratingRows.length} timers:${timerPatched} devolutivas:${devoRows.length} recibos:${receiptPatched} em-aberto:${openPayRows.length} mensagens:${msgRows.length} status:${statusRows.length}`);
 }
 
 // E-mail/telefone fixos da PACIENTE de demonstração (Srta. Dionísia) — usados pelo login demo
