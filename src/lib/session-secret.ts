@@ -25,9 +25,15 @@ function lerSegredo(): Uint8Array {
 
 export const SESSION_SECRET = lerSegredo();
 
-/** Assina o cookie de sessão com `{ userId }`. Validade padrão de 7 dias. */
-export async function assinarSessao(userId: string, validade = "7d"): Promise<string> {
-  return new jose.SignJWT({ userId })
+/**
+ * Assina o cookie de sessão com `{ userId }`. Validade padrão de 7 dias.
+ * `opts.demo` marca a sessão como conta de DEMONSTRAÇÃO (somente leitura) — o proxy usa esse
+ * claim para bloquear qualquer escrita.
+ */
+export async function assinarSessao(userId: string, validade = "7d", opts?: { demo?: boolean }): Promise<string> {
+  const claims: Record<string, unknown> = { userId };
+  if (opts?.demo) claims.demo = true;
+  return new jose.SignJWT(claims)
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
     .setExpirationTime(validade)
@@ -39,6 +45,18 @@ export async function lerSessao(token: string): Promise<string | null> {
   try {
     const { payload } = await jose.jwtVerify(token, SESSION_SECRET);
     return (payload.userId as string) ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/** Como lerSessao, mas devolve também se é sessão de demonstração (read-only). */
+export async function lerSessaoInfo(token: string): Promise<{ userId: string; demo: boolean } | null> {
+  try {
+    const { payload } = await jose.jwtVerify(token, SESSION_SECRET);
+    const userId = payload.userId as string;
+    if (!userId) return null;
+    return { userId, demo: payload.demo === true };
   } catch {
     return null;
   }

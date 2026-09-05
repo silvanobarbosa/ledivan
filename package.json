@@ -15,6 +15,7 @@
     "db:seed": "npx tsx --env-file=.env.local src/db/seed.ts",
     "seed:silvano": "npx tsx --env-file=.env.local src/scripts/seedSilvano.ts",
     "seed:apoiador": "npx tsx --env-file=.env.local src/scripts/seedApoiador.ts",
+    "seed:socrates": "npx tsx --env-file=.env.local src/scripts/seedSocrates.ts",
     "wipe": "npx tsx --env-file=.env.local src/scripts/wipeUser.ts",
     "delete-user": "npx tsx --env-file=.env.local src/scripts/deleteUsers.ts",
     "import:gi": "npx tsx --env-file=.env.local src/scripts/importGi.ts",
