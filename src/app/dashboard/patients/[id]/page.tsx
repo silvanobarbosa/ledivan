@@ -1,6 +1,6 @@
 import { db } from "@/db";
 import { auth } from "@/auth";
-import { users, patients, therapySessions, sessionPayments, patientStatusHistory, patientPriceHistory, patientContractHistory, patientRecords, assignments, moodLogs, scaleApplications, treatmentGoals, patientPackages, patientDiary, sessionRatings, patientConsents } from "@/db/schema";
+import { users, patients, therapySessions, sessionPayments, patientStatusHistory, patientPriceHistory, patientContractHistory, patientRecords, assignments, moodLogs, scaleApplications, treatmentGoals, patientPackages, patientDiary, sessionRatings, patientConsents, patientWriting } from "@/db/schema";
 import { and, eq, desc } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import Link from "next/link";
@@ -45,6 +45,12 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
   const prefs = (() => { try { return me?.preferences ? JSON.parse(me.preferences) : {}; } catch { return {}; } })();
   const locations = parseLocations(me?.attendanceLocations);
   const statusEnabled = resolveFeature(prefs.features?.statusDia, parseOverrides(patient.featureOverrides).statusDia);
+
+  // Escritas terapêuticas COMPARTILHADAS pelo paciente (as privadas nunca chegam ao terapeuta).
+  const sharedWritings = await db.select({ id: patientWriting.id, promptTitle: patientWriting.promptTitle, content: patientWriting.content, sharedAt: patientWriting.sharedAt, createdAt: patientWriting.createdAt })
+    .from(patientWriting)
+    .where(and(eq(patientWriting.patientId, id), eq(patientWriting.shared, true)))
+    .orderBy(desc(patientWriting.createdAt)).limit(30);
 
   // Estatísticas de sessões p/ os cards do paciente
   const nowMs = Date.now();
@@ -158,6 +164,7 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
         packageInfo={packageInfo}
         recurring={recurring}
         statusEnabled={statusEnabled}
+        sharedWritings={JSON.parse(JSON.stringify(sharedWritings))}
       />
     </div>
   );

@@ -404,6 +404,23 @@ export const patientDailyStatus = pgTable("patient_daily_status", {
   index("pds_user_created_idx").on(t.userId, t.createdAt),
 ]);
 
+// Escrita terapêutica: o paciente escreve no app a partir de uma proposta (story). É PRIVADO por
+// padrão; o paciente decide se compartilha com o terapeuta (shared). Recurso ligável (escritaTerapeutica).
+export const patientWriting = pgTable("patient_writing", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: text("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
+  patientId: uuid("patient_id").references(() => patients.id, { onDelete: "cascade" }).notNull(),
+  promptKey: text("prompt_key"),        // qual story/proposta motivou a escrita
+  promptTitle: text("prompt_title"),
+  content: text("content").notNull(),
+  shared: boolean("shared").default(false).notNull(), // compartilhado com o terapeuta?
+  sharedAt: timestamp("shared_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (t) => [
+  index("pw_patient_idx").on(t.patientId),
+  index("pw_user_shared_idx").on(t.userId, t.shared),
+]);
+
 export const patientStatusHistory = pgTable("patient_status_history", {
   id: uuid("id").primaryKey().defaultRandom(),
   patientId: uuid("patient_id").references(() => patients.id, { onDelete: "cascade" }).notNull(),
