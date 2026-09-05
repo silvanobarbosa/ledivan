@@ -20,7 +20,9 @@ export default async function proxy(req: NextRequest) {
   // então basta recusar qualquer método de escrita quando a sessão carrega o claim `demo`.
   // Navegação (GET/HEAD) segue liberada — é o ponto do demo. Um único choke point cobre tudo.
   if (!["GET", "HEAD", "OPTIONS"].includes(req.method)) {
-    const raw = req.cookies.get("auth-session")?.value;
+    // Sessão demo vem por cookie (navegador) OU por Bearer (app nativo). Cobre os dois.
+    const raw = req.cookies.get("auth-session")?.value
+      || req.headers.get("authorization")?.replace(/^Bearer\s+/i, "").trim();
     if (raw) {
       const info = await lerSessaoInfo(raw);
       if (info?.demo) {
