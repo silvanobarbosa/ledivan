@@ -66,7 +66,7 @@ export default async function DashboardLayout({
 
         {isDemo && (
           <div className="bg-[#dbeafe] border-b border-[#93c5fd] text-[#1e40af] text-xs sm:text-sm px-4 py-2 text-center shrink-0">
-            🧪 <strong>Modo demonstração</strong> — explore à vontade. Tudo que você fizer é descartado ao fim da visita (até 2h). Os dados originais ficam intactos.
+            🧪 <strong>Modo demonstração (somente leitura)</strong> — navegue por todas as telas à vontade. Esta é uma conta de exemplo com 3 anos de uso; nenhum dado pode ser alterado.
           </div>
         )}
         <main className="flex-1 overflow-y-auto">
