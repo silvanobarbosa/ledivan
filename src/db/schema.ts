@@ -345,6 +345,10 @@ export const patients = pgTable("patients", {
   agendaId: text("agenda_id"), // identificação do paciente na agenda
   dueDateType: text("due_date_type"), // avista | 7d | 15d | 30d | fim_mes | data
   dueDate: timestamp("due_date"), // data específica (quando dueDateType = "data")
+  // Lembrete de "status do dia": de quantos em quantos dias o app avisa o paciente para mandar
+  // o status. 0 = desligado; 1 = diário; 2/3 = a cada 2/3 dias; 7 = semanal. Escolha do terapeuta.
+  statusReminderDays: integer("status_reminder_days").default(0).notNull(),
+  statusReminderLastAt: timestamp("status_reminder_last_at"), // último lembrete enviado (throttle do cron)
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (t) => [
   index("pat_user_idx").on(t.userId),
@@ -378,6 +382,26 @@ export const moodLogs = pgTable("mood_logs", {
   loggedAt: timestamp("logged_at").defaultNow().notNull(),
 }, (t) => [
   index("mood_patient_idx").on(t.patientId),
+]);
+
+// Status do dia: o paciente registra como está chegando (emoji + texto). O terapeuta consulta
+// ANTES da sessão, é avisado por push, e pode REAGIR (emoji + nota) — a reação volta ao paciente.
+// Entra no prontuário e a série vira uma curva de humor. Recurso ligável por paciente (statusDia).
+export const patientDailyStatus = pgTable("patient_daily_status", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: text("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
+  patientId: uuid("patient_id").references(() => patients.id, { onDelete: "cascade" }).notNull(),
+  emoji: text("emoji").notNull(),       // caractere emoji escolhido (grade curada, por faixa etária)
+  mood: integer("mood"),                // 1-5 derivado do emoji (p/ a curva de humor), opcional
+  text: text("text"),                   // texto livre do paciente
+  reactionEmoji: text("reaction_emoji"),// reação do terapeuta
+  reactionText: text("reaction_text"),
+  reactionAt: timestamp("reaction_at"),
+  seenByTherapistAt: timestamp("seen_by_therapist_at"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (t) => [
+  index("pds_patient_idx").on(t.patientId),
+  index("pds_user_created_idx").on(t.userId, t.createdAt),
 ]);
 
 export const patientStatusHistory = pgTable("patient_status_history", {

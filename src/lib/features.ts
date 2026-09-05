@@ -3,7 +3,8 @@
 // o liga/desliga fica no perfil de cada paciente). resolveFeature junta os dois.
 export type FeatureKey =
   | "timer" | "waitingRoom" | "moodCheckin" | "scales" | "diary"
-  | "goalsVisible" | "rescheduleApp" | "payment" | "rating" | "consent";
+  | "goalsVisible" | "rescheduleApp" | "payment" | "rating" | "consent"
+  | "statusDia" | "escritaTerapeutica";
 
 export type FeatureMode = "off" | "all" | "per-patient";
 
@@ -18,6 +19,8 @@ export const FEATURES: { key: FeatureKey; label: string; desc: string }[] = [
   { key: "payment", label: "Pagamento no app", desc: "Pix + recibo automático." },
   { key: "rating", label: "Avaliação pós-sessão", desc: "Feedback rápido do paciente após a sessão." },
   { key: "consent", label: "Consentimento digital", desc: "Assinatura de consentimento no app." },
+  { key: "statusDia", label: "Status do dia", desc: "O paciente registra como está chegando (emoji + texto); você é avisado e pode reagir." },
+  { key: "escritaTerapeutica", label: "Escrita terapêutica", desc: "Propostas de escrita guiada (stories) no app; o paciente decide se compartilha com você." },
 ];
 
 export type FeatureModes = Partial<Record<FeatureKey, FeatureMode>>;

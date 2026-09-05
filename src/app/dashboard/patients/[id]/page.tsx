@@ -9,6 +9,7 @@ import { PatientDetail } from "./PatientDetail";
 import { riskFromSessions } from "@/lib/therapy";
 import { parseLocations } from "@/lib/locations";
 import { derivePackageLabels } from "@/lib/packages";
+import { resolveFeature, parseOverrides } from "@/lib/features";
 
 export default async function PatientPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -43,6 +44,7 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
 
   const prefs = (() => { try { return me?.preferences ? JSON.parse(me.preferences) : {}; } catch { return {}; } })();
   const locations = parseLocations(me?.attendanceLocations);
+  const statusEnabled = resolveFeature(prefs.features?.statusDia, parseOverrides(patient.featureOverrides).statusDia);
 
   // Estatísticas de sessões p/ os cards do paciente
   const nowMs = Date.now();
@@ -155,6 +157,7 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
         sessionStats={sessionStats}
         packageInfo={packageInfo}
         recurring={recurring}
+        statusEnabled={statusEnabled}
       />
     </div>
   );
