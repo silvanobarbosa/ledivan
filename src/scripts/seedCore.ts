@@ -8,7 +8,7 @@ import {
   patients, patientStatusHistory, patientPriceHistory, therapySessions, sessionPayments,
   patientRecords, assignments, scaleApplications, moodLogs, treatmentGoals, patientPackages,
   consentForms, patientConsents, patientContractHistory, patientDiary, sessionRatings,
-  patientDocument, messages, messageLog, patientDailyStatus,
+  patientDocument, messages, messageLog, patientDailyStatus, patientWriting,
 } from "../db/schema";
 import { and, eq, inArray, desc, sql } from "drizzle-orm";
 import bcrypt from "bcryptjs";
@@ -905,6 +905,16 @@ export async function seedDionisia(userId: string) {
   });
   await chunkInsert(patientDailyStatus, statusRows);
 
-  console.log(`   Dionísia: ${sess.length} sessões · ${pays.length} pagamentos · ${taskRows.length} tarefas · ${moods.length} humores · ${scales.length} escalas · ${diary.length} diário · ${statusRows.length} status · metas 3.`);
+  // Escrita terapêutica: uma compartilhada com o terapeuta e uma privada (só dela).
+  const w1 = new Date(now); w1.setDate(w1.getDate() - 4);
+  const w2 = new Date(now); w2.setDate(w2.getDate() - 12);
+  await chunkInsert(patientWriting, [
+    { userId, patientId: pid, promptKey: "gratidao", promptTitle: "Três coisas boas", shared: true, sharedAt: w1, createdAt: w1,
+      content: "Hoje consegui: 1) acordar sem apertar a soneca mil vezes; 2) uma conversa boa com minha mãe, sem briga; 3) 20 minutos de caminhada no fim da tarde. Faz diferença reparar nisso." },
+    { userId, patientId: pid, promptKey: "expressiva", promptTitle: "Coloque para fora", shared: false, sharedAt: null, createdAt: w2,
+      content: "Escrevi sobre a reunião que me deixou travada. Ainda não quero mostrar, mas ajudou botar no papel." },
+  ]);
+
+  console.log(`   Dionísia: ${sess.length} sessões · ${pays.length} pagamentos · ${taskRows.length} tarefas · ${moods.length} humores · ${scales.length} escalas · ${diary.length} diário · ${statusRows.length} status · 2 escritas · metas 3.`);
   return pid;
 }

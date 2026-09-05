@@ -72,7 +72,7 @@ const inputCls = "w-full px-4 py-2.5 rounded-xl bg-white/70 border border-border
 const TABS = ["Dados", "Prontuário", "Atividades", "Materiais", "Sessões", "Financeiro", "Linha do tempo"] as const;
 
 export function PatientDetail({
-  patient, sessions, payments, statusHistory, priceHistory, records, transcriptionEnabled, risk, assignments, moodToken, moodLogs, scales, treatmentGoals, diaryEntries = [], ratings = [], consents = [], packageLabels = {}, locations = [], contractHistory = [], finance, ledger = [], sessionStats, packageInfo, recurring, statusEnabled = false,
+  patient, sessions, payments, statusHistory, priceHistory, records, transcriptionEnabled, risk, assignments, moodToken, moodLogs, scales, treatmentGoals, diaryEntries = [], ratings = [], consents = [], packageLabels = {}, locations = [], contractHistory = [], finance, ledger = [], sessionStats, packageInfo, recurring, statusEnabled = false, sharedWritings = [],
 }: {
   patient: Patient; sessions: Session[]; payments: Payment[];
   statusHistory: StatusEntry[]; priceHistory: PriceEntry[]; records: RecordEntry[];
@@ -95,6 +95,7 @@ export function PatientDetail({
   packageLabels?: Record<string, { seq: number; index: number; total: number }>;
   locations?: { name: string; address: string }[];
   statusEnabled?: boolean;
+  sharedWritings?: { id: string; promptTitle: string | null; content: string; sharedAt: string | null; createdAt: string }[];
 }) {
   const router = useRouter();
   const [tab, setTab] = useState<(typeof TABS)[number]>("Dados");
@@ -259,6 +260,24 @@ export function PatientDetail({
 
       {/* Status do dia (consulta antes da sessão + reação). Só quando o recurso está ligado p/ este paciente. */}
       <DailyStatusPanel patientId={patient.id} enabled={statusEnabled} />
+
+      {/* Escritas terapêuticas que o paciente escolheu COMPARTILHAR (as privadas nunca aparecem aqui). */}
+      {sharedWritings.length > 0 && (
+        <div className="rounded-[20px] border border-[#c7d2fe] bg-[#eef2ff] p-5">
+          <h3 className="font-display font-bold text-primary flex items-center gap-2">✍️ Escritas compartilhadas
+            <span className="text-xs font-normal text-foreground/40">({sharedWritings.length})</span>
+          </h3>
+          <ul className="mt-3 space-y-3">
+            {sharedWritings.slice(0, 8).map((w) => (
+              <li key={w.id} className="text-sm">
+                {w.promptTitle && <p className="text-xs font-semibold text-primary/70">{w.promptTitle}</p>}
+                <p className="text-foreground/80 whitespace-pre-wrap">{w.content}</p>
+                <p className="text-[11px] text-foreground/40 mt-0.5">{formatDate(w.createdAt)}</p>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
 
       <PatientFeatures patientId={patient.id} />
 
