@@ -1,6 +1,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { auth0 } from "@/lib/auth0";
 import { immuneCheck } from "@/lib/immune-client";
+import { lerSessaoInfo } from "@/lib/session-secret";
 
 /**
  * Proxy (middleware do Next 16) — migrado next-auth → Auth0 (02/08/2026).
@@ -13,6 +14,23 @@ export default async function proxy(req: NextRequest) {
 
   // Auth routes são tratadas pelo route handler, não pelo proxy
   if (pathname.startsWith("/auth")) return NextResponse.next();
+
+  // MODO DEMONSTRAÇÃO = SOMENTE LEITURA. A conta demo (Dr. Sócrates) é pública e compartilhada;
+  // ninguém pode alterar dado. Server actions e mutações de API são sempre POST/PUT/PATCH/DELETE,
+  // então basta recusar qualquer método de escrita quando a sessão carrega o claim `demo`.
+  // Navegação (GET/HEAD) segue liberada — é o ponto do demo. Um único choke point cobre tudo.
+  if (!["GET", "HEAD", "OPTIONS"].includes(req.method)) {
+    const raw = req.cookies.get("auth-session")?.value;
+    if (raw) {
+      const info = await lerSessaoInfo(raw);
+      if (info?.demo) {
+        return NextResponse.json(
+          { error: "Modo demonstração: somente leitura. Nenhum dado pode ser alterado nesta conta." },
+          { status: 403 },
+        );
+      }
+    }
+  }
 
   try {
     const ip =

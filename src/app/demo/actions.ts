@@ -5,31 +5,28 @@ import { redirect } from "next/navigation";
 import { db } from "@/db";
 import { users } from "@/db/schema";
 import { eq } from "drizzle-orm";
-import { resetDemoFromSource, DEMO_EMAIL } from "@/lib/demo";
 import { assinarSessao } from "@/lib/session-secret";
 import { rateLimit } from "@/lib/rateLimit";
 
-// Prepara o sandbox (clone fresco do apoiador) e entra na conta demo.
-//
-// Duas mudanças de segurança:
-//  1. A sessão é aberta AQUI, no servidor — a senha da demo não trafega nem fica no bundle.
-//     Antes, o botão da tela de login mandava `password: "ledivan-demo-2026"` embutido no
-//     JavaScript do cliente (login/page.tsx), ou seja, público.
-//  2. `resetDemoFromSource` é caro (wipe + clone de ~15 tabelas no Neon). Sem gate, um visitante
-//     dispara isso em loop — custo/DoS. Rate-limit fail-closed por IP.
+// E-mail da conta de demonstração pública (Dr. Sócrates). Populada por `npm run seed:socrates`
+// com 3 anos de uso. NÃO é clonada a cada visita: a sessão demo é SOMENTE LEITURA (o proxy
+// bloqueia escrita), então os dados persistem e são compartilhados por todos os visitantes.
+const DEMO_EMAIL = "socrates@ledivan.com.br";
+
+// Entra na conta demo: abre uma sessão marcada como `demo` (read-only) e vai para o dashboard.
 export async function startDemo() {
   const h = await headers();
   const ip = h.get("x-forwarded-for")?.split(",")[0]?.trim() || "ip-desconhecido";
-  if (!(await rateLimit(ip, "demo-start", 5, 3600, { failClosed: true }))) {
+  // Rate-limit leve por IP (a sessão é só leitura; isto só evita abuso de criação de sessão).
+  if (!(await rateLimit(ip, "demo-start", 20, 3600, { failClosed: true }))) {
     redirect("/login?error=demo_limite");
   }
-
-  await resetDemoFromSource();
 
   const u = await db.query.users.findFirst({ where: eq(users.email, DEMO_EMAIL) });
   if (!u) redirect("/login?error=demo");
 
-  const token = await assinarSessao(String(u.id));
+  // `demo: true` no token → o proxy recusa qualquer método de escrita para esta sessão.
+  const token = await assinarSessao(String(u.id), "7d", { demo: true });
   const store = await cookies();
   store.set("auth-session", token, {
     httpOnly: true,

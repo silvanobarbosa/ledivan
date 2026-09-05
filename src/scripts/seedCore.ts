@@ -7,8 +7,10 @@ import {
   users, categories, financialAccounts, transactions,
   patients, patientStatusHistory, patientPriceHistory, therapySessions, sessionPayments,
   patientRecords, assignments, scaleApplications, moodLogs, treatmentGoals, patientPackages,
+  consentForms, patientConsents, patientContractHistory, patientDiary, sessionRatings,
+  patientDocument, messages, messageLog,
 } from "../db/schema";
-import { eq, inArray } from "drizzle-orm";
+import { and, eq, inArray, desc } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 
 export type SeedCfg = {
@@ -477,4 +479,206 @@ export async function runSeed(cfg: SeedCfg) {
   console.log(`🧩 ${assignmentRows.length} tarefas · 😊 ${moodRows.length} humores · 📈 ${scaleRows.length} escalas · 🎯 ${goalRows.length} objetivos.`);
 
   console.log(`\n✨ Pronto! ${EMAIL} populado com ~${MONTHS} meses de uso.`);
+  return userId;
+}
+
+// Segunda camada do seed: as tabelas que o runSeed não cobre, para exercitar 100% das telas.
+// Consentimento (LGPD), inbox de mensagens, diário do paciente, avaliações pós-sessão, materiais
+// compartilhados, histórico de contrato, Receita Saúde (recibos), pagamentos em aberto,
+// devolutivas aos responsáveis e cronômetro/sala de espera. Idempotente: limpa o que insere.
+export async function seedExtras(userId: string) {
+  console.log("➕ Extras (consentimento, mensagens, diário, avaliações, materiais, recibos)…");
+  const now = new Date();
+
+  // limpa os extras deste usuário (re-run limpo)
+  const pats = await db.query.patients.findMany({ where: eq(patients.userId, userId) });
+  const patIds = pats.map((p) => p.id);
+  await db.delete(consentForms).where(eq(consentForms.userId, userId));
+  await db.delete(patientConsents).where(eq(patientConsents.userId, userId));
+  await db.delete(patientDiary).where(eq(patientDiary.userId, userId));
+  await db.delete(sessionRatings).where(eq(sessionRatings.userId, userId));
+  await db.delete(patientDocument).where(eq(patientDocument.userId, userId));
+  await db.delete(messages).where(eq(messages.userId, userId));
+  await db.delete(messageLog).where(eq(messageLog.userId, userId));
+  if (patIds.length) await db.delete(patientContractHistory).where(inArray(patientContractHistory.patientId, patIds));
+
+  // Termo de consentimento do terapeuta (um por terapeuta)
+  const formUpdatedAt = new Date(now); formUpdatedAt.setMonth(formUpdatedAt.getMonth() - 20);
+  await db.insert(consentForms).values({
+    userId,
+    title: "Termo de Consentimento Livre e Esclarecido — Psicoterapia",
+    body: "Declaro estar ciente de que os atendimentos são confidenciais, que os registros clínicos são protegidos pelo sigilo profissional e pela LGPD, e autorizo o tratamento dos meus dados para fins exclusivos do acompanhamento terapêutico. Estou ciente da política de faltas e cancelamentos e do valor das sessões.",
+    updatedAt: formUpdatedAt,
+  });
+
+  const active = pats.filter((p) => p.patientStatus === "ativo");
+  const withHistory = pats.filter((p) => p.patientStatus !== "prospect");
+
+  // Aceite do termo pelo paciente (snapshot) — ~80% dos pacientes com histórico
+  const consentRows: any[] = [];
+  for (const p of withHistory) {
+    if (!chance(0.8)) continue;
+    const when = new Date(p.startedAt ?? now); when.setDate((p.startedAt ?? now).getDate() + rnd(0, 5));
+    consentRows.push({
+      userId, patientId: p.id,
+      title: "Termo de Consentimento Livre e Esclarecido — Psicoterapia",
+      body: "Snapshot do termo aceito no primeiro acesso ao app do paciente.",
+      acceptedName: p.guardianName || p.name,
+      formUpdatedAt, ip: `189.${rnd(0, 255)}.${rnd(0, 255)}.${rnd(1, 254)}`,
+      acceptedAt: when,
+    });
+  }
+  await chunkInsert(patientConsents, consentRows);
+
+  // Histórico de contrato (mudança de modelo/valor/pacote) — nos pacientes ativos
+  const contractRows: any[] = [];
+  for (const p of active) {
+    if (!chance(0.4)) continue;
+    const when = new Date(p.startedAt ?? now); when.setMonth((p.startedAt ?? now).getMonth() + rnd(3, 12));
+    if (when >= now) continue;
+    const opt = pick([
+      { type: "frequency", from: "quinzenal", to: "semanal", description: "Aumentou a frequência para semanal." },
+      { type: "contract_type", from: "avulso", to: "pacote", description: "Passou a contratar por pacote." },
+      { type: "payment_day", from: "10", to: "5", description: "Alterou o dia de pagamento." },
+    ]);
+    contractRows.push({ patientId: p.id, ...opt, date: when });
+  }
+  await chunkInsert(patientContractHistory, contractRows);
+
+  // Diário do paciente (entre sessões) — série curta nos ativos
+  const diaryRows: any[] = [];
+  for (const p of active) {
+    if (!chance(0.5)) continue;
+    const n = rnd(2, 8);
+    for (let i = 0; i < n; i++) {
+      const when = new Date(now); when.setDate(when.getDate() - rnd(1, 120));
+      diaryRows.push({
+        userId, patientId: p.id,
+        content: pick([
+          "Semana difícil, mas consegui usar a técnica de respiração antes da reunião.",
+          "Briguei com meu irmão e percebi que reagi no automático. Quero conversar sobre isso.",
+          "Dormi melhor depois que reduzi o café à noite.",
+          "Tive um dia bom, saí para caminhar e me senti mais leve.",
+          "A ansiedade voltou forte hoje, anotei os pensamentos como combinamos.",
+        ]),
+        mood: rnd(1, 5), createdAt: when,
+      });
+    }
+  }
+  await chunkInsert(patientDiary, diaryRows);
+
+  // Materiais compartilhados (texto/link) — nos ativos
+  const docRows: any[] = [];
+  const materials = [
+    { title: "Exercício de respiração diafragmática", kind: "text", content: "Inspire pelo nariz contando até 4, segure 4, expire pela boca contando 6. Repita por 5 minutos, 2x ao dia." },
+    { title: "Vídeo: entendendo a ansiedade", kind: "link", content: "https://www.youtube.com/watch?v=exemplo" },
+    { title: "Registro de pensamentos (modelo)", kind: "text", content: "Situação | Pensamento automático | Emoção (0-100) | Resposta alternativa | Emoção depois" },
+    { title: "Higiene do sono — 10 dicas", kind: "text", content: "1. Horário regular. 2. Sem telas 1h antes. 3. Quarto escuro e fresco…" },
+  ];
+  for (const p of active) {
+    if (!chance(0.55)) continue;
+    const n = rnd(1, 3);
+    for (let i = 0; i < n; i++) {
+      const m = pick(materials);
+      const when = new Date(now); when.setDate(when.getDate() - rnd(5, 200));
+      docRows.push({ userId, patientId: p.id, title: m.title, kind: m.kind, content: m.content, createdAt: when });
+    }
+  }
+  await chunkInsert(patientDocument, docRows);
+
+  // Avaliações pós-sessão (1 por sessão realizada, amostrado)
+  const realized = await db.query.therapySessions.findMany({
+    where: and(eq(therapySessions.userId, userId), eq(therapySessions.status, "realizada")),
+    columns: { id: true, patientId: true, date: true }, orderBy: [desc(therapySessions.date)], limit: 400,
+  });
+  const ratingRows: any[] = [];
+  const seenSession = new Set<string>();
+  for (const s of realized) {
+    if (seenSession.has(s.id) || !chance(0.35)) continue;
+    seenSession.add(s.id);
+    const score = pick([4, 5, 5, 5, 3, 4]);
+    ratingRows.push({
+      userId, patientId: s.patientId, sessionId: s.id, score,
+      comment: chance(0.4) ? pick(["Me senti acolhido.", "Sessão muito produtiva.", "Saí mais leve.", "Ajudou bastante hoje."]) : null,
+      createdAt: new Date(s.date),
+    });
+  }
+  await chunkInsert(sessionRatings, ratingRows);
+
+  // Cronômetro + sala de espera + confirmação — nas sessões realizadas recentes
+  let timerPatched = 0;
+  for (const s of realized.slice(0, 60)) {
+    if (!chance(0.6)) continue;
+    const start = new Date(s.date); start.setMinutes(start.getMinutes() - rnd(1, 8));
+    const arrived = new Date(s.date); arrived.setMinutes(arrived.getMinutes() - rnd(2, 12));
+    const end = new Date(s.date); end.setMinutes(end.getMinutes() + rnd(45, 55));
+    const confirmed = new Date(s.date); confirmed.setHours(confirmed.getHours() - rnd(2, 30));
+    await db.update(therapySessions).set({
+      timerStartedAt: start, timerEndedAt: end, patientArrivedAt: arrived, patientConfirmedAt: confirmed,
+    }).where(eq(therapySessions.id, s.id));
+    timerPatched++;
+  }
+
+  // Devolutivas aos responsáveis (sessionKind) — pacientes menores (com responsável)
+  const minors = withHistory.filter((p) => p.guardianName);
+  const devoRows: any[] = [];
+  for (const p of minors.slice(0, 12)) {
+    const when = new Date(now); when.setDate(when.getDate() - rnd(10, 300)); when.setHours(pick([9, 14, 17]), 0, 0, 0);
+    const past = when < now;
+    devoRows.push({
+      userId, patientId: p.id, date: when, duration: 50, fee: money(Number(p.sessionFee)),
+      status: past ? "realizada" : "agendada", sessionKind: "devolutiva", chargeable: chance(0.5),
+      isOnline: chance(0.4), notes: past ? "Devolutiva aos responsáveis: alinhamento do plano terapêutico e orientações de manejo em casa." : null,
+    });
+  }
+  await chunkInsert(therapySessions, devoRows);
+
+  // Receita Saúde: marca ~40% dos pagamentos pagos como recibo emitido
+  const paid = await db.query.sessionPayments.findMany({
+    where: and(eq(sessionPayments.userId, userId), eq(sessionPayments.status, "paid")),
+    columns: { id: true, date: true }, limit: 500,
+  });
+  let receiptSeq = 1, receiptPatched = 0;
+  for (const pay of paid) {
+    if (!chance(0.4)) continue;
+    const issued = new Date(pay.date); issued.setDate(issued.getDate() + rnd(0, 10));
+    await db.update(sessionPayments).set({
+      receiptNumber: `RS-${String(receiptSeq++).padStart(5, "0")}`, receiptIssuedAt: issued,
+    }).where(eq(sessionPayments.id, pay.id));
+    receiptPatched++;
+  }
+
+  // Pagamentos EM ABERTO (pending/overdue) — nos ativos devedores, exercita a coluna status
+  const openPayRows: any[] = [];
+  for (const p of active) {
+    if (!chance(0.25)) continue;
+    const overdue = chance(0.5);
+    const d = new Date(now); d.setDate(d.getDate() - (overdue ? rnd(20, 60) : rnd(1, 10)));
+    openPayRows.push({
+      userId, patientId: p.id, sessionId: null, amount: money(Number(p.sessionFee)),
+      date: d, method: pick(["pix", "transfer"]), status: overdue ? "overdue" : "pending",
+    });
+  }
+  await chunkInsert(sessionPayments, openPayRows);
+
+  // Inbox de mensagens (2-via) + log de envios
+  const msgRows: any[] = [];
+  const logRows: any[] = [];
+  for (const p of active) {
+    if (!chance(0.6)) continue;
+    const base = new Date(now); base.setDate(base.getDate() - rnd(1, 40));
+    const phone = p.phone || `(11) 9${rnd(1000, 9999)}-${rnd(1000, 9999)}`;
+    // lembrete enviado (out) + confirmação (in)
+    const t1 = new Date(base);
+    msgRows.push({ userId, patientId: p.id, direction: "out", channel: "whatsapp", contact: phone, text: `Olá, ${p.name.split(" ")[0]}! Lembrete da sua sessão. Podemos confirmar?`, createdAt: t1 });
+    logRows.push({ userId, patientId: p.id, event: "session_reminder", channel: "whatsapp", destination: phone, status: "sent", createdAt: t1 });
+    if (chance(0.7)) {
+      const t2 = new Date(t1); t2.setHours(t2.getHours() + rnd(1, 6));
+      msgRows.push({ userId, patientId: p.id, direction: "in", channel: "whatsapp", contact: phone, text: pick(["Confirmado! 🙏", "Pode ser sim.", "Consigo sim, obrigada.", "Preciso remarcar essa, pode ser?"]), createdAt: t2 });
+    }
+  }
+  await chunkInsert(messages, msgRows);
+  await chunkInsert(messageLog, logRows);
+
+  console.log(`   consentimentos:${consentRows.length} contrato:${contractRows.length} diário:${diaryRows.length} materiais:${docRows.length} avaliações:${ratingRows.length} timers:${timerPatched} devolutivas:${devoRows.length} recibos:${receiptPatched} em-aberto:${openPayRows.length} mensagens:${msgRows.length}`);
 }
