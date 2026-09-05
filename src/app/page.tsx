@@ -21,6 +21,8 @@ import {
   Mail,
   Video,
   Mic,
+  Smile,
+  PenLine,
 } from "lucide-react";
 import { Logo } from "@/components/landing/Logo";
 import { Reveal } from "@/components/landing/Reveal";
@@ -325,6 +327,8 @@ function Features() {
     { icon: CalendarDays, t: "Agenda com recorrência", d: "Semanal, quinzenal ou mensal. Reserva o horário pelo período que você definir." },
     { icon: Repeat2, t: "Pacotes numerados", d: "Reserva as sessões do pacote já como 1/4, 2/4 — e renumera sozinho se você remarcar." },
     { icon: Activity, t: "Tarefas e escalas", d: "Lição de casa com foto ou vídeo, diário de humor e PHQ-9/GAD-7 com pontuação automática." },
+    { icon: Smile, t: "Status do dia", d: "O paciente diz como chega — com um emoji e um recado. Você consulta antes da sessão, é avisado na hora e pode reagir." },
+    { icon: PenLine, t: "Escrita terapêutica", d: "Propostas de escrita guiada no app do paciente. Ele escreve como um diário e decide se compartilha com você." },
     { icon: Video, t: "Atendimento em tela dividida", d: "No notebook: o paciente de um lado, a evolução da sessão e o histórico do outro. Sem trocar de aba." },
     { icon: Mic, t: "Transcrição por IA", d: "Grave a sessão e receba a evolução redigida. Com a sua própria conta de IA — a chave é sua." },
     { icon: Mail, t: "Mensagens com pacientes", d: "Fale direto por WhatsApp, Telegram e e-mail, sem sair do app." },

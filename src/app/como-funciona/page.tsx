@@ -11,7 +11,7 @@ const ETAPAS = [
   { n: "01", icon: "🧲", t: "Prospecção", d: "O interessado chega pelo seu link público de agendamento ou você registra o contato. Vira um card em Prospecção, com o funil e a taxa de conversão." },
   { n: "02", icon: "🪪", t: "Cadastro", d: "Ficha completa: dados, responsável, contato de emergência, valor, forma de pagamento, recorrência e a queixa principal. O número do cadastro é gerado sozinho." },
   { n: "03", icon: "🗓️", t: "Agenda", d: "Reserve o horário por meses ou um ano. Recorrência semanal/quinzenal, pacotes numerados (1/4, 2/4…), devolutivas aos responsáveis e aniversários no calendário." },
-  { n: "04", icon: "🎥", t: "Atendimento", d: "No horário, ‘Atender’ abre a sala de vídeo + o prontuário lado a lado, com cronômetro da sessão e sala de espera (o paciente avisa que chegou)." },
+  { n: "04", icon: "🎥", t: "Atendimento", d: "Antes de entrar, você já vê o status do dia do paciente. No horário, ‘Atender’ abre a sala de vídeo + o prontuário lado a lado, com cronômetro e sala de espera." },
   { n: "05", icon: "📝", t: "Evolução", d: "Registre a evolução no prontuário. A transcrição por IA (com a sua chave) rascunha a evolução a partir do áudio da sessão." },
   { n: "06", icon: "💳", t: "Financeiro", d: "Cada sessão cobrada desconta, cada pagamento soma. Pix estático, dois quadros de pagamentos e o recibo da Receita Saúde com os campos prontos." },
   { n: "07", icon: "📈", t: "Previsão & relatórios", d: "Receita prevista dos próximos meses (agendado, pacotes, recorrência, reajustes) e relatórios do caixa mês a mês." },
@@ -20,10 +20,11 @@ const ETAPAS = [
 // O que o PACIENTE (Srta. Dionísia) vive — o ‘outro lado’, no app do paciente.
 const PACIENTE = [
   { icon: "🔔", t: "Lembrete", d: "Recebe o lembrete da sessão por WhatsApp e confirma num toque." },
+  { icon: "🌤️", t: "Status do dia", d: "Diz como chega — um emoji e um recado. O terapeuta vê antes da sessão e reage; o paciente recebe a resposta." },
   { icon: "🎥", t: "Sala", d: "Entra na sala de vídeo e avisa ‘cheguei’ na sala de espera." },
-  { icon: "🌤️", t: "Humor & diário", d: "Registra o humor (antes/depois) e escreve no diário entre sessões." },
   { icon: "✅", t: "Tarefas & escalas", d: "Faz as tarefas de casa e responde questionários (PHQ-9, GAD-7)." },
-  { icon: "🎯", t: "Metas", d: "Acompanha as metas terapêuticas e o progresso." },
+  { icon: "✍️", t: "Escrita terapêutica", d: "Propostas em ‘stories’ que motivam a escrever. Ele decide se compartilha com o terapeuta." },
+  { icon: "🌱", t: "Humor, diário & metas", d: "Registra o humor, escreve no diário e acompanha as metas." },
   { icon: "💚", t: "Pagamento", d: "Paga pelo app por Pix e recebe o recibo." },
 ];
 
