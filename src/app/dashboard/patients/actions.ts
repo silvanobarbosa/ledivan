@@ -206,6 +206,7 @@ export async function createPatient(formData: FormData) {
     reminderLeadMinutes: formData.get("reminderLeadMinutes")
       ? parseInt(formData.get("reminderLeadMinutes") as string)
       : 60,
+    statusReminderDays: formData.get("statusReminderDays") ? parseInt(formData.get("statusReminderDays") as string) : 0,
     photo3x4: (formData.get("photo3x4") as string) || null,
     photoExtra1: (formData.get("photoExtra1") as string) || null,
     photoExtra2: (formData.get("photoExtra2") as string) || null,
@@ -302,6 +303,7 @@ export async function updatePatient(patientId: string, formData: FormData) {
     reminderLeadMinutes: formData.get("reminderLeadMinutes")
       ? parseInt(formData.get("reminderLeadMinutes") as string)
       : existing.reminderLeadMinutes,
+    statusReminderDays: formData.has("statusReminderDays") ? parseInt(formData.get("statusReminderDays") as string) : existing.statusReminderDays,
     // Fotos: o `|| existing` impedia APAGAR — o botão "remover" manda "", que caía no `||` e
     // restaurava a foto antiga. Agora: campo presente → usa o valor ("" vira null = apaga);
     // ausente → mantém. O PhotoSlots reenvia o valor atual (existing quando intocado), então

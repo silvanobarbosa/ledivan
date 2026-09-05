@@ -8,7 +8,7 @@ import {
   patients, patientStatusHistory, patientPriceHistory, therapySessions, sessionPayments,
   patientRecords, assignments, scaleApplications, moodLogs, treatmentGoals, patientPackages,
   consentForms, patientConsents, patientContractHistory, patientDiary, sessionRatings,
-  patientDocument, messages, messageLog,
+  patientDocument, messages, messageLog, patientDailyStatus,
 } from "../db/schema";
 import { and, eq, inArray, desc, sql } from "drizzle-orm";
 import bcrypt from "bcryptjs";
@@ -879,6 +879,32 @@ export async function seedDionisia(userId: string) {
     { userId, patientId: pid, direction: "in", channel: "whatsapp", contact: DEMO_PATIENT_PHONE, text: "Confirmado! Obrigada 🙏", createdAt: t2 },
   ]);
 
-  console.log(`   Dionísia: ${sess.length} sessões · ${pays.length} pagamentos · ${taskRows.length} tarefas · ${moods.length} humores · ${scales.length} escalas · ${diary.length} diário · metas 3.`);
+  // Status do dia: série com emoji + texto + a curva de humor, algumas já reagidas pelo terapeuta.
+  // Cadência de lembrete a cada 2 dias. (A demo é read-only: a Dionísia não posta, mas o histórico
+  // aparece e o Dr. Sócrates vê/consulta.)
+  await db.update(patients).set({ statusReminderDays: 2 }).where(eq(patients.id, pid));
+  const STATUS = [
+    { e: "😰", m: 2, t: "Cheguei ansiosa, tive uma reunião difícil hoje.", react: "🫂" },
+    { e: "😴", m: 2, t: "Dormi mal essa semana.", react: "❤️" },
+    { e: "🙂", m: 4, t: "Dia tranquilo, consegui usar a respiração.", react: "👍" },
+    { e: "😢", m: 2, t: "Briga em casa, tô pra baixo.", react: "🫂" },
+    { e: "😄", m: 5, t: "Semana boa! Saí com amigos.", react: null },
+    { e: "😐", m: 3, t: null, react: null },
+    { e: "💪", m: 4, t: "Enfrentei uma situação que evitava.", react: "🌱" },
+  ];
+  const statusRows = STATUS.map((s, i) => {
+    const when = new Date(now); when.setDate(when.getDate() - (i * 2 + 1)); when.setHours(pick([8, 9, 17, 18]), rnd(0, 59), 0, 0);
+    const reacted = !!s.react;
+    return {
+      userId, patientId: pid, emoji: s.e, mood: s.m, text: s.t,
+      reactionEmoji: s.react, reactionText: reacted && i === 0 ? "Estou aqui com você. Vamos falar disso hoje." : null,
+      reactionAt: reacted ? (() => { const d = new Date(when); d.setHours(d.getHours() + 1); return d; })() : null,
+      seenByTherapistAt: reacted ? when : null,
+      createdAt: when,
+    };
+  });
+  await chunkInsert(patientDailyStatus, statusRows);
+
+  console.log(`   Dionísia: ${sess.length} sessões · ${pays.length} pagamentos · ${taskRows.length} tarefas · ${moods.length} humores · ${scales.length} escalas · ${diary.length} diário · ${statusRows.length} status · metas 3.`);
   return pid;
 }

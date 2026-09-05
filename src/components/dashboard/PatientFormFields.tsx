@@ -22,6 +22,7 @@ export type PatientFormData = {
   attendanceMode?: string | null; attendanceLocation?: string | null; attendanceDay?: string | null; attendanceTime?: string | null;
   sessionFee?: string | null; frequency?: string | null; timesPerPeriod?: number | null; paymentFormat?: string | null; sessionsInPacket?: number | null; paymentDay?: number | null; priceReviewDate?: string | null;
   reminderEnabled?: boolean; reminderChannel?: string | null; reminderLeadMinutes?: number | null;
+  statusReminderDays?: number | null;
   photo3x4?: string | null; photoExtra1?: string | null; photoExtra2?: string | null; photoExtra3?: string | null;
 };
 
@@ -282,6 +283,16 @@ export function PatientFormFields({ p, locations }: { p?: PatientFormData; locat
                 <label className={labelCls}>Antecedência</label>
                 <select name="reminderLeadMinutes" className={inputCls} defaultValue={p?.reminderLeadMinutes ?? 60}>
                   {REMINDER_LEAD_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className={labelCls}>Lembrete do status do dia<InfoTip text="Se o recurso 'Status do dia' estiver ligado para este paciente, o app o lembra de mandar o status nessa frequência." /></label>
+                <select name="statusReminderDays" className={inputCls} defaultValue={p?.statusReminderDays ?? 0}>
+                  <option value={0}>Desligado</option>
+                  <option value={1}>Diário</option>
+                  <option value={2}>A cada 2 dias</option>
+                  <option value={3}>A cada 3 dias</option>
+                  <option value={7}>Semanal</option>
                 </select>
               </div>
             </div>
