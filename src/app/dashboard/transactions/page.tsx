@@ -1,7 +1,7 @@
 import { db } from "@/db";
 import { auth } from "@/auth";
 import { transactions, categories, financialAccounts } from "@/db/schema";
-import { eq, desc, ilike, and, gte, lte } from "drizzle-orm";
+import { eq, desc, ilike, and, gte, lte, or, isNull } from "drizzle-orm";
 import { cn } from "@/lib/utils";
 import { AddTransaction } from "./AddTransaction";
 import { ExportCSV } from "./ExportCSV";
@@ -39,7 +39,7 @@ export default async function TransactionsPage({
       with: { category: true },
       orderBy: [desc(transactions.date)],
     }),
-    db.query.categories.findMany(),
+    db.query.categories.findMany({ where: or(isNull(categories.userId), eq(categories.userId, userId)) }),
     db.query.financialAccounts.findMany({ where: eq(financialAccounts.userId, userId) }),
   ]);
 
