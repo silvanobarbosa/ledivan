@@ -79,6 +79,9 @@ export default async function proxy(req: NextRequest) {
   const isPublicRoute =
     pathname === "/" ||
     pathname === "/demo" ||
+    pathname === "/paciente-demo" ||   // portal web read-only da paciente demo (Srta. Dionísia)
+    pathname === "/como-funciona" ||   // 2ª landing: infográfico end-to-end
+    pathname.startsWith("/tutorial") || // tutorial guiado (usa os dois perfis demo)
     pathname.startsWith("/login") ||
     pathname.startsWith("/privacidade") ||
     pathname.startsWith("/termos") ||
@@ -87,6 +90,7 @@ export default async function proxy(req: NextRequest) {
     pathname.startsWith("/p/") ||
     pathname.startsWith("/humor/") ||
     pathname.startsWith("/escala/") ||
+    pathname.startsWith("/api/patient/demo") || // login demo do paciente (sem código)
     pathname.startsWith("/api/scan") ||
     pathname.startsWith("/api/insights");
 

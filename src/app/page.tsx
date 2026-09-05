@@ -83,7 +83,7 @@ function Header() {
           <a href="#features" className="hover:text-ink transition">Funcionalidades</a>
           <a href="#apps" className="hover:text-ink transition">Apps</a>
           <a href="#integrations" className="hover:text-ink transition">Integrações</a>
-          <a href="#how" className="hover:text-ink transition">Como funciona</a>
+          <a href="/como-funciona" className="hover:text-ink transition">Como funciona</a>
           <a href="#pricing" className="hover:text-ink transition">Preço</a>
         </nav>
         <div className="flex items-center gap-2">
