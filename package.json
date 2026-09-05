@@ -11,6 +11,7 @@
     "bot": "npx tsx --env-file=.env.local src/telegram/index.ts",
     "fetch:stitch": "npx tsx --env-file=.env.local src/scripts/fetchStitch.ts",
     "check:stitch": "npx tsx --env-file=.env.local src/scripts/checkStitch.ts",
+    "db:push": "npx drizzle-kit push",
     "db:migrate": "npx drizzle-kit migrate",
     "db:seed": "npx tsx --env-file=.env.local src/db/seed.ts",
     "seed:silvano": "npx tsx --env-file=.env.local src/scripts/seedSilvano.ts",
