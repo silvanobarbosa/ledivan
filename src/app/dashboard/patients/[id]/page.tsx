@@ -1,6 +1,6 @@
 import { db } from "@/db";
 import { auth } from "@/auth";
-import { users, patients, therapySessions, sessionPayments, patientStatusHistory, patientPriceHistory, patientContractHistory, patientRecords, assignments, moodLogs, scaleApplications, treatmentGoals, patientPackages, patientDiary, sessionRatings, patientConsents, patientWriting } from "@/db/schema";
+import { users, patients, therapySessions, sessionPayments, patientStatusHistory, patientPriceHistory, patientContractHistory, patientRecords, assignments, moodLogs, scaleApplications, treatmentGoals, patientPackages, patientDiary, sessionRatings, patientConsents, patientWriting, patientDailyStatus } from "@/db/schema";
 import { and, eq, desc } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import Link from "next/link";
@@ -51,6 +51,14 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
     .from(patientWriting)
     .where(and(eq(patientWriting.patientId, id), eq(patientWriting.shared, true)))
     .orderBy(desc(patientWriting.createdAt)).limit(30);
+
+  // Status do dia — renderizado server-side (GET) para funcionar inclusive na conta demo
+  // (read-only): carregar por server action seria POST e o proxy bloquearia.
+  const dailyStatus = statusEnabled ? await db.select({
+    id: patientDailyStatus.id, emoji: patientDailyStatus.emoji, mood: patientDailyStatus.mood, text: patientDailyStatus.text,
+    createdAt: patientDailyStatus.createdAt, reactionEmoji: patientDailyStatus.reactionEmoji, reactionText: patientDailyStatus.reactionText, reactionAt: patientDailyStatus.reactionAt,
+  }).from(patientDailyStatus).where(and(eq(patientDailyStatus.patientId, id), eq(patientDailyStatus.userId, userId)))
+    .orderBy(desc(patientDailyStatus.createdAt)).limit(60) : [];
 
   // Estatísticas de sessões p/ os cards do paciente
   const nowMs = Date.now();
@@ -164,6 +172,7 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
         packageInfo={packageInfo}
         recurring={recurring}
         statusEnabled={statusEnabled}
+        dailyStatus={JSON.parse(JSON.stringify(dailyStatus))}
         sharedWritings={JSON.parse(JSON.stringify(sharedWritings))}
       />
     </div>

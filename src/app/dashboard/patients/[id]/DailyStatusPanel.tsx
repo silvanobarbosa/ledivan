@@ -1,29 +1,28 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { carregarStatus, reagirStatus, type StatusRow } from "./status-actions";
+import { useState } from "react";
+import { reagirStatus, type StatusRow } from "./status-actions";
 
 const REACOES = ["❤️", "🫂", "👍", "🙂", "💪", "🌱"];
 const fmt = (iso: string) => new Intl.DateTimeFormat("pt-BR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" }).format(new Date(iso));
 
-// Painel do "status do dia" na ficha do paciente — o terapeuta consulta antes da sessão e reage.
-export function DailyStatusPanel({ patientId, enabled }: { patientId: string; enabled: boolean }) {
-  const [rows, setRows] = useState<StatusRow[] | null>(null);
+// Painel do "status do dia" na ficha do paciente. Recebe os status JÁ carregados (server-side),
+// para funcionar também na conta demo (read-only) — carregar por server action seria POST.
+export function DailyStatusPanel({ enabled, statuses }: { enabled: boolean; statuses: StatusRow[] }) {
+  const [rows, setRows] = useState<StatusRow[]>(statuses);
   const [reagindo, setReagindo] = useState<string | null>(null);
 
-  useEffect(() => { if (enabled) carregarStatus(patientId).then(setRows); }, [patientId, enabled]);
-
-  if (!enabled) return null;
-  if (rows === null) return <div className="rounded-[20px] bg-surface/60 p-4 text-sm text-foreground/50">Carregando status…</div>;
-  if (!rows.length) return null; // nada a mostrar ainda
+  if (!enabled || !rows.length) return null;
 
   const ultimo = rows[0];
   const curva = rows.filter((r) => r.mood).slice(0, 14).reverse();
 
   async function react(id: string, emoji: string) {
     setReagindo(id);
-    const r = await reagirStatus(id, emoji);
-    if (r.ok) setRows((prev) => prev?.map((x) => x.id === id ? { ...x, reactionEmoji: emoji, reactionAt: new Date().toISOString() } : x) ?? null);
+    try {
+      const r = await reagirStatus(id, emoji);
+      if (r.ok) setRows((prev) => prev.map((x) => x.id === id ? { ...x, reactionEmoji: emoji, reactionAt: new Date().toISOString() } : x));
+    } catch { /* read-only (demo) ou erro de rede: ignora */ }
     setReagindo(null);
   }
 
@@ -36,7 +35,6 @@ export function DailyStatusPanel({ patientId, enabled }: { patientId: string; en
         <span className="text-xs text-foreground/40">{fmt(ultimo.createdAt)}</span>
       </div>
 
-      {/* último status em destaque */}
       <div className="mt-3 flex items-start gap-3">
         <div className="text-4xl leading-none">{ultimo.emoji}</div>
         <div className="flex-1">
@@ -54,7 +52,6 @@ export function DailyStatusPanel({ patientId, enabled }: { patientId: string; en
         </div>
       </div>
 
-      {/* curva de humor (mini) */}
       {curva.length > 1 && (
         <div className="mt-4">
           <p className="text-[11px] text-foreground/40 mb-1">Curva do humor</p>
@@ -66,7 +63,6 @@ export function DailyStatusPanel({ patientId, enabled }: { patientId: string; en
         </div>
       )}
 
-      {/* histórico curto */}
       {rows.length > 1 && (
         <details className="mt-4">
           <summary className="text-xs text-primary cursor-pointer">Ver histórico ({rows.length})</summary>
