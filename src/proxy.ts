@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { auth0 } from "@/lib/auth0";
 import { immuneCheck } from "@/lib/immune-client";
 import { lerSessaoInfo } from "@/lib/session-secret";
+import { verifyPatient } from "@/lib/patient-token";
 
 /**
  * Proxy (middleware do Next 16) — migrado next-auth → Auth0 (02/08/2026).
@@ -21,16 +22,16 @@ export default async function proxy(req: NextRequest) {
   // Navegação (GET/HEAD) segue liberada — é o ponto do demo. Um único choke point cobre tudo.
   if (!["GET", "HEAD", "OPTIONS"].includes(req.method)) {
     // Sessão demo vem por cookie (navegador) OU por Bearer (app nativo). Cobre os dois.
-    const raw = req.cookies.get("auth-session")?.value
-      || req.headers.get("authorization")?.replace(/^Bearer\s+/i, "").trim();
-    if (raw) {
-      const info = await lerSessaoInfo(raw);
-      if (info?.demo) {
-        return NextResponse.json(
-          { error: "Modo demonstração: somente leitura. Nenhum dado pode ser alterado nesta conta." },
-          { status: 403 },
-        );
-      }
+    const bearer = req.headers.get("authorization")?.replace(/^Bearer\s+/i, "").trim();
+    const raw = req.cookies.get("auth-session")?.value || bearer;
+    const somenteLeitura = "Modo demonstração: somente leitura. Nenhum dado pode ser alterado nesta conta.";
+    // Terapeuta demo (Dr. Sócrates): token de SESSÃO (jose JWT).
+    if (raw && (await lerSessaoInfo(raw))?.demo) {
+      return NextResponse.json({ error: somenteLeitura }, { status: 403 });
+    }
+    // Paciente demo (Srta. Dionísia): token do PACIENTE (HMAC próprio, formato diferente).
+    if (bearer && verifyPatient(bearer)?.demo) {
+      return NextResponse.json({ error: somenteLeitura }, { status: 403 });
     }
   }
 

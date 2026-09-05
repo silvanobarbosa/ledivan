@@ -10,7 +10,7 @@ import {
   consentForms, patientConsents, patientContractHistory, patientDiary, sessionRatings,
   patientDocument, messages, messageLog,
 } from "../db/schema";
-import { and, eq, inArray, desc } from "drizzle-orm";
+import { and, eq, inArray, desc, sql } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 
 export type SeedCfg = {
@@ -681,4 +681,204 @@ export async function seedExtras(userId: string) {
   await chunkInsert(messageLog, logRows);
 
   console.log(`   consentimentos:${consentRows.length} contrato:${contractRows.length} diário:${diaryRows.length} materiais:${docRows.length} avaliações:${ratingRows.length} timers:${timerPatched} devolutivas:${devoRows.length} recibos:${receiptPatched} em-aberto:${openPayRows.length} mensagens:${msgRows.length}`);
+}
+
+// E-mail/telefone fixos da PACIENTE de demonstração (Srta. Dionísia) — usados pelo login demo
+// do paciente (/api/patient/demo) para encontrá-la sob a conta do terapeuta demo.
+export const DEMO_PATIENT_EMAIL = "dionisia@demo.ledivan.com.br";
+export const DEMO_PATIENT_PHONE = "(11) 98888-0001";
+
+// Cria a PACIENTE de demonstração "Srta. Dionísia" — curada (não aleatória), ativa, com TODOS
+// os recursos do paciente ligados e um histórico completo do "outro lado" (tarefas, humor,
+// escalas, diário, materiais, metas, sessões passadas+futuras, pagamentos, consentimento,
+// mensagens). É a modelo do app/portal do paciente. Idempotente: apaga a Dionísia anterior.
+export async function seedDionisia(userId: string) {
+  console.log("👩 Srta. Dionísia (paciente demo, 'outro lado')…");
+  const now = new Date();
+
+  // remove uma Dionísia anterior (re-run limpo) — cascata cobre sessões/tarefas/etc dela
+  const prev = await db.query.patients.findFirst({
+    where: and(eq(patients.userId, userId), eq(patients.email, DEMO_PATIENT_EMAIL)),
+  });
+  if (prev) await db.delete(patients).where(eq(patients.id, prev.id));
+
+  const [{ maxNum }] = await db.select({ maxNum: sql<number>`coalesce(max(${patients.registrationNumber}), 0)` })
+    .from(patients).where(eq(patients.userId, userId));
+
+  const pid = uuid();
+  const fee = 220;
+  const startedAt = new Date(now); startedAt.setMonth(startedAt.getMonth() - 14); startedAt.setDate(8);
+  const birth = new Date(now); birth.setFullYear(birth.getFullYear() - 29); birth.setMonth(4); birth.setDate(17);
+  // todos os recursos do paciente ligados para esta paciente (belt-and-suspenders além das prefs)
+  const overrides = { timer: true, waitingRoom: true, moodCheckin: true, scales: true, diary: true, goalsVisible: true, rescheduleApp: true, payment: true, rating: true, consent: true };
+
+  await db.insert(patients).values({
+    id: pid, userId,
+    registrationNumber: Number(maxNum) + 1,
+    name: "Srta. Dionísia Prado",
+    email: DEMO_PATIENT_EMAIL,
+    phone: DEMO_PATIENT_PHONE,
+    sessionFee: money(fee), frequency: "semanal", timesPerPeriod: 1,
+    patientStatus: "ativo", paymentStatus: "paid",
+    contractType: "avulso", paymentFormat: "mensal",
+    attendanceMode: "online", attendanceLocation: null,
+    attendanceDay: "quarta", attendanceTime: "18:00",
+    category: "adulto", cpf: "312.457.889-20", birthDate: birth,
+    address: "Rua das Acácias, 245 — São Paulo/SP",
+    emergencyName: "Helena Prado", emergencyPhone: "(11) 97777-0002", emergencyRelationship: "Mãe",
+    reminderEnabled: true, reminderChannel: "whatsapp", reminderLeadMinutes: 120,
+    priceReviewDate: (() => { const d = new Date(now); d.setMonth(d.getMonth() + 2); return d; })(),
+    paymentDay: 10, startedAt,
+    queixaPrincipal: "Ansiedade generalizada",
+    tags: "TCC, ansiedade, online, demo",
+    moodToken: token(),
+    featureOverrides: JSON.stringify(overrides),
+    notes: "Paciente-modelo da demonstração (app do paciente). Boa adesão às tarefas; usa o app com frequência.",
+  });
+  await db.insert(patientStatusHistory).values({ patientId: pid, status: "ativo", date: startedAt });
+  await db.insert(patientPriceHistory).values([
+    { patientId: pid, valor: money(fee - 30), dataEfetiva: startedAt },
+    { patientId: pid, valor: money(fee), dataEfetiva: (() => { const d = new Date(startedAt); d.setMonth(d.getMonth() + 8); return d; })() },
+  ]);
+
+  // Sessões: semanais nos últimos ~14 meses (realizadas) + 3 futuras agendadas (próxima consulta).
+  const sess: any[] = [];
+  const recs: any[] = [];
+  const ratings: any[] = [];
+  const cur = new Date(startedAt); cur.setHours(18, 0, 0, 0);
+  const evolucoes = [
+    "Trabalhamos reestruturação cognitiva dos pensamentos catastróficos sobre o trabalho. Boa adesão.",
+    "Treino de respiração e exposição gradual a situações sociais. Reduziu evitação.",
+    "Revisão das metas: percebe avanço na assertividade com a família.",
+    "Psicoeducação sobre o ciclo da ansiedade; combinamos registro no diário.",
+  ];
+  let firstRealizadaId: string | null = null;
+  while (cur <= now) {
+    const sid = uuid();
+    const realizada = chance(0.85);
+    const status = realizada ? "realizada" : pick(["cancelada", "realocada", "nao_realizada"]);
+    const online = true;
+    sess.push({
+      id: sid, userId, patientId: pid, date: new Date(cur), duration: 50, fee: money(fee),
+      status, chargeable: realizada, isOnline: online, sessionKind: "consulta",
+      notes: realizada && chance(0.5) ? pick(evolucoes) : null,
+      patientConfirmedAt: realizada ? (() => { const d = new Date(cur); d.setHours(d.getHours() - 3); return d; })() : null,
+      patientArrivedAt: realizada && chance(0.6) ? (() => { const d = new Date(cur); d.setMinutes(d.getMinutes() - 4); return d; })() : null,
+      meetingHappened: realizada, meetingOpenedAt: realizada ? new Date(cur) : null,
+      patientSummary: realizada && chance(0.4) ? "Combinamos praticar a respiração 2x ao dia e registrar os pensamentos no diário até nossa próxima conversa." : null,
+    });
+    if (realizada) {
+      if (!firstRealizadaId) firstRealizadaId = sid;
+      if (chance(0.5)) recs.push({ id: uuid(), userId, patientId: pid, sessionId: sid, type: "evolucao", title: null, content: pick(evolucoes), createdAt: new Date(cur) });
+      if (chance(0.4)) ratings.push({ userId, patientId: pid, sessionId: sid, score: pick([4, 5, 5]), comment: chance(0.5) ? pick(["Saí mais leve.", "Ajudou bastante.", "Muito acolhedor."]) : null, createdAt: new Date(cur) });
+    }
+    cur.setDate(cur.getDate() + 7);
+  }
+  // 3 sessões futuras agendadas (próxima consulta no app)
+  for (let i = 1; i <= 3; i++) {
+    const d = new Date(now); d.setDate(d.getDate() + i * 7); d.setHours(18, 0, 0, 0);
+    sess.push({ id: uuid(), userId, patientId: pid, date: d, duration: 50, fee: money(fee), status: "agendada", chargeable: true, isOnline: true, sessionKind: "consulta", pendingConfirmation: i === 1 });
+  }
+  await chunkInsert(therapySessions, sess);
+  recs.push({ id: uuid(), userId, patientId: pid, sessionId: null, type: "anamnese", title: "Anamnese inicial", content: "Queixa principal: ansiedade generalizada, com sintomas físicos (taquicardia, insônia) e preocupação excessiva com o trabalho. Sem internações. Rede de apoio: mãe e amigos próximos. Iniciou TCC.", createdAt: startedAt });
+  await chunkInsert(patientRecords, recs);
+  await chunkInsert(sessionRatings, ratings);
+
+  // Pagamentos: mensais pagos + 1 em aberto (tela de pagamento do app)
+  const pays: any[] = [];
+  for (let m = 12; m >= 1; m--) {
+    const d = new Date(now); d.setMonth(d.getMonth() - m); d.setDate(10);
+    if (d < startedAt) continue;
+    pays.push({ userId, patientId: pid, sessionId: null, amount: money(fee * 4), date: d, method: pick(["pix", "pix", "transfer"]), status: "paid", receiptNumber: chance(0.6) ? `RS-D${String(m).padStart(4, "0")}` : null, receiptIssuedAt: chance(0.6) ? d : null });
+  }
+  pays.push({ userId, patientId: pid, sessionId: null, amount: money(fee * 2), date: new Date(now), method: "pix", status: "pending" });
+  await chunkInsert(sessionPayments, pays);
+
+  // Tarefas (lição de casa): respondidas + pendentes, tipos variados
+  const tasks = [
+    { t: "Diário de pensamentos", i: "Registre situações que geraram ansiedade, o pensamento automático e uma resposta alternativa.", rt: "texto", resp: "Anotei 4 situações. Percebi que quase sempre eu superestimo o risco.", done: true },
+    { t: "Registro de humor diário", i: "Anote seu humor (1 a 5) ao acordar e antes de dormir.", rt: "texto", resp: "Fiz por 6 dias seguidos, ficou mais fácil perceber os padrões.", done: true },
+    { t: "Exposição gradual", i: "Liste situações temidas em ordem de dificuldade e enfrente a primeira.", rt: "livre", resp: null, done: false },
+    { t: "Áudio de gratidão", i: "Grave um áudio curto citando 3 coisas boas do seu dia.", rt: "audio", resp: null, done: false },
+  ];
+  const taskRows = tasks.map((tk, i) => {
+    const created = new Date(now); created.setDate(created.getDate() - (i + 1) * 6);
+    return {
+      id: uuid(), userId, patientId: pid, token: token(), title: tk.t, instructions: tk.i, responseType: tk.rt,
+      status: tk.done ? "respondida" : "pendente",
+      dueDate: (() => { const d = new Date(created); d.setDate(d.getDate() + 7); return d; })(),
+      responseText: tk.resp,
+      respondedAt: tk.done ? (() => { const d = new Date(created); d.setDate(d.getDate() + 2); return d; })() : null,
+      therapistComment: tk.done && i === 0 ? "Ótimo! Vamos explorar esses registros na sessão." : null,
+      createdAt: created,
+    };
+  });
+  await chunkInsert(assignments, taskRows);
+
+  // Humor: série de ~45 dias (check-ins pré/pós + livres)
+  const moods: any[] = [];
+  for (let d = 45; d >= 0; d--) {
+    if (!chance(0.7)) continue;
+    const when = new Date(now); when.setDate(when.getDate() - d);
+    moods.push({ id: uuid(), userId, patientId: pid, mood: pick([2, 3, 3, 4, 4, 5]), note: chance(0.3) ? pick(["Dia puxado no trabalho.", "Dormi melhor.", "Consegui usar a respiração.", "Ansiedade mais baixa hoje."]) : null, context: pick(["free", "free", "pre", "post"]), loggedAt: when });
+  }
+  await chunkInsert(moodLogs, moods);
+
+  // Escalas PHQ-9 e GAD-7 ao longo do tempo (melhora)
+  const scales: any[] = [];
+  const mk = (type: string, score: number, monthsAgo: number) => {
+    const max = type === "phq9" ? 27 : 21; const n = type === "phq9" ? 9 : 7;
+    const answers = Array.from({ length: n }, () => 0); let rem = Math.max(0, Math.min(max, score));
+    for (let q = 0; q < n && rem > 0; q++) { const v = Math.min(3, rem); answers[q] = v; rem -= v; }
+    const when = new Date(now); when.setMonth(when.getMonth() - monthsAgo);
+    scales.push({ id: uuid(), userId, patientId: pid, token: token(), scaleType: type, status: "respondida", answers: JSON.stringify(answers), score, severity: type === "phq9" ? phqSeverity(score) : gadSeverity(score), appliedAt: when });
+  };
+  mk("phq9", 16, 6); mk("phq9", 11, 3); mk("phq9", 7, 0);
+  mk("gad7", 14, 6); mk("gad7", 9, 2);
+  await chunkInsert(scaleApplications, scales);
+
+  // Diário entre sessões
+  const diary = [
+    "Semana difícil, mas usei a respiração antes da reunião e deu certo.",
+    "Briguei com minha mãe e percebi que reagi no automático. Quero falar disso na sessão.",
+    "Dormi melhor depois que reduzi o café à noite.",
+    "Tive um dia bom, saí para caminhar e me senti mais leve.",
+  ].map((c, i) => { const d = new Date(now); d.setDate(d.getDate() - (i + 1) * 5); return { id: uuid(), userId, patientId: pid, content: c, mood: pick([2, 3, 4, 4]), createdAt: d }; });
+  await chunkInsert(patientDiary, diary);
+
+  // Materiais compartilhados pelo terapeuta
+  const docs = [
+    { title: "Exercício de respiração diafragmática", kind: "text", content: "Inspire pelo nariz contando até 4, segure 4, expire pela boca contando 6. Repita por 5 minutos, 2x ao dia." },
+    { title: "Vídeo: entendendo a ansiedade", kind: "link", content: "https://www.youtube.com/watch?v=exemplo" },
+    { title: "Higiene do sono — 10 dicas", kind: "text", content: "1. Horário regular. 2. Sem telas 1h antes. 3. Quarto escuro e fresco. 4. Evitar cafeína após as 16h…" },
+  ].map((m, i) => { const d = new Date(now); d.setDate(d.getDate() - (i + 2) * 10); return { userId, patientId: pid, title: m.title, kind: m.kind, content: m.content, createdAt: d }; });
+  await chunkInsert(patientDocument, docs);
+
+  // Metas terapêuticas visíveis ao paciente
+  await chunkInsert(treatmentGoals, [
+    { id: uuid(), userId, patientId: pid, title: "Reduzir crises de ansiedade", description: "Diminuir frequência e intensidade com técnicas de manejo.", status: "ativo", progress: 60, targetDate: (() => { const d = new Date(now); d.setMonth(d.getMonth() + 3); return d; })(), createdAt: startedAt },
+    { id: uuid(), userId, patientId: pid, title: "Melhorar higiene do sono", description: "Rotina regular e menos telas à noite.", status: "ativo", progress: 40, targetDate: (() => { const d = new Date(now); d.setMonth(d.getMonth() + 2); return d; })(), createdAt: startedAt },
+    { id: uuid(), userId, patientId: pid, title: "Aumentar assertividade", description: "Expressar necessidades e estabelecer limites.", status: "atingido", progress: 100, targetDate: now, createdAt: startedAt },
+  ]);
+
+  // Consentimento aceito
+  const formUpdatedAt = new Date(startedAt);
+  await chunkInsert(patientConsents, [{
+    userId, patientId: pid,
+    title: "Termo de Consentimento Livre e Esclarecido — Psicoterapia",
+    body: "Snapshot do termo aceito no primeiro acesso ao app.",
+    acceptedName: "Srta. Dionísia Prado", formUpdatedAt, ip: "189.10.20.30",
+    acceptedAt: (() => { const d = new Date(startedAt); d.setDate(d.getDate() + 1); return d; })(),
+  }]);
+
+  // Inbox 2-via
+  const t1 = new Date(now); t1.setDate(t1.getDate() - 2);
+  const t2 = new Date(t1); t2.setHours(t2.getHours() + 3);
+  await chunkInsert(messages, [
+    { userId, patientId: pid, direction: "out", channel: "whatsapp", contact: DEMO_PATIENT_PHONE, text: "Olá, Dionísia! Lembrete da sua sessão de quarta às 18h. Podemos confirmar?", createdAt: t1 },
+    { userId, patientId: pid, direction: "in", channel: "whatsapp", contact: DEMO_PATIENT_PHONE, text: "Confirmado! Obrigada 🙏", createdAt: t2 },
+  ]);
+
+  console.log(`   Dionísia: ${sess.length} sessões · ${pays.length} pagamentos · ${taskRows.length} tarefas · ${moods.length} humores · ${scales.length} escalas · ${diary.length} diário · metas 3.`);
+  return pid;
 }

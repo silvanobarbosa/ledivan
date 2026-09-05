@@ -7,7 +7,8 @@
 import { db } from "../db";
 import { users } from "../db/schema";
 import { eq } from "drizzle-orm";
-import { runSeed, seedExtras } from "./seedCore";
+import { runSeed, seedExtras, seedDionisia } from "./seedCore";
+import { FEATURES } from "../lib/features";
 
 const EMAIL = "socrates@ledivan.com.br";
 
@@ -25,6 +26,20 @@ async function main() {
   });
 
   await seedExtras(userId);
+  await seedDionisia(userId); // paciente-modelo do "outro lado" (app/portal do paciente)
+
+  // Todos os recursos do paciente LIGADOS (modo "all") para a demo mostrar 100% do app do
+  // paciente. + Pix estático (pagamento no app), cronômetro visível, transcrição on.
+  const features = Object.fromEntries(FEATURES.map((f) => [f.key, "all"]));
+  const preferences = {
+    features,
+    timerShowToPatient: true,
+    transcriptionEnabled: true,
+    meetingProvider: "jitsi",
+    bookingAutoConfirm: false,
+    autoCobranca: false,
+    pix: { key: "socrates@ledivan.com.br", name: "Dr. Sócrates", city: "SAO PAULO" },
+  };
 
   // Perfil completo + marca como DEMO persistente. isDemo=true mantém a conta fora das métricas
   // reais (o painel admin exclui contas demo). Termos aceitos p/ não travar no 1º acesso.
@@ -37,6 +52,7 @@ async function main() {
     emailConfigured: true,
     whatsappConnected: true,
     whatsappInstance: "ledivan_demo_socrates",
+    preferences: JSON.stringify(preferences),
     // São Paulo/SP (IBGE 3550308) → feriados aparecem na agenda
     holidayCities: JSON.stringify([{ ibge: 3550308, nome: "São Paulo", uf: "SP" }]),
   }).where(eq(users.id, userId));
