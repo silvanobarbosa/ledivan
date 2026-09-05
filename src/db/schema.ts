@@ -231,11 +231,14 @@ export const financialAccounts = pgTable("financial_accounts", {
 
 export const categories = pgTable("categories", {
   id: uuid("id").primaryKey().defaultRandom(),
+  // NULL = categoria PADRÃO (global, compartilhada por todos). Preenchido = categoria do próprio
+  // terapeuta. Os seletores mostram global + a do dono; nunca a de outro tenant.
+  userId: text("user_id").references(() => users.id, { onDelete: "cascade" }),
   name: text("name").notNull(),
   type: transactionTypeEnum("type").notNull(),
   icon: text("icon"),
   color: text("color"),
-});
+}, (t) => [index("categories_user_idx").on(t.userId)]);
 
 export const transactions = pgTable("transactions", {
   id: uuid("id").primaryKey().defaultRandom(),

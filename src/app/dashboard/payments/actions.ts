@@ -3,7 +3,7 @@
 import { db } from "@/db";
 import { sessionPayments, patients, transactions, categories, financialAccounts } from "@/db/schema";
 import { auth } from "@/auth";
-import { and, eq } from "drizzle-orm";
+import { and, eq, or, isNull } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { parseMoedaBR } from "@/lib/money";
@@ -13,13 +13,20 @@ type PaymentStatus = "paid" | "pending" | "overdue";
 
 const SESSION_CATEGORY = "Sessões";
 
-// Garante a categoria de receita "Sessões" (usada nas transacoes geradas de pagamentos)
-async function ensureSessionCategory(): Promise<string> {
+// Garante a categoria de receita "Sessões" (usada nas transacoes geradas de pagamentos).
+// Reusa a categoria PADRÃO global (userId NULL) ou a do próprio terapeuta; se não houver, cria
+// uma do terapeuta. Nunca usa a categoria de outro tenant.
+async function ensureSessionCategory(userId: string): Promise<string> {
   const existing = await db.query.categories.findFirst({
-    where: and(eq(categories.name, SESSION_CATEGORY), eq(categories.type, "income")),
+    where: and(
+      eq(categories.name, SESSION_CATEGORY),
+      eq(categories.type, "income"),
+      or(isNull(categories.userId), eq(categories.userId, userId)),
+    ),
   });
   if (existing) return existing.id;
   const [created] = await db.insert(categories).values({
+    userId,
     name: SESSION_CATEGORY,
     type: "income",
     icon: "HeartHandshake",
@@ -56,7 +63,7 @@ export async function createPayment(formData: FormData) {
   // Unificado: todo pagamento PAGO (que não seja crédito de pacote) SEMPRE reflete no caixa/relatórios.
   // Sem toggle — antes, com autoLinkPayments off, o pagamento sumia do caixa (divergência).
   if (status === "paid" && kind !== "pacote") {
-    const categoryId = await ensureSessionCategory();
+    const categoryId = await ensureSessionCategory(userId);
     const account = await db.query.financialAccounts.findFirst({
       where: eq(financialAccounts.userId, userId),
     });

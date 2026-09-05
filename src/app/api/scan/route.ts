@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { getUserAiClient, SemChaveIA } from "@/lib/ai-client";
 import { db } from "@/db";
 import { transactions, categories } from "@/db/schema";
-import { and, eq } from "drizzle-orm";
+import { and, eq, or, isNull } from "drizzle-orm";
 
 import { auth } from "@/auth";
 import { rateLimit } from "@/lib/rateLimit";
@@ -59,7 +59,7 @@ export async function POST(req: Request) {
     const date = Number.isNaN(parsedDate.getTime()) ? new Date() : parsedDate;
 
     // Categoria: só do próprio terapeuta (a tabela ainda é global; filtra pelo que existe).
-    const categoryList = await db.query.categories.findMany();
+    const categoryList = await db.query.categories.findMany({ where: or(isNull(categories.userId), eq(categories.userId, userId)) });
     const wanted = typeof result?.category === "string" ? result.category.toLowerCase() : "";
     const category = categoryList.find(c => c.name.toLowerCase() === wanted)
                   || categoryList.find(c => c.name === "Outros");

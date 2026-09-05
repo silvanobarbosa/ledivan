@@ -1,6 +1,7 @@
 import { db } from "@/db";
 import { auth } from "@/auth";
 import { categories } from "@/db/schema";
+import { or, isNull, eq } from "drizzle-orm";
 import { Scale } from "lucide-react";
 import { ConciliacaoClient } from "./ConciliacaoClient";
 
@@ -10,7 +11,7 @@ export default async function ConciliacaoPage() {
   const session = await auth();
   if (!session?.user?.id) return null;
 
-  const cats = await db.query.categories.findMany();
+  const cats = await db.query.categories.findMany({ where: or(isNull(categories.userId), eq(categories.userId, session.user.id)) });
 
   return (
     <div className="max-w-4xl mx-auto space-y-6 pb-20">
