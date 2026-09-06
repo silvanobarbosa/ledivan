@@ -128,7 +128,10 @@ function Hero() {
               <ArrowRight className="h-4 w-4 transition-transform group-hover:translate-x-0.5" />
             </Link>
             <Link href="/demo" className="inline-flex items-center gap-2 rounded-full border border-[rgba(43,24,48,0.12)] bg-white/60 px-6 py-3.5 text-sm font-medium text-ink hover:bg-white transition">
-              Testar a demonstração
+              Testar como terapeuta
+            </Link>
+            <Link href="/paciente-demo" className="inline-flex items-center gap-2 rounded-full border border-[rgba(43,24,48,0.12)] bg-white/60 px-6 py-3.5 text-sm font-medium text-ink hover:bg-white transition">
+              Ver a visão do paciente
             </Link>
           </div>
           <div className="mt-8 flex flex-wrap items-center gap-6 text-xs text-[color:var(--muted-foreground)]">

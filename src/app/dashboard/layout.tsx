@@ -65,8 +65,10 @@ export default async function DashboardLayout({
         </header>
 
         {isDemo && (
-          <div className="bg-[#dbeafe] border-b border-[#93c5fd] text-[#1e40af] text-xs sm:text-sm px-4 py-2 text-center shrink-0">
-            🧪 <strong>Modo demonstração (somente leitura)</strong> — navegue por todas as telas à vontade. Esta é uma conta de exemplo com 3 anos de uso; nenhum dado pode ser alterado.
+          <div className="bg-[#dbeafe] border-b border-[#93c5fd] text-[#1e40af] text-xs sm:text-sm px-4 py-2 text-center shrink-0 flex items-center justify-center gap-2 flex-wrap">
+            <span>🧪 <strong>Modo demonstração (somente leitura)</strong> — conta de exemplo com 3 anos de uso; nada pode ser alterado.</span>
+            {/* Saída SEMPRE visível na demo, por LINK GET (funciona mesmo na conta read-only). */}
+            <a href="/auth/logout" className="font-bold underline underline-offset-2 whitespace-nowrap">Sair da demonstração →</a>
           </div>
         )}
         <main className="flex-1 overflow-y-auto">
