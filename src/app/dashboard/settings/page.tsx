@@ -3,7 +3,6 @@ import { users } from "@/db/schema";
 import { auth } from "@/auth";
 import { eq } from "drizzle-orm";
 import { User, Video, MessageCircle, Mail, LogOut } from "lucide-react";
-import { signOut } from "@/auth";
 import { updateProfile } from "./actions";
 import { SubmitButton } from "@/components/SubmitButton";
 import { SinglePhoto } from "@/components/dashboard/PhotoSlots";
@@ -68,15 +67,13 @@ export default async function SettingsPage() {
             </a>
           ))}
 
-          <form action={async () => {
-            "use server";
-            await signOut();
-          }}>
-            <SubmitButton pendingLabel="Saindo…" className="w-full flex items-center gap-3 px-6 py-4 rounded-2xl font-bold text-red-500 hover:bg-red-50 transition-all mt-8">
-              <LogOut className="w-5 h-5" />
-              <span>Sair da Conta</span>
-            </SubmitButton>
-          </form>
+          {/* Logout por LINK GET (/auth/logout) — NÃO server action. Server action é POST, e o
+              proxy recusa POST na conta demo (read-only) → o botão de sair morria e a pessoa
+              ficava presa. GET /auth/logout é liberado pelo proxy (/auth/*) e deleta o cookie. */}
+          <a href="/auth/logout" className="w-full flex items-center gap-3 px-6 py-4 rounded-2xl font-bold text-red-500 hover:bg-red-50 transition-all mt-8">
+            <LogOut className="w-5 h-5" />
+            <span>Sair da Conta</span>
+          </a>
         </aside>
 
         {/* Content */}

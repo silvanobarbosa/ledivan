@@ -41,11 +41,21 @@ export async function GET(
         new URL(`/login?returnTo=${encodeURIComponent(returnTo)}`, request.url)
       );
 
-    case "logout":
-      // Limpar sessão
-      const cookieStore = await cookies();
-      cookieStore.delete("auth-session");
-      return NextResponse.redirect(new URL("/", request.url));
+    case "logout": {
+      // Expira o cookie NA PRÓPRIA resposta de redirect. `cookies().delete()` (do next/headers)
+      // NÃO gruda num NextResponse.redirect criado à mão — o Set-Cookie não chegava ao navegador,
+      // então o logout "não fazia nada" (nem em conta normal, nem na demo). Setar aqui, com os
+      // mesmos atributos do set, garante a remoção.
+      const res = NextResponse.redirect(new URL("/", request.url));
+      res.cookies.set("auth-session", "", {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        path: "/",
+        maxAge: 0,
+      });
+      return res;
+    }
 
     // ATENÇÃO: NÃO reintroduzir um "callback" que emita sessão a partir de um e-mail na query.
     // Existiu aqui um `case "callback"` que fazia exatamente isso — `?email=<x>` → cookie de
