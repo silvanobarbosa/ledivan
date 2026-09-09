@@ -1,6 +1,6 @@
 import { db } from "../src/db";
-import { users, patients, therapySessions, therapistFinancialGoals, transactions } from "../src/db/schema";
-import { eq, sql, and, desc } from "drizzle-orm";
+import { users, patients, therapySessions, transactions } from "../src/db/schema";
+import { eq, sql, desc } from "drizzle-orm";
 
 interface QAResult {
   category: string;

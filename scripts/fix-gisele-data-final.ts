@@ -1,7 +1,7 @@
 import "dotenv/config";
 import { db } from "../src/db";
 import { users, patients } from "../src/db/schema";
-import { eq, and, sql } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 
 async function fixGiseleData() {
   console.log("\n" + "=".repeat(80));

@@ -13,7 +13,18 @@ interface Transaction {
   } | null;
 }
 
-export function RecentTransactions({ transactions, id }: { transactions: any[], id?: string }) {
+// Declara só o que esta tela lê. Com `any[]`, renomear uma coluna no banco não quebrava aqui:
+// quebrava na tela do usuário, mostrando campo vazio.
+type TransacaoRecente = {
+  id: string;
+  type: string;
+  amount: string;              // vem como decimal do Postgres, por isso o parseFloat abaixo
+  description: string | null;
+  date: Date;
+  category?: { name: string; color: string | null } | null;
+};
+
+export function RecentTransactions({ transactions, id }: { transactions: TransacaoRecente[], id?: string }) {
   const formatCurrency = (val: number) => {
     return new Intl.NumberFormat("pt-BR", {
       style: "currency",

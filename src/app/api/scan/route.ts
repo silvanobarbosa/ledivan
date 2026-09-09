@@ -2,10 +2,15 @@ import { NextResponse } from "next/server";
 import { getUserAiClient, SemChaveIA } from "@/lib/ai-client";
 import { db } from "@/db";
 import { transactions, categories } from "@/db/schema";
-import { and, eq, or, isNull } from "drizzle-orm";
+import { eq, or, isNull } from "drizzle-orm";
 
 import { auth } from "@/auth";
 import { rateLimit } from "@/lib/rateLimit";
+
+// O modelo devolve JSON livre: TUDO é opcional e de tipo desconhecido, porque ele às vezes
+// omite campo (foi assim que `result.amount.toString()` estourou 500 um dia). Declarar
+// assim obriga o código a checar antes de usar — que é o que ele já faz logo abaixo.
+type ReciboLido = { amount?: unknown; description?: unknown; date?: unknown; category?: unknown };
 
 
 export async function POST(req: Request) {
@@ -46,8 +51,8 @@ export async function POST(req: Request) {
 
     // A saída do modelo é DADO não confiável: validar antes de gravar. Antes, `result.amount
     // .toString()` estourava (TypeError → 500) quando o modelo omitia `amount`.
-    let result: any;
-    try { result = JSON.parse(response.choices[0].message.content || "{}"); }
+    let result: ReciboLido;
+    try { result = JSON.parse(response.choices[0].message.content || "{}") as ReciboLido; }
     catch { return NextResponse.json({ error: "Não consegui ler os dados do recibo." }, { status: 422 }); }
 
     const amount = Number(result?.amount);
@@ -55,7 +60,7 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Não consegui identificar o valor no recibo." }, { status: 422 });
     }
     const description = typeof result?.description === "string" ? result.description.slice(0, 300) : "Recibo";
-    const parsedDate = result?.date ? new Date(result.date) : new Date();
+    const parsedDate = typeof result?.date === "string" ? new Date(result.date) : new Date();
     const date = Number.isNaN(parsedDate.getTime()) ? new Date() : parsedDate;
 
     // Categoria: só do próprio terapeuta (a tabela ainda é global; filtra pelo que existe).
@@ -80,7 +85,7 @@ export async function POST(req: Request) {
       aiAnalysis: result
     });
 
-  } catch (error: any) {
+  } catch (error: unknown) {
     if (error instanceof SemChaveIA) {
       return NextResponse.json({ error: error.message }, { status: 400 });
     }

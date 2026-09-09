@@ -1,7 +1,5 @@
 import "dotenv/config";
 import { db } from "@/db";
-import { patients } from "@/db/schema";
-import { eq } from "drizzle-orm";
 
 /**
  * Script para verificar e listar possíveis duplicatas

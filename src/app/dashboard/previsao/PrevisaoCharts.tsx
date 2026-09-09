@@ -1,6 +1,7 @@
 "use client";
 
 import { ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, Legend } from "recharts";
+import { numeroDoTooltip, type ValorTooltip } from "@/lib/chart";
 
 type MonthRow = { ym: string; label: string; agendado: number; pacotes: number; recorrencia: number; reajuste: number; total: number };
 type Sub = { agendado: number; pacotes: number; recorrencia: number; reajuste: number; total: number };
@@ -53,7 +54,7 @@ export function PrevisaoCharts({ forecast, perPatient }: { forecast: Forecast; p
                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e7ddd4" />
                 <XAxis dataKey="label" tick={{ fill: "#9b8aa0", fontSize: 11 }} tickLine={false} axisLine={false} />
                 <YAxis tick={{ fill: "#9b8aa0", fontSize: 11 }} tickLine={false} axisLine={false} width={48} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
-                <Tooltip contentStyle={tip} formatter={(v: any) => brl(Number(v))} />
+                <Tooltip contentStyle={tip} formatter={(v: ValorTooltip) => brl(numeroDoTooltip(v))} />
                 <Legend wrapperStyle={{ fontSize: 12 }} />
                 {BUCKETS.map((b) => (
                   <Bar key={b.key} dataKey={b.key} name={b.label} stackId="f" fill={b.color} radius={b.key === "reajuste" ? [6, 6, 0, 0] : undefined as never} />

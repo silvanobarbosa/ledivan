@@ -1,6 +1,6 @@
 import "dotenv/config";
 import { db } from "../src/db";
-import { users, patients, therapySessions } from "../src/db/schema";
+import { users, patients } from "../src/db/schema";
 import { eq, and, isNull, or, sql } from "drizzle-orm";
 
 async function fixGiseleData() {

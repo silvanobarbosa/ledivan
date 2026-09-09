@@ -1,7 +1,5 @@
 {
-  "erros": 25,
-  "porRegra": {
-    "@typescript-eslint/no-explicit-any": 25
-  },
+  "erros": 0,
+  "porRegra": {},
   "atualizadoEm": "2026-09-09"
 }

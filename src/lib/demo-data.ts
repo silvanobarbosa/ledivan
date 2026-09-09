@@ -200,7 +200,7 @@ export function isDemoMode(request: Request | undefined): boolean {
 }
 
 // Função para obter dados apropriados (demo ou real)
-export async function getDataForSession(request: Request, realDataFn: () => Promise<any>) {
+export async function getDataForSession<T>(request: Request, realDataFn: () => Promise<T>) {
   if (isDemoMode(request)) {
     // Retornar dados demo
     return DEMO_DATA;

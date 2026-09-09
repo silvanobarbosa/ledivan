@@ -13,7 +13,7 @@ const MES = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho"
 const brl = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const METODO: Record<string, string> = { pix: "Pix", card: "Cartão", transfer: "Transferência", cash: "Dinheiro" };
 
-export function PagamentosClient({ year, months, totals, perMonthDetail, patients, payments, currentMonth, autoCobranca }: {
+export function PagamentosClient({ year, months: _months, totals, perMonthDetail, patients, payments, currentMonth, autoCobranca }: {
   year: number; months: string[]; totals: Cell[]; perMonthDetail: Detail[][];
   patients: { id: string; name: string }[]; payments: PayLite[]; currentMonth: number; autoCobranca: boolean;
 }) {

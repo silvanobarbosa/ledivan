@@ -1,7 +1,7 @@
 import { db } from "@/db";
 import { auth } from "@/auth";
 import { therapySessions } from "@/db/schema";
-import { and, eq, gte, sql } from "drizzle-orm";
+import { and, eq, gte } from "drizzle-orm";
 import { Clock, Stethoscope, Check, Video, MapPin } from "lucide-react";
 import Link from "next/link";
 import { formatDateTime } from "@/lib/therapy";

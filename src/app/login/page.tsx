@@ -47,7 +47,7 @@ function LoginForm() {
       } else {
         setError(data.error || "Erro ao fazer login");
       }
-    } catch (err) {
+    } catch (_err) {
       setError("Erro ao conectar com o servidor");
     } finally {
       setLoading(false);
@@ -61,7 +61,7 @@ function LoginForm() {
       // A senha da demo NÃO fica mais no cliente. A server action prepara o sandbox e abre a
       // sessão no servidor; ela mesma redireciona para /dashboard ao final.
       await startDemo();
-    } catch (err) {
+    } catch (_err) {
       setError("Erro ao acessar conta demo");
       setLoading(false);
     }

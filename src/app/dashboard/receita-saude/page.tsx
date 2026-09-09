@@ -1,7 +1,7 @@
 import { db } from "@/db";
 import { auth } from "@/auth";
 import { sessionPayments, patients } from "@/db/schema";
-import { and, eq, isNull, isNotNull, desc } from "drizzle-orm";
+import { and, eq, isNull, desc } from "drizzle-orm";
 import { Receipt } from "lucide-react";
 import { receitaSaudeFields, receitaSaudeCopyText } from "@/lib/receitaSaude";
 import { ReceiptCard, IssuedRow, type ReceiptItem } from "./ReceiptCard";

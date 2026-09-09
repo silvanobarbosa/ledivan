@@ -12,10 +12,9 @@ import {
   patientPriceHistory,
   patientContractHistory
 } from "@/db/schema";
-import { eq, and, gte, lte } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import XLSX from "xlsx";
 import * as path from "path";
-import { parseISO, format, addDays, startOfDay, endOfDay } from "date-fns";
 
 /**
  * Script para importar dados do Excel "Financeiro 040826.xlsx" para Gisele
