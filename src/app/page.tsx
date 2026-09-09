@@ -395,7 +395,7 @@ function Integrations() {
   const items: { name: string; slug: string; color: string; d: string; extra?: { slug: string; color: string } }[] = [
     { name: "Gmail", slug: "gmail", color: "EA4335", d: "Confirmações e recibos automáticos por e-mail." },
     { name: "Google Agenda", slug: "googlecalendar", color: "4285F4", d: "Sincronize sessões nos dois sentidos." },
-    { name: "Google Meet / Jitsi", slug: "googlemeet", color: "00897B", extra: { slug: "jitsimeet", color: "1D76BA" }, d: "Atendimento online: links gerados na agenda (Google Meet ou Jitsi)." },
+    { name: "Google Meet / Jitsi", slug: "googlemeet", color: "00897B", extra: { slug: "jitsi", color: "1D76BA" }, d: "Atendimento online: links gerados na agenda (Google Meet ou Jitsi)." },
     { name: "WhatsApp", slug: "whatsapp", color: "25D366", d: "Registre gastos e lembre pacientes por mensagem." },
     { name: "Telegram", slug: "telegram", color: "26A5E4", d: "Bot pessoal para lançamentos por voz ou texto." },
   ];

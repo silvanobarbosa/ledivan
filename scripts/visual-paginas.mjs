@@ -10,7 +10,7 @@
 //  - esperar `img.decode()` de todas as imagens trava se alguma nunca carrega. Prazo sempre.
 
 import { mkdirSync } from "node:fs";
-import { abrirPlaywright, comPrazo } from "./visual-navegador.mjs";
+import { abrirPlaywright, comPrazo, revelarTudo } from "./visual-navegador.mjs";
 
 const { chromium } = abrirPlaywright();
 
@@ -38,6 +38,7 @@ for (const vp of VIEWPORTS) {
       // dá tempo das imagens assentarem, mas com prazo: imagem quebrada não pode travar tudo
       await comPrazo(page.waitForLoadState("load", { timeout: 15000 }), 16000, "load").catch(() => {});
       await page.waitForTimeout(800);
+      const invisiveis = await comPrazo(revelarTudo(page), 90000, "revelar").catch(() => -1);
       const arquivo = `${SAIDA}/${p.nome}-${vp.nome}.png`;
       await comPrazo(page.screenshot({ path: arquivo, fullPage: true, timeout: 30000 }), 35000, "screenshot");
       const m = await page.evaluate(() => ({
@@ -45,7 +46,8 @@ for (const vp of VIEWPORTS) {
         imagens: document.images.length,
         quebradas: Array.from(document.images).filter((i) => i.complete && i.naturalWidth === 0).length,
       }));
-      console.log(`  ${p.nome}/${vp.nome}: altura=${m.altura}px imagens=${m.imagens} quebradas=${m.quebradas}`);
+      const alerta = invisiveis > 0 ? ` ATENÇÃO ${invisiveis} bloco(s) ainda invisível(is)` : "";
+      console.log(`  ${p.nome}/${vp.nome}: altura=${m.altura}px imagens=${m.imagens} quebradas=${m.quebradas}${alerta}`);
     } catch (e) {
       console.log(`  ${p.nome}/${vp.nome}: FALHOU — ${e.message.slice(0, 70)}`);
     }

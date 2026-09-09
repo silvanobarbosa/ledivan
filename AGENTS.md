@@ -37,3 +37,11 @@ Armadilhas já pagas, não repita:
 - Medir largura de texto pelo `getBoundingClientRect()` de um `h1` não mede nada: `h1` é bloco,
   a largura é a do contêiner. Use um `Range` em volta do conteúdo.
 - No dashboard da demo o tour de boas-vindas abre por cima e intercepta cliques.
+
+**O screenshot de página inteira mente por padrão.** `fullPage: true` não ROLA a página, só
+estica a captura — então tudo que está dentro de `<Reveal>` fica em `opacity-0` (ocupando
+espaço, invisível) e imagem em lazy nem chega a ser pedida. Uma comparação antes/depois dá
+"idêntico" porque os dois lados estão cegos no mesmo trecho. Por isso o harness chama
+`revelarTudo(page)` antes de fotografar, e avisa se sobrar bloco invisível. Foi assim que
+apareceu um ícone 404 vivo em produção que a captura cega não mostrava:
+`node scripts/visual-imagens.mjs` lista imagem quebrada com o status HTTP.
