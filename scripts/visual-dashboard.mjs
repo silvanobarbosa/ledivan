@@ -11,7 +11,7 @@
 // altura antes de fotografar (ver `soltarTravas`).
 
 import { mkdirSync } from "node:fs";
-import { abrirPlaywright, revelarTudo } from "./visual-navegador.mjs";
+import { abrirPlaywright, contextoDemo, revelarTudo } from "./visual-navegador.mjs";
 
 const { chromium } = abrirPlaywright();
 
@@ -39,14 +39,12 @@ const soltarTravas = (page) =>
 
 const navegador = await chromium.launch({ timeout: 40000 });
 for (const vp of VIEWPORTS) {
-  const ctx = await navegador.newContext({ viewport: { width: vp.width, height: vp.height } });
+  const ctx = await contextoDemo(navegador, { viewport: { width: vp.width, height: vp.height } });
   const page = await ctx.newPage();
   const erros = [];
   page.on("console", (m) => { if (m.type() === "error") erros.push(m.text().slice(0, 120)); });
   try {
-    await page.goto(BASE + "/demo", { waitUntil: "domcontentloaded", timeout: 30000 });
-    await page.waitForURL("**/dashboard**", { timeout: 45000 });
-    if (ROTA !== "/dashboard") await page.goto(BASE + ROTA, { waitUntil: "domcontentloaded", timeout: 30000 });
+    await page.goto(BASE + ROTA, { waitUntil: "domcontentloaded", timeout: 60000 });
     await page.waitForLoadState("load", { timeout: 20000 }).catch(() => {});
     await page.waitForTimeout(1200);
 

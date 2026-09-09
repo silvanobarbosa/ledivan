@@ -7,6 +7,7 @@
 //
 // Se nenhum dos dois existir, o erro diz o que instalar em vez de estourar um MODULE_NOT_FOUND.
 
+import { existsSync, mkdirSync } from "node:fs";
 import { createRequire } from "node:module";
 
 const require_ = createRequire(import.meta.url);
@@ -36,6 +37,48 @@ export const comPrazo = (promessa, ms, oque) =>
     promessa,
     new Promise((_, rej) => setTimeout(() => rej(new Error("prazo estourado: " + oque)), ms)),
   ]);
+
+/**
+ * Sessão da conta de demonstração, REAPROVEITADA entre execuções.
+ *
+ * Por que isto existe: `/demo` tem rate-limit de 20 aberturas de sessão por hora por IP, com
+ * fail-closed. O harness abria uma sessão POR VIEWPORT e por script, então algumas rodadas de
+ * conferência estouravam a cota e as capturas seguintes caíam em /login?error=demo_limite —
+ * parecia bug do app e era o harness gastando a cota do app.
+ *
+ * Agora o cookie é gravado em `_visual/.sessao-demo.json` e reutilizado. Se estiver velho ou
+ * inválido, abre uma sessão nova (uma, não uma por tela).
+ */
+export async function contextoDemo(navegador, opcoes = {}) {
+  const ARQUIVO = "_visual/.sessao-demo.json";
+  const BASE = process.env.BASE_URL || "http://localhost:3000";
+
+  if (existsSync(ARQUIVO)) {
+    const ctx = await navegador.newContext({ ...opcoes, storageState: ARQUIVO });
+    const page = await ctx.newPage();
+    await page.goto(BASE + "/dashboard", { waitUntil: "domcontentloaded", timeout: 60000 }).catch(() => {});
+    if (page.url().includes("/dashboard")) {
+      await page.close();
+      return ctx;
+    }
+    await ctx.close(); // sessão expirada: cai para o login abaixo
+  }
+
+  const ctx = await navegador.newContext(opcoes);
+  const page = await ctx.newPage();
+  await page.goto(BASE + "/demo", { waitUntil: "domcontentloaded", timeout: 60000 });
+  await page.waitForURL("**/dashboard**", { timeout: 90000 }).catch(() => {});
+  if (!page.url().includes("/dashboard")) {
+    throw new Error(
+      `entrada na demo falhou (parou em ${page.url()}). Se for error=demo_limite, é a cota de ` +
+        "20 sessões/hora por IP — espere a janela virar ou apague a linha 'ip-desconhecido:demo-start' de rate_limits.",
+    );
+  }
+  mkdirSync("_visual", { recursive: true });
+  await ctx.storageState({ path: ARQUIVO });
+  await page.close();
+  return ctx;
+}
 
 /**
  * Rola a página inteira, de viewport em viewport, e volta ao topo.
