@@ -70,6 +70,7 @@ export default async function SettingsPage() {
           {/* Logout por LINK GET (/auth/logout) — NÃO server action. Server action é POST, e o
               proxy recusa POST na conta demo (read-only) → o botão de sair morria e a pessoa
               ficava presa. GET /auth/logout é liberado pelo proxy (/auth/*) e deleta o cookie. */}
+          {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- <a> é PROPOSITAL: precisa ser navegação de documento (GET) para o route handler apagar o cookie. Trocar por <Link> volta ao bug do logout que não deslogava na conta demo. */}
           <a href="/auth/logout" className="w-full flex items-center gap-3 px-6 py-4 rounded-2xl font-bold text-red-500 hover:bg-red-50 transition-all mt-8">
             <LogOut className="w-5 h-5" />
             <span>Sair da Conta</span>

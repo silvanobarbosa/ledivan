@@ -68,6 +68,7 @@ export default async function DashboardLayout({
           <div className="bg-[#dbeafe] border-b border-[#93c5fd] text-[#1e40af] text-xs sm:text-sm px-4 py-2 text-center shrink-0 flex items-center justify-center gap-2 flex-wrap">
             <span>🧪 <strong>Modo demonstração (somente leitura)</strong> — conta de exemplo com 3 anos de uso; nada pode ser alterado.</span>
             {/* Saída SEMPRE visível na demo, por LINK GET (funciona mesmo na conta read-only). */}
+            {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- <a> é PROPOSITAL: precisa ser navegação de documento (GET) para o route handler apagar o cookie. Trocar por <Link> volta ao bug do logout que não deslogava na conta demo. */}
             <a href="/auth/logout" className="font-bold underline underline-offset-2 whitespace-nowrap">Sair da demonstração →</a>
           </div>
         )}
