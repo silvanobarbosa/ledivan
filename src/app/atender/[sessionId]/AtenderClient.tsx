@@ -28,7 +28,9 @@ export function AtenderClient({ session, records, meeting, therapistName, timerE
 
   // Cronômetro da sessão (só quando o recurso está ligado pra este paciente).
   const [timerStart, setTimerStart] = useState<string | null>(session.timerStartedAt ?? null);
-  const [nowTick, setNowTick] = useState(Date.now());
+  // Inicializador PREGUIÇOSO: `useState(Date.now())` lê o relógio a cada render (o valor é
+  // descartado, mas a leitura acontece) e é impuro. Com a função, roda uma vez só.
+  const [nowTick, setNowTick] = useState(() => Date.now());
   useEffect(() => { if (!timerStart) return; const i = setInterval(() => setNowTick(Date.now()), 1000); return () => clearInterval(i); }, [timerStart]);
   const elapsed = timerStart ? Math.max(0, Math.floor((nowTick - new Date(timerStart).getTime()) / 1000)) : 0;
   const mmss = (s: number) => `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;

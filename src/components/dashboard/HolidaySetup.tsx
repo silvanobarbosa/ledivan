@@ -18,7 +18,9 @@ export function HolidaySetup({ cities, autoOpen = false }: { cities: HolidayCity
 
   useEffect(() => {
     if (!open) return;
-    if (q.trim().length < 2) { setResults([]); return; }
+    // Não limpa por setState: a lista visível é DERIVADA de q (ver `achados` abaixo). Limpar
+    // aqui era um setState síncrono dentro do efeito, que dispara render em cascata.
+    if (q.trim().length < 2) return;
     if (timer.current) clearTimeout(timer.current);
     timer.current = setTimeout(async () => {
       setLoading(true);
@@ -32,6 +34,9 @@ export function HolidaySetup({ cities, autoOpen = false }: { cities: HolidayCity
   }, [q, open]);
 
   const has = (c: HolidayCity) => selected.some((s) => s.ibge === c.ibge);
+  // Busca curta demais não mostra resultado ANTIGO: deriva no render em vez de limpar estado.
+  const achados = q.trim().length < 2 ? [] : results;
+
   const add = (c: HolidayCity) => { if (selected.length < 3 && !has(c)) setSelected([...selected, c]); setQ(""); setResults([]); };
   const remove = (ibge: number) => setSelected(selected.filter((s) => s.ibge !== ibge));
 
@@ -92,10 +97,10 @@ export function HolidaySetup({ cities, autoOpen = false }: { cities: HolidayCity
                   <Search className="w-4 h-4 text-foreground/40 shrink-0" />
                   <input autoFocus value={q} onChange={(e) => setQ(e.target.value)} placeholder="Buscar cidade…" className="w-full bg-transparent outline-none text-sm" />
                 </div>
-                {(loading || results.length > 0) && (
+                {(loading || achados.length > 0) && (
                   <div className="mt-2 max-h-56 overflow-y-auto rounded-xl border border-border divide-y divide-border">
                     {loading && <p className="px-3 py-2 text-xs text-foreground/40">Buscando…</p>}
-                    {results.map((c) => (
+                    {achados.map((c) => (
                       <button key={c.ibge} disabled={has(c)} onClick={() => add(c)} className="w-full text-left px-3 py-2.5 text-sm hover:bg-surface disabled:opacity-40 flex items-center gap-2">
                         <MapPin className="w-3.5 h-3.5 text-foreground/40 shrink-0" />
                         <span className="truncate">{c.nome}</span>

@@ -5,6 +5,15 @@ import Link from "next/link";
 import { Wallet, Search, ChevronDown, AlertTriangle, Package, Clock } from "lucide-react";
 import { formatBRL, formatDate } from "@/lib/therapy";
 
+// Fora do componente DE PROPÓSITO: definido dentro do render, cada tecla digitada na busca
+// criava um tipo novo e o React REMONTAVA os selects (perdendo foco e dropdown aberto).
+const selCls = "appearance-none w-full pl-3.5 pr-8 py-2.5 rounded-full bg-white/70 border border-border text-sm font-medium text-foreground/70 hover:bg-white outline-none transition cursor-pointer";
+function Sel({ value, onChange, children }: { value: string; onChange: (v: string) => void; children: React.ReactNode }) {
+  return (
+    <div className="relative"><select value={value} onChange={(e) => onChange(e.target.value)} className={selCls}>{children}</select><ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-foreground/40" /></div>
+  );
+}
+
 type Row = {
   id: string; name: string; status: string; frequency: string | null;
   balance: number; creditSessions: number; debtSessions: number; situacao: string;
@@ -44,11 +53,6 @@ export function VisaoFinanceiraClient({ rows }: { rows: Row[] }) {
   const comCredito = filtered.filter((r) => r.situacao === "credito").length;
   const reajustes = filtered.filter((r) => r.reajusteVencido).length;
   const pacotesAcabando = filtered.filter((r) => r.pkg && r.pkg.total - r.pkg.pos <= 1).length;
-
-  const selCls = "appearance-none w-full pl-3.5 pr-8 py-2.5 rounded-full bg-white/70 border border-border text-sm font-medium text-foreground/70 hover:bg-white outline-none transition cursor-pointer";
-  const Sel = ({ value, onChange, children }: { value: string; onChange: (v: string) => void; children: React.ReactNode }) => (
-    <div className="relative"><select value={value} onChange={(e) => onChange(e.target.value)} className={selCls}>{children}</select><ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-foreground/40" /></div>
-  );
 
   return (
     <div className="max-w-5xl space-y-5 pb-20">

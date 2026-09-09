@@ -6,6 +6,18 @@ import { Search, ChevronRight, ChevronDown } from "lucide-react";
 import { formatBRL, patientStatusColor, paymentStatusColor, PAYMENT_STATUS_LABELS } from "@/lib/therapy";
 import { MessagePatient } from "@/components/dashboard/MessagePatient";
 
+// Fora do componente DE PROPÓSITO: definido dentro do render, cada tecla digitada na busca
+// criava um tipo novo e o React REMONTAVA os cinco selects (perdendo foco e dropdown aberto).
+const selCls = "appearance-none w-full pl-3.5 pr-8 py-2.5 rounded-full bg-white/70 border border-border text-sm font-medium text-foreground/70 hover:bg-white outline-none transition cursor-pointer capitalize";
+function Sel({ value, onChange, children }: { value: string; onChange: (v: string) => void; children: React.ReactNode }) {
+  return (
+  <div className="relative">
+    <select value={value} onChange={(e) => onChange(e.target.value)} className={selCls}>{children}</select>
+    <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-foreground/40" />
+  </div>
+  );
+}
+
 type PatientCard = {
   id: string;
   name: string;
@@ -62,13 +74,6 @@ export function PatientsClient({ patients, initial }: { patients: PatientCard[];
     filtered.sort((a, b) => key(a).localeCompare(key(b)));
   }
 
-  const selCls = "appearance-none w-full pl-3.5 pr-8 py-2.5 rounded-full bg-white/70 border border-border text-sm font-medium text-foreground/70 hover:bg-white outline-none transition cursor-pointer capitalize";
-  const Sel = ({ value, onChange, children }: { value: string; onChange: (v: string) => void; children: React.ReactNode }) => (
-    <div className="relative">
-      <select value={value} onChange={(e) => onChange(e.target.value)} className={selCls}>{children}</select>
-      <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-foreground/40" />
-    </div>
-  );
 
   const activeChips = [
     fmt && { label: FORMATS.find((f) => f.k === fmt)?.l, clear: () => setFmt(null) },

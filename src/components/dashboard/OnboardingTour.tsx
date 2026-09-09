@@ -55,6 +55,10 @@ export function OnboardingTour() {
       // clique: quem apertava "Cadastrar paciente" só fechava o tour, e o cadastro parecia
       // não funcionar. Piorou quando a KEY virou v3, que reabre o tour para quem já o viu.
       const naHome = pathname === "/dashboard";
+      // Abre o tour uma vez, e só na home — regra que existe porque o backdrop engolia o
+      // primeiro clique em "Cadastrar paciente" (ver comentário acima). Depende de
+      // localStorage, que só existe no cliente, então tem que ser em efeito mesmo.
+      // eslint-disable-next-line react-hooks/set-state-in-effect
       if (pedido || (naHome && !localStorage.getItem(KEY))) setOpen(true);
     } catch {}
     const handler = () => { setI(0); setOpen(true); };
