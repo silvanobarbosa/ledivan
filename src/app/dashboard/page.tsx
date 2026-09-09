@@ -291,7 +291,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
 }
 
 // Função para renderizar dashboard demo com dados fictícios
-function renderDemoDashboard({ period, from: _from, to: _to, patient: _patient }: { period?: string; from?: string; to?: string; patient?: string }) {
+function renderDemoDashboard({ period: _period, from: _from, to: _to, patient: _patient }: { period?: string; from?: string; to?: string; patient?: string }) {
   return (
     <div className="space-y-6">
       {/* Banner de Modo Demo */}

@@ -39,6 +39,7 @@ export function ProntuarioPicker({ patients }: { patients: P[] }) {
               className="flex items-center gap-3 glass-card rounded-2xl px-4 py-3 hover:shadow-md transition group"
             >
               <div className="w-9 h-9 rounded-full bg-primary/10 flex items-center justify-center text-primary font-bold text-sm overflow-hidden shrink-0">
+                {/* eslint-disable-next-line @next/next/no-img-element -- avatar de origem variável e possivelmente externa. */}
                 {p.avatar ? <img src={p.avatar} alt="" className="w-full h-full object-cover" /> : p.name.charAt(0).toUpperCase()}
               </div>
               <span className="flex-1 font-semibold text-foreground/90 truncate">{p.name}</span>

@@ -14,15 +14,29 @@ const eslintConfig = defineConfig([
   ...nextVitals,
   ...nextTs,
 
+  // O prefixo "_" é a convenção para "existe, mas de propósito não é usado" — parâmetro que a
+  // assinatura exige, erro que não interessa no catch, campo descartado numa desestruturação.
+  // Sem isto o lint reclamava de código que JÁ estava dizendo a intenção dele.
+  {
+    rules: {
+      "@typescript-eslint/no-unused-vars": ["warn", {
+        argsIgnorePattern: "^_",
+        varsIgnorePattern: "^_",
+        caughtErrorsIgnorePattern: "^_",
+        destructuredArrayIgnorePattern: "^_",
+      }],
+    },
+  },
+
   // Ferramental (scripts de importação, testes, utilitários de manutenção) não é código de
   // produto: `any` ali é aceitável e estava afogando o sinal — 97 dos 162 erros vinham daqui.
-  // Continua sendo lintado; só deixa de ser erro o que é estilo de script.
+  // Variável de rascunho em script de migração também não é dívida do produto.
   {
     files: ["scripts/**", "src/scripts/**", "tests/**", "**/*.config.*"],
     rules: {
       "@typescript-eslint/no-explicit-any": "off",
       "@typescript-eslint/no-require-imports": "off",
-      "@typescript-eslint/no-unused-vars": "warn",
+      "@typescript-eslint/no-unused-vars": "off",
     },
   },
 

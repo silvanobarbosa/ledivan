@@ -16,7 +16,9 @@ type ReciboLido = { amount?: unknown; description?: unknown; date?: unknown; cat
 export async function POST(req: Request) {
   try {
     const session = await auth();
-    const { image, userId: bodyUserId } = await req.json();
+    // `userId` do corpo é IGNORADO de propósito — quem manda é a sessão (ver abaixo).
+    // Aceitar o do cliente deixaria qualquer um ler recibo dos outros.
+    const { image, userId: _bodyUserId } = await req.json();
     
     // Forçar o uso do ID da sessão
     const userId = session?.user?.id;

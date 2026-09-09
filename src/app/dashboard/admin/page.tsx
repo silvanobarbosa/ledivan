@@ -9,7 +9,7 @@
 import { db } from "@/db";
 import { getAdmin } from "@/lib/admin";
 import { notFound } from "next/navigation";
-import { users, patients, therapySessions, transactions, sessionPayments, patientPackages, assignments, scaleApplications, moodLogs } from "@/db/schema";
+import { patients, therapySessions, transactions, sessionPayments, patientPackages, assignments, scaleApplications, moodLogs } from "@/db/schema";
 import { and, eq, count, sum, sql, inArray } from "drizzle-orm";
 import { BarChart3, Users, CalendarDays, Wallet, Package, ShieldCheck } from "lucide-react";
 import type { PgColumn } from "drizzle-orm/pg-core";

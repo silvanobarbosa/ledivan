@@ -11,7 +11,8 @@ import { rateLimit } from "@/lib/rateLimit";
 export async function POST(req: Request) {
   try {
     const session = await auth();
-    const { userId: bodyUserId } = await req.json();
+    // `userId` do corpo é IGNORADO de propósito — quem manda é a sessão (ver abaixo).
+    const { userId: _bodyUserId } = await req.json();
     
     // Prioritiza o ID da sessão se existir, garantindo que o usuário só veja seus próprios dados
     const userId = session?.user?.id;

@@ -76,6 +76,7 @@ export function WhatsappCard({ connected }: { connected: boolean }) {
             <li>Toque em <strong>⋮ → Aparelhos conectados → Conectar aparelho</strong></li>
             <li>Aponte a câmera para o QR abaixo</li>
           </ol>
+          {/* eslint-disable-next-line @next/next/no-img-element -- QR em data URL gerado em runtime — next/image não otimiza data URL. */}
           <img src={qr} alt="QR Code WhatsApp" className="w-56 h-56 rounded-2xl border border-border" />
           <p className="text-xs text-foreground/40 flex items-center gap-1.5"><RefreshCw className="w-3 h-3 animate-spin" /> Aguardando conexão...</p>
         </div>
