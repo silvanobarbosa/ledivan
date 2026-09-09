@@ -225,6 +225,9 @@ export async function confirmSession(sessionId: string) {
     .set({ pendingConfirmation: false })
     .where(and(eq(therapySessions.id, sessionId), eq(therapySessions.userId, session.user.id)));
   revalidatePath("/dashboard/agenda");
+  // a reserva confirmada sai da fila de "a confirmar", e o dashboard conta essa fila
+  revalidatePath("/dashboard/reservas");
+  revalidatePath("/dashboard");
 }
 
 export async function updateSessionStatus(sessionId: string, status: SessionStatus, justificativa?: string, chargeable?: boolean) {
@@ -299,4 +302,6 @@ export async function deleteSession(sessionId: string) {
 
   revalidatePath("/dashboard/agenda");
   revalidatePath(`/dashboard/patients/${existing.patientId}`);
+  revalidatePath("/dashboard/reservas");
+  revalidatePath("/dashboard");
 }

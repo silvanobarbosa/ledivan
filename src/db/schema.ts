@@ -47,6 +47,10 @@ export const users = pgTable("user", {
   // Cidades p/ feriados na agenda (até 3): JSON [{ibge, nome, uf}]. Vazio/null = feriados não ativados.
   holidayCities: text("holiday_cities"),
 
+  // Modelo da mensagem de aniversário (painel Aniversariantes). `{nome}` é trocado pelo primeiro
+  // nome do paciente na hora de abrir a caixa. Null = usa o texto padrão do app.
+  birthdayMessage: text("birthday_message"),
+
   preferences: text("preferences"), // JSON string
   role: text("role").default("user").notNull(), // user | admin (super admin)
   // Conta demo efêmera (sandbox): clone descartável, expira e é apagada

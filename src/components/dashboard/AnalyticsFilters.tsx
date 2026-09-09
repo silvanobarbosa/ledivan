@@ -1,13 +1,14 @@
 "use client";
 
 import { useRouter, useSearchParams } from "next/navigation";
-import { ChevronDown } from "lucide-react";
 
 const PERIODS = [{ k: "1m", l: "Mês" }, { k: "6m", l: "6 meses" }, { k: "12m", l: "12 meses" }, { k: "all", l: "Tudo" }];
 
-export function AnalyticsFilters({ patients, activePeriod, patient, from, to }: {
-  patients: { id: string; name: string }[];
-  activePeriod: string; patient?: string; from?: string; to?: string;
+// O seletor de paciente saiu daqui: o dono pediu para tirar o filtro por paciente do
+// dashboard. Quem quer o recorte de uma pessoa abre a ficha dela, que tem os mesmos números
+// no contexto certo. Sobrou o recorte por PERÍODO, que é o que a tela toda usa.
+export function AnalyticsFilters({ activePeriod, from, to }: {
+  activePeriod: string; from?: string; to?: string;
 }) {
   const router = useRouter();
   const sp = useSearchParams();
@@ -20,14 +21,6 @@ export function AnalyticsFilters({ patients, activePeriod, patient, from, to }: 
 
   return (
     <div className="flex flex-wrap items-center gap-2">
-      <div className="relative">
-        <select value={patient || ""} onChange={(e) => nav({ patient: e.target.value || null })}
-          className="appearance-none pl-3.5 pr-8 py-2 rounded-full bg-white/70 border border-border text-sm font-medium text-foreground/70 hover:bg-white outline-none transition cursor-pointer max-w-[180px] truncate">
-          <option value="">Todos os pacientes</option>
-          {patients.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
-        </select>
-        <ChevronDown className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 w-4 h-4 text-foreground/40" />
-      </div>
       {PERIODS.map((p) => (
         <button key={p.k} onClick={() => nav({ period: p.k, from: null, to: null })}
           className={`px-4 py-2 rounded-full text-sm font-semibold transition ${activePeriod === p.k ? "bg-primary text-white" : "bg-white/60 text-foreground/60 hover:bg-white"}`}>{p.l}</button>
