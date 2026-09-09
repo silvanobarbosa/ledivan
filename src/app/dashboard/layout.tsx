@@ -7,6 +7,8 @@ import { AreaTint } from "@/components/dashboard/AreaTint";
 import { HelpButton } from "@/components/dashboard/HelpButton";
 import { HeaderUser } from "@/components/dashboard/HeaderUser";
 import { photoSrc } from "@/lib/photo";
+import Image from "next/image";
+import logoColor from "../../../public/ledivan-color.png";
 import { Bell, Plus } from "lucide-react";
 import { db } from "@/db";
 import { auth } from "@/auth";
@@ -42,7 +44,7 @@ export default async function DashboardLayout({
           <div className="flex items-center gap-3 lg:gap-4 min-w-0">
             <MobileSidebar />
             <Link href="/dashboard" className="lg:hidden flex items-center shrink-0">
-              <img src="/ledivan-color.png" alt="Ledivan" className="h-9 w-auto object-contain" />
+              <Image src={logoColor} alt="Ledivan" sizes="200px" priority className="h-9 w-auto object-contain" />
             </Link>
             <HeaderUser name={user?.name} photoUrl={photoSrc(user?.photo3x4 ?? user?.image)} />
           </div>

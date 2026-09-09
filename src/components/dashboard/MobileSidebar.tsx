@@ -2,7 +2,9 @@
 
 import { useEffect, useState } from "react";
 import { Menu, X } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
+import logoColor from "../../../public/ledivan-color.png";
 import { usePathname } from "next/navigation";
 import { NavList } from "./Sidebar";
 
@@ -69,7 +71,7 @@ export function MobileSidebar() {
       >
         <div className="flex items-center justify-between p-6 border-b border-border">
           <Link href="/" onClick={() => setOpen(false)}>
-            <img src="/ledivan-color.png" alt="Ledivan" className="h-10 w-auto object-contain" />
+            <Image src={logoColor} alt="Ledivan" sizes="200px" className="h-10 w-auto object-contain" />
           </Link>
           <button
             onClick={() => setOpen(false)}

@@ -1,5 +1,17 @@
 import type { Metadata } from "next";
+import Image from "next/image";
 import Link from "next/link";
+// As fotos entram por IMPORT ESTÁTICO, não por string de caminho. É o que dá ao next/image a
+// dimensão real do arquivo em tempo de build: sem isso ele não sabe a proporção, e ou exige
+// width/height chutado no JSX ou obriga `fill` em todo lugar.
+import photo1 from "../../public/landing/photo-1.jpg";
+import photo3 from "../../public/landing/photo-3.jpg";
+import photo4 from "../../public/landing/photo-4.jpg";
+import photo5 from "../../public/landing/photo-5.jpg";
+import photo6 from "../../public/landing/photo-6.jpg";
+import photo7 from "../../public/landing/photo-7.jpg";
+import photo9 from "../../public/landing/photo-9.jpg";
+import photo10 from "../../public/landing/photo-10.jpg";
 import { AppsSection } from "@/components/landing/AppsSection";
 import {
   Users,
@@ -33,23 +45,20 @@ export const metadata: Metadata = {
     "Para terapeutas: pacientes, agenda, financeiro e integrações com Google e WhatsApp — do atendimento ao caixa, sem planilhas.",
 };
 
-const P = (n: number) => `/landing/photo-${n}.jpg`;
+// Só os apelidos realmente usados na página. Os cinco que sobravam (therapistMan,
+// therapistWoman, tissueMoment, planner, session) não eram lidos em lugar nenhum e, com
+// import estático, cada um custaria um arquivo entrando no bundle à toa.
 const photos = {
-  tablet: P(1),
-  therapistMan: P(2),
-  therapistWoman: P(3),
-  windowMan: P(4),
-  tissueMoment: P(5),
-  planner: P(6),
-  tabletWoman: P(7),
-  session: P(9),
-  teaWoman: P(10),
-  couch: P(9),
-  windowRoom: P(10),
-  handsTalk: P(5),
-  notesPen: P(6),
-  cozyChair: P(3),
-  twoSilhouette: P(9),
+  tablet: photo1,
+  windowMan: photo4,
+  tabletWoman: photo7,
+  teaWoman: photo10,
+  couch: photo9,
+  windowRoom: photo10,
+  handsTalk: photo5,
+  notesPen: photo6,
+  cozyChair: photo3,
+  twoSilhouette: photo9,
 };
 
 export default function Landing() {
@@ -161,7 +170,14 @@ function HeroVisual() {
       />
       <div className="relative h-[440px] md:h-[520px]">
         <div className="absolute top-0 right-0 w-[78%] h-[60%] rounded-[2rem] overflow-hidden shadow-[var(--shadow-glass-lg)] border border-white/40 float-soft">
-          <img src={photos.windowRoom} alt="Sala de atendimento com luz natural" className="h-full w-full object-cover" loading="eager" />
+          <Image
+            src={photos.windowRoom}
+            alt="Sala de atendimento com luz natural"
+            fill
+            sizes="(max-width: 768px) 80vw, 560px"
+            className="object-cover"
+            priority
+          />
           <div className="absolute inset-0 bg-gradient-to-tr from-[rgba(43,24,48,0.25)] via-transparent to-transparent" />
         </div>
         <div className="absolute bottom-0 left-0 w-[78%] glass-card-lg p-5 z-10">
@@ -237,16 +253,16 @@ function Manifesto() {
             <div aria-hidden className="absolute -inset-8 -z-10 rounded-[3rem]" style={{ background: "radial-gradient(55% 55% at 30% 30%, rgba(139,92,246,0.28), transparent 70%), radial-gradient(45% 45% at 80% 80%, rgba(196,181,253,0.4), transparent 70%)", filter: "blur(22px)" }} />
             <div className="grid grid-cols-5 grid-rows-6 gap-3 h-[380px] sm:h-[520px]">
               <div className="col-span-3 row-span-4 rounded-[2rem] overflow-hidden shadow-[var(--shadow-glass-lg)] border border-white/40">
-                <img src={photos.teaWoman} alt="Terapeuta em momento de pausa" className="h-full w-full object-cover" loading="lazy" />
+                <Image src={photos.teaWoman} alt="Terapeuta em momento de pausa" sizes="(max-width: 1024px) 55vw, 380px" className="h-full w-full object-cover" />
               </div>
               <div className="col-span-2 row-span-3 rounded-[1.75rem] overflow-hidden shadow-[var(--shadow-glass)] border border-white/40 float-soft">
-                <img src={photos.windowMan} alt="Terapeuta refletindo" className="h-full w-full object-cover" loading="lazy" />
+                <Image src={photos.windowMan} alt="Terapeuta refletindo" sizes="(max-width: 1024px) 38vw, 250px" className="h-full w-full object-cover" />
               </div>
               <div className="col-span-2 row-span-3 rounded-[1.75rem] overflow-hidden shadow-[var(--shadow-glass)] border border-white/40">
-                <img src={photos.tabletWoman} alt="Profissional usando o aplicativo" className="h-full w-full object-cover" loading="lazy" />
+                <Image src={photos.tabletWoman} alt="Profissional usando o aplicativo" sizes="(max-width: 1024px) 38vw, 250px" className="h-full w-full object-cover" />
               </div>
               <div className="col-span-3 row-span-2 rounded-[1.75rem] overflow-hidden shadow-[var(--shadow-glass)] border border-white/40 float-soft" style={{ animationDelay: "1.2s" }}>
-                <img src={photos.tablet} alt="Agenda em tablet sobre a mesa" className="h-full w-full object-cover" loading="lazy" />
+                <Image src={photos.tablet} alt="Agenda em tablet sobre a mesa" sizes="(max-width: 1024px) 55vw, 380px" className="h-full w-full object-cover" />
               </div>
             </div>
           </div>
@@ -300,7 +316,7 @@ function Problem() {
             <span className="italic text-[color:var(--muted-foreground)]">A burocracia, não.</span>
           </h2>
           <div className="mt-8 relative rounded-[2rem] overflow-hidden h-72 shadow-[var(--shadow-glass-lg)]">
-            <img src={photos.handsTalk} alt="Conversa em sessão" className="absolute inset-0 h-full w-full object-cover" />
+            <Image src={photos.handsTalk} alt="Conversa em sessão" fill sizes="(max-width: 1024px) 90vw, 560px" className="object-cover" />
             <div className="absolute inset-0 bg-gradient-to-t from-[rgba(43,24,48,0.55)] via-transparent to-transparent" />
             <p className="absolute bottom-5 left-5 right-5 font-display text-xl text-cream italic leading-snug">
               &quot;Você cuida da escuta. <br />A gente cuida do resto.&quot;
@@ -441,8 +457,7 @@ function HowItWorks() {
           <Reveal key={s.n} delay={i * 120}>
             <div className="glass-card overflow-hidden h-full group">
               <div className="relative h-44 overflow-hidden">
-                {/* eslint-disable-next-line @next/next/no-img-element -- foto vinda de dado, sem dimensão conhecida em tempo de build. */}
-                <img src={s.photo} alt="" className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105" />
+                <Image src={s.photo} alt="" fill sizes="(max-width: 768px) 90vw, 380px" className="object-cover transition-transform duration-700 group-hover:scale-105" />
                 <div className="absolute inset-0 bg-gradient-to-t from-white/30 via-transparent to-transparent" />
                 <span className="absolute top-4 left-4 font-display text-3xl font-medium text-cream tabular-nums drop-shadow-md">{s.n}</span>
               </div>
@@ -512,7 +527,7 @@ function Testimonial() {
       <Reveal>
         <div className="grid md:grid-cols-[1fr_1.4fr] gap-6 items-stretch">
           <div className="relative rounded-[2rem] overflow-hidden min-h-[260px]">
-            <img src={photos.couch} alt="Sala de terapia" className="absolute inset-0 h-full w-full object-cover" />
+            <Image src={photos.couch} alt="Sala de terapia" fill sizes="(max-width: 768px) 90vw, 400px" className="object-cover" />
             <div className="absolute inset-0 bg-gradient-to-tr from-[rgba(43,24,48,0.5)] to-transparent" />
           </div>
           <div className="glass-card p-10 flex flex-col justify-center">

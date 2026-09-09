@@ -2,7 +2,9 @@ import { db } from "@/db";
 import { auth } from "@/auth";
 import { sessionPayments, users } from "@/db/schema";
 import { and, eq } from "drizzle-orm";
+import Image from "next/image";
 import { notFound } from "next/navigation";
+import logo from "../../../../public/landing/logo-ledivan.png";
 import { formatBRL, formatDate, PAYMENT_METHOD_LABELS } from "@/lib/therapy";
 import { PrintButton } from "./PrintButton";
 
@@ -34,7 +36,9 @@ export default async function ReciboPage({ params }: { params: Promise<{ payment
 
         <div className="bg-white rounded-[24px] border border-[#e7ddd4] p-10 print:border-0 print:rounded-none print:p-0">
           <div className="flex items-center justify-between border-b border-[#e7ddd4] pb-6">
-            <img src="/landing/logo-ledivan.png" alt="Ledivan" className="h-14 w-auto" />
+            {/* `priority` porque esta página existe para ser IMPRESSA — ver o mesmo caso no
+                prontuário. */}
+            <Image src={logo} alt="Ledivan" sizes="240px" priority className="h-14 w-auto" />
             <div className="text-right">
               <p className="font-display text-2xl font-semibold text-[#2b1830]">Recibo</p>
               <p className="text-xs text-[#6b5b6f]">Nº {numero}</p>

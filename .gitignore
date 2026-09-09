@@ -50,3 +50,6 @@ Gi/
 # Python cache
 __pycache__/
 *.pyc
+
+# capturas do harness visual (scripts/visual-*.mjs) — conferência local, nunca versionadas
+_visual/
