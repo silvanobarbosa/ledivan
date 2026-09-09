@@ -27,7 +27,11 @@
     "test:parallel": "npx tsx --env-file=.env.local tests/test-ledivan-parallel.ts",
     "superqa": "npx tsx --env-file=.env.local tests/superqa-ledivan.ts",
     "test": "vitest run",
-    "lint:catraca": "node scripts/lint-ratchet.mjs"
+    "lint:catraca": "node scripts/lint-ratchet.mjs",
+    "visual": "node scripts/visual-paginas.mjs",
+    "visual:dash": "node scripts/visual-dashboard.mjs",
+    "visual:print": "node scripts/visual-impressao.mjs",
+    "visual:diff": "python scripts/visual-diff.py"
   },
   "dependencies": {
     "@auth/drizzle-adapter": "^1.11.3",

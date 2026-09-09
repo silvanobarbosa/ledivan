@@ -2,7 +2,9 @@ import { db } from "@/db";
 import { auth } from "@/auth";
 import { patients, users, treatmentGoals, patientRecords, scaleApplications, therapySessions, sessionPayments, assignments } from "@/db/schema";
 import { and, eq, desc } from "drizzle-orm";
+import Image from "next/image";
 import { notFound } from "next/navigation";
+import logo from "../../../../public/landing/logo-ledivan.png";
 import { formatDate, formatDateTime, formatBRL, SESSION_STATUS_LABELS, PAYMENT_STATUS_LABELS } from "@/lib/therapy";
 import { SCALES, type ScaleType } from "@/lib/scales";
 import { PrintButton } from "@/components/PrintButton";
@@ -57,7 +59,9 @@ export default async function ProntuarioExport({ params }: { params: Promise<{ p
 
         <div className="bg-white rounded-[20px] border border-[#e7ddd4] p-10 print:border-0 print:rounded-none print:p-0 space-y-7 text-[#1a0f1f]">
           <div className="flex items-center justify-between border-b border-[#e7ddd4] pb-5">
-            <img src="/landing/logo-ledivan.png" alt="Ledivan" className="h-12 w-auto" />
+            {/* `priority` porque esta página existe para ser IMPRESSA: imagem em lazy pode não
+                entrar no papel se a impressão dispara antes de ela carregar. */}
+            <Image src={logo} alt="Ledivan" sizes="240px" priority className="h-12 w-auto" />
             <div className="text-right text-xs text-[#6b5b6f]">
               <p className="font-display text-lg font-semibold text-[#2b1830]">Prontuário</p>
               <p>{therapist?.name ?? "Terapeuta"}</p>

@@ -2,7 +2,9 @@
 
 import { cn } from "@/lib/utils";
 import { User } from "lucide-react";
+import Image from "next/image";
 import Link from "next/link";
+import logoColor from "../../../public/ledivan-color.png";
 import { usePathname } from "next/navigation";
 import { NAV_GROUPS, type NavItem } from "./nav";
 
@@ -54,7 +56,7 @@ export function Sidebar() {
     <aside className="w-72 bg-white border-r border-border hidden lg:flex flex-col h-screen sticky top-0">
       <div className="p-8">
         <Link href="/" className="block">
-          <img src="/ledivan-color.png" alt="Ledivan" className="h-14 w-auto object-contain" />
+          <Image src={logoColor} alt="Ledivan" sizes="240px" priority className="h-14 w-auto object-contain" />
         </Link>
       </div>
 

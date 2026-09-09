@@ -1,8 +1,26 @@
 import type { Metadata, Viewport } from "next";
+import { Fraunces, Inter } from "next/font/google";
 import "./globals.css";
 import { PWARegistration } from "@/components/PWARegistration";
 import { SupportWidget } from "@/components/SupportWidget";
 import { Telemetry } from "@/components/Telemetry";
+
+// As fontes passam a ser BAIXADAS NO BUILD e servidas pelo próprio domínio. Antes eram três
+// requisições ao Google em toda página (duas <link> aqui + um @import no globals.css pedindo o
+// MESMO arquivo), todas bloqueando a renderização. Autohospedar também tira o IP do usuário do
+// caminho do Google — relevante num app de saúde.
+//
+// Nada de `weight` nestes dois: Fraunces e Inter são fontes VARIÁVEIS, e o next/font recusa a
+// combinação de fonte variável com lista de pesos. O eixo `opsz` fica explícito porque o CSS usa
+// `font-optical-sizing: auto` nos títulos.
+const fraunces = Fraunces({
+  subsets: ["latin"],
+  style: ["normal", "italic"],
+  axes: ["opsz"],
+  variable: "--font-fraunces",
+  display: "swap",
+});
+const inter = Inter({ subsets: ["latin"], variable: "--font-inter", display: "swap" });
 
 export const metadata: Metadata = {
   title: "Ledivan — Gestão de consultório e finanças",
@@ -25,17 +43,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="pt-BR">
-      <head>
-        {/* `rel="crossOrigin"` não existe: o valor certo é rel="preconnect" com o ATRIBUTO
-            crossOrigin. Do jeito anterior o preconnect para fonts.gstatic.com (de onde vêm os
-            arquivos .woff2) simplesmente não acontecia, e o navegador só abria a conexão ao
-            encontrar o @font-face — atrasando a primeira renderização do texto. */}
-        <link href="https://fonts.googleapis.com" rel="preconnect" />
-        <link href="https://fonts.gstatic.com" rel="preconnect" crossOrigin="" />
-        <link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,400&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
-        <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet" />
-      </head>
+    // O <head> some inteiro: as duas fontes vêm do next/font e o Material Symbols era carregado
+    // em toda página sem nenhum uso — o único lugar que pede aquela família é src/stitch/**, que
+    // são mockups HTML estáticos e nunca são renderizados pelo app.
+    <html lang="pt-BR" className={`${inter.variable} ${fraunces.variable}`}>
       <body>
         <PWARegistration />
         {children}
