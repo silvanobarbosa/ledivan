@@ -13,6 +13,7 @@ import {
   TrendingUp,
   ClipboardList,
   Banknote,
+  Table,
 } from "lucide-react";
 
 export type NavItem = { icon: typeof LayoutDashboard; label: string; href: string };
@@ -27,6 +28,7 @@ export const NAV_GROUPS: NavGroup[] = [
       { icon: CalendarDays, label: "Agenda", href: "/dashboard/agenda" },
       { icon: Users, label: "Pacientes", href: "/dashboard/patients" },
       { icon: ClipboardList, label: "Prontuário", href: "/dashboard/prontuario" },
+      { icon: Table, label: "Relatório de pacientes", href: "/dashboard/relatorio-pacientes" },
       { icon: MessageCircle, label: "Mensagens", href: "/dashboard/mensagens" },
     ],
   },
