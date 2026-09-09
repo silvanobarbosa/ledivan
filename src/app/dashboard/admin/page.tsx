@@ -1,7 +1,7 @@
-/* eslint-disable react-hooks/static-components, react-hooks/purity, react-hooks/immutability --
+/* eslint-disable react-hooks/static-components --
    Componente de SERVIDOR (React Server Component): não tem "use client", roda uma vez por
-   requisição e nunca re-renderiza no navegador. As três regras acima vêm do React Compiler e
-   descrevem o render de CLIENTE — lá, criar componente durante o render causa remonte, ler o
+   requisição e nunca re-renderiza no navegador. A regra acima vem do React Compiler e
+   descreve o render de CLIENTE — lá, criar componente durante o render causa remonte, ler o
    relógio quebra a hidratação e reatribuir variável atrapalha a memoização. Nada disso existe
    aqui: no servidor, ler a hora e acumular num acumulador local durante o render é idiomático.
    Se este arquivo um dia virar cliente (ganhar "use client"), REMOVA este bloco e trate os
@@ -9,9 +9,11 @@
 import { db } from "@/db";
 import { getAdmin } from "@/lib/admin";
 import { notFound } from "next/navigation";
-import { users, patients, therapySessions, transactions, sessionPayments, patientPackages, assignments, scaleApplications, moodLogs } from "@/db/schema";
+import { patients, therapySessions, transactions, sessionPayments, patientPackages, assignments, scaleApplications, moodLogs } from "@/db/schema";
 import { and, eq, count, sum, sql, inArray } from "drizzle-orm";
 import { BarChart3, Users, CalendarDays, Wallet, Package, ShieldCheck } from "lucide-react";
+import type { PgColumn } from "drizzle-orm/pg-core";
+import type { LucideIcon } from "lucide-react";
 
 export const dynamic = "force-dynamic";
 
@@ -28,7 +30,7 @@ export default async function AdminPage() {
   const demoCount = allUsers.filter((u) => u.isDemo).length;
 
   // restringe a usuários reais (exclui contas demo efêmeras)
-  const inReal = (col: any) => realIds.length ? inArray(col, realIds) : sql`false`;
+  const inReal = (col: PgColumn) => realIds.length ? inArray(col, realIds) : sql`false`;
 
   const [patByStatus, sessByStatus, sessFlags, txAgg, payCount, pkgAgg, featPkg, featRec, featOnline, featTasks, featScales, featMood] = await Promise.all([
     db.select({ s: patients.patientStatus, n: count() }).from(patients).where(inReal(patients.userId)).groupBy(patients.patientStatus),
@@ -71,7 +73,7 @@ export default async function AdminPage() {
   const indexUso = adoption.length ? Math.round(adoption.reduce((a, f) => a + pct(f.n), 0) / adoption.length) : 0;
   const consent = allUsers.filter((u) => !u.isDemo && u.acceptedTermsAt).length;
 
-  const Card = ({ icon: Icon, title, children }: any) => (
+  const Card = ({ icon: Icon, title, children }: { icon: LucideIcon; title: string; children: React.ReactNode }) => (
     <div className="glass-card rounded-[24px] p-5">
       <p className="text-xs font-bold text-foreground/40 uppercase tracking-widest flex items-center gap-2 mb-3"><Icon className="w-4 h-4" /> {title}</p>
       {children}

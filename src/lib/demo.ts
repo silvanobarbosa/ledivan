@@ -8,13 +8,16 @@ import {
 import { eq, inArray } from "drizzle-orm";
 import { wipeUserData } from "@/scripts/seedCore";
 import bcrypt from "bcryptjs";
+import type { PgTable } from "drizzle-orm/pg-core";
 
 export const DEMO_EMAIL = "demo@ledivan.com.br";
 export const DEMO_PASSWORD = process.env.DEMO_PASSWORD || "ledivan-demo-2026";
 const SOURCE_EMAIL = "apoiador@ledivan.com.br";
 
 const uid = () => crypto.randomUUID();
-async function chunkInsert(table: any, rows: any[], size = 200) {
+// Genérico em vez de `any`: a tabela e as linhas andam juntas, então o compilador cobra
+// que as linhas sejam do formato daquela tabela. Antes dava para inserir linha de outra.
+async function chunkInsert<T extends PgTable>(table: T, rows: T["$inferInsert"][], size = 200) {
   for (let i = 0; i < rows.length; i += size) await db.insert(table).values(rows.slice(i, i + size));
 }
 
@@ -93,7 +96,9 @@ export async function resetDemoFromSource(): Promise<void> {
 
   const patIds = pats.map((p) => p.id);
   if (patIds.length) {
-    const remap = (r: any) => ({ ...r, id: uid(), patientId: mPat.get(r.patientId)! });
+    // Clona a linha trocando os identificadores. O genérico preserva o formato da origem —
+// com `any`, errar o nome de um campo passava batido.
+const remap = <R extends { id: string; patientId: string }>(r: R) => ({ ...r, id: uid(), patientId: mPat.get(r.patientId)! });
     const sh = await db.select().from(patientStatusHistory).where(inArray(patientStatusHistory.patientId, patIds));
     await chunkInsert(patientStatusHistory, sh.map(remap));
     const ph = await db.select().from(patientPriceHistory).where(inArray(patientPriceHistory.patientId, patIds));

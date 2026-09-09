@@ -193,6 +193,7 @@ export function AssignmentsTab({
                     </a>
                   )}
                   {a.responseFileType?.startsWith("image") && a.responseFileUrl && (
+                    // eslint-disable-next-line @next/next/no-img-element -- anexo servido pela API, sem dimensão conhecida em tempo de build.
                     <img src={`/api/attachment/${a.id}`} alt="Anexo do paciente" className="rounded-lg max-h-60 mt-1" />
                   )}
                   {a.responseFileType?.startsWith("audio") && a.responseFileUrl && (

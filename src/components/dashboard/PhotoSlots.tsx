@@ -54,8 +54,8 @@ function Slot({
             if (f) onPick(f);
           }}
         />
-        {/* eslint-disable-next-line @next/next/no-img-element */}
         {preview ? (
+          // eslint-disable-next-line @next/next/no-img-element -- pré-visualização de arquivo local (blob do FileReader), que não passa pelo otimizador.
           <img src={preview} alt={label} className="absolute inset-0 h-full w-full object-cover" />
         ) : (
           <div className="flex flex-col items-center gap-1 text-foreground/40">

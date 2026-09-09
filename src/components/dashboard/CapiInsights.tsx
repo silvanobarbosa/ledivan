@@ -10,6 +10,7 @@ import {
   Tooltip 
 } from "recharts";
 import { Loader2, Sparkles } from "lucide-react";
+import { numeroDoTooltip, type ValorTooltip } from "@/lib/chart";
 
 interface Insight {
   id: string;
@@ -52,7 +53,7 @@ export function CapiInsights({
       });
       const result = await response.json();
       if (result.insights) {
-        setInsights(result.insights.map((insight: any, idx: number) => ({
+        setInsights((result.insights as Omit<Insight, "id">[]).map((insight, idx) => ({
           ...insight,
           id: `ai-${idx}`
         })));
@@ -95,7 +96,7 @@ export function CapiInsights({
                   ))}
                 </Pie>
                 <Tooltip
-                  formatter={(value: any) => [`R$ ${Number(value || 0).toFixed(2)}`, "Total"]}
+                  formatter={(value: ValorTooltip) => [`R$ ${numeroDoTooltip(value).toFixed(2)}`, "Total"]}
                   contentStyle={{ borderRadius: '12px', border: '1px solid #e7ddd4', boxShadow: '0 4px 6px -1px rgb(43 24 48 / 0.1)' }}
                 />
               </PieChart>

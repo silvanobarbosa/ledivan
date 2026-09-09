@@ -1,5 +1,4 @@
 import { NextRequest, NextResponse } from "next/server";
-import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { db } from "@/db";
 import { users } from "@/db/schema";

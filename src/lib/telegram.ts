@@ -1,9 +1,16 @@
-import { Telegraf } from "telegraf";
+import { Telegraf, type Context } from "telegraf";
 import { db } from "@/db";
 import { users, transactions } from "@/db/schema";
 import { eq, desc, and, gt } from "drizzle-orm";
 import { getUserAiClient, SemChaveIA } from "@/lib/ai-client";
 import { parseMoedaBR } from "@/lib/money";
+
+// O middleware abaixo pendura `dbUser` no contexto do Telegraf, e o deep-link traz
+// `startPayload`. Nenhum dos dois existe no Context padrão — declarar aqui troca sete
+// `as any` espalhados por um contrato só, e o compilador passa a cobrar o caso de usuário
+// não vinculado (dbUser undefined), que era exatamente o que o `any` escondia.
+type UsuarioDb = typeof users.$inferSelect;
+type ContextoLedivan = Context & { dbUser?: UsuarioDb; startPayload?: string };
 
 // O bot é construído sob demanda, não no import. Antes o módulo fazia `new Telegraf(token)` e
 // `throw` no topo — o que quebrava o `next build`, que importa /api/telegram para coletar dados
@@ -28,7 +35,7 @@ bot.use(async (ctx, next) => {
     where: eq(users.telegramId, telegramId),
   });
 
-  (ctx as any).dbUser = user;
+  (ctx as ContextoLedivan).dbUser = user ?? undefined;
   return next();
 });
 
@@ -63,7 +70,7 @@ bot.command("v", async (ctx) => {
 // /start — com deep link (?start=CÓDIGO) vincula automaticamente
 bot.start(async (ctx) => {
   const telegramId = ctx.from?.id.toString();
-  const code = (ctx as any).startPayload as string | undefined;
+  const code = (ctx as ContextoLedivan).startPayload;
 
   if (code && telegramId) {
     const linked = await linkByCode(code, telegramId);
@@ -73,7 +80,7 @@ bot.start(async (ctx) => {
     return ctx.reply("❌ Esse código de vínculo expirou. Gere um novo nas Configurações do app e toque em \"Conectar Telegram\" de novo.");
   }
 
-  const user = (ctx as any).dbUser;
+  const user = (ctx as ContextoLedivan).dbUser;
   if (!user) {
     return ctx.reply("👋 Olá! Eu sou o assistente do Ledivan.\n\nPara conectar sua conta, vá em *Configurações → Telegram* no app e toque em \"Conectar Telegram\". É automático. 🙂", { parse_mode: "Markdown" });
   }
@@ -81,7 +88,7 @@ bot.start(async (ctx) => {
 });
 
 bot.command("saldo", async (ctx) => {
-  const user = (ctx as any).dbUser;
+  const user = (ctx as ContextoLedivan).dbUser;
   if (!user) return ctx.reply("❌ Conta não vinculada. Use `/v código` primeiro.");
   
   const result = await db.query.transactions.findMany({ where: eq(transactions.userId, user.id) });
@@ -92,7 +99,7 @@ bot.command("saldo", async (ctx) => {
 });
 
 bot.command("status", async (ctx) => {
-  const user = (ctx as any).dbUser;
+  const user = (ctx as ContextoLedivan).dbUser;
   if (!user) return ctx.reply("❌ Conta não vinculada.");
   const result = await db.query.transactions.findMany({ 
     where: eq(transactions.userId, user.id),
@@ -109,7 +116,7 @@ bot.command("status", async (ctx) => {
 });
 
 bot.command("insights", async (ctx) => {
-  const user = (ctx as any).dbUser;
+  const user = (ctx as ContextoLedivan).dbUser;
   if (!user) return ctx.reply("❌ Conta não vinculada.");
   const result = await db.query.transactions.findMany({ where: eq(transactions.userId, user.id), limit: 10 });
   
@@ -135,7 +142,7 @@ bot.on("text", async (ctx) => {
   if (match) {
     const amount = parseMoedaBR(match[1]) ?? "0";
     const description = match[2];
-    const user = (ctx as any).dbUser;
+    const user = (ctx as ContextoLedivan).dbUser;
     if (!user) return;
 
     try {
@@ -147,7 +154,7 @@ bot.on("text", async (ctx) => {
         source: "telegram",
       });
       ctx.reply(`✅ Registrado: R$ ${amount} em "${description}".`);
-    } catch (error) {
+    } catch (_error) {
       ctx.reply("❌ Erro ao salvar.");
     }
   }

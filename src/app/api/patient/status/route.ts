@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { and, eq, desc } from "drizzle-orm";
 import { db } from "@/db";
-import { patientDailyStatus, patients, users } from "@/db/schema";
+import { patientDailyStatus, patients } from "@/db/schema";
 import { patientFromBearer } from "@/lib/patient-auth";
 import { getPreferences } from "@/lib/preferences";
 import { resolveFeature, parseOverrides } from "@/lib/features";

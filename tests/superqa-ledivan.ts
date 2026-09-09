@@ -5,8 +5,6 @@
  */
 
 import { db } from "@/db";
-import { users, patients, therapySessions, transactions } from "@/db/schema";
-import { eq } from "drizzle-orm";
 import * as fs from "fs";
 import * as path from "path";
 import * as crypto from "crypto";
@@ -429,17 +427,17 @@ class SuperQA {
   }
 
   // Funções auxiliares
-  private async scanForSQLInjection(dir: string): Promise<string[]> {
+  private async scanForSQLInjection(_dir: string): Promise<string[]> {
     // Implementação simplificada
     return [];
   }
 
-  private async scanForTodos(dir: string): Promise<string[]> {
+  private async scanForTodos(_dir: string): Promise<string[]> {
     // Implementação simplificada
     return [];
   }
 
-  private async scanForConsoleLogs(dir: string): Promise<string[]> {
+  private async scanForConsoleLogs(_dir: string): Promise<string[]> {
     // Implementação simplificada
     return [];
   }

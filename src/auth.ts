@@ -47,7 +47,7 @@ export async function signIn(
   redirect(`/auth/login?returnTo=${encodeURIComponent(to)}`);
 }
 
-export async function signOut(_opts?: { redirectTo?: string }): Promise<never> {
+export async function signOut(__opts?: { redirectTo?: string }): Promise<never> {
   redirect("/auth/logout");
 }
 

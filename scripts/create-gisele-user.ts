@@ -1,6 +1,6 @@
 import "dotenv/config";
 import { db } from "@/db";
-import { users, accounts } from "@/db/schema";
+import { users } from "@/db/schema";
 import { eq } from "drizzle-orm";
 
 /**

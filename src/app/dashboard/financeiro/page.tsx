@@ -1,7 +1,7 @@
 import { db } from "@/db";
 import { auth } from "@/auth";
 import { users, transactions, categories } from "@/db/schema";
-import { eq, sum, desc, sql, count } from "drizzle-orm";
+import { eq, sum, desc, sql } from "drizzle-orm";
 import { formatBRL } from "@/lib/therapy";
 import { BalanceCard } from "@/components/dashboard/BalanceCard";
 import { RecentTransactions } from "@/components/dashboard/RecentTransactions";

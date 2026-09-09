@@ -1,5 +1,6 @@
 "use client";
 
+import { numeroDoTooltip, type ValorTooltip } from "@/lib/chart";
 import {
   Area,
   AreaChart,
@@ -62,7 +63,7 @@ export function TransactionsChart({ data }: { data: ChartData[] }) {
             }}
             labelStyle={{ fontWeight: "bold", color: "#2b1830", marginBottom: "4px" }}
             itemStyle={{ color: "#1a0f1f", fontSize: "12px" }}
-            formatter={(value: any) => [`R$ ${Number(value || 0).toFixed(2)}`, "Total"]}
+            formatter={(value: ValorTooltip) => [`R$ ${numeroDoTooltip(value).toFixed(2)}`, "Total"]}
           />
           <Area
             type="monotone"

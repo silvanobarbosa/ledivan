@@ -13,7 +13,8 @@ interface Transaction {
   } | null;
 }
 
-export function RecentTransactions({ transactions, id }: { transactions: any[], id?: string }) {
+
+export function RecentTransactions({ transactions, id }: { transactions: Transaction[], id?: string }) {
   const formatCurrency = (val: number) => {
     return new Intl.NumberFormat("pt-BR", {
       style: "currency",

@@ -4,6 +4,7 @@ import {
   ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, Legend,
   AreaChart, Area, PieChart, Pie, Cell,
 } from "recharts";
+import { numeroDoTooltip, type ValorTooltip } from "@/lib/chart";
 
 type Monthly = { label: string; income: number; expense: number; net: number; cumulative: number };
 type Slice = { name: string; value: number; color?: string | null };
@@ -35,7 +36,7 @@ export function ReportsCharts({ monthly, categories, sources }: { monthly: Month
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e7ddd4" />
               <XAxis dataKey="label" tick={{ fill: "#9b8aa0", fontSize: 11 }} tickLine={false} axisLine={false} />
               <YAxis tick={{ fill: "#9b8aa0", fontSize: 11 }} tickLine={false} axisLine={false} width={48} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
-              <Tooltip contentStyle={tip} formatter={(v: any) => brl(Number(v))} />
+              <Tooltip contentStyle={tip} formatter={(v: ValorTooltip) => brl(numeroDoTooltip(v))} />
               <Legend wrapperStyle={{ fontSize: 12 }} />
               <Bar dataKey="income" name="Receita" fill="#047857" radius={[6, 6, 0, 0]} />
               <Bar dataKey="expense" name="Despesa" fill="#b91c1c" radius={[6, 6, 0, 0]} />
@@ -57,7 +58,7 @@ export function ReportsCharts({ monthly, categories, sources }: { monthly: Month
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e7ddd4" />
               <XAxis dataKey="label" tick={{ fill: "#9b8aa0", fontSize: 11 }} tickLine={false} axisLine={false} />
               <YAxis tick={{ fill: "#9b8aa0", fontSize: 11 }} tickLine={false} axisLine={false} width={48} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
-              <Tooltip contentStyle={tip} formatter={(v: any) => brl(Number(v))} />
+              <Tooltip contentStyle={tip} formatter={(v: ValorTooltip) => brl(numeroDoTooltip(v))} />
               <Area type="monotone" dataKey="cumulative" name="Saldo acumulado" stroke="#2b1830" strokeWidth={2} fill="url(#cum)" />
             </AreaChart>
           </ResponsiveContainer>
@@ -71,7 +72,7 @@ export function ReportsCharts({ monthly, categories, sources }: { monthly: Month
               <Pie data={cats} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={50} outerRadius={85} paddingAngle={3}>
                 {cats.map((c, i) => <Cell key={i} fill={c.color!} />)}
               </Pie>
-              <Tooltip contentStyle={tip} formatter={(v: any) => brl(Number(v))} />
+              <Tooltip contentStyle={tip} formatter={(v: ValorTooltip) => brl(numeroDoTooltip(v))} />
               <Legend wrapperStyle={{ fontSize: 11 }} />
             </PieChart>
           </ResponsiveContainer>
@@ -85,7 +86,7 @@ export function ReportsCharts({ monthly, categories, sources }: { monthly: Month
               <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#e7ddd4" />
               <XAxis type="number" tick={{ fill: "#9b8aa0", fontSize: 11 }} tickLine={false} axisLine={false} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} />
               <YAxis type="category" dataKey="name" tick={{ fill: "#6b5b6f", fontSize: 11 }} tickLine={false} axisLine={false} width={90} />
-              <Tooltip contentStyle={tip} formatter={(v: any) => brl(Number(v))} />
+              <Tooltip contentStyle={tip} formatter={(v: ValorTooltip) => brl(numeroDoTooltip(v))} />
               <Bar dataKey="value" name="Receita" fill="#8b5cf6" radius={[0, 6, 6, 0]} />
             </BarChart>
           </ResponsiveContainer>

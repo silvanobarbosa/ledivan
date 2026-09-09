@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { and, eq } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { issueSignedToken, presignUrl } from "@vercel/blob";
 import { db } from "@/db";
 import { patientDocument } from "@/db/schema";

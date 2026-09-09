@@ -197,6 +197,7 @@ function HeroVisual() {
           </div>
         </div>
         <div className="hidden sm:flex absolute bottom-[60%] left-[-1rem] glass-card px-3 py-2 z-20 items-center gap-2 float-soft" style={{ animationDelay: "2.5s" }}>
+          {/* eslint-disable-next-line @next/next/no-img-element -- ícone de 16px vindo de CDN externa: otimizar não muda nada e exigiria remotePatterns. */}
           <img src="https://cdn.simpleicons.org/whatsapp/25D366" alt="" className="h-4 w-4" />
           <span className="text-[11px] text-ink">&quot;50 material&quot; → lançado ✓</span>
         </div>
@@ -401,8 +402,10 @@ function Integrations() {
             <Reveal key={it.name} delay={i * 90}>
               <div className="glass-card p-6 h-full text-center group hover:-translate-y-1 transition-transform duration-300">
                 <div className="mx-auto h-14 w-auto px-4 rounded-2xl bg-white inline-flex items-center justify-center gap-2 shadow-[var(--shadow-glass)] group-hover:scale-110 transition-transform" style={{ border: `1px solid #${it.color}22` }}>
+                  {/* eslint-disable-next-line @next/next/no-img-element -- ícone de 16px vindo de CDN externa: otimizar não muda nada e exigiria remotePatterns. */}
                   <img src={`https://cdn.simpleicons.org/${it.slug}/${it.color}`} alt={`Integração com ${it.name}`} className="h-7 w-7" loading="lazy" />
                   {it.extra && (
+                    // eslint-disable-next-line @next/next/no-img-element -- ícone de 16px vindo de CDN externa: otimizar não muda nada e exigiria remotePatterns.
                     <img src={`https://cdn.simpleicons.org/${it.extra.slug}/${it.extra.color}`} alt="Jitsi" className="h-7 w-7" loading="lazy" />
                   )}
                 </div>
@@ -438,6 +441,7 @@ function HowItWorks() {
           <Reveal key={s.n} delay={i * 120}>
             <div className="glass-card overflow-hidden h-full group">
               <div className="relative h-44 overflow-hidden">
+                {/* eslint-disable-next-line @next/next/no-img-element -- foto vinda de dado, sem dimensão conhecida em tempo de build. */}
                 <img src={s.photo} alt="" className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105" />
                 <div className="absolute inset-0 bg-gradient-to-t from-white/30 via-transparent to-transparent" />
                 <span className="absolute top-4 left-4 font-display text-3xl font-medium text-cream tabular-nums drop-shadow-md">{s.n}</span>
@@ -477,7 +481,9 @@ function Highlight() {
                 &quot;<span className="text-cream">50 material</span>&quot; no WhatsApp e pronto. Ou tire foto do recibo — a IA extrai valor, descrição e categoria pra você.
               </p>
               <div className="mt-6 flex items-center gap-3">
+                {/* eslint-disable-next-line @next/next/no-img-element -- ícone de 16px vindo de CDN externa: otimizar não muda nada e exigiria remotePatterns. */}
                 <img src="https://cdn.simpleicons.org/whatsapp/25D366" alt="WhatsApp" className="h-7 w-7" />
+                {/* eslint-disable-next-line @next/next/no-img-element -- ícone de 16px vindo de CDN externa: otimizar não muda nada e exigiria remotePatterns. */}
                 <img src="https://cdn.simpleicons.org/telegram/26A5E4" alt="Telegram" className="h-7 w-7" />
                 <span className="text-xs text-cream/60 uppercase tracking-wider">funciona em ambos</span>
               </div>

@@ -53,7 +53,7 @@ function SignupForm() {
       } else {
         setError(data.error || "Erro ao criar conta");
       }
-    } catch (err) {
+    } catch (_err) {
       setError("Erro ao conectar com o servidor");
     } finally {
       setLoading(false);

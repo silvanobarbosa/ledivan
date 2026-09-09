@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useRef } from "react";
-import { Camera, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { useRouter, usePathname } from "next/navigation";
 
 // Só aparece na tela inicial e nas telas do Financeiro.
