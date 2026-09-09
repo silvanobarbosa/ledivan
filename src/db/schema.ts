@@ -322,6 +322,10 @@ export const patients = pgTable("patients", {
   attendanceDay: text("attendance_day"), // dia da semana preferencial (seg..dom)
   attendanceTime: text("attendance_time"), // hora preferencial HH:MM
   address: text("address"),
+  // Escola do paciente (relevante em criança/adolescente): nome e um contato da escola. É
+  // CAMPO do paciente, não entidade própria — vira filtro e coluna no relatório de pacientes.
+  schoolName: text("school_name"),
+  schoolContact: text("school_contact"),
   // contato de emergencia (embutido)
   emergencyName: text("emergency_name"),
   emergencyPhone: text("emergency_phone"),

@@ -15,7 +15,6 @@ export type PanelPatient = {
 };
 export type PanelPresence = { patientId: string; presente: boolean; date: string };
 
-const norm = (s: string) => s.normalize("NFD").replace(/[̀-ͯ]/g, "").toLowerCase();
 const ageOf = (birth: string | null): number | null => {
   if (!birth) return null;
   const b = new Date(birth), n = new Date();
@@ -58,7 +57,7 @@ export function DashboardPanels({
           um painel curto ao lado de uma lista longa virava meia tela de espaço vazio. */}
       <div className="grid lg:grid-cols-2 gap-4 items-start">
         <Prospeccao patients={patients} />
-        <PacientesAtuais patients={patients} />
+        <Relatorios patients={patients} />
         <Aniversariantes patients={patients} modeloSalvo={mensagemAniversario} hoje={hoje} />
         <AtivosInativos patients={patients} presence={presence} corte={corteSemana} />
         <QueixaBloco patients={patients} />
@@ -90,30 +89,22 @@ function Prospeccao({ patients }: { patients: PanelPatient[] }) {
   );
 }
 
-// 2. PACIENTES ATUAIS — filtro início + gênero + idade + cidade(endereço)
-function PacientesAtuais({ patients }: { patients: PanelPatient[] }) {
-  const [from, setFrom] = useState(""), [to, setTo] = useState(""), [gender, setGender] = useState(""), [minA, setMinA] = useState(""), [maxA, setMaxA] = useState(""), [city, setCity] = useState("");
-  const ativos = patients.filter((p) => p.status === "ativo");
-  const filtered = ativos.filter((p) => {
-    if ((from || to) && !inRange(p.startedAt, from, to)) return false;
-    if (gender && (p.gender || "") !== gender) return false;
-    const a = ageOf(p.birthDate);
-    if (minA && (a === null || a < Number(minA))) return false;
-    if (maxA && (a === null || a > Number(maxA))) return false;
-    if (city && !norm(p.address || "").includes(norm(city))) return false;
-    return true;
-  });
+// 2. RELATÓRIOS — o painel virou porta de entrada, não a ferramenta. Os filtros e as colunas
+// vivem em /dashboard/relatorio-pacientes: caixa de seleção de coluna não cabe num cartão de
+// dashboard, e o resultado é uma tabela larga. Aqui ficam só os números que orientam o clique.
+function Relatorios({ patients }: { patients: PanelPatient[] }) {
+  const ativos = patients.filter((p) => p.status === "ativo").length;
+  const inativos = patients.filter((p) => p.status === "inativo").length;
   return (
     <div className={card}>
-      <h4 className="font-display font-bold text-primary">Pacientes atuais</h4>
-      <div className="flex gap-2 flex-wrap items-end">
-        <div><span className={lbl}>Início de</span><input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className={inp} /></div>
-        <div><span className={lbl}>até</span><input type="date" value={to} onChange={(e) => setTo(e.target.value)} className={inp} /></div>
-        <div><span className={lbl}>Gênero</span><select value={gender} onChange={(e) => setGender(e.target.value)} className={inp}><option value="">todos</option><option value="feminino">Feminino</option><option value="masculino">Masculino</option><option value="nao-binario">Não-binário</option></select></div>
-        <div><span className={lbl}>Idade</span><div className="flex gap-1"><input type="number" min={0} placeholder="mín" value={minA} onChange={(e) => setMinA(e.target.value)} className={`${inp} w-16`} /><input type="number" min={0} placeholder="máx" value={maxA} onChange={(e) => setMaxA(e.target.value)} className={`${inp} w-16`} /></div></div>
-        <div><span className={lbl}>Cidade</span><input value={city} onChange={(e) => setCity(e.target.value)} placeholder="no endereço" className={`${inp} w-28`} /></div>
+      <div className="flex items-center justify-between"><h4 className="font-display font-bold text-primary">Relatórios</h4><Link href="/dashboard/relatorio-pacientes" className="text-xs text-primary hover:underline">abrir →</Link></div>
+      <p className="text-sm text-foreground/50">Recorte por tipo e por período de início, escolhendo as colunas: sexo, e-mail, endereço, escola, idade, telefone, avulso/pacote, vencimento, valor, data de início e data de reajuste.</p>
+      <div className="grid grid-cols-3 gap-2">
+        <Stat n={ativos + inativos} label="No cadastro" />
+        <Stat n={ativos} label="Ativos" tone="green" />
+        <Stat n={inativos} label="Inativos" />
       </div>
-      <Stat n={filtered.length} label="pacientes ativos no filtro" />
+      <Link href="/dashboard/relatorio-pacientes" className="inline-block text-xs font-bold px-3 py-1.5 rounded-lg bg-primary text-white">Montar relatório</Link>
     </div>
   );
 }
