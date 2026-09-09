@@ -32,7 +32,7 @@ import {
   riskColor,
   type RiskLevel,
 } from "@/lib/therapy";
-import { Phone, Mail, MapPin, Plus, Link2, Pencil, Trash2, Video, Mic, Loader2, Receipt, FileText, Stethoscope, Repeat, Download } from "lucide-react";
+import { Phone, Mail, MapPin, Plus, Link2, Pencil, Trash2, Video, Mic, Loader2, Receipt, FileText, Stethoscope, Repeat, Download, GraduationCap } from "lucide-react";
 
 const FMT_LABEL: Record<string, string> = { avulso: "Avulso", mensal: "Mensal", quinzenal: "Quinzenal", pacote: "Pacote" };
 const CAT_LABEL: Record<string, string> = { crianca: "Criança", adolescente: "Adolescente", adulto: "Adulto", idoso: "Idoso", casal: "Casal" };
@@ -41,6 +41,7 @@ type Patient = {
   id: string; name: string; email: string | null; phone: string | null;
   sessionFee: string; frequency: string | null; notes: string | null;
   patientStatus: string; paymentStatus: string; startedAt: string | null; address: string | null;
+  schoolName: string | null; schoolContact: string | null;
   emergencyName: string | null; emergencyPhone: string | null; emergencyRelationship: string | null;
   contractType: string | null; paymentDay: number | null;
   attendanceMode: string | null; attendanceLocation: string | null; attendanceDay: string | null; attendanceTime: string | null;
@@ -311,6 +312,7 @@ export function PatientDetail({
           <Field label="Dia de pagamento" value={patient.paymentDay ? `Dia ${patient.paymentDay}` : "—"} />
           <Field label="Status de pagamento" value={PAYMENT_STATUS_LABELS[patient.paymentStatus] || "—"} />
           {patient.address && <Field label="Endereço" value={patient.address} icon={<MapPin className="w-4 h-4" />} />}
+          {patient.schoolName && <Field label="Escola" value={patient.schoolName + (patient.schoolContact ? ` · ${patient.schoolContact}` : "")} icon={<GraduationCap className="w-4 h-4" />} />}
           {patient.emergencyName && (
             <Field label="Contato emergência" value={`${patient.emergencyName} (${patient.emergencyRelationship || "—"}) · ${patient.emergencyPhone || ""}`} />
           )}

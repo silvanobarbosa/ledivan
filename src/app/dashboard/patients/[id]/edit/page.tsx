@@ -43,7 +43,7 @@ export default async function EditPatientPage({ params }: { params: Promise<{ id
         <PatientFormFields locations={locations} p={{
           registrationNumber: patient.registrationNumber, agendaId: patient.agendaId, dueDateType: patient.dueDateType, dueDate: iso(patient.dueDate), queixaPrincipal: patient.queixaPrincipal,
           name: patient.name, phone: patient.phone, email: patient.email, patientStatus: patient.patientStatus,
-          startedAt: iso(patient.startedAt), birthDate: iso(patient.birthDate), category: patient.category, gender: patient.gender, cpf: patient.cpf, address: patient.address,
+          startedAt: iso(patient.startedAt), birthDate: iso(patient.birthDate), category: patient.category, gender: patient.gender, cpf: patient.cpf, address: patient.address, schoolName: patient.schoolName, schoolContact: patient.schoolContact,
           guardianName: patient.guardianName, guardianCpf: patient.guardianCpf, guardianPhone: patient.guardianPhone, guardianEmail: patient.guardianEmail,
           spouseName: patient.spouseName, spousePhone: patient.spousePhone, spouseEmail: patient.spouseEmail, spouseCpf: patient.spouseCpf,
           emergencyName: patient.emergencyName, emergencyPhone: patient.emergencyPhone, emergencyEmail: patient.emergencyEmail, emergencyRelationship: patient.emergencyRelationship,
