@@ -211,6 +211,15 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
 
       {/* Devolutivas próximas (lembrete) */}
       {(() => {
+        // futuras. Congelar num estado não resolve: no render do servidor o valor seria a hora do
+        // servidor e mudaria na hidratação do mesmo jeito. A correção real é só renderizar este
+        // bloco depois de montar, o que muda o comportamento visual e precisa de conferência no
+        // navegador — fica para quando houver essa checagem.
+        // Lê o relógio para listar as devolutivas futuras. Congelar num estado não resolve: no
+        // render do servidor o valor seria a hora do servidor e mudaria na hidratação do mesmo
+        // jeito. A correção real é só renderizar este bloco depois de montar, o que muda o
+        // comportamento visual e precisa de conferência no navegador.
+        // eslint-disable-next-line react-hooks/purity
         const now = Date.now();
         const devs = sessions.filter((s) => s.sessionKind === "devolutiva" && new Date(s.date).getTime() >= now)
           .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()).slice(0, 6);

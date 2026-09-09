@@ -1,3 +1,11 @@
+/* eslint-disable react-hooks/static-components, react-hooks/purity, react-hooks/immutability --
+   Componente de SERVIDOR (React Server Component): não tem "use client", roda uma vez por
+   requisição e nunca re-renderiza no navegador. As três regras acima vêm do React Compiler e
+   descrevem o render de CLIENTE — lá, criar componente durante o render causa remonte, ler o
+   relógio quebra a hidratação e reatribuir variável atrapalha a memoização. Nada disso existe
+   aqui: no servidor, ler a hora e acumular num acumulador local durante o render é idiomático.
+   Se este arquivo um dia virar cliente (ganhar "use client"), REMOVA este bloco e trate os
+   achados de verdade — eles passam a valer. */
 import { db } from "@/db";
 import { auth } from "@/auth";
 import { transactions, categories } from "@/db/schema";

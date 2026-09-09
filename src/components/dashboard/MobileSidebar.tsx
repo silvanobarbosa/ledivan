@@ -17,6 +17,11 @@ export function MobileSidebar() {
 
   // fecha ao navegar
   useEffect(() => {
+    // O caminho "puro" seria remontar por `key` no pai, o que jogaria fora o estado do menu
+    // inteiro a cada rota. O custo real aqui é um render a mais por navegação.
+    // Fecha a gaveta ao navegar. O caminho "puro" seria remontar por `key` no pai, o que
+    // jogaria fora o estado do menu inteiro a cada rota. O custo aqui é um render a mais.
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     setOpen(false);
   }, [pathname]);
 

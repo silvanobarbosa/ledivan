@@ -18,6 +18,13 @@ export function MaterialsTab({ patientId }: { patientId: string }) {
   const [pending, start] = useTransition();
 
   const load = useCallback(async () => { setItems(await listMaterials(patientId)); setLoading(false); }, [patientId]);
+  // montagem: `load` é async, então o setState acontece DEPOIS do await, não durante o
+  // efeito. Some de verdade só com Suspense/biblioteca de dados; reescrever à mão aqui
+  // trocaria um aviso por risco de piscar a lista e perder o estado de erro.
+  // Carregamento na montagem: `load` é async, então o setState acontece DEPOIS do await.
+  // Some de verdade só com Suspense/biblioteca de dados; reescrever à mão aqui trocaria um
+  // aviso por risco de piscar a lista e perder o estado de erro.
+  // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { load(); }, [load]);
 
   const submit = () => {

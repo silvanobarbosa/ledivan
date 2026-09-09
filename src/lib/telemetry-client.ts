@@ -1,3 +1,11 @@
+
+// A lib.dom do TypeScript ainda não descreve estas entradas de performance. Declaramos só
+// os campos que realmente lemos — é mais honesto que `any` e o compilador passa a cobrar.
+type EntradaTempo = PerformanceEntry & { startTime: number };
+type EntradaLayoutShift = PerformanceEntry & { hadRecentInput: boolean; value: number };
+type EntradaEvento = PerformanceEntry & { duration: number };
+type ObserverInitComLimite = PerformanceObserverInit & { durationThreshold?: number };
+type ComTimerGlobal = typeof globalThis & { __telClear?: ReturnType<typeof setInterval> };
 /**
  * Camada garantidora — TELEMETRY CLIENT (self-contained, embutir na frota).
  * ⑤ trilha de auditoria por usuário · ⑥ UX: pageview, ação, feature (usada/não usada),
@@ -51,22 +59,23 @@ export function initTelemetry(app: string, opts: Opts = {}) {
   try {
     const nav = performance.getEntriesByType("navigation")[0] as PerformanceNavigationTiming | undefined;
     if (nav) vital("TTFB", nav.responseStart);
-    new PerformanceObserver((l) => { const e = l.getEntries().pop() as any; if (e) vital("LCP", e.startTime); }).observe({ type: "largest-contentful-paint", buffered: true });
-    new PerformanceObserver((l) => { for (const e of l.getEntries() as any[]) if (e.name === "first-contentful-paint") vital("FCP", e.startTime); }).observe({ type: "paint", buffered: true });
-    let cls = 0; new PerformanceObserver((l) => { for (const e of l.getEntries() as any[]) if (!e.hadRecentInput) cls += e.value; }).observe({ type: "layout-shift", buffered: true });
-    let inp = 0; new PerformanceObserver((l) => { for (const e of l.getEntries() as any[]) inp = Math.max(inp, e.duration); }).observe({ type: "event", buffered: true, durationThreshold: 40 } as any);
+    new PerformanceObserver((l) => { const e = l.getEntries().pop() as EntradaTempo | undefined; if (e) vital("LCP", e.startTime); }).observe({ type: "largest-contentful-paint", buffered: true });
+    new PerformanceObserver((l) => { for (const e of l.getEntries() as EntradaTempo[]) if (e.name === "first-contentful-paint") vital("FCP", e.startTime); }).observe({ type: "paint", buffered: true });
+    let cls = 0; new PerformanceObserver((l) => { for (const e of l.getEntries() as EntradaLayoutShift[]) if (!e.hadRecentInput) cls += e.value; }).observe({ type: "layout-shift", buffered: true });
+    let inp = 0; new PerformanceObserver((l) => { for (const e of l.getEntries() as EntradaEvento[]) inp = Math.max(inp, e.duration); }).observe({ type: "event", buffered: true, durationThreshold: 40 } as ObserverInitComLimite);
     addEventListener("visibilitychange", () => { if (document.visibilityState === "hidden") { if (cls) vital("CLS", cls * 1000); if (inp) vital("INP", inp); flush(); } });
   } catch {}
 
   // erros
   if (opts.auto !== false) {
     addEventListener("error", (e) => push({ type: "error", name: (e.message || "error").slice(0, 120), meta: { src: (e.filename || "").slice(0, 120), line: e.lineno } }));
-    addEventListener("unhandledrejection", (e: any) => push({ type: "error", name: String(e.reason?.message || e.reason || "rejection").slice(0, 120) }));
+    addEventListener("unhandledrejection", (e: PromiseRejectionEvent) => push({ type: "error", name: String((e.reason as { message?: string })?.message || e.reason || "rejection").slice(0, 120) }));
   }
   addEventListener("pagehide", flush);
   const timer = setInterval(flush, flushMs);
-  if ((globalThis as any).__telClear) clearInterval((globalThis as any).__telClear);
-  (globalThis as any).__telClear = timer;
+  const g = globalThis as ComTimerGlobal;
+  if (g.__telClear) clearInterval(g.__telClear);
+  g.__telClear = timer;
 
   const api = {
     track: (name: string, meta?: Record<string, unknown>) => push({ type: "action", name, meta }),
