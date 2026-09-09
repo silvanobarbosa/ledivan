@@ -29,6 +29,12 @@ jobs:
       - name: Build (report — precisa de env; gate real é no deploy Vercel)
         run: npm run build --if-present || echo "::warning::build falhou na CI (provável falta de env; valida no deploy)"
 
+      # Lint do PROJETO (não o eslint improvisado abaixo). Falha se o número de erros
+      # CRESCER — ver scripts/lint-ratchet.mjs. Este passo NÃO tem continue-on-error de
+      # propósito: o lint ficou 5 dias quebrado justamente porque nada aqui olhava para ele.
+      - name: Lint do projeto (catraca — falha se piorar)
+        run: npm run lint:catraca
+
       - name: npm audit (deps, report)
         run: npm audit --audit-level=high || echo "::warning::npm audit achou vulnerabilidades (high+)"
 

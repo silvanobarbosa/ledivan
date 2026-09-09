@@ -22,7 +22,7 @@ export default function PrivacidadePage() {
           </div>
 
           <p>
-            Esta Política descreve como o <strong>Ledivan</strong> ("plataforma", "nós") trata dados pessoais, em conformidade
+            Esta Política descreve como o <strong>Ledivan</strong> (&quot;plataforma&quot;, &quot;nós&quot;) trata dados pessoais, em conformidade
             com a Lei Geral de Proteção de Dados (Lei nº 13.709/2018 — LGPD).
           </p>
 

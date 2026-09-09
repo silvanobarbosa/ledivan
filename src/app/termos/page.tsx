@@ -21,7 +21,7 @@ export default function TermosPage() {
             <p className="mt-2 text-sm text-[color:var(--muted-foreground)]">Última atualização: junho de 2026</p>
           </div>
 
-          <p>Ao criar uma conta e usar o <strong>Ledivan</strong> ("plataforma"), você ("profissional", "usuário") concorda com estes Termos.</p>
+          <p>Ao criar uma conta e usar o <strong>Ledivan</strong> (&quot;plataforma&quot;), você (&quot;profissional&quot;, &quot;usuário&quot;) concorda com estes Termos.</p>
 
           <Section n="1" t="Objeto">
             <p>O Ledivan é uma plataforma de gestão de consultório de terapia, com módulo financeiro e recursos de engajamento de pacientes (agenda, prontuário, tarefas, escalas, lembretes e integrações).</p>
@@ -62,7 +62,7 @@ export default function TermosPage() {
 
           <Section n="8" t="Disponibilidade e limitação de responsabilidade">
             <p>
-              O serviço é fornecido "no estado em que se encontra", sem garantia de disponibilidade ininterrupta. Na máxima
+              O serviço é fornecido &quot;no estado em que se encontra&quot;, sem garantia de disponibilidade ininterrupta. Na máxima
               extensão permitida em lei, o Ledivan não se responsabiliza por decisões clínicas, perdas indiretas ou por
               indisponibilidade de serviços de terceiros. O profissional deve manter rotinas próprias de cuidado e backup
               quando aplicável.
