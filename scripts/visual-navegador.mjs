@@ -36,3 +36,29 @@ export const comPrazo = (promessa, ms, oque) =>
     promessa,
     new Promise((_, rej) => setTimeout(() => rej(new Error("prazo estourado: " + oque)), ms)),
   ]);
+
+/**
+ * Rola a página inteira, de viewport em viewport, e volta ao topo.
+ *
+ * Sem isto o screenshot de página inteira MENTE: as seções embrulhadas em `<Reveal>` só ficam
+ * visíveis quando o IntersectionObserver dispara, e um `fullPage: true` não rola — ele só
+ * estica a captura. O resultado é meia landing em branco (opacity-0) ocupando espaço, e uma
+ * comparação antes/depois que dá "idêntico" porque os dois lados estão cegos no mesmo trecho.
+ *
+ * Devolve quantas seções ainda restaram invisíveis, para o harness poder reclamar.
+ */
+export async function revelarTudo(page, { passo = 600, teto = 60 } = {}) {
+  const altura = await page.evaluate(() => document.documentElement.scrollHeight);
+  for (let y = 0, n = 0; y < altura + passo && n < teto; y += passo, n++) {
+    await page.evaluate((pos) => window.scrollTo(0, pos), y);
+    await page.waitForTimeout(120);
+  }
+  await page.evaluate(() => window.scrollTo(0, 0));
+  // a transição do Reveal é de 900ms e alguns têm delay
+  await page.waitForTimeout(1600);
+  return page.evaluate(() =>
+    Array.from(document.querySelectorAll("*")).filter(
+      (el) => el.className && typeof el.className === "string" && el.className.includes("opacity-0"),
+    ).length,
+  );
+}

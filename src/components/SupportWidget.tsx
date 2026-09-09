@@ -62,7 +62,9 @@ export function SupportWidget() {
           type="button"
           onClick={() => setOpen(true)}
           aria-label="Abrir suporte"
-          className="fixed bottom-5 right-5 z-[60] inline-flex items-center gap-2 rounded-full bg-primary px-4 py-3 text-sm font-medium text-on-primary shadow-[var(--shadow-eggplant)] hover:brightness-110"
+          // print:hidden porque o widget é montado no layout raiz e, sem isto, o botão
+          // "Suporte" sai impresso no canto do prontuário e do recibo entregues ao paciente.
+          className="print:hidden fixed bottom-5 right-5 z-[60] inline-flex items-center gap-2 rounded-full bg-primary px-4 py-3 text-sm font-medium text-on-primary shadow-[var(--shadow-eggplant)] hover:brightness-110"
         >
           <LifeBuoy className="h-5 w-5" />
           <span className="hidden sm:inline">Suporte</span>
