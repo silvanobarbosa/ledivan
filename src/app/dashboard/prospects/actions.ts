@@ -1,12 +1,19 @@
 "use server";
 
 import { db } from "@/db";
-import { patients, patientStatusHistory } from "@/db/schema";
+import { patients, patientStatusHistory, prospectContacts } from "@/db/schema";
 import { auth } from "@/auth";
 import { and, eq, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { moedaOuPadrao } from "@/lib/money";
+import { dataDeFormulario } from "@/lib/dataForm";
+
+async function donoDoProspect(patientId: string, userId: string) {
+  return db.query.patients.findFirst({
+    where: and(eq(patients.id, patientId), eq(patients.userId, userId)),
+  });
+}
 
 export async function createProspect(formData: FormData) {
   const session = await auth();
@@ -16,9 +23,7 @@ export async function createProspect(formData: FormData) {
   const name = formData.get("name") as string;
   if (!name?.trim()) throw new Error("Nome obrigatório");
 
-  const dateRaw = formData.get("prospectDate") as string;
-
-  const prospectDate = dateRaw ? new Date(dateRaw) : new Date();
+  const prospectDate = dataDeFormulario(formData.get("prospectDate")) ?? new Date();
 
   // Número do cadastro sequencial por terapeuta — o prospect também recebe (antes nascia vazio
   // e, convertido em paciente, ficava sem número para sempre).
@@ -31,6 +36,8 @@ export async function createProspect(formData: FormData) {
     name: name.trim(),
     phone: (formData.get("phone") as string) || null,
     email: (formData.get("email") as string) || null,
+    birthDate: dataDeFormulario(formData.get("birthDate")),
+    gender: (formData.get("gender") as string) || null,
     patientStatus: "prospect",
     prospectDate,
     prospectFechou: (formData.get("prospectFechou") as string) || "",
@@ -41,8 +48,89 @@ export async function createProspect(formData: FormData) {
   // histórico começa já na fase de prospect (se soma ao prontuário depois)
   await db.insert(patientStatusHistory).values({ patientId: created.id, status: "prospect", date: prospectDate });
 
+  // A primeira observação também nasce como CONTATO, senão o histórico começaria vazio mesmo
+  // tendo havido conversa.
+  const obs = (formData.get("prospectObservacoes") as string)?.trim();
+  if (obs) await db.insert(prospectContacts).values({ patientId: created.id, date: prospectDate, observacao: obs });
+
+  // NÃO redireciona para a ficha do paciente. Era esta a queixa de "o cadastro do prospect não
+  // aparece": o formulário jogava o dono direto na ficha, e ele nunca via a lista embaixo.
   revalidatePath("/dashboard/prospects");
-  redirect(`/dashboard/patients/${created.id}`);
+  revalidatePath("/dashboard");
+}
+
+export async function updateProspect(formData: FormData) {
+  const session = await auth();
+  if (!session?.user?.id) throw new Error("Não autorizado");
+
+  const id = formData.get("id") as string;
+  const existente = await donoDoProspect(id, session.user.id);
+  if (!existente) throw new Error("Prospect não encontrado");
+
+  const name = (formData.get("name") as string)?.trim();
+
+  await db.update(patients).set({
+    name: name || existente.name,
+    phone: (formData.get("phone") as string) || null,
+    email: (formData.get("email") as string) || null,
+    birthDate: dataDeFormulario(formData.get("birthDate")),
+    gender: (formData.get("gender") as string) || null,
+    prospectDate: dataDeFormulario(formData.get("prospectDate")) ?? existente.prospectDate,
+    prospectFechou: (formData.get("prospectFechou") as string) ?? existente.prospectFechou,
+    sessionFee: moedaOuPadrao(formData.get("sessionFee"), existente.sessionFee),
+  }).where(and(eq(patients.id, id), eq(patients.userId, session.user.id)));
+
+  revalidatePath("/dashboard/prospects");
+  revalidatePath("/dashboard");
+}
+
+/**
+ * Apaga o prospect. Só apaga quem AINDA é prospect: a mesma linha da tabela `patients` vira
+ * paciente ao converter, e apagar paciente levaria sessões, pagamentos e prontuário na cascata.
+ */
+export async function deleteProspect(patientId: string): Promise<{ ok: boolean; erro?: string }> {
+  const session = await auth();
+  if (!session?.user?.id) return { ok: false, erro: "Não autorizado" };
+
+  const existente = await donoDoProspect(patientId, session.user.id);
+  if (!existente) return { ok: false, erro: "Prospect não encontrado" };
+  if (existente.patientStatus !== "prospect") {
+    return { ok: false, erro: "Já é paciente — use a ficha dele para inativar ou excluir." };
+  }
+
+  await db.delete(patients).where(and(eq(patients.id, patientId), eq(patients.userId, session.user.id)));
+  revalidatePath("/dashboard/prospects");
+  revalidatePath("/dashboard");
+  return { ok: true };
+}
+
+export async function addProspectContact(formData: FormData) {
+  const session = await auth();
+  if (!session?.user?.id) throw new Error("Não autorizado");
+
+  const patientId = formData.get("patientId") as string;
+  const existente = await donoDoProspect(patientId, session.user.id);
+  if (!existente) throw new Error("Prospect não encontrado");
+
+  await db.insert(prospectContacts).values({
+    patientId,
+    date: dataDeFormulario(formData.get("date")) ?? new Date(),
+    observacao: ((formData.get("observacao") as string) || "").trim() || null,
+  });
+
+  revalidatePath("/dashboard/prospects");
+}
+
+export async function deleteProspectContact(contactId: string, patientId: string) {
+  const session = await auth();
+  if (!session?.user?.id) throw new Error("Não autorizado");
+
+  // o dono é checado pelo PACIENTE: a linha de contato não guarda userId
+  const existente = await donoDoProspect(patientId, session.user.id);
+  if (!existente) throw new Error("Prospect não encontrado");
+
+  await db.delete(prospectContacts).where(and(eq(prospectContacts.id, contactId), eq(prospectContacts.patientId, patientId)));
+  revalidatePath("/dashboard/prospects");
 }
 
 // Converte prospect em paciente ativo

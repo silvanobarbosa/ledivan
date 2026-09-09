@@ -439,6 +439,20 @@ export const patientStatusHistory = pgTable("patient_status_history", {
   date: timestamp("date").defaultNow().notNull(),
 });
 
+// Tentativas de contato com um prospect. A MESMA pessoa pode ser contatada mais de uma vez —
+// era o que faltava: o cadastro guardava uma observação só, então o segundo contato apagava o
+// primeiro. Cada linha é data do contato + observação; a pessoa continua aparecendo uma vez na
+// lista, com N contatos dentro.
+export const prospectContacts = pgTable("prospect_contacts", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  patientId: uuid("patient_id").references(() => patients.id, { onDelete: "cascade" }).notNull(),
+  date: timestamp("date").defaultNow().notNull(),
+  observacao: text("observacao"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (t) => ([
+  index("prospect_contacts_patient_idx").on(t.patientId),
+]));
+
 export const patientPriceHistory = pgTable("patient_price_history", {
   id: uuid("id").primaryKey().defaultRandom(),
   patientId: uuid("patient_id").references(() => patients.id, { onDelete: "cascade" }).notNull(),
@@ -609,6 +623,7 @@ export const patientsRelations = relations(patients, ({ one, many }) => ({
   statusHistory: many(patientStatusHistory),
   priceHistory: many(patientPriceHistory),
   contractHistory: many(patientContractHistory),
+  prospectContacts: many(prospectContacts),
   records: many(patientRecords),
 }));
 
@@ -620,6 +635,10 @@ export const patientRecordsRelations = relations(patientRecords, ({ one }) => ({
 
 export const patientStatusHistoryRelations = relations(patientStatusHistory, ({ one }) => ({
   patient: one(patients, { fields: [patientStatusHistory.patientId], references: [patients.id] }),
+}));
+
+export const prospectContactsRelations = relations(prospectContacts, ({ one }) => ({
+  patient: one(patients, { fields: [prospectContacts.patientId], references: [patients.id] }),
 }));
 
 export const patientPriceHistoryRelations = relations(patientPriceHistory, ({ one }) => ({
