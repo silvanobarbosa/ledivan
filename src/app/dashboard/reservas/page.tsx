@@ -2,10 +2,10 @@ import { db } from "@/db";
 import { auth } from "@/auth";
 import { therapySessions } from "@/db/schema";
 import { and, eq, gte } from "drizzle-orm";
-import { Clock, Stethoscope, Check, Video, MapPin } from "lucide-react";
+import { Clock, Stethoscope, Check, Video, MapPin, Trash2 } from "lucide-react";
 import Link from "next/link";
 import { formatDateTime } from "@/lib/therapy";
-import { confirmSession } from "../sessions/actions";
+import { confirmSession, deleteSession } from "../sessions/actions";
 
 export const dynamic = "force-dynamic";
 
@@ -23,6 +23,13 @@ export default async function ReservasPage() {
   const confirmar = async (formData: FormData) => {
     "use server";
     await confirmSession(formData.get("id") as string);
+  };
+
+  // Reserva que não vai virar sessão precisa sair da lista. Sem isto o único caminho era
+  // confirmar e depois cancelar na agenda, o que deixa lixo no histórico do paciente.
+  const excluir = async (formData: FormData) => {
+    "use server";
+    await deleteSession(formData.get("id") as string);
   };
 
   return (
@@ -49,6 +56,10 @@ export default async function ReservasPage() {
               <form action={confirmar}>
                 <input type="hidden" name="id" value={s.id} />
                 <button className="inline-flex items-center gap-1.5 bg-primary text-white px-3 py-2 rounded-xl font-bold text-sm"><Check className="w-4 h-4" /> Confirmar</button>
+              </form>
+              <form action={excluir}>
+                <input type="hidden" name="id" value={s.id} />
+                <button title="Excluir reserva" aria-label={`Excluir reserva de ${s.patient?.name ?? "paciente"}`} className="inline-flex items-center justify-center p-2 rounded-xl border border-border text-red-600 hover:bg-red-50 transition"><Trash2 className="w-4 h-4" /></button>
               </form>
             </div>
           ))}

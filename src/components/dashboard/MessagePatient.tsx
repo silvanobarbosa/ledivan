@@ -10,14 +10,27 @@ const CHANNELS = [
   { key: "email", label: "E-mail", icon: Mail },
 ];
 
-export function MessagePatient({ patient, compact = false }: { patient: { id: string; name: string; phone: string | null; email: string | null }; compact?: boolean }) {
+export function MessagePatient({
+  patient,
+  compact = false,
+  textoInicial = "",
+  rotulo,
+}: {
+  patient: { id: string; name: string; phone: string | null; email: string | null };
+  compact?: boolean;
+  /** Texto que já vem escrito na caixa ao abrir (ex.: mensagem de aniversário). Editável. */
+  textoInicial?: string;
+  /** Rótulo do botão no modo compacto. Padrão: "Mensagem". */
+  rotulo?: string;
+}) {
   const [open, setOpen] = useState(false);
   const [channel, setChannel] = useState<string | null>(null);
-  const [text, setText] = useState("");
+  const [text, setText] = useState(textoInicial);
   const [result, setResult] = useState<{ ok: boolean; error?: string } | null>(null);
   const [pending, start] = useTransition();
 
-  function close() { setOpen(false); setChannel(null); setText(""); setResult(null); }
+  // volta ao texto inicial, não a vazio: quem abre de novo espera o modelo de novo
+  function close() { setOpen(false); setChannel(null); setText(textoInicial); setResult(null); }
 
   function send() {
     if (!channel) return;
@@ -37,7 +50,7 @@ export function MessagePatient({ patient, compact = false }: { patient: { id: st
           title="Enviar mensagem"
           className="inline-flex items-center gap-1 font-bold px-2 py-0.5 rounded-full bg-secondary-container/30 text-primary hover:bg-secondary-container/50 transition"
         >
-          <MessageCircle className="w-3.5 h-3.5" /> Mensagem
+          <MessageCircle className="w-3.5 h-3.5" /> {rotulo ?? "Mensagem"}
         </button>
       ) : (
         <button
