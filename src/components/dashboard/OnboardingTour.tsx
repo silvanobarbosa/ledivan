@@ -76,7 +76,7 @@ export function OnboardingTour() {
   const last = i === STEPS.length - 1;
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/40 p-4" onClick={close}>
+    <div className="print:hidden fixed inset-0 z-[100] flex items-center justify-center bg-black/40 p-4" onClick={close}>
       <div className="bg-white rounded-[28px] w-full max-w-md p-7 shadow-2xl relative" onClick={(e) => e.stopPropagation()}>
         <button onClick={close} className="absolute top-4 right-4 p-1.5 rounded-lg hover:bg-surface transition" aria-label="Fechar">
           <X className="w-4 h-4" />

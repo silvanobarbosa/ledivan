@@ -247,3 +247,30 @@
   50% { transform: translateY(-8px); }
 }
 .float-soft { animation: float-soft 6s ease-in-out infinite; }
+
+/* ==========================================================================
+   Impressão
+   ==========================================================================
+   As telas de dentro do app vivem num contêiner `h-screen overflow-hidden` com o conteúdo
+   rolando numa div. Isso é ótimo na tela e péssimo no papel: o navegador imprime só o que
+   coube na primeira tela e corta o resto. As classes `print:` no layout tiram o cromo
+   (menu, cabeçalho, barra inferior); estas regras soltam as travas de ALTURA, que é o que
+   permite a tabela fluir por quantas páginas precisar.
+
+   O seletor de atributo alcança as classes utilitárias mesmo quando aparecem combinadas
+   (ex.: "lg:h-screen"), sem depender de eu listar cada variante. */
+@media print {
+  html, body { height: auto !important; overflow: visible !important; background: #fff !important; }
+
+  [class*="h-screen"] { height: auto !important; min-height: 0 !important; }
+  [class*="overflow-hidden"], [class*="overflow-y-auto"], [class*="overflow-auto"] { overflow: visible !important; }
+  [class*="max-h-"] { max-height: none !important; }
+
+  /* Nada de sombra, fundo translúcido ou textura: gasta tinta e some no papel. */
+  .glass-card, .glass-card-lg { box-shadow: none !important; background: #fff !important; }
+  .bg-ornaments, .bg-ornaments::before, .bg-ornaments::after { background: #fff !important; content: none !important; }
+
+  /* Linha de tabela não pode ser partida entre duas páginas. */
+  tr, td, th { break-inside: avoid; }
+  thead { display: table-header-group; } /* cabeçalho repete em toda página */
+}

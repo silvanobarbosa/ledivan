@@ -1,9 +1,8 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
-import Link from "next/link";
 import { UserPlus, ArrowRight, Trash2, Save, ChevronDown, ChevronRight, Plus } from "lucide-react";
-import { formatBRL, formatDate } from "@/lib/therapy";
+import { formatDate } from "@/lib/therapy";
 import { valorParaCampoBR } from "@/lib/dataForm";
 import {
   createProspect, updateProspect, deleteProspect, convertProspect,
@@ -156,20 +155,9 @@ export function ListaProspects({ prospects, contatos }: { prospects: ProspectLin
                         <option value="nao-binario">Não-binário</option>
                       </select>
                     </div>
-                    <div>
-                      <span className={lbl}>Situação</span>
-                      <select name="prospectFechou" defaultValue={p.prospectFechou ?? ""} className={inputCls}>
-                        <option value="">Em aberto</option>
-                        <option value="Fechou">Fechou</option>
-                        <option value="Não fechou">Não fechou</option>
-                      </select>
-                    </div>
                   </div>
                   <div className="flex gap-2 flex-wrap items-center">
                     <button className="inline-flex items-center gap-1.5 bg-primary text-white text-sm px-4 py-2 rounded-xl font-semibold"><Save className="w-4 h-4" /> Atualizar</button>
-                    <Link href={`/dashboard/patients/${p.id}`} className="text-xs font-bold text-primary hover:underline">ver histórico →</Link>
-                    <span className="text-xs text-foreground/40">·</span>
-                    <span className="text-xs text-foreground/40">valor previsto {formatBRL(p.sessionFee)}</span>
                   </div>
                 </form>
 

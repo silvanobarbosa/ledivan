@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import Link from "next/link";
 import { queixaGroup } from "@/lib/queixas";
 import { MessagePatient } from "./MessagePatient";
+import { ModalPacientes } from "./ModalPacientes";
 import { salvarMensagemAniversario } from "@/app/dashboard/actions";
 
 export type PanelPatient = {
@@ -15,13 +16,6 @@ export type PanelPatient = {
 };
 export type PanelPresence = { patientId: string; presente: boolean; date: string };
 
-const ageOf = (birth: string | null): number | null => {
-  if (!birth) return null;
-  const b = new Date(birth), n = new Date();
-  let a = n.getFullYear() - b.getFullYear();
-  if (n.getMonth() < b.getMonth() || (n.getMonth() === b.getMonth() && n.getDate() < b.getDate())) a--;
-  return a >= 0 && a < 130 ? a : null;
-};
 const inRange = (iso: string | null, from: string, to: string): boolean => {
   if (!iso) return false;
   const t = new Date(iso).getTime();
@@ -34,9 +28,18 @@ const card = "glass-card rounded-[24px] p-5 space-y-4";
 const inp = "px-3 py-2 rounded-xl bg-surface border border-border outline-none text-sm";
 const lbl = "text-[11px] font-semibold uppercase tracking-wide text-foreground/40";
 
-function Stat({ n, label, tone = "primary" }: { n: number | string; label: string; tone?: string }) {
+function Stat({ n, label, tone = "primary", onAbrir }: { n: number | string; label: string; tone?: string; onAbrir?: () => void }) {
   const c = tone === "green" ? "text-emerald-600" : tone === "red" ? "text-red-600" : tone === "amber" ? "text-amber-600" : "text-primary";
-  return <div className="text-center"><p className={`text-2xl font-display font-bold ${c}`}>{n}</p><p className="text-[11px] text-foreground/50">{label}</p></div>;
+  const dentro = (<><p className={`text-2xl font-display font-bold ${c}`}>{n}</p><p className="text-[11px] text-foreground/50">{label}</p></>);
+  // Com `onAbrir` o número VIRA o botão que abre a lista — é o padrão que substituiu o link
+  // "abrir" no canto do cartão. Sem ele, segue sendo texto.
+  if (!onAbrir) return <div className="text-center">{dentro}</div>;
+  return (
+    <button type="button" onClick={onAbrir} className="text-center rounded-xl px-1 py-1 hover:bg-surface/70 transition cursor-pointer">
+      {dentro}
+      <span className="block text-[10px] font-semibold text-primary/60">ver lista</span>
+    </button>
+  );
 }
 
 export function DashboardPanels({
@@ -62,7 +65,7 @@ export function DashboardPanels({
         <AtivosInativos patients={patients} presence={presence} corte={corteSemana} />
         <QueixaBloco patients={patients} />
         <Pagamentos patients={patients} />
-        <Presenca patients={patients} presence={presence} />
+        <Presenca presence={presence} />
       </div>
     </section>
   );
@@ -97,7 +100,7 @@ function Relatorios({ patients }: { patients: PanelPatient[] }) {
   const inativos = patients.filter((p) => p.status === "inativo").length;
   return (
     <div className={card}>
-      <div className="flex items-center justify-between"><h4 className="font-display font-bold text-primary">Relatórios</h4><Link href="/dashboard/relatorio-pacientes" className="text-xs text-primary hover:underline">abrir →</Link></div>
+      <h4 className="font-display font-bold text-primary">Relatórios</h4>
       <p className="text-sm text-foreground/50">Recorte por tipo e por período de início, escolhendo as colunas: sexo, e-mail, endereço, escola, idade, telefone, avulso/pacote, vencimento, valor, data de início e data de reajuste.</p>
       <div className="grid grid-cols-3 gap-2">
         <Stat n={ativos + inativos} label="No cadastro" />
@@ -181,7 +184,6 @@ function Aniversariantes({ patients, modeloSalvo, hoje }: { patients: PanelPatie
                 rotulo="Parabenizar"
                 textoInicial={modelo.replace(/\{nome\}/g, p.name.split(" ")[0])}
               />
-              <Link href={`/dashboard/patients/${p.id}`} className="text-xs font-semibold text-primary hover:underline shrink-0">abrir →</Link>
             </div>
           ))}
         </div>
@@ -205,7 +207,12 @@ function Aniversariantes({ patients, modeloSalvo, hoje }: { patients: PanelPatie
 // porque falta pressupõe sessão marcada; aqui basta não ter sessão realizada nos últimos 7 dias.
 // `corte` vem do SERVIDOR de propósito. Chamar Date.now() aqui dentro seria impuro: o memo
 // nunca recomputaria com a passagem do tempo, e cliente e servidor discordariam na hidratação.
+//
+// As três contagens ABREM a lista correspondente numa janela. Antes o cartão trazia a lista de
+// "não vieram" fixa embaixo e um link "abrir" no canto — duas formas de chegar no mesmo lugar,
+// e o cartão crescia sem limite quando a lista era longa.
 function AtivosInativos({ patients, presence, corte }: { patients: PanelPatient[]; presence: PanelPresence[]; corte: string }) {
+  const [lista, setLista] = useState<{ titulo: string; itens: PanelPatient[] } | null>(null);
   const ativos = patients.filter((p) => p.status === "ativo");
   const inativos = patients.filter((p) => p.status === "inativo");
   const semana = useMemo(() => {
@@ -215,23 +222,13 @@ function AtivosInativos({ patients, presence, corte }: { patients: PanelPatient[
   }, [ativos, presence, corte]);
   return (
     <div className={card}>
-      <div className="flex items-center justify-between"><h4 className="font-display font-bold text-primary">Ativos e inativos</h4><Link href="/dashboard/patients" className="text-xs text-primary hover:underline">abrir →</Link></div>
+      <h4 className="font-display font-bold text-primary">Ativos e inativos</h4>
       <div className="grid grid-cols-3 gap-2">
-        <Stat n={ativos.length} label="Ativos" tone="green" />
-        <Stat n={inativos.length} label="Inativos" />
-        <Stat n={semana.length} label="Não vieram na semana" tone="amber" />
+        <Stat n={ativos.length} label="Ativos" tone="green" onAbrir={() => setLista({ titulo: "Pacientes ativos", itens: ativos })} />
+        <Stat n={inativos.length} label="Inativos" onAbrir={() => setLista({ titulo: "Pacientes inativos", itens: inativos })} />
+        <Stat n={semana.length} label="Não vieram na semana" tone="amber" onAbrir={() => setLista({ titulo: "Ativos sem sessão realizada nos últimos 7 dias", itens: semana })} />
       </div>
-      {semana.length > 0 && (
-        <div className="space-y-1 max-h-40 overflow-y-auto border-t border-border pt-3">
-          <span className={lbl}>Ativos sem sessão realizada nos últimos 7 dias</span>
-          {semana.map((p) => (
-            <Link key={p.id} href={`/dashboard/patients/${p.id}`} className="flex items-center justify-between rounded-xl bg-surface/60 px-3 py-1.5 hover:bg-surface transition">
-              <span className="text-sm truncate">{p.name}</span>
-              <span className="text-xs text-primary font-semibold shrink-0">abrir →</span>
-            </Link>
-          ))}
-        </div>
-      )}
+      {lista && <ModalPacientes titulo={lista.titulo} pacientes={lista.itens} onFechar={() => setLista(null)} />}
     </div>
   );
 }
@@ -239,15 +236,23 @@ function AtivosInativos({ patients, presence, corte }: { patients: PanelPatient[
 // 5. QUEIXA PRINCIPAL — mostra as 3 principais e abre o resto sob demanda
 function QueixaBloco({ patients }: { patients: PanelPatient[] }) {
   const [from, setFrom] = useState(""), [to, setTo] = useState(""), [tipo, setTipo] = useState(""), [tudo, setTudo] = useState(false);
+  const [aberta, setAberta] = useState<string | null>(null);
   const base = patients.filter((p) => p.status !== "prospect" && ((from || to) ? inRange(p.startedAt, from, to) : true));
+  // Agrupa GUARDANDO os pacientes, não só a contagem: é a lista que o botão "abrir" mostra.
   const groups = useMemo(() => {
-    const m = new Map<string, number>();
-    for (const p of base) { const g = queixaGroup(p.queixaPrincipal); if (g === "—") continue; m.set(g, (m.get(g) ?? 0) + 1); }
-    return [...m.entries()].sort((a, b) => b[1] - a[1]);
+    const m = new Map<string, PanelPatient[]>();
+    for (const p of base) {
+      const g = queixaGroup(p.queixaPrincipal);
+      if (g === "—") continue;
+      const atual = m.get(g);
+      if (atual) atual.push(p); else m.set(g, [p]);
+    }
+    return [...m.entries()].sort((a, b) => b[1].length - a[1].length);
   }, [base]);
   const filtrados = tipo ? groups.filter((g) => g[0] === tipo) : groups;
   const shown = tipo || tudo ? filtrados : filtrados.slice(0, 3);
   const escondidos = filtrados.length - shown.length;
+  const maior = Math.max(1, ...groups.map((x) => x[1].length));
   return (
     <div className={card}>
       <h4 className="font-display font-bold text-primary">Queixa principal</h4>
@@ -258,10 +263,26 @@ function QueixaBloco({ patients }: { patients: PanelPatient[] }) {
       </div>
       {shown.length === 0 ? <p className="text-sm text-foreground/40">Sem dados.</p> : (
         <>
-          <div className="space-y-1.5">{shown.map((g) => (<div key={g[0]} className="flex items-center gap-2"><span className="text-sm text-foreground/70 w-40 truncate">{g[0]}</span><div className="flex-1 h-2 rounded-full bg-primary/10 overflow-hidden"><div className="h-2 bg-primary" style={{ width: `${(g[1] / Math.max(...groups.map((x) => x[1]))) * 100}%` }} /></div><span className="text-sm font-bold text-primary w-8 text-right">{g[1]}</span></div>))}</div>
+          <div className="space-y-1.5">
+            {shown.map(([nome, lista]) => (
+              <div key={nome} className="flex items-center gap-2">
+                <span className="text-sm text-foreground/70 w-40 truncate" title={nome}>{nome}</span>
+                <div className="flex-1 h-2 rounded-full bg-primary/10 overflow-hidden"><div className="h-2 bg-primary" style={{ width: `${(lista.length / maior) * 100}%` }} /></div>
+                <span className="text-sm font-bold text-primary w-8 text-right">{lista.length}</span>
+                <button type="button" onClick={() => setAberta(nome)} className="text-xs font-bold text-primary hover:underline shrink-0">abrir</button>
+              </div>
+            ))}
+          </div>
           {escondidos > 0 && <button onClick={() => setTudo(true)} className="text-xs font-semibold text-primary hover:underline">abrir as outras {escondidos} →</button>}
           {tudo && !tipo && <button onClick={() => setTudo(false)} className="text-xs font-semibold text-foreground/50 hover:underline">mostrar só as 3 principais</button>}
         </>
+      )}
+      {aberta && (
+        <ModalPacientes
+          titulo={aberta}
+          pacientes={(groups.find((g) => g[0] === aberta)?.[1] ?? []).map((p) => ({ id: p.id, name: p.name }))}
+          onFechar={() => setAberta(null)}
+        />
       )}
     </div>
   );
@@ -281,17 +302,11 @@ function Pagamentos({ patients }: { patients: PanelPatient[] }) {
   );
 }
 
-// 7. PRESENÇA — faltas/presenças, filtro data + idade
-function Presenca({ patients, presence }: { patients: PanelPatient[]; presence: PanelPresence[] }) {
-  const [from, setFrom] = useState(""), [to, setTo] = useState(""), [minA, setMinA] = useState(""), [maxA, setMaxA] = useState("");
-  const ageById = useMemo(() => new Map(patients.map((p) => [p.id, ageOf(p.birthDate)])), [patients]);
-  const rows = presence.filter((r) => {
-    if ((from || to) && !inRange(r.date, from, to)) return false;
-    const a = ageById.get(r.patientId) ?? null;
-    if (minA && (a === null || a < Number(minA))) return false;
-    if (maxA && (a === null || a > Number(maxA))) return false;
-    return true;
-  });
+// 7. PRESENÇA — presenças e faltas no período. Sem filtro de idade: era a única leitura do
+// painel que ninguém usava, e a idade já recorta no relatório de pacientes.
+function Presenca({ presence }: { presence: PanelPresence[] }) {
+  const [from, setFrom] = useState(""), [to, setTo] = useState("");
+  const rows = presence.filter((r) => ((from || to) ? inRange(r.date, from, to) : true));
   const presencas = rows.filter((r) => r.presente).length;
   const faltas = rows.length - presencas;
   const taxa = rows.length ? Math.round((presencas / rows.length) * 100) : 0;
@@ -301,7 +316,6 @@ function Presenca({ patients, presence }: { patients: PanelPatient[]; presence: 
       <div className="flex gap-2 flex-wrap items-end">
         <div><span className={lbl}>De</span><input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className={inp} /></div>
         <div><span className={lbl}>Até</span><input type="date" value={to} onChange={(e) => setTo(e.target.value)} className={inp} /></div>
-        <div><span className={lbl}>Idade</span><div className="flex gap-1"><input type="number" min={0} placeholder="mín" value={minA} onChange={(e) => setMinA(e.target.value)} className={`${inp} w-16`} /><input type="number" min={0} placeholder="máx" value={maxA} onChange={(e) => setMaxA(e.target.value)} className={`${inp} w-16`} /></div></div>
       </div>
       <div className="grid grid-cols-3 gap-2"><Stat n={presencas} label="Presenças" tone="green" /><Stat n={faltas} label="Faltas" tone="red" /><Stat n={`${taxa}%`} label="Comparecimento" /></div>
     </div>

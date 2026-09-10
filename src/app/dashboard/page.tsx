@@ -43,7 +43,6 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
 
   const weekStart = new Date(); weekStart.setHours(0, 0, 0, 0); weekStart.setDate(weekStart.getDate() - weekStart.getDay());
   const weekEnd = new Date(weekStart); weekEnd.setDate(weekEnd.getDate() + 7);
-  const now = new Date();
   const todayStart = (() => { const d = new Date(); d.setHours(0, 0, 0, 0); return d.getTime(); })();
   // Janela do dia para o bloco "Sessões do dia": começa à meia-noite, não em `now`. Sessão das
   // 9h ainda é sessão do dia às 15h — o terapeuta precisa ver o dia inteiro, não só o que sobrou.
@@ -65,14 +64,12 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   if (cutoff) anConds.push(gte(therapySessions.date, cutoff));
   if (end) anConds.push(lte(therapySessions.date, end));
 
-  const [activeRows, weekRows, sessoesDoDia, reservasRows, pkgEndingRows, anRows, pats, pkgRealizedRows] = await Promise.all([
-    db.select({ val: count() }).from(patients).where(and(eq(patients.userId, userId), eq(patients.patientStatus, "ativo"))),
+  const [weekRows, sessoesDoDia, pkgEndingRows, anRows, pats, pkgRealizedRows] = await Promise.all([
     db.select({ val: count() }).from(therapySessions).where(sql`${therapySessions.userId} = ${userId} AND ${therapySessions.date} >= ${weekStart} AND ${therapySessions.date} < ${weekEnd}`),
     db.query.therapySessions.findMany({
       where: sql`${therapySessions.userId} = ${userId} AND ${therapySessions.date} >= ${diaInicio} AND ${therapySessions.date} < ${diaFim} AND ${therapySessions.status} = 'agendada' AND ${therapySessions.pendingConfirmation} = false`,
       with: { patient: { columns: { name: true, id: true } } }, orderBy: [therapySessions.date],
     }),
-    db.select({ val: count() }).from(therapySessions).where(sql`${therapySessions.userId} = ${userId} AND ${therapySessions.date} >= ${now} AND ${therapySessions.pendingConfirmation} = true`),
     db.select({ pid: patientPackages.patientId, total: sql<number>`sum(${patientPackages.sessions})::int` })
       .from(patientPackages).innerJoin(patients, eq(patientPackages.patientId, patients.id))
       .where(and(eq(patientPackages.userId, userId), eq(patients.patientStatus, "ativo"), eq(patients.contractType, "pacote"))).groupBy(patientPackages.patientId),
@@ -99,9 +96,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   }));
   const panelPresence = presenceRows.map((r) => ({ patientId: r.patientId, presente: r.status === "realizada", date: r.date as unknown as string }));
 
-  const activePatients = Number(activeRows[0]?.val || 0);
   const weekSessions = Number(weekRows[0]?.val || 0);
-  const reservasCount = Number(reservasRows[0]?.val || 0);
   const pacotesAcabando = pkgEndingRows.filter((r) => (Number(r.total) - (pkgRealizedMap.get(r.pid) ?? 0)) === 1).length;
 
   // ---- Analíticos ----
@@ -133,34 +128,24 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
 
       <DashboardPanels patients={panelPatients} presence={panelPresence} mensagemAniversario={user.birthdayMessage ?? ""} corteSemana={new Date(todayStart - 6 * 24 * 60 * 60 * 1000).toISOString()} hoje={`${diaInicio.getFullYear()}-${String(diaInicio.getMonth() + 1).padStart(2, "0")}-${String(diaInicio.getDate()).padStart(2, "0")}`} />
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <Link href="/dashboard/patients?status=ativo" className="glass-card rounded-[28px] p-6 flex items-center gap-4 hover:scale-[1.02] active:scale-[0.99] transition group">
-          <div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center shrink-0"><UsersIcon className="w-6 h-6" /></div>
-          <div className="min-w-0"><p className="text-2xl font-display font-bold text-primary leading-none">{activePatients}</p><p className="text-sm text-foreground/50 mt-1 flex items-center gap-1">Pacientes ativos <ChevronRight className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 transition" /></p></div>
-        </Link>
+      {/* "Pacientes ativos" saiu daqui: o painel "Ativos e inativos" acima abre a mesma lista, e
+          ter os dois no mesmo scroll era a mesma informação duas vezes. */}
+      <div className="grid grid-cols-1 gap-4">
         <Link href="/dashboard/agenda" className="glass-card rounded-[28px] p-6 flex items-center gap-4 hover:scale-[1.02] active:scale-[0.99] transition group">
           <div className="w-12 h-12 rounded-2xl bg-accent/10 text-accent flex items-center justify-center shrink-0"><CalendarCheck className="w-6 h-6" /></div>
           <div className="min-w-0"><p className="text-2xl font-display font-bold text-primary leading-none">{weekSessions}</p><p className="text-sm text-foreground/50 mt-1 flex items-center gap-1">Sessões na semana <ChevronRight className="w-3.5 h-3.5 opacity-0 group-hover:opacity-100 transition" /></p></div>
         </Link>
       </div>
 
-      {(reservasCount > 0 || pacotesAcabando > 0) && (
-        <div className="grid sm:grid-cols-2 gap-4">
-          {reservasCount > 0 && (
-            <Link href="/dashboard/reservas" className="flex items-center gap-3 bg-[#fffbeb] border border-[#fde68a] rounded-[28px] p-5 hover:shadow-md transition group">
-              <div className="w-12 h-12 rounded-2xl bg-[#fef3c7] text-[#92400e] flex items-center justify-center text-xl shrink-0">⏳</div>
-              <div className="flex-1 min-w-0"><p className="font-bold text-[#92400e]">{reservasCount} reserva(s) a confirmar</p><p className="text-sm text-[#92400e]/70">Aguardando confirmação.</p></div>
-              <ChevronRight className="w-5 h-5 text-[#92400e]/50 group-hover:translate-x-1 transition shrink-0" />
-            </Link>
-          )}
-          {pacotesAcabando > 0 && (
-            <Link href="/dashboard/pacotes-acabando" className="flex items-center gap-3 bg-[#eff6ff] border border-[#bfdbfe] rounded-[28px] p-5 hover:shadow-md transition group">
-              <div className="w-12 h-12 rounded-2xl bg-[#dbeafe] text-[#1e40af] flex items-center justify-center text-xl shrink-0">📦</div>
-              <div className="flex-1 min-w-0"><p className="font-bold text-[#1e40af]">{pacotesAcabando} com pacote acabando</p><p className="text-sm text-[#1e40af]/70">Resta 1 sessão — renovar.</p></div>
-              <ChevronRight className="w-5 h-5 text-[#1e40af]/50 group-hover:translate-x-1 transition shrink-0" />
-            </Link>
-          )}
-        </div>
+      {/* A faixa de reservas saiu do dashboard a pedido do dono. A tela /dashboard/reservas
+          CONTINUA alcançável pelo cartão "Sessões reservadas" na ficha do paciente — conferi
+          antes de tirar, para não deixar rota órfã. */}
+      {pacotesAcabando > 0 && (
+        <Link href="/dashboard/pacotes-acabando" className="flex items-center gap-3 bg-[#eff6ff] border border-[#bfdbfe] rounded-[28px] p-5 hover:shadow-md transition group">
+          <div className="w-12 h-12 rounded-2xl bg-[#dbeafe] text-[#1e40af] flex items-center justify-center text-xl shrink-0">📦</div>
+          <div className="flex-1 min-w-0"><p className="font-bold text-[#1e40af]">{pacotesAcabando} com pacote acabando</p><p className="text-sm text-[#1e40af]/70">Resta 1 sessão — renovar.</p></div>
+          <ChevronRight className="w-5 h-5 text-[#1e40af]/50 group-hover:translate-x-1 transition shrink-0" />
+        </Link>
       )}
 
       {/* Sessões do dia */}
