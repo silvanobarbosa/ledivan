@@ -45,3 +45,9 @@ espaço, invisível) e imagem em lazy nem chega a ser pedida. Uma comparação a
 `revelarTudo(page)` antes de fotografar, e avisa se sobrar bloco invisível. Foi assim que
 apareceu um ícone 404 vivo em produção que a captura cega não mostrava:
 `node scripts/visual-imagens.mjs` lista imagem quebrada com o status HTTP.
+
+# Onde paramos
+
+Antes de propor trabalho neste repo, leia o `HISTORICO.md` da raiz. Ele traz o que já foi
+entregue, as decisões do dono que continuam valendo e as armadilhas que já custaram tempo.
+Ao fechar um bloco (PR mergeado, entrega no ar), acrescente a entrada lá — mais recente em cima.
