@@ -23,7 +23,7 @@ export function BottomNavBar() {
   ];
 
   return (
-    <nav className="lg:hidden fixed bottom-0 w-full z-50 flex justify-around items-center px-4 py-3 bg-surface-container shadow-lg border-t border-outline-variant rounded-t-[32px] backdrop-blur-md bg-white/80">
+    <nav className="print:hidden lg:hidden fixed bottom-0 w-full z-50 flex justify-around items-center px-4 py-3 bg-surface-container shadow-lg border-t border-outline-variant rounded-t-[32px] backdrop-blur-md bg-white/80">
       {navItems.map((item) => {
         const isActive = pathname === item.href;
         const isHash = item.href.startsWith("#");

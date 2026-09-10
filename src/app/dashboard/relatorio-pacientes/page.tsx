@@ -52,7 +52,7 @@ export default async function RelatorioPacientesPage() {
         <h1 className="text-3xl lg:text-4xl font-display font-bold text-primary flex items-center gap-2">
           <ClipboardList className="w-7 h-7" /> Relatório de pacientes
         </h1>
-        <p className="text-foreground/50 mt-1">
+        <p className="text-foreground/50 mt-1 print:hidden">
           Escolha o tipo, o período de início e as colunas que quer ver. O relatório monta na hora.
         </p>
       </div>

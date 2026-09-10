@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from "react";
 import Link from "next/link";
+import { Printer } from "lucide-react";
 import { formatBRL, formatDate } from "@/lib/therapy";
 import { queixaGroup } from "@/lib/queixas";
 
@@ -113,7 +114,7 @@ export function RelatorioPacientes({ linhas }: { linhas: LinhaRelatorio[] }) {
 
   return (
     <div className="space-y-5">
-      <div className="glass-card rounded-[24px] p-5 space-y-4">
+      <div className="glass-card rounded-[24px] p-5 space-y-4 print:hidden">
         <div className="flex gap-3 flex-wrap items-end">
           <div>
             <span className={lbl}>Tipo</span>
@@ -125,6 +126,12 @@ export function RelatorioPacientes({ linhas }: { linhas: LinhaRelatorio[] }) {
           </div>
           <div><span className={lbl}>Início de</span><input type="date" value={de} onChange={(e) => setDe(e.target.value)} className={inp} /></div>
           <div><span className={lbl}>até</span><input type="date" value={ate} onChange={(e) => setAte(e.target.value)} className={inp} /></div>
+          {/* Imprime o que está na tela: o recorte e as colunas escolhidas. As regras de
+              @media print no globals.css é que tiram o menu e soltam a trava de altura do
+              dashboard — sem elas, o papel sairia com o cromo e cortado na primeira página. */}
+          <button type="button" onClick={() => window.print()} className="ml-auto inline-flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-xl font-bold text-sm hover:opacity-90 transition">
+            <Printer className="h-4 w-4" /> Imprimir relatório
+          </button>
         </div>
 
         <div>
@@ -170,7 +177,7 @@ export function RelatorioPacientes({ linhas }: { linhas: LinhaRelatorio[] }) {
                 {visiveis.map((c) => (
                   <th key={c.chave} className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wide text-foreground/40 whitespace-nowrap">{c.rotulo}</th>
                 ))}
-                <th className="px-4 py-3" />
+                <th className="px-4 py-3 print:hidden" />
               </tr>
             </thead>
             <tbody>
@@ -179,7 +186,8 @@ export function RelatorioPacientes({ linhas }: { linhas: LinhaRelatorio[] }) {
                   {visiveis.map((c) => (
                     <td key={c.chave} className="px-4 py-2.5 whitespace-nowrap max-w-[280px] truncate" title={c.valor(p)}>{c.valor(p)}</td>
                   ))}
-                  <td className="px-4 py-2.5 text-right">
+                  {/* coluna de link: no papel não serve para nada */}
+                  <td className="px-4 py-2.5 text-right print:hidden">
                     <Link href={`/dashboard/patients/${p.id}`} className="text-xs font-bold text-primary hover:underline whitespace-nowrap">abrir →</Link>
                   </td>
                 </tr>

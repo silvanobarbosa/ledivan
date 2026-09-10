@@ -53,7 +53,7 @@ export function NavList({ onNavigate }: { onNavigate?: () => void }) {
 
 export function Sidebar() {
   return (
-    <aside className="w-72 bg-white border-r border-border hidden lg:flex flex-col h-screen sticky top-0">
+    <aside className="print:hidden w-72 bg-white border-r border-border hidden lg:flex flex-col h-screen sticky top-0">
       <div className="p-8">
         <Link href="/" className="block">
           <Image src={logoColor} alt="Ledivan" sizes="240px" priority className="h-14 w-auto object-contain" />

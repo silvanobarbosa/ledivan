@@ -35,12 +35,16 @@ export default async function DashboardLayout({
   const isAdmin = isAdminUser(user);
   const isDemo = !!user?.isDemo;
 
+  // Impressão: esta área é `h-screen overflow-hidden` com o conteúdo rolando numa div. Sem
+  // soltar essas travas, imprimir corta tudo na primeira página — e o menu, o cabeçalho e a
+  // barra inferior saem no papel. As classes `print:` abaixo tiram o cromo e deixam o conteúdo
+  // fluir por quantas páginas precisar. Ver também o bloco @media print no globals.css.
   return (
-    <div className="flex min-h-screen bg-surface selection:bg-primary selection:text-white">
+    <div className="flex min-h-screen bg-surface selection:bg-primary selection:text-white print:block print:min-h-0">
       <Sidebar />
 
-      <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
-        <header className="h-20 lg:h-24 bg-white/80 backdrop-blur-md border-b border-border flex items-center justify-between px-6 lg:px-8 shrink-0 z-10">
+      <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden print:h-auto print:overflow-visible print:block">
+        <header className="print:hidden h-20 lg:h-24 bg-white/80 backdrop-blur-md border-b border-border flex items-center justify-between px-6 lg:px-8 shrink-0 z-10">
           <div className="flex items-center gap-3 lg:gap-4 min-w-0">
             <MobileSidebar />
             <Link href="/dashboard" className="lg:hidden flex items-center shrink-0">
@@ -67,14 +71,14 @@ export default async function DashboardLayout({
         </header>
 
         {isDemo && (
-          <div className="bg-[#dbeafe] border-b border-[#93c5fd] text-[#1e40af] text-xs sm:text-sm px-4 py-2 text-center shrink-0 flex items-center justify-center gap-2 flex-wrap">
+          <div className="print:hidden bg-[#dbeafe] border-b border-[#93c5fd] text-[#1e40af] text-xs sm:text-sm px-4 py-2 text-center shrink-0 flex items-center justify-center gap-2 flex-wrap">
             <span>🧪 <strong>Modo demonstração (somente leitura)</strong> — conta de exemplo com 3 anos de uso; nada pode ser alterado.</span>
             {/* Saída SEMPRE visível na demo, por LINK GET (funciona mesmo na conta read-only). */}
             {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- <a> é PROPOSITAL: precisa ser navegação de documento (GET) para o route handler apagar o cookie. Trocar por <Link> volta ao bug do logout que não deslogava na conta demo. */}
             <a href="/auth/logout" className="font-bold underline underline-offset-2 whitespace-nowrap">Sair da demonstração →</a>
           </div>
         )}
-        <main className="flex-1 overflow-y-auto">
+        <main className="flex-1 overflow-y-auto print:overflow-visible print:flex-none">
           <AreaTint>{children}</AreaTint>
         </main>
       </div>
