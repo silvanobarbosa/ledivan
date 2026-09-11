@@ -7,6 +7,46 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-09-10 — Cadastro: idade, anexos do prontuário e o formato de pagamento
+
+**Entregue:** #131 e #132. O cadastro do paciente perdeu a classificação (criança/adolescente/
+adulto/idoso) e passou a mostrar a IDADE calculada da data de nascimento, com um item de casal.
+Dia e hora da sessão saíram do cadastro e ficaram só na agenda. A aba de fotos virou ANEXOS do
+prontuário: laudo, relatório da escola, encaminhamento — arquivo privado, que o aplicativo do
+paciente não lista e a rota de download recusa ao token dele. O bloco financeiro passou a ser
+dirigido pelo FORMATO: gratuito, a cada sessão, mensal e quinzenal, e cada um pergunta só o que
+usa (horas de antecedência, tipo de pacote, semanas do mês, segundo dia de pagamento, validade
+do preço). O histórico de preço aparece na própria tela, com o próximo reajuste calculado.
+
+**Por quê:** anotações do dono à mão, em PDF. A classificação envelhecia sozinha, as fotos 3x4
+não eram o que ele guarda, e o financeiro perguntava dia de pagamento para quem paga por sessão.
+
+**Decisões que ficam valendo:**
+- Formato de pagamento é a chave do financeiro. `avulso` virou `sessao` e `pacote` virou
+  `mensal` + `pacoteTipo`; a migração dos dados já rodou na base real (33 + 28 + 55 registros).
+- Pacote `completo` são 4 sessões no mês; `fragmentado` é semanas × vezes por semana, e pode ter
+  mais de uma sessão na mesma semana.
+- `gratuito` aparece na agenda como **Social**, nunca como "de graça": é a palavra que o dono usa
+  com o paciente, e alguém pode ler a tela por cima do ombro.
+- A mensagem automática de cobrança (X horas antes da sessão) ficou de fora a pedido do dono,
+  para depois dos outros itens.
+
+**Armadilhas:**
+- O caminho de ESCRITA nunca tinha sido percorrido em navegador. `scripts/e2e-escrita.mjs` faz
+  isso com uma conta de QA de verdade. Ele guarda a sessão em `_visual/.sessao-qa.json` porque o
+  login é fail-closed (10 por e-mail a cada 15 minutos) — e o cookie guardado é do domínio
+  `localhost`, então rodar contra `127.0.0.1` derruba a sessão e o percurso falha na segunda tela.
+- Produção é **ledivan.com.br**. `ledivan.vercel.app` responde outra coisa (tela de login com
+  Google e link mágico, sem senha): conferir o app por lá dá conclusão errada.
+- Os rádios do formato ficam dentro de cartões e o clique do mouse esbarra no layout; em teste,
+  marcar pelo elemento (`el.click()` no próprio input) é o que reage.
+
+**Pendente:** a mensagem automática de cobrança (quantas, o texto, e o que acontece se o
+pagamento não vier) — do dono. A conta `qa.ledivan@reverblabs.com.br` continua na base real, sem
+nenhum paciente.
+
+---
+
 ## 2026-09-10 — Ajustes do PDF de revisão do dono
 
 **Entregue:** #127. Onze ajustes finos sobre os painéis: as contagens de ativos, inativos, quem
