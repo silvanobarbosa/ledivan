@@ -1,6 +1,6 @@
 import { db } from "@/db";
 import { auth } from "@/auth";
-import { therapySessions, patients, users, patientPackages } from "@/db/schema";
+import { therapySessions, patients, users, patientPackages, sessionPayments } from "@/db/schema";
 import { and, eq, ne, gte, isNotNull } from "drizzle-orm";
 import { AgendaClient } from "./AgendaClient";
 import { riskFromSessions } from "@/lib/therapy";
@@ -9,6 +9,7 @@ import { parseHolidayCities, holidaysByDate } from "@/lib/holidays";
 import { derivePackageLabels } from "@/lib/packages";
 import { numeracaoDoPacote } from "@/lib/pacoteMes";
 import { usaPacote } from "@/lib/reajuste";
+import { pagamentoAtrasado } from "@/lib/pagamentoSessao";
 
 export default async function AgendaPage() {
   const session = await auth();
@@ -25,7 +26,7 @@ export default async function AgendaPage() {
     }),
     db.query.patients.findMany({
       where: and(eq(patients.userId, session.user.id), ne(patients.patientStatus, "inativo")),
-      columns: { id: true, name: true, patientStatus: true, attendanceMode: true, attendanceLocation: true, birthDate: true, paymentFormat: true, pacoteTipo: true },
+      columns: { id: true, name: true, patientStatus: true, attendanceMode: true, attendanceLocation: true, birthDate: true, paymentFormat: true, pacoteTipo: true, horasAntesPagamento: true },
       orderBy: [patients.name],
     }),
     db.query.users.findFirst({ where: eq(users.id, session.user.id) }),
@@ -60,6 +61,26 @@ export default async function AgendaPage() {
       const tipo = paciente.pacoteTipo === "fragmentado" ? "fragmentado" : "completo";
       for (const [id, pos] of numeracaoDoPacote(doPaciente, tipo)) {
         pkgLabels.set(id, { seq: 0, index: pos.index, total: pos.total });
+      }
+    }
+  }
+
+  // Pagamento atrasado: só marca, não faz. Quem paga a cada sessão tem um prazo ("pagar até X
+  // horas antes"); passado o prazo sem pagamento, a agenda avisa o profissional — que decide
+  // atender assim mesmo ou cancelar a sessão. O sistema não cancela nada sozinho.
+  const agora = new Date();
+  const porSessao = new Map(pats.filter((x) => x.paymentFormat === "sessao" && x.horasAntesPagamento).map((x) => [x.id, x.horasAntesPagamento as number]));
+  const atrasadas = new Set<string>();
+  if (porSessao.size) {
+    const pagos = await db.select({ sessionId: sessionPayments.sessionId })
+      .from(sessionPayments)
+      .where(and(eq(sessionPayments.userId, session.user.id), eq(sessionPayments.status, "paid")));
+    const pagas = new Set(pagos.map((x) => x.sessionId).filter(Boolean) as string[]);
+    for (const s of list) {
+      const horas = porSessao.get(s.patientId);
+      if (!horas) continue;
+      if (pagamentoAtrasado({ agora, dataSessao: s.date as Date, horasAntes: horas, pago: pagas.has(s.id), status: s.status })) {
+        atrasadas.add(s.id);
       }
     }
   }
@@ -112,6 +133,7 @@ export default async function AgendaPage() {
           patientId: s.patientId,
           sessionKind: s.sessionKind ?? "consulta",
           pkg: pkgLabels.get(s.id) ?? null,
+          pagamentoAtrasado: atrasadas.has(s.id),
         }))}
         patients={pats.map((p) => ({ id: p.id, name: p.name, status: p.patientStatus, attendanceMode: p.attendanceMode, attendanceLocation: p.attendanceLocation, social: p.paymentFormat === "gratuito" }))}
         birthdays={pats.filter((p) => p.birthDate).map((p) => { const b = new Date(p.birthDate as unknown as string); return { name: p.name, month: b.getMonth() + 1, day: b.getDate() }; })}

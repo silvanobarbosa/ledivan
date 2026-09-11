@@ -14,7 +14,7 @@ type PatientLite = { id: string; name: string; status: string; attendanceMode: s
 type LocationLite = { name: string; address: string };
 
 type SessionStatus = "realizada" | "nao_realizada" | "cancelada" | "realocada" | "agendada";
-type AgendaSession = { id: string; date: string; duration: number; status: string; patientName: string; isOnline: boolean; risk: string; meetingUrl: string | null; meetingOpenedAt: string | null; guestJoinedAt: string | null; meetingEndedAt: string | null; pendingConfirmation: boolean; patientConfirmed: boolean; rescheduleRequested: boolean; patientArrived: boolean; location: string | null; recurring: boolean; recurrenceFreq?: string | null; patientId?: string; sessionKind?: string; pkg?: { seq: number; index: number; total: number } | null };
+type AgendaSession = { id: string; date: string; duration: number; status: string; patientName: string; isOnline: boolean; risk: string; meetingUrl: string | null; meetingOpenedAt: string | null; guestJoinedAt: string | null; meetingEndedAt: string | null; pendingConfirmation: boolean; patientConfirmed: boolean; rescheduleRequested: boolean; patientArrived: boolean; location: string | null; recurring: boolean; recurrenceFreq?: string | null; patientId?: string; sessionKind?: string; pkg?: { seq: number; index: number; total: number } | null; pagamentoAtrasado?: boolean };
 
 const blockColor = (s: AgendaSession) => sessionColorClasses(s.status, s.pendingConfirmation, s.recurring);
 
@@ -368,6 +368,9 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
                               pacientes — "de graça" não é o que ele diz, nem o que a
                               pessoa deveria ler se olhar a tela por cima do ombro. */}
                           {pacienteSocial(s.patientId) && <p className="text-[9px] font-bold uppercase tracking-wide text-[#047857]">Social</p>}
+                          {/* Passou do prazo de pagamento e nada entrou. É só um aviso ao profissional: a sessão
+                              continua de pé, e cancelar (ou atender assim mesmo) é decisão dele. */}
+                          {s.pagamentoAtrasado && <p className="text-[9px] font-bold uppercase tracking-wide text-red-600">Pagamento atrasado</p>}
                           {s.pkg && <p className="text-[9px] font-bold uppercase tracking-wide text-emerald-700/80">{s.pendingConfirmation ? "Reserva pacote" : "Pacote"}{s.pkg.seq > 0 ? ` P${s.pkg.seq}` : ""} · {s.pkg.index}/{s.pkg.total}</p>}
                         </button>
                       );
