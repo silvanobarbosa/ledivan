@@ -140,7 +140,10 @@ export function ListaProspects({ prospects, contatos }: { prospects: ProspectLin
             const expandido = aberto === p.id;
             const a = idadeDe(p.birthDate);
             return (
-              <div key={p.id} className="glass-card rounded-[24px] p-5 space-y-3">
+              // `data-prospect` dá um endereço estável para cada linha. Sem ele, o percurso de
+              // escrita precisava contar posições para achar a pessoa certa, e a contagem
+              // escorregava a cada prospect novo — o teste passava a clicar na linha do vizinho.
+              <div key={p.id} data-prospect={p.id} className="glass-card rounded-[24px] p-5 space-y-3">
                 {/* Uma caixa por pessoa: os campos são editáveis aqui mesmo e o botão atualiza. */}
                 <form action={updateProspect} className="space-y-3">
                   <input type="hidden" name="id" value={p.id} />

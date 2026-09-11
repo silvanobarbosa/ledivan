@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, type ReactNode } from "react";
+import Link from "next/link";
 import { InfoTip } from "@/components/InfoTip";
 import { MessageCircle } from "lucide-react";
 import { AttendanceFields } from "@/components/dashboard/AttendanceFields";
@@ -11,7 +12,6 @@ import { idadeEmPalavras } from "@/lib/idade";
 
 const inputCls = "w-full px-4 py-3 rounded-2xl bg-white/70 border border-border focus:ring-2 focus:ring-accent/20 focus:border-accent outline-none transition";
 const labelCls = "block text-sm font-semibold text-foreground/70 mb-1.5";
-const DAYS = ["segunda", "terça", "quarta", "quinta", "sexta", "sábado", "domingo"];
 
 export type PatientFormData = {
   registrationNumber?: number | null; agendaId?: string | null; dueDateType?: string | null; dueDate?: string | null; queixaPrincipal?: string | null;
@@ -64,15 +64,12 @@ const TABS = [
   { k: "dados", label: "Dados" },
   { k: "atendimento", label: "Atendimento" },
   { k: "financeiro", label: "Financeiro" },
-  { k: "fotos", label: "Fotos" },
 ];
 
 export function PatientFormFields({ p, locations }: { p?: PatientFormData; locations: { name: string; address: string }[] }) {
   const [tab, setTab] = useState("dados");
   const [format, setFormat] = useState(p?.paymentFormat || "avulso");
   const [dueType, setDueType] = useState(p?.dueDateType || "");
-  const [lock, setLock] = useState("nao");
-  const [lockMode, setLockMode] = useState("duracao"); // duracao | data
   const GENDERS = ["feminino", "masculino", "nao-binario"];
   const initialGender = p?.gender ? (GENDERS.includes(p.gender) ? p.gender : "outro") : "";
   const [gender, setGender] = useState(initialGender);
@@ -186,6 +183,16 @@ export function PatientFormFields({ p, locations }: { p?: PatientFormData; locat
           </div>
           <div><label className={labelCls}>Endereço</label><input name="address" defaultValue={p?.address ?? ""} className={inputCls} placeholder="Endereço residencial" /></div>
           <div className="grid sm:grid-cols-2 gap-4">
+            <div>
+              {/* A foto 3x4 fica: é ela que identifica a pessoa na lista e na ficha. As outras
+                  três, soltas, viraram ANEXOS do prontuário — o que chega na mão do terapeuta é
+                  laudo, relatório da escola, encaminhamento, e quase nunca foto. */}
+              <label className={labelCls}>Foto do paciente</label>
+              <PhotoSlots initial={{ photo3x4: p?.photo3x4 ?? null }} apenas3x4 />
+            </div>
+            <div className="hidden sm:block" />
+          </div>
+          <div className="grid sm:grid-cols-2 gap-4">
             <div><label className={labelCls}>Escola</label><input name="schoolName" defaultValue={p?.schoolName ?? ""} className={inputCls} placeholder="Nome da escola" /></div>
             <div><label className={labelCls}>Contato da escola</label><input name="schoolContact" defaultValue={p?.schoolContact ?? ""} className={inputCls} placeholder="Telefone, e-mail ou coordenação" /></div>
           </div>
@@ -244,90 +251,20 @@ export function PatientFormFields({ p, locations }: { p?: PatientFormData; locat
                 <option value="2x_semana">2x por semana</option>
               </select>
             </div>
-            <div>
-              <label className={labelCls}>Dia de atendimento</label>
-              <select name="attendanceDay" className={inputCls} defaultValue={p?.attendanceDay || ""}>
-                <option value="">—</option>
-                {DAYS.map((d) => <option key={d} value={d} className="capitalize">{d}</option>)}
-              </select>
+            <div className="sm:col-span-2 rounded-2xl bg-surface/70 border border-border px-4 py-3">
+              {/* Dia e hora saíram do cadastro a pedido do dono: quem manda neles é a AGENDA.
+                  Campo digitado aqui virava mentira — mudava o horário na agenda e a ficha
+                  continuava dizendo o antigo. A lista de pacientes agora mostra o dia e a hora da
+                  PRÓXIMA sessão marcada. */}
+              <p className="text-sm font-semibold">Dia e horário ficam na agenda</p>
+              <p className="text-xs text-foreground/60 mt-1">
+                Marque as sessões pela <Link href="/dashboard/agenda" className="text-primary font-semibold underline">Agenda</Link>,
+                onde dá para repetir semanal, quinzenal ou mensalmente até uma data. A ficha e a
+                lista passam a mostrar o horário da próxima sessão marcada.
+              </p>
             </div>
-            <div><label className={labelCls}>Hora</label><input name="attendanceTime" type="time" defaultValue={p?.attendanceTime ?? ""} className={inputCls} /></div>
           </div>
 
-          {/* Travar agenda no dia/horário escolhido */}
-          <div className="pt-2 border-t border-border">
-            <p className="text-xs font-bold text-foreground/40 uppercase tracking-widest mb-3 mt-3">Reservar agenda<InfoTip text="Reserva o dia/horário na recorrência escolhida (semanal/quinzenal/mensal), pelo período definido. 'Agendada' = confirmada; 'Reservada' = aguardando confirmação. Protege o slot de outra recorrência sobreposta." /></p>
-            <div className="grid sm:grid-cols-3 gap-4 items-end">
-              <div>
-                <label className={labelCls}>Reservar como</label>
-                <select name="lockAgenda" className={inputCls} value={lock} onChange={(e) => setLock(e.target.value)}>
-                  <option value="nao">Não reservar</option>
-                  <option value="agendada">Agendada (confirmada)</option>
-                  <option value="reservada">Reservada (a confirmar)</option>
-                </select>
-              </div>
-              {lock !== "nao" && (
-                <div>
-                  <label className={labelCls}>Período por</label>
-                  <select name="lockEndMode" className={inputCls} value={lockMode} onChange={(e) => setLockMode(e.target.value)}>
-                    <option value="duracao">Duração (meses/anos)</option>
-                    <option value="data">Data específica</option>
-                  </select>
-                </div>
-              )}
-            </div>
-            {lock !== "nao" && (
-              <div className="grid sm:grid-cols-3 gap-4 items-end mt-4">
-                <div><label className={labelCls}>Início</label><input name="lockStart" type="date" className={inputCls} /></div>
-                {lockMode === "duracao" ? (
-                  <>
-                    <div><label className={labelCls}>Por</label><input name="lockDurationValue" type="number" min={1} max={5} defaultValue={1} className={inputCls} /></div>
-                    <div>
-                      <label className={labelCls}>Unidade</label>
-                      <select name="lockDurationUnit" className={inputCls} defaultValue="anos">
-                        <option value="anos">Ano(s)</option>
-                        <option value="meses">Mês(es)</option>
-                      </select>
-                    </div>
-                  </>
-                ) : (
-                  <div className="sm:col-span-2"><label className={labelCls}>Até</label><input name="lockEnd" type="date" className={inputCls} /></div>
-                )}
-              </div>
-            )}
-            {lock !== "nao" && <p className="text-[11px] text-foreground/50 mt-2">Usa o <strong>dia</strong>, a <strong>hora</strong> e a <strong>recorrência</strong> escolhidos acima. Sem início definido, começa hoje.</p>}
-          </div>
-
-          <div className="pt-2 border-t border-border">
-            <p className="text-xs font-bold text-foreground/40 uppercase tracking-widest mb-3 mt-3">Lembrete de sessão<InfoTip text="Envia lembrete automático antes da sessão pelo canal escolhido (precisa do canal conectado em Ajustes)." /></p>
-            <label className="flex items-center gap-2 text-sm mb-3 cursor-pointer">
-              <input type="checkbox" name="reminderEnabled" defaultChecked={p?.reminderEnabled} className="accent-primary w-4 h-4" /> Enviar lembrete automático antes da sessão
-            </label>
-            <div className="grid sm:grid-cols-2 gap-4">
-              <div>
-                <label className={labelCls}>Canal do lembrete</label>
-                <select name="reminderChannel" className={inputCls} defaultValue={p?.reminderChannel || "whatsapp"}>
-                  <option value="whatsapp">WhatsApp</option><option value="email">E-mail</option><option value="telegram">Telegram</option>
-                </select>
-              </div>
-              <div>
-                <label className={labelCls}>Antecedência</label>
-                <select name="reminderLeadMinutes" className={inputCls} defaultValue={p?.reminderLeadMinutes ?? 60}>
-                  {REMINDER_LEAD_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-                </select>
-              </div>
-              <div>
-                <label className={labelCls}>Lembrete do status do dia<InfoTip text="Se o recurso 'Status do dia' estiver ligado para este paciente, o app o lembra de mandar o status nessa frequência." /></label>
-                <select name="statusReminderDays" className={inputCls} defaultValue={p?.statusReminderDays ?? 0}>
-                  <option value={0}>Desligado</option>
-                  <option value={1}>Diário</option>
-                  <option value={2}>A cada 2 dias</option>
-                  <option value={3}>A cada 3 dias</option>
-                  <option value={7}>Semanal</option>
-                </select>
-              </div>
-            </div>
-          </div>
         </Card>
       </div>
 
@@ -367,11 +304,6 @@ export function PatientFormFields({ p, locations }: { p?: PatientFormData; locat
       </div>
 
       {/* FOTOS */}
-      <div className={show("fotos")}>
-        <Card title="Fotos">
-          <PhotoSlots initial={{ photo3x4: p?.photo3x4 ?? null, photoExtra1: p?.photoExtra1 ?? null, photoExtra2: p?.photoExtra2 ?? null, photoExtra3: p?.photoExtra3 ?? null }} />
-        </Card>
-      </div>
 
       <p className="text-xs text-foreground/50 px-1">💡 Etiquetas e observações ficam no <strong>Prontuário</strong> do paciente.</p>
     </div>

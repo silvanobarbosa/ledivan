@@ -23,6 +23,8 @@ export async function GET(req: Request, { params }: { params: Promise<{ docId: s
   let allowed = !!s?.user?.id && s.user.id === doc.userId;
   if (!allowed) {
     const p = patientFromBearer(req);
+    // Anexo do prontuário não é do paciente, mesmo que ele acerte o id do documento.
+    if (!doc.compartilhado) return NextResponse.json({ error: "Não encontrado." }, { status: 404 });
     allowed = !!p && p.userId === doc.userId && p.patientId === doc.patientId;
   }
   if (!allowed) return NextResponse.json({ error: "Não autorizado." }, { status: 401 });

@@ -115,6 +115,10 @@ export const patientDocument = pgTable("patient_document", {
   title: text("title").notNull(),
   kind: text("kind").default("text").notNull(), // text | link
   content: text("content").notNull(), // texto do material OU url
+  // Compartilhado com o paciente (aparece no app dele) ou ANEXO interno do prontuário.
+  // O padrão é `true` porque tudo o que já existia era material para o paciente ver; os anexos
+  // do prontuário nascem com `false` e nunca saem do lado do terapeuta.
+  compartilhado: boolean("compartilhado").default(true).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (t) => ([
   index("patient_document_patient_idx").on(t.patientId),

@@ -12,6 +12,7 @@ import { ATTENDANCE_MODE_LABELS } from "@/lib/locations";
 import { MessagePatient } from "@/components/dashboard/MessagePatient";
 import { AssignmentsTab } from "./AssignmentsTab";
 import { MaterialsTab } from "./MaterialsTab";
+import { AnexosProntuario } from "./AnexosProntuario";
 import { PatientFeatures } from "./PatientFeatures";
 import { SessionSummary } from "./SessionSummary";
 import { TreatmentPlan } from "./TreatmentPlan";
@@ -345,6 +346,7 @@ export function PatientDetail({
       {/* Prontuário */}
       {tab === "Prontuário" && (
         <div className="space-y-4">
+          <AnexosProntuario patientId={patient.id} />
           {/* Cabeçalho do prontuário: etiquetas + observações (editáveis, com histórico) */}
           <form action={updatePatientNotes.bind(null, patient.id)} className="glass-card rounded-[24px] p-5 space-y-3">
             <p className="text-xs font-bold text-foreground/40 uppercase tracking-widest">Cabeçalho do prontuário</p>
