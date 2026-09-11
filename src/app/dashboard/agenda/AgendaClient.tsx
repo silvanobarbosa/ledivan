@@ -8,7 +8,9 @@ import { updateSessionStatus, confirmSession, createSessionFromAgenda, updateSes
 import { HolidaySetup } from "@/components/dashboard/HolidaySetup";
 import { HOLIDAY_STYLE, type Holiday, type HolidayCity } from "@/lib/holidays-style";
 
-type PatientLite = { id: string; name: string; status: string; attendanceMode: string | null; attendanceLocation: string | null };
+type PatientLite = { id: string; name: string; status: string; attendanceMode: string | null; attendanceLocation: string | null   /** Atendimento gratuito: a agenda marca a sessão como "social". */
+  social?: boolean;
+};
 type LocationLite = { name: string; address: string };
 
 type SessionStatus = "realizada" | "nao_realizada" | "cancelada" | "realocada" | "agendada";
@@ -32,6 +34,8 @@ function startOfWeek(d: Date) {
 type Birthday = { name: string; month: number; day: number };
 
 export function AgendaClient({ sessions, patients = [], birthdays = [], locations = [], holidays = {}, holidayCities = [] }: { sessions: AgendaSession[]; patients?: PatientLite[]; birthdays?: Birthday[]; locations?: LocationLite[]; holidays?: Record<string, Holiday[]>; holidayCities?: HolidayCity[] }) {
+  // Quem é atendido de graça: a agenda mostra "social" no cartão da sessão.
+  const pacienteSocial = (id: string | null | undefined) => !!patients.find((x) => x.id === id)?.social;
   const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date()));
   const [selected, setSelected] = useState<AgendaSession | null>(null);
   const [pending, startTransition] = useTransition();
@@ -360,6 +364,10 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
                             <span className="truncate">{s.patientName}</span>
                           </p>
                           {s.sessionKind === "devolutiva" && <p className="text-[9px] font-bold uppercase tracking-wide text-primary/70">Devolutiva</p>}
+                          {/* Gratuito aparece como SOCIAL, palavra que o dono usa com os
+                              pacientes — "de graça" não é o que ele diz, nem o que a
+                              pessoa deveria ler se olhar a tela por cima do ombro. */}
+                          {pacienteSocial(s.patientId) && <p className="text-[9px] font-bold uppercase tracking-wide text-[#047857]">Social</p>}
                           {s.pkg && <p className="text-[9px] font-bold uppercase tracking-wide text-emerald-700/80">{s.pendingConfirmation ? "Reserva pacote" : "Pacote"} P{s.pkg.seq} · {s.pkg.index}/{s.pkg.total}</p>}
                         </button>
                       );
