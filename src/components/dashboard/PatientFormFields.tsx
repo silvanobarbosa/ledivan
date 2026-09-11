@@ -7,6 +7,7 @@ import { AttendanceFields } from "@/components/dashboard/AttendanceFields";
 import { PhotoSlots } from "@/components/dashboard/PhotoSlots";
 import { REMINDER_LEAD_OPTIONS } from "@/lib/reminderLead";
 import { QUEIXAS } from "@/lib/queixas";
+import { idadeEmPalavras } from "@/lib/idade";
 
 const inputCls = "w-full px-4 py-3 rounded-2xl bg-white/70 border border-border focus:ring-2 focus:ring-accent/20 focus:border-accent outline-none transition";
 const labelCls = "block text-sm font-semibold text-foreground/70 mb-1.5";
@@ -15,7 +16,8 @@ const DAYS = ["segunda", "terça", "quarta", "quinta", "sexta", "sábado", "domi
 export type PatientFormData = {
   registrationNumber?: number | null; agendaId?: string | null; dueDateType?: string | null; dueDate?: string | null; queixaPrincipal?: string | null;
   name?: string; phone?: string | null; email?: string | null; patientStatus?: string;
-  startedAt?: string | null; birthDate?: string | null; category?: string | null; gender?: string | null; cpf?: string | null; address?: string | null;
+  startedAt?: string | null; birthDate?: string | null; category?: string | null; isCouple?: boolean | null;
+  guardianRelationship?: string | null; devolutivaMeses?: number | null; gender?: string | null; cpf?: string | null; address?: string | null;
   schoolName?: string | null; schoolContact?: string | null;
   guardianName?: string | null; guardianCpf?: string | null; guardianPhone?: string | null; guardianEmail?: string | null;
   spouseName?: string | null; spousePhone?: string | null; spouseEmail?: string | null; spouseCpf?: string | null;
@@ -74,7 +76,11 @@ export function PatientFormFields({ p, locations }: { p?: PatientFormData; locat
   const GENDERS = ["feminino", "masculino", "nao-binario"];
   const initialGender = p?.gender ? (GENDERS.includes(p.gender) ? p.gender : "outro") : "";
   const [gender, setGender] = useState(initialGender);
-  const [category, setCategory] = useState(p?.category || "");
+  // A classificação saiu: a idade é CALCULADA da data de nascimento, e "casal" virou item próprio.
+  // Rótulo de faixa etária envelhece sozinho — a criança cadastrada em 2019 continuava "criança"
+  // no sistema até alguém lembrar de editar. E o relatório já filtra por data de nascimento.
+  const [nascimento, setNascimento] = useState(p?.birthDate ? new Date(p.birthDate).toISOString().slice(0, 10) : "");
+  const [casal, setCasal] = useState(!!p?.isCouple || p?.category === "casal");
   const initialQueixa = p?.queixaPrincipal ? ((QUEIXAS as readonly string[]).includes(p.queixaPrincipal) ? p.queixaPrincipal : "Outro") : "";
   const [queixa, setQueixa] = useState(initialQueixa);
   const initialRec = (p?.frequency === "semanal" && (p?.timesPerPeriod ?? 1) >= 2) ? "2x_semana" : (p?.frequency || "semanal");
@@ -107,6 +113,18 @@ export function PatientFormFields({ p, locations }: { p?: PatientFormData; locat
             </div>
             <div><label className={labelCls}>ID Agenda</label><input name="agendaId" defaultValue={p?.agendaId ?? ""} className={inputCls} placeholder="Identificação na agenda" /></div>
           </div>
+          {/* Status vem ANTES do nome, na tela de Dados, a pedido do dono: é o primeiro filtro
+              mental de quem abre a ficha ("esta pessoa ainda está em atendimento?"). Ele morava na
+              aba Atendimento, onde quase ninguém ia. */}
+          <div className="sm:max-w-xs">
+            <label className={labelCls}>Status</label>
+            <select name="patientStatus" className={inputCls} defaultValue={p?.patientStatus || "ativo"}>
+              <option value="ativo">Ativo</option>
+              <option value="prospect">Prospect</option>
+              <option value="pausado">Pausado</option>
+              <option value="inativo">Inativo</option>
+            </select>
+          </div>
           <div>
             <label className={labelCls}>Nome *</label>
             {/* onInvalid pula p/ a aba "Dados". As abas ficam todas montadas e a inativa só
@@ -118,17 +136,26 @@ export function PatientFormFields({ p, locations }: { p?: PatientFormData; locat
           <div className="grid sm:grid-cols-2 gap-4">
             <PhoneInput name="phone" defaultValue={p?.phone} />
             <div><label className={labelCls}>E-mail</label><input name="email" type="email" defaultValue={p?.email ?? ""} className={inputCls} placeholder="email@exemplo.com" /></div>
-            <div><label className={labelCls}>Data de nascimento</label><input name="birthDate" type="date" defaultValue={dateVal(p?.birthDate)} className={inputCls} /></div>
             <div>
-              <label className={labelCls}>Classificação</label>
-              <select name="category" value={category} onChange={(e) => setCategory(e.target.value)} className={inputCls}>
-                <option value="">—</option>
-                <option value="crianca">Criança</option>
-                <option value="adolescente">Adolescente</option>
-                <option value="adulto">Adulto</option>
-                <option value="idoso">Idoso</option>
-                <option value="casal">Casal</option>
-              </select>
+              <label className={labelCls}>Data de nascimento</label>
+              <input name="birthDate" type="date" value={nascimento} onChange={(e) => setNascimento(e.target.value)} className={inputCls} />
+            </div>
+            <div>
+              <label className={labelCls}>Idade</label>
+              {/* Calculada, não digitada: idade que se digita fica velha no dia seguinte. Em branco
+                  enquanto não houver data de nascimento — melhor vazio do que um número inventado. */}
+              <input
+                value={idadeEmPalavras(nascimento || null) || "—"}
+                readOnly disabled
+                className={`${inputCls} bg-black/5 text-foreground/50`}
+              />
+            </div>
+            <div className="sm:col-span-2">
+              <label className="flex items-center gap-2 text-sm font-medium cursor-pointer">
+                <input type="checkbox" name="isCouple" value="1" checked={casal} onChange={(e) => setCasal(e.target.checked)} className="accent-primary w-4 h-4" />
+                Atendimento de casal
+              </label>
+              <p className="text-xs text-foreground/50 mt-1">Abre os dados do cônjuge, logo abaixo.</p>
             </div>
             <div>
               <label className={labelCls}>Queixa principal<InfoTip text="Demanda/queixa principal do paciente. Usada nos filtros do painel. Se não estiver na lista, escolha 'Outro'." /></label>
@@ -169,12 +196,13 @@ export function PatientFormFields({ p, locations }: { p?: PatientFormData; locat
           <div className="grid sm:grid-cols-2 gap-4">
             <div><label className={labelCls}>Nome do responsável</label><input name="guardianName" defaultValue={p?.guardianName ?? ""} className={inputCls} placeholder="Nome completo" /></div>
             <div><label className={labelCls}>CPF do responsável</label><input name="guardianCpf" defaultValue={p?.guardianCpf ?? ""} className={inputCls} placeholder="000.000.000-00" /></div>
+            <div><label className={labelCls}>Grau de parentesco</label><input name="guardianRelationship" defaultValue={p?.guardianRelationship ?? ""} className={inputCls} placeholder="Mãe, pai, avó, tutor…" /></div>
             <PhoneInput name="guardianPhone" defaultValue={p?.guardianPhone} label="Telefone do responsável" />
             <div><label className={labelCls}>E-mail do responsável</label><input name="guardianEmail" type="email" defaultValue={p?.guardianEmail ?? ""} className={inputCls} placeholder="email@exemplo.com" /></div>
           </div>
         </Card>
 
-        {category === "casal" && (
+        {casal && (
           <Card title="Dados do cônjuge">
             <div className="grid sm:grid-cols-2 gap-4">
               <div><label className={labelCls}>Nome do cônjuge</label><input name="spouseName" defaultValue={p?.spouseName ?? ""} className={inputCls} placeholder="Nome completo" /></div>
@@ -201,13 +229,11 @@ export function PatientFormFields({ p, locations }: { p?: PatientFormData; locat
           <AttendanceFields locations={locations} defaultMode={p?.attendanceMode ?? "presencial"} defaultLocation={p?.attendanceLocation ?? null} />
           <div className="grid sm:grid-cols-2 gap-4">
             <div>
-              <label className={labelCls}>Status</label>
-              <select name="patientStatus" className={inputCls} defaultValue={p?.patientStatus || "ativo"}>
-                <option value="ativo">Ativo</option>
-                <option value="prospect">Prospect</option>
-                <option value="pausado">Pausado</option>
-                <option value="inativo">Inativo</option>
-              </select>
+              <label className={labelCls}>Devolutiva a cada<InfoTip text="A cada quantos meses fazer a devolutiva, contados da PRIMEIRA sessão. Em branco = não combinada." /></label>
+              <div className="flex items-center gap-2">
+                <input name="devolutivaMeses" type="number" min={1} max={24} defaultValue={p?.devolutivaMeses ?? ""} className={inputCls} placeholder="ex: 6" />
+                <span className="text-sm text-foreground/60 whitespace-nowrap">meses</span>
+              </div>
             </div>
             <div>
               <label className={labelCls}>Recorrência de atendimento<InfoTip text="Quantas vezes e em que período o paciente é atendido. É a referência usada também no financeiro." /></label>

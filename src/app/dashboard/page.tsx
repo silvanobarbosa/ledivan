@@ -116,7 +116,6 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   for (const r of done) { const d = new Date(r.date as unknown as string); monthMap.set(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`, (monthMap.get(`${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`) ?? 0) + 1); dowArr[d.getDay()]++; }
   const chartMonthly = [...monthMap.entries()].sort((a, b) => a[0].localeCompare(b[0])).slice(-12).map(([k, v]) => { const [y, m] = k.split("-"); return { label: `${MES[parseInt(m) - 1]}/${y.slice(2)}`, count: v }; });
   const chartWeekday = dowArr.map((v, i) => ({ label: DOW[i], count: v }));
-  const chartMode = [{ name: "Online", value: online }, { name: "Presencial", value: presencial }];
 
   return (
     <div className="max-w-7xl mx-auto space-y-8 pb-20">
@@ -189,7 +188,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
           <div className="glass-card rounded-[28px] p-6 flex items-center gap-4"><div className="w-12 h-12 rounded-2xl bg-[#ecfdf5] text-[#047857] flex items-center justify-center"><MapPin className="w-6 h-6" /></div><div><p className="text-2xl font-display font-bold text-primary leading-none">{presencial} <span className="text-sm font-normal text-foreground/40">({pct(presencial)}%)</span></p><p className="text-sm text-foreground/50 mt-1">Presencial</p></div></div>
         </div>
 
-        <AnaliticosCharts monthly={chartMonthly} weekday={chartWeekday} mode={chartMode} />
+        <AnaliticosCharts monthly={chartMonthly} weekday={chartWeekday} />
 
         {/* Por local */}
         <div className="glass-card rounded-[28px] p-6 space-y-4">

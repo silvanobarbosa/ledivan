@@ -170,7 +170,11 @@ export async function createPatient(formData: FormData) {
     prospectDate: (formData.get("patientStatus") as string) === "prospect" ? new Date() : null,
     startedAt: startedAtRaw ? new Date(startedAtRaw) : new Date(),
     birthDate: formData.get("birthDate") ? new Date(formData.get("birthDate") as string) : null,
-    category: (formData.get("category") as string) || null,
+    // A classificação saiu do formulário: idade é calculada da data de nascimento, e "casal"
+    // virou item próprio. A coluna `category` fica no banco com o que já estava registrado.
+    isCouple: formData.get("isCouple") === "1",
+    guardianRelationship: (formData.get("guardianRelationship") as string) || null,
+    devolutivaMeses: formData.get("devolutivaMeses") ? Number(formData.get("devolutivaMeses")) : null,
     queixaPrincipal: (formData.get("queixaPrincipal") as string)?.trim() || null,
     gender: genderOf(formData),
     cpf: (formData.get("cpf") as string) || null,
@@ -272,7 +276,13 @@ export async function updatePatient(patientId: string, formData: FormData) {
     // "Início" (startedAt): o form envia o campo, mas ele NÃO estava no .set() — editar a data
     // de início não salvava (sem erro). Agora persiste.
     startedAt: formData.get("startedAt") ? new Date(formData.get("startedAt") as string) : existing.startedAt,
-    category: (formData.get("category") as string) ?? existing.category,
+    // Checkbox não aparece no FormData quando desmarcado — por isso o `has`: sem ele, desmarcar
+    // "casal" não salvaria nunca, que é o modo de falha clássico de caixa de seleção em formulário.
+    isCouple: formData.has("isCouple") ? formData.get("isCouple") === "1" : existing.isCouple,
+    guardianRelationship: (formData.get("guardianRelationship") as string) ?? existing.guardianRelationship,
+    devolutivaMeses: formData.has("devolutivaMeses")
+      ? (formData.get("devolutivaMeses") ? Number(formData.get("devolutivaMeses")) : null)
+      : existing.devolutivaMeses,
     queixaPrincipal: formData.has("queixaPrincipal") ? ((formData.get("queixaPrincipal") as string)?.trim() || null) : existing.queixaPrincipal,
     gender: formData.has("gender") ? genderOf(formData) : existing.gender,
     cpf: (formData.get("cpf") as string) ?? existing.cpf,
