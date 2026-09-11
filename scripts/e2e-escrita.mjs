@@ -144,18 +144,31 @@ const temCampoContato = await page.locator('input[name="observacao"], textarea[n
 check("dá para registrar um contato novo no prospect", abriu && temCampoContato > 0, `${temCampoContato} campo(s)`);
 
 if (temCampoContato > 0) {
-  await page.fill('input[name="observacao"]', "segundo contato pelo teste");
-  await page.click('button:has-text("Registrar contato")').catch(() => {});
-  await page.waitForTimeout(3000);
+  // Preenche e envia DENTRO do formulário da linha aberta. Espalhar `page.fill` pela página
+  // pegava o primeiro campo que existisse, e o `.catch()` que havia aqui engolia a falha do
+  // clique: o teste seguia como se tivesse registrado.
+  const formContato = page.locator('form:has(input[name="observacao"])').first();
+  await formContato.locator('input[name="observacao"]').fill("segundo contato pelo teste");
+  await formContato.locator('button:has-text("Registrar contato")').click();
+  // Registrar leva de volta à lista (com o parâmetro que força a busca nova). Esperar a página
+  // assentar antes de conferir evita ler a tela no meio da navegação.
+  await page.waitForURL(/salvo=/, { timeout: 30000 }).catch(() => {});
+  await page.waitForTimeout(1500);
   // A prova é a CONTAGEM daquela linha subir de 0 para 1 — "aparece a palavra contato" seria
   // verdade mesmo com o registro perdido.
+  // A prova é a contagem DAQUELA linha: o prospect nasce com um contato (a observação do
+  // cadastro) e passa a ter dois. Contar em vez de procurar a palavra "contato" — que aparece na
+  // tela mesmo quando o registro se perdeu.
   const contagem = await page.evaluate((nome) => {
-    const nomes = Array.from(document.querySelectorAll('input[name="name"]')).map((i) => i.value);
-    const idx = nomes.indexOf(nome);
-    const botoes = Array.from(document.querySelectorAll("button")).filter((b) => /contato\(s\)/i.test(b.textContent ?? ""));
-    return botoes[idx]?.textContent?.trim() ?? "";
+    const campo = Array.from(document.querySelectorAll('input[name="name"]')).find((i) => i.value === nome);
+    if (!campo) return "(prospect sumiu da lista)";
+    const botao = Array.from(document.querySelectorAll("button")).find(
+      (b) => /contato\(s\)/i.test(b.textContent ?? "")
+        && campo.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING,
+    );
+    return botao?.textContent?.trim() ?? "(sem contagem)";
   }, PROSPECT);
-  check("o contato novo entra no histórico daquele prospect", /^1 contato/.test(contagem), contagem || "(sem contagem)");
+  check("o contato novo entra no histórico daquele prospect", /^[2-9]\d* contato/.test(contagem), contagem);
 }
 await page.screenshot({ path: "_visual/escrita/2-prospect-aberto.png", fullPage: true });
 

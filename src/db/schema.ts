@@ -306,7 +306,14 @@ export const patients = pgTable("patients", {
   featureOverrides: text("feature_overrides"), // JSON: liga/desliga recursos "por paciente" (ver lib/features)
   startedAt: timestamp("started_at"),
   birthDate: timestamp("birth_date"),
-  category: text("category"), // crianca | adolescente | adulto | idoso | casal
+  category: text("category"), // LEGADO: crianca | adolescente | adulto | idoso | casal.
+  // Não é mais preenchido pelo cadastro. A idade passou a ser CALCULADA da data de nascimento —
+  // classificação é rótulo que envelhece sozinho: a criança cadastrada em 2019 continua "criança"
+  // até alguém lembrar de editar. Fica a coluna para não perder o que já foi registrado.
+  isCouple: boolean("is_couple").default(false).notNull(), // atendimento de casal (abre o bloco do cônjuge)
+  guardianRelationship: text("guardian_relationship"), // grau de parentesco do responsável
+  // Devolutiva periódica: a cada quantos meses, contados da primeira sessão. Nulo = não combinada.
+  devolutivaMeses: integer("devolutiva_meses"),
   queixaPrincipal: text("queixa_principal"), // queixa/demanda principal (lista curada + "Outro:") — ver lib/queixas
   gender: text("gender"), // gênero (texto livre quando "outro")
   cpf: text("cpf"),

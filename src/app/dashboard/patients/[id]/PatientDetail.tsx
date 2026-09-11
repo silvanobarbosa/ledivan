@@ -1,5 +1,6 @@
 "use client";
 
+import { idadeEmPalavras } from "@/lib/idade";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -45,7 +46,8 @@ type Patient = {
   emergencyName: string | null; emergencyPhone: string | null; emergencyRelationship: string | null;
   contractType: string | null; paymentDay: number | null;
   attendanceMode: string | null; attendanceLocation: string | null; attendanceDay: string | null; attendanceTime: string | null;
-  category: string | null; queixaPrincipal: string | null; spouseName: string | null;
+  category: string | null; isCouple?: boolean | null; birthDate?: string | Date | null;
+  queixaPrincipal: string | null; spouseName: string | null;
   priceReviewDate: string | null;
   sessionsInPacket: number | null; packageCreditsUsed: number; deductPackageOnSession: boolean;
   tags: string | null;
@@ -168,7 +170,7 @@ export function PatientDetail({
               </span>
             )}
           </div>
-          {patient.category === "casal" && patient.spouseName && (
+          {(patient.isCouple || patient.category === "casal") && patient.spouseName && (
             <p className="text-sm text-foreground/50 -mt-0.5">com {patient.spouseName}</p>
           )}
           {/* Linha compacta: dia de atendimento · status financeiro/crédito · mensagem */}
@@ -188,7 +190,11 @@ export function PatientDetail({
           </div>
           <p className="text-foreground/50 mt-1.5 text-sm capitalize">
             {patient.frequency || "—"} · {formatBRL(patient.sessionFee)}/sessão · {FMT_LABEL[patient.paymentFormat || "avulso"] ?? "Avulso"}
-            {patient.category ? <span className="text-foreground/40"> · {CAT_LABEL[patient.category] ?? patient.category}</span> : null}
+            {/* Idade calculada no lugar da classificação: rótulo de faixa etária envelhece sozinho. */}
+            {idadeEmPalavras(patient.birthDate ?? null)
+              ? <span className="text-foreground/40"> · {idadeEmPalavras(patient.birthDate ?? null)}</span>
+              : null}
+            {(patient.isCouple || patient.category === "casal") ? <span className="text-foreground/40"> · casal</span> : null}
           </p>
           <div className="flex gap-4 mt-2 text-sm text-foreground/60 flex-wrap">
             {patient.phone && <span className="flex items-center gap-1.5"><Phone className="w-4 h-4" />{patient.phone}</span>}

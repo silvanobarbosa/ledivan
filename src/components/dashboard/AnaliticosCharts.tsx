@@ -2,14 +2,11 @@
 
 import {
   ResponsiveContainer, BarChart, Bar, LineChart, Line, XAxis, YAxis, Tooltip, CartesianGrid,
-  PieChart, Pie, Cell, Legend,
 } from "recharts";
 
 type Pt = { label: string; count: number };
-type Slice = { name: string; value: number };
 
 const tip = { backgroundColor: "#fff", borderRadius: "12px", border: "1px solid #e7ddd4", fontSize: "12px" } as const;
-const MODE_COLORS = ["#8b5cf6", "#047857"];
 
 function Card({ title, children }: { title: string; children: React.ReactNode }) {
   return (
@@ -21,9 +18,10 @@ function Card({ title, children }: { title: string; children: React.ReactNode })
 }
 function Empty() { return <div className="h-full flex items-center justify-center text-sm text-foreground/40">Sem dados no período.</div>; }
 
-export function AnaliticosCharts({ monthly, weekday, mode }: { monthly: Pt[]; weekday: Pt[]; mode: Slice[] }) {
+// O gráfico "Online × Presencial" saiu a pedido do dono: a informação já está nos dois
+// cartões de contagem logo acima, e o gráfico vivia vazio ("sem dados no período").
+export function AnaliticosCharts({ monthly, weekday }: { monthly: Pt[]; weekday: Pt[] }) {
   const hasM = monthly.some((m) => m.count > 0);
-  const hasMode = mode.some((m) => m.value > 0);
   return (
     <div className="grid lg:grid-cols-2 gap-6">
       <Card title="Atendimentos por mês">
@@ -40,19 +38,6 @@ export function AnaliticosCharts({ monthly, weekday, mode }: { monthly: Pt[]; we
         ) : <Empty />}
       </Card>
 
-      <Card title="Online × Presencial">
-        {hasMode ? (
-          <ResponsiveContainer width="100%" height="100%">
-            <PieChart>
-              <Pie data={mode.filter((m) => m.value > 0)} dataKey="value" nameKey="name" cx="50%" cy="50%" innerRadius={50} outerRadius={85} paddingAngle={3}>
-                {mode.filter((m) => m.value > 0).map((m, i) => <Cell key={i} fill={MODE_COLORS[mode.findIndex((x) => x.name === m.name) % MODE_COLORS.length]} />)}
-              </Pie>
-              <Tooltip contentStyle={tip} />
-              <Legend wrapperStyle={{ fontSize: 12 }} />
-            </PieChart>
-          </ResponsiveContainer>
-        ) : <Empty />}
-      </Card>
 
       <Card title="Por dia da semana">
         {hasM ? (
