@@ -7,6 +7,8 @@ import { riskFromSessions } from "@/lib/therapy";
 import { parseLocations } from "@/lib/locations";
 import { parseHolidayCities, holidaysByDate } from "@/lib/holidays";
 import { derivePackageLabels } from "@/lib/packages";
+import { numeracaoDoPacote } from "@/lib/pacoteMes";
+import { usaPacote } from "@/lib/reajuste";
 
 export default async function AgendaPage() {
   const session = await auth();
@@ -23,7 +25,7 @@ export default async function AgendaPage() {
     }),
     db.query.patients.findMany({
       where: and(eq(patients.userId, session.user.id), ne(patients.patientStatus, "inativo")),
-      columns: { id: true, name: true, patientStatus: true, attendanceMode: true, attendanceLocation: true, birthDate: true, paymentFormat: true },
+      columns: { id: true, name: true, patientStatus: true, attendanceMode: true, attendanceLocation: true, birthDate: true, paymentFormat: true, pacoteTipo: true },
       orderBy: [patients.name],
     }),
     db.query.users.findFirst({ where: eq(users.id, session.user.id) }),
@@ -40,6 +42,28 @@ export default async function AgendaPage() {
     pkgSessions.map((s) => ({ id: s.id, date: s.date, status: s.status, packageId: s.packageId })),
     pkgs,
   );
+
+  // Contagem do pacote pelo CALENDÁRIO (1/3, 2/3…), para quem fecha as contas por pacote. Ela
+  // manda no rótulo: a numeração antiga vinha de um registro de pacote com total fixo, e o dono
+  // quer o total do mês — setembro com três quartas cobra três sessões, outubro cobra quatro.
+  // A busca começa no primeiro dia do mês da janela, senão o mês mais antigo contaria pela metade.
+  const inicioDoMes = new Date(windowStart.getFullYear(), windowStart.getMonth(), 1);
+  const porPacote = pats.filter((x) => usaPacote(x.paymentFormat));
+  if (porPacote.length) {
+    const todas = await db.select({ id: therapySessions.id, patientId: therapySessions.patientId, date: therapySessions.date, status: therapySessions.status })
+      .from(therapySessions)
+      .where(and(eq(therapySessions.userId, session.user.id), gte(therapySessions.date, inicioDoMes)));
+    for (const paciente of porPacote) {
+      const doPaciente = todas
+        .filter((x) => x.patientId === paciente.id)
+        .map((x) => ({ id: x.id, date: x.date as Date, status: x.status }));
+      const tipo = paciente.pacoteTipo === "fragmentado" ? "fragmentado" : "completo";
+      for (const [id, pos] of numeracaoDoPacote(doPaciente, tipo)) {
+        pkgLabels.set(id, { seq: 0, index: pos.index, total: pos.total });
+      }
+    }
+  }
+
   const locations = parseLocations(me?.attendanceLocations);
 
   // Feriados: cidades escolhidas pelo usuário (até 3). Busca anos relevantes (janela + ano atual + próximo).

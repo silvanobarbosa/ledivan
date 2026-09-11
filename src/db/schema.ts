@@ -335,6 +335,12 @@ export const patients = pgTable("patients", {
   spousePhone: text("spouse_phone"),
   spouseEmail: text("spouse_email"),
   spouseCpf: text("spouse_cpf"),
+  // No atendimento de casal os dois são pacientes, e o cônjuge precisa da mesma ficha básica:
+  // nascimento (de onde sai a idade), queixa, gênero e endereço.
+  spouseBirthDate: timestamp("spouse_birth_date"),
+  spouseQueixaPrincipal: text("spouse_queixa_principal"),
+  spouseGender: text("spouse_gender"),
+  spouseAddress: text("spouse_address"),
   attendanceDay: text("attendance_day"), // dia da semana preferencial (seg..dom)
   attendanceTime: text("attendance_time"), // hora preferencial HH:MM
   address: text("address"),
@@ -357,7 +363,8 @@ export const patients = pgTable("patients", {
   attendanceMode: text("attendance_mode").default("presencial").notNull(), // online | presencial | misto
   attendanceLocation: text("attendance_location"), // endereço pré-selecionado (presencial/misto)
   timesPerPeriod: integer("times_per_period").default(1).notNull(), // vezes por período da recorrência (ex: 2x/semana)
-  // gratuito | sessao | mensal | quinzenal (valores antigos: avulso, pacote — ainda lidos)
+  // gratuito | sessao | mensal | quinzenal | primeira_pacote | ultima_pacote
+  // (valores antigos: avulso, pacote — ainda lidos)
   //
   // "avulso" virou "sessao" e "pacote" virou uma FORMA de cobrar dentro de mensal/quinzenal, que
   // é como o dono descreve o combinado com o paciente: primeiro o formato, depois o pacote.
@@ -370,6 +377,8 @@ export const patients = pgTable("patients", {
   validadePrecoMeses: integer("validade_preco_meses"),
   // Pacote: "completo" são 4 sessões (o padrão do dono); "fragmentado" é por semanas do mês.
   pacoteTipo: text("pacote_tipo"),
+  // LEGADO: o terapeuta informava quantas semanas do mês tinham atendimento. Não é mais
+  // perguntado — o sistema conta as sessões DENTRO DO MÊS, pelos agendamentos da agenda.
   semanasNoMes: integer("semanas_no_mes"),
   // Quinzenal tem dois dias de pagamento; o primeiro reaproveita `paymentDay`.
   paymentDay2: integer("payment_day_2"),

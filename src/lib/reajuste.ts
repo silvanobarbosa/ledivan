@@ -8,14 +8,28 @@
  *    para ativo. Contar do início original faria o reajuste vencer no dia em que a pessoa volta,
  *    depois de meses sem atendimento.
  *
- * 2. O pacote mensal padrão é de 4 sessões. Quando é fragmentado, o terapeuta informa quantas
- *    semanas do mês tem atendimento e o sistema calcula as sessões — inclusive quando são duas ou
- *    mais por semana.
+ * 2. O pacote mensal padrão é de 4 sessões. Quando é fragmentado, quem diz o total é a AGENDA: o
+ *    sistema conta as sessões que caem dentro do mês (ver lib/pacoteMes). O terapeuta não informa
+ *    mais as semanas.
  *
  * Tudo aqui é função pura: decide, não grava.
  */
 
-export type FormatoPagamento = "gratuito" | "sessao" | "mensal" | "quinzenal";
+/**
+ * Os seis formatos que o dono combina com o paciente.
+ *
+ * `primeira_pacote` e `ultima_pacote` cobram o pacote inteiro de uma vez — na primeira ou na
+ * última sessão dele — e por isso não têm dia de pagamento: o dia é o da sessão.
+ */
+export type FormatoPagamento =
+  | "gratuito" | "sessao" | "mensal" | "quinzenal" | "primeira_pacote" | "ultima_pacote";
+
+/** Formatos que fecham as contas por PACOTE (e portanto perguntam completo ou fragmentado). */
+export const FORMATOS_COM_PACOTE = ["mensal", "quinzenal", "primeira_pacote", "ultima_pacote"];
+
+export function usaPacote(formato: FormatoPagamento | string | null | undefined): boolean {
+  return FORMATOS_COM_PACOTE.includes(formato ?? "");
+}
 
 export const SESSOES_PACOTE_COMPLETO = 4;
 
@@ -64,18 +78,15 @@ export function diasParaReajuste(vencimento: Date | null, hoje: Date = new Date(
 /**
  * Sessões previstas no mês.
  *
- * Pacote completo: 4, o padrão. Fragmentado: semanas de atendimento × vezes por semana — porque o
- * dono lembrou que pode haver mais de uma sessão na mesma semana.
+ * Pacote completo: 4, sempre. Fragmentado: o que a agenda tiver marcado naquele mês — a contagem
+ * vem de `sessoesDoMes` (lib/pacoteMes) e chega aqui pronta.
  */
 export function sessoesNoMes(opts: {
   pacote: "completo" | "fragmentado" | null | undefined;
-  semanasNoMes?: number | null;
-  vezesPorSemana?: number | null;
+  sessoesAgendadas?: number | null;
 }): number {
   if (opts.pacote !== "fragmentado") return SESSOES_PACOTE_COMPLETO;
-  const semanas = Math.max(0, Math.floor(opts.semanasNoMes ?? 0));
-  const vezes = Math.max(1, Math.floor(opts.vezesPorSemana ?? 1));
-  return semanas * vezes;
+  return Math.max(0, Math.floor(opts.sessoesAgendadas ?? 0));
 }
 
 /** Quanto o paciente paga no mês, no formato escolhido. Gratuito é zero, sempre. */
@@ -83,12 +94,11 @@ export function valorDoMes(opts: {
   formato: FormatoPagamento | string | null | undefined;
   valorSessao: number;
   pacote?: "completo" | "fragmentado" | null;
-  semanasNoMes?: number | null;
-  vezesPorSemana?: number | null;
+  sessoesAgendadas?: number | null;
 }): number {
   if (!cobra(opts.formato)) return 0;
   if (opts.formato === "sessao") return opts.valorSessao;   // paga por atendimento, não por mês
-  const sessoes = sessoesNoMes({ pacote: opts.pacote, semanasNoMes: opts.semanasNoMes, vezesPorSemana: opts.vezesPorSemana });
+  const sessoes = sessoesNoMes({ pacote: opts.pacote, sessoesAgendadas: opts.sessoesAgendadas });
   return Number((sessoes * opts.valorSessao).toFixed(2));
 }
 

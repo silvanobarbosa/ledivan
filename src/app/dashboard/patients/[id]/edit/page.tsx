@@ -1,6 +1,6 @@
 import { db } from "@/db";
 import { auth } from "@/auth";
-import { patients, patientPriceHistory, users } from "@/db/schema";
+import { patients, patientPriceHistory } from "@/db/schema";
 import { and, eq } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import Link from "next/link";
@@ -8,7 +8,6 @@ import { ArrowLeft } from "lucide-react";
 import { updatePatient, deletePatient } from "../../actions";
 import { SubmitButton } from "@/components/SubmitButton";
 import { PatientFormFields } from "@/components/dashboard/PatientFormFields";
-import { parseLocations } from "@/lib/locations";
 
 export default async function EditPatientPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -21,14 +20,11 @@ export default async function EditPatientPage({ params }: { params: Promise<{ id
   });
   if (!patient) notFound();
 
-  const me = await db.query.users.findFirst({ where: eq(users.id, session.user.id) });
-
   // Histórico de reajuste para a aba Financeiro mostrar a lista pedida pelo dono: data, valor
   // anterior e valor novo. O "anterior" sai da linha de antes, no próprio componente.
   const priceHistory = await db.select({ valor: patientPriceHistory.valor, dataEfetiva: patientPriceHistory.dataEfetiva })
     .from(patientPriceHistory)
     .where(eq(patientPriceHistory.patientId, id));
-  const locations = parseLocations(me?.attendanceLocations);
 
   const save = updatePatient.bind(null, id);
   const remove = deletePatient.bind(null, id);
@@ -46,13 +42,14 @@ export default async function EditPatientPage({ params }: { params: Promise<{ id
       </div>
 
       <form action={save} className="space-y-5">
-        <PatientFormFields locations={locations} p={{
+        <PatientFormFields p={{
           registrationNumber: patient.registrationNumber, agendaId: patient.agendaId, dueDateType: patient.dueDateType, dueDate: iso(patient.dueDate), queixaPrincipal: patient.queixaPrincipal,
           name: patient.name, phone: patient.phone, email: patient.email, patientStatus: patient.patientStatus,
           startedAt: iso(patient.startedAt), birthDate: iso(patient.birthDate), category: patient.category, isCouple: patient.isCouple, guardianRelationship: patient.guardianRelationship,
           devolutivaMeses: patient.devolutivaMeses, gender: patient.gender, cpf: patient.cpf, address: patient.address, schoolName: patient.schoolName, schoolContact: patient.schoolContact,
           guardianName: patient.guardianName, guardianCpf: patient.guardianCpf, guardianPhone: patient.guardianPhone, guardianEmail: patient.guardianEmail,
           spouseName: patient.spouseName, spousePhone: patient.spousePhone, spouseEmail: patient.spouseEmail, spouseCpf: patient.spouseCpf,
+          spouseBirthDate: iso(patient.spouseBirthDate), spouseQueixaPrincipal: patient.spouseQueixaPrincipal, spouseGender: patient.spouseGender, spouseAddress: patient.spouseAddress,
           emergencyName: patient.emergencyName, emergencyPhone: patient.emergencyPhone, emergencyEmail: patient.emergencyEmail, emergencyRelationship: patient.emergencyRelationship,
           attendanceMode: patient.attendanceMode, attendanceLocation: patient.attendanceLocation, attendanceDay: patient.attendanceDay, attendanceTime: patient.attendanceTime,
           sessionFee: patient.sessionFee, frequency: patient.frequency, timesPerPeriod: patient.timesPerPeriod, paymentFormat: patient.paymentFormat, sessionsInPacket: patient.sessionsInPacket, paymentDay: patient.paymentDay, priceReviewDate: iso(patient.priceReviewDate),
