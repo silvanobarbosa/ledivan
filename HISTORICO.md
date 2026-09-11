@@ -7,6 +7,47 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-09-11 — Revisão do dono no cadastro e o aviso de pagamento
+
+**Entregue:** #134 e #135. O cadastro seguiu o PDF de revisão: o casal desceu para baixo do
+endereço, o bloco do cônjuge ganhou ficha própria (nascimento, idade, queixa, gênero, endereço) e
+esconde responsável e contato de emergência; a foto saiu; Devolutiva e Escola viraram áreas, nessa
+ordem, e a aba Atendimento acabou. No financeiro, cada formato abre os próprios campos logo
+abaixo do item marcado, entraram "na primeira sessão do pacote" e "na última sessão do pacote",
+e o pacote fragmentado parou de perguntar semanas. Junto, o aviso de pagamento de quem paga a
+cada sessão: uma mensagem, e a sessão fica marcada como pagamento atrasado se nada entrar.
+
+**Por quê:** o dono revisou as telas no celular e anotou à mão o que estava fora de lugar ou
+sobrando. A contagem do pacote por "semanas digitadas" não batia com a realidade: setembro com
+três quartas cobra três sessões, outubro cobra quatro.
+
+**Decisões que ficam valendo:**
+- Modo de atendimento e recorrência são escolhidos no AGENDAMENTO, não no cadastro. Por isso a
+  aba Atendimento não existe mais — quem tentar trazer o campo de volta está desfazendo isto.
+- Quem conta as sessões do pacote é a AGENDA (`src/lib/pacoteMes.ts`): fragmentado conta o que
+  cai dentro do mês; completo é 1/4 a 4/4 e reinicia, atravessando a virada do mês. Cancelada e
+  realocada saem da conta. O valor do mês é esse total × o valor da sessão — a tela que vai
+  cobrar ainda não existe, a regra já está pronta e testada.
+- "Na primeira/última sessão do pacote" não têm dia de pagamento: o dia é o da sessão.
+- O aviso de pagamento é UMA mensagem e não dispara ação nenhuma. Nada de segunda cobrança, de
+  cancelamento automático ou de bloqueio: o profissional atende assim mesmo ou cancela a sessão.
+  A agenda só marca "pagamento atrasado".
+- No cadastro, gratuito se chama gratuito. A agenda continua marcando a sessão como "Social" —
+  é a palavra que o dono usa na frente do paciente.
+
+**Armadilhas:**
+- O cron de aviso manda mensagem de verdade para paciente de verdade, e roda sobre TODOS os
+  terapeutas. Não se testa isso apontando para o banco de produção: use `?dry=1`, que percorre
+  tudo e não envia nem marca nada.
+- O percurso de escrita falhava na linha do prospect logo depois de cadastrar: a lista ainda
+  estava remontando e a linha não estava no DOM. O teste agora procura até achar, em vez de
+  dormir um tempo fixo.
+
+**Pendente:** o reinício da sequência do pacote depende do "prazo dos agendamentos", que o dono
+ainda vai definir na área da agenda. A tela que cobra o valor do mês também é próxima etapa.
+
+---
+
 ## 2026-09-10 — Cadastro: idade, anexos do prontuário e o formato de pagamento
 
 **Entregue:** #131 e #132. O cadastro do paciente perdeu a classificação (criança/adolescente/
