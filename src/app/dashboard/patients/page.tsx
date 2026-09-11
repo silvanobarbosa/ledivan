@@ -13,7 +13,7 @@ export default async function PatientsPage({ searchParams }: { searchParams: Pro
   const userId = session.user.id;
 
   // Saldo por paciente: pagamentos (pagos) − sessões realizadas cobráveis (em paralelo)
-  const [list, paysByPatient, debitByPatient] = await Promise.all([
+  const [list, paysByPatient, debitByPatient, proximas] = await Promise.all([
     db.query.patients.findMany({
       where: and(eq(patients.userId, userId), ne(patients.patientStatus, "prospect")),
       orderBy: [asc(patients.name)],
@@ -26,7 +26,27 @@ export default async function PatientsPage({ searchParams }: { searchParams: Pro
       .from(therapySessions)
       .where(and(eq(therapySessions.userId, userId), eq(therapySessions.status, "realizada"), eq(therapySessions.chargeable, true)))
       .groupBy(therapySessions.patientId),
+    // Dia e hora de cada paciente vêm da AGENDA, não mais de um campo digitado no cadastro.
+    // O dono tirou esses campos da ficha justamente porque eles viravam mentira: mudava o
+    // horário na agenda e o cadastro continuava dizendo o antigo. Aqui vale a próxima sessão
+    // marcada — se não há nenhuma, a lista simplesmente não mostra horário.
+    db.select({ pid: therapySessions.patientId, data: sql<string>`min(${therapySessions.date})` })
+      .from(therapySessions)
+      .where(and(
+        eq(therapySessions.userId, userId),
+        sql`${therapySessions.date} >= now()`,
+        ne(therapySessions.status, "cancelada"),
+      ))
+      .groupBy(therapySessions.patientId),
   ]);
+
+  const DIAS = ["domingo", "segunda", "terca", "quarta", "quinta", "sexta", "sabado"];
+  const proximaPorPaciente = new Map(
+    proximas.map((r) => {
+      const d = new Date(r.data);
+      return [r.pid, { dia: DIAS[d.getDay()], hora: `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}` }];
+    }),
+  );
   const paidMap = new Map(paysByPatient.map((r) => [r.pid, parseFloat(r.total || "0")]));
   const debitMap = new Map(debitByPatient.map((r) => [r.pid, parseFloat(r.total || "0")]));
 
@@ -62,8 +82,8 @@ export default async function PatientsPage({ searchParams }: { searchParams: Pro
             frequency: p.frequency,
             paymentFormat: p.paymentFormat,
             tags: p.tags,
-            attendanceDay: p.attendanceDay,
-            attendanceTime: p.attendanceTime,
+            attendanceDay: proximaPorPaciente.get(p.id)?.dia ?? p.attendanceDay,
+            attendanceTime: proximaPorPaciente.get(p.id)?.hora ?? p.attendanceTime,
             balance: bal,
             creditSessions,
             debtSessions,

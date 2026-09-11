@@ -13,7 +13,13 @@ export async function GET(req: Request) {
   if (!p) return NextResponse.json({ error: "Não autorizado." }, { status: 401 });
   const rows = await db.select({ id: patientDocument.id, title: patientDocument.title, kind: patientDocument.kind, content: patientDocument.content, createdAt: patientDocument.createdAt })
     .from(patientDocument)
-    .where(and(eq(patientDocument.userId, p.userId), eq(patientDocument.patientId, p.patientId)))
+    // Só o que foi COMPARTILHADO. Anexo do prontuário (laudo, relatório, encaminhamento) é do
+    // lado do terapeuta e não pode vazar para o aplicativo do paciente por esta rota.
+    .where(and(
+      eq(patientDocument.userId, p.userId),
+      eq(patientDocument.patientId, p.patientId),
+      eq(patientDocument.compartilhado, true),
+    ))
     .orderBy(desc(patientDocument.createdAt)).limit(100);
   return NextResponse.json({
     documents: rows.map((d) => ({ id: d.id, title: d.title, kind: d.kind, content: d.content, at: (d.createdAt as Date).toISOString() })),

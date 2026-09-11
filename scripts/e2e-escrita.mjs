@@ -131,14 +131,18 @@ await page.screenshot({ path: "_visual/escrita/1-prospect.png", fullPage: true }
 
 // --- prospect: registrar um segundo contato ---
 // Registrar um segundo contato na linha do prospect criado.
-// A linha abre pelo botão "0 contato(s)". O clique é feito pelo Playwright, e não por
-// `evaluate`: o botão não declara type e, dentro de um form, um clique programático dispara o
-// SUBMIT em vez de abrir a linha.
-const nomesAgora = await nomesNaLista(page);
-const indice = nomesAgora.indexOf(PROSPECT);
-const botoesContato = page.locator('button:has-text("contato(s)")');
-const abriu = indice >= 0 && (await botoesContato.count()) > indice;
-if (abriu) await botoesContato.nth(indice).click();
+// Cada linha da lista tem `data-prospect` com o id. Achar a linha por POSIÇÃO escorregava a cada
+// prospect novo, e o teste clicava no vizinho.
+const idDaLinha = await page.evaluate((nome) => {
+  const campo = Array.from(document.querySelectorAll('input[name="name"]')).find(
+    (i) => i.value === nome && i.closest("[data-prospect]"),
+  );
+  return campo?.closest("[data-prospect]")?.getAttribute("data-prospect") ?? "";
+}, PROSPECT);
+
+const linha = page.locator(`[data-prospect="${idDaLinha}"]`);
+const abriu = !!idDaLinha && (await linha.count()) === 1;
+if (abriu) await linha.locator('button:has-text("contato(s)")').click();
 await page.waitForTimeout(1500);
 const temCampoContato = await page.locator('input[name="observacao"], textarea[name="observacao"]').count();
 check("dá para registrar um contato novo no prospect", abriu && temCampoContato > 0, `${temCampoContato} campo(s)`);
@@ -147,7 +151,7 @@ if (temCampoContato > 0) {
   // Preenche e envia DENTRO do formulário da linha aberta. Espalhar `page.fill` pela página
   // pegava o primeiro campo que existisse, e o `.catch()` que havia aqui engolia a falha do
   // clique: o teste seguia como se tivesse registrado.
-  const formContato = page.locator('form:has(input[name="observacao"])').first();
+  const formContato = linha.locator('form:has(input[name="observacao"])').first();
   await formContato.locator('input[name="observacao"]').fill("segundo contato pelo teste");
   await formContato.locator('button:has-text("Registrar contato")').click();
   // Registrar leva de volta à lista (com o parâmetro que força a busca nova). Esperar a página
@@ -159,15 +163,8 @@ if (temCampoContato > 0) {
   // A prova é a contagem DAQUELA linha: o prospect nasce com um contato (a observação do
   // cadastro) e passa a ter dois. Contar em vez de procurar a palavra "contato" — que aparece na
   // tela mesmo quando o registro se perdeu.
-  const contagem = await page.evaluate((nome) => {
-    const campo = Array.from(document.querySelectorAll('input[name="name"]')).find((i) => i.value === nome);
-    if (!campo) return "(prospect sumiu da lista)";
-    const botao = Array.from(document.querySelectorAll("button")).find(
-      (b) => /contato\(s\)/i.test(b.textContent ?? "")
-        && campo.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING,
-    );
-    return botao?.textContent?.trim() ?? "(sem contagem)";
-  }, PROSPECT);
+  const contagem = (await linha.locator('button:has-text("contato(s)")').innerText().catch(() => "")).trim()
+    || "(sem contagem)";
   check("o contato novo entra no histórico daquele prospect", /^[2-9]\d* contato/.test(contagem), contagem);
 }
 await page.screenshot({ path: "_visual/escrita/2-prospect-aberto.png", fullPage: true });

@@ -100,7 +100,15 @@ export function SinglePhoto({
   );
 }
 
-export function PhotoSlots({ initial = {} }: { initial?: Initial }) {
+/**
+ * `apenas3x4` existe porque as três fotos extras viraram ANEXOS do prontuário: o que o terapeuta
+ * recebe é laudo, relatório, encaminhamento — e quase nunca foto. A 3x4 ficou onde estava, no
+ * cadastro, porque é ela que identifica a pessoa na lista e na ficha.
+ */
+export function PhotoSlots({ initial = {}, apenas3x4 = false }: { initial?: Initial; apenas3x4?: boolean }) {
+  if (apenas3x4) {
+    return <div className="w-[120px]"><Slot name="photo3x4" label="Foto 3x4" initial={initial.photo3x4} ratio="aspect-[3/4]" /></div>;
+  }
   return (
     <div className="space-y-4">
       <div className="grid grid-cols-[120px_1fr] gap-4 items-start">

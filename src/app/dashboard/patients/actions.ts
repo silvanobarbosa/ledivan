@@ -91,47 +91,13 @@ function genderOf(formData: FormData): string | null {
 }
 
 // Trava agenda: gera sessões semanais no dia/hora do paciente, entre as datas escolhidas.
-async function maybeLockAgenda(userId: string, pf: { patientId: string; attendanceDay: string | null; attendanceTime: string | null; attendanceMode: string | null; attendanceLocation: string | null; sessionFee: string }, formData: FormData) {
-  const lock = (formData.get("lockAgenda") as string) || "nao";
-  if (lock === "nao") return;
-  const day = (pf.attendanceDay || "").toLowerCase();
-  const time = pf.attendanceTime || "";
-  const wd = DOW[day];
-  if (wd === undefined || !time) return;
-  const [hh, mm] = time.split(":").map((x) => parseInt(x) || 0);
-
-  // Início: data escolhida ou hoje.
-  const startStr = formData.get("lockStart") as string;
-  const start = startStr ? new Date(`${startStr}T00:00:00`) : new Date();
-  start.setHours(0, 0, 0, 0);
-
-  // Fim: por DURAÇÃO ("X meses/anos") ou por DATA específica.
-  const mode = (formData.get("lockEndMode") as string) || "duracao";
-  let end: Date;
-  if (mode === "data") {
-    const endStr = formData.get("lockEnd") as string;
-    if (!endStr) return;
-    end = new Date(`${endStr}T23:59:59`);
-  } else {
-    const val = parseInt(formData.get("lockDurationValue") as string) || 1;
-    const unit = ((formData.get("lockDurationUnit") as string) || "anos") === "anos" ? "anos" : "meses";
-    end = endFromDuration(start, val, unit);
-  }
-
-  // Passo pela recorrência: semanal (7d), quinzenal (14d), mensal (mês a mês). 2x_semana trata como semanal.
-  const freq = (formData.get("recorrencia") as string) || "semanal";
-  const recFreq: LockFreq = freq === "quinzenal" ? "quinzenal" : freq === "mensal" ? "mensal" : "semanal";
-  const reserva = lock === "reservada";
-  const isOnline = pf.attendanceMode === "online";
-
-  const dates = occurrences({ weekday: wd, hour: hh, minute: mm, start, end, freq: recFreq });
-  const rows: typeof therapySessions.$inferInsert[] = dates.map((d) => ({
-    userId, patientId: pf.patientId, date: d, duration: 50, fee: pf.sessionFee, status: "agendada",
-    chargeable: true, isOnline, location: isOnline ? null : pf.attendanceLocation, pendingConfirmation: reserva,
-    recurring: true, recurrenceFreq: recFreq, recurrenceUntil: end,
-  }));
-  if (rows.length) await db.insert(therapySessions).values(rows);
-}
+/*
+ * A reserva automática de agenda saiu daqui.
+ *
+ * Ela dependia do dia e da hora digitados no cadastro — campos que o dono mandou tirar, porque
+ * viravam mentira assim que o horário mudava na agenda. Repetição semanal, quinzenal e mensal já
+ * existe na própria Agenda, com "repetir até", que é onde a informação nasce e é corrigida.
+ */
 
 export async function createPatient(formData: FormData) {
   const session = await auth();
@@ -231,7 +197,6 @@ export async function createPatient(formData: FormData) {
     dataEfetiva: created.startedAt ?? new Date(),
   });
 
-  await maybeLockAgenda(userId, { patientId: created.id, attendanceDay: created.attendanceDay, attendanceTime: created.attendanceTime, attendanceMode: created.attendanceMode, attendanceLocation: created.attendanceLocation, sessionFee: created.sessionFee }, formData);
 
   revalidatePath("/dashboard/patients");
   revalidatePath("/dashboard/agenda");
@@ -347,14 +312,6 @@ export async function updatePatient(patientId: string, formData: FormData) {
     });
   }
 
-  await maybeLockAgenda(session.user.id, {
-    patientId,
-    attendanceDay: (formData.get("attendanceDay") as string) ?? existing.attendanceDay,
-    attendanceTime: (formData.get("attendanceTime") as string) ?? existing.attendanceTime,
-    attendanceMode: (formData.get("attendanceMode") as string) || existing.attendanceMode,
-    attendanceLocation: (formData.get("attendanceLocation") as string) ?? existing.attendanceLocation,
-    sessionFee: newFee,
-  }, formData);
 
   revalidatePath(`/dashboard/patients/${patientId}`);
   revalidatePath("/dashboard/patients");
