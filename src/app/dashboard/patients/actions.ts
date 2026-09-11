@@ -5,6 +5,7 @@ import { patients, patientStatusHistory, patientPriceHistory, patientContractHis
 import { auth } from "@/auth";
 import { and, eq, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
+import { vencimentoDoPreco } from "@/lib/reajuste";
 import { redirect } from "next/navigation";
 import { put } from "@vercel/blob";
 import { sendWhatsappFromUser } from "@/lib/whatsappEvolution";
@@ -155,8 +156,21 @@ export async function createPatient(formData: FormData) {
     emergencyEmail: (formData.get("emergencyEmail") as string) || null,
     attendanceDay: (formData.get("attendanceDay") as string) || null,
     attendanceTime: (formData.get("attendanceTime") as string) || null,
-    paymentFormat: (formData.get("paymentFormat") as string) || "avulso",
-    priceReviewDate: formData.get("priceReviewDate") ? new Date(formData.get("priceReviewDate") as string) : null,
+    paymentFormat: (formData.get("paymentFormat") as string) || "sessao",
+    horasAntesPagamento: formData.get("horasAntesPagamento") ? parseInt(formData.get("horasAntesPagamento") as string) : null,
+    validadePrecoMeses: formData.get("validadePrecoMeses") ? parseInt(formData.get("validadePrecoMeses") as string) : null,
+    pacoteTipo: (formData.get("pacoteTipo") as string) || null,
+    semanasNoMes: formData.get("semanasNoMes") ? parseInt(formData.get("semanasNoMes") as string) : null,
+    paymentDay2: formData.get("paymentDay2") ? parseInt(formData.get("paymentDay2") as string) : null,
+
+    // A data do próximo reajuste deixou de ser digitada: ela SAI da validade em meses, contada do
+    // início — ou do retorno, quando o paciente parou e voltou. Data digitada à mão envelhecia
+    // sozinha e ninguém voltava para corrigir.
+    priceReviewDate: vencimentoDoPreco(
+      startedAtRaw ? new Date(startedAtRaw) : new Date(),
+      null,
+      formData.get("validadePrecoMeses") ? parseInt(formData.get("validadePrecoMeses") as string) : null,
+    ),
     address: (formData.get("address") as string) || null,
     schoolName: (formData.get("schoolName") as string) || null,
     schoolContact: (formData.get("schoolContact") as string) || null,
@@ -270,8 +284,32 @@ export async function updatePatient(patientId: string, formData: FormData) {
     emergencyRelationship: (formData.get("emergencyRelationship") as string) ?? existing.emergencyRelationship,
     paymentDay: formData.get("paymentDay") ? parseInt(formData.get("paymentDay") as string) : existing.paymentDay,
     paymentFormat: newFormat,
+    // Campos do formato: só chegam quando o formato que os usa está na tela, então o `has`
+    // preserva o que já estava gravado em vez de apagar ao editar por outra aba.
+    horasAntesPagamento: formData.has("horasAntesPagamento")
+      ? (formData.get("horasAntesPagamento") ? parseInt(formData.get("horasAntesPagamento") as string) : null)
+      : existing.horasAntesPagamento,
+    validadePrecoMeses: formData.has("validadePrecoMeses")
+      ? (formData.get("validadePrecoMeses") ? parseInt(formData.get("validadePrecoMeses") as string) : null)
+      : existing.validadePrecoMeses,
+    pacoteTipo: formData.has("pacoteTipo") ? ((formData.get("pacoteTipo") as string) || null) : existing.pacoteTipo,
+    semanasNoMes: formData.has("semanasNoMes")
+      ? (formData.get("semanasNoMes") ? parseInt(formData.get("semanasNoMes") as string) : null)
+      : existing.semanasNoMes,
+    paymentDay2: formData.has("paymentDay2")
+      ? (formData.get("paymentDay2") ? parseInt(formData.get("paymentDay2") as string) : null)
+      : existing.paymentDay2,
+
     contractType: (isPacote ? "pacote" : "avulso") as "pacote" | "avulso",
-    priceReviewDate: formData.get("priceReviewDate") ? new Date(formData.get("priceReviewDate") as string) : existing.priceReviewDate,
+    // Mesma regra da criação, agora considerando o RETORNO: se o paciente voltou depois de um
+    // período inativo, a validade do preço conta da volta, não do início original.
+    priceReviewDate: formData.has("validadePrecoMeses")
+      ? vencimentoDoPreco(
+          formData.get("startedAt") ? new Date(formData.get("startedAt") as string) : existing.startedAt,
+          existing.returnedAt,
+          formData.get("validadePrecoMeses") ? parseInt(formData.get("validadePrecoMeses") as string) : null,
+        )
+      : existing.priceReviewDate,
     attendanceMode: (formData.get("attendanceMode") as string) || existing.attendanceMode,
     attendanceLocation: (formData.get("attendanceLocation") as string) ?? existing.attendanceLocation,
     sessionsInPacket: isPacote
@@ -297,6 +335,16 @@ export async function updatePatient(patientId: string, formData: FormData) {
   // historico de mudancas
   if (newStatus !== existing.patientStatus) {
     await db.insert(patientStatusHistory).values({ patientId, status: newStatus });
+    // Voltou a ser atendido: é esta data que passa a valer para o reajuste, e não o início
+    // original. O dono foi explícito — "essa data de retorno é quando tiramos de um status
+    // inativo para ativo".
+    if (newStatus === "ativo" && (existing.patientStatus === "inativo" || existing.patientStatus === "pausado")) {
+      const retorno = new Date();
+      await db.update(patients).set({
+        returnedAt: retorno,
+        priceReviewDate: vencimentoDoPreco(existing.startedAt, retorno, existing.validadePrecoMeses),
+      }).where(and(eq(patients.id, patientId), eq(patients.userId, session.user.id)));
+    }
   }
   if (newFee !== existing.sessionFee) {
     const efetiva = formData.get("dataEfetiva") ? new Date(formData.get("dataEfetiva") as string) : new Date();

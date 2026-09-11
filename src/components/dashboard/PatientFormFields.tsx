@@ -9,9 +9,11 @@ import { PhotoSlots } from "@/components/dashboard/PhotoSlots";
 import { REMINDER_LEAD_OPTIONS } from "@/lib/reminderLead";
 import { QUEIXAS } from "@/lib/queixas";
 import { idadeEmPalavras } from "@/lib/idade";
+import { linhasDeReajuste } from "@/lib/reajuste";
 
 const inputCls = "w-full px-4 py-3 rounded-2xl bg-white/70 border border-border focus:ring-2 focus:ring-accent/20 focus:border-accent outline-none transition";
 const labelCls = "block text-sm font-semibold text-foreground/70 mb-1.5";
+const brl = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
 export type PatientFormData = {
   registrationNumber?: number | null; agendaId?: string | null; dueDateType?: string | null; dueDate?: string | null; queixaPrincipal?: string | null;
@@ -24,6 +26,8 @@ export type PatientFormData = {
   emergencyName?: string | null; emergencyPhone?: string | null; emergencyEmail?: string | null; emergencyRelationship?: string | null;
   attendanceMode?: string | null; attendanceLocation?: string | null; attendanceDay?: string | null; attendanceTime?: string | null;
   sessionFee?: string | null; frequency?: string | null; timesPerPeriod?: number | null; paymentFormat?: string | null; sessionsInPacket?: number | null; paymentDay?: number | null; priceReviewDate?: string | null;
+  horasAntesPagamento?: number | null; validadePrecoMeses?: number | null; pacoteTipo?: string | null; semanasNoMes?: number | null; paymentDay2?: number | null;
+  priceHistory?: { valor: string; dataEfetiva: string }[];
   reminderEnabled?: boolean; reminderChannel?: string | null; reminderLeadMinutes?: number | null;
   statusReminderDays?: number | null;
   photo3x4?: string | null; photoExtra1?: string | null; photoExtra2?: string | null; photoExtra3?: string | null;
@@ -68,7 +72,10 @@ const TABS = [
 
 export function PatientFormFields({ p, locations }: { p?: PatientFormData; locations: { name: string; address: string }[] }) {
   const [tab, setTab] = useState("dados");
-  const [format, setFormat] = useState(p?.paymentFormat || "avulso");
+  // Formato antigo "avulso" e o "a cada sessao" do dono; "pacote" virou mensal com pacote.
+  const formatoInicial = p?.paymentFormat === "avulso" ? "sessao" : p?.paymentFormat === "pacote" ? "mensal" : (p?.paymentFormat || "sessao");
+  const [format, setFormat] = useState(formatoInicial);
+  const [pacote, setPacote] = useState(p?.pacoteTipo || "completo");
   const [dueType, setDueType] = useState(p?.dueDateType || "");
   const GENDERS = ["feminino", "masculino", "nao-binario"];
   const initialGender = p?.gender ? (GENDERS.includes(p.gender) ? p.gender : "outro") : "";
@@ -268,42 +275,126 @@ export function PatientFormFields({ p, locations }: { p?: PatientFormData; locat
         </Card>
       </div>
 
-      {/* FINANCEIRO */}
+      {/* FINANCEIRO — o formato vem primeiro, e é ele que decide o que se pergunta depois.
+          Era o contrário: pedia-se valor, dia e vencimento para todo mundo, inclusive para quem
+          é atendido de graça. */}
       <div className={show("financeiro")}>
         <Card title="Financeiro">
-          <div className="grid sm:grid-cols-2 gap-4">
-            <div><label className={labelCls}>Valor da sessão (R$)</label><input name="sessionFee" inputMode="decimal" defaultValue={p?.sessionFee ?? ""} className={inputCls} placeholder="ex: 200,00" /></div>
-            <div>
-              <label className={labelCls}>Formato de pagamento</label>
-              <select name="paymentFormat" className={inputCls} value={format} onChange={(e) => setFormat(e.target.value)}>
-                <option value="avulso">Avulso</option><option value="mensal">Mensal</option><option value="quinzenal">Quinzenal</option><option value="pacote">Pacote</option>
-              </select>
+          <div>
+            <label className={labelCls}>Formato de pagamento</label>
+            <div className="grid sm:grid-cols-2 gap-2">
+              {[
+                { v: "gratuito", t: "Gratuito", d: "Atendimento social. Aparece assim na agenda." },
+                { v: "sessao", t: "A cada sessão", d: "Paga a cada atendimento." },
+                { v: "mensal", t: "Mensal", d: "Um pagamento por mês." },
+                { v: "quinzenal", t: "Quinzenal", d: "Dois pagamentos por mês." },
+              ].map((o) => (
+                <label key={o.v} className={`flex items-start gap-2 rounded-2xl border px-4 py-3 cursor-pointer transition ${format === o.v ? "border-primary bg-primary/5" : "border-border bg-surface/60"}`}>
+                  {/* Seleção ÚNICA: o formato de pagamento é um só. O desenho pedia caixas de
+                      marcar, mas marcar duas não significaria nada para o financeiro. */}
+                  <input type="radio" name="paymentFormat" value={o.v} checked={format === o.v} onChange={() => setFormat(o.v)} className="accent-primary mt-0.5" />
+                  <span>
+                    <span className="block text-sm font-bold">{o.t}</span>
+                    <span className="block text-xs text-foreground/50">{o.d}</span>
+                  </span>
+                </label>
+              ))}
             </div>
-            {format === "pacote" && (
-              <div><label className={labelCls}>Sessões no pacote</label><input name="sessionsInPacket" type="number" min={1} max={200} defaultValue={p?.sessionsInPacket ?? ""} className={inputCls} placeholder="ex: 8" /></div>
-            )}
-            <div><label className={labelCls}>Dia de pagamento</label><input name="paymentDay" type="number" min={1} max={31} defaultValue={p?.paymentDay ?? ""} className={inputCls} placeholder="ex: 5" /></div>
-            <div>
-              <label className={labelCls}>Vencimento<InfoTip text="Escolha uma condição (à vista, prazos) ou uma data específica." /></label>
-              <select name="dueDateType" className={inputCls} value={dueType} onChange={(e) => setDueType(e.target.value)}>
-                <option value="">—</option>
-                <option value="avista">À vista</option>
-                <option value="7d">7 dias</option>
-                <option value="15d">15 dias</option>
-                <option value="30d">30 dias</option>
-                <option value="fim_mes">Fim do mês</option>
-                <option value="data">Data específica</option>
-              </select>
-            </div>
-            {dueType === "data" && (
-              <div><label className={labelCls}>Data de vencimento</label><input name="dueDate" type="date" defaultValue={dateVal(p?.dueDate)} className={inputCls} /></div>
-            )}
-            <div><label className={labelCls}>Próximo reajuste<InfoTip text="Data prevista para revisar o valor." /></label><input name="priceReviewDate" type="date" defaultValue={dateVal(p?.priceReviewDate)} className={inputCls} /></div>
           </div>
+
+          {format === "gratuito" ? (
+            <p className="text-sm text-foreground/60 rounded-2xl bg-surface/70 border border-border px-4 py-3">
+              Atendimento <strong>social</strong>: sem valor, sem dia de pagamento e sem cobrança.
+              A agenda mostra a sessão marcada como social.
+            </p>
+          ) : (
+            <div className="space-y-4">
+              <div className="grid sm:grid-cols-2 gap-4">
+                <div><label className={labelCls}>Valor da sessão (R$)</label><input name="sessionFee" inputMode="decimal" defaultValue={p?.sessionFee ?? ""} className={inputCls} placeholder="ex: 200,00" /></div>
+                <div>
+                  <label className={labelCls}>Validade do preço<InfoTip text="A cada quantos meses o valor deve ser revisto. A conta começa no início do tratamento — ou na data do RETORNO, se o paciente parou e voltou." /></label>
+                  <div className="flex items-center gap-2">
+                    <input name="validadePrecoMeses" type="number" min={1} max={60} defaultValue={p?.validadePrecoMeses ?? ""} className={inputCls} placeholder="ex: 12" />
+                    <span className="text-sm text-foreground/60 whitespace-nowrap">meses</span>
+                  </div>
+                </div>
+              </div>
+
+              {format === "sessao" && (
+                <div className="sm:max-w-sm">
+                  <label className={labelCls}>Pagar até<InfoTip text="Quantas horas ANTES do atendimento o pagamento deve estar feito. É o gatilho do aviso automático ao paciente, que ainda será ligado." /></label>
+                  <div className="flex items-center gap-2">
+                    <input name="horasAntesPagamento" type="number" min={1} max={168} defaultValue={p?.horasAntesPagamento ?? ""} className={inputCls} placeholder="ex: 24" />
+                    <span className="text-sm text-foreground/60 whitespace-nowrap">horas antes</span>
+                  </div>
+                </div>
+              )}
+
+              {(format === "mensal" || format === "quinzenal") && (
+                <>
+                  <div className="grid sm:grid-cols-2 gap-4">
+                    <div>
+                      <label className={labelCls}>{format === "quinzenal" ? "Dia de pagamento — 1ª quinzena" : "Dia de pagamento"}</label>
+                      <input name="paymentDay" type="number" min={1} max={31} defaultValue={p?.paymentDay ?? ""} className={inputCls} placeholder="ex: 5" />
+                    </div>
+                    {format === "quinzenal" && (
+                      <div>
+                        <label className={labelCls}>Dia de pagamento — 2ª quinzena</label>
+                        <input name="paymentDay2" type="number" min={1} max={31} defaultValue={p?.paymentDay2 ?? ""} className={inputCls} placeholder="ex: 20" />
+                      </div>
+                    )}
+                  </div>
+
+                  <div>
+                    <label className={labelCls}>Pacote</label>
+                    <div className="grid sm:grid-cols-2 gap-2">
+                      <label className={`flex items-start gap-2 rounded-2xl border px-4 py-3 cursor-pointer ${pacote === "completo" ? "border-primary bg-primary/5" : "border-border bg-surface/60"}`}>
+                        <input type="radio" name="pacoteTipo" value="completo" checked={pacote === "completo"} onChange={() => setPacote("completo")} className="accent-primary mt-0.5" />
+                        <span>
+                          <span className="block text-sm font-bold">Completo — 4 sessões</span>
+                          <span className="block text-xs text-foreground/50">O padrão.</span>
+                        </span>
+                      </label>
+                      <label className={`flex items-start gap-2 rounded-2xl border px-4 py-3 cursor-pointer ${pacote === "fragmentado" ? "border-primary bg-primary/5" : "border-border bg-surface/60"}`}>
+                        <input type="radio" name="pacoteTipo" value="fragmentado" checked={pacote === "fragmentado"} onChange={() => setPacote("fragmentado")} className="accent-primary mt-0.5" />
+                        <span>
+                          <span className="block text-sm font-bold">Fragmentado</span>
+                          <span className="block text-xs text-foreground/50">Você informa as semanas; o sistema conta as sessões.</span>
+                        </span>
+                      </label>
+                    </div>
+                  </div>
+
+                  {pacote === "fragmentado" && (
+                    <div className="sm:max-w-sm">
+                      <label className={labelCls}>Semanas de atendimento no mês<InfoTip text="O sistema multiplica pelas vezes por semana da recorrência (aba Atendimento) para chegar às sessões do mês." /></label>
+                      <input name="semanasNoMes" type="number" min={1} max={5} defaultValue={p?.semanasNoMes ?? ""} className={inputCls} placeholder="ex: 3" />
+                    </div>
+                  )}
+                </>
+              )}
+
+              {(p?.priceHistory?.length ?? 0) > 0 && (
+                <div className="pt-2 border-t border-border">
+                  <p className="text-xs font-bold text-foreground/40 uppercase tracking-widest mb-2 mt-3">Histórico de reajuste</p>
+                  <ul className="space-y-1">
+                    {linhasDeReajuste(p!.priceHistory!).reverse().map((l, i) => (
+                      <li key={i} className="flex items-center gap-3 text-sm rounded-xl bg-surface/60 px-3 py-2">
+                        <span className="font-mono text-xs font-bold text-primary">{l.data.toLocaleDateString("pt-BR")}</span>
+                        <span className="text-foreground/60">
+                          {l.anterior === null
+                            ? <>preço inicial <strong>{brl(l.novo)}</strong></>
+                            : <>de {brl(l.anterior)} para <strong>{brl(l.novo)}</strong></>}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+            </div>
+          )}
         </Card>
       </div>
-
-      {/* FOTOS */}
 
       <p className="text-xs text-foreground/50 px-1">💡 Etiquetas e observações ficam no <strong>Prontuário</strong> do paciente.</p>
     </div>

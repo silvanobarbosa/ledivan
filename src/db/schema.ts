@@ -307,6 +307,11 @@ export const patients = pgTable("patients", {
   paymentStatus: paymentStatusEnum("payment_status").default("pending").notNull(),
   patientStatus: text("patient_status").default("ativo").notNull(), // ativo | inativo | prospect | pausado
   lastReactivationAt: timestamp("last_reactivation_at"), // última mensagem de reativação (throttle da campanha)
+  // Quando o paciente VOLTOU a ser atendido, saindo de inativo/pausado para ativo. É a referência
+  // do reajuste: contar a validade do preço do início original faria o reajuste vencer no dia em
+  // que a pessoa volta, depois de meses parada. Não confundir com `lastReactivationAt`, que é o
+  // throttle da campanha de mensagens.
+  returnedAt: timestamp("returned_at"),
   featureOverrides: text("feature_overrides"), // JSON: liga/desliga recursos "por paciente" (ver lib/features)
   startedAt: timestamp("started_at"),
   birthDate: timestamp("birth_date"),
@@ -352,7 +357,22 @@ export const patients = pgTable("patients", {
   attendanceMode: text("attendance_mode").default("presencial").notNull(), // online | presencial | misto
   attendanceLocation: text("attendance_location"), // endereço pré-selecionado (presencial/misto)
   timesPerPeriod: integer("times_per_period").default(1).notNull(), // vezes por período da recorrência (ex: 2x/semana)
-  paymentFormat: text("payment_format").default("avulso").notNull(), // avulso | mensal | quinzenal | pacote
+  // gratuito | sessao | mensal | quinzenal (valores antigos: avulso, pacote — ainda lidos)
+  //
+  // "avulso" virou "sessao" e "pacote" virou uma FORMA de cobrar dentro de mensal/quinzenal, que
+  // é como o dono descreve o combinado com o paciente: primeiro o formato, depois o pacote.
+  paymentFormat: text("payment_format").default("sessao").notNull(),
+  // Só para "a cada sessão": quantas horas ANTES do atendimento o pagamento deve estar feito.
+  // É o gatilho da cobrança automática, que ainda não foi ligada.
+  horasAntesPagamento: integer("horas_antes_pagamento"),
+  // Validade do preço em meses, contada do início — ou do RETORNO, quando o paciente parou e
+  // voltou. A data vencida fica em `priceReviewDate`, calculada a partir daqui.
+  validadePrecoMeses: integer("validade_preco_meses"),
+  // Pacote: "completo" são 4 sessões (o padrão do dono); "fragmentado" é por semanas do mês.
+  pacoteTipo: text("pacote_tipo"),
+  semanasNoMes: integer("semanas_no_mes"),
+  // Quinzenal tem dois dias de pagamento; o primeiro reaproveita `paymentDay`.
+  paymentDay2: integer("payment_day_2"),
   sessionsInPacket: integer("sessions_in_packet"), // tamanho do pacote (2/4/8)
   packageCreditsUsed: integer("package_credits_used").default(0).notNull(), // créditos do pacote já consumidos
   deductPackageOnSession: boolean("deduct_package_on_session").default(true).notNull(), // sessão realizada abate do pacote (senão, abate no pagamento)
