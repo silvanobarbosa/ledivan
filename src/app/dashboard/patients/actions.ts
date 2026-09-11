@@ -153,6 +153,10 @@ export async function createPatient(formData: FormData) {
     spousePhone: (formData.get("spousePhone") as string) || null,
     spouseEmail: (formData.get("spouseEmail") as string) || null,
     spouseCpf: (formData.get("spouseCpf") as string) || null,
+    spouseBirthDate: formData.get("spouseBirthDate") ? new Date(formData.get("spouseBirthDate") as string) : null,
+    spouseQueixaPrincipal: (formData.get("spouseQueixaPrincipal") as string)?.trim() || null,
+    spouseGender: (formData.get("spouseGender") as string)?.trim() || null,
+    spouseAddress: (formData.get("spouseAddress") as string) || null,
     emergencyEmail: (formData.get("emergencyEmail") as string) || null,
     attendanceDay: (formData.get("attendanceDay") as string) || null,
     attendanceTime: (formData.get("attendanceTime") as string) || null,
@@ -160,7 +164,6 @@ export async function createPatient(formData: FormData) {
     horasAntesPagamento: formData.get("horasAntesPagamento") ? parseInt(formData.get("horasAntesPagamento") as string) : null,
     validadePrecoMeses: formData.get("validadePrecoMeses") ? parseInt(formData.get("validadePrecoMeses") as string) : null,
     pacoteTipo: (formData.get("pacoteTipo") as string) || null,
-    semanasNoMes: formData.get("semanasNoMes") ? parseInt(formData.get("semanasNoMes") as string) : null,
     paymentDay2: formData.get("paymentDay2") ? parseInt(formData.get("paymentDay2") as string) : null,
 
     // A data do próximo reajuste deixou de ser digitada: ela SAI da validade em meses, contada do
@@ -273,6 +276,18 @@ export async function updatePatient(patientId: string, formData: FormData) {
     spousePhone: (formData.get("spousePhone") as string) ?? existing.spousePhone,
     spouseEmail: (formData.get("spouseEmail") as string) ?? existing.spouseEmail,
     spouseCpf: (formData.get("spouseCpf") as string) ?? existing.spouseCpf,
+    spouseBirthDate: formData.has("spouseBirthDate")
+      ? (formData.get("spouseBirthDate") ? new Date(formData.get("spouseBirthDate") as string) : null)
+      : existing.spouseBirthDate,
+    spouseQueixaPrincipal: formData.has("spouseQueixaPrincipal")
+      ? ((formData.get("spouseQueixaPrincipal") as string)?.trim() || null)
+      : existing.spouseQueixaPrincipal,
+    spouseGender: formData.has("spouseGender")
+      ? ((formData.get("spouseGender") as string)?.trim() || null)
+      : existing.spouseGender,
+    spouseAddress: formData.has("spouseAddress")
+      ? ((formData.get("spouseAddress") as string) || null)
+      : existing.spouseAddress,
     attendanceDay: (formData.get("attendanceDay") as string) ?? existing.attendanceDay,
     attendanceTime: (formData.get("attendanceTime") as string) ?? existing.attendanceTime,
     address: (formData.get("address") as string) ?? existing.address,
@@ -293,9 +308,6 @@ export async function updatePatient(patientId: string, formData: FormData) {
       ? (formData.get("validadePrecoMeses") ? parseInt(formData.get("validadePrecoMeses") as string) : null)
       : existing.validadePrecoMeses,
     pacoteTipo: formData.has("pacoteTipo") ? ((formData.get("pacoteTipo") as string) || null) : existing.pacoteTipo,
-    semanasNoMes: formData.has("semanasNoMes")
-      ? (formData.get("semanasNoMes") ? parseInt(formData.get("semanasNoMes") as string) : null)
-      : existing.semanasNoMes,
     paymentDay2: formData.has("paymentDay2")
       ? (formData.get("paymentDay2") ? parseInt(formData.get("paymentDay2") as string) : null)
       : existing.paymentDay2,
@@ -321,10 +333,9 @@ export async function updatePatient(patientId: string, formData: FormData) {
       ? parseInt(formData.get("reminderLeadMinutes") as string)
       : existing.reminderLeadMinutes,
     statusReminderDays: formData.has("statusReminderDays") ? parseInt(formData.get("statusReminderDays") as string) : existing.statusReminderDays,
-    // Fotos: o `|| existing` impedia APAGAR — o botão "remover" manda "", que caía no `||` e
-    // restaurava a foto antiga. Agora: campo presente → usa o valor ("" vira null = apaga);
-    // ausente → mantém. O PhotoSlots reenvia o valor atual (existing quando intocado), então
-    // uma edição sem mexer na foto a preserva.
+    // Fotos: o campo saiu do cadastro a pedido do dono — o que chega na mão dele é laudo e
+    // relatório, não retrato. As colunas ficam com o que já foi enviado: campo ausente no
+    // formulário → mantém. (Se algum formulário voltar a mandar, "" continua apagando.)
     photo3x4: formData.has("photo3x4") ? ((formData.get("photo3x4") as string) || null) : existing.photo3x4,
     photoExtra1: formData.has("photoExtra1") ? ((formData.get("photoExtra1") as string) || null) : existing.photoExtra1,
     photoExtra2: formData.has("photoExtra2") ? ((formData.get("photoExtra2") as string) || null) : existing.photoExtra2,

@@ -133,19 +133,40 @@ await page.screenshot({ path: "_visual/escrita/1-prospect.png", fullPage: true }
 // Registrar um segundo contato na linha do prospect criado.
 // Cada linha da lista tem `data-prospect` com o id. Achar a linha por POSIÇÃO escorregava a cada
 // prospect novo, e o teste clicava no vizinho.
-const idDaLinha = await page.evaluate((nome) => {
-  const campo = Array.from(document.querySelectorAll('input[name="name"]')).find(
-    (i) => i.value === nome && i.closest("[data-prospect]"),
-  );
-  return campo?.closest("[data-prospect]")?.getAttribute("data-prospect") ?? "";
-}, PROSPECT);
+// A lista ainda pode estar remontando logo depois do cadastro, e nesse instante a linha não está
+// no DOM. Procura até achar, em vez de perguntar uma vez só.
+async function acharLinha(nome, ms = 15000) {
+  const limite = Date.now() + ms;
+  while (Date.now() < limite) {
+    const id = await page.evaluate((n) => {
+      const campo = Array.from(document.querySelectorAll('input[name="name"]')).find(
+        (i) => i.value === n && i.closest("[data-prospect]"),
+      );
+      return campo?.closest("[data-prospect]")?.getAttribute("data-prospect") ?? "";
+    }, nome);
+    if (id) return id;
+    await page.waitForTimeout(600);
+  }
+  return "";
+}
+const idDaLinha = await acharLinha(PROSPECT);
 
 const linha = page.locator(`[data-prospect="${idDaLinha}"]`);
 const abriu = !!idDaLinha && (await linha.count()) === 1;
-if (abriu) await linha.locator('button:has-text("contato(s)")').click();
-await page.waitForTimeout(1500);
-const temCampoContato = await page.locator('input[name="observacao"], textarea[name="observacao"]').count();
-check("dá para registrar um contato novo no prospect", abriu && temCampoContato > 0, `${temCampoContato} campo(s)`);
+// O painel de contatos abre por estado do componente, e logo depois de cadastrar ainda existe um
+// refresh da lista a caminho: ele remonta a linha e fecha o que acabou de abrir. Por isso o
+// clique insiste até o campo aparecer, em vez de contar com um sleep fixo.
+let temCampoContato = 0;
+if (abriu) {
+  const limite = Date.now() + 15000;
+  while (Date.now() < limite) {
+    await linha.locator('button:has-text("contato(s)")').click().catch(() => {});
+    await page.waitForTimeout(1200);
+    temCampoContato = await page.locator('input[name="observacao"], textarea[name="observacao"]').count();
+    if (temCampoContato > 0) break;
+  }
+}
+check("dá para registrar um contato novo no prospect", abriu && temCampoContato > 0, `${temCampoContato} campo(s) · linha ${idDaLinha || "(não achei)"}`);
 
 if (temCampoContato > 0) {
   // Preenche e envia DENTRO do formulário da linha aberta. Espalhar `page.fill` pela página

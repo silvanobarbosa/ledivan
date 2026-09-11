@@ -75,14 +75,14 @@ describe("sessões no mês", () => {
     expect(sessoesNoMes({ pacote: null })).toBe(4);
   });
 
-  it("fragmentado: semanas × vezes por semana", () => {
-    expect(sessoesNoMes({ pacote: "fragmentado", semanasNoMes: 3 })).toBe(3);
-    expect(sessoesNoMes({ pacote: "fragmentado", semanasNoMes: 3, vezesPorSemana: 2 })).toBe(6);
+  it("fragmentado: o total vem das sessões marcadas na agenda", () => {
+    expect(sessoesNoMes({ pacote: "fragmentado", sessoesAgendadas: 3 })).toBe(3);
+    expect(sessoesNoMes({ pacote: "fragmentado", sessoesAgendadas: 6 })).toBe(6);
   });
 
-  it("fragmentado sem semanas é zero, não 4", () => {
-    expect(sessoesNoMes({ pacote: "fragmentado", semanasNoMes: 0 })).toBe(0);
-    expect(sessoesNoMes({ pacote: "fragmentado", semanasNoMes: null })).toBe(0);
+  it("fragmentado sem sessão marcada é zero, não 4", () => {
+    expect(sessoesNoMes({ pacote: "fragmentado", sessoesAgendadas: 0 })).toBe(0);
+    expect(sessoesNoMes({ pacote: "fragmentado", sessoesAgendadas: null })).toBe(0);
   });
 });
 
@@ -99,9 +99,9 @@ describe("valor do mês", () => {
     expect(valorDoMes({ formato: "mensal", valorSessao: 200, pacote: "completo" })).toBe(800);
   });
 
-  it("mensal fragmentado calcula pelas semanas", () => {
-    expect(valorDoMes({ formato: "mensal", valorSessao: 200, pacote: "fragmentado", semanasNoMes: 3 })).toBe(600);
-    expect(valorDoMes({ formato: "mensal", valorSessao: 150, pacote: "fragmentado", semanasNoMes: 4, vezesPorSemana: 2 })).toBe(1200);
+  it("mensal fragmentado calcula pelas sessões do mês", () => {
+    expect(valorDoMes({ formato: "mensal", valorSessao: 200, pacote: "fragmentado", sessoesAgendadas: 3 })).toBe(600);
+    expect(valorDoMes({ formato: "mensal", valorSessao: 150, pacote: "fragmentado", sessoesAgendadas: 8 })).toBe(1200);
   });
 
   it("valor quebrado não acumula centavo perdido", () => {

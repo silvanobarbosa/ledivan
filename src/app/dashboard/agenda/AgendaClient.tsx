@@ -368,7 +368,7 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
                               pacientes — "de graça" não é o que ele diz, nem o que a
                               pessoa deveria ler se olhar a tela por cima do ombro. */}
                           {pacienteSocial(s.patientId) && <p className="text-[9px] font-bold uppercase tracking-wide text-[#047857]">Social</p>}
-                          {s.pkg && <p className="text-[9px] font-bold uppercase tracking-wide text-emerald-700/80">{s.pendingConfirmation ? "Reserva pacote" : "Pacote"} P{s.pkg.seq} · {s.pkg.index}/{s.pkg.total}</p>}
+                          {s.pkg && <p className="text-[9px] font-bold uppercase tracking-wide text-emerald-700/80">{s.pendingConfirmation ? "Reserva pacote" : "Pacote"}{s.pkg.seq > 0 ? ` P${s.pkg.seq}` : ""} · {s.pkg.index}/{s.pkg.total}</p>}
                         </button>
                       );
                     })}
