@@ -538,6 +538,10 @@ export const therapySessions = pgTable("therapy_sessions", {
   googleEventId: text("google_event_id"), // vínculo com evento no Google Calendar (sync)
   meetingUrl: text("meeting_url"), // link Google Meet (se gerado); senão usa Jitsi derivado do id
   reminderSentAt: timestamp("reminder_sent_at"), // evita lembrete duplicado
+  // Aviso de pagamento da sessão ("pagar até X horas antes"). É UMA mensagem só, e esta coluna
+  // garante isso. Nada acontece sozinho depois dela: quem decide atender ou cancelar é o
+  // terapeuta — a agenda só marca a sessão como pagamento atrasado.
+  avisoPagamentoAt: timestamp("aviso_pagamento_at"),
   patientSummary: text("patient_summary"), // resumo pós-sessão para o paciente (IA)
   // Rastreio da reunião online (sala Jitsi embutida emite eventos)
   meetingHappened: boolean("meeting_happened").default(false).notNull(),
