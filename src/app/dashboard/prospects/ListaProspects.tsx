@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
 import { UserPlus, ArrowRight, Trash2, Save, ChevronDown, ChevronRight, Plus } from "lucide-react";
 import { formatDate } from "@/lib/therapy";
 import { valorParaCampoBR } from "@/lib/dataForm";
@@ -38,6 +39,7 @@ export function ListaProspects({ prospects, contatos }: { prospects: ProspectLin
   const [aberto, setAberto] = useState<string | null>(null);
   const [erro, setErro] = useState<string | null>(null);
   const [pendente, iniciar] = useTransition();
+  const router = useRouter();
 
   const porProspect = useMemo(() => {
     const m = new Map<string, ContatoLinha[]>();
@@ -68,6 +70,9 @@ export function ListaProspects({ prospects, contatos }: { prospects: ProspectLin
     iniciar(async () => {
       const r = await deleteProspect(p.id);
       if (!r.ok) setErro(r.erro ?? "Não deu para excluir.");
+      // Excluir devolve um resultado (para mostrar o motivo), então não pode redirecionar como as
+      // outras ações. Sem este refresh, a linha apagada continuava na tela até recarregar.
+      else router.refresh();
     });
   }
 

@@ -15,6 +15,23 @@ async function donoDoProspect(patientId: string, userId: string) {
   });
 }
 
+/**
+ * Volta para a lista DEPOIS de escrever.
+ *
+ * Três tentativas foram precisas para acertar isto, e vale registrar por quê:
+ *   - `revalidatePath` sozinho não faz nada aqui: a página é `force-dynamic`, não há cache para
+ *     invalidar, e nada avisa o navegador;
+ *   - `router.refresh()` no cliente dispara a busca, mas o resultado não substituía a tela;
+ *   - `redirect` para o MESMO endereço é navegação para onde já se está — o roteador serve do
+ *     cache e a lista continua a de antes.
+ *
+ * Com um parâmetro que muda a cada gravação, o endereço é outro, a navegação acontece de verdade
+ * e a linha nova aparece na hora. É o sintoma que o dono relatou como "cadastrei e não apareceu".
+ */
+function voltarParaLista(): never {
+  redirect(`/dashboard/prospects?salvo=${Date.now()}`);
+}
+
 export async function createProspect(formData: FormData) {
   const session = await auth();
   if (!session?.user?.id) throw new Error("Não autorizado");
@@ -55,8 +72,14 @@ export async function createProspect(formData: FormData) {
 
   // NÃO redireciona para a ficha do paciente. Era esta a queixa de "o cadastro do prospect não
   // aparece": o formulário jogava o dono direto na ficha, e ele nunca via a lista embaixo.
+  //
+  // Mas `revalidatePath` sozinho também não resolvia: a página é `force-dynamic`, então não há
+  // cache para invalidar e nada manda o navegador buscar de novo. O prospect entrava no banco e a
+  // lista continuava a de antes até alguém recarregar na mão — a mesma queixa, por outro caminho.
+  // O redirecionamento PARA A PRÓPRIA LISTA força a busca nova e mantém o dono onde ele quer estar.
   revalidatePath("/dashboard/prospects");
   revalidatePath("/dashboard");
+  voltarParaLista();
 }
 
 export async function updateProspect(formData: FormData) {
@@ -82,6 +105,7 @@ export async function updateProspect(formData: FormData) {
 
   revalidatePath("/dashboard/prospects");
   revalidatePath("/dashboard");
+  voltarParaLista();
 }
 
 /**
@@ -119,6 +143,7 @@ export async function addProspectContact(formData: FormData) {
   });
 
   revalidatePath("/dashboard/prospects");
+  voltarParaLista();
 }
 
 export async function deleteProspectContact(contactId: string, patientId: string) {
@@ -131,6 +156,7 @@ export async function deleteProspectContact(contactId: string, patientId: string
 
   await db.delete(prospectContacts).where(and(eq(prospectContacts.id, contactId), eq(prospectContacts.patientId, patientId)));
   revalidatePath("/dashboard/prospects");
+  voltarParaLista();
 }
 
 // Converte prospect em paciente ativo
@@ -158,4 +184,5 @@ export async function updateProspectOutcome(patientId: string, fechou: string, o
     .where(and(eq(patients.id, patientId), eq(patients.userId, session.user.id)));
 
   revalidatePath("/dashboard/prospects");
+  voltarParaLista();
 }
