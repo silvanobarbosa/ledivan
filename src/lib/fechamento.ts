@@ -87,8 +87,13 @@ export function precoNoMes(historico: PrecoVigente[], ano: number, mes: number):
 /**
  * Quantas sessões o combinado cobra naquele mês.
  *
- * Pacote completo é fechado: quatro. Todo o resto é o que a agenda contou — inclusive quem paga
- * a cada sessão, porque no fim do mês o que ele deve é a soma dos atendimentos que teve.
+ * Pacote completo é fechado: quatro, mesmo que a agenda tenha marcado três — é o combinado, e
+ * quem faltou não deixa de dever.
+ *
+ * **Mas mês sem sessão nenhuma não cobra nada.** Paciente que não foi atendido uma única vez não
+ * estava em tratamento naquele mês: pode ter interrompido, viajado, ou entrado depois. Cobrar
+ * quatro sessões dele é inventar dívida — e numa carteira grande isso enche a tela de vermelho
+ * falso, que é o jeito mais rápido de a pessoa parar de confiar no número.
  */
 export function sessoesCobradas(
   formato: FormatoPagamento | string | null | undefined,
@@ -96,8 +101,10 @@ export function sessoesCobradas(
   sessoesNaAgenda: number,
 ): number {
   if (!cobra(formato)) return 0;
+  const naAgenda = Math.max(0, Math.floor(sessoesNaAgenda));
+  if (naAgenda === 0) return 0;
   if (pacoteTipo === "completo") return SESSOES_PACOTE_COMPLETO;
-  return Math.max(0, Math.floor(sessoesNaAgenda));
+  return naAgenda;
 }
 
 /** O que entrou no mês para aquele paciente. Só o que foi realmente pago. */

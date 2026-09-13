@@ -59,6 +59,13 @@ describe("quantas sessões o combinado cobra", () => {
     expect(sessoesCobradas("sessao", null, 4)).toBe(4);
   });
 
+  it("mês sem sessão nenhuma não cobra, nem no pacote completo", () => {
+    // O paciente não foi atendido uma vez sequer: não estava em tratamento naquele mês. Cobrar
+    // quatro sessões dele é inventar dívida, e enche a tela de vermelho falso.
+    expect(sessoesCobradas("mensal", "completo", 0)).toBe(0);
+    expect(sessoesCobradas("sessao", null, 0)).toBe(0);
+  });
+
   it("gratuito não cobra nada, nunca", () => {
     expect(sessoesCobradas("gratuito", "completo", 4)).toBe(0);
     expect(sessoesCobradas("gratuito", null, 9)).toBe(0);
@@ -173,6 +180,20 @@ describe("a linha do paciente", () => {
     expect(l.sessoes).toBe(3);
     expect(l.valorDoMes).toBe(0);
     expect(l.situacao).toBe("sem_cobranca");
+  });
+
+  it("pacote completo sem sessão no mês não vira dívida de quatro sessões", () => {
+    const l = linhaDoFechamento({
+      paciente: { id: "p8", nome: "Hélio", formato: "mensal", pacoteTipo: "completo" },
+      sessoes: [],
+      precos,
+      pagamentos: [],
+      ano: 2026,
+      mes: 7,
+    });
+    expect(l.sessoesCobradas).toBe(0);
+    expect(l.valorDoMes).toBe(0);
+    expect(l.situacao).toBe("sem_sessoes");
   });
 
   it("quem não teve sessão no mês não vira dívida", () => {
