@@ -53,3 +53,6 @@ __pycache__/
 
 # capturas do harness visual (scripts/visual-*.mjs) — conferência local, nunca versionadas
 _visual/
+
+# Backups de limpeza: dado real de paciente, nunca versionado.
+backups/
