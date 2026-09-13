@@ -5,7 +5,9 @@
 export type PgSession = { patientId: string; ym: string; fee: number; chargeable: boolean; status: string };
 export type PgPayment = { patientId: string; ym: string; amount: number; kind: string | null };
 
-const OUT = new Set(["cancelada", "realocada", "nao_realizada"]); // não geram esperado
+// Não geram receita esperada. Prof. desm. e Atestado entram pelo mesmo motivo das outras:
+// sessão que não vai acontecer não é dinheiro a caminho.
+const OUT = new Set(["cancelada", "realocada", "nao_realizada", "prof_desmarcou", "atestado"]);
 
 export type MonthCell = { esperado: number; pago: number; aberto: number };
 export type PatientMonth = { patientId: string; esperado: number; pago: number; aberto: number };
