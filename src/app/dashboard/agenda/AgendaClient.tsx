@@ -382,7 +382,7 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
                           {/* Passou do prazo de pagamento e nada entrou. É só um aviso ao profissional: a sessão
                               continua de pé, e cancelar (ou atender assim mesmo) é decisão dele. */}
                           {s.pagamentoAtrasado && <p className="text-[9px] font-bold uppercase tracking-wide text-red-600">Pagamento atrasado</p>}
-                          {s.pkg && <p className="text-[9px] font-bold uppercase tracking-wide text-emerald-700/80">{s.pendingConfirmation ? "Reserva pacote" : "Pacote"}{s.pkg.seq > 0 ? ` P${s.pkg.seq}` : ""} · {s.pkg.index}/{s.pkg.total}</p>}
+                          {s.pkg && <p className="text-[9px] font-bold uppercase tracking-wide text-emerald-700/80 truncate" title={`${s.pendingConfirmation ? "Reserva pacote" : "Pacote"} ${s.pkg.index}/${s.pkg.total}`}>{s.pendingConfirmation ? "Reserva pacote" : "Pacote"}{s.pkg.seq > 0 ? ` P${s.pkg.seq}` : ""} · {s.pkg.index}/{s.pkg.total}</p>}
                         </button>
                       );
                     })}
