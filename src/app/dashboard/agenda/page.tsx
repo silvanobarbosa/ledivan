@@ -8,6 +8,7 @@ import { parseLocations } from "@/lib/locations";
 import { parseHolidayCities, holidaysByDate } from "@/lib/holidays";
 import { derivePackageLabels } from "@/lib/packages";
 import { posicoesDaSequencia, tamanhosDasSequencias } from "@/lib/sequenciaPacote";
+import { entraNaSequencia } from "@/lib/celulaDaAgenda";
 import { usaPacote } from "@/lib/reajuste";
 import { pagamentoAtrasado } from "@/lib/pagamentoSessao";
 
@@ -21,12 +22,12 @@ export default async function AgendaPage() {
   const [list, pats, me] = await Promise.all([
     db.query.therapySessions.findMany({
       where: and(eq(therapySessions.userId, session.user.id), gte(therapySessions.date, windowStart)),
-      columns: { id: true, patientId: true, date: true, duration: true, status: true, isOnline: true, meetingUrl: true, meetingOpenedAt: true, guestJoinedAt: true, meetingEndedAt: true, pendingConfirmation: true, patientConfirmedAt: true, rescheduleRequestedAt: true, patientArrivedAt: true, location: true, recurring: true, recurrenceFreq: true, sessionKind: true, packageId: true },
+      columns: { id: true, patientId: true, date: true, duration: true, status: true, isOnline: true, meetingUrl: true, meetingOpenedAt: true, guestJoinedAt: true, meetingEndedAt: true, pendingConfirmation: true, patientConfirmedAt: true, rescheduleRequestedAt: true, patientArrivedAt: true, location: true, recurring: true, recurrenceFreq: true, sessionKind: true, packageId: true, abaterDoPacote: true },
       with: { patient: { columns: { name: true } } },
     }),
     db.query.patients.findMany({
       where: and(eq(patients.userId, session.user.id), ne(patients.patientStatus, "inativo")),
-      columns: { id: true, name: true, patientStatus: true, attendanceMode: true, attendanceLocation: true, birthDate: true, paymentFormat: true, pacoteTipo: true, horasAntesPagamento: true },
+      columns: { id: true, name: true, patientStatus: true, attendanceMode: true, attendanceLocation: true, birthDate: true, paymentFormat: true, pacoteTipo: true, horasAntesPagamento: true, agendaId: true, registrationNumber: true },
       orderBy: [patients.name],
     }),
     db.query.users.findFirst({ where: eq(users.id, session.user.id) }),
@@ -55,7 +56,7 @@ export default async function AgendaPage() {
   if (porPacote.length) {
     const ids = porPacote.map((x) => x.id);
     const [todas, contratos] = await Promise.all([
-      db.select({ id: therapySessions.id, patientId: therapySessions.patientId, date: therapySessions.date, status: therapySessions.status })
+      db.select({ id: therapySessions.id, patientId: therapySessions.patientId, date: therapySessions.date, status: therapySessions.status, sessionKind: therapySessions.sessionKind, abaterDoPacote: therapySessions.abaterDoPacote })
         .from(therapySessions)
         .where(and(eq(therapySessions.userId, session.user.id), inArray(therapySessions.patientId, ids))),
       db.select({ patientId: patientPackages.patientId, seq: patientPackages.seq, sessions: patientPackages.sessions })
@@ -63,8 +64,10 @@ export default async function AgendaPage() {
         .where(and(eq(patientPackages.userId, session.user.id), inArray(patientPackages.patientId, ids))),
     ]);
     for (const paciente of porPacote) {
+      // A devolutiva comum acontece FORA do pacote: só entra na sequência quando foi marcada
+      // para abater. Contar todas roubaria uma consulta do paciente a cada devolutiva.
       const doPaciente = todas
-        .filter((x) => x.patientId === paciente.id)
+        .filter((x) => x.patientId === paciente.id && entraNaSequencia(x))
         .map((x) => ({ id: x.id, date: x.date as Date, status: x.status }));
       const tipo = paciente.pacoteTipo === "fragmentado" ? "fragmentado" : "completo";
       // O tamanho de cada sequência é o que se guarda: é o combinado, e não se deduz das sessões.
@@ -142,10 +145,11 @@ export default async function AgendaPage() {
           recurrenceFreq: s.recurrenceFreq ?? null,
           patientId: s.patientId,
           sessionKind: s.sessionKind ?? "consulta",
+          abaterDoPacote: s.abaterDoPacote,
           pkg: pkgLabels.get(s.id) ?? null,
           pagamentoAtrasado: atrasadas.has(s.id),
         }))}
-        patients={pats.map((p) => ({ id: p.id, name: p.name, status: p.patientStatus, attendanceMode: p.attendanceMode, attendanceLocation: p.attendanceLocation, social: p.paymentFormat === "gratuito" }))}
+        patients={pats.map((p) => ({ id: p.id, name: p.name, status: p.patientStatus, attendanceMode: p.attendanceMode, attendanceLocation: p.attendanceLocation, social: p.paymentFormat === "gratuito", agendaId: p.agendaId, registrationNumber: p.registrationNumber, paymentFormat: p.paymentFormat }))}
         birthdays={pats.filter((p) => p.birthDate).map((p) => { const b = new Date(p.birthDate as unknown as string); return { name: p.name, month: b.getMonth() + 1, day: b.getDate() }; })}
         locations={locations}
         holidays={holidays}

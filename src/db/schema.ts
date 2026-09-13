@@ -543,6 +543,10 @@ export const therapySessions = pgTable("therapy_sessions", {
   timerEndedAt: timestamp("timer_ended_at"), // cronômetro encerrado
   patientArrivedAt: timestamp("patient_arrived_at"), // paciente tocou "Cheguei" (sala de espera)
   sessionKind: text("session_kind").default("consulta").notNull(), // consulta | devolutiva (devolutiva a responsáveis)
+  // Devolutiva marcada para ABATER do pacote: não gera cobrança, mas ocupa uma posição na
+  // sequência. Sem a marca, a devolutiva acontece fora do pacote — contá-la ali roubaria uma
+  // consulta do paciente.
+  abaterDoPacote: boolean("abater_do_pacote").default(false).notNull(),
   packageId: uuid("package_id"), // vínculo opcional com um pacote (patient_packages); numeração 1/N derivada por data
   recurring: boolean("recurring").default(false).notNull(), // reserva recorrente
   recurrenceFreq: text("recurrence_freq"), // semanal | quinzenal | mensal (base p/ "Vago Quinzenal" na agenda)
