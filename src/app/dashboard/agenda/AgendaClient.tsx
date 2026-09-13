@@ -9,6 +9,8 @@ import { HolidaySetup } from "@/components/dashboard/HolidaySetup";
 import { HOLIDAY_STYLE, type Holiday, type HolidayCity } from "@/lib/holidays-style";
 import { geometriaDaFaixa, posicoesDoDia } from "@/lib/agendaLayout";
 import { conteudoDaCelula } from "@/lib/celulaDaAgenda";
+import { textoDoBloqueio } from "@/lib/bloqueioDeHorario";
+import { BloquearHorario } from "@/components/dashboard/BloquearHorario";
 
 type PatientLite = { id: string; name: string; status: string; attendanceMode: string | null; attendanceLocation: string | null;
   /** Atendimento gratuito: a agenda marca a sessão como "social". */
@@ -40,7 +42,9 @@ function startOfWeek(d: Date) {
 
 type Birthday = { name: string; month: number; day: number };
 
-export function AgendaClient({ sessions, patients = [], birthdays = [], locations = [], holidays = {}, holidayCities = [] }: { sessions: AgendaSession[]; patients?: PatientLite[]; birthdays?: Birthday[]; locations?: LocationLite[]; holidays?: Record<string, Holiday[]>; holidayCities?: HolidayCity[] }) {
+type BlocoBloqueado = { id: string; date: string; duration: number; note: string | null };
+
+export function AgendaClient({ sessions, patients = [], birthdays = [], locations = [], holidays = {}, holidayCities = [], blocks = [] }: { sessions: AgendaSession[]; patients?: PatientLite[]; birthdays?: Birthday[]; locations?: LocationLite[]; holidays?: Record<string, Holiday[]>; holidayCities?: HolidayCity[]; blocks?: BlocoBloqueado[] }) {
   /** O que a célula escreve para aquela sessão. A regra mora em `celulaDaAgenda`, longe da tela. */
   const celula = (s: AgendaSession) => {
     const p = patients.find((x) => x.id === s.patientId);
@@ -106,6 +110,12 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
     day.setDate(day.getDate() + i);
     return day;
   });
+
+  const blocksByDay = (day: Date) =>
+    blocks.filter((b) => {
+      const d = new Date(b.date);
+      return d.getFullYear() === day.getFullYear() && d.getMonth() === day.getMonth() && d.getDate() === day.getDate();
+    });
 
   const sessionsByDay = (day: Date) =>
     sessions.filter((s) => {
@@ -222,6 +232,7 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
               }}
             />
           </label>
+          <BloquearHorario />
         </div>
         <button onClick={() => shift(1)} className="p-2 rounded-xl hover:bg-white/60 transition"><ChevronRight className="w-5 h-5" /></button>
       </div>
@@ -357,6 +368,27 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
                         />
                       )),
                     )}
+                    {/* Horários bloqueados: fundo preto e texto branco, como elas pediram. Ficam
+                        atrás das sessões — se alguém bloquear em cima de um paciente por outro
+                        caminho, quem tem que aparecer é o paciente. */}
+                    {blocksByDay(day).map((b) => {
+                      const d = new Date(b.date);
+                      const minutos = (d.getHours() - START_HOUR) * 60 + d.getMinutes();
+                      const top = Math.max(0, (minutos / 60) * HOUR_PX);
+                      const height = Math.max(22, (b.duration / 60) * HOUR_PX - 2);
+                      const texto = textoDoBloqueio(b.note);
+                      return (
+                        <div
+                          key={b.id}
+                          title={`${texto} · ${pad(d.getHours())}:${pad(d.getMinutes())}`}
+                          style={{ top: top + 1, height }}
+                          className="absolute left-1 right-1 rounded-lg bg-neutral-900 px-2 py-1 text-left overflow-hidden"
+                        >
+                          <p className="text-[10px] font-bold leading-tight tabular-nums text-white/70">{pad(d.getHours())}:{pad(d.getMinutes())}</p>
+                          <p className="text-[10px] font-bold uppercase tracking-wide leading-tight text-white truncate">{texto}</p>
+                        </div>
+                      );
+                    })}
                     {/* ghosts "Vago Quinzenal" (semana alternada do quinzenal) — clicável p/ encaixar */}
                     {ghostsForDay(day).map((g, gi) => {
                       const top = Math.max(0, (((g.hour - START_HOUR) * 60 + g.minute) / 60) * HOUR_PX);

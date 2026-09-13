@@ -1,6 +1,6 @@
 import { db } from "@/db";
 import { auth } from "@/auth";
-import { patientPackages, patients, sessionPayments, therapySessions, users } from "@/db/schema";
+import { blockedSlots, patientPackages, patients, sessionPayments, therapySessions, users } from "@/db/schema";
 import { and, eq, gte, inArray, isNotNull, ne } from "drizzle-orm";
 import { AgendaClient } from "./AgendaClient";
 import { riskFromSessions } from "@/lib/therapy";
@@ -19,7 +19,7 @@ export default async function AgendaPage() {
   // Janela de exibição: últimos 120 dias (para cálculo de risco/histórico recente) em diante.
   const windowStart = new Date(); windowStart.setDate(windowStart.getDate() - 120);
 
-  const [list, pats, me] = await Promise.all([
+  const [list, pats, bloqueios, me] = await Promise.all([
     db.query.therapySessions.findMany({
       where: and(eq(therapySessions.userId, session.user.id), gte(therapySessions.date, windowStart)),
       columns: { id: true, patientId: true, date: true, duration: true, status: true, isOnline: true, meetingUrl: true, meetingOpenedAt: true, guestJoinedAt: true, meetingEndedAt: true, pendingConfirmation: true, patientConfirmedAt: true, rescheduleRequestedAt: true, patientArrivedAt: true, location: true, recurring: true, recurrenceFreq: true, sessionKind: true, packageId: true, abaterDoPacote: true },
@@ -30,6 +30,11 @@ export default async function AgendaPage() {
       columns: { id: true, name: true, patientStatus: true, attendanceMode: true, attendanceLocation: true, birthDate: true, paymentFormat: true, pacoteTipo: true, horasAntesPagamento: true, agendaId: true, registrationNumber: true },
       orderBy: [patients.name],
     }),
+    // Os horários tirados do ar que não são paciente: supervisão, curso, médico. Vêm de tabela
+    // própria justamente para não terem como vazar para contagem de pacote nem para o fechamento.
+    db.select({ id: blockedSlots.id, date: blockedSlots.date, duration: blockedSlots.duration, note: blockedSlots.note })
+      .from(blockedSlots)
+      .where(and(eq(blockedSlots.userId, session.user.id), gte(blockedSlots.date, windowStart))),
     db.query.users.findFirst({ where: eq(users.id, session.user.id) }),
   ]);
 
@@ -153,6 +158,7 @@ export default async function AgendaPage() {
         birthdays={pats.filter((p) => p.birthDate).map((p) => { const b = new Date(p.birthDate as unknown as string); return { name: p.name, month: b.getMonth() + 1, day: b.getDate() }; })}
         locations={locations}
         holidays={holidays}
+        blocks={bloqueios.map((b) => ({ id: b.id, date: b.date as unknown as string, duration: b.duration, note: b.note }))}
         holidayCities={holidayCities}
       />
     </div>
