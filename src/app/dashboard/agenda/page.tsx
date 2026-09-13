@@ -1,13 +1,13 @@
 import { db } from "@/db";
 import { auth } from "@/auth";
-import { therapySessions, patients, users, patientPackages, sessionPayments } from "@/db/schema";
-import { and, eq, ne, gte, isNotNull } from "drizzle-orm";
+import { patientPackages, patients, sessionPayments, therapySessions, users } from "@/db/schema";
+import { and, eq, gte, inArray, isNotNull, ne } from "drizzle-orm";
 import { AgendaClient } from "./AgendaClient";
 import { riskFromSessions } from "@/lib/therapy";
 import { parseLocations } from "@/lib/locations";
 import { parseHolidayCities, holidaysByDate } from "@/lib/holidays";
 import { derivePackageLabels } from "@/lib/packages";
-import { numeracaoDoPacote } from "@/lib/pacoteMes";
+import { posicoesDaSequencia, tamanhosDasSequencias } from "@/lib/sequenciaPacote";
 import { usaPacote } from "@/lib/reajuste";
 import { pagamentoAtrasado } from "@/lib/pagamentoSessao";
 
@@ -44,22 +44,32 @@ export default async function AgendaPage() {
     pkgs,
   );
 
-  // Contagem do pacote pelo CALENDÁRIO (1/3, 2/3…), para quem fecha as contas por pacote. Ela
-  // manda no rótulo: a numeração antiga vinha de um registro de pacote com total fixo, e o dono
-  // quer o total do mês — setembro com três quartas cobra três sessões, outubro cobra quatro.
-  // A busca começa no primeiro dia do mês da janela, senão o mês mais antigo contaria pela metade.
-  const inicioDoMes = new Date(windowStart.getFullYear(), windowStart.getMonth(), 1);
+  // A POSIÇÃO NA SEQUÊNCIA (1/4, 2/4…), que é o que a célula mostra.
+  //
+  // A varredura é do histórico INTEIRO do paciente, de propósito. Antes ela começava no mês da
+  // janela, e isso bastava enquanto o agrupador era o mês do calendário — cada mês se resolvia
+  // sozinho. Agora a sequência é contínua e atravessa a virada: começar no meio faria a primeira
+  // sessão da janela aparecer como 1/4 quando ela é 3/4. São algumas dezenas de linhas por
+  // paciente; ler tudo é barato perto de mostrar o número errado.
   const porPacote = pats.filter((x) => usaPacote(x.paymentFormat));
   if (porPacote.length) {
-    const todas = await db.select({ id: therapySessions.id, patientId: therapySessions.patientId, date: therapySessions.date, status: therapySessions.status })
-      .from(therapySessions)
-      .where(and(eq(therapySessions.userId, session.user.id), gte(therapySessions.date, inicioDoMes)));
+    const ids = porPacote.map((x) => x.id);
+    const [todas, contratos] = await Promise.all([
+      db.select({ id: therapySessions.id, patientId: therapySessions.patientId, date: therapySessions.date, status: therapySessions.status })
+        .from(therapySessions)
+        .where(and(eq(therapySessions.userId, session.user.id), inArray(therapySessions.patientId, ids))),
+      db.select({ patientId: patientPackages.patientId, seq: patientPackages.seq, sessions: patientPackages.sessions })
+        .from(patientPackages)
+        .where(and(eq(patientPackages.userId, session.user.id), inArray(patientPackages.patientId, ids))),
+    ]);
     for (const paciente of porPacote) {
       const doPaciente = todas
         .filter((x) => x.patientId === paciente.id)
         .map((x) => ({ id: x.id, date: x.date as Date, status: x.status }));
       const tipo = paciente.pacoteTipo === "fragmentado" ? "fragmentado" : "completo";
-      for (const [id, pos] of numeracaoDoPacote(doPaciente, tipo)) {
+      // O tamanho de cada sequência é o que se guarda: é o combinado, e não se deduz das sessões.
+      const tamanhos = tamanhosDasSequencias(contratos.filter((c) => c.patientId === paciente.id));
+      for (const [id, pos] of posicoesDaSequencia(doPaciente, { pacoteTipo: tipo, tamanhos })) {
         pkgLabels.set(id, { seq: 0, index: pos.index, total: pos.total });
       }
     }

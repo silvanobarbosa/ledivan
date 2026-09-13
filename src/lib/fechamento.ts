@@ -17,8 +17,9 @@
  * Tudo aqui é função pura — recebe listas, devolve números. Quem busca no banco é a tela.
  */
 
-import { SESSOES_PACOTE_COMPLETO, sessoesDoMes, type SessaoDoPacote } from "./pacoteMes";
-import { cobra, type FormatoPagamento } from "./reajuste";
+import { sessoesDoMes, type SessaoDoPacote } from "./pacoteMes";
+import { cobra, usaPacote, type FormatoPagamento } from "./reajuste";
+import { sequenciasFechadasNoMes } from "./sequenciaPacote";
 
 export type PacienteDoFechamento = {
   id: string;
@@ -50,8 +51,10 @@ export type LinhaDoFechamento = {
   formato: string;
   /** Quantas sessões a AGENDA contou naquele mês (fora canceladas e realocadas). */
   sessoes: number;
-  /** Quantas sessões o combinado cobra — pacote completo cobra 4 mesmo com 3 na agenda. */
+  /** Quantas sessões a conta cobra. Para quem fecha por pacote, é a soma das sequências. */
   sessoesCobradas: number;
+  /** Quantos pacotes entraram na conta deste mês. Zero para quem paga a cada sessão. */
+  pacotesNoMes: number;
   precoDaSessao: number;
   valorDoMes: number;
   pago: number;
@@ -85,26 +88,61 @@ export function precoNoMes(historico: PrecoVigente[], ano: number, mes: number):
 }
 
 /**
- * Quantas sessões o combinado cobra naquele mês.
+ * Quantas sessões o mês cobra — e a unidade da conta segue o CONTRATO, não o calendário.
  *
- * Pacote completo é fechado: quatro, mesmo que a agenda tenha marcado três — é o combinado, e
- * quem faltou não deixa de dever.
+ * Era aqui que estava o erro mais fundo do motor: ele cobrava tudo por mês do calendário, mesmo de
+ * quem não contratou por mês. Um paciente de pacote via a fatura de setembro ENCOLHER a cada
+ * desmarcação, quando o que ele contratou foram quatro atendimentos e não o mês de setembro.
  *
- * **Mas mês sem sessão nenhuma não cobra nada.** Paciente que não foi atendido uma única vez não
- * estava em tratamento naquele mês: pode ter interrompido, viajado, ou entrado depois. Cobrar
- * quatro sessões dele é inventar dívida — e numa carteira grande isso enche a tela de vermelho
- * falso, que é o jeito mais rápido de a pessoa parar de confiar no número.
+ * Agora são três unidades diferentes, uma por tipo de combinado:
+ *
+ * - **Pacote** (mensal, quinzenal, primeira e última do pacote): cobra a SEQUÊNCIA, quando ela
+ *   fecha. Uma sequência de setembro empurrada por um atestado fecha em outubro e cobra em
+ *   outubro, inteira. Sequência pela metade não cobra — ninguém cobra pacote incompleto.
+ * - **A cada sessão**: cobra cada sessão que ocupou posição naquele mês.
+ * - **Gratuito**: não cobra nunca.
+ *
+ * Decisão do dono, 13/09/2026: cobrar por sequência em vez de por data.
  */
-export function sessoesCobradas(
-  formato: FormatoPagamento | string | null | undefined,
-  pacoteTipo: string | null | undefined,
-  sessoesNaAgenda: number,
-): number {
-  if (!cobra(formato)) return 0;
-  const naAgenda = Math.max(0, Math.floor(sessoesNaAgenda));
-  if (naAgenda === 0) return 0;
-  if (pacoteTipo === "completo") return SESSOES_PACOTE_COMPLETO;
-  return naAgenda;
+export function pacotesCobraveis(opts: {
+  formato: FormatoPagamento | string | null | undefined;
+  pacoteTipo: string | null | undefined;
+  sessoes: SessaoDoPacote[];
+  tamanhos?: number[];
+  ano: number;
+  mes: number;
+}) {
+  if (!cobra(opts.formato) || !usaPacote(opts.formato)) return [];
+  const tipo = opts.pacoteTipo === "fragmentado" ? "fragmentado" : "completo";
+  // Quem combinou pagar na PRIMEIRA do pacote vence na abertura; os demais, quando ela fecha.
+  const momento = opts.formato === "primeira_pacote" ? "abertura" : "fechamento";
+  return sequenciasFechadasNoMes(
+    opts.sessoes,
+    { pacoteTipo: tipo, tamanhos: opts.tamanhos },
+    opts.ano,
+    opts.mes,
+    momento,
+  );
+}
+
+export function sessoesCobradas(opts: {
+  formato: FormatoPagamento | string | null | undefined;
+  pacoteTipo: string | null | undefined;
+  /** Todas as sessões do paciente, de qualquer mês — a sequência não cabe num mês só. */
+  sessoes: SessaoDoPacote[];
+  /** Os tamanhos contratados, na ordem. Vazio cai no pacote de quatro. */
+  tamanhos?: number[];
+  ano: number;
+  mes: number;
+}): number {
+  if (!cobra(opts.formato)) return 0;
+
+  if (usaPacote(opts.formato)) {
+    return pacotesCobraveis(opts).reduce((t, f) => t + f.total, 0);
+  }
+
+  // A cada sessão: conta o que aconteceu no mês, e sessão pausada não conta.
+  return sessoesDoMes(opts.sessoes, opts.ano, opts.mes);
 }
 
 /** O que entrou no mês para aquele paciente. Só o que foi realmente pago. */
@@ -138,12 +176,23 @@ export function linhaDoFechamento(opts: {
   sessoes: SessaoDoPacote[];
   precos: PrecoVigente[];
   pagamentos: PagamentoDoMes[];
+  /** Os tamanhos contratados do paciente, na ordem. Só importa para quem fecha por pacote. */
+  tamanhos?: number[];
   ano: number;
   mes: number;
 }): LinhaDoFechamento {
   const { paciente, ano, mes } = opts;
   const naAgenda = sessoesDoMes(opts.sessoes, ano, mes);
-  const cobradas = sessoesCobradas(paciente.formato, paciente.pacoteTipo, naAgenda);
+  const argumentos = {
+    formato: paciente.formato,
+    pacoteTipo: paciente.pacoteTipo,
+    sessoes: opts.sessoes,
+    tamanhos: opts.tamanhos,
+    ano,
+    mes,
+  };
+  const cobradas = sessoesCobradas(argumentos);
+  const pacotes = pacotesCobraveis(argumentos);
   const preco = precoNoMes(opts.precos, ano, mes);
   const valor = Number((cobradas * preco).toFixed(2));
   const pago = pagoNoMes(opts.pagamentos, paciente.id, ano, mes);
@@ -154,6 +203,7 @@ export function linhaDoFechamento(opts: {
     formato: String(paciente.formato ?? "sessao"),
     sessoes: naAgenda,
     sessoesCobradas: cobradas,
+    pacotesNoMes: pacotes.length,
     precoDaSessao: preco,
     valorDoMes: valor,
     pago,

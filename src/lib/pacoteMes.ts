@@ -1,30 +1,22 @@
 /**
- * A contagem de sessões do pacote — 1/3, 2/3, 3/3 — feita pelo CALENDÁRIO, não por um número
- * digitado no cadastro.
+ * QUANTAS SESSÕES O PACIENTE TEVE NAQUELE MÊS.
  *
- * Regra do dono, com o exemplo dele: atendimento toda quarta às 8h, começando em 16/09.
+ * Só isso. A POSIÇÃO de cada sessão (1/4, 2/4…) mudou de casa: mora em `sequenciaPacote.ts`, que
+ * agrupa por sequência em vez de por mês do calendário — uma sequência de setembro empurrada por
+ * um atestado termina em outubro, e o mês deixou de ser o agrupador.
  *
- *   16/09 → 1/3   07/10 → 1/4
- *   23/09 → 2/3   14/10 → 2/4
- *   30/09 → 3/3   21/10 → 3/4
- *                 28/10 → 4/4
+ * O que ficou aqui é a contagem pelo CALENDÁRIO, que continua sendo uma pergunta legítima: a tela
+ * do fechamento mostra quantas sessões houve no mês ao lado do que o mês cobra, justamente porque
+ * os dois números podem divergir.
  *
- * Ou seja, no pacote FRAGMENTADO o total é quantas sessões caem dentro daquele mês, e setembro
- * com três quartas-feiras cobra três sessões. No pacote COMPLETO são sempre quatro: a sequência
- * vai de 1/4 a 4/4 e recomeça, atravessando a virada do mês.
+ * Sessão que pausa a sequência não conta: não houve atendimento, e o paciente não perde a sessão.
  *
- * Sessão cancelada ou realocada sai da conta, e as seguintes renumeram sozinhas — senão o
- * paciente pagaria por uma sessão que não houve.
- *
- * Função pura: conta, não grava. O valor do mês é este total × o valor da sessão.
+ * Função pura: conta, não grava.
  */
 
 import { STATUS_QUE_PAUSAM } from "./therapy";
 
-export const SESSOES_PACOTE_COMPLETO = 4;
-
 export type SessaoDoPacote = { id: string; date: Date | string; status: string };
-export type PosicaoNoPacote = { index: number; total: number };
 
 /**
  * Quem não conta: não houve atendimento, e o paciente não perde a sessão.
@@ -34,8 +26,6 @@ export type PosicaoNoPacote = { index: number; total: number };
  * desmarcou, ou por falta com atestado, é cobrar por atendimento que não houve.
  */
 const FORA = STATUS_QUE_PAUSAM;
-
-const chaveDoMes = (d: Date) => `${d.getFullYear()}-${d.getMonth()}`;
 
 function ativasEmOrdem(sessoes: SessaoDoPacote[]): { id: string; data: Date }[] {
   return sessoes
@@ -48,44 +38,4 @@ function ativasEmOrdem(sessoes: SessaoDoPacote[]): { id: string; data: Date }[] 
 /** Quantas sessões o paciente tem dentro daquele mês (base 0 para janeiro, como no JavaScript). */
 export function sessoesDoMes(sessoes: SessaoDoPacote[], ano: number, mes: number): number {
   return ativasEmOrdem(sessoes).filter((s) => s.data.getFullYear() === ano && s.data.getMonth() === mes).length;
-}
-
-/**
- * A posição de cada sessão no pacote: mapa de id da sessão para `{ index, total }`.
- *
- * Fragmentado conta por mês; completo é uma sequência contínua de quatro que reinicia.
- */
-export function numeracaoDoPacote(
-  sessoes: SessaoDoPacote[],
-  pacote: "completo" | "fragmentado" | null | undefined,
-): Map<string, PosicaoNoPacote> {
-  const ordenadas = ativasEmOrdem(sessoes);
-  const mapa = new Map<string, PosicaoNoPacote>();
-
-  if (pacote === "fragmentado") {
-    const porMes = new Map<string, { id: string; data: Date }[]>();
-    for (const s of ordenadas) {
-      const k = chaveDoMes(s.data);
-      porMes.set(k, [...(porMes.get(k) ?? []), s]);
-    }
-    for (const doMes of porMes.values()) {
-      doMes.forEach((s, i) => mapa.set(s.id, { index: i + 1, total: doMes.length }));
-    }
-    return mapa;
-  }
-
-  ordenadas.forEach((s, i) => {
-    mapa.set(s.id, { index: (i % SESSOES_PACOTE_COMPLETO) + 1, total: SESSOES_PACOTE_COMPLETO });
-  });
-  return mapa;
-}
-
-/**
- * Quanto o pacote daquele mês custa: total de sessões × valor da sessão.
- *
- * A tela que vai cobrar ainda não existe — o dono pediu para a lógica já ficar pronta e certa.
- */
-export function valorDoPacote(valorSessao: number, totalDeSessoes: number): number {
-  if (!(valorSessao > 0) || !(totalDeSessoes > 0)) return 0;
-  return Number((valorSessao * totalDeSessoes).toFixed(2));
 }
