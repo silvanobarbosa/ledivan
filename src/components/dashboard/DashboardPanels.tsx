@@ -297,7 +297,7 @@ function Pagamentos({ patients }: { patients: PanelPatient[] }) {
     <div className={card}>
       <div className="flex items-center justify-between"><h4 className="font-display font-bold text-primary">Pagamentos</h4><Link href="/dashboard/previsao" className="text-xs text-primary hover:underline">previsão futura →</Link></div>
       <div className="grid grid-cols-2 gap-2"><Stat n={atraso} label="Em atraso" tone="red" /><Stat n={emDia} label="Em dia" tone="green" /></div>
-      <div className="flex gap-2 flex-wrap"><Link href="/dashboard/pagamentos" className="text-xs text-primary hover:underline">pagamentos →</Link><Link href="/dashboard/financeiro" className="text-xs text-primary hover:underline">financeiro →</Link><Link href="/dashboard/visao-financeira" className="text-xs text-primary hover:underline">saldos por paciente →</Link><Link href="/dashboard/conciliacao" className="text-xs text-primary hover:underline">conciliação →</Link></div>
+      <div className="flex gap-2 flex-wrap"><Link href="/dashboard/fechamento" className="text-xs text-primary hover:underline font-semibold">fechar o mês →</Link><Link href="/dashboard/pagamentos" className="text-xs text-primary hover:underline">pagamentos →</Link><Link href="/dashboard/financeiro" className="text-xs text-primary hover:underline">financeiro →</Link><Link href="/dashboard/visao-financeira" className="text-xs text-primary hover:underline">saldos por paciente →</Link><Link href="/dashboard/conciliacao" className="text-xs text-primary hover:underline">conciliação →</Link></div>
     </div>
   );
 }
