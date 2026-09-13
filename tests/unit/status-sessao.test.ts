@@ -9,7 +9,8 @@ import {
   riskFromSessions,
   sessionColorClasses,
 } from "@/lib/therapy";
-import { numeracaoDoPacote, sessoesDoMes } from "@/lib/pacoteMes";
+import { sessoesDoMes } from "@/lib/pacoteMes";
+import { posicoesDaSequencia } from "@/lib/sequenciaPacote";
 
 /**
  * OS CINCO STATUS DO LOTE, e o que cada regra faz com os dois que nasceram agora.
@@ -112,23 +113,24 @@ describe("a contagem do pacote", () => {
     expect(sessoesDoMes(sessoes, 2026, 8)).toBe(2);
   });
 
-  it("a sessão pausada não ocupa posição: a seguinte assume a que ficou parada", () => {
-    const mapa = numeracaoDoPacote(
+  it("a sessão pausada segura a posição, e a seguinte assume a que ficou parada", () => {
+    const mapa = posicoesDaSequencia(
       [em(2, "realizada"), em(9, "atestado"), em(16, "realizada"), em(23, "realizada")],
-      "completo",
+      { pacoteTipo: "completo" },
     );
-    expect(mapa.get("s2")).toEqual({ index: 1, total: 4 });
-    expect(mapa.get("s16")).toEqual({ index: 2, total: 4 });
-    expect(mapa.get("s23")).toEqual({ index: 3, total: 4 });
+    // A pausada agora MOSTRA onde parou, em vez de sumir da numeração como fazia antes.
+    expect(mapa.get("s9")?.index).toBe(2);
+    expect(mapa.get("s16")?.index).toBe(2);
+    expect(mapa.get("s23")?.index).toBe(3);
   });
 
   it("Faltou ocupa a posição: o paciente perdeu aquela sessão", () => {
-    const mapa = numeracaoDoPacote(
+    const mapa = posicoesDaSequencia(
       [em(2, "realizada"), em(9, "nao_realizada"), em(16, "realizada")],
-      "completo",
+      { pacoteTipo: "completo" },
     );
-    expect(mapa.get("s9")).toEqual({ index: 2, total: 4 });
-    expect(mapa.get("s16")).toEqual({ index: 3, total: 4 });
+    expect(mapa.get("s9")?.index).toBe(2);
+    expect(mapa.get("s16")?.index).toBe(3);
   });
 });
 

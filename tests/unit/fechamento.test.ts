@@ -44,31 +44,63 @@ describe("o preço que valia naquele mês", () => {
   });
 });
 
-describe("quantas sessões o combinado cobra", () => {
-  it("pacote completo cobra quatro, mesmo com três na agenda", () => {
-    expect(sessoesCobradas("mensal", "completo", 3)).toBe(4);
-    expect(sessoesCobradas("mensal", "completo", 5)).toBe(4);
+describe("quantas sessões o mês cobra — a unidade segue o contrato", () => {
+  /**
+   * Decisão do dono, 13/09/2026: a cobrança segue a SEQUÊNCIA, não a data.
+   *
+   * Antes o motor cobrava tudo por mês do calendário, mesmo de quem não contratou por mês — e por
+   * isso a fatura de um paciente de pacote ENCOLHIA a cada desmarcação. Agora são três unidades:
+   * pacote cobra a sequência quando ela fecha, avulso cobra cada sessão, gratuito nunca cobra.
+   */
+  const dia = (d: number, status = "realizada") => ({ id: `d${d}`, date: new Date(2026, 7, d), status });
+  const cobra = (formato: string, pacoteTipo: string | null, sessoes: ReturnType<typeof dia>[], tamanhos?: number[]) =>
+    sessoesCobradas({ formato, pacoteTipo, sessoes, tamanhos, ano: 2026, mes: 7 });
+
+  it("o pacote completo cobra quatro quando a sequência FECHA", () => {
+    expect(cobra("mensal", "completo", [dia(3), dia(10), dia(17), dia(24)])).toBe(4);
   });
 
-  it("fragmentado cobra o que a agenda marcou", () => {
-    expect(sessoesCobradas("mensal", "fragmentado", 3)).toBe(3);
-    expect(sessoesCobradas("mensal", "fragmentado", 0)).toBe(0);
+  it("pacote pela metade não cobra: ninguém cobra pacote incompleto", () => {
+    // É a mudança de verdade. Antes três sessões cobravam quatro; agora esperam a quarta.
+    expect(cobra("mensal", "completo", [dia(3), dia(10), dia(17)])).toBe(0);
+  });
+
+  it("a desmarcação NÃO encolhe mais a fatura: a sequência continua valendo o que valia", () => {
+    // Quatro na agenda com uma desmarcada não fecham o pacote — a posição ficou pausada.
+    expect(cobra("mensal", "completo", [dia(3), dia(10, "cancelada"), dia(17), dia(24)])).toBe(0);
+    // Com a reposição, fecha, e cobra as quatro inteiras.
+    expect(cobra("mensal", "completo", [dia(3), dia(10, "cancelada"), dia(17), dia(24), dia(31)])).toBe(4);
+  });
+
+  it("o fracionado cobra o tamanho CONTRATADO, não o que sobrou no mês", () => {
+    expect(cobra("mensal", "fragmentado", [dia(5), dia(12), dia(19)], [3])).toBe(3);
+    expect(cobra("mensal", "fragmentado", [dia(5), dia(12, "atestado"), dia(19), dia(26)], [3])).toBe(3);
+  });
+
+  it("duas sequências fechadas no mesmo mês cobram as duas", () => {
+    expect(cobra("mensal", "fragmentado", [dia(3), dia(10), dia(17), dia(24)], [2, 2])).toBe(4);
   });
 
   it("quem paga a cada sessão deve a soma dos atendimentos do mês", () => {
-    expect(sessoesCobradas("sessao", null, 4)).toBe(4);
+    expect(cobra("sessao", null, [dia(3), dia(10), dia(17), dia(24)])).toBe(4);
   });
 
-  it("mês sem sessão nenhuma não cobra, nem no pacote completo", () => {
-    // O paciente não foi atendido uma vez sequer: não estava em tratamento naquele mês. Cobrar
-    // quatro sessões dele é inventar dívida, e enche a tela de vermelho falso.
-    expect(sessoesCobradas("mensal", "completo", 0)).toBe(0);
-    expect(sessoesCobradas("sessao", null, 0)).toBe(0);
+  it("quem paga a cada sessão não paga pela que foi desmarcada", () => {
+    expect(cobra("sessao", null, [dia(3), dia(10, "cancelada"), dia(17, "atestado"), dia(24)])).toBe(2);
+  });
+
+  it("quem paga na PRIMEIRA do pacote vence na abertura, sem esperar fechar", () => {
+    // Esperar o fechamento mostraria o paciente devendo num mês e tendo pago a mais no outro.
+    expect(cobra("primeira_pacote", "completo", [dia(3), dia(10)])).toBe(4);
+  });
+
+  it("mês sem sessão nenhuma não cobra", () => {
+    expect(cobra("mensal", "completo", [])).toBe(0);
+    expect(cobra("sessao", null, [])).toBe(0);
   });
 
   it("gratuito não cobra nada, nunca", () => {
-    expect(sessoesCobradas("gratuito", "completo", 4)).toBe(0);
-    expect(sessoesCobradas("gratuito", null, 9)).toBe(0);
+    expect(cobra("gratuito", "completo", [dia(3), dia(10), dia(17), dia(24)])).toBe(0);
   });
 });
 
@@ -99,12 +131,13 @@ describe("o que entrou no mês", () => {
 describe("a linha do paciente", () => {
   const precos = [{ valor: 200, desde: new Date(2025, 0, 1) }];
 
-  it("mensal fragmentado: três sessões em agosto viram três × o preço", () => {
+  it("fracionado: a sequência de três que fechou em agosto vale três × o preço", () => {
     const l = linhaDoFechamento({
       paciente: { id: "p1", nome: "Ana", formato: "mensal", pacoteTipo: "fragmentado" },
       sessoes: [sessao(5), sessao(12), sessao(19)],
       precos,
       pagamentos: [],
+      tamanhos: [3],
       ano: 2026,
       mes: 7,
     });
@@ -114,21 +147,24 @@ describe("a linha do paciente", () => {
     expect(l.situacao).toBe("a_receber");
   });
 
-  it("cancelada e realocada saem da conta", () => {
+  it("a desmarcação não encolhe a conta: a sequência ainda vale três", () => {
+    // Antes este caso cobrava 400 — o total encolhia junto com a agenda, e o paciente pagava menos
+    // do que contratou por ter desmarcado. É o defeito que a cobrança por sequência corrige.
     const l = linhaDoFechamento({
       paciente: { id: "p1", nome: "Ana", formato: "mensal", pacoteTipo: "fragmentado" },
-      sessoes: [sessao(5), sessao(12, "cancelada"), sessao(19, "realocada"), sessao(26)],
+      sessoes: [sessao(5), sessao(12, "cancelada"), sessao(19, "realocada"), sessao(26), sessao(31)],
       precos,
       pagamentos: [],
+      tamanhos: [3],
       ano: 2026,
       mes: 7,
     });
-    // Duas sessões de verdade: o paciente não paga por atendimento que não houve.
-    expect(l.sessoes).toBe(2);
-    expect(l.valorDoMes).toBe(400);
+    expect(l.sessoes).toBe(3);
+    expect(l.sessoesCobradas).toBe(3);
+    expect(l.valorDoMes).toBe(600);
   });
 
-  it("pacote completo cobra quatro mesmo com três na agenda", () => {
+  it("pacote completo com três sessões ainda não fechou, e por isso não cobra", () => {
     const l = linhaDoFechamento({
       paciente: { id: "p2", nome: "Bruno", formato: "mensal", pacoteTipo: "completo" },
       sessoes: [sessao(3), sessao(10), sessao(17)],
@@ -138,6 +174,19 @@ describe("a linha do paciente", () => {
       mes: 7,
     });
     expect(l.sessoes).toBe(3);
+    expect(l.sessoesCobradas).toBe(0);
+    expect(l.valorDoMes).toBe(0);
+  });
+
+  it("e cobra as quatro assim que a sequência fecha", () => {
+    const l = linhaDoFechamento({
+      paciente: { id: "p2", nome: "Bruno", formato: "mensal", pacoteTipo: "completo" },
+      sessoes: [sessao(3), sessao(10), sessao(17), sessao(24)],
+      precos,
+      pagamentos: [],
+      ano: 2026,
+      mes: 7,
+    });
     expect(l.sessoesCobradas).toBe(4);
     expect(l.valorDoMes).toBe(800);
   });

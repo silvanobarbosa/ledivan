@@ -3,7 +3,8 @@ import { and, eq, gte, inArray, lte, ne } from "drizzle-orm";
 import { CalendarCheck, ChevronLeft, ChevronRight } from "lucide-react";
 import { db } from "@/db";
 import { auth } from "@/auth";
-import { patientPriceHistory, patients, sessionPayments, therapySessions } from "@/db/schema";
+import { patientPackages, patientPriceHistory, patients, sessionPayments, therapySessions } from "@/db/schema";
+import { tamanhosDasSequencias } from "@/lib/sequenciaPacote";
 import {
   linhaDoFechamento,
   mesPorExtenso,
@@ -61,7 +62,10 @@ export default async function FechamentoPage({
 
   const ids = carteira.map((p) => p.id);
 
-  const [sessoes, pagamentos, precos] = await Promise.all([
+  const [sessoes, pagamentos, precos, contratos] = await Promise.all([
+    // O histórico INTEIRO, não só o mês. A conta passou a seguir a sequência do pacote, e uma
+    // sequência de setembro empurrada por um atestado fecha em outubro — ler só o mês faria a
+    // varredura começar no meio e dar a posição errada, e com ela o valor errado.
     db
       .select({
         id: therapySessions.id,
@@ -70,13 +74,7 @@ export default async function FechamentoPage({
         status: therapySessions.status,
       })
       .from(therapySessions)
-      .where(
-        and(
-          eq(therapySessions.userId, userId),
-          gte(therapySessions.date, inicio),
-          lte(therapySessions.date, fim),
-        ),
-      ),
+      .where(eq(therapySessions.userId, userId)),
     db
       .select({
         patientId: sessionPayments.patientId,
@@ -104,6 +102,15 @@ export default async function FechamentoPage({
           .from(patientPriceHistory)
           .where(inArray(patientPriceHistory.patientId, ids))
       : Promise.resolve([]),
+    // O tamanho de cada sequência é o que se guarda: é o combinado, e não se deduz das sessões.
+    db
+      .select({
+        patientId: patientPackages.patientId,
+        seq: patientPackages.seq,
+        sessions: patientPackages.sessions,
+      })
+      .from(patientPackages)
+      .where(eq(patientPackages.userId, userId)),
   ]);
 
   const sessoesPor = new Map<string, { id: string; date: Date; status: string }[]>();
@@ -137,6 +144,7 @@ export default async function FechamentoPage({
         sessoes: sessoesPor.get(p.id) ?? [],
         precos: precosPor.get(p.id) ?? [],
         pagamentos: pagos,
+        tamanhos: tamanhosDasSequencias(contratos.filter((c) => c.patientId === p.id)),
         ano,
         mes,
       }),
@@ -221,12 +229,18 @@ export default async function FechamentoPage({
                     </Link>
                     <span className="ml-2 text-xs text-muted-foreground">{rotuloDoFormato(l)}</span>
                   </td>
+                  {/* Duas informações diferentes, e misturá-las confundia: quantas sessões houve no
+                      mês, e o que a conta cobra. Elas divergem de propósito — um pacote empurrado
+                      por uma desmarcação fecha no mês seguinte e cobra lá, inteiro. */}
                   <td className="px-4 py-2.5 tabular-nums">
-                    {l.sessoes}
-                    {l.sessoesCobradas !== l.sessoes && (
-                      <span className="ml-1 text-xs text-muted-foreground">
-                        (cobra {l.sessoesCobradas})
-                      </span>
+                    {l.sessoes} <span className="text-xs text-muted-foreground">no mês</span>
+                    {l.pacotesNoMes > 0 && (
+                      <p className="text-xs text-muted-foreground">
+                        {l.pacotesNoMes} {l.pacotesNoMes === 1 ? "pacote fechado" : "pacotes fechados"} · cobra {l.sessoesCobradas}
+                      </p>
+                    )}
+                    {l.pacotesNoMes === 0 && l.sessoesCobradas !== l.sessoes && (
+                      <p className="text-xs text-muted-foreground">cobra {l.sessoesCobradas}</p>
                     )}
                   </td>
                   <td className="px-4 py-2.5 tabular-nums">{reais(l.precoDaSessao)}</td>
@@ -243,8 +257,10 @@ export default async function FechamentoPage({
       )}
 
       <p className="text-xs text-muted-foreground">
-        Pacote completo cobra quatro sessões mesmo quando a agenda marcou menos — é o combinado.
-        Sessão cancelada ou realocada não entra na conta.
+        A conta segue o combinado, não o calendário: quem fecha por pacote cobra a sequência
+        inteira quando ela se completa, mesmo que a última sessão tenha caído no mês seguinte. Quem
+        paga a cada sessão cobra as do mês. Sessão desmarcada, com atestado ou desmarcada pelo
+        profissional não entra na conta e devolve a posição à sessão seguinte.
       </p>
     </div>
   );
