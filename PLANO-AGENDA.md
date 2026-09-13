@@ -327,40 +327,123 @@ regras certas antes das telas que dependem delas.
 
 ---
 
-# PARTE III — O que depende de vocês
+# PARTE III — As decisões tomadas
 
-Duas dúvidas iniciais se resolveram sozinhas ao olhar o sistema e viraram recomendação. A terceira
-é de verdade, e é a mais cara de errar.
+Esta parte era uma lista de perguntas. Depois da discussão com o dono, virou uma lista de
+respostas. Cada uma diz o que foi decidido e **por quê**, para que a próxima sessão não precise
+refazer o raciocínio.
 
-**Resolvidas — recomendação, não pergunta:**
+---
 
-- **"Remarcada"** fica guardada, sai da legenda e aparece como Desmarcou. É como já se comporta, e
-  apagá-la destruiria histórico.
-- **Horário bloqueado** fica separado das sessões de paciente. Assim ele não tem como vazar para o
-  fechamento do mês nem para a contagem do pacote, e a pergunta "bloqueio cobra?" deixa de existir
-  em vez de precisar de resposta.
+## 11. A sequência: pausa ou crédito? São a mesma coisa
 
-**A decisão que falta:**
+Chegaram duas propostas para a mesma pergunta, e elas pareciam brigar:
 
-No pacote fracionado, a agenda e a cobrança vão passar a mostrar **números diferentes**. Hoje as
-duas saem do mesmo cálculo e por isso sempre batem. Com a regra de pausa, o rótulo X/X passa a
-seguir a **sequência contratada** e a cobrança continua seguindo a **data** — e uma reposição que
-caiu no mês seguinte fica contada de um jeito na agenda e de outro no fechamento. Os números estão
-em 8.2.
+- **Das profissionais:** a sequência **pausa**. Presente e Faltou fazem avançar; Desmarcou, Prof.
+  desm. e Atestado seguram, e a próxima sessão assume a posição pausada.
+- **Da revisão de arquitetura:** nada de pausa. O pacote tem **créditos**; sessão desmarcada
+  **devolve** o crédito, e a reposição consome ele depois.
 
-São dois caminhos, e é escolha de negócio, não de sistema:
+**Elas são a mesma conta.** Na primeira, a posição é *1 + quantas sessões anteriores avançaram*.
+Na segunda, é *1 + quantos créditos já foram consumidos*. "Avançar a sequência" e "consumir um
+crédito" são a mesma operação com dois nomes. Não há escolha de modelo a fazer aqui.
 
-1. **Aceitar a diferença.** A tela do fechamento explica que o mês cobra o que aconteceu naquele
-   mês, não importa a que sequência a sessão pertença. Mais simples, e não mexe no fechamento que
-   já está no ar.
-2. **Cobrar por sequência, e não por data.** Setembro cobra as três contratadas, mesmo que uma
-   tenha acontecido em outubro. Mais fiel ao combinado com o paciente, mas muda o fechamento e
-   exige guardar, quando a sequência nasce, quantas sessões ela tem — número que hoje não existe.
+**A escolha real é outra: a conta fica guardada ou é refeita?**
 
-**Três perguntas menores que apareceram ao ler o lote:**
+| | Guardar um contador | Recalcular ao desenhar a tela |
+| --- | --- | --- |
+| Mudar o status de uma sessão da semana passada | precisa desfazer o efeito antigo e aplicar o novo | nada a fazer |
+| Encaixar uma sessão no meio da sequência | precisa reescrever o contador e tudo depois | nada a fazer |
+| Excluir "este e os próximos" | precisa devolver cada efeito, na ordem certa | nada a fazer |
+| Contador e realidade discordarem | acontece, e em silêncio | impossível |
+
+**Decisão: recalcular, nunca guardar.** O lote pede exatamente as três operações da tabela —
+alterar sessão passada, inserir no meio, excluir em bloco. Um contador guardado teria que acertar
+todas, sempre, em todo caminho do código; errar uma vez deixa o número errado na tela sem nenhum
+aviso. Recalcular a partir das sessões não tem como divergir, porque não há segunda versão da
+verdade para divergir.
+
+**O que fica guardado é o contrato, não o consumo:** quantas sessões o pacote tem, quanto custou e
+quando começou. Isso é informação que não se deduz de lugar nenhum. Já "quantas foram usadas" se
+deduz das sessões, e por isso não se guarda.
+
+O sistema **já faz assim** — a numeração é calculada na hora de desenhar a agenda, e o banco não
+guarda "2/4" em lugar nenhum. A decisão aqui é não abandonar isso.
+
+---
+
+## 12. O que estava realmente errado era a unidade de cobrança
+
+A divergência entre o rótulo da agenda e a conta do mês não nasce da regra de sequência. Nasce de
+um lugar bem mais fundo: **o sistema cobra tudo por mês do calendário, mesmo quem não contratou por
+mês.**
+
+Hoje o formato de pagamento do paciente só responde a uma pergunta — *cobra ou não cobra?* — e a
+única resposta diferente é "gratuito". Fora isso, avulso, mensal, quinzenal, primeira e última do
+pacote caem todos na mesma conta: quantas sessões caíram naquele mês do calendário.
+
+É daí que vem o número errado. Um paciente de **pacote** é cobrado por **mês**, então uma
+desmarcação encolhe a fatura de setembro — quando o que ele contratou foram quatro atendimentos,
+não o mês de setembro.
+
+**Decisão: a unidade de cobrança segue o contrato.**
+
+| Contrato | O que é vendido | O que a conta soma |
+| --- | --- | --- |
+| A cada sessão (avulso) | a sessão | cada sessão, uma a uma |
+| Mensal | o mês | o valor do mês, tenham sido 3 ou 4 sessões |
+| Pacote (completo ou fracionado) | N atendimentos | o pacote, quando ele fecha |
+| Gratuito | nada | nada |
+
+Com isso a divergência desaparece sozinha, e **sem escolher entre a agenda e o financeiro**: o
+rótulo passa a contar posição no pacote, a conta passa a cobrar o pacote, e os dois falam do mesmo
+objeto. A reposição que caiu em outubro fecha o pacote de setembro nas duas telas, porque nas duas
+telas a referência deixou de ser o calendário.
+
+**As profissionais recebem o que pediram**, e de quebra a conta para de encolher quando alguém
+desmarca.
+
+---
+
+## 13. Prontuário: avisar, nunca travar
+
+A revisão de arquitetura propôs **bloquear** a mudança de status de uma sessão que já tenha nota
+clínica escrita.
+
+**Decisão: não travar.** A trava impede a correção legítima — lançar o status errado e perceber
+depois é rotina, e a pessoa vai esbarrar nisso num dia de correria, sem saída à mão. Pior: ela
+empurra para o caminho perigoso, que é apagar a nota clínica para conseguir arrumar o status.
+
+O que resolve o mesmo risco sem travar nada:
+
+- **A nota clínica não morre com a sessão.** Ela fica presa ao paciente e à data, não ao
+  agendamento. Mudar ou excluir o agendamento nunca apaga o que foi escrito.
+- **Um aviso na hora:** "existe prontuário escrito para esta data — confirma marcar como Faltou?".
+  Quem está corrigindo confirma e segue; quem ia errar, para.
+- **Registro de quem mudou e quando.** É o que realmente protege, e protege até quando não havia
+  nota nenhuma.
+
+---
+
+## 14. Notificações: a configuração é por paciente
+
+A revisão de arquitetura propôs proibir configuração por paciente, deixando só uma regra global
+mais um botão de silenciar.
+
+**Decisão do dono: por paciente.** E é o que o sistema já faz — cada paciente tem canal, se o
+lembrete está ligado e com quanto tempo de antecedência.
+
+A preocupação da revisão é real e fica endereçada sem perder nada: para não configurar 40 pacientes
+um a um, a conta tem um **padrão**, e o paciente novo **nasce com ele**. Quem nunca mexer nunca vai
+saber que o ajuste por paciente existe; quem precisar de exceção muda só naquele cadastro.
+
+---
+
+## 15. Três pontos menores, ainda abertos
 
 - A identificação na agenda passa a ser **obrigatória** no cadastro? Sem ela a célula fica muda.
-- O que mostrar num agendamento **semanal**, já que (M) e (Q) marcam mensal e quinzenal e o semanal
-  ficou sem marca?
-- Onde vai parar o aviso de **reserva não confirmada**, que hoje é o âmbar e perde a cor para o
-  Presente?
+  Enquanto não se decide, a célula cai para o número de registro e, na falta dele, o primeiro nome.
+- O que marca um agendamento **semanal**, já que (M) e (Q) marcam mensal e quinzenal? A sugestão da
+  revisão é (S).
+- Para onde vai o aviso de **reserva não confirmada**, hoje o âmbar, que perde a cor para o
+  Presente? Sugestão: continuar como o relógio que a célula já mostra, e sair da cor.
