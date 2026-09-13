@@ -9,17 +9,26 @@ esbarra no que já está no ar.
 
 ---
 
-## 1. Os três choques com o que existe
+## 1. Onde o pedido e o código discordam
 
-Estes não são "faltou implementar". São lugares onde a regra nova **substitui** uma regra antiga
-que está rodando em produção. Entrar com eles sem decidir o que fazer com o dado velho quebra a
-agenda de quem já usa.
+Três lugares. Nenhum é "faltou implementar": em todos, a regra nova **substitui** uma regra que
+está rodando. Cada um abaixo diz o que elas pediram, o que o código faz hoje, **por que** diverge e
+**o que muda na tela** quando trocar.
 
-### 1.1 Os status não são os mesmos
+---
 
-O banco tem cinco status (`session_status`), e o lote pede outros cinco. Só três se encontram:
+### 1.1 Os status respondem a perguntas diferentes
 
-| O que elas pedem | O que existe hoje | Situação |
+**O que elas pediram:** Presente, Faltou, Desmarcou, Prof. desm., Atestado.
+
+**O que existe:** `agendada`, `realizada`, `nao_realizada`, `cancelada`, `realocada`.
+
+**Por que diverge.** Os status de hoje respondem *"a sessão aconteceu?"*. Os pedidos respondem
+*"quem causou a ausência?"* — e essa é outra pergunta, porque dela depende se o paciente **perde**
+ou **não perde** a sessão. Faltar por conta própria e faltar com atestado são a mesma coisa para o
+sistema atual, e coisas opostas para quem atende.
+
+| Pedido | Existe hoje | Situação |
 | --- | --- | --- |
 | (sem status) | `agendada` | mesmo conceito |
 | Presente | `realizada` | mesmo conceito, outro nome |
@@ -27,47 +36,120 @@ O banco tem cinco status (`session_status`), e o lote pede outros cinco. Só tr�
 | Desmarcou | `cancelada` | mesmo conceito, outro nome |
 | Prof. desm. | — | **não existe** |
 | Atestado | — | **não existe** |
-| — | `realocada` ("Remarcada") | **sobra**: não tem lugar na legenda nova |
+| — | `realocada` ("Remarcada") | **sobra**: sem lugar na legenda nova |
 
-Duas decisões saem daqui, e nenhuma é técnica:
+**O que muda de verdade.** Criar dois status é barato. Caro é que todo lugar que **lê** status
+precisa decidir o que fazer com os dois novos:
 
-- `realocada` some da tela ou continua existindo para o histórico? Há sessões com esse status no
-  banco, e elas hoje **saem da conta do pacote** (ver 1.2). Some da legenda, mas o dado fica.
-- Renomear na tela é barato; renomear no enum é migração. A escolha aqui é manter os valores do
-  banco e trocar só o rótulo, acrescentando `prof_desmarcou` e `atestado`. Menos risco, e o
-  fechamento do mês continua lendo o que já lê.
+- O **risco de falta** hoje conta "não realizada" e "cancelada" como falta. Se Atestado entrar
+  nessa conta, quem adoeceu vira paciente de risco — o contrário do que a informação serve para
+  dizer.
+- O **fechamento do mês** exclui "cancelada" e "realocada" da cobrança. Prof. desm. e Atestado
+  precisam entrar na mesma lista, senão o paciente é cobrado por sessão que o profissional
+  desmarcou.
 
-### 1.2 A sequência X/X hoje faz o contrário do que elas pedem
+**Sobre o `realocada`:** há sessões assim no banco. A recomendação é **manter o valor** e
+exibi-lo como Desmarcou, porque é assim que ele já se comporta (fora da conta, fora da cobrança).
+Apagá-lo destruiria histórico; deixá-lo sem lugar na legenda deixaria sessões antigas sem cor nem
+nome.
 
-`src/lib/pacoteMes.ts` **remove** a sessão cancelada da lista antes de numerar — a linha
-`const FORA = new Set(["cancelada", "realocada"])`. O efeito é que a desmarcada não recebe posição
-nenhuma e simplesmente desaparece da contagem.
+**Não muda:** a cobrança. Faltou continua sendo cobrado (o paciente perdeu a sessão) e Desmarcou
+continua não sendo. Isso já é o comportamento de hoje.
 
-O lote pede outra coisa: a desmarcada **fica na agenda com a posição em que parou**, e a sessão
-seguinte assume a mesma posição.
+---
+
+### 1.2 A sequência X/X — pequena no pacote completo, grande no fracionado
+
+Aqui é preciso separar os dois pacotes, porque o tamanho do problema é muito diferente.
+
+#### Pacote completo: o código já acerta os números, só não escreve um deles
+
+`src/lib/pacoteMes.ts` **joga fora** a sessão desmarcada antes de numerar. O efeito colateral é
+que ela fica sem número nenhum na agenda.
 
 ```
-hoje:              23/09 (desmarcou) → sem número      30/09 → 2/4
-o que elas querem: 23/09 (desmarcou) → 2/4             30/09 → 2/4
+hoje                          pedido
+16/09  1/4  Presente          16/09  1/4  Presente
+23/09   —   Desmarcou   ←     23/09  2/4  Desmarcou   ← a diferença está só nesta linha
+30/09  2/4  Presente          30/09  2/4  Presente
+07/10  3/4  Presente          07/10  3/4  Presente
 ```
 
-E há uma segunda diferença, mais funda. Hoje o pacote fracionado agrupa por **mês do calendário**.
-A regra nova é por **sequência**: se a pausa empurrar a última sessão de setembro para 07/10, aquele
-07/10 ainda é `3/3` de setembro, e a sequência de outubro só começa em 14/10. Mês-calendário deixa
-de ser o agrupador.
+**As sessões ativas recebem os mesmos números nos dois casos.** Jogar a desmarcada fora e pular a
+posição dela dão no mesmo resultado. O pedido é que a linha pausada **exiba** onde parou, em vez de
+ficar muda. É acréscimo de rótulo, não troca de motor.
 
-Isso é reescrita de `numeracaoDoPacote`, não ajuste. É a fatia de maior risco do lote e a que mais
-se defende com teste — é função pura, dá para acertar sem abrir a tela.
+#### Pacote fracionado: aqui o número muda, e hoje muda para pior
 
-### 1.3 O fundo da célula
+O código agrupa por **mês do calendário**, e o total é *quantas sessões sobraram naquele mês*. Ou
+seja: **cada desmarcação encolhe o total**.
 
-`sessionColorClasses` pinta toda célula: recorrente de azul, reserva de âmbar, agendada de roxo.
-O lote pede fundo **transparente** no agendamento sem status, e cor só quando o status chega,
-seguindo a legenda nova (amarelo Presente, vermelho Faltou, vermelho claro Desmarcou, cinza claro
-Prof. desm., azul claro Atestado).
+```
+setembro com 3 sessões contratadas, a de 23/09 desmarcada e reposta em 07/10
 
-Ou seja: as cores atuais não são as cores pedidas, e o critério (recorrência, reserva) não é o
-critério pedido (status). A função inteira troca de regra.
+hoje                          pedido
+16/09  1/2   ← encolheu       16/09  1/3
+30/09  2/2                    23/09  2/3  (pausada)
+07/10  1/4                    30/09  2/3
+14/10  2/4                    07/10  3/3   ← ainda é a sequência de SETEMBRO
+21/10  3/4                    14/10  1/3   ← outubro só começa aqui
+28/10  4/4                    21/10  2/3
+                              28/10  3/3
+```
+
+**Por que diverge.** Para o código, "o pacote de setembro" é o conjunto de sessões que caíram em
+setembro. Para elas, é o que foi **contratado** para setembro — três sessões — e uma reposição em
+outubro ainda pertence a setembro. O agrupador deixa de ser o calendário e passa a ser a sequência.
+
+**O que isso arrasta junto, e é o ponto mais importante deste documento.** Hoje o `X/X` da agenda e
+a cobrança do fechamento saem do **mesmo cálculo**: sessões ativas no mês. Por isso sempre batem.
+Com a regra nova passam a sair de lugares diferentes — o rótulo segue a sequência contratada, a
+cobrança segue a data:
+
+| | setembro | outubro |
+| --- | --- | --- |
+| rótulo na agenda | 3 sessões | 3 sessões |
+| cobrança no fechamento | 2 sessões | 4 sessões |
+
+Duas telas que hoje mostram o mesmo número passam a mostrar números diferentes, e **as duas estão
+certas**. Ou se aceita isso e se explica na tela, ou o fechamento passa a cobrar por sequência em
+vez de por data. É decisão do dono, não do código.
+
+---
+
+### 1.3 A cor da célula responde a outra pergunta
+
+**O que elas pediram:** amarelo Presente, vermelho Faltou, vermelho claro Desmarcou, cinza claro
+Prof. desm., azul claro Atestado — e fundo **transparente** enquanto não há status.
+
+**O que existe:** azul Recorrente, âmbar Reserva, roxo Agendada, verde Realizada, vermelho Não
+realizada.
+
+**Por que diverge.** A cor de hoje diz *"que tipo de compromisso é este"*. A cor pedida diz *"o que
+aconteceu neste compromisso"*. São duas informações disputando o mesmo pixel, e só uma cabe.
+
+**O que se perde ao trocar, e precisa de outro lugar:**
+
+- **O âmbar "Reserva"** hoje significa *"o paciente pediu este horário pelo link público e você
+  ainda não confirmou"*. Na legenda nova, amarelo é Presente. Repintar sem mais nada faz um pedido
+  pendente ficar idêntico a uma sessão que aconteceu. Essa informação tem que virar ícone ou selo,
+  ou desaparece.
+- **O azul "Recorrente"** é parcialmente coberto pelos `(M)` e `(Q)` que elas pediram — mas o
+  semanal não ganhou marca nenhuma no pedido, e hoje é azul.
+- **Verde vira amarelo** para a mesma coisa (sessão realizada). Quem já usa vai ler a tela errado
+  por um tempo. Vale avisar as duas antes de subir.
+
+---
+
+### 1.4 Duas trocas menores, com efeito visível
+
+- **A célula passa a mostrar o ID em vez do nome.** O campo é `patients.agenda_id`, que o schema já
+  descreve como "identificação do paciente na agenda". Ele é **opcional** e hoje costuma estar
+  vazio — se ficar vazio, a célula não mostra nada. Precisa de um valor de reserva (o número de
+  cadastro, ou o primeiro nome) enquanto a terapeuta não preencher.
+- **A cor do feriado sai da coluna inteira e vai só para o cabeçalho.** É o que elas pediram e
+  deixa a agenda mais limpa, mas hoje é a coluna tingida que faz o feriado saltar aos olhos. Fica
+  mais discreto de propósito.
 
 ---
 
@@ -123,15 +205,33 @@ certo antes de a tela depender dele.
 
 ---
 
-## 4. O que ainda não está decidido
+## 4. O que depende de uma decisão do dono
 
-Três pontos que o PDF não fecha e que mudam o que se constrói:
+Duas das três dúvidas iniciais se resolveram sozinhas ao olhar o código, e viram recomendação. A
+terceira é de verdade, e é a mais cara de errar.
 
-1. **`realocada` some ou fica?** A legenda nova não tem "Remarcada". Há sessões assim no banco.
-2. **Sessão bloqueada conta como quê no fechamento do mês?** O horário bloqueado não é sessão de
-   paciente, então a resposta provável é "não conta" — mas convém dizer isso em voz alta antes de
-   a tela de fechamento começar a somar diferente.
-3. **Pacote fracionado: de onde sai a quantidade de sessões do mês?** Hoje sai da agenda (quantas
-   caíram no mês). Com a regra de pausa, a sequência de um mês pode terminar no mês seguinte, e aí
-   "quantas sessões o mês tem" deixa de ser uma pergunta sobre o calendário. Precisa de um número
-   guardado quando a sequência nasce.
+**Resolvidas — recomendação, não pergunta:**
+
+- **`realocada`:** fica no banco, sai da legenda, aparece como Desmarcou. É como ele já se comporta
+  (fora da contagem e fora da cobrança), e apagar o valor destruiria histórico.
+- **Horário bloqueado:** entra em **tabela própria**, não em `therapy_sessions`. Assim ele não tem
+  como vazar para o fechamento do mês nem para a contagem do pacote — a pergunta "bloqueio cobra?"
+  deixa de existir em vez de precisar de resposta.
+
+**Aberta, e precisa do dono:**
+
+**No pacote fracionado, a agenda e a cobrança vão passar a mostrar números diferentes.** Hoje as
+duas saem do mesmo cálculo (sessões ativas no mês do calendário) e por isso sempre batem. Com a
+regra de pausa, o rótulo `X/X` passa a seguir a **sequência contratada** e a cobrança continua
+seguindo a **data** — e uma reposição que caiu no mês seguinte fica contada de um jeito na agenda e
+de outro no fechamento (o exemplo com números está em 1.2).
+
+São dois caminhos, e é escolha de negócio:
+
+1. **Aceitar a diferença** e explicar na tela do fechamento que o mês cobra o que aconteceu naquele
+   mês, independentemente de a que sequência a sessão pertence. Mais simples, e não mexe no
+   fechamento que já está no ar.
+2. **Cobrar por sequência**, e não por data: setembro cobra as três sessões contratadas, mesmo que
+   uma tenha acontecido em outubro. Mais fiel ao combinado com o paciente, mas muda o fechamento e
+   exige guardar, quando a sequência nasce, quantas sessões ela tem — número que hoje não existe em
+   lugar nenhum.
