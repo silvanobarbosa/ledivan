@@ -115,7 +115,7 @@ export default async function AdminPage() {
             <Stat n={sf.reservas} l="reservas" c="text-[#b45309]" />
             <Stat n={sf.recorrentes} l="recorrentes" c="text-[#1e40af]" />
             <Stat n={sf.online} l="online" c="text-secondary" />
-            <Stat n={sess("cancelada") + sess("nao_realizada")} l="não realizadas" c="text-[#b91c1c]" />
+            <Stat n={sess("cancelada") + sess("nao_realizada") + sess("prof_desmarcou") + sess("atestado")} l="não realizadas" c="text-[#b91c1c]" />
           </div>
         </Card>
         <Card icon={Wallet} title="Financeiro (agregado)">

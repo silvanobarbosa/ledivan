@@ -11,7 +11,7 @@ import { createMeetLink } from "@/lib/googleCalendar";
 import { parseMoedaBR } from "@/lib/money";
 import { getUserAiClient, SemChaveIA } from "@/lib/ai-client";
 
-type SessionStatus = "realizada" | "nao_realizada" | "cancelada" | "realocada" | "agendada";
+type SessionStatus = "realizada" | "nao_realizada" | "cancelada" | "realocada" | "agendada" | "prof_desmarcou" | "atestado";
 
 // NOTA: o consumo de pacote é DERIVADO das sessões realizadas+cobráveis na página do
 // paciente (oldest-first). Não há mais incremento/decremento manual de `used` aqui —

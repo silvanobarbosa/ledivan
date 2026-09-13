@@ -3,17 +3,18 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronLeft, ChevronRight, X, Stethoscope, Repeat, Video, AlertTriangle, MapPin, Pencil, CalendarDays } from "lucide-react";
-import { SESSION_STATUS_LABELS, sessionStatusColor, sessionColorClasses, RISK_LABELS, riskColor, type RiskLevel } from "@/lib/therapy";
+import { SESSION_STATUS_LABELS, sessionStatusColor, sessionColorClasses, RISK_LABELS, riskColor, LEGENDA_DA_AGENDA, corDaLegenda, STATUS_OFERECIDOS, STATUS_QUE_PODEM_COBRAR, type RiskLevel } from "@/lib/therapy";
 import { updateSessionStatus, confirmSession, createSessionFromAgenda, updateSession, createRecurring } from "../sessions/actions";
 import { HolidaySetup } from "@/components/dashboard/HolidaySetup";
 import { HOLIDAY_STYLE, type Holiday, type HolidayCity } from "@/lib/holidays-style";
+import { geometriaDaFaixa, posicoesDoDia } from "@/lib/agendaLayout";
 
 type PatientLite = { id: string; name: string; status: string; attendanceMode: string | null; attendanceLocation: string | null   /** Atendimento gratuito: a agenda marca a sessão como "social". */
   social?: boolean;
 };
 type LocationLite = { name: string; address: string };
 
-type SessionStatus = "realizada" | "nao_realizada" | "cancelada" | "realocada" | "agendada";
+type SessionStatus = "realizada" | "nao_realizada" | "cancelada" | "realocada" | "agendada" | "prof_desmarcou" | "atestado";
 type AgendaSession = { id: string; date: string; duration: number; status: string; patientName: string; isOnline: boolean; risk: string; meetingUrl: string | null; meetingOpenedAt: string | null; guestJoinedAt: string | null; meetingEndedAt: string | null; pendingConfirmation: boolean; patientConfirmed: boolean; rescheduleRequested: boolean; patientArrived: boolean; location: string | null; recurring: boolean; recurrenceFreq?: string | null; patientId?: string; sessionKind?: string; pkg?: { seq: number; index: number; total: number } | null; pagamentoAtrasado?: boolean };
 
 const blockColor = (s: AgendaSession) => sessionColorClasses(s.status, s.pendingConfirmation, s.recurring);
@@ -150,10 +151,12 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
     });
   };
 
-  // realizada/cancelada/realocada → pergunta se cobra; demais aplicam direto
+  // Pergunta "cobra?" só onde a resposta pode ser as duas. Desmarcou, Prof. desm. e Atestado
+  // nunca cobram — perguntar ali seria fazer a pessoa responder sempre a mesma coisa no meio do
+  // dia, e um clique a mais em quem já está com a agenda cheia é um clique que vira erro.
   const pickStatus = (id: string, status: SessionStatus) => {
-    if (status === "realizada" || status === "cancelada" || status === "realocada") setAskCharge(status);
-    else changeStatus(id, status);
+    if (STATUS_QUE_PODEM_COBRAR.has(status)) setAskCharge(status);
+    else changeStatus(id, status, false);
   };
 
   const confirm = (id: string) => {
@@ -205,11 +208,16 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
 
       {/* Legenda de cores */}
       <div className="flex flex-wrap gap-3 px-1 text-[11px] text-foreground/50">
-        <span className="inline-flex items-center gap-1"><span className="w-3 h-3 rounded bg-[#fef3c7] border border-[#f59e0b]" /> Reserva</span>
-        <span className="inline-flex items-center gap-1"><span className="w-3 h-3 rounded bg-[#dbeafe] border border-[#3b82f6]" /> Recorrente</span>
-        <span className="inline-flex items-center gap-1"><span className="w-3 h-3 rounded bg-[#ede9fe] border border-[#8b5cf6]" /> Agendada</span>
-        <span className="inline-flex items-center gap-1"><span className="w-3 h-3 rounded bg-[#dcfce7] border border-[#22c55e]" /> Realizada</span>
-        <span className="inline-flex items-center gap-1"><span className="w-3 h-3 rounded bg-[#fee2e2] border border-[#ef4444]" /> Não realizada</span>
+        {LEGENDA_DA_AGENDA.map((st) => {
+          const { fundo, borda } = corDaLegenda(st);
+          return (
+            <span key={st} className="inline-flex items-center gap-1">
+              <span className="w-3 h-3 rounded" style={{ background: fundo, border: `1px solid ${borda}` }} />
+              {SESSION_STATUS_LABELS[st]}
+            </span>
+          );
+        })}
+        <span className="inline-flex items-center gap-1"><span className="w-3 h-3 rounded border border-dashed border-border" /> Sem status</span>
         {holidayCities.length > 0 && (
           <>
             <span className="w-px h-3 bg-border mx-1" />
@@ -347,17 +355,28 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
                         </button>
                       );
                     })}
-                    {/* blocos de sessão */}
-                    {sessionsByDay(day).map((s) => {
+                    {/* Blocos de sessão. Duas no mesmo horário dividem a largura da coluna em vez
+                        de uma cobrir a outra — com o fundo transparente, empilhar sobrepunha os
+                        dois textos, e sessão invisível na agenda é sessão que alguém perde. */}
+                    {(() => {
+                      const doDia = sessionsByDay(day);
+                      const faixas = posicoesDoDia(
+                        doDia.map((s) => {
+                          const d = new Date(s.date);
+                          return { id: s.id, inicio: d.getHours() * 60 + d.getMinutes(), duracao: s.duration };
+                        }),
+                      );
+                      return doDia.map((s) => {
                       const { top, height } = blockGeom(s);
+                      const faixa = geometriaDaFaixa(faixas.get(s.id));
                       const time = new Date(s.date).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
                       return (
                         <button
                           key={s.id}
                           title={s.recurring ? "Reserva recorrente" : undefined}
                           onClick={() => { setAskCharge(null); setEditing(false); setSelected(s); }}
-                          style={{ top: top + 1, height }}
-                          className={`absolute left-1 right-1 rounded-lg px-2 py-1 text-left overflow-hidden border-l-[3px] hover:shadow-md hover:z-10 transition ${blockColor(s)}`}
+                          style={{ top: top + 1, height, left: `calc(${faixa.left} + 4px)`, width: `calc(${faixa.width} - 8px)` }}
+                          className={`absolute rounded-lg px-2 py-1 text-left overflow-hidden border border-l-[3px] hover:shadow-md hover:z-10 transition ${blockColor(s)}`}
                         >
                           <p className="text-[10px] font-bold leading-tight flex items-center gap-1">
                             {time}
@@ -385,7 +404,8 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
                           {s.pkg && <p className="text-[9px] font-bold uppercase tracking-wide text-emerald-700/80 truncate" title={`${s.pendingConfirmation ? "Reserva pacote" : "Pacote"} ${s.pkg.index}/${s.pkg.total}`}>{s.pendingConfirmation ? "Reserva pacote" : "Pacote"}{s.pkg.seq > 0 ? ` P${s.pkg.seq}` : ""} · {s.pkg.index}/{s.pkg.total}</p>}
                         </button>
                       );
-                    })}
+                      });
+                    })()}
                   </div>
                 );
               })}
@@ -487,7 +507,7 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
                 </div>
               ) : (
                 <div className="grid grid-cols-2 gap-2">
-                  {(Object.keys(SESSION_STATUS_LABELS) as SessionStatus[]).map((st) => (
+                  {(STATUS_OFERECIDOS as readonly SessionStatus[]).map((st) => (
                     <button
                       key={st}
                       disabled={pending}
@@ -603,7 +623,7 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
               </select>
             )}
             <select name="status" className="w-full px-4 py-2.5 rounded-xl bg-surface border border-border outline-none text-sm" defaultValue="agendada">
-              {(Object.entries(SESSION_STATUS_LABELS)).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+              {STATUS_OFERECIDOS.map((k) => <option key={k} value={k}>{SESSION_STATUS_LABELS[k]}</option>)}
             </select>
 
             {newError && <p className="text-sm text-red-600">{newError}</p>}

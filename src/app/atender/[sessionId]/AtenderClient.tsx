@@ -9,6 +9,15 @@ import { MobileSidebar } from "@/components/dashboard/MobileSidebar";
 import { createRecord } from "@/app/dashboard/patients/actions";
 import { updateSessionStatus, setSessionOnline, confirmSession } from "@/app/dashboard/sessions/actions";
 import { startSessionTimer, stopSessionTimer } from "./timer-actions";
+import { corDaLegenda, SESSION_STATUS_LABELS, STATUS_QUE_PODEM_COBRAR } from "@/lib/therapy";
+
+/** As quatro saídas que não são atender, na ordem da legenda. */
+const SAIDAS = [
+  { status: "nao_realizada", rotulo: SESSION_STATUS_LABELS.nao_realizada },
+  { status: "cancelada", rotulo: SESSION_STATUS_LABELS.cancelada },
+  { status: "prof_desmarcou", rotulo: SESSION_STATUS_LABELS.prof_desmarcou },
+  { status: "atestado", rotulo: SESSION_STATUS_LABELS.atestado },
+] as const;
 
 type S = { id: string; patientId: string; patientName: string; date: string; duration: number; isOnline: boolean; location: string | null; status: string; pendingConfirmation?: boolean; timerStartedAt?: string | null };
 type Rec = { id: string; type: string; title: string | null; content: string; createdAt: string };
@@ -53,6 +62,24 @@ export function AtenderClient({ session, records, meeting, therapistName, timerE
   function toggleOnline() {
     start(async () => { await setSessionOnline(session.id, !online); setOnline(!online); });
   }
+
+  /**
+   * As saídas que não são atender: Faltou, Desmarcou, Prof. desm. e Atestado.
+   *
+   * Antes desta tela só existiam "Voltar" e "Sim, iniciar", e quem abria e descobria que o
+   * paciente não vinha tinha que voltar para a agenda, achar a célula de novo e marcar de lá. O
+   * momento em que se descobre a ausência é ESTE, e é aqui que ela tem que caber.
+   *
+   * A cobrança segue o padrão sem perguntar nada: Faltou cobra (o paciente perdeu a sessão dele),
+   * os outros três não cobram. Quem quiser abrir exceção muda pela agenda, onde a pergunta existe
+   * — no meio do dia, um clique a mais é um clique que vira erro.
+   */
+  function encerrarSem(status: "nao_realizada" | "cancelada" | "prof_desmarcou" | "atestado") {
+    start(async () => {
+      await updateSessionStatus(session.id, status, undefined, STATUS_QUE_PODEM_COBRAR.has(status));
+      router.push("/dashboard/agenda");
+    });
+  }
   function finalizar(chargeable: boolean) {
     start(async () => { await updateSessionStatus(session.id, "realizada", undefined, chargeable); router.push("/dashboard/agenda"); });
   }
@@ -66,9 +93,19 @@ export function AtenderClient({ session, records, meeting, therapistName, timerE
           <h1 className="font-display text-2xl font-bold text-primary">Vamos atender?</h1>
           <p className="text-foreground/70">{session.patientName}</p>
           <p className="text-sm text-foreground/50 capitalize">{dt} · {session.duration}min</p>
-          <p className="text-sm inline-flex items-center gap-1.5 justify-center">
+          {/* A modalidade é um botão, não um rótulo: o paciente que ia presencial liga pedindo para
+              fazer online, e isso se resolve agora — a câmera aparece na célula da agenda e no
+              Dashboard sem ninguém precisar editar o agendamento. */}
+          <button
+            type="button"
+            onClick={toggleOnline}
+            disabled={pending}
+            title="Trocar entre presencial e online"
+            className="mx-auto text-sm inline-flex items-center gap-1.5 rounded-full border border-border px-3 py-1.5 hover:bg-surface transition disabled:opacity-60"
+          >
             {online ? <><Video className="w-4 h-4 text-primary" /> Atendimento online</> : <><MapPin className="w-4 h-4 text-primary" /> Presencial{session.location ? ` · ${session.location}` : ""}</>}
-          </p>
+            <ArrowLeftRight className="w-3.5 h-3.5 text-foreground/40" aria-hidden="true" />
+          </button>
           {session.pendingConfirmation && (
             <p className="text-xs text-[#92400e] bg-[#fffbeb] border border-[#fde68a] rounded-xl px-3 py-2">⚠️ Esta era uma <strong>reserva</strong>. Ao iniciar, será convertida de <strong>Reservada → Agendada</strong>.</p>
           )}
@@ -77,6 +114,27 @@ export function AtenderClient({ session, records, meeting, therapistName, timerE
             <button disabled={pending} onClick={() => { if (session.pendingConfirmation) start(async () => { await confirmSession(session.id); }); if (timerEnabled && !timerStart) startTimer(); setStarted(true); }} className="flex-1 bg-primary text-white py-3 rounded-2xl font-bold shadow-lg shadow-primary/20 active:scale-[0.98] transition disabled:opacity-60">
               Sim, iniciar
             </button>
+          </div>
+
+          <div className="pt-3 border-t border-border/60 space-y-2">
+            <p className="text-xs text-foreground/40">Ou registre o que aconteceu:</p>
+            <div className="grid grid-cols-2 gap-2">
+              {SAIDAS.map(({ status, rotulo }) => {
+                const { fundo, borda } = corDaLegenda(status);
+                return (
+                  <button
+                    key={status}
+                    type="button"
+                    disabled={pending}
+                    onClick={() => encerrarSem(status)}
+                    style={{ background: fundo, borderColor: borda }}
+                    className="py-2.5 rounded-xl border text-xs font-bold text-foreground/70 hover:brightness-95 transition disabled:opacity-60"
+                  >
+                    {rotulo}
+                  </button>
+                );
+              })}
+            </div>
           </div>
         </div>
       </div>

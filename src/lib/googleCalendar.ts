@@ -142,7 +142,7 @@ export async function createMeetLink(
 
 // ---------------- Sincronização de agenda ----------------
 
-const SESS_LABELS: Record<string, string> = { agendada: "Sessão", realizada: "Sessão (realizada)", cancelada: "Sessão (cancelada)", realocada: "Sessão (realocada)", nao_realizada: "Sessão (não realizada)" };
+const SESS_LABELS: Record<string, string> = { agendada: "Sessão", realizada: "Sessão (presente)", cancelada: "Sessão (desmarcou)", realocada: "Sessão (desmarcou)", nao_realizada: "Sessão (faltou)", prof_desmarcou: "Sessão (desmarcada pelo profissional)", atestado: "Sessão (atestado)" };
 
 type SessLite = { id: string; date: Date; duration: number; status: string; googleEventId: string | null; isOnline: boolean; location: string | null; patientName: string };
 

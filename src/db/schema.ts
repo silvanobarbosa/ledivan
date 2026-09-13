@@ -7,7 +7,19 @@ export const transactionTypeEnum = pgEnum("transaction_type", ["income", "expens
 export const transactionSourceEnum = pgEnum("transaction_source", ["manual", "telegram", "scan", "session_payment"]);
 
 // --- Enums do dominio Terapia (Ledivan) ---
-export const sessionStatusEnum = pgEnum("session_status", ["realizada", "nao_realizada", "cancelada", "realocada", "agendada"]);
+/**
+ * O que aconteceu com a sessão.
+ *
+ * Os cinco primeiros são os originais e ficam como estão — renomear valor de enum reescreveria
+ * histórico. O que muda é o RÓTULO na tela: `realizada` é "Presente", `nao_realizada` é "Faltou" e
+ * `cancelada` é "Desmarcou". `realocada` continua existindo pelo histórico, e a tela mostra ela
+ * como Desmarcou, que é como ela já se comporta (fora da contagem e fora da cobrança).
+ *
+ * Os dois últimos nasceram do lote das beta testers, e existem porque a pergunta mudou: não é mais
+ * só "a sessão aconteceu?", e sim "de quem foi a ausência?" — é disso que depende o paciente perder
+ * ou não perder a sessão. Faltar por conta própria e faltar com atestado eram a mesma coisa aqui.
+ */
+export const sessionStatusEnum = pgEnum("session_status", ["realizada", "nao_realizada", "cancelada", "realocada", "agendada", "prof_desmarcou", "atestado"]);
 export const paymentMethodEnum = pgEnum("payment_method", ["pix", "card", "cash", "transfer"]);
 export const paymentStatusEnum = pgEnum("payment_status", ["paid", "pending", "overdue"]);
 export const contractTypeEnum = pgEnum("contract_type", ["pacote", "avulso"]);

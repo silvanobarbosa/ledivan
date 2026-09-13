@@ -19,13 +19,21 @@
  * Função pura: conta, não grava. O valor do mês é este total × o valor da sessão.
  */
 
+import { STATUS_QUE_PAUSAM } from "./therapy";
+
 export const SESSOES_PACOTE_COMPLETO = 4;
 
 export type SessaoDoPacote = { id: string; date: Date | string; status: string };
 export type PosicaoNoPacote = { index: number; total: number };
 
-/** Cancelada e realocada não contam: não houve atendimento. */
-const FORA = new Set(["cancelada", "realocada"]);
+/**
+ * Quem não conta: não houve atendimento, e o paciente não perde a sessão.
+ *
+ * São exatamente os status que PAUSAM a sequência. Prof. desm. e Atestado entraram com o lote das
+ * beta testers e pertencem aqui pelo mesmo motivo das outras: cobrar por sessão que o profissional
+ * desmarcou, ou por falta com atestado, é cobrar por atendimento que não houve.
+ */
+const FORA = STATUS_QUE_PAUSAM;
 
 const chaveDoMes = (d: Date) => `${d.getFullYear()}-${d.getMonth()}`;
 
