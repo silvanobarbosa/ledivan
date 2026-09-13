@@ -7,6 +7,43 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-09-13 — A tela que fecha o mês
+
+**Entregue:** #137 e #138. A tela `/dashboard/fechamento` responde uma pergunta só: fechando este
+mês, quem ainda deve, e quanto. A regra do pacote estava pronta e testada desde setembro; faltava
+a tela que cobra.
+
+Cada linha traz o paciente, quantas sessões a agenda contou, quantas o combinado cobra, o preço da
+sessão, o valor do mês, o que já entrou e o saldo — com a palavra junto do número ("a receber",
+"quitado", "pagou a mais"). No alto, três números: a receber, recebido e previsto.
+
+**Decisões que ficam valendo:**
+- **Tela separada da de pagamentos.** Pagamento é do dia a dia; fechamento é ritual de fim de mês.
+  Misturar os dois faz a pessoa procurar o número errado com pressa. A tela abre no mês anterior,
+  que é o que se fecha.
+- **O preço é o que valia NAQUELE mês**, tirado do histórico de preço. Fechar agosto com o
+  reajuste de setembro cobraria a mais, e a conta pareceria certa na tela.
+- **Mês sem sessão nenhuma não cobra nada**, nem no pacote completo. Quem foi atendido três vezes
+  num pacote completo deve quatro (é o combinado); quem não foi atendido nenhuma vez não estava em
+  tratamento naquele mês.
+- **Quem pagou a mais não abate a dívida de quem não pagou.** São pessoas diferentes, e somar os
+  dois esconderia o inadimplente no total.
+
+**Armadilhas:**
+- A primeira versão cobrava quatro sessões de quem teve zero. Só apareceu ao abrir a tela na
+  demonstração pública, com três anos de dados: R$ 33 mil de "a receber", dos quais R$ 22 mil eram
+  dívida inventada. A regra estava com teste verde e mesmo assim errada — teste não substitui
+  olhar a tela com dado de verdade.
+- O "recebido no mês" pode passar do "previsto": dinheiro que entrou em agosto pode ser de julho,
+  ou de pacote pago adiantado. É caixa do mês, não a conta do mês.
+- O repositório não tem Playwright instalado; para olhar a tela rodando, o navegador veio de outro
+  app da casa.
+
+**Pendente:** marcar a cobrança como enviada a partir desta tela (hoje ela só mostra), e o reinício
+da sequência do pacote, que continua esperando o dono definir o prazo dos agendamentos.
+
+---
+
 ## 2026-09-11 — Revisão do dono no cadastro e o aviso de pagamento
 
 **Entregue:** #134 e #135. O cadastro seguiu o PDF de revisão: o casal desceu para baixo do
