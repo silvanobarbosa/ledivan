@@ -8,14 +8,20 @@ import { updateSessionStatus, confirmSession, createSessionFromAgenda, updateSes
 import { HolidaySetup } from "@/components/dashboard/HolidaySetup";
 import { HOLIDAY_STYLE, type Holiday, type HolidayCity } from "@/lib/holidays-style";
 import { geometriaDaFaixa, posicoesDoDia } from "@/lib/agendaLayout";
+import { conteudoDaCelula } from "@/lib/celulaDaAgenda";
 
-type PatientLite = { id: string; name: string; status: string; attendanceMode: string | null; attendanceLocation: string | null   /** Atendimento gratuito: a agenda marca a sessão como "social". */
+type PatientLite = { id: string; name: string; status: string; attendanceMode: string | null; attendanceLocation: string | null;
+  /** Atendimento gratuito: a agenda marca a sessão como "social". */
   social?: boolean;
+  /** O que a célula escreve no lugar do nome. */
+  agendaId?: string | null;
+  registrationNumber?: number | null;
+  paymentFormat?: string | null;
 };
 type LocationLite = { name: string; address: string };
 
 type SessionStatus = "realizada" | "nao_realizada" | "cancelada" | "realocada" | "agendada" | "prof_desmarcou" | "atestado";
-type AgendaSession = { id: string; date: string; duration: number; status: string; patientName: string; isOnline: boolean; risk: string; meetingUrl: string | null; meetingOpenedAt: string | null; guestJoinedAt: string | null; meetingEndedAt: string | null; pendingConfirmation: boolean; patientConfirmed: boolean; rescheduleRequested: boolean; patientArrived: boolean; location: string | null; recurring: boolean; recurrenceFreq?: string | null; patientId?: string; sessionKind?: string; pkg?: { seq: number; index: number; total: number } | null; pagamentoAtrasado?: boolean };
+type AgendaSession = { id: string; date: string; duration: number; status: string; patientName: string; isOnline: boolean; risk: string; meetingUrl: string | null; meetingOpenedAt: string | null; guestJoinedAt: string | null; meetingEndedAt: string | null; pendingConfirmation: boolean; patientConfirmed: boolean; rescheduleRequested: boolean; patientArrived: boolean; location: string | null; recurring: boolean; recurrenceFreq?: string | null; patientId?: string; sessionKind?: string; pkg?: { seq: number; index: number; total: number } | null; pagamentoAtrasado?: boolean; abaterDoPacote?: boolean };
 
 const blockColor = (s: AgendaSession) => sessionColorClasses(s.status, s.pendingConfirmation, s.recurring);
 
@@ -35,8 +41,22 @@ function startOfWeek(d: Date) {
 type Birthday = { name: string; month: number; day: number };
 
 export function AgendaClient({ sessions, patients = [], birthdays = [], locations = [], holidays = {}, holidayCities = [] }: { sessions: AgendaSession[]; patients?: PatientLite[]; birthdays?: Birthday[]; locations?: LocationLite[]; holidays?: Record<string, Holiday[]>; holidayCities?: HolidayCity[] }) {
-  // Quem é atendido de graça: a agenda mostra "social" no cartão da sessão.
-  const pacienteSocial = (id: string | null | undefined) => !!patients.find((x) => x.id === id)?.social;
+  /** O que a célula escreve para aquela sessão. A regra mora em `celulaDaAgenda`, longe da tela. */
+  const celula = (s: AgendaSession) => {
+    const p = patients.find((x) => x.id === s.patientId);
+    return conteudoDaCelula({
+      agendaId: p?.agendaId,
+      registro: p?.registrationNumber,
+      nome: s.patientName,
+      formato: p?.social ? "gratuito" : p?.paymentFormat,
+      tipo: s.sessionKind,
+      abateDoPacote: s.abaterDoPacote,
+      posicao: s.pkg ? { index: s.pkg.index, total: s.pkg.total } : null,
+      online: s.isOnline,
+      repeticao: s.recurring ? s.recurrenceFreq : null,
+      recorrente: s.recurring,
+    });
+  };
   const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date()));
   const [selected, setSelected] = useState<AgendaSession | null>(null);
   const [pending, startTransition] = useTransition();
@@ -373,7 +393,7 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
                       return (
                         <button
                           key={s.id}
-                          title={s.recurring ? "Reserva recorrente" : undefined}
+                          title={`${s.patientName}${s.location ? ` · ${s.location}` : ""}`}
                           onClick={() => { setAskCharge(null); setEditing(false); setSelected(s); }}
                           style={{ top: top + 1, height, left: `calc(${faixa.left} + 4px)`, width: `calc(${faixa.width} - 8px)` }}
                           className={`absolute rounded-lg px-2 py-1 text-left overflow-hidden border border-l-[3px] hover:shadow-md hover:z-10 transition ${blockColor(s)}`}
@@ -388,20 +408,22 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
                               <AlertTriangle className={`w-2.5 h-2.5 ${s.risk === "alto" ? "text-[#b91c1c]" : "text-[#b45309]"}`} />
                             )}
                           </p>
+                          {/* A identificação no lugar do nome: numa coluna de um sétimo da tela cabem
+                              duas linhas curtas, e quem olha a semana precisa saber DE QUEM é o
+                              horário e O QUE é a sessão, não ler o nome inteiro de cada um. O nome
+                              continua no título do bloco, para quem passar o mouse. */}
                           <p className="text-[11px] font-semibold leading-tight truncate flex items-center gap-1">
-                            {s.recurring && <Repeat className="w-2.5 h-2.5 shrink-0" />}
-                            {s.isOnline ? <Video className="w-2.5 h-2.5 shrink-0" /> : <MapPin className="w-2.5 h-2.5 shrink-0" />}
-                            <span className="truncate">{s.patientName}</span>
+                            {s.isOnline && <Video className="w-2.5 h-2.5 shrink-0" aria-label="Online" />}
+                            <span className="truncate">{celula(s).identificacao}</span>
+                            {celula(s).repeticao && <span className="shrink-0 opacity-60">({celula(s).repeticao})</span>}
+                            {celula(s).repeteSemLetra && <Repeat className="w-2.5 h-2.5 shrink-0 opacity-50" aria-label="Agendamento recorrente" />}
                           </p>
-                          {s.sessionKind === "devolutiva" && <p className="text-[9px] font-bold uppercase tracking-wide text-primary/70">Devolutiva</p>}
-                          {/* Gratuito aparece como SOCIAL, palavra que o dono usa com os
-                              pacientes — "de graça" não é o que ele diz, nem o que a
-                              pessoa deveria ler se olhar a tela por cima do ombro. */}
-                          {pacienteSocial(s.patientId) && <p className="text-[9px] font-bold uppercase tracking-wide text-[#047857]">Social</p>}
+                          {celula(s).codigo && (
+                            <p className="text-[10px] font-bold uppercase tracking-wide truncate opacity-80">{celula(s).codigo}</p>
+                          )}
                           {/* Passou do prazo de pagamento e nada entrou. É só um aviso ao profissional: a sessão
                               continua de pé, e cancelar (ou atender assim mesmo) é decisão dele. */}
                           {s.pagamentoAtrasado && <p className="text-[9px] font-bold uppercase tracking-wide text-red-600">Pagamento atrasado</p>}
-                          {s.pkg && <p className="text-[9px] font-bold uppercase tracking-wide text-emerald-700/80 truncate" title={`${s.pendingConfirmation ? "Reserva pacote" : "Pacote"} ${s.pkg.index}/${s.pkg.total}`}>{s.pendingConfirmation ? "Reserva pacote" : "Pacote"}{s.pkg.seq > 0 ? ` P${s.pkg.seq}` : ""} · {s.pkg.index}/{s.pkg.total}</p>}
                         </button>
                       );
                       });
