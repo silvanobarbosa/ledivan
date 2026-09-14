@@ -7,6 +7,85 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-09-13 — O lote da agenda das beta testers (11 fatias)
+
+**Entregue:** #140 a #151, em onze fatias. Duas profissionais que testam o produto mandaram 18
+páginas de ajustes na agenda. A leitura delas contra o código está em `PLANO-AGENDA.md`, que também
+carrega o inventário do que o sistema já fazia — foi o documento levado à discussão com elas.
+
+| # | PR | O que entrou |
+| --- | --- | --- |
+| 1 | #141 | Grade das 6h, cabeçalho de três linhas, feriado só no topo, "Escolher data", clique de 30 em 30 |
+| 2 | #142 | Os cinco status, a cor por status, a tela "Vamos atender?" com as quatro saídas |
+| 3 | #143 | O motor da sequência X/X e a cobrança seguindo o contrato |
+| 4 | #144 | A célula com identificação e código (DEVOL, GRAT, AVUL, X/X, câmera, M/Q/S) |
+| 5 | #145 | Bloquear e desbloquear horário |
+| 6 | #146 | A janela de novo agendamento completa |
+| 7 | #147 | O slot Q intercalado |
+| 8 | #148 | A lista "Lembrar agendamento" no Dashboard |
+| 9 | #149 | Editar e excluir com alcance |
+| 10 | #150 | Inativar encerra a agenda futura sem status |
+| 11 | #151 | Nada cortado em computador, tablet e celular |
+
+**Por quê:** o pedido delas não era um conjunto de acréscimos. Três regras do lote SUBSTITUÍAM
+regras que estavam no ar, e foi isso que justificou o plano antes do código.
+
+**Decisões que ficam valendo:**
+
+- **A cobrança segue a SEQUÊNCIA, não o calendário** (decisão do dono, 13/09). O erro mais fundo do
+  motor antigo não era a regra de sequência: era cobrar tudo por mês do calendário, mesmo de quem
+  não contratou por mês — e por isso a fatura de um paciente de pacote ENCOLHIA a cada desmarcação.
+  Agora pacote cobra a sequência quando ela fecha, avulso cobra as sessões do mês. Quem paga na
+  primeira do pacote vence na abertura.
+- **A posição X/X é REFEITA, nunca guardada.** O lote pede alterar sessão passada, encaixar no meio
+  e excluir em bloco — as três operações que um contador guardado tem que acertar sempre, e que
+  erram em silêncio quando falham uma vez. Guardado fica só o contrato: quantas sessões.
+- **Os status antigos ficam no banco**; o que mudou foi o rótulo. `realocada` continua sendo
+  entendido e aparece como Desmarcou, mas saiu do menu.
+- **Só FALTOU conta como falta** no risco. Antes "cancelada" entrava junto, e com Atestado no mesmo
+  saco quem adoeceu viraria paciente de risco de evasão.
+- **Horário bloqueado em tabela própria**, nunca como sessão com nome especial: assim não tem como
+  vazar para pacote, fechamento, previsão ou risco.
+- **Mensal não gera sessões**; o paciente entra em "Lembrar agendamento" nos últimos 3 dias do mês,
+  e sai da lista sozinho quando a data é marcada.
+- **Pausar não encerra a agenda**, inativar sim. Quem pausa pretende voltar.
+- **Mover é UPDATE da linha existente**, nunca apagar e recriar — o lote proíbe duplicar.
+- **Prontuário avisa, não trava** (decisão do dono, contra a sugestão da revisão externa): travar
+  impede correção legítima e empurra para apagar a nota clínica.
+- **Notificação continua configurável por paciente** (decisão do dono), com a conta guardando um
+  padrão que o paciente novo herda.
+
+**Armadilhas:**
+
+- **A demo tem `recurrence_freq` nulo em 111 sessões recorrentes.** Sem a cor azul que saiu na
+  fatia 2, elas ficariam idênticas a agendamento pontual. Ganharam um ícone genérico.
+- **`Number(null)` é 0, não NaN** — o campo "horas antes" em branco virava 1 hora em vez do padrão
+  de 24. Campo em branco é campo não preenchido, não zero.
+- **Fundo transparente revelou sobreposição que existia havia tempo.** Duas sessões no mesmo
+  horário se empilhavam, e o fundo opaco escondia que a de baixo sumia. São 4 casos numa única
+  semana da demo. Agora dividem a largura da coluna (`agendaLayout.ts`).
+- **Varredura responsiva por MEDIÇÃO, não por print.** 69 achados na primeira passada, 3 reais.
+  Texto que vaza dois pixels some sem parecer estranho na imagem.
+- **No celular não existe dica de tela.** Truncar com `title` é aceitável no computador e é perda
+  de informação no telefone.
+- A conta de QA (`qa.ledivan@`) é onde se escreve para testar; a demo é somente leitura. Sessão
+  local por cookie assinado com `AUTH0_SECRET`. **Sempre limpar o que foi criado.**
+- O `agenda_id` do paciente é opcional e está vazio em toda a demo — a célula cai no número de
+  registro e depois no primeiro nome. Sem essa reserva a agenda ficaria muda.
+
+**Pendente:**
+
+- **Do dono:** o `agenda_id` passa a ser obrigatório no cadastro? E gratuito ficou como `GRAT`,
+  onde antes era `SOCIAL` por escolha sua — diga se prefere voltar.
+- **Consequência visível da decisão de cobrança:** com a conta seguindo a sequência, o mês fica
+  irregular. Na demo, agosto mostra R$ 20.540 previsto contra R$ 41.389 recebido. Ao longo do ano
+  convergem, porque cada sequência cobra uma vez só. Se incomodar, cabe uma visão acumulada ao lado
+  do mês.
+- A caixa "Abater do pacote" existe e grava, mas nenhuma devolutiva antiga está marcada — o efeito
+  só aparece nas novas.
+
+---
+
 ## 2026-09-13 — A tela que fecha o mês
 
 **Entregue:** #137 e #138. A tela `/dashboard/fechamento` responde uma pergunta só: fechando este
