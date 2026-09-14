@@ -6,6 +6,7 @@ import { formatDateTime } from "@/lib/therapy";
 import { Users as UsersIcon, CalendarCheck, Clock, ChevronRight, Video, MapPin, AlertTriangle } from "lucide-react";
 import { AnaliticosCharts } from "@/components/dashboard/AnaliticosCharts";
 import { DashboardPanels } from "@/components/dashboard/DashboardPanels";
+import { apareceHoje, mesQueVem, pacientesALembrar } from "@/lib/lembrarAgendamento";
 import { AnalyticsFilters } from "@/components/dashboard/AnalyticsFilters";
 import Link from "next/link";
 import { cookies } from "next/headers";
@@ -86,6 +87,40 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   const presenceRows = await db.select({ patientId: therapySessions.patientId, status: therapySessions.status, date: therapySessions.date })
     .from(therapySessions)
     .where(and(eq(therapySessions.userId, userId), gte(therapySessions.date, presStart), inArray(therapySessions.status, ["realizada", "nao_realizada"])));
+  // LEMBRAR AGENDAMENTO: quem atende uma vez por mês e ainda não marcou o mês que vem.
+  //
+  // Quem é mensal sai da própria agenda — a sessão mensal guarda a frequência, mesmo sem gerar as
+  // seguintes. Buscar só nos últimos dias do mês não adiantaria: a lista precisa das sessões do
+  // mês QUE VEM para saber quem já resolveu.
+  const proximo = mesQueVem();
+  const [marcadosNoMesQueVem, sessoesMensais] = await Promise.all([
+    db
+      .select({ patientId: therapySessions.patientId, date: therapySessions.date })
+      .from(therapySessions)
+      .where(and(eq(therapySessions.userId, userId), gte(therapySessions.date, proximo.inicio), lte(therapySessions.date, proximo.fim))),
+    db
+      .select({ patientId: therapySessions.patientId, date: therapySessions.date })
+      .from(therapySessions)
+      .where(and(eq(therapySessions.userId, userId), eq(therapySessions.recurrenceFreq, "mensal"))),
+  ]);
+
+  // A última sessão conhecida de cada mensal — é o que a lista mostra para dizer há quanto tempo
+  // a pessoa está sem data.
+  const ultimaPorPaciente = new Map<string, Date>();
+  for (const s of sessoesMensais) {
+    const atual = ultimaPorPaciente.get(s.patientId);
+    if (!atual || s.date > atual) ultimaPorPaciente.set(s.patientId, s.date);
+  }
+  const aLembrar = pacientesALembrar({
+    mensais: pats
+      .filter((p) => ultimaPorPaciente.has(p.id) && p.status === "ativo")
+      .map((p) => ({ id: p.id, nome: p.name, ultimaSessao: ultimaPorPaciente.get(p.id) ?? null })),
+    sessoes: marcadosNoMesQueVem.map((s) => ({ pacienteId: s.patientId, data: s.date })),
+  }).map((x) => {
+    const p = pats.find((y) => y.id === x.id);
+    return { ...x, phone: p?.phone ?? null, email: p?.email ?? null };
+  });
+
   const panelPatients = pats.map((p) => ({
     id: p.id, name: p.name, status: p.status,
     gender: p.gender, birthDate: p.birthDate ? (p.birthDate as unknown as string) : null,
@@ -125,7 +160,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
         <p className="text-foreground/40 font-medium">Resumo do seu consultório e analíticos de atendimento.</p>
       </section>
 
-      <DashboardPanels patients={panelPatients} presence={panelPresence} mensagemAniversario={user.birthdayMessage ?? ""} corteSemana={new Date(todayStart - 6 * 24 * 60 * 60 * 1000).toISOString()} hoje={`${diaInicio.getFullYear()}-${String(diaInicio.getMonth() + 1).padStart(2, "0")}-${String(diaInicio.getDate()).padStart(2, "0")}`} />
+      <DashboardPanels patients={panelPatients} presence={panelPresence} mensagemAniversario={user.birthdayMessage ?? ""} aLembrar={aLembrar} mensagemAgendamento={user.agendamentoMessage ?? ""} mostrarLembrar={apareceHoje()} corteSemana={new Date(todayStart - 6 * 24 * 60 * 60 * 1000).toISOString()} hoje={`${diaInicio.getFullYear()}-${String(diaInicio.getMonth() + 1).padStart(2, "0")}-${String(diaInicio.getDate()).padStart(2, "0")}`} />
 
       {/* "Pacientes ativos" saiu daqui: o painel "Ativos e inativos" acima abre a mesma lista, e
           ter os dois no mesmo scroll era a mesma informação duas vezes. */}

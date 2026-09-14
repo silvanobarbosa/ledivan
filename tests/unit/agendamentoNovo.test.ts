@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   canalParaGravar,
+  ehMensal,
   ehOnline,
   geraRepeticoes,
   horasAntesParaGravar,
@@ -40,6 +41,22 @@ describe("as repetições que a janela oferece", () => {
     const lista = valores(repeticoesDe({ tipo: "consulta", slotIntercalado: true }));
     expect(lista).not.toContain("semanal");
     expect(lista).toEqual(["pontual", "mes", "quinzenal"]);
+  });
+});
+
+describe("o que é mensal", () => {
+  it("mensal e 1x no mês são a mesma coisa com dois nomes", () => {
+    expect(ehMensal("mensal")).toBe(true);
+    expect(ehMensal("mes")).toBe(true);
+  });
+
+  it("o resto não é", () => {
+    for (const r of ["pontual", "semanal", "quinzenal", null]) expect(ehMensal(r), String(r)).toBe(false);
+  });
+
+  it("nenhum mensal gera sessões — os dois vão para a lista de lembrar", () => {
+    expect(geraRepeticoes("mensal")).toBe(false);
+    expect(geraRepeticoes("mes")).toBe(false);
   });
 });
 

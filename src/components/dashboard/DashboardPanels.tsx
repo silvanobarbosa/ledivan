@@ -5,7 +5,8 @@ import Link from "next/link";
 import { queixaGroup } from "@/lib/queixas";
 import { MessagePatient } from "./MessagePatient";
 import { ModalPacientes } from "./ModalPacientes";
-import { salvarMensagemAniversario } from "@/app/dashboard/actions";
+import { salvarMensagemAgendamento, salvarMensagemAniversario } from "@/app/dashboard/actions";
+import { mensagemPara, MODELO_PADRAO_DO_LEMBRETE } from "@/lib/lembrarAgendamento";
 
 export type PanelPatient = {
   id: string; name: string; status: string;
@@ -42,8 +43,17 @@ function Stat({ n, label, tone = "primary", onAbrir }: { n: number | string; lab
   );
 }
 
+export type ParaLembrar = {
+  id: string;
+  nome: string;
+  diasSemSessao: number | null;
+  phone: string | null;
+  email: string | null;
+};
+
 export function DashboardPanels({
   patients, presence, mensagemAniversario, corteSemana, hoje,
+  aLembrar = [], mensagemAgendamento = "", mostrarLembrar = false,
 }: {
   patients: PanelPatient[];
   presence: PanelPresence[];
@@ -52,6 +62,11 @@ export function DashboardPanels({
   corteSemana: string;
   /** Hoje em YYYY-MM-DD, do servidor. Ver Aniversariantes. */
   hoje: string;
+  /** Mensais sem data no mês que vem. Ver LembrarAgendamento. */
+  aLembrar?: ParaLembrar[];
+  mensagemAgendamento?: string;
+  /** Se hoje está nos últimos dias do mês. Vem do servidor: o relógio do navegador pode divergir. */
+  mostrarLembrar?: boolean;
 }) {
   return (
     <section className="space-y-4">
@@ -62,6 +77,7 @@ export function DashboardPanels({
         <Prospeccao patients={patients} />
         <Relatorios patients={patients} />
         <Aniversariantes patients={patients} modeloSalvo={mensagemAniversario} hoje={hoje} />
+        {mostrarLembrar && <LembrarAgendamento lista={aLembrar} modeloSalvo={mensagemAgendamento} />}
         <AtivosInativos patients={patients} presence={presence} corte={corteSemana} />
         <QueixaBloco patients={patients} />
         <Pagamentos patients={patients} />
@@ -116,6 +132,72 @@ function Relatorios({ patients }: { patients: PanelPatient[] }) {
 // calendário, senão ninguém apareceria (a data de nascimento é sempre de anos atrás). Sem idade
 // na lista, de propósito. O modelo da mensagem fica salvo no perfil do terapeuta.
 const MODELO_PADRAO = "Feliz aniversário, {nome}! Que seu novo ciclo venha leve. 🎂";
+
+/**
+ * LEMBRAR AGENDAMENTO: quem atende uma vez por mês e ainda não marcou o mês que vem.
+ *
+ * O agendamento mensal deixou de gerar as sessões seguintes — quem atende uma vez por mês combina
+ * a data na própria sessão, e uma agenda cheia de datas presumidas atrapalha. Mas sem gerar nada o
+ * paciente sumiria da vista até alguém lembrar dele, que é o que acontece na prática com paciente
+ * de baixa frequência. Esta lista é o contrapeso.
+ *
+ * Ela só aparece nos últimos dias do mês, e **se esvazia sozinha**: assim que a data do mês que vem
+ * é marcada, a pessoa sai. Não há nada para concluir, e por isso não há nada que alguém possa
+ * esquecer de concluir — lista que exige ser marcada como feita é lista que fica desatualizada.
+ */
+function LembrarAgendamento({ lista, modeloSalvo }: { lista: ParaLembrar[]; modeloSalvo: string }) {
+  const [modelo, setModelo] = useState(modeloSalvo || MODELO_PADRAO_DO_LEMBRETE);
+  const [salvo, setSalvo] = useState<boolean | null>(null);
+
+  async function salvar() {
+    setSalvo(null);
+    const r = await salvarMensagemAgendamento(modelo);
+    setSalvo(r.ok);
+  }
+
+  return (
+    <div className={card}>
+      <div className="flex items-center justify-between">
+        <h4 className="font-display font-bold text-primary">Lembrar agendamento</h4>
+        <span className="text-xs text-foreground/40">{lista.length} sem data</span>
+      </div>
+      <p className="text-xs text-foreground/50">
+        Atendem uma vez por mês e ainda não marcaram o mês que vem. Saem daqui sozinhos quando a data for marcada.
+      </p>
+
+      {lista.length === 0 ? (
+        <p className="text-sm text-foreground/40">Todo mundo já tem data para o mês que vem. 🌿</p>
+      ) : (
+        <div className="space-y-1.5 max-h-56 overflow-y-auto">
+          {lista.map((p) => (
+            <div key={p.id} className="flex items-center gap-2 rounded-xl bg-surface/60 px-3 py-2">
+              <span className="flex-1 text-sm font-medium truncate">{p.nome}</span>
+              {p.diasSemSessao !== null && (
+                <span className="text-[11px] text-foreground/40 shrink-0 tabular-nums">{p.diasSemSessao}d</span>
+              )}
+              <MessagePatient
+                patient={{ id: p.id, name: p.nome, phone: p.phone, email: p.email }}
+                compact
+                rotulo="Lembrar"
+                textoInicial={mensagemPara(modelo, p.nome)}
+              />
+            </div>
+          ))}
+        </div>
+      )}
+
+      <div className="space-y-1.5 border-t border-border pt-3">
+        <span className={lbl}>Mensagem · <code>{"{nome}"}</code> vira o primeiro nome</span>
+        <textarea value={modelo} onChange={(e) => { setModelo(e.target.value); setSalvo(null); }} rows={2} className={`${inp} w-full resize-none`} />
+        <div className="flex items-center gap-2">
+          <button onClick={salvar} className="text-xs font-bold px-3 py-1.5 rounded-lg bg-primary text-white">Salvar modelo</button>
+          {salvo === true && <span className="text-xs text-emerald-600">salvo</span>}
+          {salvo === false && <span className="text-xs text-red-600">não deu para salvar</span>}
+        </div>
+      </div>
+    </div>
+  );
+}
 const ddmm = (iso: string) => {
   const d = new Date(iso);
   return { dia: d.getDate(), mes: d.getMonth() + 1 };
