@@ -8,7 +8,7 @@ import { updateSessionStatus, confirmSession, createSessionFromAgenda, updateSes
 import { HolidaySetup } from "@/components/dashboard/HolidaySetup";
 import { HOLIDAY_STYLE, type Holiday, type HolidayCity } from "@/lib/holidays-style";
 import { geometriaDaFaixa, posicoesDoDia } from "@/lib/agendaLayout";
-import { conteudoDaCelula } from "@/lib/celulaDaAgenda";
+import { conteudoDaCelula, identificacao } from "@/lib/celulaDaAgenda";
 import { textoDoBloqueio } from "@/lib/bloqueioDeHorario";
 import { CANAIS_DE_CONFIRMACAO, geraRepeticoes, modalidadesDe, pedeHorasAntes, pedeLocal, repeticoesDe } from "@/lib/agendamentoNovo";
 import { BloquearHorario } from "@/components/dashboard/BloquearHorario";
@@ -46,6 +46,12 @@ type Birthday = { name: string; month: number; day: number };
 type BlocoBloqueado = { id: string; date: string; duration: number; note: string | null };
 
 export function AgendaClient({ sessions, patients = [], birthdays = [], locations = [], holidays = {}, holidayCities = [], blocks = [] }: { sessions: AgendaSession[]; patients?: PatientLite[]; birthdays?: Birthday[]; locations?: LocationLite[]; holidays?: Record<string, Holiday[]>; holidayCities?: HolidayCity[]; blocks?: BlocoBloqueado[] }) {
+  /** A identificação curta de um paciente, a mesma que a célula usa. */
+  const identificaPaciente = (id: string | null | undefined, nome: string) => {
+    const p = patients.find((x) => x.id === id);
+    return identificacao({ agendaId: p?.agendaId, registro: p?.registrationNumber, nome });
+  };
+
   /** O que a célula escreve para aquela sessão. A regra mora em `celulaDaAgenda`, longe da tela. */
   const celula = (s: AgendaSession) => {
     const p = patients.find((x) => x.id === s.patientId);
@@ -74,6 +80,17 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
   const [newModalidade, setNewModalidade] = useState("presencial");
   const [newAbater, setNewAbater] = useState(false);
   const [newCanal, setNewCanal] = useState("nenhum");
+  /**
+   * O slot "Q" que a pessoa clicou, esperando a resposta.
+   *
+   * Clicar num horário intercalado não abre o agendamento direto de propósito: aquele lugar é o
+   * espelho do quinzenal de outra pessoa, e quem clica ali pode estar só querendo entender por que
+   * o horário aparece marcado. A pergunta nomeia o paciente que intercala — sem isso, "deseja
+   * intercalar?" não diz com quem.
+   */
+  const [perguntaQ, setPerguntaQ] = useState<{ day: Date; hour: number; minute: number; quem: string } | null>(null);
+  /** Agendamento nascido de um slot Q: a repetição semanal não entra na lista. */
+  const [deSlotQ, setDeSlotQ] = useState(false);
   const [newFreq, setNewFreq] = useState("pontual");
   // Só semanal e quinzenal geram as sessões seguintes. Mensal marca uma só, e o paciente entra
   // na lista de "Lembrar agendamento" no fim do mês.
@@ -86,7 +103,8 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
   function toLocalInput(d: Date) {
     return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
   }
-  function openNew(day?: Date, hour?: number, minute = 0) {
+  function openNew(day?: Date, hour?: number, minute = 0, slotQ = false) {
+    setDeSlotQ(slotQ);
     const d = day ? new Date(day) : new Date();
     if (hour != null) d.setHours(hour, minute, 0, 0);
     setNewDate(toLocalInput(d));
@@ -136,7 +154,7 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
   // e nada ocupando o slot neste dia, mostra um ghost clicável (encaixe pontual / outro quinzenal).
   const quinzenais = sessions.filter((s) => s.recurring && s.recurrenceFreq === "quinzenal");
   const midOf = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
-  type Ghost = { hour: number; minute: number; duration: number; patientName: string };
+  type Ghost = { hour: number; minute: number; duration: number; patientName: string; patientId?: string };
   const ghostsForDay = (day: Date): Ghost[] => {
     const out: Ghost[] = [];
     const seen = new Set<string>();
@@ -151,7 +169,7 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
       const occupied = sessionsByDay(day).some((s) => { const sd = new Date(s.date); return sd.getHours() === qd.getHours() && sd.getMinutes() === qd.getMinutes(); });
       if (occupied) continue;
       seen.add(key);
-      out.push({ hour: qd.getHours(), minute: qd.getMinutes(), duration: q.duration, patientName: q.patientName });
+      out.push({ hour: qd.getHours(), minute: qd.getMinutes(), duration: q.duration, patientName: q.patientName, patientId: q.patientId });
     }
     return out;
   };
@@ -397,21 +415,24 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
                         </div>
                       );
                     })}
-                    {/* ghosts "Vago Quinzenal" (semana alternada do quinzenal) — clicável p/ encaixar */}
+                    {/* O slot "Q": a semana em que o quinzenal de alguém NÃO acontece. O horário fica
+                        livre para outra pessoa, e a letra é o que avisa que ele é intercalado — quem
+                        marcar ali toda semana tira o lugar do quinzenal original. */}
                     {ghostsForDay(day).map((g, gi) => {
                       const top = Math.max(0, (((g.hour - START_HOUR) * 60 + g.minute) / 60) * HOUR_PX);
                       const height = Math.max(26, (g.duration / 60) * HOUR_PX - 2);
                       const hh = `${pad(g.hour)}:${pad(g.minute)}`;
+                      const quem = identificaPaciente(g.patientId, g.patientName);
                       return (
                         <button
                           key={`ghost-${gi}`}
-                          onClick={() => openNew(day, g.hour)}
-                          title={`Vago nesta semana — quinzenal de ${g.patientName}. Clique para encaixar.`}
+                          onClick={() => setPerguntaQ({ day, hour: g.hour, minute: g.minute, quem })}
+                          title={`Horário intercalado — quinzenal de ${g.patientName}. Clique para encaixar alguém.`}
                           style={{ top: top + 1, height }}
                           className="absolute left-1 right-1 rounded-lg px-2 py-1 text-left overflow-hidden border-l-[3px] border-dashed border-amber-400 bg-amber-400/10 hover:bg-amber-400/20 transition"
                         >
                           <p className="text-[10px] font-bold leading-tight text-amber-700">{hh}</p>
-                          <p className="text-[11px] font-semibold leading-tight truncate text-amber-700">Vago Quinzenal</p>
+                          <p className="text-[11px] font-black leading-tight truncate text-amber-700">Q · {quem}</p>
                         </button>
                       );
                     })}
@@ -588,6 +609,40 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
         </div>
       )}
 
+      {/* A pergunta do slot Q. Nomeia quem intercala: "deseja intercalar?" sem dizer com quem
+          não é pergunta que dê para responder. */}
+      {perguntaQ && (
+        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/30 p-4" onClick={() => setPerguntaQ(null)}>
+          <div className="bg-white rounded-[28px] p-6 w-full max-w-sm space-y-4 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <p className="text-lg font-display font-bold text-primary">Horário intercalado</p>
+            <p className="text-sm text-foreground/70">
+              Este horário intercala com o paciente <strong>{perguntaQ.quem}</strong>. Deseja intercalar um novo
+              agendamento com este?
+            </p>
+            <div className="flex gap-3">
+              <button
+                type="button"
+                onClick={() => setPerguntaQ(null)}
+                className="flex-1 py-2.5 rounded-xl font-semibold text-foreground/60 hover:bg-surface transition"
+              >
+                Não
+              </button>
+              <button
+                type="button"
+                onClick={() => {
+                  const q = perguntaQ;
+                  setPerguntaQ(null);
+                  openNew(q.day, q.hour, q.minute, true);
+                }}
+                className="flex-1 bg-primary text-white py-2.5 rounded-xl font-bold"
+              >
+                Sim
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Modal: novo atendimento */}
       {showNew && (
         <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/30 p-4" onClick={() => setShowNew(false)}>
@@ -689,7 +744,7 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
                 <Repeat className="w-4 h-4" /> Repetição
               </label>
               <select name="freq" value={newFreq} onChange={(e) => setNewFreq(e.target.value)} className="w-full px-3 py-2 rounded-xl bg-white border border-[#bfdbfe] outline-none text-sm">
-                {repeticoesDe({ tipo: newKind }).map((r) => <option key={r.valor} value={r.valor}>{r.rotulo}</option>)}
+                {repeticoesDe({ tipo: newKind, slotIntercalado: deSlotQ }).map((r) => <option key={r.valor} value={r.valor}>{r.rotulo}</option>)}
               </select>
               {newRecorrente && (
                 <div>
@@ -697,7 +752,12 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
                   <input name="until" type="date" required className="w-full px-3 py-2 rounded-xl bg-white border border-[#bfdbfe] outline-none text-sm" />
                 </div>
               )}
-              {newFreq === "mensal" && (
+              {deSlotQ && (
+                <p className="text-[11px] text-[#1e40af]/70">
+                  Horário intercalado: sem repetição semanal, para o quinzenal de {perguntaQ?.quem ?? "quem já usa"} não perder o lugar.
+                </p>
+              )}
+              {(newFreq === "mensal" || newFreq === "mes") && (
                 <p className="text-[11px] text-[#1e40af]/70">
                   O mensal marca só esta data. No fim do mês o paciente aparece em “Lembrar agendamento”, no Dashboard.
                 </p>
