@@ -40,8 +40,9 @@ describe("a letra da repetição", () => {
     expect(letraDaRepeticao("quinzenal")).toBe("Q");
   });
 
-  it("semanal ganhou (S): sem marca ele seria o único recorrente indistinguível de um pontual", () => {
-    expect(letraDaRepeticao("semanal")).toBe("S");
+  it("semanal NÃO tem letra: é o ritmo padrão, e marcá-lo não distingue ninguém", () => {
+    // Cheguei a pôr (S); as testers pediram para tirar — apareceria em quase toda célula.
+    expect(letraDaRepeticao("semanal")).toBeNull();
   });
 
   it("sem repetição, não há letra", () => {

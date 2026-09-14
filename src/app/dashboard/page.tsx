@@ -7,6 +7,7 @@ import { Users as UsersIcon, CalendarCheck, Clock, ChevronRight, Video, MapPin, 
 import { AnaliticosCharts } from "@/components/dashboard/AnaliticosCharts";
 import { DashboardPanels } from "@/components/dashboard/DashboardPanels";
 import { apareceHoje, mesQueVem, pacientesALembrar } from "@/lib/lembrarAgendamento";
+import { horaDeParede } from "@/lib/horaLocal";
 import { AnalyticsFilters } from "@/components/dashboard/AnalyticsFilters";
 import Link from "next/link";
 import { cookies } from "next/headers";
@@ -129,7 +130,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
     prospectDate: p.prospectDate ? (p.prospectDate as unknown as string) : null, prospectFechou: p.prospectFechou,
     startedAt: p.startedAt ? (p.startedAt as unknown as string) : null,
   }));
-  const panelPresence = presenceRows.map((r) => ({ patientId: r.patientId, presente: r.status === "realizada", date: r.date as unknown as string }));
+  const panelPresence = presenceRows.map((r) => ({ patientId: r.patientId, presente: r.status === "realizada", date: horaDeParede(r.date) }));
 
   const weekSessions = Number(weekRows[0]?.val || 0);
   const pacotesAcabando = pkgEndingRows.filter((r) => (Number(r.total) - (pkgRealizedMap.get(r.pid) ?? 0)) === 1).length;

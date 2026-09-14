@@ -7,6 +7,7 @@ import { AtenderClient } from "./AtenderClient";
 import { jaasConfigured, jaasRoom, generateJaasJwt, JAAS_DOMAIN } from "@/lib/jaas";
 import { getPreferences } from "@/lib/preferences";
 import { resolveFeature, parseOverrides } from "@/lib/features";
+import { horaDeParede } from "@/lib/horaLocal";
 
 export const dynamic = "force-dynamic";
 const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -48,7 +49,7 @@ export default async function AtenderPage({ params }: { params: Promise<{ sessio
     <AtenderClient
       session={{
         id: s.id, patientId: s.patientId, patientName: s.patient?.name ?? "Paciente",
-        date: (s.date as Date).toISOString(), duration: s.duration, isOnline: s.isOnline,
+        date: horaDeParede(s.date as Date), duration: s.duration, isOnline: s.isOnline,
         location: s.patient?.attendanceLocation ?? null, status: s.status,
         pendingConfirmation: s.pendingConfirmation,
         timerStartedAt: s.timerEndedAt ? null : (s.timerStartedAt ? (s.timerStartedAt as Date).toISOString() : null),

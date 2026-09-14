@@ -9,6 +9,7 @@ import { parseHolidayCities, holidaysByDate } from "@/lib/holidays";
 import { derivePackageLabels } from "@/lib/packages";
 import { posicoesDaSequencia, tamanhosDasSequencias } from "@/lib/sequenciaPacote";
 import { entraNaSequencia } from "@/lib/celulaDaAgenda";
+import { horaDeParede, horaDeParedeOuNulo } from "@/lib/horaLocal";
 import { usaPacote } from "@/lib/reajuste";
 import { pagamentoAtrasado } from "@/lib/pagamentoSessao";
 
@@ -131,16 +132,16 @@ export default async function AgendaPage() {
       <AgendaClient
         sessions={list.map((s) => ({
           id: s.id,
-          date: s.date as unknown as string,
+          date: horaDeParede(s.date),
           duration: s.duration,
           status: s.status,
           isOnline: s.isOnline,
           meetingUrl: s.meetingUrl,
           patientName: s.patient?.name ?? "—",
           risk: riskByPatient.get(s.patientId) ?? "baixo",
-          meetingOpenedAt: s.meetingOpenedAt ? (s.meetingOpenedAt as unknown as string) : null,
-          guestJoinedAt: s.guestJoinedAt ? (s.guestJoinedAt as unknown as string) : null,
-          meetingEndedAt: s.meetingEndedAt ? (s.meetingEndedAt as unknown as string) : null,
+          meetingOpenedAt: horaDeParedeOuNulo(s.meetingOpenedAt),
+          guestJoinedAt: horaDeParedeOuNulo(s.guestJoinedAt),
+          meetingEndedAt: horaDeParedeOuNulo(s.meetingEndedAt),
           pendingConfirmation: s.pendingConfirmation,
           patientConfirmed: !!s.patientConfirmedAt,
           rescheduleRequested: !!s.rescheduleRequestedAt,
@@ -158,7 +159,7 @@ export default async function AgendaPage() {
         birthdays={pats.filter((p) => p.birthDate).map((p) => { const b = new Date(p.birthDate as unknown as string); return { name: p.name, month: b.getMonth() + 1, day: b.getDate() }; })}
         locations={locations}
         holidays={holidays}
-        blocks={bloqueios.map((b) => ({ id: b.id, date: b.date as unknown as string, duration: b.duration, note: b.note }))}
+        blocks={bloqueios.map((b) => ({ id: b.id, date: horaDeParede(b.date), duration: b.duration, note: b.note }))}
         holidayCities={holidayCities}
       />
     </div>
