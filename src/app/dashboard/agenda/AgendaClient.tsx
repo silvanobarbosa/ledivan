@@ -15,6 +15,7 @@ import { CANAIS_DE_CONFIRMACAO, geraRepeticoes, modalidadesDe, pedeHorasAntes, p
 import { CAMPOS_EDITAVEIS } from "@/lib/editarAgendamento";
 import { contarAlcance, excluirAgendamento, salvarEdicao } from "./edicao-actions";
 import { BloquearHorario } from "@/components/dashboard/BloquearHorario";
+import { FUNDO_DA_JANELA, JANELA } from "@/lib/modal";
 
 type PatientLite = { id: string; name: string; status: string; attendanceMode: string | null; attendanceLocation: string | null;
   /** Atendimento gratuito: a agenda marca a sessão como "social". */
@@ -623,8 +624,8 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
 
       {/* Painel da sessão selecionada */}
       {selected && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/30 p-4" onClick={() => setSelected(null)}>
-          <div className="bg-white rounded-[28px] p-6 w-full max-w-sm space-y-4 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+        <div className={FUNDO_DA_JANELA} onClick={() => setSelected(null)}>
+          <div className={`${JANELA} max-w-sm`} onClick={(e) => e.stopPropagation()}>
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-lg font-display font-bold text-primary">{selected.patientName}</p>
@@ -783,8 +784,8 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
       {/* O alcance da EDIÇÃO. Mudar a data de uma sessão de uma série sem perguntar erraria
           metade das vezes, e em silêncio. */}
       {perguntaAlcance && (
-        <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center bg-black/40 p-4" onClick={() => setPerguntaAlcance(null)}>
-          <div className="bg-white rounded-[28px] p-6 w-full max-w-sm space-y-4 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+        <div className={FUNDO_DA_JANELA} onClick={() => setPerguntaAlcance(null)}>
+          <div className={`${JANELA} max-w-sm`} onClick={(e) => e.stopPropagation()}>
             <p className="text-lg font-display font-bold text-primary">Alterar quais?</p>
             <p className="text-sm text-foreground/70">Deseja alterar apenas este agendamento ou este e também os próximos?</p>
             <div className="space-y-2">
@@ -807,8 +808,8 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
           se o bloco respeita o combinado de dia e hora ou pega tudo. Os números vêm do servidor —
           apagar em bloco sem dizer quantos é pedir confirmação no escuro. */}
       {perguntaExcluir && (
-        <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center bg-black/40 p-4" onClick={() => { setPerguntaExcluir(null); setQuantos(null); }}>
-          <div className="bg-white rounded-[28px] p-6 w-full max-w-sm space-y-4 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+        <div className={FUNDO_DA_JANELA} onClick={() => { setPerguntaExcluir(null); setQuantos(null); }}>
+          <div className={`${JANELA} max-w-sm`} onClick={(e) => e.stopPropagation()}>
             <p className="text-lg font-display font-bold text-red-600">Excluir agendamento</p>
             {perguntaExcluir.passo === "inicio" ? (
               <>
@@ -843,8 +844,8 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
       {/* A pergunta do slot Q. Nomeia quem intercala: "deseja intercalar?" sem dizer com quem
           não é pergunta que dê para responder. */}
       {perguntaQ && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/30 p-4" onClick={() => setPerguntaQ(null)}>
-          <div className="bg-white rounded-[28px] p-6 w-full max-w-sm space-y-4 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+        <div className={FUNDO_DA_JANELA} onClick={() => setPerguntaQ(null)}>
+          <div className={`${JANELA} max-w-sm`} onClick={(e) => e.stopPropagation()}>
             <p className="text-lg font-display font-bold text-primary">Horário intercalado</p>
             <p className="text-sm text-foreground/70">
               Este horário intercala com o paciente <strong>{perguntaQ.quem}</strong>. Deseja intercalar um novo
@@ -876,11 +877,11 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
 
       {/* Modal: novo atendimento */}
       {showNew && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/30 p-4" onClick={() => setShowNew(false)}>
+        <div className={FUNDO_DA_JANELA} onClick={() => setShowNew(false)}>
           <form
             action={submitNew}
             onClick={(e) => e.stopPropagation()}
-            className="bg-white rounded-[28px] p-6 w-full max-w-sm space-y-3 shadow-2xl"
+            className={`${JANELA} max-w-sm`}
           >
             <div className="flex items-center justify-between">
               <p className="text-lg font-display font-bold text-primary">Novo atendimento</p>
@@ -996,12 +997,7 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
               <p className="text-[11px] text-[#1e40af]/70">Para 2x na semana, crie duas repetições semanais (uma por dia).</p>
             </div>
 
-            {!newRecorrente && (
-              <select name="reserva" className="w-full px-4 py-2.5 rounded-xl bg-surface border border-border outline-none text-sm" defaultValue="true">
-                <option value="true">Só reservar (confirmar depois)</option>
-                <option value="false">Confirmar agenda</option>
-              </select>
-            )}
+            <input type="hidden" name="reserva" value="false" />
             <select name="status" className="w-full px-4 py-2.5 rounded-xl bg-surface border border-border outline-none text-sm" defaultValue="agendada">
               {STATUS_OFERECIDOS.map((k) => <option key={k} value={k}>{SESSION_STATUS_LABELS[k]}</option>)}
             </select>
