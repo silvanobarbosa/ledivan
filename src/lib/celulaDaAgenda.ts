@@ -73,7 +73,6 @@ export function identificacao(dados: DadosDaCelula): string {
 }
 
 const LETRA_DA_REPETICAO: Record<string, string> = {
-  semanal: "S",
   quinzenal: "Q",
   mensal: "M",
 };
@@ -81,9 +80,10 @@ const LETRA_DA_REPETICAO: Record<string, string> = {
 /**
  * A letra da repetição, entre parênteses, ao lado da identificação.
  *
- * Elas pediram (M) e (Q); o semanal ficou sem marca no documento, e sem nada ele seria o único
- * recorrente indistinguível de um agendamento pontual — justamente o que a cor azul dizia antes de
- * a legenda passar a falar de status. (S) fecha a lacuna.
+ * Só (M) e (Q), que foi o pedido. Cheguei a acrescentar (S) para o semanal e as testers pediram
+ * para tirar: o semanal é o ritmo PADRÃO de quem faz terapia, então a letra apareceria em quase
+ * toda célula e não distinguiria ninguém — só gastaria espaço. Quem foge do padrão é que precisa
+ * de marca.
  *
  * Repetição sem frequência conhecida devolve `null` aqui, e a célula marca com um ícone genérico:
  * a base tem 111 sessões nessa situação, e silêncio nelas seria perder a informação de vez.
