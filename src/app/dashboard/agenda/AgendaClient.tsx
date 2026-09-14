@@ -10,6 +10,7 @@ import { HOLIDAY_STYLE, type Holiday, type HolidayCity } from "@/lib/holidays-st
 import { geometriaDaFaixa, posicoesDoDia } from "@/lib/agendaLayout";
 import { conteudoDaCelula } from "@/lib/celulaDaAgenda";
 import { textoDoBloqueio } from "@/lib/bloqueioDeHorario";
+import { CANAIS_DE_CONFIRMACAO, geraRepeticoes, modalidadesDe, pedeHorasAntes, pedeLocal, repeticoesDe } from "@/lib/agendamentoNovo";
 import { BloquearHorario } from "@/components/dashboard/BloquearHorario";
 
 type PatientLite = { id: string; name: string; status: string; attendanceMode: string | null; attendanceLocation: string | null;
@@ -70,9 +71,13 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
   const [showNew, setShowNew] = useState(false);
   const [newDate, setNewDate] = useState("");
   const [newPatient, setNewPatient] = useState("");
-  const [newOnline, setNewOnline] = useState(false);
+  const [newModalidade, setNewModalidade] = useState("presencial");
+  const [newAbater, setNewAbater] = useState(false);
+  const [newCanal, setNewCanal] = useState("nenhum");
   const [newFreq, setNewFreq] = useState("pontual");
-  const newRecorrente = newFreq !== "pontual";
+  // Só semanal e quinzenal geram as sessões seguintes. Mensal marca uma só, e o paciente entra
+  // na lista de "Lembrar agendamento" no fim do mês.
+  const newRecorrente = geraRepeticoes(newFreq);
   const [newKind, setNewKind] = useState("consulta");
   const [newCharge, setNewCharge] = useState(true);
   const [newError, setNewError] = useState<string | null>(null);
@@ -86,7 +91,10 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
     if (hour != null) d.setHours(hour, minute, 0, 0);
     setNewDate(toLocalInput(d));
     setNewPatient("");
-    setNewOnline(false);
+    setNewModalidade("presencial");
+    setNewAbater(false);
+    setNewCanal("nenhum");
+    setNewKind("consulta");
     setNewFreq("pontual");
     setNewError(null);
     setShowNew(true);
@@ -631,12 +639,37 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
             {/* Sem cobrar marcado explicitamente => envia false (a devolutiva pode ser cortesia). */}
             {newKind === "devolutiva" && !newCharge && <input type="hidden" name="chargeable" value="false" />}
 
-            <label className="flex items-center gap-2 text-sm cursor-pointer">
-              <input type="checkbox" name="isOnline" checked={newOnline} onChange={(e) => setNewOnline(e.target.checked)} className="accent-primary w-4 h-4" />
-              <Video className="w-4 h-4 text-primary" /> Atendimento online
-            </label>
+            {/* Abater do pacote: não cobra, mas OCUPA uma posição na sequência. A devolutiva comum
+                acontece fora do pacote, e contá-la roubaria uma consulta do paciente. */}
+            {newKind === "devolutiva" && (
+              <label className="flex items-center gap-2 text-sm cursor-pointer rounded-xl bg-[#f3e8ff] px-3 py-2">
+                <input type="checkbox" checked={newAbater} onChange={(e) => setNewAbater(e.target.checked)} className="accent-primary w-4 h-4" />
+                Abater do pacote (não cobra, mas conta como sessão)
+              </label>
+            )}
+            <input type="hidden" name="abaterDoPacote" value={newKind === "devolutiva" && newAbater ? "true" : "false"} />
 
-            {!newOnline && (
+            {/* Três opções em vez de uma caixa "é online?": misto é um combinado de verdade —
+                uma semana na sala, outra na chamada — e não cabia num sim ou não. A devolutiva
+                não oferece misto: é um encontro único com os responsáveis. */}
+            <div>
+              <label className="text-xs font-semibold text-foreground/60">Modalidade</label>
+              <div className="grid grid-cols-3 gap-2 mt-1">
+                {modalidadesDe(newKind).map((m) => (
+                  <button
+                    key={m.valor}
+                    type="button"
+                    onClick={() => setNewModalidade(m.valor)}
+                    className={`py-2 rounded-xl text-xs font-bold transition ${newModalidade === m.valor ? "bg-primary text-white" : "bg-surface text-foreground/60 hover:bg-surface-container"}`}
+                  >
+                    {m.rotulo}
+                  </button>
+                ))}
+              </div>
+              <input type="hidden" name="modality" value={newModalidade} />
+            </div>
+
+            {pedeLocal(newModalidade) && (
               <div>
                 <label className="text-xs font-semibold text-foreground/60">Local (presencial)</label>
                 {locations.length ? (
@@ -656,16 +689,18 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
                 <Repeat className="w-4 h-4" /> Repetição
               </label>
               <select name="freq" value={newFreq} onChange={(e) => setNewFreq(e.target.value)} className="w-full px-3 py-2 rounded-xl bg-white border border-[#bfdbfe] outline-none text-sm">
-                <option value="pontual">Pontual (uma vez)</option>
-                <option value="semanal">Semanal (1x na semana)</option>
-                <option value="quinzenal">Quinzenal</option>
-                <option value="mensal">Mensal</option>
+                {repeticoesDe({ tipo: newKind }).map((r) => <option key={r.valor} value={r.valor}>{r.rotulo}</option>)}
               </select>
               {newRecorrente && (
                 <div>
                   <label className="text-[11px] font-semibold text-[#1e40af]/80">Repetir até</label>
                   <input name="until" type="date" required className="w-full px-3 py-2 rounded-xl bg-white border border-[#bfdbfe] outline-none text-sm" />
                 </div>
+              )}
+              {newFreq === "mensal" && (
+                <p className="text-[11px] text-[#1e40af]/70">
+                  O mensal marca só esta data. No fim do mês o paciente aparece em “Lembrar agendamento”, no Dashboard.
+                </p>
               )}
               <p className="text-[11px] text-[#1e40af]/70">Para 2x na semana, crie duas repetições semanais (uma por dia).</p>
             </div>
@@ -679,6 +714,19 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
             <select name="status" className="w-full px-4 py-2.5 rounded-xl bg-surface border border-border outline-none text-sm" defaultValue="agendada">
               {STATUS_OFERECIDOS.map((k) => <option key={k} value={k}>{SESSION_STATUS_LABELS[k]}</option>)}
             </select>
+
+            <div className="rounded-xl bg-surface/60 border border-border px-3 py-2.5 space-y-2">
+              <label className="text-xs font-semibold text-foreground/60">Confirmar sessão</label>
+              <select name="confirmChannel" value={newCanal} onChange={(e) => setNewCanal(e.target.value)} className="w-full px-3 py-2 rounded-xl bg-white border border-border outline-none text-sm">
+                {CANAIS_DE_CONFIRMACAO.map((c) => <option key={c.valor} value={c.valor}>{c.rotulo}</option>)}
+              </select>
+              {pedeHorasAntes(newCanal) && (
+                <label className="block">
+                  <span className="text-[11px] font-semibold text-foreground/50">Quantas horas antes</span>
+                  <input name="confirmLeadHours" type="number" min={1} max={168} defaultValue={24} className="w-full px-3 py-2 rounded-xl bg-white border border-border outline-none text-sm" />
+                </label>
+              )}
+            </div>
 
             {newError && <p className="text-sm text-red-600">{newError}</p>}
 

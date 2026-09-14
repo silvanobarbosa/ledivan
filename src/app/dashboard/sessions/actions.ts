@@ -3,6 +3,7 @@
 import { db } from "@/db";
 import { therapySessions, patients } from "@/db/schema";
 import { auth } from "@/auth";
+import { canalParaGravar, ehOnline, geraRepeticoes, horasAntesParaGravar, pedeLocal } from "@/lib/agendamentoNovo";
 import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -34,15 +35,20 @@ export async function createRecurring(formData: FormData): Promise<{ ok: boolean
   const until = new Date(untilRaw); until.setHours(23, 59, 59, 999);
   if (until <= first) return { ok: false, error: "Data limite deve ser depois da inicial." };
   const duration = formData.get("duration") ? parseInt(formData.get("duration") as string) : 50;
-  const isOnline = formData.get("isOnline") === "on";
-  const location = isOnline ? null : ((formData.get("location") as string) || patient.attendanceLocation || null);
+  const extras = extrasDoAgendamento(formData);
+  const isOnline = extras.modality ? ehOnline(extras.modality) : formData.get("isOnline") === "on";
+  const location = pedeLocal(extras.modality ?? (isOnline ? "online" : "presencial"))
+    ? ((formData.get("location") as string) || patient.attendanceLocation || null)
+    : null;
 
-  // Frequência da recorrência: semanal (7d) | quinzenal (14d) | mensal (mês a mês).
+  // Só semanal e quinzenal chegam aqui. O MENSAL deixou de gerar sessões: em vez de encher a
+  // agenda de meses à frente, o paciente entra na lista de "Lembrar agendamento" no fim do mês —
+  // quem atende uma vez por mês combina a data na própria sessão, e datas presumidas atrapalham.
   const freqRaw = (formData.get("freq") as string) || "semanal";
-  const freq = freqRaw === "quinzenal" ? "quinzenal" : freqRaw === "mensal" ? "mensal" : "semanal";
+  if (!geraRepeticoes(freqRaw)) return { ok: false, error: "Esta repetição não gera agendamentos." };
+  const freq = freqRaw === "quinzenal" ? "quinzenal" : "semanal";
   const advance = (d: Date) => {
-    if (freq === "mensal") d.setMonth(d.getMonth() + 1);
-    else if (freq === "quinzenal") d.setDate(d.getDate() + 14);
+    if (freq === "quinzenal") d.setDate(d.getDate() + 14);
     else d.setDate(d.getDate() + 7);
   };
 
@@ -53,6 +59,7 @@ export async function createRecurring(formData: FormData): Promise<{ ok: boolean
     rows.push({
       userId, patientId, date: new Date(cur), duration, fee: patient.sessionFee,
       status: "agendada", chargeable: true, isOnline, location,
+      modality: extras.modality, confirmChannel: extras.confirmChannel, confirmLeadHours: extras.confirmLeadHours,
       pendingConfirmation: true, recurring: true, recurrenceFreq: freq, recurrenceUntil: until,
     });
     advance(cur);
@@ -118,6 +125,17 @@ export async function createSession(formData: FormData) {
 }
 
 // Cria sessão direto da Agenda (sem redirecionar). Retorna {ok}.
+/** Modalidade, canal de confirmação e horas de antecedência, já validados. */
+function extrasDoAgendamento(formData: FormData) {
+  const modality = (formData.get("modality") as string) || null;
+  const canal = (formData.get("confirmChannel") as string) || null;
+  return {
+    modality,
+    confirmChannel: canalParaGravar(canal),
+    confirmLeadHours: horasAntesParaGravar(canal, formData.get("confirmLeadHours")),
+  };
+}
+
 export async function createSessionFromAgenda(formData: FormData): Promise<{ ok: boolean; error?: string }> {
   const session = await auth();
   if (!session?.user?.id) return { ok: false, error: "Não autorizado" };
@@ -134,7 +152,10 @@ export async function createSessionFromAgenda(formData: FormData): Promise<{ ok:
   if (!dateRaw) return { ok: false, error: "Escolha data e horário." };
   const date = new Date(dateRaw);
   const duration = formData.get("duration") ? parseInt(formData.get("duration") as string) : 50;
-  const isOnline = formData.get("isOnline") === "on";
+  // A modalidade passou a mandar; `isOnline` sai dela. A janela antiga mandava a caixa `isOnline`,
+  // e ela continua valendo para quem ainda a envia.
+  const extras = extrasDoAgendamento(formData);
+  const isOnline = extras.modality ? ehOnline(extras.modality) : formData.get("isOnline") === "on";
 
   let meetingUrl: string | null = null;
   if (isOnline) {
@@ -153,9 +174,17 @@ export async function createSessionFromAgenda(formData: FormData): Promise<{ ok:
     status: ((formData.get("status") as string) || "agendada") as SessionStatus,
     chargeable: formData.get("chargeable") !== "false",
     isOnline,
-    location: isOnline ? null : ((formData.get("location") as string) || patient.attendanceLocation || null),
+    // Misto também tem encontro presencial, e por isso também guarda o local.
+    location: pedeLocal(extras.modality ?? (isOnline ? "online" : "presencial"))
+      ? ((formData.get("location") as string) || patient.attendanceLocation || null)
+      : null,
     pendingConfirmation: formData.get("reserva") === "true",
     sessionKind: (formData.get("sessionKind") as string) === "devolutiva" ? "devolutiva" : "consulta",
+    // Devolutiva marcada para abater: não cobra, mas ocupa posição na sequência do pacote.
+    abaterDoPacote: formData.get("abaterDoPacote") === "true",
+    modality: extras.modality,
+    confirmChannel: extras.confirmChannel,
+    confirmLeadHours: extras.confirmLeadHours,
     meetingUrl,
   });
 
