@@ -62,6 +62,8 @@ export const users = pgTable("user", {
   // Modelo da mensagem de aniversário (painel Aniversariantes). `{nome}` é trocado pelo primeiro
   // nome do paciente na hora de abrir a caixa. Null = usa o texto padrão do app.
   birthdayMessage: text("birthday_message"),
+  // O modelo do lembrete de "Lembrar agendamento": o texto é da terapeuta e vale para todos.
+  agendamentoMessage: text("agendamento_message"),
 
   preferences: text("preferences"), // JSON string
   role: text("role").default("user").notNull(), // user | admin (super admin)

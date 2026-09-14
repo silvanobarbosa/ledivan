@@ -3,7 +3,7 @@
 import { db } from "@/db";
 import { therapySessions, patients } from "@/db/schema";
 import { auth } from "@/auth";
-import { canalParaGravar, ehOnline, geraRepeticoes, horasAntesParaGravar, pedeLocal } from "@/lib/agendamentoNovo";
+import { canalParaGravar, ehMensal, ehOnline, geraRepeticoes, horasAntesParaGravar, pedeLocal } from "@/lib/agendamentoNovo";
 import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -182,6 +182,10 @@ export async function createSessionFromAgenda(formData: FormData): Promise<{ ok:
     sessionKind: (formData.get("sessionKind") as string) === "devolutiva" ? "devolutiva" : "consulta",
     // Devolutiva marcada para abater: não cobra, mas ocupa posição na sequência do pacote.
     abaterDoPacote: formData.get("abaterDoPacote") === "true",
+    // O mensal não gera as sessões seguintes, mas GUARDA que é mensal: é o que põe o (M) na
+    // célula e o que diz, no fim do mês, quem ainda não marcou o mês que vem.
+    recurring: ehMensal(formData.get("freq") as string),
+    recurrenceFreq: ehMensal(formData.get("freq") as string) ? "mensal" : null,
     modality: extras.modality,
     confirmChannel: extras.confirmChannel,
     confirmLeadHours: extras.confirmLeadHours,

@@ -66,6 +66,16 @@ export function geraRepeticoes(repeticao: string | null | undefined): boolean {
   return repeticao === "semanal" || repeticao === "quinzenal";
 }
 
+/**
+ * É uma repetição mensal?
+ *
+ * "Mensal" e "1x no mês" (a opção do slot intercalado) são a mesma coisa com dois nomes. Nenhuma
+ * das duas gera sessões; as duas põem o paciente na lista de "Lembrar agendamento".
+ */
+export function ehMensal(repeticao: string | null | undefined): boolean {
+  return repeticao === "mensal" || repeticao === "mes";
+}
+
 /** Repetição que precisa de uma data final. É a mesma lista de quem gera repetições. */
 export function pedeRepetirAte(repeticao: string | null | undefined): boolean {
   return geraRepeticoes(repeticao);
