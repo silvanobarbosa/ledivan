@@ -547,6 +547,13 @@ export const therapySessions = pgTable("therapy_sessions", {
   // sequência. Sem a marca, a devolutiva acontece fora do pacote — contá-la ali roubaria uma
   // consulta do paciente.
   abaterDoPacote: boolean("abater_do_pacote").default(false).notNull(),
+  // presencial | online | misto. O `isOnline` continua existindo porque meia dúzia de telas o
+  // leem; ele passa a SAIR daqui, em vez de ser a fonte.
+  modality: text("modality"),
+  // "Confirmar sessão" do lote: por WhatsApp ou e-mail, tantas horas antes. Diferente de
+  // `pendingConfirmation`, que marca reserva pedida pelo link público.
+  confirmChannel: text("confirm_channel"),
+  confirmLeadHours: integer("confirm_lead_hours"),
   packageId: uuid("package_id"), // vínculo opcional com um pacote (patient_packages); numeração 1/N derivada por data
   recurring: boolean("recurring").default(false).notNull(), // reserva recorrente
   recurrenceFreq: text("recurrence_freq"), // semanal | quinzenal | mensal (base p/ "Vago Quinzenal" na agenda)
