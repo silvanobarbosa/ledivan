@@ -3,7 +3,8 @@
 import { db } from "@/db";
 import { patients, patientStatusHistory, patientPriceHistory, patientContractHistory, patientRecords, assignments, scaleApplications, treatmentGoals, patientPackages, therapySessions } from "@/db/schema";
 import { auth } from "@/auth";
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, gt, inArray, sql } from "drizzle-orm";
+import { encerraAgenda, sessoesAEncerrar } from "@/lib/encerrarAgenda";
 import { revalidatePath } from "next/cache";
 import { vencimentoDoPreco } from "@/lib/reajuste";
 import { redirect } from "next/navigation";
@@ -346,6 +347,32 @@ export async function updatePatient(patientId: string, formData: FormData) {
   // historico de mudancas
   if (newStatus !== existing.patientStatus) {
     await db.insert(patientStatusHistory).values({ patientId, status: newStatus });
+
+    // ENCERROU O TRATAMENTO: a agenda futura dele sai junto.
+    //
+    // Sem isto, as quartas-feiras marcadas até o fim do ano continuam ocupando horário que poderia
+    // ser de outro paciente, aparecendo no "sessões do dia" e entrando na previsão de receita — e
+    // a pessoa apaga uma a uma, ou desiste. Só sai o que ainda não tem status: o que já foi
+    // marcado como Presente, Faltou ou desmarcado ACONTECEU, e apagar seria reescrever o histórico
+    // do paciente para arrumar a agenda.
+    if (encerraAgenda(existing.patientStatus, newStatus)) {
+      const agora = new Date();
+      const futuras = await db
+        .select({ id: therapySessions.id, date: therapySessions.date, status: therapySessions.status })
+        .from(therapySessions)
+        .where(and(eq(therapySessions.userId, session.user.id), eq(therapySessions.patientId, patientId), gt(therapySessions.date, agora)));
+
+      const aApagar = sessoesAEncerrar({
+        sessoes: futuras.map((f) => ({ id: f.id, data: f.date, status: f.status })),
+        quando: agora,
+      });
+
+      if (aApagar.length > 0) {
+        // O `userId` no WHERE mesmo com os ids vindo de consulta já filtrada: é a única coisa
+        // entre um id trocado e a agenda de outra pessoa.
+        await db.delete(therapySessions).where(and(eq(therapySessions.userId, session.user.id), inArray(therapySessions.id, aApagar)));
+      }
+    }
     // Voltou a ser atendido: é esta data que passa a valer para o reajuste, e não o início
     // original. O dono foi explícito — "essa data de retorno é quando tiramos de um status
     // inativo para ativo".
