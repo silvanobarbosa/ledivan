@@ -37,7 +37,6 @@ import {
 import { Phone, Mail, MapPin, Plus, Link2, Pencil, Trash2, Video, Mic, Loader2, Receipt, FileText, Stethoscope, Repeat, Download, GraduationCap } from "lucide-react";
 
 const FMT_LABEL: Record<string, string> = { avulso: "Avulso", mensal: "Mensal", quinzenal: "Quinzenal", pacote: "Pacote" };
-const CAT_LABEL: Record<string, string> = { crianca: "Criança", adolescente: "Adolescente", adulto: "Adulto", idoso: "Idoso", casal: "Casal" };
 
 type Patient = {
   id: string; name: string; email: string | null; phone: string | null;

@@ -7,6 +7,54 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-09-14 — Clareza visual da agenda, e o espelho que nunca aparecia
+
+**Entregue:** #156 e a limpeza de dívida que veio junto.
+
+**Por quê:** o dono perguntou por quanto tempo um slot fica pré-reservado e como o quinzenal é
+tratado na semana sem atendimento. Ao medir para responder, apareceu que a marca do espelho
+**nunca havia aparecido uma vez sequer**.
+
+**Decisões que ficam valendo:**
+
+- **O espelho do quinzenal sai do CADASTRO, não da sessão.** A frequência só é gravada na sessão
+  quando o agendamento nasce pela janela de repetição; a base tem 43 pacientes quinzenais cujas
+  sessões não guardam isso, e por isso o espelho não existia na prática.
+- **A agenda fala em três canais separados:** a FORMA do bloco diz o tipo de ocupação (paciente,
+  bloqueio preto, espelho tracejado com Q); a COR diz o que aconteceu; os SÍMBOLOS dizem os fatos,
+  um significado cada. Misturar canais apaga informação — quando a cor diz duas coisas, deixa de
+  dizer qualquer uma.
+- **Todo símbolo tem legenda na tela.** Símbolo sem legenda é adivinhação, e adivinhar numa agenda
+  cheia é o começo de marcar em cima de alguém.
+- **A ampulheta significa uma coisa só:** "o paciente pediu pelo link e falta confirmar". Ela
+  marcava também "sessão futura da série", que é o estado normal de 83% da agenda futura — e aviso
+  em tudo é aviso em nada.
+
+**Armadilhas:**
+
+- **Marca que nunca aparece é marca que não existe.** O espelho estava implementado, testado e
+  invisível. Só a contagem no banco revelou: 43 pacientes quinzenais, zero espelhos.
+- **Conferir se um achado é regressão ANTES de chamá-lo de regressão.** A varredura responsiva
+  acusou nomes truncados; rodando nos dois estados, eram idênticos. É o limite de duas sessões
+  dividindo meia coluna de celular, e some quando o paciente tem identificação curta.
+- **`pendingConfirmation` marca duas coisas diferentes** e não há campo que as separe. A distinção
+  hoje é `!recurring`.
+
+**Pendente — tudo com o dono:**
+
+- **Prazo da reserva.** O slot fica bloqueado pelo tempo que a terapeuta escolher no "Repetir até",
+  e NADA expira. O teto é técnico (260 ocorrências: 5 anos no semanal, 10 no quinzenal). Existem
+  13 sessões já passadas ainda marcadas como reserva e sem status, a mais antiga de 06/09, que
+  ninguém recolhe.
+- **Separar "reserva pedida pelo paciente" de "sessão futura da série"** no banco, se o dono quiser
+  que as duas voltem a ser distinguíveis sem depender do `recurring`.
+- Marcar a cobrança como enviada a partir da tela de fechamento (vem de 13/09).
+
+**Dívida zerada:** o lint saiu de 4 avisos para **zero** — três variáveis mortas e um import que
+sobrou de refatorações antigas.
+
+---
+
 ## 2026-09-14 — Social separado de gratuito, e o saldo que virou posição
 
 **Entregue:** #153 e #154, depois das revisões do dono sobre o lote da agenda.
@@ -116,16 +164,9 @@ regras que estavam no ar, e foi isso que justificou o plano antes do código.
 - O `agenda_id` do paciente é opcional e está vazio em toda a demo — a célula cai no número de
   registro e depois no primeiro nome. Sem essa reserva a agenda ficaria muda.
 
-**Pendente:**
-
-- **Do dono:** o `agenda_id` passa a ser obrigatório no cadastro? E gratuito ficou como `GRAT`,
-  onde antes era `SOCIAL` por escolha sua — diga se prefere voltar.
-- **Consequência visível da decisão de cobrança:** com a conta seguindo a sequência, o mês fica
-  irregular. Na demo, agosto mostra R$ 20.540 previsto contra R$ 41.389 recebido. Ao longo do ano
-  convergem, porque cada sequência cobra uma vez só. Se incomodar, cabe uma visão acumulada ao lado
-  do mês.
-- A caixa "Abater do pacote" existe e grava, mas nenhuma devolutiva antiga está marcada — o efeito
-  só aparece nas novas.
+**Pendente:** nada. As três perguntas que estavam aqui — `agenda_id` obrigatório, `GRAT` no lugar
+de `SOCIAL`, e a suposta irregularidade do mês — foram respondidas em 14/09; ver a entrada daquele
+dia. A "irregularidade" não existia: era o volume da demonstração caindo ao longo do ano.
 
 ---
 
@@ -161,8 +202,9 @@ sessão, o valor do mês, o que já entrou e o saldo — com a palavra junto do 
 - O repositório não tem Playwright instalado; para olhar a tela rodando, o navegador veio de outro
   app da casa.
 
-**Pendente:** marcar a cobrança como enviada a partir desta tela (hoje ela só mostra), e o reinício
-da sequência do pacote, que continua esperando o dono definir o prazo dos agendamentos.
+**Pendente:** marcar a cobrança como enviada a partir desta tela — hoje ela só mostra. (O reinício
+da sequência do pacote, que estava aqui, foi resolvido pelo motor da fatia 3 em 13/09: a sequência
+recomeça sozinha ao completar o total contratado.)
 
 ---
 
