@@ -439,11 +439,73 @@ saber que o ajuste por paciente existe; quem precisar de exceção muda só naqu
 
 ---
 
-## 15. Três pontos menores, ainda abertos
+## 15. Os pontos menores, todos decididos
 
-- A identificação na agenda passa a ser **obrigatória** no cadastro? Sem ela a célula fica muda.
-  Enquanto não se decide, a célula cai para o número de registro e, na falta dele, o primeiro nome.
-- O que marca um agendamento **semanal**, já que (M) e (Q) marcam mensal e quinzenal? A sugestão da
-  revisão é (S).
-- Para onde vai o aviso de **reserva não confirmada**, hoje o âmbar, que perde a cor para o
-  Presente? Sugestão: continuar como o relógio que a célula já mostra, e sair da cor.
+- **A identificação na agenda continua OPCIONAL** (decisão do dono). A célula cai para o número de
+  registro e, na falta dele, para o primeiro nome — e é essa reserva que impede a agenda de ficar
+  muda, já que o campo está vazio em praticamente todo mundo.
+- **O agendamento semanal ganhou (S)**, ao lado do (M) do mensal e do (Q) do quinzenal. Sem marca,
+  ele seria o único recorrente indistinguível de um agendamento pontual.
+- **A reserva não confirmada perdeu a cor e ficou com o relógio** que a célula já mostrava. O âmbar
+  virou Presente na legenda nova, e repintar sem mais nada faria um pedido pendente ficar idêntico
+  a uma sessão que aconteceu.
+
+---
+
+## 16. Social e gratuito são critérios diferentes
+
+Eram a mesma coisa no código: `social` era apenas a palavra que a tela usava para quem tinha
+formato de pagamento gratuito. **São critérios diferentes** (decisão do dono), e tratá-los como um
+só escondia metade da informação.
+
+**Social é o tipo de VÍNCULO** — projeto, convênio, indicação institucional — e convive com
+qualquer formato de pagamento. Um paciente pode ser social e pagar mensal, ou social e não pagar
+nada.
+
+Por isso a marca **não substitui** o código na célula:
+
+| paciente | célula |
+| --- | --- |
+| social e pacote | `1/4 SOC` |
+| social e gratuito | `GRAT SOC` |
+| só gratuito | `GRAT` |
+| só pacote | `1/4` |
+
+Ninguém nasce social: converter os gratuitos atuais seria repetir exatamente a confusão que a
+coluna existe para desfazer.
+
+---
+
+## 17. O saldo é a POSIÇÃO acumulada, não a foto do mês
+
+A tela comparava o que foi cobrado num mês com o que foi pago **naquele mesmo mês**. Um pacote que
+fecha em 30/08 e é pago em 05/09 aparecia como "a receber" em agosto para sempre, e como "pagou a
+mais" em setembro. Nenhum dos dois números errado sozinho; **errada era a comparação**.
+
+Medido antes de mexer: **28 de 31 pacientes ativos alternavam** entre dever e ter crédito, e só 3
+deviam de verdade. Dívida de R$ 83 por mês parecia desprezível e somava R$ 5.200.
+
+O defeito é **anterior ao lote** — a tela já comparava pagamento do mês desde que nasceu. A cobrança
+por sequência só o tornou estrutural, porque a cobrança deixou de ter razão para cair no mesmo mês
+do pagamento.
+
+**A correção:** a cobrança virou uma lista de eventos com data. A mesma lista responde as duas
+perguntas — filtrando pelo mês, o que aconteceu ali; somando até o fim do mês, a posição real. Cada
+evento vale o preço do dia dele, senão a dívida de um ano atrás cresceria sozinha a cada reajuste.
+
+**E a preocupação da Parte III anterior — "o mês fica irregular" — não se confirmou.** A medição
+mostrou a cobrança acompanhando o consumo de perto (cerca de R$ 205 por sessão em todos os meses),
+e os 12 meses fechando com 5% de diferença entre cobrado e pago. O que parecia irregularidade era o
+volume da demonstração caindo pela metade ao longo do ano.
+
+O que a tela mostra agora, na demonstração:
+
+| | junho | julho | agosto |
+| --- | --- | --- | --- |
+| dívida acumulada | R$ 46.402 | R$ 34.322 | R$ 23.099 |
+
+Uma curva que desce é a leitura de quem está cobrando e recebendo.
+
+**Os três números do alto não fecham entre si de propósito**, e a tela diz isso: dois são fotos do
+mês (cobrado, recebido) e um é posição acumulada (a receber). Esperar que fechem seria voltar ao
+erro que esta tela tinha.

@@ -7,6 +7,49 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-09-14 — Social separado de gratuito, e o saldo que virou posição
+
+**Entregue:** #153 e #154, depois das revisões do dono sobre o lote da agenda.
+
+**Por quê:** três pontos voltaram da leitura do `PLANO-AGENDA.md`. Um confirmou o que estava feito,
+outro apontou um conceito que o código tinha colapsado, e o terceiro pediu para evoluir no
+entendimento — e ao medir, o entendimento mudou mesmo.
+
+**Decisões que ficam valendo:**
+
+- **A identificação na agenda continua OPCIONAL.** A reserva (registro → primeiro nome) é o que
+  impede a célula de ficar muda, já que o campo está vazio em quase todo mundo.
+- **Social é VÍNCULO, gratuito é FORMATO DE PAGAMENTO.** Eram a mesma coisa no código — `social`
+  era só a palavra que a tela usava para `paymentFormat === "gratuito"`. Agora convivem: quem é
+  social e fecha por pacote mostra `1/4 SOC`; quem é social e gratuito mostra `GRAT SOC`. Nenhum
+  paciente nasceu social na migração, porque converter os gratuitos repetiria a confusão.
+- **O saldo do fechamento é a POSIÇÃO ACUMULADA**, não a diferença do mês. Um pagamento de setembro
+  quita um pacote de agosto. Os três números do alto não fecham entre si de propósito: dois são
+  fotos do mês, um é posição — e a tela diz isso.
+- **Cada cobrança vale o preço do DIA DELA.** Somar o passado com o preço de hoje faria a dívida de
+  um ano atrás crescer sozinha a cada reajuste.
+
+**Armadilhas:**
+
+- **Medir antes de opinar mudou o diagnóstico.** Eu havia dito que a cobrança por sequência deixava
+  o mês "irregular". A medição de 12 meses mostrou a cobrança acompanhando o consumo de perto (~R$
+  205 por sessão) e fechando com 5% de diferença contra os pagamentos. O que parecia irregularidade
+  era o volume da demonstração caindo pela metade ao longo do ano.
+- **O defeito real era a comparação, não a regra.** A tela comparava cobrado do mês com pago do mês:
+  28 de 31 pacientes ativos alternavam entre dever e ter crédito, e só 3 deviam. É anterior ao lote;
+  a cobrança por sequência só o tornou estrutural.
+- **Consulta pela metade não é pega por teste.** Ao mudar as sessões para o histórico inteiro (fatia
+  3) os PAGAMENTOS ficaram presos ao mês. O acumulado cobrava tudo e descontava trinta dias: R$ 873
+  mil de dívida inventada. A regra estava certa; a consulta é que não.
+- **12 de 103 pacientes não têm histórico de preço**, e sem reserva o preço virava zero — receita
+  que some sem avisar, o mesmo erro da dívida inventada na direção contrária. Agora cai no valor do
+  cadastro.
+
+**Pendente:** nada do lote. A caixa "Abater do pacote" existe e grava, mas nenhuma devolutiva antiga
+está marcada — o efeito só aparece nas novas.
+
+---
+
 ## 2026-09-13 — O lote da agenda das beta testers (11 fatias)
 
 **Entregue:** #140 a #151, em onze fatias. Duas profissionais que testam o produto mandaram 18
