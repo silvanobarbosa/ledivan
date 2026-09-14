@@ -12,7 +12,7 @@ const labelCls = "block text-sm font-semibold text-foreground/70 mb-1.5";
 const brl = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
 export type PatientFormData = {
-  registrationNumber?: number | null; agendaId?: string | null; dueDateType?: string | null; dueDate?: string | null; queixaPrincipal?: string | null;
+  registrationNumber?: number | null; agendaId?: string | null; atendimentoSocial?: boolean | null; dueDateType?: string | null; dueDate?: string | null; queixaPrincipal?: string | null;
   name?: string; phone?: string | null; email?: string | null; patientStatus?: string;
   startedAt?: string | null; birthDate?: string | null; category?: string | null; isCouple?: boolean | null;
   guardianRelationship?: string | null; devolutivaMeses?: number | null; gender?: string | null; cpf?: string | null; address?: string | null;
@@ -301,6 +301,14 @@ export function PatientFormFields({ p }: { p?: PatientFormData }) {
               />
             </div>
             <div><label className={labelCls}>ID Agenda</label><input name="agendaId" defaultValue={p?.agendaId ?? ""} className={inputCls} placeholder="Identificação na agenda" /></div>
+            {/* Social é o VÍNCULO, não o preço: convive com qualquer formato de pagamento. */}
+            <div className="sm:col-span-2">
+              <label className="flex items-center gap-2 text-sm cursor-pointer">
+                <input type="checkbox" name="atendimentoSocial" value="true" defaultChecked={!!p?.atendimentoSocial} className="accent-primary w-4 h-4" />
+                Atendimento social
+              </label>
+              <p className="text-[11px] text-foreground/40 mt-0.5">Projeto, convênio ou indicação institucional. Independe do que o paciente paga.</p>
+            </div>
           </div>
           {/* Status vem ANTES do nome, na tela de Dados, a pedido do dono: é o primeiro filtro
               mental de quem abre a ficha ("esta pessoa ainda está em atendimento?"). */}

@@ -27,7 +27,7 @@ export default async function AgendaPage() {
     }),
     db.query.patients.findMany({
       where: and(eq(patients.userId, session.user.id), ne(patients.patientStatus, "inativo")),
-      columns: { id: true, name: true, patientStatus: true, attendanceMode: true, attendanceLocation: true, birthDate: true, paymentFormat: true, pacoteTipo: true, horasAntesPagamento: true, agendaId: true, registrationNumber: true },
+      columns: { id: true, name: true, patientStatus: true, attendanceMode: true, attendanceLocation: true, birthDate: true, paymentFormat: true, pacoteTipo: true, horasAntesPagamento: true, agendaId: true, registrationNumber: true, atendimentoSocial: true },
       orderBy: [patients.name],
     }),
     // Os horários tirados do ar que não são paciente: supervisão, curso, médico. Vêm de tabela
@@ -154,7 +154,7 @@ export default async function AgendaPage() {
           pkg: pkgLabels.get(s.id) ?? null,
           pagamentoAtrasado: atrasadas.has(s.id),
         }))}
-        patients={pats.map((p) => ({ id: p.id, name: p.name, status: p.patientStatus, attendanceMode: p.attendanceMode, attendanceLocation: p.attendanceLocation, social: p.paymentFormat === "gratuito", agendaId: p.agendaId, registrationNumber: p.registrationNumber, paymentFormat: p.paymentFormat }))}
+        patients={pats.map((p) => ({ id: p.id, name: p.name, status: p.patientStatus, attendanceMode: p.attendanceMode, attendanceLocation: p.attendanceLocation, atendimentoSocial: p.atendimentoSocial, agendaId: p.agendaId, registrationNumber: p.registrationNumber, paymentFormat: p.paymentFormat }))}
         birthdays={pats.filter((p) => p.birthDate).map((p) => { const b = new Date(p.birthDate as unknown as string); return { name: p.name, month: b.getMonth() + 1, day: b.getDate() }; })}
         locations={locations}
         holidays={holidays}
