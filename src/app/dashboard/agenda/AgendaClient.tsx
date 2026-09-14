@@ -375,7 +375,7 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
       {/* Grade */}
       <div className="glass-card rounded-[24px] overflow-hidden">
         <div className="overflow-x-auto">
-          <div className="min-w-[760px]">
+          <div className="min-w-[900px]">
             {/* Cabeçalho dos dias */}
             <div className="flex border-b border-border bg-white/40">
               <div className="w-14 shrink-0" />
@@ -467,7 +467,7 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
                           className="absolute left-1 right-1 rounded-lg bg-neutral-900 px-2 py-1 text-left overflow-hidden"
                         >
                           <p className="text-[10px] font-bold leading-tight tabular-nums text-white/70">{pad(d.getHours())}:{pad(d.getMinutes())}</p>
-                          <p className="text-[10px] font-bold uppercase tracking-wide leading-tight text-white truncate">{texto}</p>
+                          <p className="text-[10px] font-bold uppercase tracking-wide leading-tight text-white break-words" title={texto}>{texto}</p>
                         </div>
                       );
                     })}
@@ -516,7 +516,7 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
                           className={`absolute rounded-lg px-2 py-1 text-left overflow-hidden border border-l-[3px] hover:shadow-md hover:z-10 transition ${blockColor(s)}`}
                         >
                           <p className="text-[10px] font-bold leading-tight flex items-center gap-1">
-                            {time}
+                            <span className="shrink-0 tabular-nums">{time}</span>
                             {s.pendingConfirmation && <span title="Aguardando confirmação">⏳</span>}
                             {s.rescheduleRequested && <span title="Paciente pediu remarcação">🔁</span>}
                             {s.patientArrived && <span title="Paciente chegou (sala de espera)">🚪</span>}
@@ -529,15 +529,15 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
                               duas linhas curtas, e quem olha a semana precisa saber DE QUEM é o
                               horário e O QUE é a sessão, não ler o nome inteiro de cada um. O nome
                               continua no título do bloco, para quem passar o mouse. */}
-                          <p className="text-[11px] font-semibold leading-tight truncate flex items-center gap-1">
-                            {s.isOnline && <Video className="w-2.5 h-2.5 shrink-0" aria-label="Online" />}
-                            <span className="truncate">{celula(s).identificacao}</span>
-                            {celula(s).repeticao && <span className="shrink-0 opacity-60">({celula(s).repeticao})</span>}
-                            {celula(s).repeteSemLetra && <Repeat className="w-2.5 h-2.5 shrink-0 opacity-50" aria-label="Agendamento recorrente" />}
+                          <p className="text-[11px] font-semibold leading-tight truncate" title={celula(s).identificacao}>
+                            {celula(s).identificacao}
+                            {celula(s).repeticao && <span className="opacity-60"> ({celula(s).repeticao})</span>}
                           </p>
-                          {celula(s).codigo && (
-                            <p className="text-[10px] font-bold uppercase tracking-wide truncate opacity-80">{celula(s).codigo}</p>
-                          )}
+                          <p className="text-[10px] font-bold uppercase tracking-wide truncate opacity-80 flex items-center gap-1">
+                            {s.isOnline && <Video className="w-2.5 h-2.5 shrink-0" aria-label="Online" />}
+                            {celula(s).repeteSemLetra && <Repeat className="w-2.5 h-2.5 shrink-0 opacity-50" aria-label="Agendamento recorrente" />}
+                            <span className="truncate">{celula(s).codigo}</span>
+                          </p>
                           {/* Passou do prazo de pagamento e nada entrou. É só um aviso ao profissional: a sessão
                               continua de pé, e cancelar (ou atender assim mesmo) é decisão dele. */}
                           {s.pagamentoAtrasado && <p className="text-[9px] font-bold uppercase tracking-wide text-red-600">Pagamento atrasado</p>}
