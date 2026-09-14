@@ -17,9 +17,9 @@
  * Tudo aqui é função pura — recebe listas, devolve números. Quem busca no banco é a tela.
  */
 
-import { sessoesDoMes, type SessaoDoPacote } from "./pacoteMes";
+import { ativasEmOrdem, sessoesDoMes, type SessaoDoPacote } from "./pacoteMes";
 import { cobra, usaPacote, type FormatoPagamento } from "./reajuste";
-import { sequenciasFechadasNoMes } from "./sequenciaPacote";
+import { sequenciasFechadasNoMes, todasAsSequencias } from "./sequenciaPacote";
 
 export type PacienteDoFechamento = {
   id: string;
@@ -28,6 +28,14 @@ export type PacienteDoFechamento = {
   pacoteTipo?: "completo" | "fragmentado" | string | null;
   /** Dia combinado de pagamento, quando existe. Só para a tela mostrar. */
   diaPagamento?: number | null;
+  /**
+   * O valor da sessão no cadastro, usado quando o histórico de preço não alcança a data.
+   *
+   * Sem esta reserva, paciente sem histórico cobrava ZERO — e some receita sem ninguém perceber,
+   * que é o mesmo tipo de erro da dívida inventada, só que na direção contrária. Na demonstração
+   * são 12 de 103.
+   */
+  valorDaSessao?: number | null;
 };
 
 export type PagamentoDoMes = {
@@ -56,9 +64,21 @@ export type LinhaDoFechamento = {
   /** Quantos pacotes entraram na conta deste mês. Zero para quem paga a cada sessão. */
   pacotesNoMes: number;
   precoDaSessao: number;
+  /** O que ESTE mês cobrou. Mesmo valor de `cobradoNoMes`; o nome antigo continua por compatibilidade. */
   valorDoMes: number;
+  cobradoNoMes: number;
+  pagoNoMes: number;
+  /** Tudo que foi cobrado e tudo que foi pago até o fim daquele mês. */
+  cobradoAcumulado: number;
+  pagoAcumulado: number;
+  /** O que entrou no mês. Mesmo valor de `pagoNoMes`. */
   pago: number;
-  /** Positivo = falta receber. Negativo = entrou mais do que o mês cobra. */
+  /**
+   * A posição REAL: tudo que foi cobrado menos tudo que foi pago, até o fim daquele mês.
+   *
+   * Positivo = deve. Negativo = tem crédito. Não é a diferença do mês — um pagamento de setembro
+   * quita corretamente um pacote de agosto.
+   */
   saldo: number;
   situacao: SituacaoDoFechamento;
 };
@@ -77,14 +97,28 @@ const emData = (d: Date | string): Date => (d instanceof Date ? d : new Date(d))
  * mês antigo cobraria o reajuste retroativamente — e a conta pareceria certa na tela.
  */
 export function precoNoMes(historico: PrecoVigente[], ano: number, mes: number): number {
-  const fimDoMes = new Date(ano, mes + 1, 0, 23, 59, 59, 999);
+  return precoNaData(historico, new Date(ano, mes + 1, 0, 23, 59, 59, 999));
+}
+
+/**
+ * O preço que valia NAQUELE DIA.
+ *
+ * O acumulado precisa disto, não do preço do mês: cada cobrança vale o que valia quando aconteceu.
+ * Sem isso, somar o passado inteiro com o preço de hoje faria a dívida de um ano atrás **crescer
+ * sozinha a cada reajuste** — e ninguém perceberia olhando a tela.
+ */
+export function precoNaData(historico: PrecoVigente[], quando: Date, reserva = 0): number {
+  const fimDoMes = quando;
   const validos = historico
     .map((h) => ({ valor: Number(h.valor), desde: emData(h.desde) }))
     .filter((h) => Number.isFinite(h.valor) && !Number.isNaN(h.desde.getTime()))
     .filter((h) => h.desde.getTime() <= fimDoMes.getTime())
     .sort((a, b) => a.desde.getTime() - b.desde.getTime());
 
-  return validos.length > 0 ? validos[validos.length - 1].valor : 0;
+  if (validos.length > 0) return validos[validos.length - 1].valor;
+  // Sem faixa que alcance a data: o valor do cadastro. Zero aqui apagaria a cobrança em silêncio.
+  const r = Number(reserva);
+  return Number.isFinite(r) && r > 0 ? r : 0;
 }
 
 /**
@@ -125,6 +159,63 @@ export function pacotesCobraveis(opts: {
   );
 }
 
+export type EventoDeCobranca = {
+  /** Quando a cobrança acontece: a data que decide em que mês ela cai. */
+  data: Date;
+  /** Quantas sessões aquele evento cobra. */
+  sessoes: number;
+};
+
+/**
+ * TUDO que aquele paciente deve, como eventos com data.
+ *
+ * É a peça que faltava. A tela antiga perguntava "quanto foi cobrado em agosto?" e "quanto foi
+ * pago em agosto?", e comparava as duas — mas um pacote que fecha em 30/08 e é pago em 05/09 não
+ * tem razão nenhuma para cair no mesmo mês. Medido na demonstração: 28 de 31 pacientes ativos
+ * alternavam entre dever e ter pago a mais, e só 3 deviam de verdade.
+ *
+ * Com os eventos datados, a mesma lista responde as duas perguntas: filtrando pelo mês, o que
+ * aconteceu ali; somando até o fim do mês, a posição real.
+ */
+export function eventosDeCobranca(opts: {
+  formato: FormatoPagamento | string | null | undefined;
+  pacoteTipo: string | null | undefined;
+  sessoes: SessaoDoPacote[];
+  tamanhos?: number[];
+}): EventoDeCobranca[] {
+  if (!cobra(opts.formato)) return [];
+
+  if (usaPacote(opts.formato)) {
+    const tipo = opts.pacoteTipo === "fragmentado" ? "fragmentado" : "completo";
+    // Quem paga na PRIMEIRA do pacote vence na abertura; os demais, quando ela fecha.
+    const naAbertura = opts.formato === "primeira_pacote";
+    return todasAsSequencias(opts.sessoes, { pacoteTipo: tipo, tamanhos: opts.tamanhos })
+      .map((seq) => ({ data: naAbertura ? seq.comecouEm : seq.fechouEm, total: seq.total }))
+      .filter((x): x is { data: Date; total: number } => x.data instanceof Date)
+      .map((x) => ({ data: x.data, sessoes: x.total }));
+  }
+
+  // A cada sessão: cada atendimento que ocupou posição é uma cobrança, no dia em que aconteceu.
+  return ativasEmOrdem(opts.sessoes).map((x) => ({ data: x.data, sessoes: 1 }));
+}
+
+/** O quanto os eventos somam até o fim daquele mês, cada um pelo preço do seu dia. */
+export function valorAte(eventos: EventoDeCobranca[], precos: PrecoVigente[], ano: number, mes: number, reserva = 0): number {
+  const limite = new Date(ano, mes + 1, 0, 23, 59, 59, 999);
+  const total = eventos
+    .filter((e) => e.data.getTime() <= limite.getTime())
+    .reduce((soma, e) => soma + e.sessoes * precoNaData(precos, e.data, reserva), 0);
+  return Number(total.toFixed(2));
+}
+
+/** O quanto os eventos somam DENTRO daquele mês. É o que a coluna do mês mostra. */
+export function valorNoMes(eventos: EventoDeCobranca[], precos: PrecoVigente[], ano: number, mes: number, reserva = 0): number {
+  const total = eventos
+    .filter((e) => e.data.getFullYear() === ano && e.data.getMonth() === mes)
+    .reduce((soma, e) => soma + e.sessoes * precoNaData(precos, e.data, reserva), 0);
+  return Number(total.toFixed(2));
+}
+
 export function sessoesCobradas(opts: {
   formato: FormatoPagamento | string | null | undefined;
   pacoteTipo: string | null | undefined;
@@ -152,6 +243,18 @@ export function pagoNoMes(pagamentos: PagamentoDoMes[], pacienteId: string, ano:
     .map((p) => ({ valor: Number(p.valor), data: emData(p.data) }))
     .filter((p) => Number.isFinite(p.valor) && !Number.isNaN(p.data.getTime()))
     .filter((p) => p.data.getFullYear() === ano && p.data.getMonth() === mes)
+    .reduce((soma, p) => soma + p.valor, 0);
+  return Number(total.toFixed(2));
+}
+
+/** Tudo que o paciente pagou até o fim daquele mês. */
+export function pagoAte(pagamentos: PagamentoDoMes[], pacienteId: string, ano: number, mes: number): number {
+  const limite = new Date(ano, mes + 1, 0, 23, 59, 59, 999);
+  const total = pagamentos
+    .filter((p) => p.pacienteId === pacienteId && p.status === "paid")
+    .map((p) => ({ valor: Number(p.valor), data: emData(p.data) }))
+    .filter((p) => Number.isFinite(p.valor) && !Number.isNaN(p.data.getTime()))
+    .filter((p) => p.data.getTime() <= limite.getTime())
     .reduce((soma, p) => soma + p.valor, 0);
   return Number(total.toFixed(2));
 }
@@ -193,9 +296,24 @@ export function linhaDoFechamento(opts: {
   };
   const cobradas = sessoesCobradas(argumentos);
   const pacotes = pacotesCobraveis(argumentos);
-  const preco = precoNoMes(opts.precos, ano, mes);
-  const valor = Number((cobradas * preco).toFixed(2));
-  const pago = pagoNoMes(opts.pagamentos, paciente.id, ano, mes);
+  const preco = precoNaData(opts.precos, new Date(ano, mes + 1, 0, 23, 59, 59, 999), Number(paciente.valorDaSessao) || 0);
+
+  const eventos = eventosDeCobranca({
+    formato: paciente.formato,
+    pacoteTipo: paciente.pacoteTipo,
+    sessoes: opts.sessoes,
+    tamanhos: opts.tamanhos,
+  });
+
+  // O MÊS conta o que aconteceu ali; o SALDO conta a posição real até o fim dele. Comparar os dois
+  // do mesmo mês era o defeito: pacote que fecha em agosto e é pago em setembro não tem razão
+  // nenhuma para cair no mesmo mês.
+  const reserva = Number(paciente.valorDaSessao) || 0;
+  const cobradoNoMes = valorNoMes(eventos, opts.precos, ano, mes, reserva);
+  const pagoNoMesAtual = pagoNoMes(opts.pagamentos, paciente.id, ano, mes);
+  const cobradoAcumulado = valorAte(eventos, opts.precos, ano, mes, reserva);
+  const pagoAcumulado = pagoAte(opts.pagamentos, paciente.id, ano, mes);
+  const saldo = Number((cobradoAcumulado - pagoAcumulado).toFixed(2));
 
   return {
     pacienteId: paciente.id,
@@ -205,18 +323,27 @@ export function linhaDoFechamento(opts: {
     sessoesCobradas: cobradas,
     pacotesNoMes: pacotes.length,
     precoDaSessao: preco,
-    valorDoMes: valor,
-    pago,
-    saldo: Number((valor - pago).toFixed(2)),
-    situacao: situacao({ cobra: cobra(paciente.formato), sessoes: naAgenda, valor, pago }),
+    valorDoMes: cobradoNoMes,
+    cobradoNoMes,
+    pagoNoMes: pagoNoMesAtual,
+    cobradoAcumulado,
+    pagoAcumulado,
+    pago: pagoNoMesAtual,
+    saldo,
+    situacao: situacao({ cobra: cobra(paciente.formato), sessoes: naAgenda, valor: cobradoAcumulado, pago: pagoAcumulado }),
   };
 }
 
 export type ResumoDoFechamento = {
+  /** A dívida REAL: a soma dos saldos acumulados positivos. Não é uma conta do mês. */
   aReceber: number;
+  /** O que entrou NESTE mês. */
   recebido: number;
+  /** O que este mês cobrou. */
   previsto: number;
   pacientesAReceber: number;
+  /** Quem tem crédito: pagou mais do que consumiu até aqui. */
+  pacientesComCredito: number;
   /** Quem não teve sessão nenhuma no mês — some da conta, mas não da vista. */
   semSessoes: number;
 };
@@ -224,8 +351,16 @@ export type ResumoDoFechamento = {
 /**
  * Os números do alto da tela.
  *
- * "Previsto" é o que o mês inteiro cobra; "recebido" é o que entrou; "a receber" é só o que falta
- * — e não a diferença entre os dois, porque quem pagou a mais não reduz a dívida de quem não pagou.
+ * São três números de naturezas DIFERENTES, e é por isso que eles não fecham entre si:
+ *
+ * - **cobrado no mês** e **recebido no mês** são fotos daquele mês;
+ * - **a receber** é a POSIÇÃO acumulada — tudo que foi cobrado até aqui menos tudo que foi pago.
+ *
+ * Esperar que "cobrado − recebido = a receber" seria voltar ao erro que esta tela tinha: um pacote
+ * que fecha em agosto e é pago em setembro não tem razão nenhuma para cair no mesmo mês.
+ *
+ * "A receber" soma só os saldos positivos, porque quem pagou a mais não reduz a dívida de quem não
+ * pagou — são duas pessoas diferentes.
  */
 export function resumoDoFechamento(linhas: LinhaDoFechamento[]): ResumoDoFechamento {
   const somar = (f: (l: LinhaDoFechamento) => number) =>
@@ -236,6 +371,7 @@ export function resumoDoFechamento(linhas: LinhaDoFechamento[]): ResumoDoFechame
     recebido: somar((l) => l.pago),
     aReceber: somar((l) => (l.saldo > TOLERANCIA ? l.saldo : 0)),
     pacientesAReceber: linhas.filter((l) => l.situacao === "a_receber").length,
+    pacientesComCredito: linhas.filter((l) => l.situacao === "pago_a_mais").length,
     semSessoes: linhas.filter((l) => l.situacao === "sem_sessoes").length,
   };
 }
