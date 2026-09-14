@@ -27,7 +27,7 @@ export type SessaoDoPacote = { id: string; date: Date | string; status: string }
  */
 const FORA = STATUS_QUE_PAUSAM;
 
-function ativasEmOrdem(sessoes: SessaoDoPacote[]): { id: string; data: Date }[] {
+export function ativasEmOrdem(sessoes: SessaoDoPacote[]): { id: string; data: Date }[] {
   return sessoes
     .filter((s) => !FORA.has(s.status))
     .map((s) => ({ id: s.id, data: s.date instanceof Date ? s.date : new Date(s.date) }))

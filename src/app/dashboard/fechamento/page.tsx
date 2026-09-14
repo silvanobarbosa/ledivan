@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { and, eq, gte, inArray, lte, ne } from "drizzle-orm";
+import { and, eq, inArray, ne } from "drizzle-orm";
 import { CalendarCheck, ChevronLeft, ChevronRight } from "lucide-react";
 import { db } from "@/db";
 import { auth } from "@/auth";
@@ -45,8 +45,6 @@ export default async function FechamentoPage({
   // A URL fala em mês de 1 a 12, como gente; por dentro é 0 a 11, como o JavaScript.
   const mes = pedido.mes ? Math.min(11, Math.max(0, Number(pedido.mes) - 1)) : padrao.mes;
 
-  const inicio = new Date(ano, mes, 1);
-  const fim = new Date(ano, mes + 1, 0, 23, 59, 59, 999);
 
   const carteira = await db
     .select({
@@ -55,6 +53,7 @@ export default async function FechamentoPage({
       paymentFormat: patients.paymentFormat,
       pacoteTipo: patients.pacoteTipo,
       paymentDay: patients.paymentDay,
+      sessionFee: patients.sessionFee,
       status: patients.patientStatus,
     })
     .from(patients)
@@ -83,13 +82,7 @@ export default async function FechamentoPage({
         status: sessionPayments.status,
       })
       .from(sessionPayments)
-      .where(
-        and(
-          eq(sessionPayments.userId, userId),
-          gte(sessionPayments.date, inicio),
-          lte(sessionPayments.date, fim),
-        ),
-      ),
+      .where(eq(sessionPayments.userId, userId)),
     // O preço mora no histórico, e o histórico não tem dono: filtra pelos pacientes deste
     // terapeuta, que é o que separa uma agenda da outra.
     ids.length > 0
@@ -140,6 +133,7 @@ export default async function FechamentoPage({
           formato: p.paymentFormat,
           pacoteTipo: p.pacoteTipo,
           diaPagamento: p.paymentDay,
+          valorDaSessao: Number(p.sessionFee) || 0,
         },
         sessoes: sessoesPor.get(p.id) ?? [],
         precos: precosPor.get(p.id) ?? [],
@@ -188,17 +182,19 @@ export default async function FechamentoPage({
       </header>
 
       <section className="grid gap-3 sm:grid-cols-3" aria-label="Resumo do mês">
-        <Numero rotulo="a receber" valor={resumo.aReceber} destaque={resumo.aReceber > 0 ? "alerta" : "ok"} />
-        <Numero rotulo="recebido no mês" valor={resumo.recebido} destaque="ok" />
-        <Numero rotulo="previsto no mês" valor={resumo.previsto} />
+        <Numero rotulo="a receber (saldo acumulado)" valor={resumo.aReceber} destaque={resumo.aReceber > 0 ? "alerta" : "ok"} />
+        <Numero rotulo="recebido neste mês" valor={resumo.recebido} destaque="ok" />
+        <Numero rotulo="cobrado neste mês" valor={resumo.previsto} />
       </section>
 
-      {resumo.pacientesAReceber > 0 && (
-        <p className="text-sm text-muted-foreground">
-          {resumo.pacientesAReceber} paciente(s) com saldo em aberto neste mês.
-          {resumo.semSessoes > 0 && ` ${resumo.semSessoes} sem sessão nenhuma — estão na lista para conferência, não para cobrança.`}
-        </p>
-      )}
+      <p className="text-sm text-muted-foreground">
+        <strong>&ldquo;A receber&rdquo; é a posição acumulada</strong>, não a conta deste mês: tudo que foi cobrado até
+        aqui menos tudo que foi pago. Por isso um pagamento de setembro quita um pacote de agosto, e
+        os três números do alto não fecham entre si — são naturezas diferentes.
+        {resumo.pacientesAReceber > 0 && ` ${resumo.pacientesAReceber} paciente(s) devendo.`}
+        {resumo.pacientesComCredito > 0 && ` ${resumo.pacientesComCredito} com crédito.`}
+        {resumo.semSessoes > 0 && ` ${resumo.semSessoes} sem sessão no mês — estão na lista para conferência, não para cobrança.`}
+      </p>
 
       {linhas.length === 0 ? (
         <div className="rounded-xl border p-10 text-center text-sm text-muted-foreground">
@@ -215,9 +211,9 @@ export default async function FechamentoPage({
                 <th scope="col" className="px-4 py-2 font-semibold">Paciente</th>
                 <th scope="col" className="px-4 py-2 font-semibold">Sessões</th>
                 <th scope="col" className="px-4 py-2 font-semibold">Valor da sessão</th>
-                <th scope="col" className="px-4 py-2 font-semibold">Valor do mês</th>
-                <th scope="col" className="px-4 py-2 font-semibold">Pago</th>
-                <th scope="col" className="px-4 py-2 font-semibold">Saldo</th>
+                <th scope="col" className="px-4 py-2 font-semibold">Cobrado no mês</th>
+                <th scope="col" className="px-4 py-2 font-semibold">Pago no mês</th>
+                <th scope="col" className="px-4 py-2 font-semibold">Saldo acumulado</th>
               </tr>
             </thead>
             <tbody className="divide-y">
@@ -244,8 +240,8 @@ export default async function FechamentoPage({
                     )}
                   </td>
                   <td className="px-4 py-2.5 tabular-nums">{reais(l.precoDaSessao)}</td>
-                  <td className="px-4 py-2.5 tabular-nums font-medium">{reais(l.valorDoMes)}</td>
-                  <td className="px-4 py-2.5 tabular-nums">{reais(l.pago)}</td>
+                  <td className="px-4 py-2.5 tabular-nums font-medium">{reais(l.cobradoNoMes)}</td>
+                  <td className="px-4 py-2.5 tabular-nums">{reais(l.pagoNoMes)}</td>
                   <td className="px-4 py-2.5">
                     <Situacao linha={l} />
                   </td>
@@ -257,10 +253,11 @@ export default async function FechamentoPage({
       )}
 
       <p className="text-xs text-muted-foreground">
-        A conta segue o combinado, não o calendário: quem fecha por pacote cobra a sequência
-        inteira quando ela se completa, mesmo que a última sessão tenha caído no mês seguinte. Quem
-        paga a cada sessão cobra as do mês. Sessão desmarcada, com atestado ou desmarcada pelo
-        profissional não entra na conta e devolve a posição à sessão seguinte.
+        A conta segue o combinado, não o calendário: quem fecha por pacote cobra a sequência inteira
+        quando ela se completa, mesmo que a última sessão tenha caído no mês seguinte. Quem paga a
+        cada sessão cobra as do mês. Sessão desmarcada, com atestado ou desmarcada pelo profissional
+        não entra na conta e devolve a posição à sessão seguinte. Cada cobrança vale o preço que
+        valia no dia dela — reajustar hoje não muda o que foi cobrado ano passado.
       </p>
     </div>
   );

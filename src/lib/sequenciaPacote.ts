@@ -129,6 +129,48 @@ export function posicoesDaSequencia(
 }
 
 /**
+ * TODAS as sequências do paciente, com quando cada uma começou e fechou.
+ *
+ * É a base da cobrança acumulada: filtrar por mês aqui dentro impediria somar o histórico inteiro,
+ * que é justamente o que a posição real exige.
+ */
+export function todasAsSequencias(
+  sessoes: SessaoDaSequencia[],
+  opts: OpcoesDaSequencia,
+): SequenciaFechada[] {
+  const ordenadas = emOrdem(sessoes);
+  const posicoes = posicoesDaSequencia(sessoes, opts);
+  const porSequencia = new Map<number, { total: number; ids: string[]; primeira: Date; ultima: Date; maiorIndex: number }>();
+
+  for (const s of ordenadas) {
+    const p = posicoes.get(s.id);
+    if (!p) continue;
+    const atual = porSequencia.get(p.sequencia);
+    if (!atual) {
+      porSequencia.set(p.sequencia, { total: p.total, ids: [s.id], primeira: s.data, ultima: s.data, maiorIndex: p.index });
+      continue;
+    }
+    atual.ids.push(s.id);
+    if (s.data.getTime() > atual.ultima.getTime()) atual.ultima = s.data;
+    if (p.index > atual.maiorIndex) atual.maiorIndex = p.index;
+  }
+
+  const out: SequenciaFechada[] = [];
+  for (const [sequencia, dados] of porSequencia) {
+    const ultimaSessao = ordenadas.find((s) => s.id === dados.ids[dados.ids.length - 1]);
+    const ocupouAUltima = dados.maiorIndex >= dados.total && !!ultimaSessao && !STATUS_QUE_PAUSAM.has(ultimaSessao.status);
+    out.push({
+      sequencia,
+      total: dados.total,
+      fechouEm: ocupouAUltima ? dados.ultima : null,
+      comecouEm: dados.primeira,
+      ids: dados.ids,
+    });
+  }
+  return out.sort((a, b) => a.sequencia - b.sequencia);
+}
+
+/**
  * As sequências que FECHARAM dentro daquele mês.
  *
  * É por aqui que a cobrança passa a seguir a sequência em vez da data, que foi a decisão do dono.
