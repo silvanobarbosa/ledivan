@@ -641,6 +641,26 @@ export const patientPackages = pgTable("patient_packages", {
 ]);
 
 // Rate limit por janela fixa (chave = userId:rota). Protege endpoints de IA (custo).
+/**
+ * HORÁRIO BLOQUEADO: o que tira um horário do ar sem ser um paciente.
+ *
+ * Supervisão, curso, médico, a viagem de sexta. Tabela PRÓPRIA, separada das sessões, de propósito:
+ * se o bloqueio fosse uma sessão com nome especial, teria que ser excluído à mão de toda contagem
+ * — pacote, fechamento, risco de falta, previsão — e bastaria esquecer uma para o bloqueio virar
+ * dinheiro. Separado, não tem como vazar.
+ */
+export const blockedSlots = pgTable("blocked_slots", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: text("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
+  date: timestamp("date").notNull(),
+  duration: integer("duration").default(60).notNull(),
+  // Vazio vira "HORÁRIO BLOQUEADO" na tela; preenchido, a semana se explica sozinha.
+  note: text("note"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (t) => [
+  index("blocked_user_date_idx").on(t.userId, t.date),
+]);
+
 export const rateLimits = pgTable("rate_limits", {
   key: text("key").primaryKey(),
   count: integer("count").default(0).notNull(),
