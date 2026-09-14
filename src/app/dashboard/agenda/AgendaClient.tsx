@@ -10,6 +10,7 @@ import { HOLIDAY_STYLE, type Holiday, type HolidayCity } from "@/lib/holidays-st
 import { geometriaDaFaixa, posicoesDoDia } from "@/lib/agendaLayout";
 import { conteudoDaCelula, identificacao } from "@/lib/celulaDaAgenda";
 import { textoDoBloqueio } from "@/lib/bloqueioDeHorario";
+import { ehQuinzenal, espelhosDoDia, sinaisDaSessao } from "@/lib/ocupacaoDaAgenda";
 import { CANAIS_DE_CONFIRMACAO, geraRepeticoes, modalidadesDe, pedeHorasAntes, pedeLocal, repeticoesDe } from "@/lib/agendamentoNovo";
 import { CAMPOS_EDITAVEIS } from "@/lib/editarAgendamento";
 import { contarAlcance, excluirAgendamento, salvarEdicao } from "./edicao-actions";
@@ -23,6 +24,8 @@ type PatientLite = { id: string; name: string; status: string; attendanceMode: s
   paymentFormat?: string | null;
   /** Vínculo social: convive com qualquer formato de pagamento. */
   atendimentoSocial?: boolean | null;
+  /** "quinzenal", "semanal"… escrito no cadastro. É daqui que sai o espelho da semana alternada. */
+  frequency?: string | null;
 };
 type LocationLite = { name: string; address: string };
 
@@ -30,6 +33,35 @@ type SessionStatus = "realizada" | "nao_realizada" | "cancelada" | "realocada" |
 type AgendaSession = { id: string; date: string; duration: number; status: string; patientName: string; isOnline: boolean; risk: string; meetingUrl: string | null; meetingOpenedAt: string | null; guestJoinedAt: string | null; meetingEndedAt: string | null; pendingConfirmation: boolean; patientConfirmed: boolean; rescheduleRequested: boolean; patientArrived: boolean; location: string | null; recurring: boolean; recurrenceFreq?: string | null; patientId?: string; sessionKind?: string; pkg?: { seq: number; index: number; total: number } | null; pagamentoAtrasado?: boolean; abaterDoPacote?: boolean };
 
 const blockColor = (s: AgendaSession) => sessionColorClasses(s.status, s.pendingConfirmation, s.recurring);
+
+/**
+ * O símbolo de cada sinal.
+ *
+ * Emoji, e não ícone desenhado, de propósito: num bloco de 10px eles são o que a pessoa reconhece
+ * sem legenda, e sobrevivem à impressão da agenda.
+ */
+const SIMBOLO: Record<string, string> = {
+  chegou: "🚪",
+  remarcar: "🔁",
+  realocada: "↪️",
+  pedido: "⏳",
+  confirmou: "✓",
+  devendo: "💰",
+  risco: "⚠️",
+  online: "📹",
+};
+
+/** O que cada símbolo quer dizer, em duas ou três palavras. */
+const LEGENDA_DO_SINAL: Record<string, string> = {
+  chegou: "chegou",
+  remarcar: "pediu remarcação",
+  realocada: "remarcada de outra data",
+  pedido: "pedido pelo link, a confirmar",
+  confirmou: "confirmou presença",
+  devendo: "pagamento atrasado",
+  risco: "histórico de faltas",
+  online: "online",
+};
 
 const DAY_NAMES = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 const START_HOUR = 6;
@@ -156,27 +188,37 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
   // "Vago Quinzenal": nas semanas ALTERNADAS de um paciente quinzenal, o slot fica livre.
   // Detecta olhando 7 dias antes/depois: se há sessão quinzenal no mesmo horário a ±7 dias
   // e nada ocupando o slot neste dia, mostra um ghost clicável (encaixe pontual / outro quinzenal).
-  const quinzenais = sessions.filter((s) => s.recurring && s.recurrenceFreq === "quinzenal");
-  const midOf = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
-  type Ghost = { hour: number; minute: number; duration: number; patientName: string; patientId?: string };
-  const ghostsForDay = (day: Date): Ghost[] => {
-    const out: Ghost[] = [];
-    const seen = new Set<string>();
-    const dayMid = midOf(day);
-    for (const q of quinzenais) {
-      const qd = new Date(q.date);
-      const diffDays = Math.round((midOf(qd) - dayMid) / 86400000);
-      if (Math.abs(diffDays) !== 7) continue; // semana alternada
-      const key = `${q.patientName}-${qd.getHours()}:${qd.getMinutes()}`;
-      if (seen.has(key)) continue;
-      // se já existe sessão real neste dia e horário (outro quinzenal encaixado), não é vago
-      const occupied = sessionsByDay(day).some((s) => { const sd = new Date(s.date); return sd.getHours() === qd.getHours() && sd.getMinutes() === qd.getMinutes(); });
-      if (occupied) continue;
-      seen.add(key);
-      out.push({ hour: qd.getHours(), minute: qd.getMinutes(), duration: q.duration, patientName: q.patientName, patientId: q.patientId });
-    }
-    return out;
+  /**
+   * O espelho da semana alternada de um quinzenal.
+   *
+   * Antes ele saía SÓ da sessão (`recurrenceFreq === "quinzenal"`), e por isso nunca aparecia: a
+   * frequência só é gravada na sessão quando o agendamento nasce pela janela de repetição, e a
+   * base tem 43 pacientes quinzenais cujas sessões não guardam isso. Zero espelhos em toda a
+   * agenda — marca que nunca aparece é marca que não existe. Agora a pergunta vai ao CADASTRO.
+   */
+  const pacienteEhQuinzenal = (id: string) => {
+    const p = patients.find((x) => x.id === id);
+    return ehQuinzenal({ id, formato: p?.paymentFormat, frequencia: p?.frequency });
   };
+  type Ghost = { hour: number; minute: number; duration: number; patientName: string; patientId?: string };
+  const ghostsForDay = (day: Date): Ghost[] =>
+    espelhosDoDia({
+      dia: day,
+      sessoes: sessions.map((s) => ({
+        id: s.id,
+        data: new Date(s.date),
+        duracao: s.duration,
+        pacienteId: s.patientId ?? "",
+        recorrenciaQuinzenal: s.recurring && s.recurrenceFreq === "quinzenal",
+      })),
+      quinzenal: pacienteEhQuinzenal,
+    }).map((e) => ({
+      hour: e.hora,
+      minute: e.minuto,
+      duration: e.duracao,
+      patientName: patients.find((x) => x.id === e.pacienteId)?.name ?? "—",
+      patientId: e.pacienteId,
+    }));
 
   const dayKey = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
   const holidaysForDay = (d: Date): Holiday[] => holidays[dayKey(d)] ?? [];
@@ -333,6 +375,10 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
           );
         })}
         <span className="inline-flex items-center gap-1"><span className="w-3 h-3 rounded border border-dashed border-border" /> Sem status</span>
+        <span className="w-px h-3 bg-border mx-1" />
+        {/* O TIPO de ocupação: a forma do bloco, não a cor. */}
+        <span className="inline-flex items-center gap-1"><span className="w-3 h-3 rounded bg-neutral-900" /> Bloqueado</span>
+        <span className="inline-flex items-center gap-1"><span className="w-3 h-3 rounded border border-dashed border-amber-400 bg-amber-400/20" /> Q — semana alternada de um quinzenal</span>
         {holidayCities.length > 0 && (
           <>
             <span className="w-px h-3 bg-border mx-1" />
@@ -343,6 +389,17 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
             ))}
           </>
         )}
+      </div>
+
+      {/* Os SINAIS, explicados. Símbolo sem legenda é adivinhação — e adivinhar numa agenda cheia
+          é o começo de marcar em cima de alguém. */}
+      <div className="flex flex-wrap gap-x-3 gap-y-1 px-1 text-[11px] text-foreground/50">
+        {Object.entries(SIMBOLO).map(([chave, simbolo]) => (
+          <span key={chave} className="inline-flex items-center gap-1">
+            <span aria-hidden="true">{simbolo}</span>
+            {LEGENDA_DO_SINAL[chave]}
+          </span>
+        ))}
       </div>
 
       {/* Devolutivas próximas (lembrete) */}
@@ -517,15 +574,24 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
                           style={{ top: top + 1, height, left: `calc(${faixa.left} + 4px)`, width: `calc(${faixa.width} - 8px)` }}
                           className={`absolute rounded-lg px-2 py-1 text-left overflow-hidden border border-l-[3px] hover:shadow-md hover:z-10 transition ${blockColor(s)}`}
                         >
-                          <p className="text-[10px] font-bold leading-tight flex items-center gap-1">
-                            <span className="shrink-0 tabular-nums">{time}</span>
-                            {s.pendingConfirmation && <span title="Aguardando confirmação">⏳</span>}
-                            {s.rescheduleRequested && <span title="Paciente pediu remarcação">🔁</span>}
-                            {s.patientArrived && <span title="Paciente chegou (sala de espera)">🚪</span>}
-                            {s.patientConfirmed && !s.rescheduleRequested && <span title="Paciente confirmou presença" style={{ color: "#16a34a" }}>✓</span>}
-                            {s.status === "agendada" && (s.risk === "alto" || s.risk === "medio") && (
-                              <AlertTriangle className={`w-2.5 h-2.5 ${s.risk === "alto" ? "text-[#b91c1c]" : "text-[#b45309]"}`} />
-                            )}
+                          {/* Os SINAIS, em ordem de urgência: primeiro o que muda a conduta de hoje,
+                              depois o contexto. Cada um diz uma coisa só e nenhum repete a cor. */}
+                          <p className="text-[10px] font-bold leading-tight flex items-center gap-0.5">
+                            <span className="shrink-0 tabular-nums mr-0.5">{time}</span>
+                            {sinaisDaSessao({
+                              online: s.isOnline,
+                              pedidoDoPaciente: s.pendingConfirmation && !s.recurring,
+                              pacienteConfirmou: s.patientConfirmed && !s.rescheduleRequested,
+                              pediuRemarcacao: s.rescheduleRequested,
+                              chegou: s.patientArrived,
+                              pagamentoAtrasado: s.pagamentoAtrasado,
+                              riscoDeFalta: s.status === "agendada" ? s.risk : null,
+                              realocada: s.status === "realocada",
+                            }).map((sinal) => (
+                              <span key={sinal.chave} title={sinal.titulo} className="shrink-0 leading-none">
+                                {SIMBOLO[sinal.chave]}
+                              </span>
+                            ))}
                           </p>
                           {/* A identificação no lugar do nome: numa coluna de um sétimo da tela cabem
                               duas linhas curtas, e quem olha a semana precisa saber DE QUEM é o
@@ -536,16 +602,13 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
                             {celula(s).repeticao && <span className="opacity-60"> ({celula(s).repeticao})</span>}
                           </p>
                           <p className="text-[10px] font-bold uppercase tracking-wide truncate opacity-80 flex items-center gap-1">
-                            {s.isOnline && <Video className="w-2.5 h-2.5 shrink-0" aria-label="Online" />}
                             {celula(s).repeteSemLetra && <Repeat className="w-2.5 h-2.5 shrink-0 opacity-50" aria-label="Agendamento recorrente" />}
                             <span className="truncate">{celula(s).codigo}</span>
                             {celula(s).social && (
                               <span className="shrink-0 text-[#047857]" title="Atendimento social">SOC</span>
                             )}
                           </p>
-                          {/* Passou do prazo de pagamento e nada entrou. É só um aviso ao profissional: a sessão
-                              continua de pé, e cancelar (ou atender assim mesmo) é decisão dele. */}
-                          {s.pagamentoAtrasado && <p className="text-[9px] font-bold uppercase tracking-wide text-red-600">Pagamento atrasado</p>}
+
                         </button>
                       );
                       });
