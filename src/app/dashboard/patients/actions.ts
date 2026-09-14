@@ -13,7 +13,7 @@ import { sendWhatsappFromUser } from "@/lib/whatsappEvolution";
 import { sendProEmail } from "@/lib/email";
 import { escapeHtml } from "@/lib/html";
 import { moedaOuPadrao } from "@/lib/money";
-import { endFromDuration, occurrences, occurrencesByCount, weekdayIndex, type LockFreq } from "@/lib/recurrence";
+import { occurrencesByCount, weekdayIndex, type LockFreq } from "@/lib/recurrence";
 import { pushToPatient } from "@/lib/push";
 
 // Envia mensagem ao paciente pelo canal escolhido (WhatsApp do Ledivan, Telegram ou e-mail).
@@ -76,7 +76,6 @@ function num(v: FormDataEntryValue | null, fallback = "0") {
   return moedaOuPadrao(v, fallback);
 }
 
-const DOW: Record<string, number> = { domingo: 0, segunda: 1, "terça": 2, terca: 2, quarta: 3, quinta: 4, sexta: 5, "sábado": 6, sabado: 6 };
 
 // Recorrência de atendimento (Atendimento) → frequência + vezes por período.
 function recorrenciaOf(formData: FormData): { frequency: string; timesPerPeriod: number } {
