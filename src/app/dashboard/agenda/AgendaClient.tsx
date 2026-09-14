@@ -2,15 +2,17 @@
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronLeft, ChevronRight, X, Stethoscope, Repeat, Video, AlertTriangle, MapPin, Pencil, CalendarDays } from "lucide-react";
+import { ChevronLeft, ChevronRight, X, Stethoscope, Repeat, Video, AlertTriangle, MapPin, Pencil, CalendarDays, Trash2 } from "lucide-react";
 import { SESSION_STATUS_LABELS, sessionStatusColor, sessionColorClasses, RISK_LABELS, riskColor, LEGENDA_DA_AGENDA, corDaLegenda, STATUS_OFERECIDOS, STATUS_QUE_PODEM_COBRAR, type RiskLevel } from "@/lib/therapy";
-import { updateSessionStatus, confirmSession, createSessionFromAgenda, updateSession, createRecurring } from "../sessions/actions";
+import { updateSessionStatus, confirmSession, createSessionFromAgenda, createRecurring } from "../sessions/actions";
 import { HolidaySetup } from "@/components/dashboard/HolidaySetup";
 import { HOLIDAY_STYLE, type Holiday, type HolidayCity } from "@/lib/holidays-style";
 import { geometriaDaFaixa, posicoesDoDia } from "@/lib/agendaLayout";
 import { conteudoDaCelula, identificacao } from "@/lib/celulaDaAgenda";
 import { textoDoBloqueio } from "@/lib/bloqueioDeHorario";
 import { CANAIS_DE_CONFIRMACAO, geraRepeticoes, modalidadesDe, pedeHorasAntes, pedeLocal, repeticoesDe } from "@/lib/agendamentoNovo";
+import { CAMPOS_EDITAVEIS } from "@/lib/editarAgendamento";
+import { contarAlcance, excluirAgendamento, salvarEdicao } from "./edicao-actions";
 import { BloquearHorario } from "@/components/dashboard/BloquearHorario";
 
 type PatientLite = { id: string; name: string; status: string; attendanceMode: string | null; attendanceLocation: string | null;
@@ -186,13 +188,67 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
 
   const [askCharge, setAskCharge] = useState<SessionStatus | null>(null);
   const [editing, setEditing] = useState(false);
-  const [editOnline, setEditOnline] = useState(false);
+  const [editModalidade, setEditModalidade] = useState("presencial");
+  const [editCanal, setEditCanal] = useState("nenhum");
+  const [editErro, setEditErro] = useState<string | null>(null);
+  /** A edição preenchida, esperando a pessoa dizer o alcance. */
+  const [perguntaAlcance, setPerguntaAlcance] = useState<Record<string, string> | null>(null);
+  /** A exclusão, esperando o alcance. `null` quando ninguém pediu para excluir. */
+  const [perguntaExcluir, setPerguntaExcluir] = useState<{ id: string; passo: "inicio" | "proximos" } | null>(null);
+  const [quantos, setQuantos] = useState<{ mesmosDias: number; todas: number } | null>(null);
 
+  /**
+   * Salvar não grava direto: junta o que foi preenchido e PERGUNTA o alcance.
+   *
+   * É o pedido delas, e faz sentido — quem edita um agendamento de uma série não tem como a tela
+   * adivinhar se quer mexer só naquele dia ou no combinado inteiro, e escolher por ela erra
+   * metade das vezes, em silêncio.
+   */
   function submitEdit(formData: FormData) {
     if (!selected) return;
+    setEditErro(null);
+    const campos: Record<string, string> = {};
+    for (const c of CAMPOS_EDITAVEIS) {
+      const v = formData.get(c);
+      if (v !== null) campos[c] = String(v);
+    }
+    setPerguntaAlcance(campos);
+  }
+
+  function aplicarEdicao(alcance: string) {
+    if (!selected || !perguntaAlcance) return;
     startTransition(async () => {
-      await updateSession(selected.id, formData);
+      const r = await salvarEdicao({
+        sessionId: selected.id,
+        alcance,
+        date: perguntaAlcance.date,
+        duration: perguntaAlcance.duration ? Number(perguntaAlcance.duration) : undefined,
+        modality: perguntaAlcance.modality,
+        location: perguntaAlcance.location,
+        confirmChannel: perguntaAlcance.confirmChannel,
+        confirmLeadHours: perguntaAlcance.confirmLeadHours,
+      });
+      setPerguntaAlcance(null);
+      if (!r.ok) return setEditErro(r.error ?? "Não consegui salvar.");
       setEditing(false);
+      setSelected(null);
+      router.refresh();
+    });
+  }
+
+  function abrirExclusao(id: string) {
+    setPerguntaExcluir({ id, passo: "inicio" });
+    void contarAlcance(id).then(setQuantos);
+  }
+
+  function aplicarExclusao(alcance: string) {
+    const alvo = perguntaExcluir?.id;
+    if (!alvo) return;
+    startTransition(async () => {
+      const r = await excluirAgendamento(alvo, alcance);
+      setPerguntaExcluir(null);
+      setQuantos(null);
+      if (!r.ok) return setEditErro(r.error ?? "Não consegui excluir.");
       setSelected(null);
       router.refresh();
     });
@@ -537,22 +593,69 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
 
             {/* Editar sessão (data / modalidade) */}
             {!editing ? (
-              <button onClick={() => { setEditing(true); setEditOnline(selected.isOnline); }} className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary hover:underline">
-                <Pencil className="w-4 h-4" /> Editar (data / modalidade)
-              </button>
+              <div className="flex items-center gap-3">
+                <button
+                  onClick={() => { setEditing(true); setEditErro(null); setEditModalidade(selected.isOnline ? "online" : "presencial"); setEditCanal("nenhum"); }}
+                  className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary hover:underline"
+                >
+                  <Pencil className="w-4 h-4" /> Editar agendamento
+                </button>
+                <button onClick={() => abrirExclusao(selected.id)} className="inline-flex items-center gap-1.5 text-sm font-semibold text-red-600 hover:underline">
+                  <Trash2 className="w-4 h-4" /> Excluir
+                </button>
+              </div>
             ) : (
+              /* Só data/hora, duração, modalidade e lembrete são editáveis. Paciente, tipo e
+                 repetição ficam de fora de propósito: trocar isso não é editar o agendamento, é
+                 outro agendamento — e o lote pediu que ficassem inativos. */
               <form action={submitEdit} className="rounded-xl bg-surface/60 border border-border p-3 space-y-2">
-                <div>
-                  <label className="text-xs font-semibold text-foreground/60">Data e horário</label>
-                  <input name="date" type="datetime-local" defaultValue={toLocalInput(new Date(selected.date))} className="w-full px-3 py-2 rounded-xl bg-white border border-border outline-none text-sm" />
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="text-xs font-semibold text-foreground/60">Data e horário</label>
+                    <input name="date" type="datetime-local" defaultValue={toLocalInput(new Date(selected.date))} className="w-full px-3 py-2 rounded-xl bg-white border border-border outline-none text-sm" />
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold text-foreground/60">Duração (min)</label>
+                    <input name="duration" type="number" min={5} defaultValue={selected.duration} className="w-full px-3 py-2 rounded-xl bg-white border border-border outline-none text-sm" />
+                  </div>
                 </div>
-                <label className="flex items-center gap-2 text-sm cursor-pointer">
-                  <input type="checkbox" name="isOnline" checked={editOnline} onChange={(e) => setEditOnline(e.target.checked)} className="accent-primary w-4 h-4" />
-                  <Video className="w-4 h-4 text-primary" /> Atendimento online
-                </label>
+
+                <div>
+                  <label className="text-xs font-semibold text-foreground/60">Modalidade</label>
+                  <div className="grid grid-cols-3 gap-2 mt-1">
+                    {modalidadesDe(selected.sessionKind).map((m) => (
+                      <button
+                        key={m.valor}
+                        type="button"
+                        onClick={() => setEditModalidade(m.valor)}
+                        className={`py-1.5 rounded-lg text-xs font-bold transition ${editModalidade === m.valor ? "bg-primary text-white" : "bg-white text-foreground/60 hover:bg-surface"}`}
+                      >
+                        {m.rotulo}
+                      </button>
+                    ))}
+                  </div>
+                  <input type="hidden" name="modality" value={editModalidade} />
+                </div>
+
+                {pedeLocal(editModalidade) && (
+                  <input name="location" defaultValue={selected.location ?? ""} placeholder="Local (presencial)" className="w-full px-3 py-2 rounded-xl bg-white border border-border outline-none text-sm" />
+                )}
+
+                <div>
+                  <label className="text-xs font-semibold text-foreground/60">Lembrar sessão</label>
+                  <select name="confirmChannel" value={editCanal} onChange={(e) => setEditCanal(e.target.value)} className="w-full px-3 py-2 rounded-xl bg-white border border-border outline-none text-sm">
+                    {CANAIS_DE_CONFIRMACAO.map((c) => <option key={c.valor} value={c.valor}>{c.rotulo}</option>)}
+                  </select>
+                  {pedeHorasAntes(editCanal) && (
+                    <input name="confirmLeadHours" type="number" min={1} max={168} defaultValue={24} placeholder="horas antes" className="mt-2 w-full px-3 py-2 rounded-xl bg-white border border-border outline-none text-sm" />
+                  )}
+                </div>
+
+                {editErro && <p className="text-sm text-red-600">{editErro}</p>}
+
                 <div className="flex gap-2">
                   <button disabled={pending} className="flex-1 bg-primary text-white py-2 rounded-xl text-sm font-bold disabled:opacity-60">Salvar</button>
-                  <button type="button" onClick={() => setEditing(false)} className="px-3 py-2 rounded-xl text-sm text-foreground/50">Cancelar</button>
+                  <button type="button" onClick={() => { setEditing(false); setEditErro(null); }} className="px-3 py-2 rounded-xl text-sm text-foreground/50">Cancelar</button>
                 </div>
               </form>
             )}
@@ -605,6 +708,66 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
                 </div>
               )}
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* O alcance da EDIÇÃO. Mudar a data de uma sessão de uma série sem perguntar erraria
+          metade das vezes, e em silêncio. */}
+      {perguntaAlcance && (
+        <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center bg-black/40 p-4" onClick={() => setPerguntaAlcance(null)}>
+          <div className="bg-white rounded-[28px] p-6 w-full max-w-sm space-y-4 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <p className="text-lg font-display font-bold text-primary">Alterar quais?</p>
+            <p className="text-sm text-foreground/70">Deseja alterar apenas este agendamento ou este e também os próximos?</p>
+            <div className="space-y-2">
+              <button disabled={pending} onClick={() => aplicarEdicao("apenas_esta")} className="w-full bg-primary text-white py-2.5 rounded-xl font-bold disabled:opacity-60">
+                Apenas este
+              </button>
+              <button disabled={pending} onClick={() => aplicarEdicao("mesmos_dias")} className="w-full bg-surface text-foreground/70 py-2.5 rounded-xl font-bold hover:bg-surface-container disabled:opacity-60">
+                Este e os próximos, nos mesmos dias e horários
+              </button>
+              <button disabled={pending} onClick={() => aplicarEdicao("todas")} className="w-full bg-surface text-foreground/70 py-2.5 rounded-xl font-bold hover:bg-surface-container disabled:opacity-60">
+                Este e todos os próximos
+              </button>
+              <button onClick={() => setPerguntaAlcance(null)} className="w-full py-2 text-sm text-foreground/40">Cancelar</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* O alcance da EXCLUSÃO, em dois passos: primeiro se é só este, depois, se são os próximos,
+          se o bloco respeita o combinado de dia e hora ou pega tudo. Os números vêm do servidor —
+          apagar em bloco sem dizer quantos é pedir confirmação no escuro. */}
+      {perguntaExcluir && (
+        <div className="fixed inset-0 z-[60] flex items-end sm:items-center justify-center bg-black/40 p-4" onClick={() => { setPerguntaExcluir(null); setQuantos(null); }}>
+          <div className="bg-white rounded-[28px] p-6 w-full max-w-sm space-y-4 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+            <p className="text-lg font-display font-bold text-red-600">Excluir agendamento</p>
+            {perguntaExcluir.passo === "inicio" ? (
+              <>
+                <p className="text-sm text-foreground/70">Excluir apenas este agendamento, ou este e os próximos?</p>
+                <div className="space-y-2">
+                  <button disabled={pending} onClick={() => aplicarExclusao("apenas_esta")} className="w-full bg-red-600 text-white py-2.5 rounded-xl font-bold disabled:opacity-60">
+                    Apenas este
+                  </button>
+                  <button onClick={() => setPerguntaExcluir({ ...perguntaExcluir, passo: "proximos" })} className="w-full bg-surface text-foreground/70 py-2.5 rounded-xl font-bold hover:bg-surface-container">
+                    Este e os próximos…
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <p className="text-sm text-foreground/70">Quais dos próximos?</p>
+                <div className="space-y-2">
+                  <button disabled={pending} onClick={() => aplicarExclusao("mesmos_dias")} className="w-full bg-red-600 text-white py-2.5 rounded-xl font-bold disabled:opacity-60">
+                    Apenas os mesmos dias e horários{quantos ? ` (${quantos.mesmosDias})` : ""}
+                  </button>
+                  <button disabled={pending} onClick={() => aplicarExclusao("todas")} className="w-full bg-red-600/90 text-white py-2.5 rounded-xl font-bold disabled:opacity-60">
+                    Todos, em qualquer dia e hora{quantos ? ` (${quantos.todas})` : ""}
+                  </button>
+                </div>
+              </>
+            )}
+            <button onClick={() => { setPerguntaExcluir(null); setQuantos(null); }} className="w-full py-2 text-sm text-foreground/40">Cancelar</button>
           </div>
         </div>
       )}
