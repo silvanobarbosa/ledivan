@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { LifeBuoy, X, MessageCircle, TriangleAlert, Send, CheckCircle2, Loader2 } from "lucide-react";
+import { FLUTUANTE_ALTO } from "@/lib/modal";
 
 type Kind = "message" | "error";
 type Status = "idle" | "sending" | "sent" | "error";
@@ -64,7 +65,7 @@ export function SupportWidget() {
           aria-label="Abrir suporte"
           // print:hidden porque o widget é montado no layout raiz e, sem isto, o botão
           // "Suporte" sai impresso no canto do prontuário e do recibo entregues ao paciente.
-          className="print:hidden fixed bottom-5 right-5 z-[60] inline-flex items-center gap-2 rounded-full bg-primary px-4 py-3 text-sm font-medium text-on-primary shadow-[var(--shadow-eggplant)] hover:brightness-110"
+          className={`print:hidden ${FLUTUANTE_ALTO} z-[60] inline-flex items-center gap-2 rounded-full bg-primary px-4 py-3 text-sm font-medium text-on-primary shadow-[var(--shadow-eggplant)] hover:brightness-110`}
         >
           <LifeBuoy className="h-5 w-5" />
           <span className="hidden sm:inline">Suporte</span>
@@ -74,7 +75,7 @@ export function SupportWidget() {
       {/* Modal */}
       {open && (
         <div
-          className="fixed inset-0 z-[70] flex items-end justify-center sm:items-center sm:justify-end p-4"
+          className="fixed inset-0 z-[70] flex items-end justify-center sm:items-center sm:justify-end p-4 pb-28 lg:pb-4"
           role="dialog"
           aria-modal="true"
           aria-label="Suporte técnico"

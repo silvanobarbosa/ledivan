@@ -28,3 +28,24 @@ export const PAINEL_DA_JANELA =
 
 /** O painel com o respiro interno padrão. A maioria das janelas usa este. */
 export const JANELA = `${PAINEL_DA_JANELA} p-6 space-y-4`;
+
+/**
+ * ONDE FICAM OS BOTÕES FLUTUANTES.
+ *
+ * Medido, não estimado: no celular a barra de navegação tem **96px** de altura — bem mais do que
+ * os ~70 que se imagina olhando. O botão de suporte estava a 20px do fundo, dentro dela e do lado
+ * direito, bem onde fica o último item ("Ajustes").
+ *
+ * E há DOIS flutuantes disputando o mesmo canto: o suporte e o de escanear recibo. Eles se
+ * cruzavam também no computador, onde a barra nem existe — ninguém tinha relatado porque o de cima
+ * ainda era clicável, e o de baixo simplesmente não recebia o toque.
+ *
+ * A saída é empilhar, com as alturas saindo daqui. Cada um escolhendo a sua é como os dois
+ * acabaram no mesmo lugar.
+ */
+
+/** O de escanear: o primeiro degrau acima da barra. */
+export const FLUTUANTE_BAIXO = "fixed right-5 bottom-28 lg:right-10 lg:bottom-10";
+
+/** O de suporte: o degrau de cima, livre do anterior nos dois tamanhos. */
+export const FLUTUANTE_ALTO = "fixed right-5 bottom-[11.5rem] lg:right-10 lg:bottom-28";
