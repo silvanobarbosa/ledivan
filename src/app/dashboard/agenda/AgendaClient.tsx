@@ -17,11 +17,12 @@ import { BloquearHorario } from "@/components/dashboard/BloquearHorario";
 
 type PatientLite = { id: string; name: string; status: string; attendanceMode: string | null; attendanceLocation: string | null;
   /** Atendimento gratuito: a agenda marca a sessão como "social". */
-  social?: boolean;
   /** O que a célula escreve no lugar do nome. */
   agendaId?: string | null;
   registrationNumber?: number | null;
   paymentFormat?: string | null;
+  /** Vínculo social: convive com qualquer formato de pagamento. */
+  atendimentoSocial?: boolean | null;
 };
 type LocationLite = { name: string; address: string };
 
@@ -61,13 +62,14 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
       agendaId: p?.agendaId,
       registro: p?.registrationNumber,
       nome: s.patientName,
-      formato: p?.social ? "gratuito" : p?.paymentFormat,
+      formato: p?.paymentFormat,
       tipo: s.sessionKind,
       abateDoPacote: s.abaterDoPacote,
       posicao: s.pkg ? { index: s.pkg.index, total: s.pkg.total } : null,
       online: s.isOnline,
       repeticao: s.recurring ? s.recurrenceFreq : null,
       recorrente: s.recurring,
+      social: p?.atendimentoSocial,
     });
   };
   const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date()));
@@ -537,6 +539,9 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
                             {s.isOnline && <Video className="w-2.5 h-2.5 shrink-0" aria-label="Online" />}
                             {celula(s).repeteSemLetra && <Repeat className="w-2.5 h-2.5 shrink-0 opacity-50" aria-label="Agendamento recorrente" />}
                             <span className="truncate">{celula(s).codigo}</span>
+                            {celula(s).social && (
+                              <span className="shrink-0 text-[#047857]" title="Atendimento social">SOC</span>
+                            )}
                           </p>
                           {/* Passou do prazo de pagamento e nada entrou. É só um aviso ao profissional: a sessão
                               continua de pé, e cancelar (ou atender assim mesmo) é decisão dele. */}
