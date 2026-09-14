@@ -154,7 +154,8 @@ export function PatientDetail({
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="glass-card rounded-[32px] p-6 lg:p-8 flex items-start gap-5">
+      <div className="glass-card rounded-[32px] p-6 lg:p-8 space-y-4">
+        <div className="flex items-start gap-5">
         <div className="w-16 h-16 rounded-3xl bg-primary text-white flex items-center justify-center font-display font-bold text-2xl shrink-0">
           {patient.name.charAt(0).toUpperCase()}
         </div>
@@ -186,7 +187,6 @@ export function PatientDetail({
             ) : (
               <span className="inline-flex items-center gap-1 font-bold px-2 py-0.5 rounded-full bg-surface text-foreground/50">Financeiro em dia</span>
             )}
-            <MessagePatient patient={{ id: patient.id, name: patient.name, phone: patient.phone, email: patient.email }} compact />
           </div>
           <p className="text-foreground/50 mt-1.5 text-sm capitalize">
             {patient.frequency || "—"} · {formatBRL(patient.sessionFee)}/sessão · {FMT_LABEL[patient.paymentFormat || "avulso"] ?? "Avulso"}
@@ -208,7 +208,11 @@ export function PatientDetail({
             </div>
           )}
         </div>
-        <div className="flex items-center gap-2 shrink-0">
+        </div>
+
+        {/* Os quatro botões, numa faixa própria. `flex-wrap` para que numa tela estreita eles
+            desçam de linha em vez de saírem pela borda. */}
+        <div className="flex flex-wrap items-center gap-2">
           <MessagePatient patient={{ id: patient.id, name: patient.name, phone: patient.phone, email: patient.email }} />
           <a
             href={`/prontuario/${patient.id}`}

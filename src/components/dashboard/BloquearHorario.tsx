@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Lock, X } from "lucide-react";
 import { bloquearHorarios, desbloquearHorarios, horariosDoDia } from "@/app/dashboard/agenda/bloqueio-actions";
 import { TEXTO_PADRAO_DO_BLOQUEIO } from "@/lib/bloqueioDeHorario";
+import { FUNDO_DA_JANELA, JANELA } from "@/lib/modal";
 
 /**
  * A janela de bloquear e desbloquear horário.
@@ -92,9 +93,9 @@ export function BloquearHorario() {
       </button>
 
       {aberto && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/30 p-4" onClick={() => setAberto(false)}>
+        <div className={FUNDO_DA_JANELA} onClick={() => setAberto(false)}>
           <div
-            className="bg-white rounded-[28px] p-6 w-full max-w-md max-h-[85vh] overflow-y-auto space-y-4 shadow-2xl"
+            className={`${JANELA} max-w-md`}
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-start justify-between">

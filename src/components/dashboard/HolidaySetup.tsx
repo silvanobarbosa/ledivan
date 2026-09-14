@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { CalendarDays, X, Search, Plus, MapPin } from "lucide-react";
 import { saveHolidayCities } from "@/app/dashboard/agenda/holiday-actions";
 import type { HolidayCity } from "@/lib/holidays-style";
+import { FUNDO_DA_JANELA, JANELA } from "@/lib/modal";
 
 export function HolidaySetup({ cities, autoOpen = false }: { cities: HolidayCity[]; autoOpen?: boolean }) {
   const router = useRouter();
@@ -70,8 +71,8 @@ export function HolidaySetup({ cities, autoOpen = false }: { cities: HolidayCity
       )}
 
       {open && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center bg-black/30 p-4" onClick={() => setOpen(false)}>
-          <div className="bg-white rounded-[28px] p-6 w-full max-w-md space-y-4 shadow-2xl" onClick={(e) => e.stopPropagation()}>
+        <div className={FUNDO_DA_JANELA} onClick={() => setOpen(false)}>
+          <div className={`${JANELA} max-w-md`} onClick={(e) => e.stopPropagation()}>
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-lg font-display font-bold text-primary">Feriados na agenda</p>
