@@ -7,6 +7,58 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-09-14 — O celular, e a hora que andava 3h até a tela
+
+**Entregue:** #158, #162 e #163, a partir de dois documentos das beta testers usando o produto no
+celular.
+
+**Por quê:** relataram três coisas que nenhuma conferência minha tinha pegado — janela que não dá
+para ver inteira, botões embaralhando o nome do paciente, e **agendamento marcado às 6h aparecendo
+às 3h**.
+
+**Decisões que ficam valendo:**
+
+- **A hora no banco é hora de PAREDE.** A coluna é `timestamp` sem fuso: "18:00" quer dizer 18:00
+  para quem marcou. Para atravessar até a tela sem se mover, o servidor escreve um texto **sem
+  `Z`** (`horaDeParede` em `src/lib/horaLocal.ts`) e o navegador o lê como hora local. O `Z` é a
+  mentira que move o horário.
+- **Medidas de janela num lugar só** (`src/lib/modal.ts`): as oito janelas e os dois botões
+  flutuantes tiram dali altura e camada. Cada um escolhendo a sua foi como dois acabaram no mesmo
+  canto.
+- **Agendamento único não é reserva.** O campo "Só reservar (confirmar depois)" saiu: perguntar
+  isso a quem marcou uma data pontual criava pendência que ninguém pediu.
+- **O semanal não tem letra.** Eu tinha posto (S) por conta própria; elas pediram para tirar, e com
+  razão — é o ritmo padrão, apareceria em quase toda célula e não distinguiria ninguém.
+
+**Armadilhas:**
+
+- **O defeito do fuso só existia em PRODUÇÃO.** Minha máquina fica no mesmo fuso da usuária, então
+  local tudo batia. Só abrindo a produção e comparando com o texto cru do banco ele apareceu.
+- **Dois caminhos do mesmo driver, duas convenções.** O Drizzle `neon-http` monta a data com a hora
+  de parede nos campos **UTC**; o tag `sql` cru do mesmo pacote monta nos campos **locais**. Errei a
+  primeira correção usando a convenção errada — e só descobri olhando o que a página mandava ao
+  navegador. Não há como deduzir isto: tem que medir.
+- **A barra de navegação tem 96px**, não os ~70 que se imagina. Por isso "subir um pouco" não
+  resolvia.
+- **Empate de `z-index` resolve por ordem do documento.** A barra é renderizada depois das janelas;
+  no mesmo `z-50`, ela ganhava e escondia o botão de salvar.
+- **`vh` mente no celular** — mede como se a barra do navegador nunca estivesse lá. Use `dvh`.
+- **A varredura de largura diz "ok" para defeito de altura e de camada.** Ver a lição no cérebro:
+  *verificação verde só prova o que o instrumento mede*.
+
+**Pendente — com o dono:**
+
+- **"Atendimento social": elas pedem para remover, e isso CONTRADIZ a decisão de 14/09.** O dono
+  definiu que social é vínculo e independe do formato de pagamento, justamente porque alguém pode
+  ser social e pagar mensal. Removendo, esse caso deixa de ter como ser marcado.
+- **"Financeiro não salva o formato": NÃO REPRODUZ.** Testada a sequência exata do relato, com dois
+  salvamentos (mensal → gratuito → a cada sessão + valor): voltou correto. Conferido também que
+  todos os `payment_format` do banco existem na lista da tela. Falta saber o aparelho e se foi em
+  produção.
+- Prazo da reserva: nada expira, e há 13 sessões passadas ainda marcadas como reserva sem status.
+
+---
+
 ## 2026-09-14 — Clareza visual da agenda, e o espelho que nunca aparecia
 
 **Entregue:** #156 e a limpeza de dívida que veio junto.
