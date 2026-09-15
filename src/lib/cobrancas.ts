@@ -23,6 +23,9 @@
  * 4. **Devolutiva comum fica fora da sequência e não cobra**; a marcada para abater ocupa posição.
  *    É o que a agenda já fazia — agora a Fechamento concorda.
  *
+ * 4b. **Devolutiva gratuita em "a cada sessão" é GRAT** (dono, 15/09/2026): marcada para não cobrar
+ *    (`chargeable = false`), não gera cobrança e o rótulo é GRAT. A cobrada segue cobrada, como DEVOL.
+ *
  * 5. **Sessão extra fora da sequência é independente do financeiro** (dono, 15/09/2026). AVUL gera
  *    cobrança própria no valor informado, mesmo com o paciente gratuito; GRAT não gera nada. Nenhuma
  *    das duas altera a numeração, o tamanho ou o valor do pacote — antes, durante ou depois dele.
@@ -48,6 +51,8 @@ export type SessaoDaCobranca = {
   sessionKind?: string | null;
   /** Devolutiva que ocupa posição na sequência. */
   abaterDoPacote?: boolean | null;
+  /** Falso = marcada para não cobrar. Hoje só a devolutiva oferece essa escolha. */
+  chargeable?: boolean | null;
   /** Sessão extra, FORA da sequência: `avul` cobra à parte, `grat` não cobra. */
   extra?: "avul" | "grat" | string | null;
   /** O valor informado da extra avulsa. */
@@ -105,6 +110,7 @@ function emOrdem(sessoes: SessaoDaCobranca[]): Ordenada[] {
 }
 
 const ehExtra = (s: SessaoDaCobranca) => s.extra === "avul" || s.extra === "grat";
+const devolutivaGratuita = (s: SessaoDaCobranca) => s.sessionKind === "devolutiva" && s.chargeable === false;
 
 /** Ocupa posição na sequência do pacote? */
 function entraNoPacote(s: SessaoDaCobranca): boolean {
@@ -130,7 +136,7 @@ function cobrancasDoPeriodo(periodo: PeriodoDeVigencia, sessoes: Ordenada[], e: 
   if (!usaPacote(formato)) {
     // A cada sessão: cada atendimento que ocupou posição é uma cobrança, no dia em que aconteceu.
     return sessoes
-      .filter((s) => !ehExtra(s) && !STATUS_QUE_PAUSAM.has(s.status))
+      .filter((s) => !ehExtra(s) && !devolutivaGratuita(s) && !STATUS_QUE_PAUSAM.has(s.status))
       .map((s) => ({
         chave: `sessao:${s.id}`,
         tipo: "sessao" as const,
@@ -255,6 +261,7 @@ export function rotulosDasSessoes(e: EntradaDasCobrancas): Map<string, string> {
     for (const s of grupo.sessoes) {
       if (s.extra === "avul") { rotulos.set(s.id, "AVUL"); continue; }
       if (s.extra === "grat") { rotulos.set(s.id, "GRAT"); continue; }
+      if (formato === "sessao" && devolutivaGratuita(s)) { rotulos.set(s.id, "GRAT"); continue; }
       const p = posicoes.get(s.id);
       rotulos.set(
         s.id,

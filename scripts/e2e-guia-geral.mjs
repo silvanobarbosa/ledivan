@@ -57,6 +57,8 @@ const lerTabela = () =>
       .map((tr) => Array.from(tr.querySelectorAll("td")).map((td) => td.textContent.replace(/\s+/g, " ").trim())),
   );
 
+const cartaoDoSaldo = () => page.locator("button", { hasText: "Status de crédito" }).first().innerText().then((t) => t.replace(/\s+/g, " "));
+
 async function abrirGeral() {
   await page.goto(`${BASE}/dashboard/patients/${pid}`, { waitUntil: "domcontentloaded", timeout: 90000 });
   await page.waitForTimeout(3000);
@@ -91,6 +93,9 @@ try {
   check("AVUL: R$ 150,00 na linha dela", /150,00/.test(t[3][2]), t[3][2]);
   check("AVUL online traz o ícone", await page.locator(`tr[data-sessao="${avulId}"] [aria-label="online"]`).count() === 1);
   await page.screenshot({ path: "_visual/geral-antes.png", fullPage: true });
+  // Saldo ÚNICO: pacote R$ 520 (vence 01/09) + AVUL R$ 150 (10/09), nada pago.
+  let cartao = await cartaoDoSaldo();
+  check("cartão do topo: 5 sessões, devendo R$ 670,00 — o mesmo que a Geral tem em aberto", /-5 sess.*Devendo R\$\s?670,00/.test(cartao), cartao);
 
   // ---------------------------------------------------------------- 4. lança o pacote
   const linhaPacote = page.locator("tr[data-chave^='pacote:']").first();
@@ -116,6 +121,8 @@ try {
   await abrirGeral();
   t = await lerTabela();
   check("linha do pacote: Pago, 03/09/26, Mãe QA, PIX", t[0][0] === "03/09/26" && t[0][3] === "Pago" && t[0][4] === "03/09/26" && t[0][5] === "Mãe QA" && t[0][6] === "PIX", JSON.stringify(t[0]));
+  cartao = await cartaoDoSaldo();
+  check("cartão do topo após o pacote pago: 1 sessão, devendo R$ 150,00", /-1 sess.*Devendo R\$\s?150,00/.test(cartao), cartao);
   check("AVUL continua a lançar", await page.locator(`tr[data-sessao="${avulId}"]`).getByRole("button", { name: "Lançar pagamento" }).count() === 1);
 
   // ---------------------------------------------------------------- 7. lança a AVUL
@@ -130,6 +137,21 @@ try {
   await abrirGeral();
   t = await lerTabela();
   check("AVUL aparece paga", t[3][3] === "Pago", JSON.stringify(t[3]));
+  cartao = await cartaoDoSaldo();
+  check("cartão do topo com tudo pago: R$ 0,00", /R\$\s?0,00/.test(cartao) && !/Devendo/.test(cartao), cartao);
+  await page.getByRole("button", { name: "Financeiro", exact: true }).click();
+  const saldoFluxo = await page.getByText(/^Saldo:/).first().innerText();
+  check("Fluxo financeiro mostra o mesmo saldo", /R\$\s?0,00/.test(saldoFluxo), saldoFluxo);
+
+  // Devolutiva gratuita em "a cada sessão" (resposta do dono): GRAT, R$ 0,00, sem botão.
+  await sql`UPDATE patients SET payment_format = 'sessao', pacote_tipo = NULL WHERE id = ${pid}`;
+  await sql`INSERT INTO patient_payment_format_history (patient_id, formato, data_efetiva) VALUES (${pid}, 'sessao', '2026-09-24')`;
+  const [{ id: devId }] = await sql`INSERT INTO therapy_sessions (user_id, patient_id, date, status, session_kind, chargeable)
+                                     VALUES (${qa.id}, ${pid}, '2026-09-24 11:00:00', 'agendada', 'devolutiva', false) RETURNING id`;
+  await abrirGeral();
+  const dev = (await lerTabela()).find((r, i, all) => i === all.length - 1);
+  check("devolutiva sem cobrar em 'a cada sessão': GRAT R$ 0,00", dev?.[1] === "GRAT" && /0,00/.test(dev?.[2] ?? ""), JSON.stringify(dev));
+  check("… e sem botão de lançar", await page.locator(`tr[data-sessao="${devId}"]`).getByRole("button", { name: "Lançar pagamento" }).count() === 0);
   await page.screenshot({ path: "_visual/geral-depois.png", fullPage: true });
 
   check("sem erro no console do navegador", errosConsole.length === 0, errosConsole.slice(0, 2).join(" | "));

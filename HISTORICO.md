@@ -47,12 +47,16 @@ paciente de teste alternou quatro vezes o formato achando que a troca não pegav
   (recebe `userId`) saiu para `src/lib/categoriaSessoes.ts`.
 - e2e em aba fechada: clicar no rádio escondido muda o DOM e a tela não reage. Agir como pessoa.
 
-**Pendente (do dono):**
+**Respostas do dono no mesmo dia (entraram no PR seguinte):**
 
-- Gratuito na Geral mostra R$ 0,00 (como o exemplo do documento); o texto dizia "nenhum valor".
-- No formato "a cada sessão" a devolutiva continua cobrada (comportamento anterior preservado).
-- Os cartões antigos do topo do paciente ("sessões de crédito") ainda usam a conta antiga do
-  `fee` da sessão, e divergem da Geral.
+- Gratuito na Geral mostra **R$ 0,00** — deixa claro que foi gratuita, não que falta valor.
+- **Saldo único**: cartões do topo, Financeiro ("Fluxo financeiro") e Geral leem `resumoDaGeral`.
+  Saldo = pagamentos − cobranças exigíveis (em aberto ou pagas; "a vencer" não conta). Sessões
+  devendo são CONTADAS nas cobranças em aberto, não valor ÷ preço. O dono ainda vai decidir se os
+  cartões do topo continuam ou se tudo fica só na Geral.
+- **Devolutiva gratuita em "a cada sessão"** (`chargeable = false`) é GRAT, sem cobrança; a cobrada
+  segue DEVOL e cobrada. Medido antes: nenhum paciente "a cada sessão" tinha devolutiva sem cobrar,
+  então nenhuma Fechamento mudou.
 
 ---
 

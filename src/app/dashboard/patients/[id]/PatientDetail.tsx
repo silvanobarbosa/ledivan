@@ -790,13 +790,13 @@ export function PatientDetail({
           {/* Histórico financeiro (valor + recorrência) — editável */}
           <FinanceAdjust priceHistory={priceHistory} contractHistory={contractHistory} />
 
-          {/* Fluxo financeiro (no rodapé): pagamentos (+) e sessões realizadas cobráveis (−) */}
+          {/* Fluxo financeiro (no rodapé): pagamentos (+) e cobranças exigíveis (−), do motor único */}
           <div className="glass-card rounded-[24px] p-5">
             <div className="flex items-center justify-between mb-3">
               <p className="text-xs font-bold text-foreground/40 uppercase tracking-widest">Fluxo financeiro</p>
               <span className={`text-sm font-bold ${finance.balance < 0 ? "text-[#b91c1c]" : "text-[#047857]"}`}>Saldo: {formatBRL(finance.balance.toFixed(2))}</span>
             </div>
-            <p className="text-[11px] text-foreground/50 mb-2">Cada sessão realizada marcada como “cobrar” desconta o valor; cada pagamento soma. O saldo pode ficar negativo (devendo).</p>
+            <p className="text-[11px] text-foreground/50 mb-2">Cada cobrança que já pode ser exigida desconta; cada pagamento soma. É o mesmo saldo da guia Geral e pode ficar negativo (devendo).</p>
             {ledger.length === 0 ? <Empty text="Sem movimentações." /> : (
               <div className="space-y-1 max-h-96 overflow-y-auto">
                 {ledger.map((l) => (

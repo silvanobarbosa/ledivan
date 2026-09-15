@@ -52,7 +52,7 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
     db.query.patientConsents.findMany({ where: eq(patientConsents.patientId, id), orderBy: [desc(patientConsents.acceptedAt)], limit: 20 }),
   ]);
 
-  const geral = (await geralDoPaciente(userId, id)) ?? [];
+  const geral = (await geralDoPaciente(userId, id)) ?? { linhas: [], resumo: { saldo: 0, totalPago: 0, totalExigivel: 0, emAberto: 0, sessoesEmAberto: 0, extrato: [] } };
 
   const prefs = (() => { try { return me?.preferences ? JSON.parse(me.preferences) : {}; } catch { return {}; } })();
   const locations = parseLocations(me?.attendanceLocations);
@@ -93,7 +93,6 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
     return { id: p.id, seq: p.seq, sessions: p.sessions, used, remaining: p.sessions - used };
   });
   const openPkgs = packages.filter((p) => p.remaining > 0);
-  const pkgSeqById = new Map(packagesList.map((p) => [p.id, p.seq]));
   const packageInfo = {
     list: packages,
     openSessions: openPkgs.reduce((a, p) => a + p.remaining, 0),
@@ -112,30 +111,22 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
     recurring = { day: DOW[d.getDay()], time: d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }), until: untilMax ? new Date(untilMax).toISOString() : null };
   }
 
-  // --- Fluxo financeiro universal: pagamentos (+) e sessões realizadas+cobráveis (−) ---
+  // --- Saldo ÚNICO: o mesmo motor da guia Geral (dono, 15/09/2026) ---
+  // Antes o saldo daqui descontava o `fee` de cada sessão realizada e ignorava formato, pacote e
+  // vigência: um mensal com a sessão sem `fee` aparecia com "5 sessões de crédito" enquanto a Geral
+  // mostrava tudo certo. Agora cartões, Financeiro e Geral leem `resumoDaGeral`.
   const fee = parseFloat(patient.sessionFee || "0") || 0;
   const paidPayments = paymentsList.filter((p) => p.status === "paid");
-  // índice X/N por pagamento vinculado a pacote (X = enésimo pagamento desse pacote)
-  const pkgSessById = new Map(packagesList.map((p) => [p.id, p.sessions]));
-  const payPkgIdx = new Map<string, number>();
-  const pkgCnt: Record<string, number> = {};
-  [...paidPayments].filter((p) => p.packageId).sort((a, b) => new Date(horaDeParede(a.date)).getTime() - new Date(horaDeParede(b.date)).getTime()).forEach((p) => {
-    pkgCnt[p.packageId!] = (pkgCnt[p.packageId!] || 0) + 1;
-    payPkgIdx.set(p.id, pkgCnt[p.packageId!]);
-  });
-  type LedgerItem = { id: string; date: string; kind: "pagamento" | "sessao"; desc: string; amount: number; payId: string | null };
-  const ledgerRaw: LedgerItem[] = [
-    ...paidPayments.map((p) => ({ id: `p${p.id}`, date: horaDeParede(p.date), kind: "pagamento" as const, desc: p.kind === "pacote" ? "Crédito de pacote" : (p.packageId && pkgSeqById.has(p.packageId)) ? `Pagamento — Pacote P${pkgSeqById.get(p.packageId)} · ${payPkgIdx.get(p.id) ?? 1}/${pkgSessById.get(p.packageId) ?? "?"}` : "Pagamento recebido", amount: parseFloat(p.amount), payId: p.kind === "pacote" ? null : p.id })),
-    ...sessionsList
-      .filter((s) => s.status === "realizada" && s.chargeable)
-      .map((s) => ({ id: `s${s.id}`, date: horaDeParede(s.date), kind: "sessao" as const, desc: "Sessão realizada (cobrança)", amount: -parseFloat(s.fee), payId: null })),
-  ].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-
-  let running = 0;
-  const ledger = ledgerRaw.map((it) => { running += it.amount; return { ...it, balance: running }; }).reverse();
-  const balance = running;
-  const totalPaid = paidPayments.reduce((a, p) => a + parseFloat(p.amount), 0);
-  const totalDebit = sessionsList.filter((s) => s.status === "realizada" && s.chargeable).reduce((a, s) => a + parseFloat(s.fee), 0);
+  const { saldo: balance, totalPago: totalPaid, totalExigivel: totalDebit } = geral.resumo;
+  const ledger = geral.resumo.extrato.map((m) => ({
+    id: m.id,
+    date: m.data,
+    kind: m.tipo === "pagamento" ? ("pagamento" as const) : ("sessao" as const),
+    desc: m.descricao,
+    amount: m.valor,
+    balance: m.saldo,
+    payId: m.pagamentoId,
+  }));
   const lastPay = paidPayments.slice().sort((a, b) => new Date(horaDeParede(b.date)).getTime() - new Date(horaDeParede(a.date)).getTime())[0];
   const finance = {
     fee,
@@ -146,7 +137,9 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
     lastPaymentDate: lastPay ? (horaDeParede(lastPay.date)) : null,
     lastPaymentAmount: lastPay ? parseFloat(lastPay.amount) : null,
     creditSessions: fee > 0 && balance > 0 ? Math.floor(balance / fee) : 0,
-    debtSessions: fee > 0 && balance < 0 ? Math.ceil(-balance / fee) : 0,
+    // Devendo: as sessões das cobranças em aberto, como a Geral mostra (R$ 670 = pacote de 4 + 1 AVUL
+    // são 5 sessões, não 670 ÷ 130 arredondado).
+    debtSessions: balance < 0 ? geral.resumo.sessoesEmAberto : 0,
   };
 
   return (
@@ -186,7 +179,7 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
         statusEnabled={statusEnabled}
         dailyStatus={JSON.parse(JSON.stringify(dailyStatus))}
         sharedWritings={JSON.parse(JSON.stringify(sharedWritings))}
-        geral={geral}
+        geral={geral.linhas}
       />
     </div>
   );
