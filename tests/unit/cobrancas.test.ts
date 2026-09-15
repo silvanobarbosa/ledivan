@@ -219,6 +219,28 @@ describe("devolutiva", () => {
   });
 });
 
+describe("devolutiva em 'a cada sessão' — resposta do dono (15/09/2026)", () => {
+  // "Se elas forem gratuitas, precisam ser identificadas como GRAT, sem gerar cobrança."
+  it("marcada para não cobrar: GRAT, sem cobrança", () => {
+    const ss = [sessao(14), sessao(17, 8, { sessionKind: "devolutiva", chargeable: false })];
+    const e = { ...base(), sessoes: ss };
+    expect(cobrancasDoPaciente(e).map((c) => c.ids[0])).toEqual([ss[0].id]);
+    expect(rotulosDasSessoes(e).get(ss[1].id)).toBe("GRAT");
+  });
+
+  it("marcada para cobrar: continua cobrada e continua DEVOL", () => {
+    const ss = [sessao(17, 8, { sessionKind: "devolutiva", chargeable: true })];
+    const e = { ...base(), sessoes: ss };
+    expect(cobrancasDoPaciente(e)).toHaveLength(1);
+    expect(rotulosDasSessoes(e).get(ss[0].id)).toBe("DEVOL");
+  });
+
+  it("consulta com chargeable falso não muda nada — a regra é da devolutiva", () => {
+    const ss = [sessao(17, 8, { chargeable: false })];
+    expect(cobrancasDoPaciente({ ...base(), sessoes: ss })).toHaveLength(1);
+  });
+});
+
 describe("sessão extra fora da sequência", () => {
   const cfg = base({ reserva: { formato: "mensal", pacoteTipo: "completo" } });
 

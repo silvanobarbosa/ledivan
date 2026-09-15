@@ -41,10 +41,10 @@ export async function lancarPagamento(entrada: {
   if (!pagoPor) return { ok: false, error: "Informe quem pagou." };
   if (!METODOS.has(metodo)) return { ok: false, error: "Escolha a forma de pagamento." };
 
-  const linhas = await geralDoPaciente(userId, patientId);
-  if (!linhas) return { ok: false, error: "Paciente não encontrado." };
+  const geral = await geralDoPaciente(userId, patientId);
+  if (!geral) return { ok: false, error: "Paciente não encontrado." };
 
-  const cobranca = linhas
+  const cobranca = geral.linhas
     .flatMap((l) => (l.tipo === "pagamento" ? [l] : l.cobranca ? [l.cobranca] : []))
     .find((c) => c.chave === chave);
   if (!cobranca) return { ok: false, error: "Cobrança não encontrada." };

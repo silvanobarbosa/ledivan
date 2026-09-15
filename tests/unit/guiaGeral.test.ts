@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { linhasDaGeral, type EntradaDaGeral, type LinhaDaGeral } from "@/lib/guiaGeral";
+import { linhasDaGeral, resumoDaGeral, type EntradaDaGeral, type LinhaDaGeral } from "@/lib/guiaGeral";
 
 /**
  * A GUIA GERAL — os exemplos do documento do dono (15/09/2026), valor da sessão R$ 130.
@@ -173,5 +173,68 @@ describe("situação e pagamento lançado", () => {
   it("sessão desmarcada aparece sem código e sem cobrança", () => {
     const linhas = geral("sessao", [terca(1, 8, "cancelada")]);
     expect(linhas[0].tipo === "sessao" && linhas[0].cobranca).toBeFalsy();
+  });
+});
+
+describe("devolutiva gratuita em 'a cada sessão' aparece como GRAT R$ 0,00", () => {
+  it("rótulo GRAT, valor 0, sem botão de lançar", () => {
+    const linhas = geral("sessao", [terca(1), { ...terca(3), id: "dev", sessionKind: "devolutiva", chargeable: false }]);
+    expect(resumo(linhas)).toEqual(["AVUL 130", "GRAT 0"]);
+    expect(linhas[1].tipo === "sessao" && linhas[1].cobranca).toBeNull();
+  });
+});
+
+describe("o saldo único — o mesmo número nos cartões, no Financeiro e na Geral", () => {
+  const entrada = (pagamentos: EntradaDaGeral["pagamentos"], extra: Partial<EntradaDaGeral> = {}): EntradaDaGeral => ({
+    vigencias: [{ formato: "sessao", desde }],
+    reserva: { formato: "sessao" },
+    precos,
+    sessoes: [terca(1), terca(8), terca(22)], // 22/09 é depois de hoje (15/09): a vencer
+    pagamentos,
+    hoje,
+    ...extra,
+  });
+  const pg = (id: string, valor: number, dia: number, outros: Partial<EntradaDaGeral["pagamentos"][number]> = {}) =>
+    ({ id, valor, data: new Date(2026, 8, dia), status: "paid", metodo: "pix", pagoPor: null, cobrancaChave: null, ...outros });
+
+  it("sem pagamento: deve o que já é exigível, não o que ainda vai vencer", () => {
+    const r = resumoDaGeral(entrada([]));
+    expect(r.totalExigivel).toBe(260);
+    expect(r.saldo).toBe(-260);
+    expect(r.emAberto).toBe(260);
+    expect(r.sessoesEmAberto).toBe(2);
+  });
+
+  it("pago tudo que venceu: saldo zero", () => {
+    expect(resumoDaGeral(entrada([pg("a", 260, 9)])).saldo).toBe(0);
+  });
+
+  it("pagamento adiantado da sessão futura: a cobrança dela passa a contar, e o saldo não vira crédito falso", () => {
+    const r = resumoDaGeral(entrada([pg("a", 260, 9), pg("b", 130, 10, { cobrancaChave: "sessao:s8-22" })]));
+    expect(r.saldo).toBe(0);
+  });
+
+  it("dinheiro a mais quita até a futura (a Geral a mostra paga) e o resto vira crédito", () => {
+    // R$ 400 sem chave: 01/09, 08/09 e a de 22/09, adiantada. Sobram R$ 10.
+    expect(resumoDaGeral(entrada([pg("a", 400, 9)])).saldo).toBe(10);
+    expect(resumoDaGeral(entrada([pg("a", 400, 9)], { sessoes: [terca(1)] })).saldo).toBe(270);
+  });
+
+  it("pagamento pendente não conta", () => {
+    expect(resumoDaGeral(entrada([pg("a", 260, 9, { status: "pending" })])).saldo).toBe(-260);
+  });
+
+  it("gratuito sem pagamento: saldo zero (nada é cobrado)", () => {
+    const r = resumoDaGeral(entrada([], { vigencias: [{ formato: "gratuito", desde }], reserva: { formato: "gratuito" } }));
+    expect(r.saldo).toBe(0);
+    expect(r.extrato).toEqual([]);
+  });
+
+  it("o extrato termina no saldo, do mais recente para o mais antigo", () => {
+    const r = resumoDaGeral(entrada([pg("a", 400, 9)]));
+    // 22/09 (adiantada) é a mais recente; depois o pagamento de 09/09; depois 08 e 01/09.
+    expect(r.extrato.map((x) => x.valor)).toEqual([-130, 400, -130, -130]);
+    expect(r.extrato.map((x) => x.saldo)).toEqual([10, 140, -260, -130]);
+    expect(r.extrato[1].pagamentoId).toBe("a");
   });
 });

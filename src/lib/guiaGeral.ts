@@ -34,6 +34,8 @@ export type PagamentoDaGeral = {
   metodo: string | null;
   pagoPor: string | null;
   cobrancaChave: string | null;
+  /** `pacote` = crédito de pacote (não emite recibo). */
+  kind?: string | null;
 };
 
 export type EntradaDaGeral = Omit<EntradaDasCobrancas, "sessoes"> & {
@@ -156,7 +158,7 @@ export function linhasDaGeral(e: EntradaDaGeral): LinhaDaGeral[] {
     const cobranca = naSessao.get(s.id) ?? null;
     const pausada = STATUS_QUE_PAUSAM.has(s.status);
     const formato = formatoNaData(e.vigencias, s.data, e.reserva).formato;
-    const gratis = s.extra === "grat" || (!s.extra && formato === "gratuito");
+    const gratis = rotulos.get(s.id) === "GRAT" || (!s.extra && formato === "gratuito");
     out.push({
       tipo: "sessao",
       id: s.id,
@@ -172,4 +174,90 @@ export function linhasDaGeral(e: EntradaDaGeral): LinhaDaGeral[] {
   }
   for (const c of soltas) out.push(comoLinha(c));
   return out;
+}
+
+export type MovimentoDoExtrato = {
+  id: string;
+  data: Date;
+  tipo: "pagamento" | "cobranca";
+  descricao: string;
+  /** Positivo entra (pagamento), negativo sai (cobrança). */
+  valor: number;
+  /** O saldo depois deste movimento. */
+  saldo: number;
+  /** Para o recibo. Nulo em crédito de pacote. */
+  pagamentoId: string | null;
+};
+
+export type ResumoDaGeral = {
+  /** Positivo = crédito; negativo = devendo. */
+  saldo: number;
+  totalPago: number;
+  /** Cobranças que já podem ser exigidas: em aberto ou pagas. "A vencer" ainda não conta. */
+  totalExigivel: number;
+  /** O que falta receber nas cobranças em aberto. */
+  emAberto: number;
+  /** Quantas sessões as cobranças em aberto cobrem — contadas, não divididas pelo valor. */
+  sessoesEmAberto: number;
+  /** Do mais recente para o mais antigo. */
+  extrato: MovimentoDoExtrato[];
+};
+
+const DESCRICAO: Record<Cobranca["tipo"], (c: Cobranca) => string> = {
+  sessao: () => "Sessão",
+  extra: () => "Sessão avulsa (fora do pacote)",
+  pacote: (c) => `Pacote · ${c.sessoes} ${c.sessoes === 1 ? "sessão" : "sessões"}`,
+  quinzena: (c) => `Pacote · ${c.sessoes} sessões · parte ${c.parte}/2`,
+};
+
+/**
+ * O SALDO ÚNICO do paciente (dono, 15/09/2026: "um único saldo financeiro, apresentado de forma
+ * consistente em todas as telas"). Cartões do topo, Financeiro e Geral leem daqui.
+ *
+ * Saldo = pagamentos recebidos − cobranças exigíveis. Uma cobrança "a vencer" ainda não é dívida;
+ * mas, se já foi paga adiantada, conta — senão o pagamento dela apareceria como crédito falso.
+ */
+export function resumoDaGeral(e: EntradaDaGeral): ResumoDaGeral {
+  const cobrancas = casarPagamentos(cobrancasDoPaciente(e), e.pagamentos, e.hoje);
+  const exigiveis = cobrancas.filter((c) => c.situacao !== "a_vencer");
+  const pagos = e.pagamentos.filter((p) => p.status === "paid");
+
+  const movimentos = [
+    ...exigiveis.map((c) => ({
+      id: `c:${c.chave}`,
+      data: (c.vencimento ?? c.competencia) as Date,
+      tipo: "cobranca" as const,
+      descricao: DESCRICAO[c.tipo](c),
+      valor: -c.valor,
+      pagamentoId: null,
+    })),
+    ...pagos.map((p) => ({
+      id: `p:${p.id}`,
+      data: emData(p.data),
+      tipo: "pagamento" as const,
+      descricao: p.kind === "pacote" ? "Crédito de pacote" : `Pagamento recebido${p.pagoPor ? ` · ${p.pagoPor}` : ""}`,
+      valor: Number(p.valor) || 0,
+      pagamentoId: p.kind === "pacote" ? null : p.id,
+    })),
+  ]
+    .filter((m) => m.data instanceof Date && !Number.isNaN(m.data.getTime()))
+    .sort((a, b) => a.data.getTime() - b.data.getTime() || (a.tipo === b.tipo ? a.id.localeCompare(b.id) : a.tipo === "cobranca" ? -1 : 1));
+
+  let corrente = 0;
+  const extrato = movimentos.map((m) => {
+    corrente = Math.round((corrente + m.valor) * 100) / 100;
+    return { ...m, saldo: corrente };
+  });
+
+  const soma = (xs: number[]) => Math.round(xs.reduce((a, b) => a + b, 0) * 100) / 100;
+  const totalPago = soma(pagos.map((p) => Number(p.valor) || 0));
+  const totalExigivel = soma(exigiveis.map((c) => c.valor));
+  return {
+    saldo: Math.round((totalPago - totalExigivel) * 100) / 100,
+    totalPago,
+    totalExigivel,
+    emAberto: soma(cobrancas.filter((c) => c.situacao === "em_aberto").map((c) => c.falta)),
+    sessoesEmAberto: cobrancas.filter((c) => c.situacao === "em_aberto" && c.parte !== 2).reduce((a, c) => a + c.sessoes, 0),
+    extrato: extrato.reverse(),
+  };
 }

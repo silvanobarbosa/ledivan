@@ -62,7 +62,7 @@ export default async function AgendaPage() {
   if (pats.length) {
     const ids = pats.map((x) => x.id);
     const [todas, contratos, vigencias] = await Promise.all([
-      db.select({ id: therapySessions.id, patientId: therapySessions.patientId, date: therapySessions.date, status: therapySessions.status, sessionKind: therapySessions.sessionKind, abaterDoPacote: therapySessions.abaterDoPacote, extra: therapySessions.extra })
+      db.select({ id: therapySessions.id, patientId: therapySessions.patientId, date: therapySessions.date, status: therapySessions.status, sessionKind: therapySessions.sessionKind, abaterDoPacote: therapySessions.abaterDoPacote, chargeable: therapySessions.chargeable, extra: therapySessions.extra })
         .from(therapySessions)
         .where(and(eq(therapySessions.userId, session.user.id), inArray(therapySessions.patientId, ids))),
       db.select({ patientId: patientPackages.patientId, seq: patientPackages.seq, sessions: patientPackages.sessions })
