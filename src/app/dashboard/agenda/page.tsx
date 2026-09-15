@@ -1,16 +1,15 @@
 import { db } from "@/db";
 import { auth } from "@/auth";
-import { blockedSlots, patientPackages, patients, sessionPayments, therapySessions, users } from "@/db/schema";
+import { blockedSlots, patientPackages, patientPaymentFormatHistory, patients, sessionPayments, therapySessions, users } from "@/db/schema";
 import { and, eq, gte, inArray, isNotNull, ne } from "drizzle-orm";
 import { AgendaClient } from "./AgendaClient";
 import { riskFromSessions } from "@/lib/therapy";
 import { parseLocations } from "@/lib/locations";
 import { parseHolidayCities, holidaysByDate } from "@/lib/holidays";
 import { derivePackageLabels } from "@/lib/packages";
-import { posicoesDaSequencia, tamanhosDasSequencias } from "@/lib/sequenciaPacote";
-import { entraNaSequencia } from "@/lib/celulaDaAgenda";
+import { tamanhosDasSequencias } from "@/lib/sequenciaPacote";
+import { rotulosDasSessoes } from "@/lib/cobrancas";
 import { horaDeParede, horaDeParedeOuNulo } from "@/lib/horaLocal";
-import { usaPacote } from "@/lib/reajuste";
 import { pagamentoAtrasado } from "@/lib/pagamentoSessao";
 
 export default async function AgendaPage() {
@@ -51,36 +50,36 @@ export default async function AgendaPage() {
     pkgs,
   );
 
-  // A POSIÇÃO NA SEQUÊNCIA (1/4, 2/4…), que é o que a célula mostra.
+  // O RÓTULO DA CÉLULA (1/4, AVUL, GRAT, DEVOL) sai do MOTOR ÚNICO de cobranças, pelo formato que
+  // valia no DIA de cada sessão.
   //
-  // A varredura é do histórico INTEIRO do paciente, de propósito. Antes ela começava no mês da
-  // janela, e isso bastava enquanto o agrupador era o mês do calendário — cada mês se resolvia
-  // sozinho. Agora a sequência é contínua e atravessa a virada: começar no meio faria a primeira
-  // sessão da janela aparecer como 1/4 quando ela é 3/4. São algumas dezenas de linhas por
-  // paciente; ler tudo é barato perto de mostrar o número errado.
-  const porPacote = pats.filter((x) => usaPacote(x.paymentFormat));
-  if (porPacote.length) {
-    const ids = porPacote.map((x) => x.id);
-    const [todas, contratos] = await Promise.all([
-      db.select({ id: therapySessions.id, patientId: therapySessions.patientId, date: therapySessions.date, status: therapySessions.status, sessionKind: therapySessions.sessionKind, abaterDoPacote: therapySessions.abaterDoPacote })
+  // Antes a agenda usava o formato de HOJE para a história inteira: trocar um paciente de gratuito
+  // para mensal reescrevia as células antigas junto, igual acontecia com a cobrança. E a varredura
+  // é do histórico INTEIRO, de propósito — a sequência atravessa a virada do mês, e começar no meio
+  // faria a primeira sessão da janela aparecer como 1/4 quando ela é 3/4.
+  const codigos = new Map<string, string>();
+  if (pats.length) {
+    const ids = pats.map((x) => x.id);
+    const [todas, contratos, vigencias] = await Promise.all([
+      db.select({ id: therapySessions.id, patientId: therapySessions.patientId, date: therapySessions.date, status: therapySessions.status, sessionKind: therapySessions.sessionKind, abaterDoPacote: therapySessions.abaterDoPacote, extra: therapySessions.extra })
         .from(therapySessions)
         .where(and(eq(therapySessions.userId, session.user.id), inArray(therapySessions.patientId, ids))),
       db.select({ patientId: patientPackages.patientId, seq: patientPackages.seq, sessions: patientPackages.sessions })
         .from(patientPackages)
         .where(and(eq(patientPackages.userId, session.user.id), inArray(patientPackages.patientId, ids))),
+      db.select({ patientId: patientPaymentFormatHistory.patientId, formato: patientPaymentFormatHistory.formato, pacoteTipo: patientPaymentFormatHistory.pacoteTipo, desde: patientPaymentFormatHistory.dataEfetiva, criadoEm: patientPaymentFormatHistory.dataCriacao })
+        .from(patientPaymentFormatHistory)
+        .where(inArray(patientPaymentFormatHistory.patientId, ids)),
     ]);
-    for (const paciente of porPacote) {
-      // A devolutiva comum acontece FORA do pacote: só entra na sequência quando foi marcada
-      // para abater. Contar todas roubaria uma consulta do paciente a cada devolutiva.
-      const doPaciente = todas
-        .filter((x) => x.patientId === paciente.id && entraNaSequencia(x))
-        .map((x) => ({ id: x.id, date: x.date as Date, status: x.status }));
-      const tipo = paciente.pacoteTipo === "fragmentado" ? "fragmentado" : "completo";
-      // O tamanho de cada sequência é o que se guarda: é o combinado, e não se deduz das sessões.
-      const tamanhos = tamanhosDasSequencias(contratos.filter((c) => c.patientId === paciente.id));
-      for (const [id, pos] of posicoesDaSequencia(doPaciente, { pacoteTipo: tipo, tamanhos })) {
-        pkgLabels.set(id, { seq: 0, index: pos.index, total: pos.total });
-      }
+    for (const paciente of pats) {
+      const rotulos = rotulosDasSessoes({
+        vigencias: vigencias.filter((v) => v.patientId === paciente.id),
+        reserva: { formato: paciente.paymentFormat, pacoteTipo: paciente.pacoteTipo },
+        sessoes: todas.filter((x) => x.patientId === paciente.id).map((x) => ({ ...x, date: x.date as Date })),
+        precos: [],
+        tamanhos: tamanhosDasSequencias(contratos.filter((c) => c.patientId === paciente.id)),
+      });
+      for (const [id, codigo] of rotulos) codigos.set(id, codigo);
     }
   }
 
@@ -153,6 +152,7 @@ export default async function AgendaPage() {
           sessionKind: s.sessionKind ?? "consulta",
           abaterDoPacote: s.abaterDoPacote,
           pkg: pkgLabels.get(s.id) ?? null,
+          codigo: codigos.get(s.id) ?? null,
           pagamentoAtrasado: atrasadas.has(s.id),
         }))}
         patients={pats.map((p) => ({ id: p.id, name: p.name, status: p.patientStatus, attendanceMode: p.attendanceMode, attendanceLocation: p.attendanceLocation, atendimentoSocial: p.atendimentoSocial, frequency: p.frequency, agendaId: p.agendaId, registrationNumber: p.registrationNumber, paymentFormat: p.paymentFormat }))}

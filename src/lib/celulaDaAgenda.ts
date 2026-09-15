@@ -50,6 +50,11 @@ export type DadosDaCelula = {
   social?: boolean | null;
   /** O agendamento se repete. Pode ser verdade sem a frequência ser conhecida. */
   recorrente?: boolean | null;
+  /**
+   * O rótulo já resolvido pelo motor de cobranças (`rotulosDasSessoes`), pelo formato do DIA da
+   * sessão. Quando vem, manda: o `formato` daqui é o de hoje e erraria as sessões antigas.
+   */
+  codigo?: string | null;
 };
 
 /**
@@ -140,7 +145,7 @@ export function conteudoDaCelula(dados: DadosDaCelula): ConteudoDaCelula {
   return {
     identificacao: identificacao(dados),
     repeticao: letra,
-    codigo: codigoDaSessao(dados),
+    codigo: dados.codigo ?? codigoDaSessao(dados),
     online: !!dados.online,
     repeteSemLetra: !letra && !!dados.recorrente,
     social: !!dados.social,

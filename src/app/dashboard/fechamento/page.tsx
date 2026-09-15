@@ -3,7 +3,7 @@ import { and, eq, inArray, ne } from "drizzle-orm";
 import { CalendarCheck, ChevronLeft, ChevronRight } from "lucide-react";
 import { db } from "@/db";
 import { auth } from "@/auth";
-import { patientPackages, patientPriceHistory, patients, sessionPayments, therapySessions } from "@/db/schema";
+import { patientPackages, patientPaymentFormatHistory, patientPriceHistory, patients, sessionPayments, therapySessions } from "@/db/schema";
 import { tamanhosDasSequencias } from "@/lib/sequenciaPacote";
 import {
   linhaDoFechamento,
@@ -61,7 +61,7 @@ export default async function FechamentoPage({
 
   const ids = carteira.map((p) => p.id);
 
-  const [sessoes, pagamentos, precos, contratos] = await Promise.all([
+  const [sessoes, pagamentos, precos, contratos, vigencias] = await Promise.all([
     // O histórico INTEIRO, não só o mês. A conta passou a seguir a sequência do pacote, e uma
     // sequência de setembro empurrada por um atestado fecha em outubro — ler só o mês faria a
     // varredura começar no meio e dar a posição errada, e com ela o valor errado.
@@ -71,6 +71,12 @@ export default async function FechamentoPage({
         patientId: therapySessions.patientId,
         date: therapySessions.date,
         status: therapySessions.status,
+        // O motor único precisa saber o que fica FORA da sequência: a devolutiva comum e a sessão
+        // extra. Sem estes campos a Fechamento contava a devolutiva no pacote e a agenda não.
+        sessionKind: therapySessions.sessionKind,
+        abaterDoPacote: therapySessions.abaterDoPacote,
+        extra: therapySessions.extra,
+        valorExtra: therapySessions.valorExtra,
       })
       .from(therapySessions)
       .where(eq(therapySessions.userId, userId)),
@@ -104,9 +110,23 @@ export default async function FechamentoPage({
       })
       .from(patientPackages)
       .where(eq(patientPackages.userId, userId)),
+    // A VIGÊNCIA do formato: cada sessão é cobrada pelo formato que valia no dia dela. Sem isto a
+    // troca de hoje reescrevia os meses passados (dono, 15/09/2026).
+    ids.length > 0
+      ? db
+          .select({
+            patientId: patientPaymentFormatHistory.patientId,
+            formato: patientPaymentFormatHistory.formato,
+            pacoteTipo: patientPaymentFormatHistory.pacoteTipo,
+            desde: patientPaymentFormatHistory.dataEfetiva,
+            criadoEm: patientPaymentFormatHistory.dataCriacao,
+          })
+          .from(patientPaymentFormatHistory)
+          .where(inArray(patientPaymentFormatHistory.patientId, ids))
+      : Promise.resolve([]),
   ]);
 
-  const sessoesPor = new Map<string, { id: string; date: Date; status: string }[]>();
+  const sessoesPor = new Map<string, (typeof sessoes)[number][]>();
   for (const s of sessoes) {
     sessoesPor.set(s.patientId, [...(sessoesPor.get(s.patientId) ?? []), s]);
   }
@@ -139,6 +159,7 @@ export default async function FechamentoPage({
         precos: precosPor.get(p.id) ?? [],
         pagamentos: pagos,
         tamanhos: tamanhosDasSequencias(contratos.filter((c) => c.patientId === p.id)),
+        vigencias: vigencias.filter((v) => v.patientId === p.id),
         ano,
         mes,
       }),
