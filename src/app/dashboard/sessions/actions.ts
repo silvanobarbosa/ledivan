@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@/db";
-import { therapySessions, patients } from "@/db/schema";
+import { therapySessions, patients, patientPaymentFormatHistory } from "@/db/schema";
 import { auth } from "@/auth";
 import { canalParaGravar, ehMensal, ehOnline, geraRepeticoes, horasAntesParaGravar, pedeLocal } from "@/lib/agendamentoNovo";
 import { and, eq } from "drizzle-orm";
@@ -10,6 +10,8 @@ import { redirect } from "next/navigation";
 import { getPreferences } from "@/lib/preferences";
 import { createMeetLink } from "@/lib/googleCalendar";
 import { parseMoedaBR } from "@/lib/money";
+import { extraParaGravar } from "@/lib/sessaoExtra";
+import { formatoNaData } from "@/lib/vigenciaDoFormato";
 import { getUserAiClient, SemChaveIA } from "@/lib/ai-client";
 
 type SessionStatus = "realizada" | "nao_realizada" | "cancelada" | "realocada" | "agendada" | "prof_desmarcou" | "atestado";
@@ -152,6 +154,22 @@ export async function createSessionFromAgenda(formData: FormData): Promise<{ ok:
   if (!dateRaw) return { ok: false, error: "Escolha data e horário." };
   const date = new Date(dateRaw);
   const duration = formData.get("duration") ? parseInt(formData.get("duration") as string) : 50;
+
+  // Sessão fora da sequência do pacote (AVUL/GRAT). O formato vem do BANCO, na data da sessão —
+  // não do formulário: é o que decide se a pergunta existia.
+  const vigencias = await db
+    .select({ formato: patientPaymentFormatHistory.formato, pacoteTipo: patientPaymentFormatHistory.pacoteTipo, desde: patientPaymentFormatHistory.dataEfetiva, criadoEm: patientPaymentFormatHistory.dataCriacao })
+    .from(patientPaymentFormatHistory)
+    .where(eq(patientPaymentFormatHistory.patientId, patientId));
+  const extraDaSessao = extraParaGravar({
+    formato: formatoNaData(vigencias, date, { formato: patient.paymentFormat, pacoteTipo: patient.pacoteTipo }).formato,
+    sessionKind: formData.get("sessionKind") as string,
+    naSequencia: formData.get("naSequencia") as string | null,
+    cobrada: formData.get("cobrada") as string | null,
+    valor: formData.get("valorExtra") as string | null,
+  });
+  if (!extraDaSessao.ok) return { ok: false, error: extraDaSessao.error };
+
   // A modalidade passou a mandar; `isOnline` sai dela. A janela antiga mandava a caixa `isOnline`,
   // e ela continua valendo para quem ainda a envia.
   const extras = extrasDoAgendamento(formData);
@@ -182,6 +200,8 @@ export async function createSessionFromAgenda(formData: FormData): Promise<{ ok:
     sessionKind: (formData.get("sessionKind") as string) === "devolutiva" ? "devolutiva" : "consulta",
     // Devolutiva marcada para abater: não cobra, mas ocupa posição na sequência do pacote.
     abaterDoPacote: formData.get("abaterDoPacote") === "true",
+    extra: extraDaSessao.extra,
+    valorExtra: extraDaSessao.valorExtra,
     // O mensal não gera as sessões seguintes, mas GUARDA que é mensal: é o que põe o (M) na
     // célula e o que diz, no fim do mês, quem ainda não marcou o mês que vem.
     recurring: ehMensal(formData.get("freq") as string),

@@ -16,6 +16,8 @@ import { CAMPOS_EDITAVEIS } from "@/lib/editarAgendamento";
 import { contarAlcance, excluirAgendamento, salvarEdicao } from "./edicao-actions";
 import { BloquearHorario } from "@/components/dashboard/BloquearHorario";
 import { FUNDO_DA_JANELA, JANELA } from "@/lib/modal";
+import { perguntaSeEntraNaSequencia } from "@/lib/sessaoExtra";
+import { formatoNaData } from "@/lib/vigenciaDoFormato";
 
 type PatientLite = { id: string; name: string; status: string; attendanceMode: string | null; attendanceLocation: string | null;
   /** Atendimento gratuito: a agenda marca a sessão como "social". */
@@ -23,6 +25,10 @@ type PatientLite = { id: string; name: string; status: string; attendanceMode: s
   agendaId?: string | null;
   registrationNumber?: number | null;
   paymentFormat?: string | null;
+  pacoteTipo?: string | null;
+  sessionFee?: string | null;
+  /** Formato de pagamento no tempo: a pergunta da sessão extra depende do formato NA DATA marcada. */
+  vigencias?: { formato: string; pacoteTipo: string | null; desde: string; criadoEm: string }[];
   /** Vínculo social: convive com qualquer formato de pagamento. */
   atendimentoSocial?: boolean | null;
   /** "quinzenal", "semanal"… escrito no cadastro. É daqui que sai o espelho da semana alternada. */
@@ -137,6 +143,9 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
   const [newKind, setNewKind] = useState("consulta");
   const [newCharge, setNewCharge] = useState(true);
   const [newError, setNewError] = useState<string | null>(null);
+  // Sessão inserida num paciente de pacote: soma à sequência ou fica fora (AVUL/GRAT).
+  const [newNaSequencia, setNewNaSequencia] = useState("sim");
+  const [newCobrada, setNewCobrada] = useState("");
 
   function pad(n: number) { return String(n).padStart(2, "0"); }
   function toLocalInput(d: Date) {
@@ -153,6 +162,8 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
     setNewCanal("nenhum");
     setNewKind("consulta");
     setNewFreq("pontual");
+    setNewNaSequencia("sim");
+    setNewCobrada("");
     setNewError(null);
     setShowNew(true);
   }
@@ -166,6 +177,15 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
   }
   const selectedPatient = patients.find((p) => p.id === newPatient);
   const suggestLoc = selectedPatient?.attendanceLocation || "";
+  const formatoNaDataNova = selectedPatient
+    ? formatoNaData(
+        (selectedPatient.vigencias ?? []).map((v) => ({ ...v, desde: new Date(v.desde), criadoEm: new Date(v.criadoEm) })),
+        newDate ? new Date(newDate) : new Date(),
+        { formato: selectedPatient.paymentFormat ?? "sessao", pacoteTipo: selectedPatient.pacoteTipo ?? null },
+      ).formato
+    : null;
+  // Série (semanal/quinzenal) é o próprio ritmo do pacote; a pergunta é para a sessão inserida.
+  const perguntaSequencia = !newRecorrente && perguntaSeEntraNaSequencia({ formato: formatoNaDataNova, sessionKind: newKind });
 
   const weekEnd = new Date(weekStart);
   weekEnd.setDate(weekEnd.getDate() + 7);
@@ -937,6 +957,45 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
               </label>
             )}
             <input type="hidden" name="abaterDoPacote" value={newKind === "devolutiva" && newAbater ? "true" : "false"} />
+
+            {/* Regra do dono (15/09/2026): sessão inserida entre as do pacote pode ficar FORA da
+                sequência. Fora, não muda numeração, contagem nem valor do pacote. */}
+            {perguntaSequencia && (
+              <div className="rounded-xl bg-[#fef3c7] px-3 py-2.5 space-y-2" data-testid="pergunta-sequencia">
+                <p className="text-xs font-semibold text-[#92400e]">Sequência do pacote</p>
+                <div className="grid grid-cols-2 gap-2">
+                  {[{ v: "sim", r: "Adicionar à sequência do pacote" }, { v: "nao", r: "Não adicionar à sequência do pacote" }].map((o) => (
+                    <button key={o.v} type="button" onClick={() => setNewNaSequencia(o.v)}
+                      className={`py-2 px-2 rounded-xl text-xs font-bold transition ${newNaSequencia === o.v ? "bg-[#92400e] text-white" : "bg-white text-foreground/70 hover:bg-surface-container"}`}>
+                      {o.r}
+                    </button>
+                  ))}
+                </div>
+                <input type="hidden" name="naSequencia" value={newNaSequencia} />
+                {newNaSequencia === "nao" && (
+                  <>
+                    <p className="text-xs font-semibold text-[#92400e]">Esta sessão será cobrada?</p>
+                    <div className="grid grid-cols-2 gap-2">
+                      {[{ v: "sim", r: "Sim (AVUL)" }, { v: "nao", r: "Não (GRAT)" }].map((o) => (
+                        <button key={o.v} type="button" onClick={() => setNewCobrada(o.v)}
+                          className={`py-2 rounded-xl text-xs font-bold transition ${newCobrada === o.v ? "bg-[#92400e] text-white" : "bg-white text-foreground/70 hover:bg-surface-container"}`}>
+                          {o.r}
+                        </button>
+                      ))}
+                    </div>
+                    <input type="hidden" name="cobrada" value={newCobrada} />
+                    {newCobrada === "sim" && (
+                      <div>
+                        <label className="text-[11px] font-semibold text-[#92400e]/80">Valor da sessão avulsa (R$)</label>
+                        <input name="valorExtra" inputMode="decimal" required defaultValue={selectedPatient?.sessionFee ? String(selectedPatient.sessionFee).replace(".", ",") : ""}
+                          placeholder="130,00" className="w-full px-3 py-2 rounded-xl bg-white border border-[#fde68a] outline-none text-sm" />
+                      </div>
+                    )}
+                    <p className="text-[11px] text-[#92400e]/70">Fica fora do pacote: não muda a numeração, a contagem nem o valor da sequência.</p>
+                  </>
+                )}
+              </div>
+            )}
 
             {/* Três opções em vez de uma caixa "é online?": misto é um combinado de verdade —
                 uma semana na sala, outra na chamada — e não cabia num sim ou não. A devolutiva
