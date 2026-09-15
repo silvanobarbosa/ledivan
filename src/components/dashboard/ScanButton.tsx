@@ -3,6 +3,7 @@
 import { useState, useRef } from "react";
 import { Loader2 } from "lucide-react";
 import { useRouter, usePathname } from "next/navigation";
+import { FLUTUANTE_BAIXO } from "@/lib/modal";
 
 // Só aparece na tela inicial e nas telas do Financeiro.
 const ALLOWED = ["/dashboard", "/dashboard/transactions", "/dashboard/reports"];
@@ -63,7 +64,7 @@ export function ScanButton({ userId }: { userId: string }) {
       <button 
         onClick={() => fileInputRef.current?.click()}
         disabled={isScanning}
-        className="print:hidden fixed bottom-28 right-5 lg:bottom-10 lg:right-10 w-14 h-14 lg:w-16 lg:h-16 bg-accent text-primary rounded-full shadow-2xl flex items-center justify-center text-2xl hover:scale-110 active:scale-95 transition-all z-50 border-4 border-white disabled:opacity-50 disabled:scale-100"
+        className={`print:hidden ${FLUTUANTE_BAIXO} w-14 h-14 lg:w-16 lg:h-16 bg-accent text-primary rounded-full shadow-2xl flex items-center justify-center text-2xl hover:scale-110 active:scale-95 transition-all z-50 border-4 border-white disabled:opacity-50 disabled:scale-100`}
         title="Escanear recibo com IA"
       >
         {isScanning ? (
