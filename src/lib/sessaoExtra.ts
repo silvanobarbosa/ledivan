@@ -1,0 +1,46 @@
+/**
+ * SESSÃO FORA DA SEQUÊNCIA DO PACOTE.
+ *
+ * Regra do dono (15/09/2026): quando entra uma sessão nova no meio de uma sequência de pacote, o
+ * profissional escolhe se ela SOMA à sequência ou fica de fora. Fora, pergunta se é cobrada:
+ * cobrada vira AVUL com o valor informado; não cobrada vira GRAT.
+ *
+ * A extra não mexe na numeração, na contagem nem no valor do pacote — isso é do motor
+ * (`cobrancas.ts`), que já a deixa de fora. Este arquivo decide só O QUE GRAVAR a partir do
+ * formulário, e recusa em vez de adivinhar quando falta resposta.
+ *
+ * Função pura.
+ */
+
+import { usaPacote } from "./reajuste";
+import { parseMoedaBR } from "./money";
+
+type Formato = { formato: string | null | undefined; sessionKind?: string | null };
+
+/** A pergunta só existe onde existe sequência. Devolutiva já tem a dela ("abater do pacote"). */
+export function perguntaSeEntraNaSequencia(o: Formato): boolean {
+  return usaPacote(o.formato) && o.sessionKind !== "devolutiva";
+}
+
+export type ExtraAGravar =
+  | { ok: true; extra: "avul" | "grat" | null; valorExtra: string | null }
+  | { ok: false; error: string };
+
+const COMUM = { ok: true, extra: null, valorExtra: null } as const;
+
+export function extraParaGravar(o: Formato & {
+  /** "sim" = adicionar à sequência; "nao" = registrar separada. Vazio = como sempre foi: soma. */
+  naSequencia: string | null | undefined;
+  cobrada?: string | null;
+  valor?: string | null;
+}): ExtraAGravar {
+  if (!perguntaSeEntraNaSequencia(o)) return COMUM;
+  if (o.naSequencia !== "nao") return COMUM;
+
+  if (o.cobrada === "nao") return { ok: true, extra: "grat", valorExtra: null };
+  if (o.cobrada !== "sim") return { ok: false, error: "Diga se a sessão fora do pacote será cobrada." };
+
+  const valor = parseMoedaBR(o.valor);
+  if (valor == null || Number(valor) <= 0) return { ok: false, error: "Informe o valor da sessão avulsa." };
+  return { ok: true, extra: "avul", valorExtra: valor };
+}
