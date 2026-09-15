@@ -2,114 +2,132 @@ import { describe, expect, it } from "vitest";
 import { linhaDoFechamento, type PrecoVigente, type SessaoDoPacote } from "@/lib/fechamento";
 
 /**
- * O FORMATO DE PAGAMENTO NÃO TEM DATA — E POR ISSO ELE REESCREVE O PASSADO.
+ * A TROCA DE FORMATO NÃO REESCREVE O PASSADO — agora na Fechamento de verdade.
  *
- * A regra do dono (15/09/2026): "Gratuito" significa que **naquele momento** não há cobrança. Não
- * é condição definitiva: o paciente pode sair de gratuito para qualquer formato, e voltar. "A
- * forma de pagamento atualmente selecionada deve sempre prevalecer sobre a configuração
- * anterior."
+ * O defeito, medido em 15/09/2026: `patients.payment_format` era um valor sem data e a Fechamento o
+ * aplicava a todos os meses. Trocar de gratuito para "a cada sessão" fazia agosto — atendido de
+ * graça — virar R$ 800 de dívida; trocar de pago para gratuito apagava agosto e deixava R$ 800 de
+ * crédito que a tela chamava de "sem cobrança". No banco, o paciente de teste alternou o formato
+ * quatro vezes, que é o que alguém faz quando a troca "parece" não pegar.
  *
- * A primeira metade disso funciona: medido no banco, trocar o formato GRAVA — o paciente de teste
- * tem quatro trocas registradas (sessao → gratuito → sessao → gratuito → sessao) e o cadastro bate
- * com a última.
+ * A regra do dono, no mesmo dia:
  *
- * A segunda metade é que falha, e de um jeito que não aparece na tela do cadastro. `patients`
- * guarda UM `payment_format`, sem data de vigência, e o fechamento aplica esse valor único a
- * TODOS os meses da história. O preço não tem esse problema: `patient_price_history` tem
- * `dataEfetiva`, e `precoNaData` respeita. O formato não tem equivalente.
+ * > A alteração da forma de cobrança deve valer somente a partir da data definida, sem modificar os
+ * > atendimentos anteriores. [...] O sistema nunca deve apagar, criar ou modificar cobranças
+ * > passadas apenas porque você alterou o financeiro do paciente.
  *
- * Consequência — é o que estes testes provam:
- *
- *   - quem foi gratuito por meses e passa a pagar hoje **fica devendo os meses em que foi
- *     gratuito**, retroativamente;
- *   - quem pagava e passa a gratuito **tem as cobranças passadas apagadas**, e o que já foi pago
- *     vira crédito.
- *
- * Isso explica o relato de "o Financeiro não salva": salva sim — mas a tela do mês passado muda
- * junto, e quem vê isso conclui que a troca fez coisa errada e desfaz. Foi exatamente o padrão
- * encontrado no banco.
- *
- * Estes testes descrevem o comportamento ATUAL. Quando o formato passar a ter vigência, eles
- * viram o contrário — e é isso que se quer.
+ * Estes testes eram a prova do defeito; agora são a prova da regra.
  */
 
 const preco: PrecoVigente[] = [{ valor: 200, desde: new Date(2026, 0, 1) }];
 
-/** Quatro sessões realizadas em agosto, todas contadas. */
-const sessoesDeAgosto: SessaoDoPacote[] = [4, 11, 18, 25].map((dia) => ({
-  id: `s${dia}`,
-  date: new Date(2026, 7, dia, 9, 0, 0),
-  status: "realizada",
-}));
+const sessoes: SessaoDoPacote[] = [
+  ...[4, 11, 18, 25].map((dia) => ({ id: `ago${dia}`, date: new Date(2026, 7, dia, 9), status: "realizada" })),
+  ...[1, 8].map((dia) => ({ id: `set${dia}`, date: new Date(2026, 8, dia, 9), status: "realizada" })),
+];
 
-const linha = (formato: string, pagamentos: { valor: number; data: Date }[] = []) =>
+const linha = (
+  mes: number,
+  vigencias: { formato: string; desde: Date }[],
+  pagamentos: { valor: number; data: Date }[] = [],
+  formatoDoCadastro = vigencias.at(-1)?.formato ?? "sessao",
+) =>
   linhaDoFechamento({
-    paciente: { id: "p1", nome: "Paciente", formato, valorDaSessao: 200 },
-    sessoes: sessoesDeAgosto,
+    paciente: { id: "p1", nome: "Paciente", formato: formatoDoCadastro, valorDaSessao: 200 },
+    sessoes,
     precos: preco,
     pagamentos: pagamentos.map((p) => ({ pacienteId: "p1", status: "paid", ...p })),
+    vigencias,
     ano: 2026,
-    mes: 7, // agosto
+    mes,
   });
 
-describe("agosto já aconteceu — e muda conforme o formato de HOJE", () => {
-  it("como gratuito, agosto não cobra nada", () => {
-    expect(linha("gratuito").cobradoNoMes).toBe(0);
+const AGOSTO = 7;
+const SETEMBRO = 8;
+
+describe("gratuito → a cada sessão, a partir de 01/09", () => {
+  const vig = [
+    { formato: "gratuito", desde: new Date(2026, 0, 1) },
+    { formato: "sessao", desde: new Date(2026, 8, 1) },
+  ];
+
+  it("agosto continua gratuito: não cobra nada", () => {
+    expect(linha(AGOSTO, vig).cobradoNoMes).toBe(0);
   });
 
-  it("como 'a cada sessão', o MESMO agosto cobra as quatro sessões", () => {
-    expect(linha("sessao").cobradoNoMes).toBe(800);
+  it("agosto não vira dívida", () => {
+    const l = linha(AGOSTO, vig);
+    expect(l.saldo).toBe(0);
+    expect(l.situacao).not.toBe("a_receber");
   });
 
-  it("A FALHA: trocar o formato hoje reescreve o que agosto cobrou", () => {
-    // Nada mudou em agosto: mesmas sessões, mesmo preço, mesma data. Só o campo do cadastro.
-    const comoGratuito = linha("gratuito").cobradoNoMes;
-    const comoPagante = linha("sessao").cobradoNoMes;
-    expect(comoGratuito).not.toBe(comoPagante);
-    expect(comoPagante - comoGratuito).toBe(800);
-  });
-
-  it("quem era gratuito e passa a pagar fica DEVENDO um mês que era de graça", () => {
-    // Agosto foi atendido de graça; em setembro combina-se pagar. O saldo de agosto deveria
-    // seguir zero, e não segue.
-    const depoisDaTroca = linha("sessao");
-    expect(depoisDaTroca.saldo).toBe(800);
-    expect(depoisDaTroca.situacao).toBe("a_receber");
-  });
-
-  it("quem pagava e passa a gratuito vira CREDOR do que já tinha pago", () => {
-    // Pagou os R$ 800 de agosto. Ao virar gratuito, a cobrança do mês desaparece e o pagamento
-    // fica sobrando.
-    const pago = [{ valor: 800, data: new Date(2026, 7, 30) }];
-    const antes = linha("sessao", pago);
-    expect(antes.saldo).toBe(0);
-    expect(antes.situacao).toBe("pago");
-
-    const depois = linha("gratuito", pago);
-    expect(depois.cobradoNoMes).toBe(0);
-    expect(depois.saldo).toBe(-800);
-    // E aqui é pior do que "pago a mais": o saldo é de R$ 800 A DEVOLVER, mas a situação sai
-    // como "sem cobrança" — a tela não mostra que há crédito. O dinheiro some da leitura sem
-    // sumir do banco, que é o modo de falha mais caro: ninguém procura o que não aparece.
-    expect(depois.situacao).toBe("sem_cobranca");
+  it("setembro cobra só o que aconteceu a partir da troca", () => {
+    const l = linha(SETEMBRO, vig);
+    expect(l.cobradoNoMes).toBe(400);
+    expect(l.saldo).toBe(400);
   });
 });
 
-describe("o preço, ao contrário do formato, respeita a data", () => {
+describe("a cada sessão → gratuito, a partir de 01/09", () => {
+  const vig = [
+    { formato: "sessao", desde: new Date(2026, 0, 1) },
+    { formato: "gratuito", desde: new Date(2026, 8, 1) },
+  ];
+  const pagoAgosto = [{ valor: 800, data: new Date(2026, 7, 30) }];
+
+  it("a cobrança de agosto PERMANECE", () => {
+    expect(linha(AGOSTO, vig).cobradoNoMes).toBe(800);
+  });
+
+  it("o que foi pago em agosto continua quitando agosto — não vira crédito", () => {
+    const l = linha(SETEMBRO, vig, pagoAgosto);
+    expect(l.saldo).toBe(0);
+    expect(l.situacao).toBe("pago");
+  });
+
+  it("setembro, já gratuito, não cobra", () => {
+    expect(linha(SETEMBRO, vig, pagoAgosto).cobradoNoMes).toBe(0);
+  });
+});
+
+describe("salvar o cadastro sem mudar nada não muda nada", () => {
+  it("o mesmo formato registrado duas vezes dá a mesma conta que uma vez só", () => {
+    const uma = linha(SETEMBRO, [{ formato: "sessao", desde: new Date(2026, 0, 1) }]);
+    const duas = linha(SETEMBRO, [
+      { formato: "sessao", desde: new Date(2026, 0, 1) },
+      { formato: "sessao", desde: new Date(2026, 8, 5) },
+    ]);
+    expect(duas).toEqual(uma);
+  });
+});
+
+describe("crédito não some da tela", () => {
+  it("gratuito com dinheiro a devolver aparece como pago a mais, não como 'sem cobrança'", () => {
+    // Paciente sem histórico, cadastro gratuito, com um pagamento feito. Antes a situação escondia o
+    // crédito atrás de "sem cobrança".
+    const l = linha(SETEMBRO, [], [{ valor: 800, data: new Date(2026, 7, 30) }], "gratuito");
+    expect(l.saldo).toBe(-800);
+    expect(l.situacao).toBe("pago_a_mais");
+  });
+
+  it("gratuito sem nada a acertar continua 'sem cobrança'", () => {
+    expect(linha(SETEMBRO, [], [], "gratuito").situacao).toBe("sem_cobranca");
+  });
+});
+
+describe("o preço já respeitava a data — é o modelo que o formato passou a seguir", () => {
   it("reajuste em setembro não muda o que agosto cobrou", () => {
-    const comReajuste: PrecoVigente[] = [
-      { valor: 200, desde: new Date(2026, 0, 1) },
-      { valor: 300, desde: new Date(2026, 8, 1) }, // setembro
-    ];
     const agosto = linhaDoFechamento({
       paciente: { id: "p1", nome: "Paciente", formato: "sessao", valorDaSessao: 200 },
-      sessoes: sessoesDeAgosto,
-      precos: comReajuste,
+      sessoes,
+      precos: [
+        { valor: 200, desde: new Date(2026, 0, 1) },
+        { valor: 300, desde: new Date(2026, 8, 1) },
+      ],
       pagamentos: [],
       ano: 2026,
-      mes: 7,
+      mes: AGOSTO,
     });
-    // 4 × 200, não 4 × 300: `precoNaData` olha a vigência. É o modelo que falta ao formato.
     expect(agosto.cobradoNoMes).toBe(800);
   });
 });

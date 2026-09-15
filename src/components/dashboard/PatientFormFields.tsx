@@ -157,6 +157,8 @@ export function PatientFormFields({ p }: { p?: PatientFormData }) {
   // Formato antigo "avulso" e o "a cada sessao" do dono; "pacote" virou mensal com pacote.
   const formatoInicial = p?.paymentFormat === "avulso" ? "sessao" : p?.paymentFormat === "pacote" ? "mensal" : (p?.paymentFormat || "sessao");
   const [format, setFormat] = useState(formatoInicial);
+  // Hoje no fuso de quem preenche, no formato do <input type="date">.
+  const hojeISO = (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; })();
   const [pacote, setPacote] = useState(p?.pacoteTipo || "completo");
   // A classificação saiu: a idade é CALCULADA da data de nascimento, e "casal" virou item próprio.
   const [casal, setCasal] = useState(!!p?.isCouple || p?.category === "casal");
@@ -432,6 +434,19 @@ export function PatientFormFields({ p }: { p?: PatientFormData }) {
               ))}
             </div>
           </div>
+
+          {/* VIGÊNCIA: só aparece quando o formato de um paciente JÁ CADASTRADO mudou. A troca vale a
+              partir desta data e não mexe no que aconteceu antes — é a regra do dono de 15/09/2026. */}
+          {p && format !== formatoInicial && (
+            <div className="rounded-2xl border border-primary/30 bg-primary/5 px-4 py-3 space-y-2">
+              <label className={labelCls} htmlFor="formatoDesde">Vale a partir de</label>
+              <input id="formatoDesde" name="formatoDesde" type="date" defaultValue={hojeISO} className={`${inputCls} sm:max-w-xs`} />
+              <p className="text-xs text-foreground/60">
+                Os atendimentos <strong>antes</strong> desta data continuam com o formato anterior — nada do
+                que já foi cobrado, ou deixou de ser, é alterado.
+              </p>
+            </div>
+          )}
 
           {usaPacote(format) && (
             <p className="text-xs text-foreground/50">

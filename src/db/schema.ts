@@ -523,6 +523,23 @@ export const patientPriceHistory = pgTable("patient_price_history", {
   dataCriacao: timestamp("data_criacao").defaultNow().notNull(),
 });
 
+// VIGÊNCIA DO FORMATO DE PAGAMENTO — uma linha por troca, no mesmo modelo do histórico de preço.
+//
+// Regra do dono (15/09/2026): a troca vale "somente a partir da data definida, sem modificar os
+// atendimentos anteriores". `patients.payment_format` continua existindo como o formato ATUAL (é o
+// que o cadastro mostra), mas quem decide a cobrança de cada sessão é esta tabela: o formato que
+// valia no dia dela. Ver `src/lib/vigenciaDoFormato.ts`.
+export const patientPaymentFormatHistory = pgTable("patient_payment_format_history", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  patientId: uuid("patient_id").references(() => patients.id, { onDelete: "cascade" }).notNull(),
+  formato: text("formato").notNull(), // gratuito | sessao | mensal | quinzenal | primeira_pacote | ultima_pacote
+  pacoteTipo: text("pacote_tipo"), // completo | fragmentado — trocar só isto também abre período novo
+  dataEfetiva: timestamp("data_efetiva").notNull(), // a partir de quando vale (só o DIA importa)
+  dataCriacao: timestamp("data_criacao").defaultNow().notNull(), // desempate de duas trocas no mesmo dia
+}, (t) => [
+  index("ppfh_patient_idx").on(t.patientId),
+]);
+
 export const patientContractHistory = pgTable("patient_contract_history", {
   id: uuid("id").primaryKey().defaultRandom(),
   patientId: uuid("patient_id").references(() => patients.id, { onDelete: "cascade" }).notNull(),
@@ -557,6 +574,11 @@ export const therapySessions = pgTable("therapy_sessions", {
   // sequência. Sem a marca, a devolutiva acontece fora do pacote — contá-la ali roubaria uma
   // consulta do paciente.
   abaterDoPacote: boolean("abater_do_pacote").default(false).notNull(),
+  // SESSÃO EXTRA, FORA da sequência do pacote (dono, 15/09/2026). `avul` gera cobrança própria no
+  // `valorExtra`; `grat` não gera nada. Nenhuma das duas mexe na numeração nem no valor do pacote, e
+  // as duas valem independentemente do formato de pagamento do paciente. `null` = sessão comum.
+  extra: text("extra"),
+  valorExtra: numeric("valor_extra", { precision: 10, scale: 2 }),
   // presencial | online | misto. O `isOnline` continua existindo porque meia dúzia de telas o
   // leem; ele passa a SAIR daqui, em vez de ser a fonte.
   modality: text("modality"),
@@ -629,6 +651,11 @@ export const sessionPayments = pgTable("session_payments", {
   status: paymentStatusEnum("status").default("paid").notNull(),
   kind: text("kind"), // null = pagamento normal; "pacote" = crédito de pacote (não é receita)
   packageId: uuid("package_id"), // vínculo opcional com um pacote (patient_packages)
+  // Quem pagou — a guia Geral pede "o responsável pelo pagamento", que nem sempre é o paciente.
+  pagoPor: text("pago_por"),
+  // A qual cobrança este pagamento pertence (a `chave` de `cobrancasDoPaciente`). Pagamento antigo
+  // sem chave é distribuído pela ordem de vencimento.
+  cobrancaChave: text("cobranca_chave"),
   // VINCULO OPCIONAL com o financeiro: se preenchido, este pagamento gerou uma transacao de receita.
   linkedTransactionId: uuid("linked_transaction_id").references(() => transactions.id, { onDelete: "set null" }),
   // Receita Saúde (recibo eletrônico da RF, emissão manual no app): controle de emissão por pagamento.

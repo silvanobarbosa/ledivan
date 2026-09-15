@@ -1,12 +1,13 @@
 "use server";
 
 import { db } from "@/db";
-import { patients, patientStatusHistory, patientPriceHistory, patientContractHistory, patientRecords, assignments, scaleApplications, treatmentGoals, patientPackages, therapySessions } from "@/db/schema";
+import { patients, patientStatusHistory, patientPriceHistory, patientContractHistory, patientPaymentFormatHistory, patientRecords, assignments, scaleApplications, treatmentGoals, patientPackages, therapySessions } from "@/db/schema";
 import { auth } from "@/auth";
 import { and, eq, gt, inArray, sql } from "drizzle-orm";
 import { encerraAgenda, sessoesAEncerrar } from "@/lib/encerrarAgenda";
 import { revalidatePath } from "next/cache";
-import { vencimentoDoPreco } from "@/lib/reajuste";
+import { usaPacote, vencimentoDoPreco } from "@/lib/reajuste";
+import { dataDoPreco, formatoMudou, vigenciasAGravar } from "@/lib/trocaDeFormato";
 import { redirect } from "next/navigation";
 import { put } from "@vercel/blob";
 import { sendWhatsappFromUser } from "@/lib/whatsappEvolution";
@@ -214,6 +215,14 @@ export async function createPatient(formData: FormData) {
     valor: sessionFee,
     dataEfetiva: created.startedAt ?? new Date(),
   });
+  // A primeira VIGÊNCIA do formato, desde o início do tratamento. É o que a cobrança lê para saber o
+  // formato de cada sessão; sem ela, uma troca futura tomaria o passado inteiro.
+  await db.insert(patientPaymentFormatHistory).values({
+    patientId: created.id,
+    formato: created.paymentFormat,
+    pacoteTipo: usaPacote(created.paymentFormat) ? (created.pacoteTipo === "fragmentado" ? "fragmentado" : "completo") : null,
+    dataEfetiva: created.startedAt ?? new Date(),
+  });
 
 
   revalidatePath("/dashboard/patients");
@@ -386,11 +395,46 @@ export async function updatePatient(patientId: string, formData: FormData) {
     }
   }
   if (newFee !== existing.sessionFee) {
-    const efetiva = formData.get("dataEfetiva") ? new Date(formData.get("dataEfetiva") as string) : new Date();
+    // O preço novo vale da mesma data da troca de formato, quando houve troca — senão as sessões
+    // entre a troca e hoje ficavam no preço antigo (R$ 0 de quem era gratuito). Ver `dataDoPreco`.
+    const efetiva = dataDoPreco({
+      dataEfetiva: formData.get("dataEfetiva") as string | null,
+      formatoMudou: formatoMudou(
+        { formato: existing.paymentFormat, pacoteTipo: existing.pacoteTipo },
+        { formato: newFormat, pacoteTipo: formData.has("pacoteTipo") ? ((formData.get("pacoteTipo") as string) || null) : existing.pacoteTipo },
+      ),
+      formatoDesde: formData.get("formatoDesde") as string | null,
+      hoje: new Date(),
+    });
     await db.insert(patientPriceHistory).values({ patientId, valor: newFee, dataEfetiva: efetiva });
   }
+  // VIGÊNCIA DO FORMATO (dono, 15/09/2026): a troca vale a partir da data escolhida no formulário e
+  // não mexe no que aconteceu antes. A regra de o que gravar mora em `trocaDeFormato.ts`.
+  {
+    const novoPacoteTipo = formData.has("pacoteTipo") ? ((formData.get("pacoteTipo") as string) || null) : existing.pacoteTipo;
+    const [algum] = await db.select({ id: patientPaymentFormatHistory.id })
+      .from(patientPaymentFormatHistory)
+      .where(eq(patientPaymentFormatHistory.patientId, patientId))
+      .limit(1);
+    const linhas = vigenciasAGravar({
+      anterior: { formato: existing.paymentFormat, pacoteTipo: existing.pacoteTipo },
+      novo: { formato: newFormat, pacoteTipo: novoPacoteTipo },
+      desde: formData.get("formatoDesde") as string | null,
+      hoje: new Date(),
+      jaTemHistorico: !!algum,
+      inicioDoPaciente: existing.startedAt ?? existing.createdAt,
+    });
+    if (linhas.length) {
+      await db.insert(patientPaymentFormatHistory).values(linhas.map((l) => ({ patientId, ...l })));
+    }
+  }
   if ((existing.paymentFormat || "avulso") !== (newFormat || "avulso") || (existing.frequency || "") !== (newFreq || "")) {
-    const FMT: Record<string, string> = { avulso: "Avulso", mensal: "Mensal", quinzenal: "Quinzenal", pacote: "Pacote" };
+    // O mapa só conhecia os formatos antigos: "gratuito" e "sessao" iam para o histórico como chave
+    // crua, e "mensal" como rótulo — a mesma tela misturava as duas coisas.
+    const FMT: Record<string, string> = {
+      avulso: "Avulso", pacote: "Pacote", gratuito: "Gratuito", sessao: "A cada sessão", mensal: "Mensal",
+      quinzenal: "Quinzenal", primeira_pacote: "Na primeira sessão do pacote", ultima_pacote: "Na última sessão do pacote",
+    };
     await db.insert(patientContractHistory).values({
       patientId, type: "model",
       from: `${existing.frequency || "—"} · ${FMT[existing.paymentFormat || "avulso"] || existing.paymentFormat}`,
