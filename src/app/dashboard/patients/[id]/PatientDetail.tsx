@@ -17,6 +17,8 @@ import { PatientFeatures } from "./PatientFeatures";
 import { SessionSummary } from "./SessionSummary";
 import { TreatmentPlan } from "./TreatmentPlan";
 import { TimelineTab } from "./TimelineTab";
+import { GeralTab } from "./GeralTab";
+import type { LinhaNaTela } from "@/lib/geralDoPaciente";
 import { AnamneseForm } from "./AnamneseForm";
 import { DailyStatusPanel } from "./DailyStatusPanel";
 import { InfoTip } from "@/components/InfoTip";
@@ -39,7 +41,7 @@ import { Phone, Mail, MapPin, Plus, Link2, Pencil, Trash2, Video, Mic, Loader2, 
 const FMT_LABEL: Record<string, string> = { avulso: "Avulso", mensal: "Mensal", quinzenal: "Quinzenal", pacote: "Pacote" };
 
 type Patient = {
-  id: string; name: string; email: string | null; phone: string | null;
+  id: string; name: string; email: string | null; phone: string | null; guardianName?: string | null;
   sessionFee: string; frequency: string | null; notes: string | null;
   patientStatus: string; paymentStatus: string; startedAt: string | null; address: string | null;
   schoolName: string | null; schoolContact: string | null;
@@ -72,10 +74,10 @@ const PATIENT_STATUS_LABELS: Record<string, string> = { ativo: "Ativo", pausado:
 
 const inputCls = "w-full px-4 py-2.5 rounded-xl bg-white/70 border border-border focus:ring-2 focus:ring-accent/20 focus:border-accent outline-none transition text-sm";
 
-const TABS = ["Dados", "Prontuário", "Atividades", "Materiais", "Sessões", "Financeiro", "Linha do tempo"] as const;
+const TABS = ["Dados", "Geral", "Prontuário", "Atividades", "Materiais", "Sessões", "Financeiro", "Linha do tempo"] as const;
 
 export function PatientDetail({
-  patient, sessions, payments, statusHistory, priceHistory, records, transcriptionEnabled, risk, assignments, moodToken, moodLogs, scales, treatmentGoals, diaryEntries = [], ratings = [], consents = [], packageLabels = {}, locations = [], contractHistory = [], finance, ledger = [], sessionStats, packageInfo, recurring, statusEnabled = false, dailyStatus = [], sharedWritings = [],
+  patient, sessions, payments, statusHistory, priceHistory, records, transcriptionEnabled, risk, assignments, moodToken, moodLogs, scales, treatmentGoals, diaryEntries = [], ratings = [], consents = [], packageLabels = {}, locations = [], contractHistory = [], finance, ledger = [], sessionStats, packageInfo, recurring, statusEnabled = false, dailyStatus = [], sharedWritings = [], geral = [],
 }: {
   patient: Patient; sessions: Session[]; payments: Payment[];
   statusHistory: StatusEntry[]; priceHistory: PriceEntry[]; records: RecordEntry[];
@@ -100,6 +102,8 @@ export function PatientDetail({
   statusEnabled?: boolean;
   dailyStatus?: { id: string; emoji: string; mood: number | null; text: string | null; createdAt: string; reactionEmoji: string | null; reactionText: string | null; reactionAt: string | null }[];
   sharedWritings?: { id: string; promptTitle: string | null; content: string; sharedAt: string | null; createdAt: string }[];
+  /** Guia Geral: sessões e pagamentos, prontos do motor único. */
+  geral?: LinhaNaTela[];
 }) {
   const router = useRouter();
   const [tab, setTab] = useState<(typeof TABS)[number]>("Dados");
@@ -307,6 +311,11 @@ export function PatientDetail({
           </button>
         ))}
       </div>
+
+      {/* Geral */}
+      {tab === "Geral" && (
+        <GeralTab patientId={patient.id} linhas={geral} responsavel={patient.guardianName || patient.name} />
+      )}
 
       {/* Dados */}
       {tab === "Dados" && (

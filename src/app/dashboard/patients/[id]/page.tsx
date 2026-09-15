@@ -19,6 +19,7 @@ import { parseLocations } from "@/lib/locations";
 import { derivePackageLabels } from "@/lib/packages";
 import { resolveFeature, parseOverrides } from "@/lib/features";
 import { horaDeParede } from "@/lib/horaLocal";
+import { geralDoPaciente } from "@/lib/geralDoPaciente";
 
 export default async function PatientPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -50,6 +51,8 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
     db.query.sessionRatings.findMany({ where: eq(sessionRatings.patientId, id), orderBy: [desc(sessionRatings.createdAt)], limit: 100 }),
     db.query.patientConsents.findMany({ where: eq(patientConsents.patientId, id), orderBy: [desc(patientConsents.acceptedAt)], limit: 20 }),
   ]);
+
+  const geral = (await geralDoPaciente(userId, id)) ?? [];
 
   const prefs = (() => { try { return me?.preferences ? JSON.parse(me.preferences) : {}; } catch { return {}; } })();
   const locations = parseLocations(me?.attendanceLocations);
@@ -183,6 +186,7 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
         statusEnabled={statusEnabled}
         dailyStatus={JSON.parse(JSON.stringify(dailyStatus))}
         sharedWritings={JSON.parse(JSON.stringify(sharedWritings))}
+        geral={geral}
       />
     </div>
   );

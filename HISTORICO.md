@@ -7,6 +7,55 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-09-15 — Formato de pagamento com data, sessão fora do pacote, guia Geral
+
+**Entregue:** #165 (vigência do formato + motor único de cobranças), #166 (sessão fora da
+sequência: AVUL/GRAT) e o PR da guia Geral com "Lançar pagamento". Tudo a partir do documento do
+dono de 15/09 e da regra do Gratuito.
+
+**Por quê:** "o Financeiro não salva" era outra coisa — salvava, mas `patients.payment_format` não
+tinha data e a Fechamento o aplicava ao passado inteiro: trocar de gratuito para pago transformava
+agosto, atendido de graça, em R$ 800 de dívida; o inverso escondia crédito como "sem cobrança". O
+paciente de teste alternou quatro vezes o formato achando que a troca não pegava.
+
+**Decisões que ficam valendo:**
+
+- **Formato tem vigência** (`patient_payment_format_history`). A troca vale a partir da data que o
+  profissional escolhe; nada passado é criado, apagado ou alterado. Backfill: 1 linha por paciente
+  com o formato atual desde o início (congelar, não reconstruir — `patient_contract_history`
+  guarda rótulo, e replicá-lo inventaria cobrança).
+- **Um motor só** (`src/lib/cobrancas.ts`): Fechamento, agenda (rótulo 1/4, AVUL, GRAT) e guia
+  Geral leem a mesma conta. `competencia` (quando entra na Fechamento: fechamento da sequência, ou
+  abertura na "primeira do pacote") é separada de `vencimento` (o dia de cobrar, na Geral).
+- **Preço novo nasce na data da troca do formato**, não hoje — senão as sessões entre a data da
+  troca e hoje caem no preço antigo (achado no e2e, não em teste unitário).
+- **Sessão extra** (`therapy_sessions.extra` = `avul`/`grat`, `valor_extra`): fora da sequência,
+  independente do formato. A pergunta só aparece se o formato NA DATA usa pacote, e o servidor lê o
+  formato do banco, não do formulário.
+- **Pagamento se prende à cobrança pela chave** (`session_payments.cobranca_chave`); os antigos,
+  sem chave, quitam por ordem de vencimento. O valor lançado é o que falta, refeito no servidor.
+- **Situação na Geral**: a primeira cobrança fica em aberto até ser paga; as demais "a vencer" até
+  o dia do vencimento.
+
+**Armadilhas:**
+
+- Teste que passa pelo caminho errado: o de "pagamento com chave" usava uma chave inexistente e
+  passava pela distribuição por vencimento. Só apareceu lendo o log do e2e. Mutante confirmou.
+- A transação de caixa criada pelo pagamento **não** cai em cascata com o paciente — e2e tem de
+  apagá-la pelo `linked_transaction_id`.
+- Função assíncrona exportada de arquivo `"use server"` vira endpoint: `ensureSessionCategory`
+  (recebe `userId`) saiu para `src/lib/categoriaSessoes.ts`.
+- e2e em aba fechada: clicar no rádio escondido muda o DOM e a tela não reage. Agir como pessoa.
+
+**Pendente (do dono):**
+
+- Gratuito na Geral mostra R$ 0,00 (como o exemplo do documento); o texto dizia "nenhum valor".
+- No formato "a cada sessão" a devolutiva continua cobrada (comportamento anterior preservado).
+- Os cartões antigos do topo do paciente ("sessões de crédito") ainda usam a conta antiga do
+  `fee` da sessão, e divergem da Geral.
+
+---
+
 ## 2026-09-14 — O celular, e a hora que andava 3h até a tela
 
 **Entregue:** #158, #162 e #163, a partir de dois documentos das beta testers usando o produto no

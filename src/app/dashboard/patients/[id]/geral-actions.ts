@@ -1,0 +1,90 @@
+"use server";
+
+import { eq } from "drizzle-orm";
+import { revalidatePath } from "next/cache";
+import { db } from "@/db";
+import { auth } from "@/auth";
+import { financialAccounts, patients, sessionPayments, transactions } from "@/db/schema";
+import { ensureSessionCategory } from "@/lib/categoriaSessoes";
+import { geralDoPaciente } from "@/lib/geralDoPaciente";
+import { diaDoFormulario } from "@/lib/trocaDeFormato";
+
+/**
+ * "Lançar pagamento" da guia Geral: data, responsável e forma. Mais nada vem do formulário.
+ *
+ * O VALOR é o que falta na cobrança, refeito aqui pelo mesmo motor da tela. Aceitar valor do
+ * navegador deixaria qualquer um quitar R$ 520 com R$ 1. E a cobrança tem de existir para ESTE
+ * paciente DESTE profissional — a chave é texto que qualquer um digita.
+ */
+
+const METODOS = new Set(["pix", "card", "cash", "transfer"]);
+
+export async function lancarPagamento(entrada: {
+  patientId: string;
+  cobrancaChave: string;
+  data: string;
+  pagoPor: string;
+  metodo: string;
+}): Promise<{ ok: boolean; error?: string }> {
+  const session = await auth();
+  if (!session?.user?.id) return { ok: false, error: "Sessão inválida." };
+  const userId = session.user.id;
+
+  const patientId = String(entrada?.patientId ?? "");
+  const chave = String(entrada?.cobrancaChave ?? "").slice(0, 200);
+  const metodo = String(entrada?.metodo ?? "");
+  const pagoPor = String(entrada?.pagoPor ?? "").trim().slice(0, 120);
+  const dia = diaDoFormulario(entrada?.data);
+
+  if (!/^[0-9a-f-]{36}$/i.test(patientId)) return { ok: false, error: "Paciente inválido." };
+  if (!dia) return { ok: false, error: "Informe a data do pagamento." };
+  if (!pagoPor) return { ok: false, error: "Informe quem pagou." };
+  if (!METODOS.has(metodo)) return { ok: false, error: "Escolha a forma de pagamento." };
+
+  const linhas = await geralDoPaciente(userId, patientId);
+  if (!linhas) return { ok: false, error: "Paciente não encontrado." };
+
+  const cobranca = linhas
+    .flatMap((l) => (l.tipo === "pagamento" ? [l] : l.cobranca ? [l.cobranca] : []))
+    .find((c) => c.chave === chave);
+  if (!cobranca) return { ok: false, error: "Cobrança não encontrada." };
+  if (cobranca.situacao === "pago" || cobranca.falta <= 0) return { ok: false, error: "Esta cobrança já está paga." };
+
+  const [paciente] = await db.select({ name: patients.name }).from(patients).where(eq(patients.id, patientId));
+  const amount = cobranca.falta.toFixed(2);
+  // Meio-dia: a coluna é hora de parede, e meio-dia não troca de dia em fuso nenhum do caminho.
+  const date = new Date(`${entrada.data}T12:00:00`);
+
+  // Todo pagamento PAGO entra no caixa — mesma regra do "Registrar pagamento".
+  const categoryId = await ensureSessionCategory(userId);
+  const account = await db.query.financialAccounts.findFirst({ where: eq(financialAccounts.userId, userId) });
+  const [tx] = await db.insert(transactions).values({
+    userId,
+    accountId: account?.id ?? null,
+    amount,
+    type: "income",
+    categoryId,
+    description: `Sessão — ${paciente?.name ?? ""}`,
+    date,
+    source: "session_payment",
+  }).returning();
+
+  await db.insert(sessionPayments).values({
+    userId,
+    patientId,
+    // Cobrança de UMA sessão: preenche o vínculo que a agenda usa para tirar o "pagamento atrasado".
+    sessionId: /^(sessao|extra):[0-9a-f-]{36}$/i.test(chave) ? chave.split(":")[1] : null,
+    amount,
+    date,
+    method: metodo as "pix" | "card" | "cash" | "transfer",
+    status: "paid",
+    pagoPor,
+    cobrancaChave: chave,
+    linkedTransactionId: tx.id,
+  });
+
+  revalidatePath(`/dashboard/patients/${patientId}`);
+  revalidatePath("/dashboard/fechamento");
+  revalidatePath("/dashboard/transactions");
+  return { ok: true };
+}

@@ -1,0 +1,178 @@
+"use client";
+
+import { Fragment, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import { MapPin, Video } from "lucide-react";
+import { formatBRL, PAYMENT_METHOD_LABELS } from "@/lib/therapy";
+import type { CobrancaNaTela, LinhaNaTela } from "@/lib/geralDoPaciente";
+import { lancarPagamento } from "./geral-actions";
+
+/**
+ * A guia Geral: sessões e pagamentos numa tabela só, na ordem em que acontecem.
+ *
+ * As linhas chegam prontas do servidor (`geralDoPaciente`) — a tela só desenha. Quem decide onde
+ * vai cada pagamento, quanto vale e se está em aberto é o motor único de cobranças.
+ */
+
+// Texto de hora de parede ("2026-09-01T09:00:00") → partes, sem passar por fuso.
+const partes = (t: string) => {
+  const [d, h = ""] = t.split("T");
+  const [a, m, dia] = d.split("-");
+  return { data: `${dia}/${m}/${a.slice(2)}`, hora: h.slice(0, 5) };
+};
+
+const SITUACAO: Record<CobrancaNaTela["situacao"], { rotulo: string; cls: string }> = {
+  pago: { rotulo: "Pago", cls: "bg-[#dcfce7] text-[#166534]" },
+  em_aberto: { rotulo: "Em aberto", cls: "bg-[#fee2e2] text-[#991b1b]" },
+  a_vencer: { rotulo: "A vencer", cls: "bg-surface text-foreground/60" },
+};
+
+const hojeISO = () => {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+};
+
+function ColunasDoPagamento({ c, onLancar }: { c: CobrancaNaTela; onLancar: () => void }) {
+  if (c.pagamento) {
+    return (
+      <>
+        <td className="px-3 py-2"><span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${SITUACAO.pago.cls}`}>Pago</span></td>
+        <td className="px-3 py-2 tabular-nums">{partes(c.pagamento.data).data}</td>
+        <td className="px-3 py-2">{c.pagamento.pagoPor || "—"}</td>
+        <td className="px-3 py-2">{c.pagamento.metodo ? PAYMENT_METHOD_LABELS[c.pagamento.metodo] ?? c.pagamento.metodo : "—"}</td>
+      </>
+    );
+  }
+  const s = SITUACAO[c.situacao];
+  return (
+    <>
+      <td className="px-3 py-2">
+        <div className="flex items-center gap-2">
+          <button type="button" onClick={onLancar} className="text-xs font-bold text-white bg-primary px-3 py-1.5 rounded-lg hover:opacity-90 whitespace-nowrap">
+            Lançar pagamento
+          </button>
+          <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap ${s.cls}`}>{s.rotulo}</span>
+        </div>
+      </td>
+      <td className="px-3 py-2 text-foreground/30">—</td>
+      <td className="px-3 py-2 text-foreground/30">—</td>
+      <td className="px-3 py-2 text-foreground/30">—</td>
+    </>
+  );
+}
+
+function FormularioDeLancamento({ patientId, c, responsavel, fechar }: { patientId: string; c: CobrancaNaTela; responsavel: string; fechar: () => void }) {
+  const router = useRouter();
+  const [pending, start] = useTransition();
+  const [erro, setErro] = useState<string | null>(null);
+
+  function enviar(fd: FormData) {
+    setErro(null);
+    start(async () => {
+      const r = await lancarPagamento({
+        patientId,
+        cobrancaChave: c.chave,
+        data: String(fd.get("data") ?? ""),
+        pagoPor: String(fd.get("pagoPor") ?? ""),
+        metodo: String(fd.get("metodo") ?? ""),
+      });
+      if (r.ok) { fechar(); router.refresh(); }
+      else setErro(r.error ?? "Não foi possível lançar.");
+    });
+  }
+
+  return (
+    <tr>
+      <td colSpan={7} className="px-3 pb-3">
+        <form action={enviar} className="rounded-xl bg-surface/70 border border-border p-3 grid gap-2 sm:grid-cols-[auto_1fr_auto_auto_auto] items-end" data-testid="lancar-pagamento">
+          <div>
+            <label className="text-[11px] font-semibold text-foreground/60 block">Data do pagamento</label>
+            <input name="data" type="date" required defaultValue={hojeISO()} className="px-3 py-2 rounded-lg bg-white border border-border text-sm" />
+          </div>
+          <div>
+            <label className="text-[11px] font-semibold text-foreground/60 block">Responsável pelo pagamento</label>
+            <input name="pagoPor" required defaultValue={responsavel} className="w-full px-3 py-2 rounded-lg bg-white border border-border text-sm" />
+          </div>
+          <div>
+            <label className="text-[11px] font-semibold text-foreground/60 block">Forma</label>
+            <select name="metodo" defaultValue="pix" className="px-3 py-2 rounded-lg bg-white border border-border text-sm">
+              {Object.entries(PAYMENT_METHOD_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+            </select>
+          </div>
+          <button disabled={pending} className="bg-primary text-white px-4 py-2 rounded-lg font-bold text-sm disabled:opacity-60">
+            {pending ? "Salvando…" : `Confirmar ${formatBRL(c.falta)}`}
+          </button>
+          <button type="button" onClick={fechar} className="text-foreground/50 text-sm px-2 py-2">Cancelar</button>
+          {erro && <p className="sm:col-span-5 text-xs text-[#b91c1c]">{erro}</p>}
+        </form>
+      </td>
+    </tr>
+  );
+}
+
+export function GeralTab({ patientId, linhas, responsavel }: { patientId: string; linhas: LinhaNaTela[]; responsavel: string }) {
+  const [aberta, setAberta] = useState<string | null>(null);
+
+  if (!linhas.length) {
+    return <div className="glass-card rounded-[24px] p-6 text-sm text-foreground/50">Nenhuma sessão registrada ainda.</div>;
+  }
+
+  return (
+    <div className="glass-card rounded-[24px] p-2 sm:p-4">
+      <div className="overflow-x-auto">
+        <table className="w-full text-sm" data-testid="guia-geral">
+          <thead>
+            <tr className="text-left text-[11px] uppercase tracking-widest text-foreground/40">
+              <th className="px-3 py-2 font-bold">Data / hora</th>
+              <th className="px-3 py-2 font-bold">Sessão</th>
+              <th className="px-3 py-2 font-bold text-right">Valor</th>
+              <th className="px-3 py-2 font-bold">Pagamento</th>
+              <th className="px-3 py-2 font-bold">Pago em</th>
+              <th className="px-3 py-2 font-bold">Responsável</th>
+              <th className="px-3 py-2 font-bold">Forma</th>
+            </tr>
+          </thead>
+          <tbody>
+            {linhas.map((l) => {
+              if (l.tipo === "pagamento") {
+                const venc = l.vencimento ? partes(l.vencimento).data : null;
+                return (
+                  <Fragment key={l.chave}>
+                    <tr className="border-t border-border bg-[#fef9ec]" data-chave={l.chave}>
+                      <td className="px-3 py-2 tabular-nums font-semibold">{l.pagamento ? partes(l.pagamento.data).data : "__/__/__"}</td>
+                      <td className="px-3 py-2">
+                        <span className="font-bold text-[#92400e]">Pagamento{l.parte ? ` ${l.parte}/2` : ""}</span>
+                        <span className="block text-[11px] text-foreground/50">{l.sessoes} {l.sessoes === 1 ? "sessão" : "sessões"}{venc ? ` · vence ${venc}` : ""}</span>
+                      </td>
+                      <td className="px-3 py-2 text-right tabular-nums font-bold">{formatBRL(l.valor)}</td>
+                      <ColunasDoPagamento c={l} onLancar={() => setAberta(l.chave)} />
+                    </tr>
+                    {aberta === l.chave && <FormularioDeLancamento patientId={patientId} c={l} responsavel={responsavel} fechar={() => setAberta(null)} />}
+                  </Fragment>
+                );
+              }
+              const p = partes(l.data);
+              const c = l.cobranca;
+              return (
+                <Fragment key={l.id}>
+                  <tr className="border-t border-border" data-sessao={l.id}>
+                    <td className="px-3 py-2 tabular-nums whitespace-nowrap">
+                      <span className="inline-flex items-center gap-1.5">
+                        {p.data} {p.hora}
+                        {l.online ? <Video className="w-3.5 h-3.5 text-primary" aria-label="online" /> : <MapPin className="w-3.5 h-3.5 text-foreground/30" aria-label="presencial" />}
+                      </span>
+                    </td>
+                    <td className="px-3 py-2 font-semibold tabular-nums">{l.rotulo || "—"}</td>
+                    <td className="px-3 py-2 text-right tabular-nums">{l.valor == null ? "" : formatBRL(l.valor)}</td>
+                    {c ? <ColunasDoPagamento c={c} onLancar={() => setAberta(c.chave)} /> : <td colSpan={4} />}
+                  </tr>
+                  {c && aberta === c.chave && <FormularioDeLancamento patientId={patientId} c={c} responsavel={responsavel} fechar={() => setAberta(null)} />}
+                </Fragment>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+}
