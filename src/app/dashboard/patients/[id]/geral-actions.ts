@@ -1,12 +1,12 @@
 "use server";
 
-import { eq } from "drizzle-orm";
+import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { db } from "@/db";
 import { auth } from "@/auth";
-import { financialAccounts, patients, sessionPayments, transactions } from "@/db/schema";
+import { cobrancaEnvios, financialAccounts, patients, sessionPayments, transactions } from "@/db/schema";
 import { ensureSessionCategory } from "@/lib/categoriaSessoes";
-import { geralDoPaciente } from "@/lib/geralDoPaciente";
+import { geralDoPaciente, hojeDeParede } from "@/lib/geralDoPaciente";
 import { diaDoFormulario } from "@/lib/trocaDeFormato";
 
 /**
@@ -86,5 +86,64 @@ export async function lancarPagamento(entrada: {
   revalidatePath(`/dashboard/patients/${patientId}`);
   revalidatePath("/dashboard/fechamento");
   revalidatePath("/dashboard/transactions");
+  return { ok: true };
+}
+
+/** Valida a dupla paciente+cobrança para as ações de envio. Devolve o userId ou um erro. */
+async function contexto(patientId: string, chave: string): Promise<{ userId: string } | { error: string }> {
+  const session = await auth();
+  if (!session?.user?.id) return { error: "Sessão inválida." };
+  if (!/^[0-9a-f-]{36}$/i.test(patientId)) return { error: "Paciente inválido." };
+  const userId = session.user.id;
+
+  const geral = await geralDoPaciente(userId, patientId);
+  if (!geral) return { error: "Paciente não encontrado." };
+  const existe = geral.linhas
+    .flatMap((l) => (l.tipo === "pagamento" ? [l.chave] : l.cobranca ? [l.cobranca.chave] : []))
+    .includes(chave);
+  if (!existe) return { error: "Cobrança não encontrada." };
+  return { userId };
+}
+
+/**
+ * Marca uma cobrança como ENVIADA ao paciente — o "hoje ela só mostra" da guia Geral (dono, 13/09).
+ *
+ * Não envia nada: registra o FATO de que a terapeuta avisou o paciente daquela cobrança, com o dia e
+ * quem marcou. Marcar de novo é reenvio: o índice único faz virar atualização da data, não linha nova.
+ */
+export async function marcarCobrancaEnviada(entrada: { patientId: string; cobrancaChave: string }): Promise<{ ok: boolean; error?: string }> {
+  const patientId = String(entrada?.patientId ?? "");
+  const chave = String(entrada?.cobrancaChave ?? "").slice(0, 200);
+  const ctx = await contexto(patientId, chave);
+  if ("error" in ctx) return { ok: false, error: ctx.error };
+
+  const session = await auth();
+  const h = hojeDeParede();
+  // Dia SP ao meio-dia em UTC: a hora de parede fica nos campos UTC e o dia não escorrega no fuso.
+  const enviadaEm = new Date(Date.UTC(h.getFullYear(), h.getMonth(), h.getDate(), 12));
+
+  await db.insert(cobrancaEnvios)
+    .values({ userId: ctx.userId, patientId, cobrancaChave: chave, enviadaEm, enviadaPor: session?.user?.name ?? null })
+    .onConflictDoUpdate({
+      target: [cobrancaEnvios.userId, cobrancaEnvios.patientId, cobrancaEnvios.cobrancaChave],
+      set: { enviadaEm, enviadaPor: session?.user?.name ?? null },
+    });
+
+  revalidatePath(`/dashboard/patients/${patientId}`);
+  return { ok: true };
+}
+
+/** Desfaz a marca de enviada (marquei por engano). */
+export async function desmarcarCobrancaEnviada(entrada: { patientId: string; cobrancaChave: string }): Promise<{ ok: boolean; error?: string }> {
+  const patientId = String(entrada?.patientId ?? "");
+  const chave = String(entrada?.cobrancaChave ?? "").slice(0, 200);
+  const ctx = await contexto(patientId, chave);
+  if ("error" in ctx) return { ok: false, error: ctx.error };
+
+  await db.delete(cobrancaEnvios).where(
+    and(eq(cobrancaEnvios.userId, ctx.userId), eq(cobrancaEnvios.patientId, patientId), eq(cobrancaEnvios.cobrancaChave, chave)),
+  );
+
+  revalidatePath(`/dashboard/patients/${patientId}`);
   return { ok: true };
 }

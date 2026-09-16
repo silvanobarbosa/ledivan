@@ -38,9 +38,17 @@ export type PagamentoDaGeral = {
   kind?: string | null;
 };
 
+/** O fato de uma cobrança ter sido avisada ao paciente. Uma por `cobrancaChave`. */
+export type EnvioDaGeral = {
+  cobrancaChave: string;
+  enviadaEm: Date | string;
+  enviadaPor?: string | null;
+};
+
 export type EntradaDaGeral = Omit<EntradaDasCobrancas, "sessoes"> & {
   sessoes: (SessaoDaCobranca & { online?: boolean | null })[];
   pagamentos: PagamentoDaGeral[];
+  envios?: EnvioDaGeral[];
   hoje: Date;
 };
 
@@ -48,11 +56,16 @@ export type Situacao = "pago" | "em_aberto" | "a_vencer";
 
 export type PagamentoLancado = { id: string; data: Date; metodo: string | null; pagoPor: string | null };
 
+/** Marca de "avisada ao paciente" que a tela pinta ao lado da cobrança. */
+export type EnvioLancado = { data: Date; por: string | null };
+
 export type CobrancaDaGeral = Cobranca & {
   situacao: Situacao;
   /** O que ainda falta receber — é o valor que "Lançar pagamento" grava. */
   falta: number;
   pagamento: PagamentoLancado | null;
+  /** Preenchido quando a cobrança já foi avisada ao paciente. */
+  envio: EnvioLancado | null;
 };
 
 export type LinhaDaGeral =
@@ -73,7 +86,20 @@ export type LinhaDaGeral =
 const TOLERANCIA = 0.005;
 const emData = (d: Date | string) => (d instanceof Date ? d : new Date(d));
 
-function casarPagamentos(cobrancas: Cobranca[], pagamentos: PagamentoDaGeral[], hoje: Date): CobrancaDaGeral[] {
+/** Mapa chave → envio, ficando com o mais RECENTE quando houver mais de um (reenvio). */
+function mapaDeEnvios(envios: EnvioDaGeral[]): Map<string, EnvioLancado> {
+  const m = new Map<string, EnvioLancado>();
+  for (const e of envios) {
+    const data = emData(e.enviadaEm);
+    if (Number.isNaN(data.getTime())) continue;
+    const atual = m.get(e.cobrancaChave);
+    if (!atual || data.getTime() > atual.data.getTime()) m.set(e.cobrancaChave, { data, por: e.enviadaPor ?? null });
+  }
+  return m;
+}
+
+function casarPagamentos(cobrancas: Cobranca[], pagamentos: PagamentoDaGeral[], hoje: Date, envios: EnvioDaGeral[] = []): CobrancaDaGeral[] {
+  const enviosPorChave = mapaDeEnvios(envios);
   const pagos = pagamentos
     .filter((p) => p.status === "paid")
     .map((p) => ({ ...p, valor: Number(p.valor) || 0, data: emData(p.data) }))
@@ -122,14 +148,14 @@ function casarPagamentos(cobrancas: Cobranca[], pagamentos: PagamentoDaGeral[], 
     const vence = c.vencimento ?? c.competencia;
     const situacao: Situacao = pago ? "pago" : i === 0 || !vence || new Date(vence.getFullYear(), vence.getMonth(), vence.getDate()).getTime() <= hojeDia ? "em_aberto" : "a_vencer";
     const falta = pago ? 0 : Math.round((c.valor - (recebido.get(c.chave) ?? 0)) * 100) / 100;
-    return { ...c, situacao, falta, pagamento: pago ? (ultimo.get(c.chave) ?? null) : null };
+    return { ...c, situacao, falta, pagamento: pago ? (ultimo.get(c.chave) ?? null) : null, envio: enviosPorChave.get(c.chave) ?? null };
   });
 }
 
 const comoLinha = ({ tipo, ...c }: CobrancaDaGeral): LinhaDaGeral => ({ ...c, tipo: "pagamento", tipoDeCobranca: tipo });
 
 export function linhasDaGeral(e: EntradaDaGeral): LinhaDaGeral[] {
-  const cobrancas = casarPagamentos(cobrancasDoPaciente(e), e.pagamentos, e.hoje);
+  const cobrancas = casarPagamentos(cobrancasDoPaciente(e), e.pagamentos, e.hoje, e.envios ?? []);
   const rotulos = rotulosDasSessoes(e);
 
   const naSessao = new Map<string, CobrancaDaGeral>();

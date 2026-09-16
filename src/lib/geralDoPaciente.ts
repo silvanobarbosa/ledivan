@@ -13,7 +13,7 @@ import "server-only";
 
 import { and, eq } from "drizzle-orm";
 import { db } from "@/db";
-import { patientPackages, patientPaymentFormatHistory, patientPriceHistory, patients, sessionPayments, therapySessions } from "@/db/schema";
+import { cobrancaEnvios, patientPackages, patientPaymentFormatHistory, patientPriceHistory, patients, sessionPayments, therapySessions } from "@/db/schema";
 import { horaDeParede } from "./horaLocal";
 import { linhasDaGeral, resumoDaGeral, type CobrancaDaGeral, type EntradaDaGeral, type LinhaDaGeral } from "./guiaGeral";
 import { tamanhosDasSequencias } from "./sequenciaPacote";
@@ -33,10 +33,12 @@ export function hojeDeParede(agora = new Date()): Date {
   return new Date(Number(p.year), Number(p.month) - 1, Number(p.day), Number(p.hour) % 24, Number(p.minute));
 }
 
-export type CobrancaNaTela = Omit<CobrancaDaGeral, "vencimento" | "competencia" | "pagamento" | "ids" | "posicao" | "tipo"> & {
+export type CobrancaNaTela = Omit<CobrancaDaGeral, "vencimento" | "competencia" | "pagamento" | "envio" | "ids" | "posicao" | "tipo"> & {
   tipoDeCobranca: CobrancaDaGeral["tipo"];
   vencimento: string | null;
   pagamento: { id: string; data: string; metodo: string | null; pagoPor: string | null } | null;
+  /** Preenchido quando a cobrança já foi avisada ao paciente (`data` = hora de parede). */
+  envio: { data: string; por: string | null } | null;
 };
 
 export type LinhaNaTela =
@@ -55,6 +57,7 @@ function cobrancaNaTela(c: Omit<CobrancaDaGeral, "tipo"> & { tipoDeCobranca: Cob
     situacao: c.situacao,
     vencimento: texto(c.vencimento ?? c.competencia),
     pagamento: c.pagamento ? { ...c.pagamento, data: texto(c.pagamento.data) ?? "" } : null,
+    envio: c.envio ? { data: texto(c.envio.data) ?? "", por: c.envio.por } : null,
   };
 }
 
@@ -89,7 +92,7 @@ export async function geralDoPaciente(userId: string, patientId: string): Promis
   });
   if (!paciente) return null;
 
-  const [sessoes, pagamentos, precos, pacotes, vigencias] = await Promise.all([
+  const [sessoes, pagamentos, precos, pacotes, vigencias, envios] = await Promise.all([
     db.select({ id: therapySessions.id, date: therapySessions.date, status: therapySessions.status, sessionKind: therapySessions.sessionKind, abaterDoPacote: therapySessions.abaterDoPacote, chargeable: therapySessions.chargeable, extra: therapySessions.extra, valorExtra: therapySessions.valorExtra, isOnline: therapySessions.isOnline })
       .from(therapySessions).where(and(eq(therapySessions.patientId, patientId), eq(therapySessions.userId, userId))),
     db.select({ id: sessionPayments.id, amount: sessionPayments.amount, date: sessionPayments.date, status: sessionPayments.status, method: sessionPayments.method, pagoPor: sessionPayments.pagoPor, cobrancaChave: sessionPayments.cobrancaChave, kind: sessionPayments.kind })
@@ -100,6 +103,8 @@ export async function geralDoPaciente(userId: string, patientId: string): Promis
       .from(patientPackages).where(and(eq(patientPackages.patientId, patientId), eq(patientPackages.userId, userId))),
     db.select({ formato: patientPaymentFormatHistory.formato, pacoteTipo: patientPaymentFormatHistory.pacoteTipo, desde: patientPaymentFormatHistory.dataEfetiva, criadoEm: patientPaymentFormatHistory.dataCriacao })
       .from(patientPaymentFormatHistory).where(eq(patientPaymentFormatHistory.patientId, patientId)),
+    db.select({ cobrancaChave: cobrancaEnvios.cobrancaChave, enviadaEm: cobrancaEnvios.enviadaEm, enviadaPor: cobrancaEnvios.enviadaPor })
+      .from(cobrancaEnvios).where(and(eq(cobrancaEnvios.patientId, patientId), eq(cobrancaEnvios.userId, userId))),
   ]);
 
   const entrada: EntradaDaGeral = {
@@ -112,6 +117,7 @@ export async function geralDoPaciente(userId: string, patientId: string): Promis
     diaPagamento: paciente.paymentDay,
     diaPagamento2: paciente.paymentDay2,
     pagamentos: pagamentos.map((p) => ({ id: p.id, valor: p.amount, data: local(p.date), status: p.status, metodo: p.method, pagoPor: p.pagoPor, cobrancaChave: p.cobrancaChave, kind: p.kind })),
+    envios: envios.map((e) => ({ cobrancaChave: e.cobrancaChave, enviadaEm: local(e.enviadaEm), enviadaPor: e.enviadaPor })),
     hoje: hojeDeParede(),
   };
   const resumo = resumoDaGeral(entrada);

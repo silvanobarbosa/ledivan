@@ -238,3 +238,43 @@ describe("o saldo único — o mesmo número nos cartões, no Financeiro e na Ge
     expect(r.extrato[1].pagamentoId).toBe("a");
   });
 });
+
+describe("cobrança enviada (avisada ao paciente)", () => {
+  const sess = [terca(1), terca(8), terca(15), terca(22)];
+  const chaveDoPagamento = (linhas: LinhaDaGeral[]) => (linhas[0].tipo === "pagamento" ? linhas[0].chave : "");
+
+  it("sem envios, a cobrança não tem marca", () => {
+    const [p] = geral("mensal", sess);
+    expect(p.tipo === "pagamento" && p.envio).toBeNull();
+  });
+
+  it("marca a cobrança cuja chave casa, com quem enviou", () => {
+    const chave = chaveDoPagamento(geral("mensal", sess));
+    const [p] = geral("mensal", sess, { envios: [{ cobrancaChave: chave, enviadaEm: new Date(2026, 8, 10), enviadaPor: "Gisele" }] });
+    expect(p.tipo === "pagamento" && p.envio?.por).toBe("Gisele");
+    expect(p.tipo === "pagamento" && p.envio?.data.getTime()).toBe(new Date(2026, 8, 10).getTime());
+  });
+
+  it("na cobrança de cada sessão, a marca fica na linha da sessão", () => {
+    const linhas0 = geral("sessao", [terca(1)]);
+    const chave = linhas0[0].tipo === "sessao" ? linhas0[0].cobranca!.chave : "";
+    const [l] = geral("sessao", [terca(1)], { envios: [{ cobrancaChave: chave, enviadaEm: new Date(2026, 8, 2), enviadaPor: "Gisele" }] });
+    expect(l.tipo === "sessao" && l.cobranca?.envio?.por).toBe("Gisele");
+  });
+
+  it("reenvio: fica com a data mais recente", () => {
+    const chave = chaveDoPagamento(geral("mensal", sess));
+    const [p] = geral("mensal", sess, {
+      envios: [
+        { cobrancaChave: chave, enviadaEm: new Date(2026, 8, 10), enviadaPor: "Gisele" },
+        { cobrancaChave: chave, enviadaEm: new Date(2026, 8, 14), enviadaPor: "Gisele" },
+      ],
+    });
+    expect(p.tipo === "pagamento" && p.envio?.data.getTime()).toBe(new Date(2026, 8, 14).getTime());
+  });
+
+  it("envio de uma chave que não existe é ignorado", () => {
+    const linhas = geral("mensal", sess, { envios: [{ cobrancaChave: "nao-existe", enviadaEm: new Date(2026, 8, 10), enviadaPor: "x" }] });
+    expect(linhas.every((l) => (l.tipo === "pagamento" ? !l.envio : !l.cobranca?.envio))).toBe(true);
+  });
+});

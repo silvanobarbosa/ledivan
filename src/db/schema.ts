@@ -668,6 +668,25 @@ export const sessionPayments = pgTable("session_payments", {
   index("sp_user_status_idx").on(t.userId, t.status),
 ]);
 
+// Cobrança marcada como ENVIADA ao paciente (guia Geral). A cobrança em si não é guardada — é
+// recalculada pelo motor (`cobrancas.ts`) e identificada pela `chave`. Aqui guardamos só o FATO de
+// que a terapeuta avisou o paciente daquela cobrança, com quando e por quem. Uma linha por chave
+// (o índice único torna "marcar de novo" um reenvio que atualiza a data, não uma segunda linha).
+export const cobrancaEnvios = pgTable("cobranca_envios", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: text("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
+  patientId: uuid("patient_id").references(() => patients.id, { onDelete: "cascade" }).notNull(),
+  // A `chave` de `cobrancasDoPaciente` — a mesma que o pagamento usa para se prender à cobrança.
+  cobrancaChave: text("cobranca_chave").notNull(),
+  // Hora de parede (ver horaLocal.ts): guardada como o dia SP ao meio-dia, para o dia não escorregar.
+  enviadaEm: timestamp("enviada_em").defaultNow().notNull(),
+  enviadaPor: text("enviada_por"), // quem marcou (a terapeuta logada)
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (t) => [
+  uniqueIndex("cob_envio_chave_idx").on(t.userId, t.patientId, t.cobrancaChave),
+  index("cob_envio_patient_idx").on(t.patientId),
+]);
+
 // Pacotes do paciente (P1, P2, ...). Cada um tem N sessões; consumidas uma a uma
 // nas sessões realizadas+cobráveis. Pagamentos podem ser vinculados a um pacote.
 export const patientPackages = pgTable("patient_packages", {
