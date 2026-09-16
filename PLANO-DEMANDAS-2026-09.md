@@ -28,10 +28,14 @@ Marcar `[x]` ao concluir. Códigos batem com o checklist (artifact) e com a mem�
 - [x] **LEG3** — removido o "Esta sessão será cobrada?" (Cobrar/Não cobrar); o desfecho é aplicado
   direto. O `chargeable` da consulta não afetava a cobrança (o motor só o usa em devolutiva).
 
-## Onda 3 — Financeiro: formato + reajuste
-- [ ] **PAG1** — após salvar, manter selecionado o formato efetivamente salvo (bug Gratuito→"A cada
-  sessão").
-- [ ] **PAG2** — histórico de reajuste mostra também a mudança de MODALIDADE, não só de valor.
+## Onda 3 — Financeiro: formato + reajuste  ◐ (PAG2 feito; PAG1 aguardando repro)
+- [ ] **PAG1** — após salvar, manter selecionado o formato salvo. **INVESTIGADO:** o caminho no
+  código está correto — `updatePatient` grava `patients.paymentFormat = newFormat` (sem guarda) e o
+  form de edição relê de `patient.paymentFormat`. Não reproduzível por inspeção; não fizemos fix às
+  cegas em lógica de dinheiro. **Aguardando o dono confirmar** se ainda acontece na prod atual (pós
+  ondas 1–2) e, se sim, os passos exatos + qual paciente.
+- [x] **PAG2** — histórico de reajuste unificado: mostra mudança de VALOR e de MODALIDADE
+  (`eventosDeReajuste` em `reajuste.ts`), lendo `patient_price_history` + `patient_payment_format_history`.
 
 ## Onda 4 — Cadastro (formulário)
 - [ ] **CAD1** — remover checkbox "Atendimento social".

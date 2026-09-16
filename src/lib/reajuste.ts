@@ -122,3 +122,48 @@ export function linhasDeReajuste(
     novo: linha.novo,
   }));
 }
+
+/** O nome do formato como o dono fala. Aceita os valores antigos (`avulso`/`pacote`) também. */
+const ROTULO_FORMATO: Record<string, string> = {
+  gratuito: "Gratuito", sessao: "A cada sessão", mensal: "Mensal", quinzenal: "Quinzenal",
+  primeira_pacote: "Na primeira sessão do pacote", ultima_pacote: "Na última sessão do pacote",
+  avulso: "A cada sessão", pacote: "Mensal",
+};
+export function rotuloDoFormato(formato: string | null | undefined): string {
+  return ROTULO_FORMATO[formato ?? ""] ?? formato ?? "—";
+}
+
+/**
+ * O histórico de reajuste UNIFICADO (dono, 16/09/2026): mostra tanto a mudança de VALOR quanto a de
+ * MODALIDADE (gratuito, a cada sessão, mensal…), numa linha do tempo só, em ordem de data.
+ *
+ * Valor vem de `patient_price_history`; modalidade, de `patient_payment_format_history`. A primeira
+ * linha de cada um é a de ENTRADA (sem "anterior"). Uma linha de modalidade que não mudou de fato
+ * (mesmo formato da anterior) é descartada — não é reajuste.
+ *
+ * Função pura.
+ */
+export type EventoDeReajuste =
+  | { data: Date; kind: "valor"; anterior: number | null; novo: number }
+  | { data: Date; kind: "modalidade"; anterior: string | null; novo: string };
+
+export function eventosDeReajuste(
+  precos: { valor: string | number; dataEfetiva: Date | string }[],
+  formatos: { formato: string; dataEfetiva: Date | string }[],
+): EventoDeReajuste[] {
+  const valores: EventoDeReajuste[] = linhasDeReajuste(precos).map((l) => ({
+    data: l.data, kind: "valor", anterior: l.anterior, novo: l.novo,
+  }));
+
+  const fOrd = [...formatos]
+    .map((f) => ({ data: new Date(f.dataEfetiva), formato: f.formato }))
+    .filter((f) => !Number.isNaN(f.data.getTime()))
+    .sort((a, b) => a.data.getTime() - b.data.getTime());
+  const modalidades: EventoDeReajuste[] = fOrd
+    .map((f, i) => ({ data: f.data, kind: "modalidade" as const, anterior: i === 0 ? null : fOrd[i - 1].formato, novo: f.formato }))
+    .filter((m) => m.anterior === null || m.anterior !== m.novo);
+
+  // Empatou na data? A modalidade vem antes do valor — a troca de formato é o que arrasta o preço novo.
+  const ordem = (e: EventoDeReajuste) => (e.kind === "modalidade" ? 0 : 1);
+  return [...valores, ...modalidades].sort((a, b) => a.data.getTime() - b.data.getTime() || ordem(a) - ordem(b));
+}

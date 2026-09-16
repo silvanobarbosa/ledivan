@@ -5,7 +5,7 @@ import { InfoTip } from "@/components/InfoTip";
 import { MessageCircle } from "lucide-react";
 import { QUEIXAS } from "@/lib/queixas";
 import { idadeEmPalavras } from "@/lib/idade";
-import { linhasDeReajuste, usaPacote } from "@/lib/reajuste";
+import { eventosDeReajuste, rotuloDoFormato, usaPacote } from "@/lib/reajuste";
 
 const inputCls = "w-full px-4 py-3 rounded-2xl bg-white/70 border border-border focus:ring-2 focus:ring-accent/20 focus:border-accent outline-none transition";
 const labelCls = "block text-sm font-semibold text-foreground/70 mb-1.5";
@@ -25,6 +25,7 @@ export type PatientFormData = {
   sessionFee?: string | null; frequency?: string | null; timesPerPeriod?: number | null; paymentFormat?: string | null; sessionsInPacket?: number | null; paymentDay?: number | null; priceReviewDate?: string | null;
   horasAntesPagamento?: number | null; validadePrecoMeses?: number | null; pacoteTipo?: string | null; semanasNoMes?: number | null; paymentDay2?: number | null;
   priceHistory?: { valor: string; dataEfetiva: string }[];
+  formatHistory?: { formato: string; dataEfetiva: string }[];
   reminderEnabled?: boolean; reminderChannel?: string | null; reminderLeadMinutes?: number | null;
   statusReminderDays?: number | null;
   photo3x4?: string | null; photoExtra1?: string | null; photoExtra2?: string | null; photoExtra3?: string | null;
@@ -455,23 +456,31 @@ export function PatientFormFields({ p }: { p?: PatientFormData }) {
             </p>
           )}
 
-          {(p?.priceHistory?.length ?? 0) > 0 && (
-            <div className="pt-2 border-t border-border">
-              <p className="text-xs font-bold text-foreground/40 uppercase tracking-widest mb-2 mt-3">Histórico de reajuste</p>
-              <ul className="space-y-1">
-                {linhasDeReajuste(p!.priceHistory!).reverse().map((l, i) => (
-                  <li key={i} className="flex items-center gap-3 text-sm rounded-xl bg-surface/60 px-3 py-2">
-                    <span className="font-mono text-xs font-bold text-primary">{l.data.toLocaleDateString("pt-BR")}</span>
-                    <span className="text-foreground/60">
-                      {l.anterior === null
-                        ? <>preço inicial <strong>{brl(l.novo)}</strong></>
-                        : <>de {brl(l.anterior)} para <strong>{brl(l.novo)}</strong></>}
-                    </span>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          )}
+          {(() => {
+            const eventos = eventosDeReajuste(p?.priceHistory ?? [], p?.formatHistory ?? []);
+            if (!eventos.length) return null;
+            return (
+              <div className="pt-2 border-t border-border">
+                <p className="text-xs font-bold text-foreground/40 uppercase tracking-widest mb-2 mt-3">Histórico de reajuste</p>
+                <ul className="space-y-1">
+                  {eventos.slice().reverse().map((e, i) => (
+                    <li key={i} className="flex items-center gap-3 text-sm rounded-xl bg-surface/60 px-3 py-2">
+                      <span className="font-mono text-xs font-bold text-primary">{e.data.toLocaleDateString("pt-BR")}</span>
+                      <span className="text-foreground/60">
+                        {e.kind === "valor"
+                          ? (e.anterior === null
+                              ? <>preço inicial <strong>{brl(e.novo)}</strong></>
+                              : <>de {brl(e.anterior)} para <strong>{brl(e.novo)}</strong></>)
+                          : (e.anterior === null
+                              ? <>modalidade inicial <strong>{rotuloDoFormato(e.novo)}</strong></>
+                              : <>modalidade: {rotuloDoFormato(e.anterior)} → <strong>{rotuloDoFormato(e.novo)}</strong></>)}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            );
+          })()}
         </Card>
       </div>
 
