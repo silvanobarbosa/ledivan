@@ -7,6 +7,39 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-09-16 — Marcar cobrança como enviada (guia Geral)
+
+**Entregue:** #169. Cada cobrança em aberto na guia Geral ganhou **"Marcar enviada"**: registra que
+o paciente já foi avisado daquela cobrança (quando e quem), mostra "Enviada DD/MM" com desfazer, e
+remarcar é reenvio que atualiza a data. **Não envia nada** — é registro manual.
+
+**Por quê:** a pendência de 13/09 ("marcar a cobrança como enviada — hoje ela só mostra"). A
+terapeuta cobra por fora (WhatsApp) e não tinha como saber o que já passou; corria o risco de cobrar
+duas vezes ou esquecer.
+
+**Decisões que ficam valendo:**
+- **A cobrança continua NÃO guardada** — o motor (`cobrancas.ts`) a recalcula pela `chave`. O envio é
+  um FATO à parte, na tabela `cobranca_envios`, 1 linha por `(user, paciente, chave)` com índice
+  único: remarcar vira UPDATE da data, não uma segunda linha. Mesmo padrão do pagamento, que também
+  se prende à cobrança pela chave.
+- **Feito na guia Geral, não na Fechamento** (onde a pendência nasceu) — combinado com o dono: a
+  Geral é a visão por-cobrança onde já se lança pagamento.
+- Data guardada como o **dia SP ao meio-dia** (hora de parede), para o dia não escorregar no fuso —
+  a mesma regra do resto do financeiro.
+- Lógica pura de casamento envio↔cobrança em `guiaGeral.ts` (testável); loader e actions à parte.
+
+**Armadilhas:**
+- `db:push` do local aplica no **Neon de produção** (é pra lá que o `.env.local` aponta). A mudança é
+  aditiva (CREATE TABLE), então segura — mas é bom saber que "empurrar schema" mexe em prod.
+- A verificação com clique fica atrás do login por terapeuta; a demo (Sócrates) é read-only e o proxy
+  recusa POST, então marcar/desfazer não é testável pela demo. É passo do dono.
+
+**Pendente:** mensagem de cobrança **personalizável por terapeuta** (texto com variáveis
+nome/valor/vencimento) — pedido do dono nesta sessão, ainda não feito. E a regra de expiração de
+reserva de slot (as 13 sessões passadas ainda "reserva") segue aguardando definição do dono.
+
+---
+
 ## 2026-09-15 — Formato de pagamento com data, sessão fora do pacote, guia Geral
 
 **Entregue:** #165 (vigência do formato + motor único de cobranças), #166 (sessão fora da
