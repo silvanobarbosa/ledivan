@@ -7,6 +7,24 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-09-16 — Demandas: onda 6 (página do paciente)
+
+**#178.** GER1: a guia "Dados" saiu; o **Histórico de status** virou um bloco logo abaixo do
+cabeçalho, acima dos cards. GER2: os cards agora são três — **Sessões agendadas · Em aberto · Em
+atraso** (número e valor, do motor da onda 1). GER3: saíram as guias **Sessões, Financeiro e Linha do
+tempo** (restam Geral, Prontuário, Atividades, Materiais). CAD3: o cabeçalho passou a mostrar nome,
+**Ativo/Inativo**, financeiro por extenso, valor, **vencimento** (dia do mês, ou "pagar até Xh antes"
+no avulso), idade, casal, telefone e **responsável + telefone**.
+
+**Consequência do GER3 (a confirmar com o dono):** com a guia Financeiro saíram o "Registrar
+pagamento", a **gestão de pacotes (P1/P2)** e o Fluxo financeiro. O pagamento agora é pela guia Geral
+("Lançar pagamento" por cobrança). Se a gestão de pacotes precisar voltar, o dono diz onde ela mora.
+
+**Nota técnica:** a remoção das 3 guias exigiu apagar ~285 linhas de JSX morto e limpar imports/estado
+órfãos (o `tab` ficou restrito a 4 valores, então o TS acusava os blocos mortos). Ficou 0 warning.
+
+---
+
 ## 2026-09-16 — Demandas: onda 5 (lista de pacientes)
 
 **#177 · LST1.** Cada card da lista passou a mostrar: **Id da agenda** (#), **Ativo/Inativo**,

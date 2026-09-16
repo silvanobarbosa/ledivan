@@ -137,9 +137,12 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
     lastPaymentDate: lastPay ? (horaDeParede(lastPay.date)) : null,
     lastPaymentAmount: lastPay ? parseFloat(lastPay.amount) : null,
     creditSessions: fee > 0 && balance > 0 ? Math.floor(balance / fee) : 0,
-    // Devendo: as sessões das cobranças em aberto, como a Geral mostra (R$ 670 = pacote de 4 + 1 AVUL
-    // são 5 sessões, não 670 ÷ 130 arredondado).
-    debtSessions: balance < 0 ? geral.resumo.sessoesEmAberto : 0,
+    // Devendo: as sessões das cobranças EM ATRASO (a Geral conta as cobranças, não o valor ÷ preço).
+    debtSessions: geral.resumo.sessoesEmAtraso,
+    nAberto: geral.resumo.nAberto,
+    nAtraso: geral.resumo.nAtraso,
+    emAberto: geral.resumo.emAberto,
+    emAtraso: geral.resumo.emAtraso,
   };
 
   return (
