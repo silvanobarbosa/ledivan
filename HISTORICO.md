@@ -7,6 +7,31 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-09-16 — Demandas do documento: plano de 8 ondas (ondas 1 e 2)
+
+**Contexto:** o dono mandou um PDF de 10 páginas com 21 demandas e pediu para fazer **tudo**, em
+ondas seguras com evolução salva. O plano vive em `PLANO-DEMANDAS-2026-09.md` (marcado onda a onda).
+
+**Onda 1 — situação em aberto × em atraso (#173).** A guia Geral trocou a taxonomia de
+`pago|em_aberto|a_vencer` para `pago|em_aberto|em_atraso`. em_aberto = ainda no prazo; em_atraso =
+venceu sem pagamento. Vencimento: mensal/quinzenal/pacote no DIA (vale o dia inteiro); "a cada
+sessão"/avulsa `horasAntesPagamento` antes da sessão (campo já existia — sem migração). `resumoDaGeral`
+passou a expor `nAberto/nAtraso`, `emAberto/emAtraso`, `sessoesEmAberto/sessoesEmAtraso` para os cards
+e a lista (ondas 5 e 6). **Saldo preservado:** exigível = pago + em atraso.
+
+**Onda 2 — agenda: status, legenda, cobrança (#174).**
+- Tirado "Agendada" da lista de status oferecidos (nasce agendado; o desfecho é escolhido ao clicar).
+- Removidos os sinais/legenda "chegou", "pagamento atrasado" e "histórico de faltas".
+- "Desmarcou" agora é **violeta**, longe do vermelho do "Faltou".
+- Removido o "Esta sessão será cobrada?" (Cobrar/Não cobrar). O `chargeable` da consulta não mexia na
+  cobrança (o motor só o usa em devolutiva), então o desfecho é aplicado direto. O controle de
+  pagamento é assunto do financeiro, não da agenda (decisão do dono).
+
+**Decisão que fica valendo:** cobrança e desfecho da sessão são coisas separadas — a agenda só diz o
+que aconteceu; quem cobra é a guia Geral/Controle.
+
+---
+
 ## 2026-09-16 — Reserva vencida: aviso e pendente de análise (agenda)
 
 **Entregue:** #171. Reserva (agendamento `agendada`) cujo dia passou sem desfecho agora fica com

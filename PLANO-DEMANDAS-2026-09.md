@@ -19,13 +19,14 @@ Marcar `[x]` ao concluir. Códigos batem com o checklist (artifact) e com a mem�
 - Nota: taxonomia da guia Geral mudou de `pago|em_aberto|a_vencer` para `pago|em_aberto|em_atraso`.
   Saldo preservado (exigível = pago + em atraso).
 
-## Onda 2 — Agenda: status, legenda, cobrança
-- [ ] **AGD1** — tirar "Agendada" da lista de status oferecidos (todo agendamento nasce agendado; o
+## Onda 2 — Agenda: status, legenda, cobrança  ✅
+- [x] **AGD1** — tirar "Agendada" da lista de status oferecidos (todo agendamento nasce agendado; o
   desfecho é escolhido ao clicar na sessão).
-- [ ] **LEG1** — legenda: remover "chegou", "pagamento atrasado", "histórico de faltas" (e os sinais
+- [x] **LEG1** — legenda: remover "chegou", "pagamento atrasado", "histórico de faltas" (e os sinais
   correspondentes na célula).
-- [ ] **LEG2** — cor do "Desmarcou" distinta do vermelho do "Faltou".
-- [ ] **LEG3** — remover o "Marcar como presente. Esta sessão será cobrada?" (Cobrar/Não cobrar).
+- [x] **LEG2** — cor do "Desmarcou" agora é violeta (`#ede9fe`/`#6d28d9`), longe do vermelho do "Faltou".
+- [x] **LEG3** — removido o "Esta sessão será cobrada?" (Cobrar/Não cobrar); o desfecho é aplicado
+  direto. O `chargeable` da consulta não afetava a cobrança (o motor só o usa em devolutiva).
 
 ## Onda 3 — Financeiro: formato + reajuste
 - [ ] **PAG1** — após salvar, manter selecionado o formato efetivamente salvo (bug Gratuito→"A cada

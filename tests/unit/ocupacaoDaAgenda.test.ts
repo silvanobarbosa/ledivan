@@ -124,14 +124,14 @@ describe("o espelho da semana alternada", () => {
 
 describe("os sinais da célula", () => {
   it("cada fato acende um sinal", () => {
-    const s = sinaisDaSessao({ online: true, pagamentoAtrasado: true });
-    expect(s.map((x) => x.chave)).toEqual(["devendo", "online"]);
+    const s = sinaisDaSessao({ online: true, pediuRemarcacao: true });
+    expect(s.map((x) => x.chave)).toEqual(["remarcar", "online"]);
   });
 
   it("o que muda a conduta de hoje vem primeiro", () => {
-    // Quem chegou na sala de espera importa mais do que estar devendo.
-    const s = sinaisDaSessao({ chegou: true, pagamentoAtrasado: true, online: true });
-    expect(s[0].chave).toBe("chegou");
+    // Quem pediu para remarcar importa mais do que o contexto (online).
+    const s = sinaisDaSessao({ pediuRemarcacao: true, online: true });
+    expect(s[0].chave).toBe("remarcar");
   });
 
   it("sessão sem nada não acende sinal nenhum", () => {
@@ -140,15 +140,16 @@ describe("os sinais da célula", () => {
 
   it("todo sinal tem um título em palavras", () => {
     const s = sinaisDaSessao({
-      chegou: true, pediuRemarcacao: true, realocada: true, pedidoDoPaciente: true,
-      pacienteConfirmou: true, pagamentoAtrasado: true, riscoDeFalta: "alto", online: true,
+      reservaVencida: true, pediuRemarcacao: true, realocada: true, pedidoDoPaciente: true,
+      pacienteConfirmou: true, online: true,
     });
-    expect(s).toHaveLength(8);
+    expect(s).toHaveLength(6);
     for (const x of s) expect(x.titulo.length, x.chave).toBeGreaterThan(10);
   });
 
-  it("risco médio não acende — só o alto, senão o sinal vira ruído", () => {
-    expect(sinaisDaSessao({ riscoDeFalta: "medio" })).toEqual([]);
+  it("chegou, pagamento atrasado e histórico de faltas não acendem mais (dono, 16/09)", () => {
+    const s = sinaisDaSessao({ chegou: true, pagamentoAtrasado: true, riscoDeFalta: "alto" } as never);
+    expect(s).toEqual([]);
   });
 
   it("reserva vencida acende o sinal 'pendente', antes de tudo", () => {

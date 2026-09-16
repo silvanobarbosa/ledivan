@@ -124,9 +124,6 @@ export type FatosDaSessao = {
   pedidoDoPaciente?: boolean | null;
   pacienteConfirmou?: boolean | null;
   pediuRemarcacao?: boolean | null;
-  chegou?: boolean | null;
-  pagamentoAtrasado?: boolean | null;
-  riscoDeFalta?: string | null;
   /** A sessão foi remarcada de outro dia. */
   realocada?: boolean | null;
   /** Reserva cujo dia já passou e ainda está sem desfecho — pede análise da terapeuta. */
@@ -144,13 +141,10 @@ export function sinaisDaSessao(f: FatosDaSessao): SinalDaCelula[] {
   // Primeiro de todos: reserva vencida é uma pendência que só a terapeuta resolve, e some da vista
   // fácil (fica no passado). Acende antes do resto para não escapar.
   if (f.reservaVencida) out.push({ chave: "pendente", titulo: "Reserva vencida — analise o que aconteceu" });
-  if (f.chegou) out.push({ chave: "chegou", titulo: "Paciente chegou na sala de espera" });
   if (f.pediuRemarcacao) out.push({ chave: "remarcar", titulo: "Paciente pediu para remarcar" });
   if (f.realocada) out.push({ chave: "realocada", titulo: "Sessão remarcada de outra data" });
   if (f.pedidoDoPaciente) out.push({ chave: "pedido", titulo: "Pedido pelo link público — falta você confirmar" });
   if (f.pacienteConfirmou) out.push({ chave: "confirmou", titulo: "Paciente confirmou presença" });
-  if (f.pagamentoAtrasado) out.push({ chave: "devendo", titulo: "Pagamento em atraso" });
-  if (f.riscoDeFalta === "alto") out.push({ chave: "risco", titulo: "Histórico com muitas faltas" });
   if (f.online) out.push({ chave: "online", titulo: "Atendimento online" });
   return out;
 }
