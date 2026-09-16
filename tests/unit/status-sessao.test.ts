@@ -8,6 +8,7 @@ import {
   STATUS_QUE_PODEM_COBRAR,
   riskFromSessions,
   sessionColorClasses,
+  reservaVencida,
 } from "@/lib/therapy";
 import { sessoesDoMes } from "@/lib/pacoteMes";
 import { posicoesDaSequencia } from "@/lib/sequenciaPacote";
@@ -171,5 +172,38 @@ describe("os rótulos", () => {
     for (const st of STATUS_OFERECIDOS) {
       expect(SESSION_STATUS_LABELS[st], `${st} sem rótulo`).toBeTruthy();
     }
+  });
+});
+
+describe("reserva vencida (agendada que já passou, sem desfecho)", () => {
+  const hoje = new Date(2026, 8, 16, 12);
+
+  it("agendada com dia no passado é vencida", () => {
+    expect(reservaVencida("agendada", new Date(2026, 8, 15, 9), hoje)).toBe(true);
+    expect(reservaVencida("agendada", new Date(2026, 8, 6, 9), hoje)).toBe(true);
+  });
+
+  it("agendada de hoje NÃO é vencida — o dia ainda não acabou, mesmo mais cedo", () => {
+    expect(reservaVencida("agendada", new Date(2026, 8, 16, 8), hoje)).toBe(false);
+  });
+
+  it("agendada futura não é vencida", () => {
+    expect(reservaVencida("agendada", new Date(2026, 8, 20, 9), hoje)).toBe(false);
+  });
+
+  it("qualquer status já resolvido nunca é vencido, mesmo no passado", () => {
+    for (const st of ["realizada", "nao_realizada", "cancelada", "prof_desmarcou", "atestado", "realocada"]) {
+      expect(reservaVencida(st, new Date(2026, 8, 1, 9), hoje)).toBe(false);
+    }
+  });
+
+  it("data ilegível não vence (fail-safe)", () => {
+    expect(reservaVencida("agendada", "sem-data", hoje)).toBe(false);
+  });
+
+  it("vencida pinta a célula de laranja de aviso, não transparente", () => {
+    const cor = sessionColorClasses("agendada", false, false, true);
+    expect(cor).toContain("ffedd5");
+    expect(sessionColorClasses("agendada", false, false, false)).toContain("transparent");
   });
 });

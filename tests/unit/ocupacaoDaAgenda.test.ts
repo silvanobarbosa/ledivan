@@ -150,4 +150,10 @@ describe("os sinais da célula", () => {
   it("risco médio não acende — só o alto, senão o sinal vira ruído", () => {
     expect(sinaisDaSessao({ riscoDeFalta: "medio" })).toEqual([]);
   });
+
+  it("reserva vencida acende o sinal 'pendente', antes de tudo", () => {
+    const s = sinaisDaSessao({ reservaVencida: true, online: true });
+    expect(s[0].chave).toBe("pendente");
+    expect(s[0].titulo.length).toBeGreaterThan(10);
+  });
 });
