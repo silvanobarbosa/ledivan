@@ -7,6 +7,17 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-09-16 — Demandas: onda 4 (cadastro)
+
+**#176.** CAD1: removido o checkbox "Atendimento social" do cadastro (reverte a decisão de 14/09 a
+pedido do dono; o SOC de pacientes antigos ainda aparece, só não se define mais aqui). CAD2: o status
+do paciente passou a oferecer só **Ativo/Inativo** — Prospect/Pausado saíram da lista, mas se o
+paciente já está num deles a opção é mantida para o save não virar Ativo sozinho; o fluxo de
+prospecção segue definindo prospect. CAD4: `MoneyInput` mostra R$ enquanto se digita (trata dígitos
+como centavos, formata pt-BR); envia o texto formatado, que `parseMoedaBR` já entende no servidor.
+
+---
+
 ## 2026-09-16 — Demandas: onda 3 (reajuste com modalidade; formato investigado)
 
 **PAG2 — histórico de reajuste unificado (#175).** O "Histórico de reajuste" (form de edição, aba

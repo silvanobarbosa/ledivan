@@ -37,11 +37,12 @@ Marcar `[x]` ao concluir. Códigos batem com o checklist (artifact) e com a mem�
 - [x] **PAG2** — histórico de reajuste unificado: mostra mudança de VALOR e de MODALIDADE
   (`eventosDeReajuste` em `reajuste.ts`), lendo `patient_price_history` + `patient_payment_format_history`.
 
-## Onda 4 — Cadastro (formulário)
-- [ ] **CAD1** — remover checkbox "Atendimento social".
-- [ ] **CAD2** — status do paciente só Ativo/Inativo (tirar Prospect e Pausado da lista; manter o
-  fluxo de prospecção intacto).
-- [ ] **CAD4** — valor da sessão com máscara de moeda ao digitar.
+## Onda 4 — Cadastro (formulário)  ✅
+- [x] **CAD1** — removido o checkbox "Atendimento social". (SOC de pacientes antigos ainda exibe; só
+  não se define mais no cadastro.)
+- [x] **CAD2** — status só Ativo/Inativo. Prospect/Pausado saíram da lista; se o paciente já está num
+  deles (veio da prospecção), a opção é mantida para não virar Ativo ao salvar. Fluxo de prospecção intacto.
+- [x] **CAD4** — `MoneyInput`: valor da sessão mostra R$ enquanto digita; envia pt-BR, servidor parseia.
 
 ## Onda 5 — Lista de pacientes
 - [ ] **LST1** — por paciente: Id da agenda, Ativo/Inativo, Financeiro (formato completo), Frequência
