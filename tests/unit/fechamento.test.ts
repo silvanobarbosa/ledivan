@@ -245,7 +245,9 @@ describe("a linha do paciente", () => {
     expect(l.situacao).toBe("sem_sessoes");
   });
 
-  it("quem não teve sessão no mês não vira dívida", () => {
+  it("fragmentado: mês sem sessão não cobra nada NAQUELE mês (mas o saldo acumula os passados)", () => {
+    // A sessão de junho é uma cobrança real (1/1 do mês de junho, regra nova do fragmentado). Agosto
+    // não tem sessão, então não cobra nada PRÓPRIO — mas o saldo acumulado mostra o que junho deixou.
     const l = linhaDoFechamento({
       paciente: { id: "p6", nome: "Fábio", formato: "mensal", pacoteTipo: "fragmentado" },
       sessoes: [sessao(4, "realizada", 5)], // junho, não agosto
@@ -254,8 +256,8 @@ describe("a linha do paciente", () => {
       ano: 2026,
       mes: 7,
     });
-    expect(l.situacao).toBe("sem_sessoes");
-    expect(l.valorDoMes).toBe(0);
+    expect(l.valorDoMes).toBe(0);           // agosto não cobra nada
+    expect(l.situacao).toBe("a_receber");   // mas junho (1 sessão) é dívida real
   });
 
   it("sessão de outro mês não entra na conta", () => {

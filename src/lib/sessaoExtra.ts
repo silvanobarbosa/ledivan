@@ -17,9 +17,16 @@ import { parseMoedaBR } from "./money";
 
 type Formato = { formato: string | null | undefined; sessionKind?: string | null };
 
-/** A pergunta só existe onde existe sequência. Devolutiva já tem a dela ("abater do pacote"). */
-export function perguntaSeEntraNaSequencia(o: Formato): boolean {
-  return usaPacote(o.formato) && o.sessionKind !== "devolutiva";
+/**
+ * A pergunta só existe onde existe sequência (dono, 16/09/2026): o formato fecha por pacote, não é
+ * devolutiva (que já tem a dela, "abater do pacote"), E o paciente JÁ TEM uma sequência — não faz
+ * sentido perguntar "entra na sequência?" para o primeiro agendamento, quando ainda não há sequência.
+ *
+ * `jaTemSequencia` é opcional e vale `true` por padrão: no servidor (extraParaGravar) a decisão vem do
+ * que o formulário mandou; quem sabe se o paciente já tem sessões é a tela, e é lá que o gate importa.
+ */
+export function perguntaSeEntraNaSequencia(o: Formato, jaTemSequencia = true): boolean {
+  return jaTemSequencia && usaPacote(o.formato) && o.sessionKind !== "devolutiva";
 }
 
 export type ExtraAGravar =

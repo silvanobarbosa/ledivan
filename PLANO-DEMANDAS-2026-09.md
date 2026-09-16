@@ -69,13 +69,21 @@ Marcar `[x]` ao concluir. Códigos batem com o checklist (artifact) e com a mem�
 - [x] **GER6** — `TabelaAnual`: valores recebidos por mês (com Total), filtrados por ANO (seletor),
   abaixo da tabela da Geral. Pura em `tabelaAnual.ts`.
 
-## Onda 8 — Agenda: fragmentado, sequência, layout
-- [ ] **AGD3** — fragmentado: numeração por qtd de sessões de CADA mês, reiniciando no mês seguinte
-  (set 1/3..3/3, out 1/4..4/4); não juntar meses; valor = total pelo nº de sessões; ajuste por
-  status/reposição sem perder/duplicar. (Reproduzir o erro atual com dados de teste antes de mexer.)
-- [ ] **AGD2** — "Sequência do pacote" só aparece se o paciente já tem sequência; ao inserir no meio,
-  perguntar sessão à parte vs acrescentada.
-- [ ] **AGD4** — botões Hoje/Escolher data/Bloquear horário na linha de baixo (layout).
+## Onda 8 — Agenda: fragmentado, sequência, layout  ✅
+- [x] **AGD3** — fragmentado agora é POR MÊS: cada mês do calendário é uma sequência do tamanho dos
+  atendimentos daquele mês (set 3 → 1/3..3/3; out 4 → 1/4..4/4). Ignora tamanhos contratados; os meses
+  não se juntam; a pausa não conta no total do mês (mas segura a posição); valor = total × preço.
+  `posicoesFragmentado` em `sequenciaPacote.ts`.
+- [x] **AGD2** — a pergunta "entra na sequência?" só aparece se o paciente JÁ TEM sequência (tem
+  sessão com posição de pacote). Primeiro agendamento não pergunta. Gate em `perguntaSeEntraNaSequencia`.
+- [x] **AGD4** — Hoje/Escolher data/Bloquear horário desceram para uma linha própria abaixo da semana.
+
+---
+
+### Todas as 8 ondas concluídas (16/09/2026). Pendências que ficam com o dono:
+- **PAG1** (formato salvo não persiste na tela) — aguardando repro; código está correto.
+- **Gestão de pacotes (P1/P2)** — saiu com a guia Financeiro (onda 6). Dizer se/onde deve voltar.
+- **Mensagem de cobrança personalizável por terapeuta** — pendência anterior, ainda aberta.
 
 ---
 

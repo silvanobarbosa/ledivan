@@ -92,16 +92,16 @@ describe("o que pausa", () => {
   });
 });
 
-describe("pacote fracionado: cada sequência tem o seu tamanho", () => {
+describe("pacote fracionado: cada MÊS é uma sequência (dono, 16/09/2026)", () => {
   it("o exemplo delas: 3 em setembro, 4 em outubro", () => {
     const sessoes = ["2026-09-16", "2026-09-23", "2026-09-30", "2026-10-07", "2026-10-14", "2026-10-21", "2026-10-28"].map((d) => s(d));
-    const p = posicoes(sessoes, { pacoteTipo: "fragmentado", tamanhos: [3, 4] });
+    const p = posicoes(sessoes, { pacoteTipo: "fragmentado" });
     expect(sessoes.map((x) => rotulo(p, x.id))).toEqual(["1/3", "2/3", "3/3", "1/4", "2/4", "3/4", "4/4"]);
   });
 
-  it("a sequência de setembro pode TERMINAR em outubro quando houve pausa", () => {
-    // 16/09 1/3 Presente · 23/09 2/3 Desmarcou · 30/09 2/3 Presente · 07/10 3/3 Presente
-    // e só então outubro começa. É o ponto em que o mês do calendário deixa de ser o agrupador.
+  it("a pausa não conta no total do mês, mas segura a posição", () => {
+    // Setembro: 16/09 Presente, 23/09 Desmarcou (pausa, não conta), 30/09 Presente → o mês tem 2
+    // atendimentos, então 1/2 e 2/2; a desmarcada segura o 2/2. Outubro é outra sequência, de 4.
     const sessoes = [
       s("2026-09-16", "realizada"),
       s("2026-09-23", "cancelada"),
@@ -111,19 +111,20 @@ describe("pacote fracionado: cada sequência tem o seu tamanho", () => {
       s("2026-10-21"),
       s("2026-10-28"),
     ];
-    const p = posicoes(sessoes, { pacoteTipo: "fragmentado", tamanhos: [3, 3] });
-    expect(sessoes.map((x) => rotulo(p, x.id))).toEqual(["1/3", "2/3", "2/3", "3/3", "1/3", "2/3", "3/3"]);
+    const p = posicoes(sessoes, { pacoteTipo: "fragmentado" });
+    expect(sessoes.map((x) => rotulo(p, x.id))).toEqual(["1/2", "2/2", "2/2", "1/4", "2/4", "3/4", "4/4"]);
   });
 
-  it("acabando a lista de tamanhos, o último vale para as seguintes", () => {
+  it("ignora tamanhos contratados: quem manda é o calendário", () => {
+    // Cinco em setembro, uma em outubro — mesmo passando tamanhos, conta pelo mês.
     const sessoes = ["2026-09-01", "2026-09-08", "2026-09-15", "2026-09-22", "2026-09-29", "2026-10-06"].map((d) => s(d));
     const p = posicoes(sessoes, { pacoteTipo: "fragmentado", tamanhos: [2] });
-    expect(sessoes.map((x) => rotulo(p, x.id))).toEqual(["1/2", "2/2", "1/2", "2/2", "1/2", "2/2"]);
+    expect(sessoes.map((x) => rotulo(p, x.id))).toEqual(["1/5", "2/5", "3/5", "4/5", "5/5", "1/1"]);
   });
 
-  it("sem tamanho nenhum, cai no pacote de quatro", () => {
+  it("um mês com uma sessão é 1/1", () => {
     const p = posicoes([s("2026-09-16")], { pacoteTipo: "fragmentado" });
-    expect(rotulo(p, "2026-09-16")).toBe("1/4");
+    expect(rotulo(p, "2026-09-16")).toBe("1/1");
   });
 });
 
@@ -172,28 +173,27 @@ describe("inserir, excluir e alterar recalculam tudo que vem depois", () => {
 });
 
 describe("a cobrança segue a sequência, não o calendário", () => {
-  it("a sequência de setembro que fechou em outubro cobra em OUTUBRO", () => {
-    // Decisão do dono: cobra por sequência. A sequência fecha na data da última sessão dela.
+  it("fragmentado: cada mês cobra no PRÓPRIO mês, pelo seu tamanho", () => {
+    // Setembro com 3, outubro com 4 — cada mês fecha e cobra no seu mês (dono, 16/09/2026).
     const sessoes = [
-      s("2026-09-16", "realizada"),
-      s("2026-09-23", "cancelada"),
-      s("2026-09-30", "realizada"),
-      s("2026-10-07", "realizada"),
+      s("2026-09-16", "realizada"), s("2026-09-23", "realizada"), s("2026-09-30", "realizada"),
+      s("2026-10-07", "realizada"), s("2026-10-14", "realizada"), s("2026-10-21", "realizada"), s("2026-10-28", "realizada"),
     ];
-    const fechadas = sequenciasFechadasNoMes(sessoes, { pacoteTipo: "fragmentado", tamanhos: [3] }, 2026, 9);
-    expect(fechadas).toHaveLength(1);
-    expect(fechadas[0].total).toBe(3);
-    expect(fechadas[0].fechouEm?.toISOString().slice(0, 10)).toBe("2026-10-07");
+    const setembro = sequenciasFechadasNoMes(sessoes, { pacoteTipo: "fragmentado" }, 2026, 8);
+    expect(setembro).toHaveLength(1);
+    expect(setembro[0].total).toBe(3);
+    expect(setembro[0].fechouEm?.toISOString().slice(0, 10)).toBe("2026-09-30");
+    const outubro = sequenciasFechadasNoMes(sessoes, { pacoteTipo: "fragmentado" }, 2026, 9);
+    expect(outubro).toHaveLength(1);
+    expect(outubro[0].total).toBe(4);
   });
 
-  it("setembro não cobra nada dessa sequência, porque ela não fechou lá", () => {
-    const sessoes = [
-      s("2026-09-16", "realizada"),
-      s("2026-09-23", "cancelada"),
-      s("2026-09-30", "realizada"),
-      s("2026-10-07", "realizada"),
-    ];
-    expect(sequenciasFechadasNoMes(sessoes, { pacoteTipo: "fragmentado", tamanhos: [3] }, 2026, 8)).toHaveLength(0);
+  it("fragmentado: a pausa reduz o que o mês cobra", () => {
+    // 3 sessões em setembro, uma desmarcada → o mês cobra 2 (não perde a sessão, mas não cobra a falta).
+    const sessoes = [s("2026-09-16", "realizada"), s("2026-09-23", "cancelada"), s("2026-09-30", "realizada")];
+    const setembro = sequenciasFechadasNoMes(sessoes, { pacoteTipo: "fragmentado" }, 2026, 8);
+    expect(setembro).toHaveLength(1);
+    expect(setembro[0].total).toBe(2);
   });
 
   it("sequência ainda aberta não cobra", () => {
@@ -201,12 +201,12 @@ describe("a cobrança segue a sequência, não o calendário", () => {
     expect(sequenciasFechadasNoMes(sessoes, { pacoteTipo: "completo" }, 2026, 8)).toHaveLength(0);
   });
 
-  it("duas sequências fechadas no mesmo mês cobram as duas", () => {
+  it("fragmentado: o mês inteiro é uma sequência só", () => {
     const dias = ["2026-09-02", "2026-09-09", "2026-09-16", "2026-09-23"];
     const sessoes = dias.map((d) => s(d, "realizada"));
-    const fechadas = sequenciasFechadasNoMes(sessoes, { pacoteTipo: "fragmentado", tamanhos: [2, 2] }, 2026, 8);
-    expect(fechadas).toHaveLength(2);
-    expect(fechadas.reduce((t, f) => t + f.total, 0)).toBe(4);
+    const fechadas = sequenciasFechadasNoMes(sessoes, { pacoteTipo: "fragmentado" }, 2026, 8);
+    expect(fechadas).toHaveLength(1);
+    expect(fechadas[0].total).toBe(4);
   });
 
   it("o pacote completo cobra quatro, mesmo com uma pausa no meio", () => {

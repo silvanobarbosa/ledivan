@@ -180,8 +180,11 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
         { formato: selectedPatient.paymentFormat ?? "sessao", pacoteTipo: selectedPatient.pacoteTipo ?? null },
       ).formato
     : null;
+  // O paciente já tem uma sequência? (tem ao menos uma sessão que ocupa posição — não é extra). Sem
+  // sequência, não faz sentido perguntar "entra na sequência?" — é o primeiro agendamento dele.
+  const jaTemSequencia = !!selectedPatient && sessions.some((s) => s.patientId === selectedPatient.id && !!s.pkg);
   // Série (semanal/quinzenal) é o próprio ritmo do pacote; a pergunta é para a sessão inserida.
-  const perguntaSequencia = !newRecorrente && perguntaSeEntraNaSequencia({ formato: formatoNaDataNova, sessionKind: newKind });
+  const perguntaSequencia = !newRecorrente && perguntaSeEntraNaSequencia({ formato: formatoNaDataNova, sessionKind: newKind }, jaTemSequencia);
 
   const weekEnd = new Date(weekStart);
   weekEnd.setDate(weekEnd.getDate() + 7);
@@ -350,13 +353,16 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
     <div className="space-y-4">
       <HolidaySetup cities={holidayCities} />
 
-      {/* Nav */}
-      <div className="flex items-center justify-between glass-card rounded-2xl px-4 py-3">
-        <button onClick={() => shift(-1)} className="p-2 rounded-xl hover:bg-white/60 transition"><ChevronLeft className="w-5 h-5" /></button>
-        <div className="flex items-center gap-3">
-          <span className="font-display font-bold text-primary">{label}</span>
-          <button onClick={() => setWeekStart(startOfWeek(new Date()))} className="text-xs font-semibold px-3 py-1 rounded-full bg-primary/10 text-primary hover:bg-primary/20 transition">Hoje</button>
-          <label className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1 rounded-full bg-primary/10 text-primary hover:bg-primary/20 transition cursor-pointer">
+      {/* Nav: a semana em cima; os botões numa LINHA ABAIXO, para arejar (dono, 16/09/2026). */}
+      <div className="glass-card rounded-2xl px-4 py-3 space-y-3">
+        <div className="flex items-center justify-between">
+          <button onClick={() => shift(-1)} className="p-2 rounded-xl hover:bg-white/60 transition"><ChevronLeft className="w-5 h-5" /></button>
+          <span className="font-display font-bold text-primary text-center">{label}</span>
+          <button onClick={() => shift(1)} className="p-2 rounded-xl hover:bg-white/60 transition"><ChevronRight className="w-5 h-5" /></button>
+        </div>
+        <div className="flex flex-wrap items-center justify-center gap-2">
+          <button onClick={() => setWeekStart(startOfWeek(new Date()))} className="text-xs font-semibold px-3 py-1.5 rounded-full bg-primary/10 text-primary hover:bg-primary/20 transition">Hoje</button>
+          <label className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full bg-primary/10 text-primary hover:bg-primary/20 transition cursor-pointer">
             <CalendarDays className="w-3.5 h-3.5" aria-hidden="true" />
             Escolher data
             <input
@@ -373,7 +379,6 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
           </label>
           <BloquearHorario />
         </div>
-        <button onClick={() => shift(1)} className="p-2 rounded-xl hover:bg-white/60 transition"><ChevronRight className="w-5 h-5" /></button>
       </div>
 
       {/* Legenda de cores */}

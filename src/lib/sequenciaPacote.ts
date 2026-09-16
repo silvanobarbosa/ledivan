@@ -105,6 +105,8 @@ export function posicoesDaSequencia(
   sessoes: SessaoDaSequencia[],
   opts: OpcoesDaSequencia = {},
 ): Map<string, PosicaoNaSequencia> {
+  if (opts.pacoteTipo === "fragmentado") return posicoesFragmentado(sessoes);
+
   const mapa = new Map<string, PosicaoNaSequencia>();
 
   let sequencia = 0;
@@ -123,6 +125,41 @@ export function posicoesDaSequencia(
       posicao = 1;
       total = tamanhoDe(opts, sequencia);
     }
+  }
+
+  return mapa;
+}
+
+/**
+ * FRAGMENTADO: cada MÊS do calendário é uma sequência própria, do tamanho dos atendimentos daquele
+ * mês (dono, 16/09/2026). Setembro com três sessões numera 1/3..3/3; outubro com quatro, 1/4..4/4 —
+ * os meses não se juntam. O total do mês são as sessões que OCUPAM (não pausam); Desmarcou, Prof.
+ * desm. e Atestado seguram a posição sem contar, como no completo. A conta é refeita, nunca guardada.
+ */
+function posicoesFragmentado(sessoes: SessaoDaSequencia[]): Map<string, PosicaoNaSequencia> {
+  const mapa = new Map<string, PosicaoNaSequencia>();
+  const ordenadas = emOrdem(sessoes);
+  const chaveDoMes = (d: Date) => d.getFullYear() * 12 + d.getMonth();
+
+  // Total do mês = atendimentos que ocupam. E a sequência de cada mês, na ordem do calendário.
+  const totalPorMes = new Map<number, number>();
+  const seqPorMes = new Map<number, number>();
+  let proximaSeq = 0;
+  for (const s of ordenadas) {
+    const k = chaveDoMes(s.data);
+    if (!seqPorMes.has(k)) seqPorMes.set(k, proximaSeq++);
+    if (!STATUS_QUE_PAUSAM.has(s.status)) totalPorMes.set(k, (totalPorMes.get(k) ?? 0) + 1);
+  }
+
+  const ocupadasNoMes = new Map<number, number>(); // quantas já ocuparam posição no mês
+  for (const s of ordenadas) {
+    const k = chaveDoMes(s.data);
+    const sequencia = seqPorMes.get(k)!;
+    const total = Math.max(1, totalPorMes.get(k) ?? 0);
+    // A posição é a próxima a preencher; o clamp evita "3/2" quando um mês termina numa pausa.
+    const index = Math.min((ocupadasNoMes.get(k) ?? 0) + 1, total);
+    mapa.set(s.id, { sequencia, index, total });
+    if (!STATUS_QUE_PAUSAM.has(s.status)) ocupadasNoMes.set(k, (ocupadasNoMes.get(k) ?? 0) + 1);
   }
 
   return mapa;
