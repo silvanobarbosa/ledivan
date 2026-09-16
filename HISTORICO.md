@@ -7,6 +7,21 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-09-16 — Demandas: onda 5 (lista de pacientes)
+
+**#177 · LST1.** Cada card da lista passou a mostrar: **Id da agenda** (#), **Ativo/Inativo**,
+**Financeiro** por extenso (`rotuloFinanceiro` — mensal/quinzenal ganham "pacote"/"fragmentado"),
+**Frequência** (`rotuloFrequencia` — não repetir→"Sem recorrência", semanal→dia e hora,
+quinzenal→"Quinzenal · dia hora", mensal→"Mensal") e **Situação** (Em dia / Em aberto / Atrasado).
+
+**Decisão que fica valendo:** a situação da lista vem do **mesmo motor** do paciente individual
+(`resumoDaGeral`), não de uma conta paralela. Para não fazer N× queries, `situacoesDaLista` carrega os
+fatos em **lote** (uma consulta por tabela) e computa por paciente na memória — a lista abre com uma
+leva fixa de queries. Saiu o antigo "Devendo X sessões / crédito" e o badge de paymentStatus, que
+divergiam do motor.
+
+---
+
 ## 2026-09-16 — Demandas: onda 4 (cadastro)
 
 **#176.** CAD1: removido o checkbox "Atendimento social" do cadastro (reverte a decisão de 14/09 a

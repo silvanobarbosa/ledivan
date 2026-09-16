@@ -44,10 +44,11 @@ Marcar `[x]` ao concluir. Códigos batem com o checklist (artifact) e com a mem�
   deles (veio da prospecção), a opção é mantida para não virar Ativo ao salvar. Fluxo de prospecção intacto.
 - [x] **CAD4** — `MoneyInput`: valor da sessão mostra R$ enquanto digita; envia pt-BR, servidor parseia.
 
-## Onda 5 — Lista de pacientes
-- [ ] **LST1** — por paciente: Id da agenda, Ativo/Inativo, Financeiro (formato completo), Frequência
-  (não repetir→sem recorrência; semanal→dia+hora; quinzenal→dia+horário; mensal→"mensal"), situação
-  Em dia/Em aberto/Atrasado (lê a onda 1).
+## Onda 5 — Lista de pacientes  ✅
+- [x] **LST1** — cada card mostra Id da agenda (#), Ativo/Inativo, Financeiro por extenso
+  (`rotuloFinanceiro`, com pacote/fragmentado), Frequência (`rotuloFrequencia`: sem recorrência /
+  dia+hora / Quinzenal·dia+hora / Mensal) e Situação (Em dia/Em aberto/Atrasado). A situação vem do
+  motor da onda 1, carregado em LOTE (`situacoesDaLista` — 1 query por tabela, computa por paciente).
 
 ## Onda 6 — Página do paciente: guias, cards, cabeçalho
 - [ ] **GER1** — remover guia "Dados"; histórico de status abaixo dos dados, acima dos cards.

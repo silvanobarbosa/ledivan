@@ -3,7 +3,8 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Search, ChevronRight, ChevronDown } from "lucide-react";
-import { formatBRL, patientStatusColor, paymentStatusColor, PAYMENT_STATUS_LABELS } from "@/lib/therapy";
+import { formatBRL, patientStatusColor } from "@/lib/therapy";
+import { rotuloFinanceiro, rotuloFrequencia, ROTULO_SITUACAO_LISTA, type SituacaoDaLista } from "@/lib/rotulosPaciente";
 import { MessagePatient } from "@/components/dashboard/MessagePatient";
 
 // Fora do componente DE PROPÓSITO: definido dentro do render, cada tecla digitada na busca
@@ -23,17 +24,28 @@ type PatientCard = {
   name: string;
   phone: string | null;
   email: string | null;
+  agendaId: string | null;
   patientStatus: string;
   paymentStatus: string;
   sessionFee: string;
   frequency: string | null;
   paymentFormat: string | null;
+  pacoteTipo: string | null;
   tags: string | null;
   attendanceDay: string | null;
   attendanceTime: string | null;
   balance: number;
   creditSessions: number;
   debtSessions: number;
+  situacao: SituacaoDaLista;
+  nAberto: number;
+  nAtraso: number;
+};
+
+const SITUACAO_CLS: Record<SituacaoDaLista, string> = {
+  em_dia: "bg-surface text-foreground/50",
+  em_aberto: "bg-[#fffbeb] text-[#b45309]",
+  atrasado: "bg-[#fef2f2] text-[#b91c1c]",
 };
 
 const DAY_ORDER: Record<string, number> = { segunda: 1, "terça": 2, terca: 2, quarta: 3, quinta: 4, sexta: 5, "sábado": 6, sabado: 6, domingo: 7 };
@@ -143,22 +155,22 @@ export function PatientsClient({ patients, initial }: { patients: PatientCard[];
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
                     <p className="font-bold truncate">{p.name}</p>
+                    {p.agendaId && <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-black/5 text-foreground/50">#{p.agendaId}</span>}
                     <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wide ${patientStatusColor(p.patientStatus)}`}>
-                      {p.patientStatus}
-                    </span>
-                    <span className="text-[10px] font-semibold px-2 py-0.5 rounded-full bg-secondary-container/30 text-primary">
-                      {FORMATS.find((f) => f.k === (p.paymentFormat || "avulso"))?.l ?? "Avulso"}
+                      {p.patientStatus === "inativo" ? "Inativo" : "Ativo"}
                     </span>
                   </div>
-                  <p className="text-sm text-foreground/50 truncate">{formatBRL(p.sessionFee)}/sessão{(p.attendanceDay || p.attendanceTime) ? <span className="text-foreground/40"> · 🕐 <span className="capitalize">{p.attendanceDay || ""}</span> {p.attendanceTime || ""}</span> : null}</p>
+                  {/* Financeiro por extenso · frequência (dia e hora quando se repete) */}
+                  <p className="text-sm text-foreground/60 truncate">
+                    {rotuloFinanceiro(p.paymentFormat, p.pacoteTipo)}
+                    <span className="text-foreground/40"> · {formatBRL(p.sessionFee)}/sessão</span>
+                  </p>
+                  <p className="text-xs text-foreground/45 truncate">🕐 {rotuloFrequencia(p.frequency, p.attendanceDay, p.attendanceTime)}</p>
                   <div className="mt-1">
-                    {p.balance < 0 ? (
-                      <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full bg-[#fef2f2] text-[#b91c1c]">⚠️ Devendo {p.debtSessions} sessão(ões)</span>
-                    ) : p.creditSessions > 0 ? (
-                      <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full bg-[#ecfdf5] text-[#047857]">💳 {p.creditSessions} sessão(ões) de crédito</span>
-                    ) : (
-                      <span className="inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full bg-surface text-foreground/50">Em dia</span>
-                    )}
+                    <span className={`inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full ${SITUACAO_CLS[p.situacao]}`}>
+                      {p.situacao === "atrasado" && "⚠️ "}{ROTULO_SITUACAO_LISTA[p.situacao]}
+                      {p.situacao === "atrasado" && p.nAtraso > 0 ? ` · ${p.nAtraso}` : p.situacao === "em_aberto" && p.nAberto > 0 ? ` · ${p.nAberto}` : ""}
+                    </span>
                   </div>
                   {parseTags(p.tags).length > 0 && (
                     <div className="flex gap-1 flex-wrap mt-1.5">
@@ -169,9 +181,6 @@ export function PatientsClient({ patients, initial }: { patients: PatientCard[];
                   )}
                 </div>
               </Link>
-              <span className={`hidden sm:inline text-[10px] font-bold px-2.5 py-1 rounded-full ${paymentStatusColor(p.paymentStatus)}`}>
-                {PAYMENT_STATUS_LABELS[p.paymentStatus]}
-              </span>
               <MessagePatient patient={{ id: p.id, name: p.name, phone: p.phone, email: p.email }} />
               <Link href={`/dashboard/patients/${p.id}`} className="hidden sm:block">
                 <ChevronRight className="w-5 h-5 text-foreground/30 group-hover:text-primary group-hover:translate-x-1 transition" />
