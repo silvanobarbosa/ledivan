@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronLeft, ChevronRight, X, Stethoscope, Repeat, Video, AlertTriangle, MapPin, Pencil, CalendarDays, Trash2 } from "lucide-react";
-import { SESSION_STATUS_LABELS, sessionStatusColor, sessionColorClasses, RISK_LABELS, riskColor, LEGENDA_DA_AGENDA, corDaLegenda, STATUS_OFERECIDOS, STATUS_QUE_PODEM_COBRAR, type RiskLevel } from "@/lib/therapy";
+import { SESSION_STATUS_LABELS, sessionStatusColor, sessionColorClasses, reservaVencida, RISK_LABELS, riskColor, LEGENDA_DA_AGENDA, corDaLegenda, STATUS_OFERECIDOS, STATUS_QUE_PODEM_COBRAR, type RiskLevel } from "@/lib/therapy";
 import { updateSessionStatus, confirmSession, createSessionFromAgenda, createRecurring } from "../sessions/actions";
 import { HolidaySetup } from "@/components/dashboard/HolidaySetup";
 import { HOLIDAY_STYLE, type Holiday, type HolidayCity } from "@/lib/holidays-style";
@@ -39,7 +39,7 @@ type LocationLite = { name: string; address: string };
 type SessionStatus = "realizada" | "nao_realizada" | "cancelada" | "realocada" | "agendada" | "prof_desmarcou" | "atestado";
 type AgendaSession = { id: string; date: string; duration: number; status: string; patientName: string; isOnline: boolean; risk: string; meetingUrl: string | null; meetingOpenedAt: string | null; guestJoinedAt: string | null; meetingEndedAt: string | null; pendingConfirmation: boolean; patientConfirmed: boolean; rescheduleRequested: boolean; patientArrived: boolean; location: string | null; recurring: boolean; recurrenceFreq?: string | null; patientId?: string; sessionKind?: string; pkg?: { seq: number; index: number; total: number } | null; pagamentoAtrasado?: boolean; abaterDoPacote?: boolean; codigo?: string | null };
 
-const blockColor = (s: AgendaSession) => sessionColorClasses(s.status, s.pendingConfirmation, s.recurring);
+const blockColor = (s: AgendaSession, vencida: boolean) => sessionColorClasses(s.status, s.pendingConfirmation, s.recurring, vencida);
 
 /**
  * O símbolo de cada sinal.
@@ -48,6 +48,7 @@ const blockColor = (s: AgendaSession) => sessionColorClasses(s.status, s.pending
  * sem legenda, e sobrevivem à impressão da agenda.
  */
 const SIMBOLO: Record<string, string> = {
+  pendente: "🕓",
   chegou: "🚪",
   remarcar: "🔁",
   realocada: "↪️",
@@ -60,6 +61,7 @@ const SIMBOLO: Record<string, string> = {
 
 /** O que cada símbolo quer dizer, em duas ou três palavras. */
 const LEGENDA_DO_SINAL: Record<string, string> = {
+  pendente: "reserva vencida, a analisar",
   chegou: "chegou",
   remarcar: "pediu remarcação",
   realocada: "remarcada de outra data",
@@ -589,13 +591,14 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
                       const { top, height } = blockGeom(s);
                       const faixa = geometriaDaFaixa(faixas.get(s.id));
                       const time = new Date(s.date).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+                      const vencida = reservaVencida(s.status, s.date, new Date());
                       return (
                         <button
                           key={s.id}
                           title={`${s.patientName}${s.location ? ` · ${s.location}` : ""}`}
                           onClick={() => { setAskCharge(null); setEditing(false); setSelected(s); }}
                           style={{ top: top + 1, height, left: `calc(${faixa.left} + 4px)`, width: `calc(${faixa.width} - 8px)` }}
-                          className={`absolute rounded-lg px-2 py-1 text-left overflow-hidden border border-l-[3px] hover:shadow-md hover:z-10 transition ${blockColor(s)}`}
+                          className={`absolute rounded-lg px-2 py-1 text-left overflow-hidden border border-l-[3px] hover:shadow-md hover:z-10 transition ${blockColor(s, vencida)}`}
                         >
                           {/* Os SINAIS, em ordem de urgência: primeiro o que muda a conduta de hoje,
                               depois o contexto. Cada um diz uma coisa só e nenhum repete a cor. */}
@@ -610,6 +613,7 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
                               pagamentoAtrasado: s.pagamentoAtrasado,
                               riscoDeFalta: s.status === "agendada" ? s.risk : null,
                               realocada: s.status === "realocada",
+                              reservaVencida: vencida,
                             }).map((sinal) => (
                               <span key={sinal.chave} title={sinal.titulo} className="shrink-0 leading-none">
                                 {SIMBOLO[sinal.chave]}
@@ -769,6 +773,11 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
                 {selected.meetingOpenedAt && <p>Abriu: {new Date(selected.meetingOpenedAt).toLocaleString("pt-BR", { hour: "2-digit", minute: "2-digit", day: "2-digit", month: "short" })}</p>}
                 {selected.guestJoinedAt && <p>Convidado entrou: {new Date(selected.guestJoinedAt).toLocaleString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</p>}
                 {selected.meetingEndedAt && <p>Encerrou: {new Date(selected.meetingEndedAt).toLocaleString("pt-BR", { hour: "2-digit", minute: "2-digit" })}</p>}
+              </div>
+            )}
+            {reservaVencida(selected.status, selected.date, new Date()) && (
+              <div className="rounded-xl bg-[#ffedd5] border border-[#fb923c] p-3">
+                <p className="text-xs font-semibold text-[#9a3412]">🕓 Esta reserva já passou e está <strong>pendente de análise</strong>. Escolha abaixo o que aconteceu.</p>
               </div>
             )}
             <div>

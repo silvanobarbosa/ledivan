@@ -19,10 +19,28 @@ export function meetingUrl(sessionId: string): string {
  * O que era dito pela cor e não podia sumir mudou de lugar: a reserva à espera de confirmação
  * continua marcada pela ampulheta na célula, e a repetição ganha (M) e (Q) ao lado do paciente.
  */
-export function sessionColorClasses(status: string, pending?: boolean, recurring?: boolean): string {
+export function sessionColorClasses(status: string, pending?: boolean, recurring?: boolean, vencida?: boolean): string {
   void recurring; // a recorrência é dita por (M)/(Q), não mais pela cor
   void pending; // a reserva é dita pela ampulheta, não mais pela cor
+  // Reserva que já passou e ninguém disse o que aconteceu: a única exceção ao "sem status =
+  // transparente". Aqui a cor VOLTA a ter função — laranja de aviso, para a terapeuta não perder no
+  // meio da semana uma sessão que precisa de decisão. Distinto do amarelo (Presente) e dos vermelhos.
+  if (vencida) return "bg-[#ffedd5] text-[#9a3412] border-[#fb923c]";
   return STATUS_CORES[status] ?? "bg-transparent text-foreground/80 border-border";
+}
+
+/**
+ * Reserva vencida = agendamento (`agendada`) cujo DIA já passou e a terapeuta ainda não disse o que
+ * aconteceu (Presente/Faltou/Desmarcou/...). O dia é comparado inteiro: uma reserva de hoje mais cedo
+ * ainda não venceu — o dia não acabou. Só `agendada` conta; qualquer status já é um desfecho.
+ */
+export function reservaVencida(status: string, date: Date | string, hoje: Date): boolean {
+  if (status !== "agendada") return false;
+  const d = date instanceof Date ? date : new Date(date);
+  if (Number.isNaN(d.getTime())) return false;
+  const dia = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+  const hj = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate()).getTime();
+  return dia < hj;
 }
 
 /**

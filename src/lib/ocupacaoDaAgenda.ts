@@ -129,6 +129,8 @@ export type FatosDaSessao = {
   riscoDeFalta?: string | null;
   /** A sessão foi remarcada de outro dia. */
   realocada?: boolean | null;
+  /** Reserva cujo dia já passou e ainda está sem desfecho — pede análise da terapeuta. */
+  reservaVencida?: boolean | null;
 };
 
 /**
@@ -139,6 +141,9 @@ export type FatosDaSessao = {
  */
 export function sinaisDaSessao(f: FatosDaSessao): SinalDaCelula[] {
   const out: SinalDaCelula[] = [];
+  // Primeiro de todos: reserva vencida é uma pendência que só a terapeuta resolve, e some da vista
+  // fácil (fica no passado). Acende antes do resto para não escapar.
+  if (f.reservaVencida) out.push({ chave: "pendente", titulo: "Reserva vencida — analise o que aconteceu" });
   if (f.chegou) out.push({ chave: "chegou", titulo: "Paciente chegou na sala de espera" });
   if (f.pediuRemarcacao) out.push({ chave: "remarcar", titulo: "Paciente pediu para remarcar" });
   if (f.realocada) out.push({ chave: "realocada", titulo: "Sessão remarcada de outra data" });
