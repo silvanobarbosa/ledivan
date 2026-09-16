@@ -5,6 +5,7 @@ import { and, eq, asc, ne, sql } from "drizzle-orm";
 import Link from "next/link";
 import { Plus } from "lucide-react";
 import { PatientsClient } from "./PatientsClient";
+import { situacoesDaLista } from "@/lib/situacoesLista";
 
 export default async function PatientsPage({ searchParams }: { searchParams: Promise<{ status?: string; tipo?: string; dia?: string; tag?: string }> }) {
   const sp = await searchParams;
@@ -50,6 +51,12 @@ export default async function PatientsPage({ searchParams }: { searchParams: Pro
   const paidMap = new Map(paysByPatient.map((r) => [r.pid, parseFloat(r.total || "0")]));
   const debitMap = new Map(debitByPatient.map((r) => [r.pid, parseFloat(r.total || "0")]));
 
+  // Situação (em dia / em aberto / atrasado) pelo motor único, em lote (dono, 16/09/2026).
+  const situacoes = await situacoesDaLista(userId, list.map((p) => ({
+    id: p.id, paymentFormat: p.paymentFormat, pacoteTipo: p.pacoteTipo, sessionFee: p.sessionFee,
+    paymentDay: p.paymentDay, paymentDay2: p.paymentDay2, horasAntesPagamento: p.horasAntesPagamento,
+  })));
+
   return (
     <div className="space-y-8 max-w-5xl">
       <div className="flex items-end justify-between gap-4">
@@ -71,22 +78,28 @@ export default async function PatientsPage({ searchParams }: { searchParams: Pro
           const bal = (paidMap.get(p.id) ?? 0) - (debitMap.get(p.id) ?? 0);
           const creditSessions = fee > 0 && bal > 0 ? Math.floor(bal / fee) : 0;
           const debtSessions = fee > 0 && bal < 0 ? Math.ceil(-bal / fee) : 0;
+          const sit = situacoes.get(p.id);
           return {
             id: p.id,
             name: p.name,
             phone: p.phone,
             email: p.email,
+            agendaId: p.agendaId,
             patientStatus: p.patientStatus,
             paymentStatus: p.paymentStatus,
             sessionFee: p.sessionFee,
             frequency: p.frequency,
             paymentFormat: p.paymentFormat,
+            pacoteTipo: p.pacoteTipo,
             tags: p.tags,
             attendanceDay: proximaPorPaciente.get(p.id)?.dia ?? p.attendanceDay,
             attendanceTime: proximaPorPaciente.get(p.id)?.hora ?? p.attendanceTime,
             balance: bal,
             creditSessions,
             debtSessions,
+            situacao: sit?.situacao ?? "em_dia",
+            nAberto: sit?.nAberto ?? 0,
+            nAtraso: sit?.nAtraso ?? 0,
           };
         })}
         initial={{ status: sp.status, tipo: sp.tipo, dia: sp.dia, tag: sp.tag }}
