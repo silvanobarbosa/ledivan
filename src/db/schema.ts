@@ -64,6 +64,9 @@ export const users = pgTable("user", {
   birthdayMessage: text("birthday_message"),
   // O modelo do lembrete de "Lembrar agendamento": o texto é da terapeuta e vale para todos.
   agendamentoMessage: text("agendamento_message"),
+  // O modelo da mensagem de COBRANÇA, personalizável por terapeuta. Variáveis: {nome}, {valor},
+  // {vencimento}. Null = usa o texto padrão do app.
+  cobrancaMessage: text("cobranca_message"),
 
   preferences: text("preferences"), // JSON string
   role: text("role").default("user").notNull(), // user | admin (super admin)

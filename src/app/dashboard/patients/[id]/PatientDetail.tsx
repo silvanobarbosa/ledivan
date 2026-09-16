@@ -6,7 +6,7 @@ import { cobra, usaPacote } from "@/lib/reajuste";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { createRecord, deleteRecord, updatePatientNotes } from "../actions";
+import { createRecord, deleteRecord, updatePatientNotes, editPackage, deletePackage, includePackage } from "../actions";
 import { MessagePatient } from "@/components/dashboard/MessagePatient";
 import { AssignmentsTab } from "./AssignmentsTab";
 import { MaterialsTab } from "./MaterialsTab";
@@ -68,7 +68,7 @@ const inputCls = "w-full px-4 py-2.5 rounded-xl bg-white/70 border border-border
 const TABS = ["Geral", "Prontuário", "Atividades", "Materiais"] as const;
 
 export function PatientDetail({
-  patient, payments, statusHistory, records, transcriptionEnabled, risk, assignments, moodToken, moodLogs, scales, treatmentGoals, diaryEntries = [], ratings = [], consents = [], contractHistory = [], finance, sessionStats, recurring, statusEnabled = false, dailyStatus = [], sharedWritings = [], geral = [],
+  patient, payments, statusHistory, records, transcriptionEnabled, risk, assignments, moodToken, moodLogs, scales, treatmentGoals, diaryEntries = [], ratings = [], consents = [], contractHistory = [], finance, sessionStats, packageInfo, recurring, statusEnabled = false, dailyStatus = [], sharedWritings = [], geral = [], cobrancaMessage = null,
 }: {
   patient: Patient; sessions: Session[]; payments: Payment[];
   statusHistory: StatusEntry[]; priceHistory: PriceEntry[]; records: RecordEntry[];
@@ -95,6 +95,8 @@ export function PatientDetail({
   sharedWritings?: { id: string; promptTitle: string | null; content: string; sharedAt: string | null; createdAt: string }[];
   /** Guia Geral: sessões e pagamentos, prontos do motor único. */
   geral?: LinhaNaTela[];
+  /** Modelo da mensagem de cobrança da terapeuta (para o botão "Cobrar" da guia Geral). */
+  cobrancaMessage?: string | null;
 }) {
   const router = useRouter();
   const [tab, setTab] = useState<(typeof TABS)[number]>("Geral");
@@ -105,6 +107,7 @@ export function PatientDetail({
       ? `pagar até ${patient.horasAntesPagamento}h antes`
       : "";
   const statusLabel = patient.patientStatus === "inativo" ? "Inativo" : "Ativo";
+  const [editPkgId, setEditPkgId] = useState<string | null>(null);
   const [showRecord, setShowRecord] = useState(false);
   const [showAnamnese, setShowAnamnese] = useState(false);
   // transcrição
@@ -309,7 +312,54 @@ export function PatientDetail({
               <p className="text-sm font-semibold text-[#92400e] flex items-center gap-1.5">⏰ Reajuste previsto para {formatDate(patient.priceReviewDate)}</p>
             )}
           </div>
-          <GeralTab patientId={patient.id} linhas={geral} responsavel={patient.guardianName || patient.name} />
+          {/* Pacotes (P1, P2, …) — gestão que morava na guia Financeiro, agora aqui no Controle */}
+          {usaPacote(patient.paymentFormat) && (
+            <div className="glass-card rounded-[24px] p-5">
+              <div className="flex items-center justify-between mb-2">
+                <p className="text-xs font-bold text-foreground/40 uppercase tracking-widest">Pacotes</p>
+                {packageInfo.list.length > 0 && (
+                  <span className="text-sm">Em aberto: <strong className="text-primary">{packageInfo.openSessions}</strong> sessão(ões){packageInfo.currentLabel && <span className="text-foreground/50"> · vigente {packageInfo.currentLabel}</span>}</span>
+                )}
+              </div>
+              <div className="space-y-1">
+                {packageInfo.list.length === 0 && <p className="text-sm text-foreground/40">Nenhum pacote.</p>}
+                {packageInfo.list.map((pk) => (
+                  editPkgId === pk.id ? (
+                    <form key={pk.id} action={editPackage.bind(null, pk.id)} onSubmit={() => setEditPkgId(null)} className="flex flex-wrap items-end gap-2 py-2 border-b border-border last:border-0">
+                      <span className="font-semibold text-sm">P{pk.seq}</span>
+                      <div><label className="text-[10px] text-foreground/50 block">Total de sessões</label><input name="sessions" type="number" min={1} max={200} defaultValue={pk.sessions} className="w-24 px-2 py-1.5 rounded-lg bg-white border border-border text-sm" /></div>
+                      <button className="bg-primary text-white px-3 py-1.5 rounded-lg font-bold text-xs">Salvar</button>
+                      <button type="button" onClick={() => setEditPkgId(null)} className="text-foreground/40 text-xs">cancelar</button>
+                    </form>
+                  ) : (
+                    <div key={pk.id} className={`flex items-center justify-between py-1.5 text-sm border-b border-border last:border-0 group ${pk.remaining > 0 ? "" : "opacity-50"}`}>
+                      <span className="font-semibold">P{pk.seq} <span className="font-normal text-foreground/50">· {pk.sessions} sessões</span></span>
+                      <span className="flex items-center gap-2 text-foreground/60">
+                        {pk.used}/{pk.sessions} usadas · <strong className={pk.remaining > 0 ? "text-[#047857]" : "text-foreground/40"}>{pk.remaining} restantes</strong>
+                        <button onClick={() => setEditPkgId(pk.id)} className="text-foreground/30 hover:text-primary opacity-0 group-hover:opacity-100 transition" title="Editar pacote"><Pencil className="w-3.5 h-3.5" /></button>
+                        <form action={deletePackage.bind(null, pk.id)} onSubmit={(e) => { if (!confirm(`Excluir pacote P${pk.seq}?`)) e.preventDefault(); }}>
+                          <button className="text-foreground/30 hover:text-red-600 opacity-0 group-hover:opacity-100 transition" title="Excluir pacote"><Trash2 className="w-3.5 h-3.5" /></button>
+                        </form>
+                      </span>
+                    </div>
+                  )
+                ))}
+              </div>
+              <form action={includePackage.bind(null, patient.id)} className="mt-3 pt-3 border-t border-border flex items-end gap-2 flex-wrap">
+                <div>
+                  <label className="text-[11px] font-semibold text-foreground/50 block">Incluir pacote — sessões</label>
+                  <input name="sessionsInPacket" type="number" min={1} max={200} required placeholder="ex: 8" className="w-24 px-3 py-2 rounded-lg bg-white border border-border text-sm" />
+                </div>
+                <div>
+                  <label className="text-[11px] font-semibold text-foreground/50 block">Valor/sessão (R$)</label>
+                  <input name="fee" inputMode="decimal" defaultValue={patient.sessionFee} className="w-28 px-3 py-2 rounded-lg bg-white border border-border text-sm" />
+                </div>
+                <button className="bg-primary text-white px-4 py-2 rounded-lg font-bold text-sm">+ Incluir</button>
+              </form>
+            </div>
+          )}
+          <GeralTab patientId={patient.id} linhas={geral} responsavel={patient.guardianName || patient.name}
+            cobrar={{ telefone: patient.guardianPhone || patient.phone, nome: patient.guardianName || patient.name, modelo: cobrancaMessage }} />
           {/* GER6: valores recebidos por mês, filtrado por ano */}
           <TabelaAnual payments={payments} />
         </div>

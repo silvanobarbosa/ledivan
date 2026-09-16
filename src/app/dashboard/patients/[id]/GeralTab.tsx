@@ -3,10 +3,34 @@
 import { Fragment, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { MapPin, Video } from "lucide-react";
-import { Check, Send } from "lucide-react";
+import { Check, Send, MessageCircle } from "lucide-react";
 import { formatBRL, PAYMENT_METHOD_LABELS, sessionColorClasses } from "@/lib/therapy";
 import type { CobrancaNaTela, LinhaNaTela } from "@/lib/geralDoPaciente";
+import { montarMensagemCobranca } from "@/lib/mensagemCobranca";
 import { desmarcarCobrancaEnviada, lancarPagamento, marcarCobrancaEnviada } from "./geral-actions";
+
+/** Dados para o botão "Cobrar" compor a mensagem da terapeuta. */
+export type CobrarInfo = { telefone: string | null; nome: string; modelo: string | null };
+
+/** Abre o WhatsApp com a mensagem de cobrança pronta (ou copia, se não houver telefone). */
+function BotaoCobrar({ c, cobrar }: { c: CobrancaNaTela; cobrar: CobrarInfo }) {
+  const msg = montarMensagemCobranca(cobrar.modelo, {
+    nome: cobrar.nome,
+    valor: formatBRL(c.falta),
+    vencimento: c.vencimento ? partes(c.vencimento).data : null,
+  });
+  const tel = (cobrar.telefone || "").replace(/\D/g, "");
+  function acionar() {
+    if (tel) window.open(`https://wa.me/55${tel}?text=${encodeURIComponent(msg)}`, "_blank", "noopener");
+    else navigator.clipboard?.writeText(msg);
+  }
+  return (
+    <button type="button" onClick={acionar} title={tel ? "Cobrar pelo WhatsApp" : "Copiar mensagem de cobrança"}
+      className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#047857] border border-[#a7f3d0] bg-[#ecfdf5] rounded-full px-2 py-0.5 hover:bg-[#d1fae5] whitespace-nowrap">
+      <MessageCircle className="w-3 h-3" aria-hidden /> Cobrar
+    </button>
+  );
+}
 
 /**
  * A guia Geral: sessões e pagamentos numa tabela só, na ordem em que acontecem.
@@ -83,7 +107,7 @@ function EnvioControle({ patientId, chave, envio }: { patientId: string; chave: 
   );
 }
 
-function ColunasDoPagamento({ patientId, c, onLancar }: { patientId: string; c: CobrancaNaTela; onLancar: () => void }) {
+function ColunasDoPagamento({ patientId, c, onLancar, cobrar }: { patientId: string; c: CobrancaNaTela; onLancar: () => void; cobrar?: CobrarInfo }) {
   if (c.pagamento) {
     return (
       <>
@@ -105,7 +129,10 @@ function ColunasDoPagamento({ patientId, c, onLancar }: { patientId: string; c: 
             </button>
             <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap ${s.cls}`}>{s.rotulo}</span>
           </div>
-          <EnvioControle patientId={patientId} chave={c.chave} envio={c.envio} />
+          <div className="flex items-center gap-2 flex-wrap">
+            <EnvioControle patientId={patientId} chave={c.chave} envio={c.envio} />
+            {cobrar && <BotaoCobrar c={c} cobrar={cobrar} />}
+          </div>
         </div>
       </td>
       <td className="px-3 py-2 text-foreground/30">—</td>
@@ -164,7 +191,7 @@ function FormularioDeLancamento({ patientId, c, responsavel, fechar }: { patient
   );
 }
 
-export function GeralTab({ patientId, linhas, responsavel }: { patientId: string; linhas: LinhaNaTela[]; responsavel: string }) {
+export function GeralTab({ patientId, linhas, responsavel, cobrar }: { patientId: string; linhas: LinhaNaTela[]; responsavel: string; cobrar?: CobrarInfo }) {
   const [aberta, setAberta] = useState<string | null>(null);
 
   if (!linhas.length) {
@@ -201,7 +228,7 @@ export function GeralTab({ patientId, linhas, responsavel }: { patientId: string
                         <span className="block text-[11px] text-foreground/50">{l.sessoes} {l.sessoes === 1 ? "sessão" : "sessões"}{venc ? ` · vence ${venc}` : ""}</span>
                       </td>
                       <td className="px-3 py-2 text-right tabular-nums font-bold">{formatBRL(l.valor)}</td>
-                      <ColunasDoPagamento patientId={patientId} c={l} onLancar={() => setAberta(l.chave)} />
+                      <ColunasDoPagamento patientId={patientId} c={l} onLancar={() => setAberta(l.chave)} cobrar={cobrar} />
                     </tr>
                     {aberta === l.chave && <FormularioDeLancamento patientId={patientId} c={l} responsavel={responsavel} fechar={() => setAberta(null)} />}
                   </Fragment>
@@ -221,7 +248,7 @@ export function GeralTab({ patientId, linhas, responsavel }: { patientId: string
                     <CelulaStatus status={l.status} />
                     <td className="px-3 py-2 font-semibold tabular-nums">{l.rotulo || "—"}</td>
                     <td className="px-3 py-2 text-right tabular-nums">{l.valor == null ? "" : formatBRL(l.valor)}</td>
-                    {c ? <ColunasDoPagamento patientId={patientId} c={c} onLancar={() => setAberta(c.chave)} /> : <td colSpan={4} />}
+                    {c ? <ColunasDoPagamento patientId={patientId} c={c} onLancar={() => setAberta(c.chave)} cobrar={cobrar} /> : <td colSpan={4} />}
                   </tr>
                   {c && aberta === c.chave && <FormularioDeLancamento patientId={patientId} c={c} responsavel={responsavel} fechar={() => setAberta(null)} />}
                 </Fragment>

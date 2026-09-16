@@ -13,6 +13,15 @@ import { detectSmtp, verifySmtp } from "@/lib/email";
 import { encryptSecret } from "@/lib/crypto";
 import { connectInstance, checkInstanceState, disconnectInstance } from "@/lib/whatsappEvolution";
 
+// Modelo da mensagem de cobrança (personalizável por terapeuta). Variáveis {nome}/{valor}/{vencimento}.
+export async function saveCobrancaMessage(formData: FormData) {
+  const session = await auth();
+  if (!session?.user?.id) throw new Error("Não autorizado");
+  const texto = ((formData.get("cobrancaMessage") as string) || "").trim().slice(0, 1000);
+  await db.update(users).set({ cobrancaMessage: texto || null }).where(eq(users.id, session.user.id));
+  revalidatePath("/dashboard/settings");
+}
+
 // WhatsApp do profissional (Evolution): conectar (QR), checar estado, desconectar.
 export async function connectWhatsapp() {
   const session = await auth();
