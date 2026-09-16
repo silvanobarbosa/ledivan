@@ -7,6 +7,32 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-09-16 — Reserva vencida: aviso e pendente de análise (agenda)
+
+**Entregue:** #171. Reserva (agendamento `agendada`) cujo dia passou sem desfecho agora fica com
+**cor de aviso** (laranja) na agenda, sinal **🕓 pendente** na célula + legenda, e um aviso "pendente
+de análise" no painel da sessão. A terapeuta resolve escolhendo o status no seletor que já existe.
+
+**Por quê:** essas reservas ficavam invisíveis (sem status = célula transparente) e escapavam;
+sobraram 13 no ar, a mais antiga de 06/09. Definição do dono: **não** mudar automático — só sinalizar
+e deixar a terapeuta escolher entre as opções disponíveis.
+
+**Decisões que ficam valendo:**
+- Reserva vencida = `agendada` com o **DIA** no passado. Reserva de hoje mais cedo NÃO venceu (o dia
+  não acabou). Qualquer status já resolvido nunca vence.
+- É a única exceção ao "sem status = transparente": aqui a cor volta a ter função (chamar a decisão).
+- **Derivado de status+data — sem coluna nova no banco.** `reservaVencida()` em `therapy.ts`, sinal
+  em `ocupacaoDaAgenda.ts`, tudo ligado no `AgendaClient.tsx`.
+
+**Armadilha (fica de nota, não mexida):** enquanto a reserva vencida segue `agendada`, ela já conta
+como sessão cheia na cobrança/fechamento (comportamento pré-existente, pois `agendada` está em
+`STATUS_QUE_AVANCAM` e não pausa). Resolver o status corrige conforme a escolha — mais um motivo para
+não deixá-la escapar.
+
+**Pendente:** nada desta. Mensagem de cobrança personalizável por terapeuta segue aberta (do dono).
+
+---
+
 ## 2026-09-16 — Marcar cobrança como enviada (guia Geral)
 
 **Entregue:** #169. Cada cobrança em aberto na guia Geral ganhou **"Marcar enviada"**: registra que
