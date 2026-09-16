@@ -62,12 +62,12 @@ Marcar `[x]` ao concluir. Códigos batem com o checklist (artifact) e com a mem�
 - [x] **CAD3** — cabeçalho mostra nome, Ativo/Inativo, financeiro por extenso, valor, vencimento
   (dia do mês, ou "pagar até Xh antes" no avulso), idade, casal, telefone e responsável + telefone.
 
-## Onda 7 — Guia Geral & Controle
-- [ ] **GER4** — acima da tabela do Controle: data do próximo reajuste + valor da sessão.
-- [ ] **GER5** — coluna "Status da sessão" na guia Geral, à direita de Data/Hora (Presente/Faltou/
-  Desmarcou/Prof. desm./Atestado; cor de fundo do padrão da agenda; sem status = vazia sem cor).
-- [ ] **GER6** — abaixo do Controle, a tabela de valores recebidos por mês (com Total) filtrada por
-  ANO em vez de por paciente.
+## Onda 7 — Guia Geral & Controle  ✅
+- [x] **GER4** — cabeçalho da guia Geral: valor da sessão + "Reajuste previsto para …".
+- [x] **GER5** — coluna "Status" na guia Geral, à direita de Data/hora. Mostra só Presente/Faltou/
+  Desmarcou/Prof. desm./Atestado com a cor da agenda; sem status = célula vazia sem cor.
+- [x] **GER6** — `TabelaAnual`: valores recebidos por mês (com Total), filtrados por ANO (seletor),
+  abaixo da tabela da Geral. Pura em `tabelaAnual.ts`.
 
 ## Onda 8 — Agenda: fragmentado, sequência, layout
 - [ ] **AGD3** — fragmentado: numeração por qtd de sessões de CADA mês, reiniciando no mês seguinte
