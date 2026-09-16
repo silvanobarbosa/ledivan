@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import {
-  cobra, diasParaReajuste, linhasDeReajuste, referenciaDoPreco, sessoesNoMes, valorDoMes,
-  vencimentoDoPreco,
+  cobra, diasParaReajuste, eventosDeReajuste, linhasDeReajuste, referenciaDoPreco, rotuloDoFormato,
+  sessoesNoMes, valorDoMes, vencimentoDoPreco,
 } from "@/lib/reajuste";
 
 const dia = (d: number, m: number, a: number) => new Date(a, m - 1, d, 12, 0, 0);
@@ -133,5 +133,46 @@ describe("histórico de reajuste", () => {
   it("linha com data ou valor inválido é descartada", () => {
     expect(linhasDeReajuste([{ valor: "abc", dataEfetiva: dia(1, 1, 2025) }])).toEqual([]);
     expect(linhasDeReajuste([{ valor: "200", dataEfetiva: "não é data" }])).toEqual([]);
+  });
+});
+
+describe("histórico de reajuste unificado (valor + modalidade)", () => {
+  it("funde valor e modalidade em uma linha do tempo por data", () => {
+    const precos = [
+      { valor: "120", dataEfetiva: "2026-08-14" },
+      { valor: "0", dataEfetiva: "2026-09-15" },
+    ];
+    const formatos = [
+      { formato: "sessao", dataEfetiva: "2026-08-14" },
+      { formato: "gratuito", dataEfetiva: "2026-09-15" },
+    ];
+    const ev = eventosDeReajuste(precos, formatos);
+    expect(ev.map((e) => `${e.kind}:${e.novo}`)).toEqual([
+      "modalidade:sessao", "valor:120", "modalidade:gratuito", "valor:0",
+    ]);
+    // No mesmo dia, a modalidade vem antes do valor.
+    expect(ev[0]).toMatchObject({ kind: "modalidade", anterior: null, novo: "sessao" });
+    expect(ev[2]).toMatchObject({ kind: "modalidade", anterior: "sessao", novo: "gratuito" });
+  });
+
+  it("modalidade que não mudou de fato é descartada", () => {
+    const ev = eventosDeReajuste([], [
+      { formato: "mensal", dataEfetiva: "2026-01-01" },
+      { formato: "mensal", dataEfetiva: "2026-06-01" },
+    ]);
+    expect(ev).toHaveLength(1);
+    expect(ev[0]).toMatchObject({ kind: "modalidade", anterior: null, novo: "mensal" });
+  });
+
+  it("só valor, sem histórico de formato, segue funcionando", () => {
+    const ev = eventosDeReajuste([{ valor: "200", dataEfetiva: "2026-01-01" }], []);
+    expect(ev).toEqual([{ data: new Date("2026-01-01"), kind: "valor", anterior: null, novo: 200 }]);
+  });
+
+  it("rótulo do formato fala como o dono", () => {
+    expect(rotuloDoFormato("sessao")).toBe("A cada sessão");
+    expect(rotuloDoFormato("gratuito")).toBe("Gratuito");
+    expect(rotuloDoFormato("primeira_pacote")).toBe("Na primeira sessão do pacote");
+    expect(rotuloDoFormato("avulso")).toBe("A cada sessão"); // valor antigo
   });
 });

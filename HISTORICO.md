@@ -7,6 +7,22 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-09-16 — Demandas: onda 3 (reajuste com modalidade; formato investigado)
+
+**PAG2 — histórico de reajuste unificado (#175).** O "Histórico de reajuste" (form de edição, aba
+Financeiro) passou a mostrar também a mudança de MODALIDADE (gratuito, a cada sessão, mensal…), não
+só de valor. `eventosDeReajuste(precos, formatos)` em `reajuste.ts` funde `patient_price_history` com
+`patient_payment_format_history` numa linha do tempo; no mesmo dia a modalidade vem antes do valor
+(a troca de formato arrasta o preço). Modalidade sem mudança real é descartada.
+
+**PAG1 — investigado, sem fix às cegas.** O relato é: salva "Gratuito" e a tela volta em "A cada
+sessão". O caminho no código está CORRETO — `updatePatient` grava `patients.paymentFormat` sem guarda
+e o form relê dele. Não reproduzível por inspeção; sem credencial de QA e com o `.env.local`
+apontando pra prod, não dá pra testar escrita com segurança. **Fica aguardando o dono confirmar** se
+ainda ocorre (pós ondas 1–2) e os passos exatos. Não mexer em lógica de dinheiro no escuro.
+
+---
+
 ## 2026-09-16 — Demandas do documento: plano de 8 ondas (ondas 1 e 2)
 
 **Contexto:** o dono mandou um PDF de 10 páginas com 21 demandas e pediu para fazer **tudo**, em

@@ -1,6 +1,6 @@
 import { db } from "@/db";
 import { auth } from "@/auth";
-import { patients, patientPriceHistory } from "@/db/schema";
+import { patients, patientPriceHistory, patientPaymentFormatHistory } from "@/db/schema";
 import { and, eq } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import Link from "next/link";
@@ -25,6 +25,12 @@ export default async function EditPatientPage({ params }: { params: Promise<{ id
   const priceHistory = await db.select({ valor: patientPriceHistory.valor, dataEfetiva: patientPriceHistory.dataEfetiva })
     .from(patientPriceHistory)
     .where(eq(patientPriceHistory.patientId, id));
+
+  // Histórico de MODALIDADE (gratuito, a cada sessão, mensal…) — o reajuste também mostra a troca de
+  // formato, não só de valor (dono, 16/09/2026).
+  const formatHistory = await db.select({ formato: patientPaymentFormatHistory.formato, dataEfetiva: patientPaymentFormatHistory.dataEfetiva })
+    .from(patientPaymentFormatHistory)
+    .where(eq(patientPaymentFormatHistory.patientId, id));
 
   const save = updatePatient.bind(null, id);
   const remove = deletePatient.bind(null, id);
@@ -56,6 +62,7 @@ export default async function EditPatientPage({ params }: { params: Promise<{ id
           horasAntesPagamento: patient.horasAntesPagamento, validadePrecoMeses: patient.validadePrecoMeses,
           pacoteTipo: patient.pacoteTipo, semanasNoMes: patient.semanasNoMes, paymentDay2: patient.paymentDay2,
           priceHistory: priceHistory.map((h) => ({ valor: h.valor, dataEfetiva: (h.dataEfetiva as Date).toISOString() })),
+          formatHistory: formatHistory.map((h) => ({ formato: h.formato, dataEfetiva: (h.dataEfetiva as Date).toISOString() })),
           reminderEnabled: patient.reminderEnabled, reminderChannel: patient.reminderChannel, reminderLeadMinutes: patient.reminderLeadMinutes,
           photo3x4: patient.photo3x4, photoExtra1: patient.photoExtra1, photoExtra2: patient.photoExtra2, photoExtra3: patient.photoExtra3,
         }} />
