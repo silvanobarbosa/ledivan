@@ -14,6 +14,7 @@ import { AnexosProntuario } from "./AnexosProntuario";
 import { PatientFeatures } from "./PatientFeatures";
 import { TreatmentPlan } from "./TreatmentPlan";
 import { GeralTab } from "./GeralTab";
+import { TabelaAnual } from "./TabelaAnual";
 import type { LinhaNaTela } from "@/lib/geralDoPaciente";
 import { AnamneseForm } from "./AnamneseForm";
 import { DailyStatusPanel } from "./DailyStatusPanel";
@@ -67,7 +68,7 @@ const inputCls = "w-full px-4 py-2.5 rounded-xl bg-white/70 border border-border
 const TABS = ["Geral", "Prontuário", "Atividades", "Materiais"] as const;
 
 export function PatientDetail({
-  patient, statusHistory, records, transcriptionEnabled, risk, assignments, moodToken, moodLogs, scales, treatmentGoals, diaryEntries = [], ratings = [], consents = [], contractHistory = [], finance, sessionStats, recurring, statusEnabled = false, dailyStatus = [], sharedWritings = [], geral = [],
+  patient, payments, statusHistory, records, transcriptionEnabled, risk, assignments, moodToken, moodLogs, scales, treatmentGoals, diaryEntries = [], ratings = [], consents = [], contractHistory = [], finance, sessionStats, recurring, statusEnabled = false, dailyStatus = [], sharedWritings = [], geral = [],
 }: {
   patient: Patient; sessions: Session[]; payments: Payment[];
   statusHistory: StatusEntry[]; priceHistory: PriceEntry[]; records: RecordEntry[];
@@ -295,9 +296,23 @@ export function PatientDetail({
         ))}
       </div>
 
-      {/* Geral */}
+      {/* Geral (Controle) */}
       {tab === "Geral" && (
-        <GeralTab patientId={patient.id} linhas={geral} responsavel={patient.guardianName || patient.name} />
+        <div className="space-y-4">
+          {/* GER4: cabeçalho do Controle — valor da sessão + próximo reajuste */}
+          <div className="glass-card rounded-[24px] p-5 flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <p className="text-2xl font-display font-bold text-primary">{formatBRL(patient.sessionFee)}</p>
+              <p className="text-xs text-foreground/50">Valor da sessão</p>
+            </div>
+            {patient.priceReviewDate && (
+              <p className="text-sm font-semibold text-[#92400e] flex items-center gap-1.5">⏰ Reajuste previsto para {formatDate(patient.priceReviewDate)}</p>
+            )}
+          </div>
+          <GeralTab patientId={patient.id} linhas={geral} responsavel={patient.guardianName || patient.name} />
+          {/* GER6: valores recebidos por mês, filtrado por ano */}
+          <TabelaAnual payments={payments} />
+        </div>
       )}
 
       {/* Dados */}

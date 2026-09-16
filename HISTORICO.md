@@ -7,6 +7,17 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-09-16 — Demandas: onda 7 (guia Geral & Controle)
+
+**#179.** GER4: a guia Geral ganhou um cabeçalho com **valor da sessão** e **"Reajuste previsto
+para …"**. GER5: a tabela da Geral tem uma coluna **Status** (à direita de Data/hora) que mostra só
+Presente/Faltou/Desmarcou/Prof. desm./Atestado, com a cor da agenda; sessão sem esses status fica com
+a célula vazia, sem cor. GER6: abaixo da tabela, a **TabelaAnual** — valores recebidos por mês (com
+Total), com seletor de **ano** (dentro do paciente, filtra por ano em vez de por paciente). Lógica
+pura em `tabelaAnual.ts`.
+
+---
+
 ## 2026-09-16 — Demandas: onda 6 (página do paciente)
 
 **#178.** GER1: a guia "Dados" saiu; o **Histórico de status** virou um bloco logo abaixo do

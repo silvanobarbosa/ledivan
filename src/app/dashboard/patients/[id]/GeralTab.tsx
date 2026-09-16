@@ -4,7 +4,7 @@ import { Fragment, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { MapPin, Video } from "lucide-react";
 import { Check, Send } from "lucide-react";
-import { formatBRL, PAYMENT_METHOD_LABELS } from "@/lib/therapy";
+import { formatBRL, PAYMENT_METHOD_LABELS, sessionColorClasses } from "@/lib/therapy";
 import type { CobrancaNaTela, LinhaNaTela } from "@/lib/geralDoPaciente";
 import { desmarcarCobrancaEnviada, lancarPagamento, marcarCobrancaEnviada } from "./geral-actions";
 
@@ -32,6 +32,22 @@ const hojeISO = () => {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 };
+
+// Só estes cinco status aparecem na coluna Status da Geral (dono, 16/09/2026). Sem status = célula
+// vazia, sem cor. As cores são as mesmas da agenda.
+const STATUS_GERAL: Record<string, string> = {
+  realizada: "Presente", nao_realizada: "Faltou", cancelada: "Desmarcou",
+  realocada: "Desmarcou", prof_desmarcou: "Prof. desm.", atestado: "Atestado",
+};
+function CelulaStatus({ status }: { status?: string | null }) {
+  const rotulo = status ? STATUS_GERAL[status] : undefined;
+  if (!rotulo || !status) return <td className="px-3 py-2" />;
+  return (
+    <td className="px-3 py-2">
+      <span className={`inline-block text-[11px] font-bold px-2 py-0.5 rounded-full border ${sessionColorClasses(status)}`}>{rotulo}</span>
+    </td>
+  );
+}
 
 /**
  * "Marcar enviada": registra que o paciente foi avisado desta cobrança. Não envia nada — é um
@@ -121,7 +137,7 @@ function FormularioDeLancamento({ patientId, c, responsavel, fechar }: { patient
 
   return (
     <tr>
-      <td colSpan={7} className="px-3 pb-3">
+      <td colSpan={8} className="px-3 pb-3">
         <form action={enviar} className="rounded-xl bg-surface/70 border border-border p-3 grid gap-2 sm:grid-cols-[auto_1fr_auto_auto_auto] items-end" data-testid="lancar-pagamento">
           <div>
             <label className="text-[11px] font-semibold text-foreground/60 block">Data do pagamento</label>
@@ -162,6 +178,7 @@ export function GeralTab({ patientId, linhas, responsavel }: { patientId: string
           <thead>
             <tr className="text-left text-[11px] uppercase tracking-widest text-foreground/40">
               <th className="px-3 py-2 font-bold">Data / hora</th>
+              <th className="px-3 py-2 font-bold">Status</th>
               <th className="px-3 py-2 font-bold">Sessão</th>
               <th className="px-3 py-2 font-bold text-right">Valor</th>
               <th className="px-3 py-2 font-bold">Pagamento</th>
@@ -178,6 +195,7 @@ export function GeralTab({ patientId, linhas, responsavel }: { patientId: string
                   <Fragment key={l.chave}>
                     <tr className="border-t border-border bg-[#fef9ec]" data-chave={l.chave}>
                       <td className="px-3 py-2 tabular-nums font-semibold">{l.pagamento ? partes(l.pagamento.data).data : "__/__/__"}</td>
+                      <td className="px-3 py-2" />
                       <td className="px-3 py-2">
                         <span className="font-bold text-[#92400e]">Pagamento{l.parte ? ` ${l.parte}/2` : ""}</span>
                         <span className="block text-[11px] text-foreground/50">{l.sessoes} {l.sessoes === 1 ? "sessão" : "sessões"}{venc ? ` · vence ${venc}` : ""}</span>
@@ -200,6 +218,7 @@ export function GeralTab({ patientId, linhas, responsavel }: { patientId: string
                         {l.online ? <Video className="w-3.5 h-3.5 text-primary" aria-label="online" /> : <MapPin className="w-3.5 h-3.5 text-foreground/30" aria-label="presencial" />}
                       </span>
                     </td>
+                    <CelulaStatus status={l.status} />
                     <td className="px-3 py-2 font-semibold tabular-nums">{l.rotulo || "—"}</td>
                     <td className="px-3 py-2 text-right tabular-nums">{l.valor == null ? "" : formatBRL(l.valor)}</td>
                     {c ? <ColunasDoPagamento patientId={patientId} c={c} onLancar={() => setAberta(c.chave)} /> : <td colSpan={4} />}
