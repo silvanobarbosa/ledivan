@@ -24,8 +24,8 @@ const partes = (t: string) => {
 
 const SITUACAO: Record<CobrancaNaTela["situacao"], { rotulo: string; cls: string }> = {
   pago: { rotulo: "Pago", cls: "bg-[#dcfce7] text-[#166534]" },
-  em_aberto: { rotulo: "Em aberto", cls: "bg-[#fee2e2] text-[#991b1b]" },
-  a_vencer: { rotulo: "A vencer", cls: "bg-surface text-foreground/60" },
+  em_aberto: { rotulo: "Em aberto", cls: "bg-surface text-foreground/60" },
+  em_atraso: { rotulo: "Em atraso", cls: "bg-[#fee2e2] text-[#991b1b]" },
 };
 
 const hojeISO = () => {

@@ -80,7 +80,11 @@ export type ResumoNaTela = {
   totalPago: number;
   totalExigivel: number;
   emAberto: number;
+  emAtraso: number;
+  nAberto: number;
+  nAtraso: number;
   sessoesEmAberto: number;
+  sessoesEmAtraso: number;
   extrato: { id: string; data: string; tipo: "pagamento" | "cobranca"; descricao: string; valor: number; saldo: number; pagamentoId: string | null }[];
 };
 
@@ -88,7 +92,7 @@ export type ResumoNaTela = {
 export async function geralDoPaciente(userId: string, patientId: string): Promise<{ linhas: LinhaNaTela[]; resumo: ResumoNaTela } | null> {
   const paciente = await db.query.patients.findFirst({
     where: and(eq(patients.id, patientId), eq(patients.userId, userId)),
-    columns: { id: true, paymentFormat: true, pacoteTipo: true, sessionFee: true, paymentDay: true, paymentDay2: true },
+    columns: { id: true, paymentFormat: true, pacoteTipo: true, sessionFee: true, paymentDay: true, paymentDay2: true, horasAntesPagamento: true },
   });
   if (!paciente) return null;
 
@@ -116,6 +120,7 @@ export async function geralDoPaciente(userId: string, patientId: string): Promis
     tamanhos: tamanhosDasSequencias(pacotes),
     diaPagamento: paciente.paymentDay,
     diaPagamento2: paciente.paymentDay2,
+    horasAntesPagamento: paciente.horasAntesPagamento,
     pagamentos: pagamentos.map((p) => ({ id: p.id, valor: p.amount, data: local(p.date), status: p.status, metodo: p.method, pagoPor: p.pagoPor, cobrancaChave: p.cobrancaChave, kind: p.kind })),
     envios: envios.map((e) => ({ cobrancaChave: e.cobrancaChave, enviadaEm: local(e.enviadaEm), enviadaPor: e.enviadaPor })),
     hoje: hojeDeParede(),

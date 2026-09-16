@@ -128,9 +128,10 @@ describe("situação e pagamento lançado", () => {
       vigencias: [{ formato: "mensal", pacoteTipo: "completo", desde }], reserva: { formato: "mensal" }, precos,
       sessoes: [...seq, terca(27, 9), terca(3, 10), terca(10, 10), terca(17, 10)], pagamentos: [], hoje, ...base,
     }).filter((l) => l.tipo === "pagamento");
-    // 3ª sequência começa em 27/10 → vence 05/10, depois de hoje (15/09): a vencer.
-    expect(futura[2].tipo === "pagamento" && futura[2].situacao).toBe("a_vencer");
-    expect(futura[1].tipo === "pagamento" && futura[1].situacao).toBe("em_aberto");
+    // 3ª sequência vence 05/10 (depois de hoje, 15/09): ainda no prazo, em aberto. A 2ª vence 05/09
+    // (dia 5 do mês de início) — já passou: em atraso.
+    expect(futura[2].tipo === "pagamento" && futura[2].situacao).toBe("em_aberto");
+    expect(futura[1].tipo === "pagamento" && futura[1].situacao).toBe("em_atraso");
   });
 
   it("pagamento com a chave da cobrança: pago, com data, responsável e forma", () => {
@@ -140,9 +141,10 @@ describe("situação e pagamento lançado", () => {
       pagamentos: [{ id: "pg1", valor: 520, data: new Date(2026, 8, 3), status: "paid", metodo: "pix", pagoPor: "Mãe", cobrancaChave: "pacote:inicio:1" }],
     });
     const [primeiro, p] = linhas.filter((l) => l.tipo === "pagamento");
-    // A chave manda: o pagamento é da SEGUNDA sequência, e a primeira continua em aberto. Sem isto
-    // o teste passava pela distribuição por vencimento, e não provava o casamento pela chave.
-    expect(primeiro.tipo === "pagamento" && primeiro.situacao).toBe("em_aberto");
+    // A chave manda: o pagamento é da SEGUNDA sequência, e a primeira segue sem pagar — e como já
+    // venceu (hoje é 15/09), está em atraso. Sem a chave o teste passava pela distribuição por
+    // vencimento, e não provava o casamento pela chave.
+    expect(primeiro.tipo === "pagamento" && primeiro.situacao).toBe("em_atraso");
     expect(p.tipo).toBe("pagamento");
     if (p.tipo !== "pagamento") return;
     expect(p.chave).toBe("pacote:inicio:1");
@@ -158,7 +160,8 @@ describe("situação e pagamento lançado", () => {
       pagamentos: [{ id: "velho", valor: 260, data: new Date(2026, 8, 9), status: "paid", metodo: "cash", pagoPor: null, cobrancaChave: null }],
     });
     const sit = linhas.map((l) => (l.tipo === "sessao" ? l.cobranca?.situacao : null));
-    expect(sit).toEqual(["pago", "pago", "em_aberto"]);
+    // 01 e 08 quitados pela ordem; a de 15/09 segue sem pagar e já passou da hora: em atraso.
+    expect(sit).toEqual(["pago", "pago", "em_atraso"]);
   });
 
   it("pagamento pendente não quita nada", () => {
@@ -167,7 +170,7 @@ describe("situação e pagamento lançado", () => {
       sessoes: [terca(1)], hoje,
       pagamentos: [{ id: "p", valor: 130, data: new Date(2026, 8, 1), status: "pending", metodo: "pix", pagoPor: null, cobrancaChave: "sessao:s8-1" }],
     });
-    expect(linhas[0].tipo === "sessao" && linhas[0].cobranca?.situacao).toBe("em_aberto");
+    expect(linhas[0].tipo === "sessao" && linhas[0].cobranca?.situacao).toBe("em_atraso");
   });
 
   it("sessão desmarcada aparece sem código e sem cobrança", () => {
@@ -201,8 +204,12 @@ describe("o saldo único — o mesmo número nos cartões, no Financeiro e na Ge
     const r = resumoDaGeral(entrada([]));
     expect(r.totalExigivel).toBe(260);
     expect(r.saldo).toBe(-260);
-    expect(r.emAberto).toBe(260);
-    expect(r.sessoesEmAberto).toBe(2);
+    // 01 e 08/09 já venceram (em atraso); 22/09 ainda está no prazo (em aberto).
+    expect(r.emAtraso).toBe(260);
+    expect(r.sessoesEmAtraso).toBe(2);
+    expect(r.nAtraso).toBe(2);
+    expect(r.emAberto).toBe(130);
+    expect(r.nAberto).toBe(1);
   });
 
   it("pago tudo que venceu: saldo zero", () => {
@@ -276,5 +283,54 @@ describe("cobrança enviada (avisada ao paciente)", () => {
   it("envio de uma chave que não existe é ignorado", () => {
     const linhas = geral("mensal", sess, { envios: [{ cobrancaChave: "nao-existe", enviadaEm: new Date(2026, 8, 10), enviadaPor: "x" }] });
     expect(linhas.every((l) => (l.tipo === "pagamento" ? !l.envio : !l.cobranca?.envio))).toBe(true);
+  });
+});
+
+describe("em aberto × em atraso (dono, 16/09/2026)", () => {
+  const umAvulso = (hojeD: Date, horasAntes?: number | null) =>
+    linhasDaGeral({
+      vigencias: [{ formato: "sessao", desde }], reserva: { formato: "sessao" }, precos,
+      sessoes: [{ id: "s1", date: new Date(2026, 8, 10, 9, 0), status: "realizada" }],
+      pagamentos: [], hoje: hojeD, horasAntesPagamento: horasAntes,
+    })[0];
+
+  it("avulso vence na hora da sessão quando não há prazo (0h antes)", () => {
+    const antes = umAvulso(new Date(2026, 8, 10, 8, 0));
+    const depois = umAvulso(new Date(2026, 8, 10, 10, 0));
+    expect(antes.tipo === "sessao" && antes.cobranca?.situacao).toBe("em_aberto");
+    expect(depois.tipo === "sessao" && depois.cobranca?.situacao).toBe("em_atraso");
+  });
+
+  it("avulso com prazo de 24h antes: vence no dia anterior", () => {
+    // Sessão 10/09 09:00; 24h antes = 09/09 09:00.
+    const noPrazo = umAvulso(new Date(2026, 8, 9, 8, 0), 24);
+    const vencido = umAvulso(new Date(2026, 8, 9, 10, 0), 24);
+    expect(noPrazo.tipo === "sessao" && noPrazo.cobranca?.situacao).toBe("em_aberto");
+    expect(vencido.tipo === "sessao" && vencido.cobranca?.situacao).toBe("em_atraso");
+  });
+
+  const mensal = (hojeD: Date) =>
+    linhasDaGeral({
+      vigencias: [{ formato: "mensal", pacoteTipo: "completo", desde }], reserva: { formato: "mensal" }, precos,
+      sessoes: [terca(1), terca(8), terca(15), terca(22)], pagamentos: [], hoje: hojeD, diaPagamento: 5,
+    }).find((l) => l.tipo === "pagamento");
+
+  it("mensal vale o dia inteiro do vencimento — atraso só no dia seguinte", () => {
+    // Vence dia 05/09.
+    const noDia = mensal(new Date(2026, 8, 5, 23, 0));
+    const depois = mensal(new Date(2026, 8, 6, 1, 0));
+    expect(noDia?.tipo === "pagamento" && noDia.situacao).toBe("em_aberto");
+    expect(depois?.tipo === "pagamento" && depois.situacao).toBe("em_atraso");
+  });
+
+  it("os contadores separam em aberto de em atraso", () => {
+    const r = resumoDaGeral({
+      vigencias: [{ formato: "sessao", desde }], reserva: { formato: "sessao" }, precos,
+      sessoes: [terca(1), terca(8), terca(22)], pagamentos: [], hoje,
+    });
+    expect(r.nAtraso).toBe(2);   // 01 e 08/09
+    expect(r.nAberto).toBe(1);   // 22/09
+    expect(r.emAtraso).toBe(260);
+    expect(r.emAberto).toBe(130);
   });
 });
