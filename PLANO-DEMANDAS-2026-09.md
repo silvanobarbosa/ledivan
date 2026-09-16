@@ -50,13 +50,17 @@ Marcar `[x]` ao concluir. Códigos batem com o checklist (artifact) e com a mem�
   dia+hora / Quinzenal·dia+hora / Mensal) e Situação (Em dia/Em aberto/Atrasado). A situação vem do
   motor da onda 1, carregado em LOTE (`situacoesDaLista` — 1 query por tabela, computa por paciente).
 
-## Onda 6 — Página do paciente: guias, cards, cabeçalho
-- [ ] **GER1** — remover guia "Dados"; histórico de status abaixo dos dados, acima dos cards.
-- [ ] **GER2** — cards só: sessões agendadas · X em aberto e X em atraso · recorrentes (se houver).
-- [ ] **GER3** — remover guias Sessões, Financeiro, Linha do tempo.
-- [ ] **CAD3** — cabeçalho/ficha do paciente: nome completo, ativo/inativo, idade, telefone, se é
-  casal, responsável, telefone do responsável, financeiro (formato), valor + dia de vencimento (ou
-  horas antes, no avulso — `horasAntesPagamento`).
+## Onda 6 — Página do paciente: guias, cards, cabeçalho  ✅
+- [x] **GER1** — removida a guia "Dados"; o Histórico de status virou um bloco abaixo do cabeçalho,
+  acima dos cards.
+- [x] **GER2** — cards agora são 3: Sessões agendadas · Em aberto (nº + valor) · Em atraso (nº + valor).
+  O banner de agenda recorrente segue abaixo.
+- [x] **GER3** — removidas as guias Sessões, Financeiro e Linha do tempo. Guias restantes: Geral,
+  Prontuário, Atividades, Materiais. **CONSEQUÊNCIA:** o "Registrar pagamento", a gestão de pacotes
+  (P1/P2) e o Fluxo financeiro saíram com a guia Financeiro — pagamento agora é pela guia Geral
+  ("Lançar pagamento" por cobrança). Se o dono quiser a gestão de pacotes de volta, dizer onde.
+- [x] **CAD3** — cabeçalho mostra nome, Ativo/Inativo, financeiro por extenso, valor, vencimento
+  (dia do mês, ou "pagar até Xh antes" no avulso), idade, casal, telefone e responsável + telefone.
 
 ## Onda 7 — Guia Geral & Controle
 - [ ] **GER4** — acima da tabela do Controle: data do próximo reajuste + valor da sessão.
