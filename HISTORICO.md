@@ -7,6 +7,26 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-09-16 — Pendências zeradas (#181)
+
+**PAG1 (RESOLVIDO — era cache de rota).** O relato "salvo Gratuito, volta em A cada sessão" tinha
+causa real: `updatePatient` revalidava `/dashboard/patients/[id]` e a lista, mas **não** a rota
+`/dashboard/patients/[id]/edit`. O banco salvava certo, mas o RSC da tela de edição ficava em cache
+com o formato antigo — reabrindo, o rádio voltava em "A cada sessão". Fix: uma linha,
+`revalidatePath(.../edit)`. Lição: mutação que afeta uma tela de edição precisa revalidar a rota
+DELA, não só a de leitura.
+
+**Gestão de pacotes (P1/P2) restaurada.** Saiu com a guia Financeiro na onda 6; voltou como um card
+"Pacotes" na guia Geral (Controle), só para formatos de pacote — incluir/editar/excluir, como antes.
+
+**Mensagem de cobrança personalizável.** Nova coluna `users.cobrancaMessage` (variáveis {nome},
+{valor}, {vencimento}); editor em Ajustes (`CobrancaMessageCard`); helper puro `montarMensagemCobranca`
+(modelo vazio cai no padrão). Na guia Geral, cada cobrança em aberto/atraso ganhou o botão **Cobrar**,
+que compõe a mensagem com o nome/valor/vencimento e abre o WhatsApp do paciente (ou copia, sem
+telefone). GOTCHA: `db:push` aplica a coluna no Neon de PRODUÇÃO (aditiva).
+
+---
+
 ## 2026-09-16 — Demandas: onda 8 (agenda: fragmentado, sequência, layout)
 
 **#180 — as 8 ondas fechadas.**

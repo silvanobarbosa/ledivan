@@ -175,6 +175,7 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
         locations={locations}
         contractHistory={JSON.parse(JSON.stringify(contractHist))}
         finance={finance}
+        cobrancaMessage={me?.cobrancaMessage ?? null}
         ledger={JSON.parse(JSON.stringify(ledger))}
         sessionStats={sessionStats}
         packageInfo={packageInfo}

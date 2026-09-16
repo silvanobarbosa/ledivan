@@ -11,6 +11,7 @@ import { parseLocations } from "@/lib/locations";
 import { TelegramSync } from "./TelegramSync";
 import { IntegrationsCard } from "./IntegrationsCard";
 import { BookingCard } from "./BookingCard";
+import { CobrancaMessageCard } from "./CobrancaMessageCard";
 import { TranscriptionToggle } from "./TranscriptionToggle";
 import { SmtpCard } from "./SmtpCard";
 import { WhatsappCard } from "./WhatsappCard";
@@ -138,6 +139,8 @@ export default async function SettingsPage() {
           <LocationsCard initial={parseLocations(user.attendanceLocations)} />
 
           <BookingCard initialSlug={user.bookingSlug} initialAutoConfirm={!!prefs.bookingAutoConfirm} />
+
+          <CobrancaMessageCard initial={user.cobrancaMessage} />
 
           <IntegrationsCard initial={prefs.integrations ?? {}} calendarAuthorized={calendarAuthorized} />
 

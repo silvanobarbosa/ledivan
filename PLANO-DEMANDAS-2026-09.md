@@ -80,10 +80,13 @@ Marcar `[x]` ao concluir. Códigos batem com o checklist (artifact) e com a mem�
 
 ---
 
-### Todas as 8 ondas concluídas (16/09/2026). Pendências que ficam com o dono:
-- **PAG1** (formato salvo não persiste na tela) — aguardando repro; código está correto.
-- **Gestão de pacotes (P1/P2)** — saiu com a guia Financeiro (onda 6). Dizer se/onde deve voltar.
-- **Mensagem de cobrança personalizável por terapeuta** — pendência anterior, ainda aberta.
+### Todas as 8 ondas concluídas (16/09/2026). Pendências ZERADAS (#181):
+- [x] **PAG1** — RESOLVIDO: `updatePatient` não revalidava a rota `/edit`, então o RSC dela ficava em
+  cache com o formato antigo (o banco salvava certo, mas a tela reabria em "A cada sessão"). Fix:
+  `revalidatePath(.../edit)`.
+- [x] **Gestão de pacotes (P1/P2)** — RESTAURADA na guia Geral (Controle), só para formatos de pacote.
+- [x] **Mensagem de cobrança personalizável** — `users.cobrancaMessage` (variáveis {nome}/{valor}/
+  {vencimento}), editável em Ajustes; botão **Cobrar** na guia Geral compõe a mensagem e abre o WhatsApp.
 
 ---
 

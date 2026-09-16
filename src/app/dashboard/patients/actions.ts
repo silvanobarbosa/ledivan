@@ -445,6 +445,9 @@ export async function updatePatient(patientId: string, formData: FormData) {
 
 
   revalidatePath(`/dashboard/patients/${patientId}`);
+  // A própria tela de EDIÇÃO precisa ser revalidada: sem isto, o RSC dela fica em cache com o formato
+  // antigo e, ao reabrir, o rádio volta em "A cada sessão" mesmo tendo salvo "Gratuito" (dono, PAG1).
+  revalidatePath(`/dashboard/patients/${patientId}/edit`);
   revalidatePath("/dashboard/patients");
   revalidatePath("/dashboard/agenda");
 }
