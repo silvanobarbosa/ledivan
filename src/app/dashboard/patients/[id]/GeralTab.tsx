@@ -3,9 +3,10 @@
 import { Fragment, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { MapPin, Video } from "lucide-react";
+import { Check, Send } from "lucide-react";
 import { formatBRL, PAYMENT_METHOD_LABELS } from "@/lib/therapy";
 import type { CobrancaNaTela, LinhaNaTela } from "@/lib/geralDoPaciente";
-import { lancarPagamento } from "./geral-actions";
+import { desmarcarCobrancaEnviada, lancarPagamento, marcarCobrancaEnviada } from "./geral-actions";
 
 /**
  * A guia Geral: sessões e pagamentos numa tabela só, na ordem em que acontecem.
@@ -32,7 +33,41 @@ const hojeISO = () => {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 };
 
-function ColunasDoPagamento({ c, onLancar }: { c: CobrancaNaTela; onLancar: () => void }) {
+/**
+ * "Marcar enviada": registra que o paciente foi avisado desta cobrança. Não envia nada — é um
+ * lembrete visível de que a cobrança já foi passada, para não cobrar duas vezes nem esquecer.
+ */
+function EnvioControle({ patientId, chave, envio }: { patientId: string; chave: string; envio: CobrancaNaTela["envio"] }) {
+  const router = useRouter();
+  const [pending, start] = useTransition();
+
+  const agir = (fn: typeof marcarCobrancaEnviada) =>
+    start(async () => {
+      const r = await fn({ patientId, cobrancaChave: chave });
+      if (r.ok) router.refresh();
+    });
+
+  if (envio) {
+    return (
+      <span className="inline-flex items-center gap-1.5 text-[11px] text-[#166534]">
+        <Check className="w-3.5 h-3.5" aria-hidden />
+        <span className="whitespace-nowrap">Enviada {partes(envio.data).data}</span>
+        <button type="button" disabled={pending} onClick={() => agir(desmarcarCobrancaEnviada)} className="text-foreground/40 underline underline-offset-2 hover:text-foreground/70 disabled:opacity-50">
+          desfazer
+        </button>
+      </span>
+    );
+  }
+  return (
+    <button type="button" disabled={pending} onClick={() => agir(marcarCobrancaEnviada)} title="Registrar que o paciente foi avisado desta cobrança"
+      className="inline-flex items-center gap-1 text-[11px] font-semibold text-foreground/60 border border-border rounded-full px-2 py-0.5 hover:bg-surface disabled:opacity-50 whitespace-nowrap">
+      <Send className="w-3 h-3" aria-hidden />
+      {pending ? "…" : "Marcar enviada"}
+    </button>
+  );
+}
+
+function ColunasDoPagamento({ patientId, c, onLancar }: { patientId: string; c: CobrancaNaTela; onLancar: () => void }) {
   if (c.pagamento) {
     return (
       <>
@@ -47,11 +82,14 @@ function ColunasDoPagamento({ c, onLancar }: { c: CobrancaNaTela; onLancar: () =
   return (
     <>
       <td className="px-3 py-2">
-        <div className="flex items-center gap-2">
-          <button type="button" onClick={onLancar} className="text-xs font-bold text-white bg-primary px-3 py-1.5 rounded-lg hover:opacity-90 whitespace-nowrap">
-            Lançar pagamento
-          </button>
-          <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap ${s.cls}`}>{s.rotulo}</span>
+        <div className="flex flex-col gap-1.5">
+          <div className="flex items-center gap-2">
+            <button type="button" onClick={onLancar} className="text-xs font-bold text-white bg-primary px-3 py-1.5 rounded-lg hover:opacity-90 whitespace-nowrap">
+              Lançar pagamento
+            </button>
+            <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap ${s.cls}`}>{s.rotulo}</span>
+          </div>
+          <EnvioControle patientId={patientId} chave={c.chave} envio={c.envio} />
         </div>
       </td>
       <td className="px-3 py-2 text-foreground/30">—</td>
@@ -145,7 +183,7 @@ export function GeralTab({ patientId, linhas, responsavel }: { patientId: string
                         <span className="block text-[11px] text-foreground/50">{l.sessoes} {l.sessoes === 1 ? "sessão" : "sessões"}{venc ? ` · vence ${venc}` : ""}</span>
                       </td>
                       <td className="px-3 py-2 text-right tabular-nums font-bold">{formatBRL(l.valor)}</td>
-                      <ColunasDoPagamento c={l} onLancar={() => setAberta(l.chave)} />
+                      <ColunasDoPagamento patientId={patientId} c={l} onLancar={() => setAberta(l.chave)} />
                     </tr>
                     {aberta === l.chave && <FormularioDeLancamento patientId={patientId} c={l} responsavel={responsavel} fechar={() => setAberta(null)} />}
                   </Fragment>
@@ -164,7 +202,7 @@ export function GeralTab({ patientId, linhas, responsavel }: { patientId: string
                     </td>
                     <td className="px-3 py-2 font-semibold tabular-nums">{l.rotulo || "—"}</td>
                     <td className="px-3 py-2 text-right tabular-nums">{l.valor == null ? "" : formatBRL(l.valor)}</td>
-                    {c ? <ColunasDoPagamento c={c} onLancar={() => setAberta(c.chave)} /> : <td colSpan={4} />}
+                    {c ? <ColunasDoPagamento patientId={patientId} c={c} onLancar={() => setAberta(c.chave)} /> : <td colSpan={4} />}
                   </tr>
                   {c && aberta === c.chave && <FormularioDeLancamento patientId={patientId} c={c} responsavel={responsavel} fechar={() => setAberta(null)} />}
                 </Fragment>
