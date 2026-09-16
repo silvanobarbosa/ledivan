@@ -51,8 +51,9 @@ describe("mensal", () => {
     expect(resumo(geral("mensal", [terca(1), terca(8), terca(15), terca(22)]))).toEqual(["P 520", "1/4", "2/4", "3/4", "4/4"]);
   });
 
-  it("fragmentado 3 e depois 4: R$ 390 antes da 1/3, R$ 520 antes da 1/4", () => {
-    const s = [terca(1), terca(8), terca(15), terca(22), terca(29), terca(6, 9), terca(13, 9)];
+  it("fragmentado por MÊS: setembro com 3 é 1/3..3/3, outubro com 4 é 1/4..4/4 (dono 16/09)", () => {
+    // Fragmentado deriva do calendário: setembro tem 3 sessões, outubro tem 4. Os meses não se juntam.
+    const s = [terca(1), terca(8), terca(15), terca(6, 9), terca(13, 9), terca(20, 9), terca(27, 9)];
     expect(resumo(geral("mensal", s, { tamanhos: [3, 4] }))).toEqual(["P 390", "1/3", "2/3", "3/3", "P 520", "1/4", "2/4", "3/4", "4/4"]);
   });
 

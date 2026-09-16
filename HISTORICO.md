@@ -7,6 +7,28 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-09-16 — Demandas: onda 8 (agenda: fragmentado, sequência, layout)
+
+**#180 — as 8 ondas fechadas.**
+- **AGD3 (fragmentado por mês):** o fragmentado deixou de usar os tamanhos contratados e passou a
+  derivar do CALENDÁRIO — cada mês é uma sequência própria, do tamanho dos atendimentos daquele mês
+  (setembro com 3 → 1/3..3/3; outubro com 4 → 1/4..4/4). Os meses NÃO se juntam. A pausa (Desmarcou/
+  Prof. desm./Atestado) não conta no total do mês, mas segura a posição. O valor do mês é o total ×
+  preço. `posicoesFragmentado` em `sequenciaPacote.ts`. **Efeito:** um fragmentado com 1 sessão num
+  mês agora cobra 1/1 daquele mês (antes ficava "aberto" esperando fechar 4) — vários testes de
+  sequência/fechamento foram reescritos para a regra nova.
+- **AGD2:** a pergunta "entra na sequência do pacote?" só aparece se o paciente JÁ TEM sequência (tem
+  sessão com posição de pacote); o primeiro agendamento não pergunta.
+- **AGD4:** os botões Hoje/Escolher data/Bloquear horário desceram para uma linha própria.
+
+**Decisão que fica valendo:** fragmentado = uma sequência por MÊS. Isso muda quem "fecha" e quando
+cobra — cada mês fecha e cobra no seu mês, sem herdar sessões do mês anterior.
+
+**Pendências que ficam com o dono:** PAG1 (formato salvo — aguardando repro), gestão de pacotes P1/P2
+(saiu com a guia Financeiro na onda 6 — dizer se/onde volta), e a mensagem de cobrança personalizável.
+
+---
+
 ## 2026-09-16 — Demandas: onda 7 (guia Geral & Controle)
 
 **#179.** GER4: a guia Geral ganhou um cabeçalho com **valor da sessão** e **"Reajuste previsto

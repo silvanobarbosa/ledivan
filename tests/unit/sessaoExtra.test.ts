@@ -28,6 +28,12 @@ describe("quando a pergunta aparece", () => {
   it("devolutiva já tem a pergunta dela (abater do pacote)", () => {
     expect(perguntaSeEntraNaSequencia({ formato: "mensal", sessionKind: "devolutiva" })).toBe(false);
   });
+
+  it("só pergunta se o paciente JÁ TEM sequência (dono, 16/09/2026)", () => {
+    // Sem sequência ainda (primeiro agendamento) não pergunta; com sequência, pergunta.
+    expect(perguntaSeEntraNaSequencia({ formato: "mensal", sessionKind: "consulta" }, false)).toBe(false);
+    expect(perguntaSeEntraNaSequencia({ formato: "mensal", sessionKind: "consulta" }, true)).toBe(true);
+  });
 });
 
 describe("o que gravar", () => {
