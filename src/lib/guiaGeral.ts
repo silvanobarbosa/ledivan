@@ -49,10 +49,21 @@ export type EntradaDaGeral = Omit<EntradaDasCobrancas, "sessoes"> & {
   sessoes: (SessaoDaCobranca & { online?: boolean | null })[];
   pagamentos: PagamentoDaGeral[];
   envios?: EnvioDaGeral[];
+  /** "A cada sessão": horas ANTES da sessão em que o pagamento vence. Null/0 = vence na hora da sessão. */
+  horasAntesPagamento?: number | null;
   hoje: Date;
 };
 
-export type Situacao = "pago" | "em_aberto" | "a_vencer";
+/**
+ * A situação de uma cobrança (dono, 16/09/2026):
+ * - `em_aberto`: ainda dentro do prazo (não venceu).
+ * - `em_atraso`: passou do vencimento sem o pagamento registrado.
+ * - `pago`: registrado.
+ *
+ * O vencimento depende do formato: mensal/quinzenal/pacote vencem no DIA (vale o dia inteiro); "a
+ * cada sessão"/avulsa vencem `horasAntesPagamento` antes da sessão (o prazo do avulso).
+ */
+export type Situacao = "pago" | "em_aberto" | "em_atraso";
 
 export type PagamentoLancado = { id: string; data: Date; metodo: string | null; pagoPor: string | null };
 
@@ -98,7 +109,21 @@ function mapaDeEnvios(envios: EnvioDaGeral[]): Map<string, EnvioLancado> {
   return m;
 }
 
-function casarPagamentos(cobrancas: Cobranca[], pagamentos: PagamentoDaGeral[], hoje: Date, envios: EnvioDaGeral[] = []): CobrancaDaGeral[] {
+/**
+ * O instante em que a cobrança vence.
+ * - Avulsa ("a cada sessão"/extra): `horasAntes` antes da sessão — é o prazo do avulso.
+ * - Demais (mensal/quinzenal/pacote): o FIM do dia do vencimento (vale o dia inteiro).
+ */
+function limiteDaCobranca(c: Cobranca, horasAntes: number): Date | null {
+  const venc = c.vencimento ?? c.competencia;
+  if (!venc) return null;
+  if (c.tipo === "sessao" || c.tipo === "extra") {
+    return new Date(venc.getTime() - Math.max(0, horasAntes) * 3600000);
+  }
+  return new Date(venc.getFullYear(), venc.getMonth(), venc.getDate(), 23, 59, 59, 999);
+}
+
+function casarPagamentos(cobrancas: Cobranca[], pagamentos: PagamentoDaGeral[], hoje: Date, envios: EnvioDaGeral[] = [], horasAntes = 0): CobrancaDaGeral[] {
   const enviosPorChave = mapaDeEnvios(envios);
   const pagos = pagamentos
     .filter((p) => p.status === "paid")
@@ -142,11 +167,11 @@ function casarPagamentos(cobrancas: Cobranca[], pagamentos: PagamentoDaGeral[], 
     }
   }
 
-  const hojeDia = new Date(hoje.getFullYear(), hoje.getMonth(), hoje.getDate()).getTime();
-  return cobrancas.map((c, i) => {
+  return cobrancas.map((c) => {
     const pago = c.valor - (recebido.get(c.chave) ?? 0) <= TOLERANCIA;
-    const vence = c.vencimento ?? c.competencia;
-    const situacao: Situacao = pago ? "pago" : i === 0 || !vence || new Date(vence.getFullYear(), vence.getMonth(), vence.getDate()).getTime() <= hojeDia ? "em_aberto" : "a_vencer";
+    const limite = limiteDaCobranca(c, horasAntes);
+    const atrasada = limite ? hoje.getTime() > limite.getTime() : false;
+    const situacao: Situacao = pago ? "pago" : atrasada ? "em_atraso" : "em_aberto";
     const falta = pago ? 0 : Math.round((c.valor - (recebido.get(c.chave) ?? 0)) * 100) / 100;
     return { ...c, situacao, falta, pagamento: pago ? (ultimo.get(c.chave) ?? null) : null, envio: enviosPorChave.get(c.chave) ?? null };
   });
@@ -155,7 +180,7 @@ function casarPagamentos(cobrancas: Cobranca[], pagamentos: PagamentoDaGeral[], 
 const comoLinha = ({ tipo, ...c }: CobrancaDaGeral): LinhaDaGeral => ({ ...c, tipo: "pagamento", tipoDeCobranca: tipo });
 
 export function linhasDaGeral(e: EntradaDaGeral): LinhaDaGeral[] {
-  const cobrancas = casarPagamentos(cobrancasDoPaciente(e), e.pagamentos, e.hoje, e.envios ?? []);
+  const cobrancas = casarPagamentos(cobrancasDoPaciente(e), e.pagamentos, e.hoje, e.envios ?? [], e.horasAntesPagamento ?? 0);
   const rotulos = rotulosDasSessoes(e);
 
   const naSessao = new Map<string, CobrancaDaGeral>();
@@ -219,12 +244,18 @@ export type ResumoDaGeral = {
   /** Positivo = crédito; negativo = devendo. */
   saldo: number;
   totalPago: number;
-  /** Cobranças que já podem ser exigidas: em aberto ou pagas. "A vencer" ainda não conta. */
+  /** Cobranças que já podem ser exigidas: pagas ou em atraso. O que ainda está no prazo não conta. */
   totalExigivel: number;
-  /** O que falta receber nas cobranças em aberto. */
+  /** O que falta receber nas cobranças ainda no prazo (não vencidas). */
   emAberto: number;
-  /** Quantas sessões as cobranças em aberto cobrem — contadas, não divididas pelo valor. */
+  /** O que falta receber nas cobranças vencidas. */
+  emAtraso: number;
+  /** Quantas COBRANÇAS estão no prazo (em aberto) e quantas vencidas (em atraso) — para o "X em aberto, Y em atraso". */
+  nAberto: number;
+  nAtraso: number;
+  /** Quantas SESSÕES cada balde cobre — contadas, não divididas pelo valor. */
   sessoesEmAberto: number;
+  sessoesEmAtraso: number;
   /** Do mais recente para o mais antigo. */
   extrato: MovimentoDoExtrato[];
 };
@@ -244,8 +275,10 @@ const DESCRICAO: Record<Cobranca["tipo"], (c: Cobranca) => string> = {
  * mas, se já foi paga adiantada, conta — senão o pagamento dela apareceria como crédito falso.
  */
 export function resumoDaGeral(e: EntradaDaGeral): ResumoDaGeral {
-  const cobrancas = casarPagamentos(cobrancasDoPaciente(e), e.pagamentos, e.hoje);
-  const exigiveis = cobrancas.filter((c) => c.situacao !== "a_vencer");
+  const cobrancas = casarPagamentos(cobrancasDoPaciente(e), e.pagamentos, e.hoje, e.envios ?? [], e.horasAntesPagamento ?? 0);
+  // Exigível = o que já se pode cobrar: pago ou em atraso. O que ainda está no prazo (em aberto) não
+  // entra no saldo — senão uma cobrança futura já apareceria como dívida.
+  const exigiveis = cobrancas.filter((c) => c.situacao !== "em_aberto");
   const pagos = e.pagamentos.filter((p) => p.status === "paid");
 
   const movimentos = [
@@ -278,12 +311,19 @@ export function resumoDaGeral(e: EntradaDaGeral): ResumoDaGeral {
   const soma = (xs: number[]) => Math.round(xs.reduce((a, b) => a + b, 0) * 100) / 100;
   const totalPago = soma(pagos.map((p) => Number(p.valor) || 0));
   const totalExigivel = soma(exigiveis.map((c) => c.valor));
+  const emAberto = cobrancas.filter((c) => c.situacao === "em_aberto");
+  const emAtraso = cobrancas.filter((c) => c.situacao === "em_atraso");
+  const sessoes = (cs: typeof cobrancas) => cs.filter((c) => c.parte !== 2).reduce((a, c) => a + c.sessoes, 0);
   return {
     saldo: Math.round((totalPago - totalExigivel) * 100) / 100,
     totalPago,
     totalExigivel,
-    emAberto: soma(cobrancas.filter((c) => c.situacao === "em_aberto").map((c) => c.falta)),
-    sessoesEmAberto: cobrancas.filter((c) => c.situacao === "em_aberto" && c.parte !== 2).reduce((a, c) => a + c.sessoes, 0),
+    emAberto: soma(emAberto.map((c) => c.falta)),
+    emAtraso: soma(emAtraso.map((c) => c.falta)),
+    nAberto: emAberto.length,
+    nAtraso: emAtraso.length,
+    sessoesEmAberto: sessoes(emAberto),
+    sessoesEmAtraso: sessoes(emAtraso),
     extrato: extrato.reverse(),
   };
 }

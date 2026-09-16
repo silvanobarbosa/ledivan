@@ -52,7 +52,7 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
     db.query.patientConsents.findMany({ where: eq(patientConsents.patientId, id), orderBy: [desc(patientConsents.acceptedAt)], limit: 20 }),
   ]);
 
-  const geral = (await geralDoPaciente(userId, id)) ?? { linhas: [], resumo: { saldo: 0, totalPago: 0, totalExigivel: 0, emAberto: 0, sessoesEmAberto: 0, extrato: [] } };
+  const geral = (await geralDoPaciente(userId, id)) ?? { linhas: [], resumo: { saldo: 0, totalPago: 0, totalExigivel: 0, emAberto: 0, emAtraso: 0, nAberto: 0, nAtraso: 0, sessoesEmAberto: 0, sessoesEmAtraso: 0, extrato: [] } };
 
   const prefs = (() => { try { return me?.preferences ? JSON.parse(me.preferences) : {}; } catch { return {}; } })();
   const locations = parseLocations(me?.attendanceLocations);
