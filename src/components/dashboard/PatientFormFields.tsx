@@ -6,9 +6,13 @@ import { MessageCircle } from "lucide-react";
 import { QUEIXAS } from "@/lib/queixas";
 import { idadeEmPalavras } from "@/lib/idade";
 import { eventosDeReajuste, rotuloDoFormato, usaPacote } from "@/lib/reajuste";
+import { parseMoedaBR } from "@/lib/money";
 
 const inputCls = "w-full px-4 py-3 rounded-2xl bg-white/70 border border-border focus:ring-2 focus:ring-accent/20 focus:border-accent outline-none transition";
 const labelCls = "block text-sm font-semibold text-foreground/70 mb-1.5";
+
+// Rótulo dos status legados que ainda podem estar gravados (prospect/pausado), só para preservar.
+const ROTULO_STATUS: Record<string, string> = { prospect: "Prospect", pausado: "Pausado" };
 const brl = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
 export type PatientFormData = {
@@ -138,6 +142,34 @@ function NascimentoEIdade({ name, defaultValue }: { name: string; defaultValue?:
   );
 }
 
+/**
+ * Campo de dinheiro que já mostra R$ enquanto se digita (dono, 16/09/2026). Trata os dígitos como
+ * centavos e formata em pt-BR; envia o texto formatado, que o servidor parseia por `parseMoedaBR`.
+ */
+function MoneyInput({ name, defaultValue, placeholder }: { name: string; defaultValue?: string | number | null; placeholder?: string }) {
+  const fmt = (centavos: number) => (centavos / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+  const inicial = (() => {
+    const canon = parseMoedaBR(defaultValue);
+    if (!canon) return "";
+    const centavos = Math.round(Number(canon) * 100);
+    return centavos > 0 ? fmt(centavos) : "";
+  })();
+  const [val, setVal] = useState(inicial);
+  return (
+    <input
+      name={name}
+      inputMode="numeric"
+      value={val}
+      onChange={(e) => {
+        const digitos = e.target.value.replace(/\D/g, "");
+        setVal(digitos ? fmt(parseInt(digitos, 10)) : "");
+      }}
+      className={inputCls}
+      placeholder={placeholder}
+    />
+  );
+}
+
 /** Campo numérico com uma palavra depois da caixa ("meses", "horas antes"). */
 function NumeroCom({ name, label, dica, unidade, defaultValue, placeholder, min = 1, max = 60 }: {
   name: string; label: string; dica?: string; unidade: string; defaultValue?: number | null; placeholder?: string; min?: number; max?: number;
@@ -192,7 +224,7 @@ export function PatientFormFields({ p }: { p?: PatientFormData }) {
   );
 
   const valorDaSessao = (
-    <div><label className={labelCls}>Valor da sessão (R$)</label><input name="sessionFee" inputMode="decimal" defaultValue={p?.sessionFee ?? ""} className={inputCls} placeholder="ex: 200,00" /></div>
+    <div><label className={labelCls}>Valor da sessão</label><MoneyInput name="sessionFee" defaultValue={p?.sessionFee} placeholder="R$ 0,00" /></div>
   );
 
   const proximoReajuste = (
@@ -304,24 +336,20 @@ export function PatientFormFields({ p }: { p?: PatientFormData }) {
               />
             </div>
             <div><label className={labelCls}>ID Agenda</label><input name="agendaId" defaultValue={p?.agendaId ?? ""} className={inputCls} placeholder="Identificação na agenda" /></div>
-            {/* Social é o VÍNCULO, não o preço: convive com qualquer formato de pagamento. */}
-            <div className="sm:col-span-2">
-              <label className="flex items-center gap-2 text-sm cursor-pointer">
-                <input type="checkbox" name="atendimentoSocial" value="true" defaultChecked={!!p?.atendimentoSocial} className="accent-primary w-4 h-4" />
-                Atendimento social
-              </label>
-              <p className="text-[11px] text-foreground/40 mt-0.5">Projeto, convênio ou indicação institucional. Independe do que o paciente paga.</p>
-            </div>
           </div>
           {/* Status vem ANTES do nome, na tela de Dados, a pedido do dono: é o primeiro filtro
               mental de quem abre a ficha ("esta pessoa ainda está em atendimento?"). */}
           <div className="sm:max-w-xs">
             <label className={labelCls}>Status</label>
+            {/* Só Ativo/Inativo (dono, 16/09/2026). Prospect/Pausado saíram da lista — mas, se o
+                paciente JÁ está num deles (veio da prospecção), a opção é mantida para não virar Ativo
+                sozinho ao salvar. Prospect segue sendo definido no fluxo de prospecção, não aqui. */}
             <select name="patientStatus" className={inputCls} defaultValue={p?.patientStatus || "ativo"}>
               <option value="ativo">Ativo</option>
-              <option value="prospect">Prospect</option>
-              <option value="pausado">Pausado</option>
               <option value="inativo">Inativo</option>
+              {p?.patientStatus && !["ativo", "inativo"].includes(p.patientStatus) && (
+                <option value={p.patientStatus}>{ROTULO_STATUS[p.patientStatus] ?? p.patientStatus}</option>
+              )}
             </select>
           </div>
           <div>
