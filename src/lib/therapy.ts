@@ -50,8 +50,8 @@ export function reservaVencida(status: string, date: Date | string, hoje: Date):
 const STATUS_CORES: Record<string, string> = {
   realizada: "bg-[#fef9c3] text-[#854d0e] border-[#eab308]",       // Presente — amarelo
   nao_realizada: "bg-[#fecaca] text-[#991b1b] border-[#ef4444]",   // Faltou — vermelho
-  cancelada: "bg-[#fee2e2] text-[#b91c1c] border-[#fca5a5]",       // Desmarcou — vermelho claro
-  realocada: "bg-[#fee2e2] text-[#b91c1c] border-[#fca5a5]",       // legado, se comporta como Desmarcou
+  cancelada: "bg-[#ede9fe] text-[#6d28d9] border-[#c4b5fd]",       // Desmarcou — violeta (longe do vermelho do Faltou)
+  realocada: "bg-[#ede9fe] text-[#6d28d9] border-[#c4b5fd]",       // legado, se comporta como Desmarcou
   prof_desmarcou: "bg-[#f1f5f9] text-[#475569] border-[#cbd5e1]",  // Prof. desm. — cinza claro
   atestado: "bg-[#dbeafe] text-[#1e40af] border-[#93c5fd]",        // Atestado — azul claro
 };
@@ -149,7 +149,7 @@ export const STATUS_QUE_AVANCAM = new Set(["agendada", "realizada", "nao_realiza
  * legado, continua sendo entendido e mostrado, mas ninguém marca uma sessão assim de novo —
  * oferecê-lo poria "Desmarcou" duas vezes no mesmo menu.
  */
-export const STATUS_OFERECIDOS = ["agendada", "realizada", "nao_realizada", "cancelada", "prof_desmarcou", "atestado"] as const;
+export const STATUS_OFERECIDOS = ["realizada", "nao_realizada", "cancelada", "prof_desmarcou", "atestado"] as const;
 
 /**
  * Quem gera cobrança quando a sessão não acontece.
@@ -174,7 +174,7 @@ export function corDaLegenda(status: string): { fundo: string; borda: string } {
   const CORES: Record<string, { fundo: string; borda: string }> = {
     realizada: { fundo: "#fef9c3", borda: "#eab308" },
     nao_realizada: { fundo: "#fecaca", borda: "#ef4444" },
-    cancelada: { fundo: "#fee2e2", borda: "#fca5a5" },
+    cancelada: { fundo: "#ede9fe", borda: "#c4b5fd" },
     prof_desmarcou: { fundo: "#f1f5f9", borda: "#cbd5e1" },
     atestado: { fundo: "#dbeafe", borda: "#93c5fd" },
   };
@@ -199,8 +199,8 @@ export function sessionStatusColor(status: string): string {
   switch (status) {
     case "realizada": return "bg-[#ecfdf5] text-[#047857]";
     case "agendada": return "bg-[#f3e8ff] text-primary";
-    case "realocada": return "bg-[#fffbeb] text-[#b45309]";
-    case "cancelada":
+    case "realocada":
+    case "cancelada": return "bg-[#ede9fe] text-[#6d28d9]";     // Desmarcou — violeta
     case "nao_realizada": return "bg-[#fecaca] text-[#991b1b]";
     case "prof_desmarcou": return "bg-[#f1f5f9] text-[#475569]";
     case "atestado": return "bg-[#dbeafe] text-[#1e40af]";

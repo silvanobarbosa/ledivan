@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronLeft, ChevronRight, X, Stethoscope, Repeat, Video, AlertTriangle, MapPin, Pencil, CalendarDays, Trash2 } from "lucide-react";
-import { SESSION_STATUS_LABELS, sessionStatusColor, sessionColorClasses, reservaVencida, RISK_LABELS, riskColor, LEGENDA_DA_AGENDA, corDaLegenda, STATUS_OFERECIDOS, STATUS_QUE_PODEM_COBRAR, type RiskLevel } from "@/lib/therapy";
+import { SESSION_STATUS_LABELS, sessionStatusColor, sessionColorClasses, reservaVencida, RISK_LABELS, riskColor, LEGENDA_DA_AGENDA, corDaLegenda, STATUS_OFERECIDOS, type RiskLevel } from "@/lib/therapy";
 import { updateSessionStatus, confirmSession, createSessionFromAgenda, createRecurring } from "../sessions/actions";
 import { HolidaySetup } from "@/components/dashboard/HolidaySetup";
 import { HOLIDAY_STYLE, type Holiday, type HolidayCity } from "@/lib/holidays-style";
@@ -49,26 +49,20 @@ const blockColor = (s: AgendaSession, vencida: boolean) => sessionColorClasses(s
  */
 const SIMBOLO: Record<string, string> = {
   pendente: "🕓",
-  chegou: "🚪",
   remarcar: "🔁",
   realocada: "↪️",
   pedido: "⏳",
   confirmou: "✓",
-  devendo: "💰",
-  risco: "⚠️",
   online: "📹",
 };
 
 /** O que cada símbolo quer dizer, em duas ou três palavras. */
 const LEGENDA_DO_SINAL: Record<string, string> = {
   pendente: "reserva vencida, a analisar",
-  chegou: "chegou",
   remarcar: "pediu remarcação",
   realocada: "remarcada de outra data",
   pedido: "pedido pelo link, a confirmar",
   confirmou: "confirmou presença",
-  devendo: "pagamento atrasado",
-  risco: "histórico de faltas",
   online: "online",
 };
 
@@ -255,7 +249,6 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
     setWeekStart(next);
   };
 
-  const [askCharge, setAskCharge] = useState<SessionStatus | null>(null);
   const [editing, setEditing] = useState(false);
   const [editModalidade, setEditModalidade] = useState("presencial");
   const [editCanal, setEditCanal] = useState("nenhum");
@@ -326,19 +319,14 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
   const changeStatus = (id: string, status: SessionStatus, chargeable?: boolean) => {
     startTransition(async () => {
       await updateSessionStatus(id, status, undefined, chargeable);
-      setAskCharge(null);
       setSelected(null);
       router.refresh();
     });
   };
 
-  // Pergunta "cobra?" só onde a resposta pode ser as duas. Desmarcou, Prof. desm. e Atestado
-  // nunca cobram — perguntar ali seria fazer a pessoa responder sempre a mesma coisa no meio do
-  // dia, e um clique a mais em quem já está com a agenda cheia é um clique que vira erro.
-  const pickStatus = (id: string, status: SessionStatus) => {
-    if (STATUS_QUE_PODEM_COBRAR.has(status)) setAskCharge(status);
-    else changeStatus(id, status, false);
-  };
+  // O desfecho é escolhido direto, sem perguntar "será cobrada?" — o controle de pagamento é
+  // assunto do financeiro (guia Geral/Controle), não da agenda (dono, 16/09/2026).
+  const pickStatus = (id: string, status: SessionStatus) => changeStatus(id, status);
 
   const confirm = (id: string) => {
     startTransition(async () => {
@@ -596,7 +584,7 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
                         <button
                           key={s.id}
                           title={`${s.patientName}${s.location ? ` · ${s.location}` : ""}`}
-                          onClick={() => { setAskCharge(null); setEditing(false); setSelected(s); }}
+                          onClick={() => { setEditing(false); setSelected(s); }}
                           style={{ top: top + 1, height, left: `calc(${faixa.left} + 4px)`, width: `calc(${faixa.width} - 8px)` }}
                           className={`absolute rounded-lg px-2 py-1 text-left overflow-hidden border border-l-[3px] hover:shadow-md hover:z-10 transition ${blockColor(s, vencida)}`}
                         >
@@ -609,9 +597,6 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
                               pedidoDoPaciente: s.pendingConfirmation && !s.recurring,
                               pacienteConfirmou: s.patientConfirmed && !s.rescheduleRequested,
                               pediuRemarcacao: s.rescheduleRequested,
-                              chegou: s.patientArrived,
-                              pagamentoAtrasado: s.pagamentoAtrasado,
-                              riscoDeFalta: s.status === "agendada" ? s.risk : null,
                               realocada: s.status === "realocada",
                               reservaVencida: vencida,
                             }).map((sinal) => (
@@ -782,31 +767,20 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
             )}
             <div>
               <p className="text-xs font-bold text-foreground/40 uppercase tracking-widest mb-2">Status</p>
-              {askCharge ? (
-                <div className="rounded-xl bg-surface/60 border border-border p-3 space-y-2">
-                  <p className="text-sm font-semibold">Marcar como <span className="lowercase">{SESSION_STATUS_LABELS[askCharge]}</span>. Esta sessão será cobrada?</p>
-                  <div className="flex gap-2">
-                    <button disabled={pending} onClick={() => changeStatus(selected.id, askCharge, true)} className="flex-1 py-2 rounded-xl text-sm font-bold bg-primary text-white disabled:opacity-60">Cobrar</button>
-                    <button disabled={pending} onClick={() => changeStatus(selected.id, askCharge, false)} className="flex-1 py-2 rounded-xl text-sm font-bold bg-surface text-foreground/70 hover:bg-surface-container disabled:opacity-60">Não cobrar</button>
-                  </div>
-                  <button onClick={() => setAskCharge(null)} className="text-xs text-foreground/40 hover:text-primary">cancelar</button>
-                </div>
-              ) : (
-                <div className="grid grid-cols-2 gap-2">
-                  {(STATUS_OFERECIDOS as readonly SessionStatus[]).map((st) => (
-                    <button
-                      key={st}
-                      disabled={pending}
-                      onClick={() => pickStatus(selected.id, st)}
-                      className={`py-2 rounded-xl text-xs font-bold transition ${
-                        selected.status === st ? `${sessionStatusColor(st)} ring-2 ring-primary/30` : "bg-surface text-foreground/60 hover:bg-surface-container"
-                      }`}
-                    >
-                      {SESSION_STATUS_LABELS[st]}
-                    </button>
-                  ))}
-                </div>
-              )}
+              <div className="grid grid-cols-2 gap-2">
+                {(STATUS_OFERECIDOS as readonly SessionStatus[]).map((st) => (
+                  <button
+                    key={st}
+                    disabled={pending}
+                    onClick={() => pickStatus(selected.id, st)}
+                    className={`py-2 rounded-xl text-xs font-bold transition ${
+                      selected.status === st ? `${sessionStatusColor(st)} ring-2 ring-primary/30` : "bg-surface text-foreground/60 hover:bg-surface-container"
+                    }`}
+                  >
+                    {SESSION_STATUS_LABELS[st]}
+                  </button>
+                ))}
+              </div>
             </div>
           </div>
         </div>
