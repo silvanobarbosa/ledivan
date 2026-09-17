@@ -57,6 +57,8 @@ export type SessaoDaCobranca = {
   extra?: "avul" | "grat" | string | null;
   /** O valor informado da extra avulsa. */
   valorExtra?: number | string | null;
+  /** Qual sessao desmarcada esta aqui repoe (documento de 17/09). Reposicao ocupa vaga, nao cria. */
+  repoeSessaoId?: string | null;
 };
 
 export type TipoDeCobranca = "sessao" | "pacote" | "quinzena" | "extra";
@@ -151,7 +153,7 @@ function cobrancasDoPeriodo(periodo: PeriodoDeVigencia, sessoes: Ordenada[], e: 
   }
 
   const tipoPacote = periodo.pacoteTipo === "fragmentado" ? "fragmentado" : "completo";
-  const doPacote = sessoes.filter(entraNoPacote).map((s) => ({ id: s.id, date: s.data, status: s.status }));
+  const doPacote = sessoes.filter(entraNoPacote).map((s) => ({ id: s.id, date: s.data, status: s.status, repoeSessaoId: s.repoeSessaoId }));
   const out: Cobranca[] = [];
 
   for (const seq of todasAsSequencias(doPacote, { pacoteTipo: tipoPacote, tamanhos: e.tamanhos })) {
@@ -253,7 +255,7 @@ export function rotulosDasSessoes(e: EntradaDasCobrancas): Map<string, string> {
     const { formato, pacoteTipo } = grupo.periodo;
     const posicoes = usaPacote(formato)
       ? posicoesDaSequencia(
-          grupo.sessoes.filter(entraNoPacote).map((s) => ({ id: s.id, date: s.data, status: s.status })),
+          grupo.sessoes.filter(entraNoPacote).map((s) => ({ id: s.id, date: s.data, status: s.status, repoeSessaoId: s.repoeSessaoId })),
           { pacoteTipo: pacoteTipo === "fragmentado" ? "fragmentado" : "completo", tamanhos: e.tamanhos },
         )
       : new Map();

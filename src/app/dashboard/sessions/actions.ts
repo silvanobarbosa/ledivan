@@ -10,7 +10,7 @@ import { redirect } from "next/navigation";
 import { getPreferences } from "@/lib/preferences";
 import { createMeetLink } from "@/lib/googleCalendar";
 import { parseMoedaBR } from "@/lib/money";
-import { extraParaGravar } from "@/lib/sessaoExtra";
+import { desmarcadasSemReposicao, extraParaGravar } from "@/lib/sessaoExtra";
 import { formatoNaData } from "@/lib/vigenciaDoFormato";
 import { getUserAiClient, SemChaveIA } from "@/lib/ai-client";
 
@@ -170,6 +170,27 @@ export async function createSessionFromAgenda(formData: FormData): Promise<{ ok:
   });
   if (!extraDaSessao.ok) return { ok: false, error: extraDaSessao.error };
 
+  /**
+   * Qual desmarcada esta sessao repoe (documento de 17/09).
+   *
+   * O id vem do formulario, entao a checagem e no servidor: tem de ser uma sessao DESTE paciente,
+   * deste profissional, que pausou e que ninguem repos ainda. Aceitar qualquer id deixaria uma
+   * sessao ocupar a vaga de outro mes e mudar o que aquele mes cobra.
+   */
+  let repoeSessaoId: string | null = null;
+  const repoePedido = String(formData.get("repoeSessaoId") ?? "").trim();
+  if (repoePedido && !extraDaSessao.extra) {
+    const doPaciente = await db
+      .select({ id: therapySessions.id, date: therapySessions.date, status: therapySessions.status, repoeSessaoId: therapySessions.repoeSessaoId })
+      .from(therapySessions)
+      .where(and(eq(therapySessions.patientId, patientId), eq(therapySessions.userId, userId)));
+    const candidatas = desmarcadasSemReposicao(doPaciente);
+    if (!candidatas.some((x) => x.id === repoePedido)) {
+      return { ok: false, error: "Essa sessao nao esta disponivel para reposicao." };
+    }
+    repoeSessaoId = repoePedido;
+  }
+
   // A modalidade passou a mandar; `isOnline` sai dela. A janela antiga mandava a caixa `isOnline`,
   // e ela continua valendo para quem ainda a envia.
   const extras = extrasDoAgendamento(formData);
@@ -202,6 +223,7 @@ export async function createSessionFromAgenda(formData: FormData): Promise<{ ok:
     abaterDoPacote: formData.get("abaterDoPacote") === "true",
     extra: extraDaSessao.extra,
     valorExtra: extraDaSessao.valorExtra,
+    repoeSessaoId,
     // O mensal não gera as sessões seguintes, mas GUARDA que é mensal: é o que põe o (M) na
     // célula e o que diz, no fim do mês, quem ainda não marcou o mês que vem.
     recurring: ehMensal(formData.get("freq") as string),

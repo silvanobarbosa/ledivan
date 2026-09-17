@@ -99,9 +99,14 @@ describe("pacote fracionado: cada MÊS é uma sequência (dono, 16/09/2026)", ()
     expect(sessoes.map((x) => rotulo(p, x.id))).toEqual(["1/3", "2/3", "3/3", "1/4", "2/4", "3/4", "4/4"]);
   });
 
-  it("a pausa não conta no total do mês, mas segura a posição", () => {
-    // Setembro: 16/09 Presente, 23/09 Desmarcou (pausa, não conta), 30/09 Presente → o mês tem 2
-    // atendimentos, então 1/2 e 2/2; a desmarcada segura o 2/2. Outubro é outra sequência, de 4.
+  it("a pausa segura a posição, e o total do mês NÃO encolhe (documento de 17/09)", () => {
+    // Setembro: 16/09 Presente, 23/09 Desmarcou, 30/09 Presente. Três atendimentos foram marcados,
+    // então o mês vale /3 — desmarcar não desfaz o que foi contratado. A vaga que sobrou é ocupada
+    // pela primeira de outubro, que atravessa como 3/3; outubro recomeça na seguinte, com as três
+    // que ainda são dele.
+    //
+    // Até 16/09 este caso dava "1/2, 2/2": o total encolhia junto com a agenda e setembro cobrava
+    // duas sessões onde três foram combinadas. O documento de 17/09 desfez isso.
     const sessoes = [
       s("2026-09-16", "realizada"),
       s("2026-09-23", "cancelada"),
@@ -112,14 +117,19 @@ describe("pacote fracionado: cada MÊS é uma sequência (dono, 16/09/2026)", ()
       s("2026-10-28"),
     ];
     const p = posicoes(sessoes, { pacoteTipo: "fragmentado" });
-    expect(sessoes.map((x) => rotulo(p, x.id))).toEqual(["1/2", "2/2", "2/2", "1/4", "2/4", "3/4", "4/4"]);
+    expect(sessoes.map((x) => rotulo(p, x.id))).toEqual(["1/3", "2/3", "2/3", "3/3", "1/3", "2/3", "3/3"]);
   });
 
-  it("ignora tamanhos contratados: quem manda é o calendário", () => {
-    // Cinco em setembro, uma em outubro — mesmo passando tamanhos, conta pelo mês.
+  it("havendo tamanho contratado, é ele que manda — não o calendário (17/09)", () => {
+    // O mês define a sequência só enquanto o contrato não diz nada: "o denominador vem do
+    // contratado, não do que a agenda mostra" (dono, 17/09). Com `tamanhos: [2]`, seis sessões são
+    // três sequências de duas, atravessando a virada do mês como qualquer pacote.
+    //
+    // Nenhum paciente fracionado tem esse tamanho gravado hoje, e por isso o caminho do mês
+    // continua sendo o que roda de verdade — mas quando o contrato existir, ele vale.
     const sessoes = ["2026-09-01", "2026-09-08", "2026-09-15", "2026-09-22", "2026-09-29", "2026-10-06"].map((d) => s(d));
     const p = posicoes(sessoes, { pacoteTipo: "fragmentado", tamanhos: [2] });
-    expect(sessoes.map((x) => rotulo(p, x.id))).toEqual(["1/5", "2/5", "3/5", "4/5", "5/5", "1/1"]);
+    expect(sessoes.map((x) => rotulo(p, x.id))).toEqual(["1/2", "2/2", "1/2", "2/2", "1/2", "2/2"]);
   });
 
   it("um mês com uma sessão é 1/1", () => {
@@ -188,12 +198,19 @@ describe("a cobrança segue a sequência, não o calendário", () => {
     expect(outubro[0].total).toBe(4);
   });
 
-  it("fragmentado: a pausa reduz o que o mês cobra", () => {
-    // 3 sessões em setembro, uma desmarcada → o mês cobra 2 (não perde a sessão, mas não cobra a falta).
+  it("fragmentado: a pausa NÃO reduz o mês — ele fica aberto até a vaga ser ocupada (17/09)", () => {
+    // 3 marcadas em setembro, uma desmarcada e sem reposição: o mês vale /3 e ainda falta um
+    // atendimento, então não fecha e não cobra. Cobrar 2 agora seria encolher o combinado; cobrar
+    // 3 seria cobrar uma sessão que não aconteceu. O mês espera — e fecha quando a próxima sessão
+    // real ocupar a vaga, mesmo que ela caia em outubro.
     const sessoes = [s("2026-09-16", "realizada"), s("2026-09-23", "cancelada"), s("2026-09-30", "realizada")];
-    const setembro = sequenciasFechadasNoMes(sessoes, { pacoteTipo: "fragmentado" }, 2026, 8);
+    expect(sequenciasFechadasNoMes(sessoes, { pacoteTipo: "fragmentado" }, 2026, 8)).toHaveLength(0);
+
+    // Com a sessão que ocupa a vaga, setembro fecha valendo três.
+    const comReposicao = [...sessoes, s("2026-10-07", "realizada")];
+    const setembro = sequenciasFechadasNoMes(comReposicao, { pacoteTipo: "fragmentado" }, 2026, 9);
     expect(setembro).toHaveLength(1);
-    expect(setembro[0].total).toBe(2);
+    expect(setembro[0].total).toBe(3);
   });
 
   it("sequência ainda aberta não cobra", () => {

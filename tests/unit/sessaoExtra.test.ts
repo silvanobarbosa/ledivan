@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { extraParaGravar, pacientesComAgendamento, perguntaSeEntraNaSequencia } from "@/lib/sessaoExtra";
+import { desmarcadasSemReposicao, extraParaGravar, pacientesComAgendamento, perguntaSeEntraNaSequencia } from "@/lib/sessaoExtra";
 import { rotulosDasSessoes } from "@/lib/cobrancas";
 
 /**
@@ -130,5 +130,34 @@ describe("a sessão extra no meio da sequência não mexe na sequência", () => 
     const r = base(null);
     expect(r.get("x")).toBe("3/4");
     expect(r.get("d")).not.toBe("4/4");
+  });
+});
+
+describe("quais desmarcadas ainda esperam reposi\u00e7\u00e3o", () => {
+  const s = (id: string, dia: number, status: string, repoe: string | null = null) => ({
+    id, date: new Date(2026, 8, dia, 9), status, repoeSessaoId: repoe,
+  });
+
+  it("s\u00f3 as que pausaram entram na lista", () => {
+    const lista = desmarcadasSemReposicao([
+      s("a", 5, "realizada"), s("b", 12, "cancelada"), s("c", 19, "nao_realizada"), s("d", 26, "atestado"),
+    ]);
+    expect(lista.map((x) => x.id)).toEqual(["d", "b"]);
+  });
+
+  it("a que j\u00e1 foi reposta sai \u2014 uma vaga n\u00e3o recebe duas reposi\u00e7\u00f5es", () => {
+    const lista = desmarcadasSemReposicao([
+      s("a", 5, "cancelada"), s("b", 12, "cancelada"), s("c", 26, "realizada", "a"),
+    ]);
+    expect(lista.map((x) => x.id)).toEqual(["b"]);
+  });
+
+  it("vem da mais recente para a mais antiga", () => {
+    const lista = desmarcadasSemReposicao([s("a", 5, "cancelada"), s("b", 19, "cancelada"), s("c", 12, "cancelada")]);
+    expect(lista.map((x) => x.id)).toEqual(["b", "c", "a"]);
+  });
+
+  it("sem desmarcada, lista vazia \u2014 a pergunta nem aparece", () => {
+    expect(desmarcadasSemReposicao([s("a", 5, "realizada")])).toEqual([]);
   });
 });
