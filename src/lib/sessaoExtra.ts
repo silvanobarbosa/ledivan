@@ -51,3 +51,15 @@ export function extraParaGravar(o: Formato & {
   if (valor == null || Number(valor) <= 0) return { ok: false, error: "Informe o valor da sessão avulsa." };
   return { ok: true, extra: "avul", valorExtra: valor };
 }
+
+/**
+ * Quem já tem agendamento — a resposta que alimenta o `jaTemSequencia` da agenda.
+ *
+ * Existe como função própria porque foi exatamente aqui que a pergunta se perdeu: a tela procurava
+ * o rótulo de pacote (`pkg`), que só existe para sessão criada com `packageId` — e a agenda nunca
+ * grava esse campo. Resultado: a pergunta não aparecia para ninguém, e AVUL/GRAT ficaram fora de
+ * alcance. Conta QUALQUER sessão do paciente: extra, gratuita, desmarcada ou de anos atrás.
+ */
+export function pacientesComAgendamento(sessoes: { patientId: string }[]): Set<string> {
+  return new Set(sessoes.map((s) => s.patientId));
+}

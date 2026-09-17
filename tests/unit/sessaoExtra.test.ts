@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { extraParaGravar, perguntaSeEntraNaSequencia } from "@/lib/sessaoExtra";
+import { extraParaGravar, pacientesComAgendamento, perguntaSeEntraNaSequencia } from "@/lib/sessaoExtra";
 import { rotulosDasSessoes } from "@/lib/cobrancas";
 
 /**
@@ -27,6 +27,24 @@ describe("quando a pergunta aparece", () => {
 
   it("devolutiva já tem a pergunta dela (abater do pacote)", () => {
     expect(perguntaSeEntraNaSequencia({ formato: "mensal", sessionKind: "devolutiva" })).toBe(false);
+  });
+
+  it("quem alimenta o gate conta QUALQUER sessão do paciente", () => {
+    // A regressão que motivou esta função: a tela olhava o rótulo de pacote (`pkg`), que só existe
+    // para sessão criada com `packageId` — e a agenda nunca grava esse campo. A pergunta sumiu para
+    // todo mundo. Aqui nenhuma sessão tem pacote, e as três contam.
+    const com = pacientesComAgendamento([
+      { patientId: "p1" },
+      { patientId: "p1" },
+      { patientId: "p2" },
+    ]);
+    expect(com.has("p1")).toBe(true);
+    expect(com.has("p2")).toBe(true);
+    expect(com.has("p3")).toBe(false);
+  });
+
+  it("sem nenhuma sessão, ninguém está no gate (é o primeiro agendamento)", () => {
+    expect(pacientesComAgendamento([]).size).toBe(0);
   });
 
   it("só pergunta se o paciente JÁ TEM sequência (dono, 16/09/2026)", () => {

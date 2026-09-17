@@ -8,6 +8,7 @@ import { parseLocations } from "@/lib/locations";
 import { parseHolidayCities, holidaysByDate } from "@/lib/holidays";
 import { derivePackageLabels } from "@/lib/packages";
 import { tamanhosDasSequencias } from "@/lib/sequenciaPacote";
+import { pacientesComAgendamento } from "@/lib/sessaoExtra";
 import { rotulosDasSessoes } from "@/lib/cobrancas";
 import { horaDeParede, horaDeParedeOuNulo } from "@/lib/horaLocal";
 import { pagamentoAtrasado } from "@/lib/pagamentoSessao";
@@ -58,6 +59,10 @@ export default async function AgendaPage() {
   // é do histórico INTEIRO, de propósito — a sequência atravessa a virada do mês, e começar no meio
   // faria a primeira sessão da janela aparecer como 1/4 quando ela é 3/4.
   const codigos = new Map<string, string>();
+  // Quem ja tem agendamento. E a pergunta "entra na sequencia?" do documento de 17/09: ela so faz
+  // sentido a partir do SEGUNDO agendamento. Sai daqui, e nao da lista da tela, porque aquela e
+  // cortada em 120 dias — paciente antigo apareceria como se fosse o primeiro agendamento dele.
+  let comAgendamento = new Set<string>();
   const vigenciasPorPaciente = new Map<string, { formato: string; pacoteTipo: string | null; desde: string; criadoEm: string }[]>();
   if (pats.length) {
     const ids = pats.map((x) => x.id);
@@ -72,6 +77,7 @@ export default async function AgendaPage() {
         .from(patientPaymentFormatHistory)
         .where(inArray(patientPaymentFormatHistory.patientId, ids)),
     ]);
+    comAgendamento = pacientesComAgendamento(todas);
     for (const paciente of pats) {
       const rotulos = rotulosDasSessoes({
         vigencias: vigencias.filter((v) => v.patientId === paciente.id),
@@ -81,6 +87,7 @@ export default async function AgendaPage() {
         tamanhos: tamanhosDasSequencias(contratos.filter((c) => c.patientId === paciente.id)),
       });
       for (const [id, codigo] of rotulos) codigos.set(id, codigo);
+
       vigenciasPorPaciente.set(
         paciente.id,
         vigencias.filter((v) => v.patientId === paciente.id).map((v) => ({ formato: v.formato, pacoteTipo: v.pacoteTipo, desde: horaDeParede(v.desde), criadoEm: horaDeParede(v.criadoEm) })),
@@ -160,7 +167,7 @@ export default async function AgendaPage() {
           codigo: codigos.get(s.id) ?? null,
           pagamentoAtrasado: atrasadas.has(s.id),
         }))}
-        patients={pats.map((p) => ({ id: p.id, name: p.name, status: p.patientStatus, attendanceMode: p.attendanceMode, attendanceLocation: p.attendanceLocation, atendimentoSocial: p.atendimentoSocial, frequency: p.frequency, agendaId: p.agendaId, registrationNumber: p.registrationNumber, paymentFormat: p.paymentFormat, pacoteTipo: p.pacoteTipo, sessionFee: p.sessionFee, vigencias: vigenciasPorPaciente.get(p.id) ?? [] }))}
+        patients={pats.map((p) => ({ id: p.id, name: p.name, status: p.patientStatus, attendanceMode: p.attendanceMode, attendanceLocation: p.attendanceLocation, atendimentoSocial: p.atendimentoSocial, frequency: p.frequency, agendaId: p.agendaId, registrationNumber: p.registrationNumber, paymentFormat: p.paymentFormat, pacoteTipo: p.pacoteTipo, sessionFee: p.sessionFee, temAgendamento: comAgendamento.has(p.id), vigencias: vigenciasPorPaciente.get(p.id) ?? [] }))}
         birthdays={pats.filter((p) => p.birthDate).map((p) => { /* `horaDeParede` antes do `new Date`: a data nasce meia-noite e, lida como UTC, recuava um dia — o aniversario de 21 aparecia em 20. */ const b = new Date(horaDeParede(p.birthDate)); return { name: p.name, month: b.getMonth() + 1, day: b.getDate() }; })}
         locations={locations}
         holidays={holidays}
