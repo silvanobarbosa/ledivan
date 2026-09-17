@@ -155,7 +155,6 @@ export function PatientsClient({ patients, initial }: { patients: PatientCard[];
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
                     <p className="font-bold truncate">{p.name}</p>
-                    {p.agendaId && <span className="text-[10px] font-mono font-bold px-2 py-0.5 rounded-full bg-black/5 text-foreground/50">#{p.agendaId}</span>}
                     <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wide ${patientStatusColor(p.patientStatus)}`}>
                       {p.patientStatus === "inativo" ? "Inativo" : "Ativo"}
                     </span>

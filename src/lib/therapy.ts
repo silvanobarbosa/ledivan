@@ -1,3 +1,4 @@
+import { horaDeParede } from "./horaLocal";
 // Helpers do domínio Terapia (Ledivan): formatação e labels.
 
 // Sala de vídeo (Jitsi) derivada do id da sessão — sem config/OAuth.
@@ -111,15 +112,29 @@ export function formatBRL(value: number | string | null | undefined): string {
   return (n || 0).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 }
 
+/**
+ * A data como ela foi marcada — sem andar um dia no caminho ate a tela.
+ *
+ * A coluna e `timestamp` sem fuso e guarda data de PAREDE. Quando o valor chega como meia-noite
+ * ("2026-09-21T00:00:00.000Z"), `new Date()` o le como UTC e, num fuso negativo, o relogio recua
+ * para as 21h do dia ANTERIOR — o aniversario de 21 aparecia como 20, e 1o de janeiro como 31 de
+ * dezembro do ano passado. Meio-dia nao falhava, e por isso o defeito parecia aleatorio.
+ *
+ * `horaDeParede` ja resolve isso para o HORARIO desde o defeito da agenda; aqui ele passa a valer
+ * tambem para a DATA. Os dois sintomas relatados — aniversario e historico de ajuste — sao o mesmo
+ * defeito, e esta e a cura dos dois.
+ */
 export function formatDate(d: Date | string | null | undefined): string {
   if (!d) return "—";
-  const date = typeof d === "string" ? new Date(d) : d;
+  const parede = horaDeParede(d);
+  const date = parede ? new Date(parede) : typeof d === "string" ? new Date(d) : d;
   return date.toLocaleDateString("pt-BR", { day: "2-digit", month: "short", year: "numeric" });
 }
 
 export function formatDateTime(d: Date | string | null | undefined): string {
   if (!d) return "—";
-  const date = typeof d === "string" ? new Date(d) : d;
+  const parede = horaDeParede(d);
+  const date = parede ? new Date(parede) : typeof d === "string" ? new Date(d) : d;
   return date.toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", hour: "2-digit", minute: "2-digit" });
 }
 
