@@ -22,13 +22,13 @@ export default async function EditPatientPage({ params }: { params: Promise<{ id
 
   // Histórico de reajuste para a aba Financeiro mostrar a lista pedida pelo dono: data, valor
   // anterior e valor novo. O "anterior" sai da linha de antes, no próprio componente.
-  const priceHistory = await db.select({ valor: patientPriceHistory.valor, dataEfetiva: patientPriceHistory.dataEfetiva })
+  const priceHistory = await db.select({ valor: patientPriceHistory.valor, dataEfetiva: patientPriceHistory.dataEfetiva, dataCriacao: patientPriceHistory.dataCriacao })
     .from(patientPriceHistory)
     .where(eq(patientPriceHistory.patientId, id));
 
   // Histórico de MODALIDADE (gratuito, a cada sessão, mensal…) — o reajuste também mostra a troca de
   // formato, não só de valor (dono, 16/09/2026).
-  const formatHistory = await db.select({ formato: patientPaymentFormatHistory.formato, dataEfetiva: patientPaymentFormatHistory.dataEfetiva })
+  const formatHistory = await db.select({ formato: patientPaymentFormatHistory.formato, dataEfetiva: patientPaymentFormatHistory.dataEfetiva, dataCriacao: patientPaymentFormatHistory.dataCriacao })
     .from(patientPaymentFormatHistory)
     .where(eq(patientPaymentFormatHistory.patientId, id));
 
@@ -61,8 +61,8 @@ export default async function EditPatientPage({ params }: { params: Promise<{ id
           sessionFee: patient.sessionFee, frequency: patient.frequency, timesPerPeriod: patient.timesPerPeriod, paymentFormat: patient.paymentFormat, sessionsInPacket: patient.sessionsInPacket, paymentDay: patient.paymentDay, priceReviewDate: iso(patient.priceReviewDate),
           horasAntesPagamento: patient.horasAntesPagamento, validadePrecoMeses: patient.validadePrecoMeses,
           pacoteTipo: patient.pacoteTipo, semanasNoMes: patient.semanasNoMes, paymentDay2: patient.paymentDay2,
-          priceHistory: priceHistory.map((h) => ({ valor: h.valor, dataEfetiva: (h.dataEfetiva as Date).toISOString() })),
-          formatHistory: formatHistory.map((h) => ({ formato: h.formato, dataEfetiva: (h.dataEfetiva as Date).toISOString() })),
+          priceHistory: priceHistory.map((h) => ({ valor: h.valor, dataEfetiva: (h.dataEfetiva as Date).toISOString(), dataCriacao: (h.dataCriacao as Date | null)?.toISOString() ?? null })),
+          formatHistory: formatHistory.map((h) => ({ formato: h.formato, dataEfetiva: (h.dataEfetiva as Date).toISOString(), dataCriacao: (h.dataCriacao as Date | null)?.toISOString() ?? null })),
           reminderEnabled: patient.reminderEnabled, reminderChannel: patient.reminderChannel, reminderLeadMinutes: patient.reminderLeadMinutes,
           photo3x4: patient.photo3x4, photoExtra1: patient.photoExtra1, photoExtra2: patient.photoExtra2, photoExtra3: patient.photoExtra3,
         }} />

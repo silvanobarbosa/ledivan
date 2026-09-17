@@ -335,3 +335,38 @@ describe("em aberto × em atraso (dono, 16/09/2026)", () => {
     expect(r.emAberto).toBe(130);
   });
 });
+
+describe("o histórico de avisos de cobrança (documento de 17/09)", () => {
+  /**
+   * O botão "Marcar enviada" saiu: cada clique em "Cobrar" registra um aviso, e o documento pede
+   * que os registros anteriores NÃO sejam substituídos — "primeiro clique: enviada em 05/10;
+   * segundo: 08/10; terceiro: 12/10". Sem o histórico, não dá para saber se o paciente está sendo
+   * lembrado ou ignorado.
+   */
+  const s1 = terca(1, 8);
+  const out = (d: number) => new Date(2026, 9, d, 12);
+  const envioDa = (linhas: LinhaDaGeral[]) =>
+    linhas.flatMap((l) => (l.tipo === "sessao" ? [l.cobranca?.envio] : [l.envio])).find(Boolean);
+
+  it("guarda todos os avisos, do mais recente para o mais antigo", () => {
+    const linhas = geral("a_cada_sessao", [s1], {
+      envios: [
+        { cobrancaChave: `sessao:${s1.id}`, enviadaEm: out(5) },
+        { cobrancaChave: `sessao:${s1.id}`, enviadaEm: out(12) },
+        { cobrancaChave: `sessao:${s1.id}`, enviadaEm: out(8) },
+      ],
+    });
+    const envio = envioDa(linhas);
+    expect(envio?.total).toBe(3);
+    expect(envio?.data.getDate()).toBe(12);
+    expect(envio?.datas.map((d) => d.getDate())).toEqual([12, 8, 5]);
+  });
+
+  it("um aviso só continua sendo um aviso", () => {
+    const linhas = geral("a_cada_sessao", [s1], {
+      envios: [{ cobrancaChave: `sessao:${s1.id}`, enviadaEm: out(5) }],
+    });
+    expect(envioDa(linhas)?.total).toBe(1);
+    expect(envioDa(linhas)?.datas).toHaveLength(1);
+  });
+});

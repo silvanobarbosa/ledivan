@@ -166,7 +166,9 @@ describe("histórico de reajuste unificado (valor + modalidade)", () => {
 
   it("só valor, sem histórico de formato, segue funcionando", () => {
     const ev = eventosDeReajuste([{ valor: "200", dataEfetiva: "2026-01-01" }], []);
-    expect(ev).toEqual([{ data: new Date("2026-01-01"), kind: "valor", anterior: null, novo: 200 }]);
+    // `solicitadoEm` entrou no evento (documento de 17/09): registro antigo, sem a data do pedido
+    // gravada, vem nulo — e a tela sabe lidar com isso.
+    expect(ev).toEqual([{ data: new Date("2026-01-01"), kind: "valor", anterior: null, novo: 200, solicitadoEm: null }]);
   });
 
   it("rótulo do formato fala como o dono", () => {
@@ -174,5 +176,43 @@ describe("histórico de reajuste unificado (valor + modalidade)", () => {
     expect(rotuloDoFormato("gratuito")).toBe("Gratuito");
     expect(rotuloDoFormato("primeira_pacote")).toBe("Na primeira sessão do pacote");
     expect(rotuloDoFormato("avulso")).toBe("A cada sessão"); // valor antigo
+  });
+});
+
+describe("quando a alteração foi PEDIDA, e não só quando passa a valer (documento de 17/09)", () => {
+  /**
+   * O documento pede, na área de ajuste: "deve aparecer a data e hora que foi solicitada a
+   * alteração — qual alteração foi feita — o valor — e a data de vigência".
+   *
+   * São duas datas diferentes e as duas importam: a terapeuta combina o reajuste hoje para valer
+   * mês que vem. Sem a data do pedido, uma cobrança contestada não tem como ser explicada.
+   */
+  const pedido = (a: number, m: number, d: number, h = 0, min = 0) => new Date(a, m - 1, d, h, min);
+
+  it("cada evento carrega a data do pedido junto da vigência", () => {
+    const eventos = eventosDeReajuste(
+      [{ valor: 200, dataEfetiva: pedido(2026, 10, 1), dataCriacao: pedido(2026, 9, 15, 14, 32) }],
+      [],
+    );
+    expect(eventos).toHaveLength(1);
+    expect(eventos[0].data.getMonth()).toBe(9);          // vigência: outubro
+    expect(eventos[0].solicitadoEm?.getMonth()).toBe(8); // pedido: setembro
+    expect(eventos[0].solicitadoEm?.getHours()).toBe(14);
+    expect(eventos[0].solicitadoEm?.getMinutes()).toBe(32);
+  });
+
+  it("a troca de modalidade também guarda quando foi pedida", () => {
+    const eventos = eventosDeReajuste([], [
+      { formato: "sessao", dataEfetiva: pedido(2026, 9, 1), dataCriacao: pedido(2026, 8, 20, 9, 5) },
+      { formato: "gratuito", dataEfetiva: pedido(2026, 10, 1), dataCriacao: pedido(2026, 9, 15, 18, 40) },
+    ]);
+    const troca = eventos.find((e) => e.kind === "modalidade" && e.anterior === "sessao");
+    expect(troca?.solicitadoEm?.getDate()).toBe(15);
+    expect(troca?.solicitadoEm?.getHours()).toBe(18);
+  });
+
+  it("registro antigo, sem a data do pedido, não quebra a tela", () => {
+    const eventos = eventosDeReajuste([{ valor: 130, dataEfetiva: pedido(2026, 1, 1) }], []);
+    expect(eventos[0].solicitadoEm).toBeNull();
   });
 });

@@ -3,31 +3,44 @@
 import { Fragment, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { MapPin, Video } from "lucide-react";
-import { Check, Send, MessageCircle } from "lucide-react";
+import { Check, MessageCircle } from "lucide-react";
 import { formatBRL, PAYMENT_METHOD_LABELS, sessionColorClasses } from "@/lib/therapy";
 import type { CobrancaNaTela, LinhaNaTela } from "@/lib/geralDoPaciente";
 import { montarMensagemCobranca } from "@/lib/mensagemCobranca";
-import { desmarcarCobrancaEnviada, lancarPagamento, marcarCobrancaEnviada } from "./geral-actions";
+import { lancarPagamento, limparEnviosDaCobranca, registrarCobrancaEnviada } from "./geral-actions";
 
 /** Dados para o botão "Cobrar" compor a mensagem da terapeuta. */
 export type CobrarInfo = { telefone: string | null; nome: string; modelo: string | null };
 
 /** Abre o WhatsApp com a mensagem de cobrança pronta (ou copia, se não houver telefone). */
-function BotaoCobrar({ c, cobrar }: { c: CobrancaNaTela; cobrar: CobrarInfo }) {
+function BotaoCobrar({ patientId, c, cobrar }: { patientId: string; c: CobrancaNaTela; cobrar: CobrarInfo }) {
+  const router = useRouter();
+  const [pending, start] = useTransition();
   const msg = montarMensagemCobranca(cobrar.modelo, {
     nome: cobrar.nome,
     valor: formatBRL(c.falta),
     vencimento: c.vencimento ? partes(c.vencimento).data : null,
   });
   const tel = (cobrar.telefone || "").replace(/\D/g, "");
+  /**
+   * Abre o WhatsApp E registra o aviso.
+   *
+   * O botao "Marcar enviada" saiu (documento de 17/09): o registro deixa de depender de alguem
+   * lembrar de apertar um segundo botao. A janela abre primeiro — se o registro demorar, quem
+   * cobra nao fica esperando.
+   */
   function acionar() {
     if (tel) window.open(`https://wa.me/55${tel}?text=${encodeURIComponent(msg)}`, "_blank", "noopener");
     else navigator.clipboard?.writeText(msg);
+    start(async () => {
+      await registrarCobrancaEnviada({ patientId, cobrancaChave: c.chave });
+      router.refresh();
+    });
   }
   return (
-    <button type="button" onClick={acionar} title={tel ? "Cobrar pelo WhatsApp" : "Copiar mensagem de cobrança"}
-      className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#047857] border border-[#a7f3d0] bg-[#ecfdf5] rounded-full px-2 py-0.5 hover:bg-[#d1fae5] whitespace-nowrap">
-      <MessageCircle className="w-3 h-3" aria-hidden /> Cobrar
+    <button type="button" onClick={acionar} disabled={pending} title={tel ? "Cobrar pelo WhatsApp (registra o aviso)" : "Copiar mensagem de cobranca (registra o aviso)"}
+      className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#047857] border border-[#a7f3d0] bg-[#ecfdf5] rounded-full px-2 py-0.5 hover:bg-[#d1fae5] disabled:opacity-60 whitespace-nowrap">
+      <MessageCircle className="w-3 h-3" aria-hidden /> {pending ? "..." : "Cobrar"}
     </button>
   );
 }
@@ -74,36 +87,38 @@ function CelulaStatus({ status }: { status?: string | null }) {
 }
 
 /**
- * "Marcar enviada": registra que o paciente foi avisado desta cobrança. Não envia nada — é um
- * lembrete visível de que a cobrança já foi passada, para não cobrar duas vezes nem esquecer.
+ * O HISTORICO de avisos daquela cobranca.
+ *
+ * Nao ha mais botao de marcar: cada clique em "Cobrar" registra um aviso. Aqui aparece o ultimo, e
+ * quantas vezes ao todo — porque "avisei uma vez" e "avisei tres vezes" pedem atitudes diferentes.
+ * As datas completas ficam no `title`, para nao encher a linha.
  */
 function EnvioControle({ patientId, chave, envio }: { patientId: string; chave: string; envio: CobrancaNaTela["envio"] }) {
   const router = useRouter();
   const [pending, start] = useTransition();
 
-  const agir = (fn: typeof marcarCobrancaEnviada) =>
+  if (!envio) return null;
+
+  const limpar = () =>
     start(async () => {
-      const r = await fn({ patientId, cobrancaChave: chave });
+      const r = await limparEnviosDaCobranca({ patientId, cobrancaChave: chave });
       if (r.ok) router.refresh();
     });
 
-  if (envio) {
-    return (
-      <span className="inline-flex items-center gap-1.5 text-[11px] text-[#166534]">
-        <Check className="w-3.5 h-3.5" aria-hidden />
-        <span className="whitespace-nowrap">Enviada {partes(envio.data).data}</span>
-        <button type="button" disabled={pending} onClick={() => agir(desmarcarCobrancaEnviada)} className="text-foreground/40 underline underline-offset-2 hover:text-foreground/70 disabled:opacity-50">
-          desfazer
-        </button>
-      </span>
-    );
-  }
+  const historico = envio.datas.map((d) => partes(d).data).join(" · ");
+
   return (
-    <button type="button" disabled={pending} onClick={() => agir(marcarCobrancaEnviada)} title="Registrar que o paciente foi avisado desta cobrança"
-      className="inline-flex items-center gap-1 text-[11px] font-semibold text-foreground/60 border border-border rounded-full px-2 py-0.5 hover:bg-surface disabled:opacity-50 whitespace-nowrap">
-      <Send className="w-3 h-3" aria-hidden />
-      {pending ? "…" : "Marcar enviada"}
-    </button>
+    <span className="inline-flex items-center gap-1.5 text-[11px] text-[#166534]" title={`Avisos: ${historico}`}>
+      <Check className="w-3.5 h-3.5" aria-hidden />
+      <span className="whitespace-nowrap">
+        Avisada {partes(envio.data).data}
+        {envio.total > 1 && <span className="text-foreground/50"> · {envio.total}x</span>}
+      </span>
+      <button type="button" disabled={pending} onClick={limpar} title="Apagar os avisos registrados desta cobranca"
+        className="text-foreground/40 underline underline-offset-2 hover:text-foreground/70 disabled:opacity-50">
+        limpar
+      </button>
+    </span>
   );
 }
 
@@ -131,7 +146,7 @@ function ColunasDoPagamento({ patientId, c, onLancar, cobrar }: { patientId: str
           </div>
           <div className="flex items-center gap-2 flex-wrap">
             <EnvioControle patientId={patientId} chave={c.chave} envio={c.envio} />
-            {cobrar && <BotaoCobrar c={c} cobrar={cobrar} />}
+            {cobrar && <BotaoCobrar patientId={patientId} c={c} cobrar={cobrar} />}
           </div>
         </div>
       </td>
