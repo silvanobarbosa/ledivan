@@ -34,6 +34,12 @@ export type SessaoDaSequencia = {
   id: string;
   date: Date | string;
   status: string;
+  /**
+   * Qual sessão desmarcada esta aqui repõe. É o que separa dois casos que, sem ele, chegam como
+   * dados idênticos — um mês com uma desmarcada e uma sessão a mais — e pedem contas diferentes:
+   * reposição OCUPA a vaga aberta, sessão a mais CRIA uma vaga nova.
+   */
+  repoeSessaoId?: string | null;
 };
 
 export type PosicaoNaSequencia = {
@@ -78,19 +84,24 @@ export type MomentoDaCobranca = "abertura" | "fechamento";
 const emData = (d: Date | string): Date => (d instanceof Date ? d : new Date(d));
 
 /** Descarta o que não dá para posicionar e ordena pelo que manda: a data. */
-function emOrdem(sessoes: SessaoDaSequencia[]): { id: string; data: Date; status: string }[] {
+function emOrdem(sessoes: SessaoDaSequencia[]): { id: string; data: Date; status: string; repoe: string | null }[] {
   return sessoes
-    .map((s) => ({ id: s.id, data: emData(s.date), status: s.status }))
+    .map((s) => ({ id: s.id, data: emData(s.date), status: s.status, repoe: s.repoeSessaoId ?? null }))
     .filter((s) => !Number.isNaN(s.data.getTime()))
     // Duas no mesmo instante acontecem (encaixe, casal). O id desempata para que a numeração seja
     // sempre a mesma — ordem instável aqui faria o número dançar a cada recarga da tela.
     .sort((a, b) => a.data.getTime() - b.data.getTime() || a.id.localeCompare(b.id));
 }
 
+/** Os tamanhos contratados, limpos. Lista vazia = o contrato não diz nada sobre este paciente. */
+function contratados(opts: OpcoesDaSequencia): number[] {
+  return (opts.tamanhos ?? []).filter((n) => Number.isFinite(n) && n >= 1).map((n) => Math.floor(n));
+}
+
 /** O tamanho da sequência de índice `i`, com o último da lista valendo para as seguintes. */
 function tamanhoDe(opts: OpcoesDaSequencia, i: number): number {
   if (opts.pacoteTipo !== "fragmentado") return TAMANHO_PADRAO;
-  const lista = (opts.tamanhos ?? []).filter((n) => Number.isFinite(n) && n >= 1).map((n) => Math.floor(n));
+  const lista = contratados(opts);
   if (lista.length === 0) return TAMANHO_PADRAO;
   return lista[Math.min(i, lista.length - 1)];
 }
@@ -105,7 +116,9 @@ export function posicoesDaSequencia(
   sessoes: SessaoDaSequencia[],
   opts: OpcoesDaSequencia = {},
 ): Map<string, PosicaoNaSequencia> {
-  if (opts.pacoteTipo === "fragmentado") return posicoesFragmentado(sessoes);
+  // Fracionado SEM contrato registrado: o mês define a sequência (a regra própria, abaixo). Com
+  // contrato, ele manda — e aí a varredura é a mesma do completo, só que com tamanhos por sequência.
+  if (opts.pacoteTipo === "fragmentado" && contratados(opts).length === 0) return posicoesFragmentado(sessoes);
 
   const mapa = new Map<string, PosicaoNaSequencia>();
 
@@ -131,35 +144,64 @@ export function posicoesDaSequencia(
 }
 
 /**
- * FRAGMENTADO: cada MÊS do calendário é uma sequência própria, do tamanho dos atendimentos daquele
- * mês (dono, 16/09/2026). Setembro com três sessões numera 1/3..3/3; outubro com quatro, 1/4..4/4 —
- * os meses não se juntam. O total do mês são as sessões que OCUPAM (não pausam); Desmarcou, Prof.
- * desm. e Atestado seguram a posição sem contar, como no completo. A conta é refeita, nunca guardada.
+ * FRAGMENTADO: cada MÊS do calendário é uma sequência própria, do tamanho dos atendimentos marcados
+ * para aquele mês (dono, 16/09/2026). Setembro com três numera 1/3..3/3; outubro com quatro,
+ * 1/4..4/4 — os meses não se juntam.
+ *
+ * O que o documento de 17/09 acrescentou é o que acontece quando uma sessão do mês não acontece, e
+ * é a razão desta função ter deixado de ser uma contagem por mês:
+ *
+ * Esta função só entra quando o contrato NÃO diz o tamanho das sequências (`tamanhos` vazio) — o caso
+ * de todos os fracionados de hoje. Havendo contrato, quem manda é ele, e a varredura comum dá conta.
+ *
+ * **O denominador não encolhe.** Setembro com três marcadas e uma desmarcada continua /3 — o
+ * paciente contratou três atendimentos. A vaga aberta é ocupada pela próxima sessão real, que pode
+ * já ser de outubro: ela ATRAVESSA, exibindo 3/3, e pertence à sequência de setembro. Outubro
+ * recomeça na seguinte, com as vagas que ainda são dele. Antes o total era "quantas ocuparam", e
+ * setembro virava /2 — cobrando duas sessões onde três foram contratadas.
+ *
+ * **Reposição não cria vaga.** Uma sessão marcada para repor outra (`repoeSessaoId`) ocupa a vaga
+ * que a desmarcada deixou, em vez de acrescentar uma quarta ao mês. Sem esse vínculo os dois casos
+ * do documento — desmarcou sem repor (F1) e repôs no mesmo mês (F2) — chegam aqui como dados
+ * idênticos e exigem contas diferentes; não há como decidir por dedução.
+ *
+ * Desmarcou, Prof. desm. e Atestado continuam segurando a posição sem ocupá-la, como no completo. E
+ * a conta segue refeita do zero, nunca guardada.
  */
 function posicoesFragmentado(sessoes: SessaoDaSequencia[]): Map<string, PosicaoNaSequencia> {
   const mapa = new Map<string, PosicaoNaSequencia>();
   const ordenadas = emOrdem(sessoes);
   const chaveDoMes = (d: Date) => d.getFullYear() * 12 + d.getMonth();
 
-  // Total do mês = atendimentos que ocupam. E a sequência de cada mês, na ordem do calendário.
-  const totalPorMes = new Map<number, number>();
-  const seqPorMes = new Map<number, number>();
-  let proximaSeq = 0;
+  // As vagas de cada mês, na ordem do calendário: uma por atendimento marcado para ele.
+  const vagas = new Map<number, number>();
+  const meses: number[] = [];
   for (const s of ordenadas) {
     const k = chaveDoMes(s.data);
-    if (!seqPorMes.has(k)) seqPorMes.set(k, proximaSeq++);
-    if (!STATUS_QUE_PAUSAM.has(s.status)) totalPorMes.set(k, (totalPorMes.get(k) ?? 0) + 1);
+    if (!vagas.has(k)) { vagas.set(k, 0); meses.push(k); }
+    if (!s.repoe) vagas.set(k, vagas.get(k)! + 1);
   }
 
-  const ocupadasNoMes = new Map<number, number>(); // quantas já ocuparam posição no mês
-  for (const s of ordenadas) {
-    const k = chaveDoMes(s.data);
-    const sequencia = seqPorMes.get(k)!;
-    const total = Math.max(1, totalPorMes.get(k) ?? 0);
-    // A posição é a próxima a preencher; o clamp evita "3/2" quando um mês termina numa pausa.
-    const index = Math.min((ocupadasNoMes.get(k) ?? 0) + 1, total);
-    mapa.set(s.id, { sequencia, index, total });
-    if (!STATUS_QUE_PAUSAM.has(s.status)) ocupadasNoMes.set(k, (ocupadasNoMes.get(k) ?? 0) + 1);
+  // Preenche mês a mês, consumindo de uma fila única — é o que permite a sessão de outubro fechar
+  // setembro sem sair da ordem em que as coisas aconteceram.
+  const gastas = new Map<number, number>(); // vagas de um mês já usadas por um mês anterior
+  let ponteiro = 0;
+  let sequencia = 0;
+
+  for (const k of meses) {
+    const total = (vagas.get(k) ?? 0) - (gastas.get(k) ?? 0);
+    if (total <= 0) continue; // o mês inteiro já foi absorvido pelo anterior: não tem sequência própria
+
+    let ocupadas = 0;
+    while (ocupadas < total && ponteiro < ordenadas.length) {
+      const s = ordenadas[ponteiro++];
+      const mesDela = chaveDoMes(s.data);
+      if (mesDela !== k && !s.repoe) gastas.set(mesDela, (gastas.get(mesDela) ?? 0) + 1);
+      // O clamp evita "4/3" quando o mês termina numa sessão que pausou.
+      mapa.set(s.id, { sequencia, index: Math.min(ocupadas + 1, total), total });
+      if (!STATUS_QUE_PAUSAM.has(s.status)) ocupadas++;
+    }
+    sequencia++;
   }
 
   return mapa;

@@ -8,7 +8,7 @@ import { parseLocations } from "@/lib/locations";
 import { parseHolidayCities, holidaysByDate } from "@/lib/holidays";
 import { derivePackageLabels } from "@/lib/packages";
 import { tamanhosDasSequencias } from "@/lib/sequenciaPacote";
-import { pacientesComAgendamento } from "@/lib/sessaoExtra";
+import { desmarcadasSemReposicao, pacientesComAgendamento } from "@/lib/sessaoExtra";
 import { rotulosDasSessoes } from "@/lib/cobrancas";
 import { horaDeParede, horaDeParedeOuNulo } from "@/lib/horaLocal";
 import { pagamentoAtrasado } from "@/lib/pagamentoSessao";
@@ -63,11 +63,14 @@ export default async function AgendaPage() {
   // sentido a partir do SEGUNDO agendamento. Sai daqui, e nao da lista da tela, porque aquela e
   // cortada em 120 dias — paciente antigo apareceria como se fosse o primeiro agendamento dele.
   let comAgendamento = new Set<string>();
+  // As desmarcadas que ainda esperam reposicao, por paciente. Sai do historico inteiro (as cinco
+  // mais recentes bastam para a janela de "Novo atendimento" nao virar uma lista).
+  const desmarcadasPorPaciente = new Map<string, { id: string; data: string }[]>();
   const vigenciasPorPaciente = new Map<string, { formato: string; pacoteTipo: string | null; desde: string; criadoEm: string }[]>();
   if (pats.length) {
     const ids = pats.map((x) => x.id);
     const [todas, contratos, vigencias] = await Promise.all([
-      db.select({ id: therapySessions.id, patientId: therapySessions.patientId, date: therapySessions.date, status: therapySessions.status, sessionKind: therapySessions.sessionKind, abaterDoPacote: therapySessions.abaterDoPacote, chargeable: therapySessions.chargeable, extra: therapySessions.extra })
+      db.select({ id: therapySessions.id, patientId: therapySessions.patientId, date: therapySessions.date, status: therapySessions.status, sessionKind: therapySessions.sessionKind, abaterDoPacote: therapySessions.abaterDoPacote, chargeable: therapySessions.chargeable, extra: therapySessions.extra, repoeSessaoId: therapySessions.repoeSessaoId })
         .from(therapySessions)
         .where(and(eq(therapySessions.userId, session.user.id), inArray(therapySessions.patientId, ids))),
       db.select({ patientId: patientPackages.patientId, seq: patientPackages.seq, sessions: patientPackages.sessions })
@@ -79,6 +82,10 @@ export default async function AgendaPage() {
     ]);
     comAgendamento = pacientesComAgendamento(todas);
     for (const paciente of pats) {
+      const esperando = desmarcadasSemReposicao(todas.filter((x) => x.patientId === paciente.id)).slice(0, 5);
+      if (esperando.length) {
+        desmarcadasPorPaciente.set(paciente.id, esperando.map((x) => ({ id: x.id, data: horaDeParede(x.date) })));
+      }
       const rotulos = rotulosDasSessoes({
         vigencias: vigencias.filter((v) => v.patientId === paciente.id),
         reserva: { formato: paciente.paymentFormat, pacoteTipo: paciente.pacoteTipo },
@@ -167,7 +174,7 @@ export default async function AgendaPage() {
           codigo: codigos.get(s.id) ?? null,
           pagamentoAtrasado: atrasadas.has(s.id),
         }))}
-        patients={pats.map((p) => ({ id: p.id, name: p.name, status: p.patientStatus, attendanceMode: p.attendanceMode, attendanceLocation: p.attendanceLocation, atendimentoSocial: p.atendimentoSocial, frequency: p.frequency, agendaId: p.agendaId, registrationNumber: p.registrationNumber, paymentFormat: p.paymentFormat, pacoteTipo: p.pacoteTipo, sessionFee: p.sessionFee, temAgendamento: comAgendamento.has(p.id), vigencias: vigenciasPorPaciente.get(p.id) ?? [] }))}
+        patients={pats.map((p) => ({ id: p.id, name: p.name, status: p.patientStatus, attendanceMode: p.attendanceMode, attendanceLocation: p.attendanceLocation, atendimentoSocial: p.atendimentoSocial, frequency: p.frequency, agendaId: p.agendaId, registrationNumber: p.registrationNumber, paymentFormat: p.paymentFormat, pacoteTipo: p.pacoteTipo, sessionFee: p.sessionFee, temAgendamento: comAgendamento.has(p.id), desmarcadas: desmarcadasPorPaciente.get(p.id) ?? [], vigencias: vigenciasPorPaciente.get(p.id) ?? [] }))}
         birthdays={pats.filter((p) => p.birthDate).map((p) => { /* `horaDeParede` antes do `new Date`: a data nasce meia-noite e, lida como UTC, recuava um dia — o aniversario de 21 aparecia em 20. */ const b = new Date(horaDeParede(p.birthDate)); return { name: p.name, month: b.getMonth() + 1, day: b.getDate() }; })}
         locations={locations}
         holidays={holidays}

@@ -77,6 +77,7 @@ export default async function FechamentoPage({
         abaterDoPacote: therapySessions.abaterDoPacote,
         chargeable: therapySessions.chargeable,
         extra: therapySessions.extra,
+        repoeSessaoId: therapySessions.repoeSessaoId,
         valorExtra: therapySessions.valorExtra,
       })
       .from(therapySessions)

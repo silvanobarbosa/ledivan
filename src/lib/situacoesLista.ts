@@ -49,7 +49,7 @@ export async function situacoesDaLista(userId: string, pacientes: PacienteParaSi
   if (!ids.length) return saida;
 
   const [sessoes, pagamentos, precos, vigencias, pacotes] = await Promise.all([
-    db.select({ id: therapySessions.id, patientId: therapySessions.patientId, date: therapySessions.date, status: therapySessions.status, sessionKind: therapySessions.sessionKind, abaterDoPacote: therapySessions.abaterDoPacote, chargeable: therapySessions.chargeable, extra: therapySessions.extra, valorExtra: therapySessions.valorExtra, isOnline: therapySessions.isOnline })
+    db.select({ id: therapySessions.id, patientId: therapySessions.patientId, date: therapySessions.date, status: therapySessions.status, sessionKind: therapySessions.sessionKind, abaterDoPacote: therapySessions.abaterDoPacote, chargeable: therapySessions.chargeable, extra: therapySessions.extra, valorExtra: therapySessions.valorExtra, repoeSessaoId: therapySessions.repoeSessaoId, isOnline: therapySessions.isOnline })
       .from(therapySessions).where(eq(therapySessions.userId, userId)),
     db.select({ id: sessionPayments.id, patientId: sessionPayments.patientId, amount: sessionPayments.amount, date: sessionPayments.date, status: sessionPayments.status, method: sessionPayments.method, pagoPor: sessionPayments.pagoPor, cobrancaChave: sessionPayments.cobrancaChave, kind: sessionPayments.kind })
       .from(sessionPayments).where(eq(sessionPayments.userId, userId)),
@@ -74,7 +74,7 @@ export async function situacoesDaLista(userId: string, pacientes: PacienteParaSi
     const entrada: EntradaDaGeral = {
       vigencias: (porPaciente.vigencias.get(p.id) ?? []).map((v) => ({ formato: v.formato, pacoteTipo: v.pacoteTipo, desde: local(v.desde), criadoEm: local(v.criadoEm) })),
       reserva: { formato: p.paymentFormat, pacoteTipo: p.pacoteTipo },
-      sessoes: (porPaciente.sessoes.get(p.id) ?? []).map((s) => ({ id: s.id, date: local(s.date), status: s.status, sessionKind: s.sessionKind, abaterDoPacote: s.abaterDoPacote, chargeable: s.chargeable, extra: s.extra, valorExtra: s.valorExtra, online: s.isOnline })),
+      sessoes: (porPaciente.sessoes.get(p.id) ?? []).map((s) => ({ id: s.id, date: local(s.date), status: s.status, sessionKind: s.sessionKind, abaterDoPacote: s.abaterDoPacote, chargeable: s.chargeable, extra: s.extra, valorExtra: s.valorExtra, repoeSessaoId: s.repoeSessaoId, online: s.isOnline })),
       precos: (porPaciente.precos.get(p.id) ?? []).map((x) => ({ valor: Number(x.valor) || 0, desde: local(x.dataEfetiva) })),
       valorDaSessao: Number(p.sessionFee) || 0,
       tamanhos: tamanhosDasSequencias(porPaciente.pacotes.get(p.id) ?? []),

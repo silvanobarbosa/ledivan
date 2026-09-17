@@ -14,6 +14,7 @@
 
 import { usaPacote } from "./reajuste";
 import { parseMoedaBR } from "./money";
+import { STATUS_QUE_PAUSAM } from "./therapy";
 
 type Formato = { formato: string | null | undefined; sessionKind?: string | null };
 
@@ -62,4 +63,22 @@ export function extraParaGravar(o: Formato & {
  */
 export function pacientesComAgendamento(sessoes: { patientId: string }[]): Set<string> {
   return new Set(sessoes.map((s) => s.patientId));
+}
+
+/**
+ * As sessões desmarcadas que ainda não foram repostas — as que podem receber uma reposição.
+ *
+ * Uma desmarcada só aceita uma reposição: duas sessões repondo a mesma vaga cobrariam o mês por um
+ * atendimento que não houve. Por isso quem já foi reposta sai da lista.
+ *
+ * Recebe o histórico inteiro do paciente e devolve na ordem do calendário, da mais recente para a
+ * mais antiga — é a ordem em que a terapeuta pensa nelas ao marcar a próxima.
+ */
+export function desmarcadasSemReposicao<T extends { id: string; date: Date | string; status: string; repoeSessaoId?: string | null }>(
+  sessoes: T[],
+): T[] {
+  const jaRepostas = new Set(sessoes.map((s) => s.repoeSessaoId).filter((x): x is string => !!x));
+  return sessoes
+    .filter((s) => STATUS_QUE_PAUSAM.has(s.status) && !jaRepostas.has(s.id))
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 }

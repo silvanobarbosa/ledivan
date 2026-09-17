@@ -595,6 +595,12 @@ export const therapySessions = pgTable("therapy_sessions", {
   // `pendingConfirmation`, que marca reserva pedida pelo link público.
   confirmChannel: text("confirm_channel"),
   confirmLeadHours: integer("confirm_lead_hours"),
+  // Qual sessão desmarcada esta aqui REPÕE (documento de 17/09). É o que distingue repor de
+  // acrescentar: a reposição ocupa a vaga que a desmarcada deixou no mês, enquanto uma sessão a
+  // mais cria vaga nova e aumenta o que o mês cobra. Sem esse vínculo os dois casos chegam ao
+  // cálculo com os mesmos dados. Sem FK de propósito: apagar a desmarcada não deve apagar nada,
+  // e a conta lida com um vínculo órfão sem quebrar.
+  repoeSessaoId: uuid("repoe_sessao_id"),
   packageId: uuid("package_id"), // vínculo opcional com um pacote (patient_packages); numeração 1/N derivada por data
   recurring: boolean("recurring").default(false).notNull(), // reserva recorrente
   recurrenceFreq: text("recurrence_freq"), // semanal | quinzenal | mensal (base p/ "Vago Quinzenal" na agenda)
