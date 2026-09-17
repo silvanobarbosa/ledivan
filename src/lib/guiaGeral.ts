@@ -233,7 +233,10 @@ export function linhasDaGeral(e: EntradaDaGeral): LinhaDaGeral[] {
       online: !!s.online,
       status: s.status,
       rotulo: rotulos.get(s.id) ?? "",
-      valor: cobranca ? cobranca.valor : gratis && !pausada ? 0 : null,
+      // GRAT mostra R$ 0,00 SEMPRE, inclusive com status que pausa (documento de 17/09). Vazio e
+      // "R$ 0,00" não dizem a mesma coisa: vazio parece dado faltando, e numa tabela de dinheiro
+      // isso vira dúvida sobre se aquela sessão foi cobrada.
+      valor: cobranca ? cobranca.valor : gratis ? 0 : null,
       cobranca,
     });
 
@@ -327,7 +330,15 @@ export function resumoDaGeral(e: EntradaDaGeral): ResumoDaGeral {
   const soma = (xs: number[]) => Math.round(xs.reduce((a, b) => a + b, 0) * 100) / 100;
   const totalPago = soma(pagos.map((p) => Number(p.valor) || 0));
   const totalExigivel = soma(exigiveis.map((c) => c.valor));
-  const emAberto = cobrancas.filter((c) => c.situacao === "em_aberto");
+  // "Em aberto" é o que dá para cobrar AGORA: o mês vigente e o que ficou para trás. Cobrança de
+  // mês futuro inflava o número que a terapeuta usa para saber quanto tem a receber — dinheiro que
+  // ainda nem podia ser pedido (documento de 17/09).
+  const fimDoMes = new Date(e.hoje.getFullYear(), e.hoje.getMonth() + 1, 0, 23, 59, 59, 999);
+  const doMesOuAnterior = (c: CobrancaDaGeral) => {
+    const quando = c.vencimento ?? c.competencia ?? null;
+    return !quando || quando.getTime() <= fimDoMes.getTime();
+  };
+  const emAberto = cobrancas.filter((c) => c.situacao === "em_aberto" && doMesOuAnterior(c));
   const emAtraso = cobrancas.filter((c) => c.situacao === "em_atraso");
   const sessoes = (cs: typeof cobrancas) => cs.filter((c) => c.parte !== 2).reduce((a, c) => a + c.sessoes, 0);
   return {

@@ -8,6 +8,7 @@ import { formatBRL, PAYMENT_METHOD_LABELS, sessionColorClasses } from "@/lib/the
 import type { CobrancaNaTela, LinhaNaTela } from "@/lib/geralDoPaciente";
 import { montarMensagemCobranca } from "@/lib/mensagemCobranca";
 import { lancarPagamento, limparEnviosDaCobranca, registrarCobrancaEnviada } from "./geral-actions";
+import { doAno } from "@/lib/filtroDeAno";
 
 /** Dados para o botão "Cobrar" compor a mensagem da terapeuta. */
 export type CobrarInfo = { telefone: string | null; nome: string; modelo: string | null };
@@ -206,11 +207,22 @@ function FormularioDeLancamento({ patientId, c, responsavel, fechar }: { patient
   );
 }
 
-export function GeralTab({ patientId, linhas, responsavel, cobrar }: { patientId: string; linhas: LinhaNaTela[]; responsavel: string; cobrar?: CobrarInfo }) {
+export function GeralTab({ patientId, linhas, responsavel, cobrar, ano }: { patientId: string; linhas: LinhaNaTela[]; responsavel: string; cobrar?: CobrarInfo; ano: number }) {
   const [aberta, setAberta] = useState<string | null>(null);
+
+  // O filtro de ano é o MESMO da tabela de pagamentos (documento de 17/09): uma escolha só, e as
+  // duas tabelas respondem juntas. Filtrar aqui não apaga nada — o ano de trás continua a um
+  // clique de distância.
+  // A data que define o ano muda com o tipo da linha: a sessão tem a dela; o pagamento vale pelo
+  // dia em que foi pago, e não pelo vencimento da cobrança que ele quitou.
+  const doAnoEscolhido = doAno(linhas, ano, (l) => (l.tipo === "sessao" ? l.data : l.pagamento?.data ?? l.vencimento));
 
   if (!linhas.length) {
     return <div className="glass-card rounded-[24px] p-6 text-sm text-foreground/50">Nenhuma sessão registrada ainda.</div>;
+  }
+
+  if (!doAnoEscolhido.length) {
+    return <div className="glass-card rounded-[24px] p-6 text-sm text-foreground/50">Nenhuma sessão em {ano}.</div>;
   }
 
   return (
@@ -230,7 +242,7 @@ export function GeralTab({ patientId, linhas, responsavel, cobrar }: { patientId
             </tr>
           </thead>
           <tbody>
-            {linhas.map((l) => {
+            {doAnoEscolhido.map((l) => {
               if (l.tipo === "pagamento") {
                 const venc = l.vencimento ? partes(l.vencimento).data : null;
                 return (
