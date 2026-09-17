@@ -125,7 +125,6 @@ export async function createPatient(formData: FormData) {
     userId,
     registrationNumber,
     agendaId: (formData.get("agendaId") as string)?.trim() || null,
-    atendimentoSocial: formData.get("atendimentoSocial") === "true",
     dueDateType,
     dueDate,
     name: name.trim(),
@@ -255,7 +254,6 @@ export async function updatePatient(patientId: string, formData: FormData) {
   await db.update(patients).set({
     name: (formData.get("name") as string) || existing.name,
     agendaId: formData.has("agendaId") ? ((formData.get("agendaId") as string)?.trim() || null) : existing.agendaId,
-    atendimentoSocial: formData.has("atendimentoSocial") ? formData.get("atendimentoSocial") === "true" : existing.atendimentoSocial,
     dueDateType,
     dueDate,
     email: (formData.get("email") as string) ?? existing.email,

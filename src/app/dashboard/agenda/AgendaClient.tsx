@@ -20,7 +20,6 @@ import { perguntaSeEntraNaSequencia } from "@/lib/sessaoExtra";
 import { formatoNaData } from "@/lib/vigenciaDoFormato";
 
 type PatientLite = { id: string; name: string; status: string; attendanceMode: string | null; attendanceLocation: string | null;
-  /** Atendimento gratuito: a agenda marca a sessão como "social". */
   /** O que a célula escreve no lugar do nome. */
   agendaId?: string | null;
   registrationNumber?: number | null;
@@ -33,8 +32,6 @@ type PatientLite = { id: string; name: string; status: string; attendanceMode: s
   desmarcadas?: { id: string; data: string }[];
   /** Formato de pagamento no tempo: a pergunta da sessão extra depende do formato NA DATA marcada. */
   vigencias?: { formato: string; pacoteTipo: string | null; desde: string; criadoEm: string }[];
-  /** Vínculo social: convive com qualquer formato de pagamento. */
-  atendimentoSocial?: boolean | null;
   /** "quinzenal", "semanal"… escrito no cadastro. É daqui que sai o espelho da semana alternada. */
   frequency?: string | null;
 };
@@ -110,7 +107,6 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
       online: s.isOnline,
       repeticao: s.recurring ? s.recurrenceFreq : null,
       recorrente: s.recurring,
-      social: p?.atendimentoSocial,
     });
   };
   const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date()));
@@ -640,9 +636,6 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
                           <p className="text-[10px] font-bold uppercase tracking-wide truncate opacity-80 flex items-center gap-1">
                             {celula(s).repeteSemLetra && <Repeat className="w-2.5 h-2.5 shrink-0 opacity-50" aria-label="Agendamento recorrente" />}
                             <span className="truncate">{celula(s).codigo}</span>
-                            {celula(s).social && (
-                              <span className="shrink-0 text-[#047857]" title="Atendimento social">SOC</span>
-                            )}
                           </p>
 
                         </button>

@@ -119,40 +119,6 @@ describe("a devolutiva e a sequência", () => {
   });
 });
 
-describe("social é categoria, não formato", () => {
-  it("social NÃO substitui o código: quem fecha por pacote continua mostrando a posição", () => {
-    // Era o que o código fazia antes: social vinha de `paymentFormat === "gratuito"`, então as
-    // duas coisas eram a mesma e metade da informação se perdia.
-    const c = conteudoDaCelula({
-      agendaId: "P-1",
-      formato: "mensal",
-      tipo: "consulta",
-      posicao: { index: 2, total: 4 },
-      social: true,
-    });
-    expect(c.codigo).toBe("2/4");
-    expect(c.social).toBe(true);
-  });
-
-  it("social e gratuito convivem: o código é GRAT e a marca também aparece", () => {
-    const c = conteudoDaCelula({ agendaId: "P-1", formato: "gratuito", tipo: "consulta", social: true });
-    expect(c.codigo).toBe("GRAT");
-    expect(c.social).toBe(true);
-  });
-
-  it("gratuito sem vínculo social não ganha a marca", () => {
-    const c = conteudoDaCelula({ agendaId: "P-1", formato: "gratuito", tipo: "consulta" });
-    expect(c.codigo).toBe("GRAT");
-    expect(c.social).toBe(false);
-  });
-
-  it("social pagando a cada sessão continua sendo AVUL", () => {
-    const c = conteudoDaCelula({ agendaId: "P-1", formato: "sessao", tipo: "consulta", social: true });
-    expect(c.codigo).toBe("AVUL");
-    expect(c.social).toBe(true);
-  });
-});
-
 describe("a célula inteira", () => {
   it("junta identificação, letra, código e câmera", () => {
     const c = conteudoDaCelula({
@@ -163,7 +129,7 @@ describe("a célula inteira", () => {
       online: true,
       repeticao: "quinzenal",
     });
-    expect(c).toEqual({ identificacao: "P-014", repeticao: "Q", codigo: "1/4", online: true, repeteSemLetra: false, social: false });
+    expect(c).toEqual({ identificacao: "P-014", repeticao: "Q", codigo: "1/4", online: true, repeteSemLetra: false });
   });
 
   it("repetição sem frequência conhecida não fica muda", () => {

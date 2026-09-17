@@ -414,14 +414,6 @@ export const patients = pgTable("patients", {
   reminderLeadMinutes: integer("reminder_lead_minutes").default(60).notNull(), // antecedência (min) do lembrete
   moodToken: text("mood_token").unique(), // link do diário de humor: /humor/<token>
   tags: text("tags"), // etiquetas separadas por vírgula
-  /**
-   * Atendimento social: o tipo de VÍNCULO (projeto, convênio, indicação institucional).
-   *
-   * É critério diferente de "gratuito", que é FORMATO DE PAGAMENTO. Um paciente pode ser social e
-   * pagar mensal, ou social e não pagar nada — as duas coisas convivem, e tratá-las como uma só
-   * (o que o código fazia) escondia metade da informação.
-   */
-  atendimentoSocial: boolean("atendimento_social").default(false).notNull(),
   // Cadastro (form): número sequencial por terapeuta + identificação na agenda + vencimento.
   registrationNumber: integer("registration_number"), // sequencial por terapeuta (0001, 0002…); gerado no create
   agendaId: text("agenda_id"), // identificação do paciente na agenda
