@@ -7,6 +7,51 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-09-17 — Demandas do documento: ondas 1, 2 e 3 (#182, #183, #184)
+
+**Entregue:** limpeza de tela e a data que andava um dia (#182); recibo nos Ajustes, cobranca com
+histórico e a data do pedido no reajuste (#183); GRAT sempre R$ 0,00, "em aberto" sem o futuro e um
+filtro de ano só (#184). Plano completo em `PLANO-DEMANDAS-2026-09-17.md`.
+
+**ROTAÇÃO DE CREDENCIAL — leia antes de tudo.** Durante a onda 2, uma mensagem de erro do driver do
+Neon imprimiu a **string de conexão inteira, com a senha**, no log da sessão. Não foi um `console.log`
+nosso: foi a própria lib. A senha do banco de PRODUÇÃO foi rotacionada no mesmo dia, com autorização
+do dono: `ALTER ROLE` no banco, teste de conexão com a senha nova **antes** de gravar em qualquer
+lugar, `.env.local` atualizado, `DATABASE_URL` trocada na Vercel e redeploy. Conferido depois: 184
+pacientes carregando em producao. **Lição:** filtrar `postgresql://` e `npg_` na saída de todo
+comando que toque o banco — a lib erra e imprime o que você nunca imprimiria.
+
+**Decisões que ficam valendo:**
+- **A data de parede vale tambem para a DATA, não só para o horário.** `formatDate`/`formatDateTime`
+  passam por `horaDeParede`: a coluna é `timestamp` sem fuso, e valor de meia-noite lido como UTC
+  recuava para o dia anterior. Era a causa ÚNICA dos dois sintomas relatados (aniversário e
+  histórico de ajuste).
+- **O botao "Marcar enviada" saiu.** Cada clique em "Cobrar" registra o aviso sozinho, e os avisos
+  **não se substituem**: o índice único de `cobranca_envios` virou comum, e cada clique é uma linha.
+  A tela mostra o último e quantas vezes ("Avisada 12/10 · 3x").
+- **O recibo tem descrição própria por terapeuta** (Terapia/Psicanálise/Psicologia): "atendimentos
+  psicológicos" num recibo de quem não é psicóloga é declaração errada num documento que vai para o
+  imposto de renda do paciente. Valor fora da lista cai em "terapia", nunca numa profissão que a
+  pessoa não tem.
+- **"Em aberto" não conta mês futuro** — só o vigente e o que ficou para trás.
+- **GRAT mostra R$ 0,00 mesmo com status que pausa.** Vazio parece dado faltando.
+- **Um filtro de ano só**, antes da tabela de Controle, valendo para as duas tabelas. O ano sai do
+  TEXTO da data, nunca de `Date`.
+
+**Armadilhas:**
+- O driver do Neon só aceita template marcado (`sql\`...\``) ou `sql.query(...)` — a mesma pegadinha
+  já catalogada no Portal, e ela apareceu de novo aqui, no script de rotação.
+- `drizzle-kit generate` pede prompt interativo quando o snapshot local está defasado; `db:push`
+  passa. E o `push` aplica direto em **produção**.
+- A tabela de usuários do Ledivan se chama `user`, não `users`: uma conferência pós-`push` disse
+  "coluna não existe" só porque eu consultei o nome errado.
+
+**Pendente:** as ondas 4 (pagamento e recibo), 5 (sequência do pacote no agendamento) e 6
+(fragmentação). E o desalinhamento da coluna na agenda segue **não reproduzido** — medido em
+produção nos dois tamanhos, colunas de largura idêntica e nenhum cartão fora do lugar.
+
+---
+
 ## 2026-09-16 — Pendências zeradas (#181)
 
 **PAG1 (RESOLVIDO — era cache de rota).** O relato "salvo Gratuito, volta em A cada sessão" tinha
