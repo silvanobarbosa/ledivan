@@ -33,6 +33,8 @@ export type PacienteDoFechamento = {
   pacoteTipo?: "completo" | "fragmentado" | string | null;
   /** Dia combinado de pagamento, quando existe. Só para a tela mostrar. */
   diaPagamento?: number | null;
+  /** O dia da SEGUNDA quinzena. Sem ele as duas quinzenas venciam no mesmo dia aqui. */
+  diaPagamento2?: number | null;
   /**
    * O valor da sessão no cadastro, usado quando o histórico de preço não alcança a data.
    *
@@ -280,15 +282,17 @@ export function linhaDoFechamento(opts: {
     valorDaSessao: reserva,
     tamanhos: opts.tamanhos,
     diaPagamento: paciente.diaPagamento ?? null,
+    diaPagamento2: paciente.diaPagamento2 ?? null,
   });
 
   const doMes = cobrancas.filter((c) => noMes(c.competencia, ano, mes));
   const acumuladas = cobrancas.filter((c) => ate(c.competencia, limite));
   // Um pacote quinzenal são duas cobranças, mas UM pacote fechado.
   const pacotes = new Set(doMes.filter((c) => c.tipo === "pacote" || c.tipo === "quinzena").map((c) => c.chave.replace(/:[12]$/, "")));
-  const cobradas = doMes
-    .filter((c) => c.tipo !== "quinzena" || c.parte === 1)
-    .reduce((t, c) => t + c.sessoes, 0);
+  // As DUAS quinzenas contam. Enquanto cada uma cobrava metade do pacote, as duas diziam o total
+  // inteiro e somar as duas dobrava a conta — dai o filtro antigo pela parte 1. Desde 17/09 cada
+  // quinzena carrega as sessões que caem nela, e ignorar a segunda passaria a subcontar o mês.
+  const cobradas = doMes.reduce((t, c) => t + c.sessoes, 0);
 
   const naAgenda = sessoesDoMes(opts.sessoes as SessaoDoPacote[], ano, mes);
   const cobradoNoMes = soma(doMes);

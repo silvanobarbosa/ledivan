@@ -64,12 +64,22 @@ describe("mensal", () => {
 });
 
 describe("quinzenal", () => {
-  it("duas linhas de R$ 260 antes da sequência", () => {
-    expect(resumo(geral("quinzenal", [terca(1), terca(8), terca(15), terca(22)]))).toEqual(["P 260", "P 260", "1/4", "2/4", "3/4", "4/4"]);
+  /**
+   * Documento de 17/09: a quinzena é do CALENDÁRIO (01-15 e 16-fim) e cobra o que caiu nela.
+   *
+   * Até 16/09 estes dois casos eram "duas linhas de R$ 260" e "R$ 195 + R$ 195": o pacote era
+   * partido ao meio em valor, sem olhar data. O dono desfez isso com todas as letras — *"não pode
+   * simplesmente dividir o valor por 2"*.
+   */
+  it("cada quinzena vem antes das sessões dela, cobrando o que caiu nela", () => {
+    // Dias 1, 8 e 15 são da primeira quinzena (3 × 130 = 390); o dia 22 é da segunda (130).
+    expect(resumo(geral("quinzenal", [terca(1), terca(8), terca(15), terca(22)]))).toEqual(["P 390", "1/4", "2/4", "3/4", "P 130", "4/4"]);
   });
 
-  it("fracionado de 3: R$ 195 + R$ 195", () => {
-    expect(resumo(geral("quinzenal", [terca(1), terca(8), terca(15)], { tamanhos: [3] }))).toEqual(["P 195", "P 195", "1/3", "2/3", "3/3"]);
+  it("mês inteiro na primeira quinzena: uma cobrança só", () => {
+    // Quinzena sem atendimento não vira linha — uma de R$ 0,00 apareceria como "Pago" sem
+    // ninguém ter pago.
+    expect(resumo(geral("quinzenal", [terca(1), terca(8), terca(15)], { tamanhos: [3] }))).toEqual(["P 390", "1/3", "2/3", "3/3"]);
   });
 });
 
@@ -185,6 +195,28 @@ describe("devolutiva gratuita em 'a cada sessão' aparece como GRAT R$ 0,00", ()
     const linhas = geral("sessao", [terca(1), { ...terca(3), id: "dev", sessionKind: "devolutiva", chargeable: false }]);
     expect(resumo(linhas)).toEqual(["AVUL 130", "GRAT 0"]);
     expect(linhas[1].tipo === "sessao" && linhas[1].cobranca).toBeNull();
+  });
+});
+
+describe("quantas sessões estão em aberto no quinzenal", () => {
+  /**
+   * As DUAS quinzenas contam (17/09).
+   *
+   * Enquanto cada quinzena cobrava metade do pacote, as duas diziam o total inteiro e somar
+   * dobrava — por isso a conta descartava a parte 2. Agora cada uma carrega as que caíram nela, e
+   * descartar a segunda subcontaria: aqui dariam 2 em vez de 5.
+   */
+  it("soma as sessões das duas quinzenas, não só as da primeira", () => {
+    const r = resumoDaGeral({
+      vigencias: [{ formato: "quinzenal", pacoteTipo: "fragmentado", desde }],
+      reserva: { formato: "quinzenal", pacoteTipo: "fragmentado" },
+      precos,
+      sessoes: [terca(2), terca(9), terca(16), terca(23), terca(30)],
+      pagamentos: [],
+      hoje: new Date(2026, 9, 1, 12),
+    });
+    expect(r.sessoesEmAtraso + r.sessoesEmAberto).toBe(5);
+    expect(r.totalExigivel).toBe(5 * 130);
   });
 });
 

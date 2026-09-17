@@ -173,15 +173,42 @@ function cobrancasDoPeriodo(periodo: PeriodoDeVigencia, sessoes: Ordenada[], e: 
     };
 
     if (formato === "quinzenal") {
-      // Duas metades. A segunda leva a diferença do arredondamento, para a soma bater no centavo.
-      const primeira = dinheiro(valor / 2);
+      /**
+       * A QUINZENA É DO CALENDÁRIO (dono, 17/09): do dia 01 ao 15, e do 16 ao fim do mês. Cada uma
+       * cobra AS SESSÕES QUE CAÍRAM NELA, ao preço da sessão.
+       *
+       * Antes eram duas metades de valor igual, sem olhar data nenhuma — "não pode simplesmente
+       * dividir o valor por 2", nas palavras dele. Era por isso que um paciente cujas sessões
+       * começaram no dia 18 recebia uma cobrança vencendo dia 05: de uma quinzena vazia.
+       *
+       * Quinzena sem atendimento não vira cobrança. Uma linha de R$ 0,00 apareceria como "Pago"
+       * sem ninguém ter pago — a conta trata falta zero como quitada.
+       */
+      const doPeriodo = doPacote.filter((s) => seq.ids.includes(s.id));
+      const metades = [
+        { parte: 1 as const, ids: doPeriodo.filter((s) => s.date.getDate() <= 15) },
+        { parte: 2 as const, ids: doPeriodo.filter((s) => s.date.getDate() > 15) },
+      ];
+
       const d1 = e.diaPagamento ?? inicio.getDate();
       const d2 = e.diaPagamento2 ?? d1;
-      const v1 = diaDoMes(inicio, d1);
       // Segundo dia antes do primeiro no calendário quer dizer o mês seguinte.
-      const v2 = diaDoMes(inicio, d2, d2 < d1 ? 1 : 0);
-      out.push({ ...comum, chave: `quinzena:${chavePeriodo}:${seq.sequencia}:1`, tipo: "quinzena", valor: primeira, vencimento: v1, posicao: "antes", parte: 1 });
-      out.push({ ...comum, chave: `quinzena:${chavePeriodo}:${seq.sequencia}:2`, tipo: "quinzena", valor: dinheiro(valor - primeira), vencimento: v2, posicao: "antes", parte: 2 });
+      const vencimentos = { 1: diaDoMes(inicio, d1), 2: diaDoMes(inicio, d2, d2 < d1 ? 1 : 0) };
+
+      for (const metade of metades) {
+        if (!metade.ids.length) continue;
+        out.push({
+          ...comum,
+          sessoes: metade.ids.length,
+          ids: metade.ids.map((s) => s.id),
+          chave: `quinzena:${chavePeriodo}:${seq.sequencia}:${metade.parte}`,
+          tipo: "quinzena",
+          valor: dinheiro(unitario * metade.ids.length),
+          vencimento: vencimentos[metade.parte],
+          posicao: "antes",
+          parte: metade.parte,
+        });
+      }
       continue;
     }
 

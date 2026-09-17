@@ -172,12 +172,14 @@ describe("quinzenal", () => {
     expect(c.map((x) => x.vencimento?.getDate())).toEqual([5, 20]);
   });
 
-  it("fracionado de 3: R$ 195 + R$ 195", () => {
+  it("fracionado: cada quinzena cobra o que caiu nela, não metade do mês", () => {
+    // Documento de 17/09. Dia 14 é primeira quinzena (1 × 130); 21 e 28 são segunda (2 × 130).
+    // Até 16/09 este caso dava R$ 195 + R$ 195 — o valor partido ao meio, sem olhar as datas.
     const c = cobrancasDoPaciente({
       ...base({ reserva: { formato: "quinzenal", pacoteTipo: "fragmentado" }, tamanhos: [3, 4] }),
       sessoes: [14, 21, 28].map((d) => sessao(d)),
     });
-    expect(c.map((x) => x.valor)).toEqual([195, 195]);
+    expect(c.map((x) => [x.sessoes, x.valor])).toEqual([[1, 130], [2, 260]]);
   });
 });
 
