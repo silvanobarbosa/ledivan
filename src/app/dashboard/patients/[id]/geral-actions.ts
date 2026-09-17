@@ -8,6 +8,7 @@ import { cobrancaEnvios, financialAccounts, patients, sessionPayments, transacti
 import { ensureSessionCategory } from "@/lib/categoriaSessoes";
 import { geralDoPaciente, hojeDeParede } from "@/lib/geralDoPaciente";
 import { diaDoFormulario } from "@/lib/trocaDeFormato";
+import { apenasCpf } from "@/lib/recibo";
 
 /**
  * "Lançar pagamento" da guia Geral: data, responsável e forma. Mais nada vem do formulário.
@@ -24,6 +25,7 @@ export async function lancarPagamento(entrada: {
   cobrancaChave: string;
   data: string;
   pagoPor: string;
+  pagoPorCpf?: string | null;
   metodo: string;
 }): Promise<{ ok: boolean; error?: string }> {
   const session = await auth();
@@ -34,6 +36,9 @@ export async function lancarPagamento(entrada: {
   const chave = String(entrada?.cobrancaChave ?? "").slice(0, 200);
   const metodo = String(entrada?.metodo ?? "");
   const pagoPor = String(entrada?.pagoPor ?? "").trim().slice(0, 120);
+  // CPF é opcional por decisão do dono: quem paga nem sempre quer informar, e o recibo sai sem a
+  // linha quando ele falta. Guardado só em dígitos (`apenasCpf`); a pontuação entra na hora de imprimir.
+  const pagoPorCpf = apenasCpf(entrada?.pagoPorCpf);
   const dia = diaDoFormulario(entrada?.data);
 
   if (!/^[0-9a-f-]{36}$/i.test(patientId)) return { ok: false, error: "Paciente inválido." };
@@ -78,6 +83,7 @@ export async function lancarPagamento(entrada: {
     date,
     method: metodo as "pix" | "card" | "cash" | "transfer",
     status: "paid",
+    pagoPorCpf,
     pagoPor,
     cobrancaChave: chave,
     linkedTransactionId: tx.id,

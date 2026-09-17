@@ -662,6 +662,13 @@ export const sessionPayments = pgTable("session_payments", {
   packageId: uuid("package_id"), // vínculo opcional com um pacote (patient_packages)
   // Quem pagou — a guia Geral pede "o responsável pelo pagamento", que nem sempre é o paciente.
   pagoPor: text("pago_por"),
+  // CPF de quem pagou, opcional. Entra no recibo quando informado; sem ele, o recibo simplesmente
+  // não traz a linha — "CPF: —" num recibo é pior do que nada.
+  pagoPorCpf: text("pago_por_cpf"),
+  // Quando o RECIBO em papel foi emitido (documento de 17/09). A nota fiscal tem coluna própria e
+  // mais antiga — `receiptIssuedAt`, logo abaixo: é o mesmo fato que a tela do Receita Saúde já
+  // acompanha, e duas colunas para ele fariam as duas telas discordarem.
+  reciboEmitidoEm: timestamp("recibo_emitido_em"),
   // A qual cobrança este pagamento pertence (a `chave` de `cobrancasDoPaciente`). Pagamento antigo
   // sem chave é distribuído pela ordem de vencimento.
   cobrancaChave: text("cobranca_chave"),

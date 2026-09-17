@@ -2,12 +2,14 @@
 
 import { Fragment, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { MapPin, Video } from "lucide-react";
 import { Check, MessageCircle } from "lucide-react";
 import { formatBRL, PAYMENT_METHOD_LABELS, sessionColorClasses } from "@/lib/therapy";
 import type { CobrancaNaTela, LinhaNaTela } from "@/lib/geralDoPaciente";
 import { montarMensagemCobranca } from "@/lib/mensagemCobranca";
 import { lancarPagamento, limparEnviosDaCobranca, registrarCobrancaEnviada } from "./geral-actions";
+import { marcarEmissao } from "./recibo-actions";
 import { doAno } from "@/lib/filtroDeAno";
 
 /** Dados para o botão "Cobrar" compor a mensagem da terapeuta. */
@@ -123,14 +125,58 @@ function EnvioControle({ patientId, chave, envio }: { patientId: string; chave: 
   );
 }
 
+/**
+ * "Emitir nota" leva ao Receita Saúde, onde a emissão de fato acontece.
+ *
+ * O sistema não emite nota — ele encurta o caminho e ANOTA que ela foi emitida. Abrir e marcar no
+ * mesmo clique é honesto aqui: quem clica está indo emitir, e a marca não é irreversível (marcar de
+ * novo só regrava a hora).
+ */
+function BotaoNotaFiscal({ patientId, pagamentoId }: { patientId: string; pagamentoId: string }) {
+  const router = useRouter();
+  const [pending, start] = useTransition();
+
+  function acionar() {
+    window.open("https://receitasaude.receita.fazenda.gov.br/", "_blank", "noopener");
+    start(async () => {
+      await marcarEmissao({ pagamentoId, patientId, tipo: "nota" });
+      router.refresh();
+    });
+  }
+
+  return (
+    <button type="button" onClick={acionar} disabled={pending} title="Abrir o Receita Saúde e registrar a emissão"
+      className="text-[11px] font-semibold text-foreground/70 border border-border rounded-full px-2 py-0.5 hover:bg-surface disabled:opacity-60 whitespace-nowrap">
+      {pending ? "..." : "Emitir nota"}
+    </button>
+  );
+}
+
 function ColunasDoPagamento({ patientId, c, onLancar, cobrar }: { patientId: string; c: CobrancaNaTela; onLancar: () => void; cobrar?: CobrarInfo }) {
-  if (c.pagamento) {
+  const pg = c.pagamento;
+  if (pg) {
     return (
       <>
-        <td className="px-3 py-2"><span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${SITUACAO.pago.cls}`}>Pago</span></td>
-        <td className="px-3 py-2 tabular-nums">{partes(c.pagamento.data).data}</td>
-        <td className="px-3 py-2">{c.pagamento.pagoPor || "—"}</td>
-        <td className="px-3 py-2">{c.pagamento.metodo ? PAYMENT_METHOD_LABELS[c.pagamento.metodo] ?? c.pagamento.metodo : "—"}</td>
+        <td className="px-3 py-2">
+          <div className="flex flex-col gap-1.5">
+            <div className="flex items-center gap-1.5 flex-wrap">
+              <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${SITUACAO.pago.cls}`}>Pago</span>
+              {/* Dois carimbos independentes: quem emitiu a nota pode não ter passado recibo. */}
+              {pg.recibo && <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#ecfdf5] text-[#047857] whitespace-nowrap">recibo emitido</span>}
+              {pg.nota && <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#eef2ff] text-[#4338ca] whitespace-nowrap">nota emitida</span>}
+            </div>
+            <div className="flex items-center gap-2 flex-wrap">
+              <Link href={`/dashboard/patients/${patientId}/recibo/${pg.id}`}
+                className="text-[11px] font-semibold text-primary border border-border rounded-full px-2 py-0.5 hover:bg-surface whitespace-nowrap">
+                Emitir recibo
+              </Link>
+              <BotaoNotaFiscal patientId={patientId} pagamentoId={pg.id} />
+            </div>
+          </div>
+        </td>
+        <td className="px-3 py-2 tabular-nums">{partes(pg.data).data}</td>
+        <td className="px-3 py-2">{pg.pagoPor || "—"}</td>
+        <td className="px-3 py-2">{pg.metodo ? PAYMENT_METHOD_LABELS[pg.metodo] ?? pg.metodo : "—"}</td>
       </>
     );
   }
@@ -158,10 +204,20 @@ function ColunasDoPagamento({ patientId, c, onLancar, cobrar }: { patientId: str
   );
 }
 
-function FormularioDeLancamento({ patientId, c, responsavel, fechar }: { patientId: string; c: CobrancaNaTela; responsavel: string; fechar: () => void }) {
+function FormularioDeLancamento({ patientId, c, responsavel, responsavelCpf, fechar }: { patientId: string; c: CobrancaNaTela; responsavel: string; responsavelCpf: string; fechar: () => void }) {
   const router = useRouter();
   const [pending, start] = useTransition();
   const [erro, setErro] = useState<string | null>(null);
+  /**
+   * O CPF acompanha o NOME de quem pagou, não o paciente.
+   *
+   * Por isso o campo é controlado: se quem pagou muda (o avô pagou esta, a mãe paga a próxima), o
+   * CPF memorizado do outro pagador deixa de valer e o campo esvazia — repetir o CPF errado no
+   * recibo é pior do que sair sem CPF nenhum.
+   */
+  const [nome, setNome] = useState(responsavel);
+  const [cpf, setCpf] = useState(responsavelCpf);
+  const mesmoPagador = nome.trim().toLowerCase() === responsavel.trim().toLowerCase();
 
   function enviar(fd: FormData) {
     setErro(null);
@@ -171,6 +227,7 @@ function FormularioDeLancamento({ patientId, c, responsavel, fechar }: { patient
         cobrancaChave: c.chave,
         data: String(fd.get("data") ?? ""),
         pagoPor: String(fd.get("pagoPor") ?? ""),
+        pagoPorCpf: String(fd.get("pagoPorCpf") ?? ""),
         metodo: String(fd.get("metodo") ?? ""),
       });
       if (r.ok) { fechar(); router.refresh(); }
@@ -181,14 +238,24 @@ function FormularioDeLancamento({ patientId, c, responsavel, fechar }: { patient
   return (
     <tr>
       <td colSpan={8} className="px-3 pb-3">
-        <form action={enviar} className="rounded-xl bg-surface/70 border border-border p-3 grid gap-2 sm:grid-cols-[auto_1fr_auto_auto_auto] items-end" data-testid="lancar-pagamento">
+        <form action={enviar} className="rounded-xl bg-surface/70 border border-border p-3 grid gap-2 sm:grid-cols-[auto_1fr_auto_auto_auto_auto] items-end" data-testid="lancar-pagamento">
           <div>
             <label className="text-[11px] font-semibold text-foreground/60 block">Data do pagamento</label>
             <input name="data" type="date" required defaultValue={hojeISO()} className="px-3 py-2 rounded-lg bg-white border border-border text-sm" />
           </div>
           <div>
             <label className="text-[11px] font-semibold text-foreground/60 block">Responsável pelo pagamento</label>
-            <input name="pagoPor" required defaultValue={responsavel} className="w-full px-3 py-2 rounded-lg bg-white border border-border text-sm" />
+            <input name="pagoPor" required value={nome}
+              onChange={(e) => { setNome(e.target.value); setCpf(e.target.value.trim().toLowerCase() === responsavel.trim().toLowerCase() ? responsavelCpf : ""); }}
+              className="w-full px-3 py-2 rounded-lg bg-white border border-border text-sm" />
+          </div>
+          <div>
+            <label htmlFor="pagoPorCpf" className="text-[11px] font-semibold text-foreground/60 block">
+              CPF {mesmoPagador ? <span className="font-normal text-foreground/40">(opcional)</span> : <span className="font-normal text-foreground/40">de quem pagou</span>}
+            </label>
+            <input id="pagoPorCpf" name="pagoPorCpf" inputMode="numeric" maxLength={14} placeholder="000.000.000-00"
+              value={cpf} onChange={(e) => setCpf(e.target.value)}
+              className="w-[150px] px-3 py-2 rounded-lg bg-white border border-border text-sm tabular-nums" />
           </div>
           <div>
             <label className="text-[11px] font-semibold text-foreground/60 block">Forma</label>
@@ -200,14 +267,14 @@ function FormularioDeLancamento({ patientId, c, responsavel, fechar }: { patient
             {pending ? "Salvando…" : `Confirmar ${formatBRL(c.falta)}`}
           </button>
           <button type="button" onClick={fechar} className="text-foreground/50 text-sm px-2 py-2">Cancelar</button>
-          {erro && <p className="sm:col-span-5 text-xs text-[#b91c1c]">{erro}</p>}
+          {erro && <p className="sm:col-span-6 text-xs text-[#b91c1c]">{erro}</p>}
         </form>
       </td>
     </tr>
   );
 }
 
-export function GeralTab({ patientId, linhas, responsavel, cobrar, ano }: { patientId: string; linhas: LinhaNaTela[]; responsavel: string; cobrar?: CobrarInfo; ano: number }) {
+export function GeralTab({ patientId, linhas, responsavel, responsavelCpf, cobrar, ano }: { patientId: string; linhas: LinhaNaTela[]; responsavel: string; responsavelCpf?: string | null; cobrar?: CobrarInfo; ano: number }) {
   const [aberta, setAberta] = useState<string | null>(null);
 
   // O filtro de ano é o MESMO da tabela de pagamentos (documento de 17/09): uma escolha só, e as
@@ -257,7 +324,7 @@ export function GeralTab({ patientId, linhas, responsavel, cobrar, ano }: { pati
                       <td className="px-3 py-2 text-right tabular-nums font-bold">{formatBRL(l.valor)}</td>
                       <ColunasDoPagamento patientId={patientId} c={l} onLancar={() => setAberta(l.chave)} cobrar={cobrar} />
                     </tr>
-                    {aberta === l.chave && <FormularioDeLancamento patientId={patientId} c={l} responsavel={responsavel} fechar={() => setAberta(null)} />}
+                    {aberta === l.chave && <FormularioDeLancamento patientId={patientId} c={l} responsavel={responsavel} responsavelCpf={responsavelCpf ?? ""} fechar={() => setAberta(null)} />}
                   </Fragment>
                 );
               }
@@ -277,7 +344,7 @@ export function GeralTab({ patientId, linhas, responsavel, cobrar, ano }: { pati
                     <td className="px-3 py-2 text-right tabular-nums">{l.valor == null ? "" : formatBRL(l.valor)}</td>
                     {c ? <ColunasDoPagamento patientId={patientId} c={c} onLancar={() => setAberta(c.chave)} cobrar={cobrar} /> : <td colSpan={4} />}
                   </tr>
-                  {c && aberta === c.chave && <FormularioDeLancamento patientId={patientId} c={c} responsavel={responsavel} fechar={() => setAberta(null)} />}
+                  {c && aberta === c.chave && <FormularioDeLancamento patientId={patientId} c={c} responsavel={responsavel} responsavelCpf={responsavelCpf ?? ""} fechar={() => setAberta(null)} />}
                 </Fragment>
               );
             })}
