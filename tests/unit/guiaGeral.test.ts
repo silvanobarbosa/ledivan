@@ -370,3 +370,64 @@ describe("o histórico de avisos de cobrança (documento de 17/09)", () => {
     expect(envioDa(linhas)?.datas).toHaveLength(1);
   });
 });
+
+describe("GRAT mostra R$ 0,00 sempre (documento de 17/09)", () => {
+  /**
+   * "No caso de sessão GRAT, o valor sempre deve aparecer R$ 0,00 independente do status."
+   *
+   * A célula ficava VAZIA quando a sessão gratuita tinha status que pausa (Desmarcou, Atestado,
+   * Prof. desm.). Vazio e "R$ 0,00" não dizem a mesma coisa: vazio parece dado faltando, e numa
+   * tabela de dinheiro isso vira dúvida sobre se aquela sessão foi cobrada.
+   */
+  const paraStatus = (status: string) =>
+    geral("gratuito", [{ id: `g-${status}`, date: new Date(2026, 8, 1, 9), status }]);
+
+  it("gratuito presente continua zero", () => {
+    const linha = paraStatus("realizada").find((l) => l.tipo === "sessao");
+    expect(linha?.valor).toBe(0);
+  });
+
+  for (const status of ["cancelada", "atestado", "profissional_cancelou"]) {
+    it(`gratuito com status "${status}" também mostra zero, não vazio`, () => {
+      const linha = paraStatus(status).find((l) => l.tipo === "sessao");
+      expect(linha?.valor).toBe(0);
+    });
+  }
+});
+
+describe("em aberto: mês vigente e anteriores, nunca o futuro (documento de 17/09)", () => {
+  /**
+   * "Considerar em aberto apenas as que estão dentro do mês vigente e as anteriores não pagas."
+   *
+   * Sessão agendada para dezembro entrava no "Em aberto" de setembro e inflava o número que a
+   * terapeuta usa para saber quanto tem a receber AGORA — dinheiro que ainda nem podia ser cobrado.
+   */
+  const emSetembro = { id: "set", date: new Date(2026, 8, 10, 9), status: "realizada" };
+  const emDezembro = { id: "dez", date: new Date(2026, 11, 10, 9), status: "agendada" };
+
+  it("a sessão de dezembro não entra no em aberto de setembro", () => {
+    const so = resumoDaGeral({
+      vigencias: [{ formato: "a_cada_sessao", pacoteTipo: "completo", desde }],
+      reserva: { formato: "a_cada_sessao" },
+      precos, sessoes: [emSetembro], pagamentos: [], hoje,
+    });
+    const com = resumoDaGeral({
+      vigencias: [{ formato: "a_cada_sessao", pacoteTipo: "completo", desde }],
+      reserva: { formato: "a_cada_sessao" },
+      precos, sessoes: [emSetembro, emDezembro], pagamentos: [], hoje,
+    });
+    expect(com.emAberto).toBe(so.emAberto);
+    expect(com.nAberto).toBe(so.nAberto);
+  });
+
+  it("o que venceu e não foi pago continua em atraso, como antes", () => {
+    const r = resumoDaGeral({
+      vigencias: [{ formato: "a_cada_sessao", pacoteTipo: "completo", desde }],
+      reserva: { formato: "a_cada_sessao" },
+      precos,
+      sessoes: [{ id: "ago", date: new Date(2026, 7, 10, 9), status: "realizada" }],
+      pagamentos: [], hoje,
+    });
+    expect(r.emAtraso).toBeGreaterThan(0);
+  });
+});

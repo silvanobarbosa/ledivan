@@ -1,26 +1,22 @@
 "use client";
 
-import { useState } from "react";
 import { formatBRL } from "@/lib/therapy";
-import { anosComPagamento, recebidosPorAno } from "@/lib/tabelaAnual";
+import { recebidosPorAno } from "@/lib/tabelaAnual";
 
 /**
- * A tabela de valores recebidos por mês, DENTRO do paciente e filtrada por ANO (dono, 16/09/2026) —
- * a mesma do consolidado, mas aqui o filtro é o ano, já que o paciente é um só.
+ * A tabela de valores recebidos por mês, DENTRO do paciente.
+ *
+ * O ano vem de FORA desde 17/09: o seletor é único e fica antes da tabela de Controle, valendo
+ * para as duas ao mesmo tempo. Com um seletor próprio aqui, dava para estar lendo as sessões de
+ * 2026 com os pagamentos de 2025 na tela, e nada avisava.
  */
-export function TabelaAnual({ payments }: { payments: { id: string; amount: string; date: string; status: string }[] }) {
-  const anos = anosComPagamento(payments);
-  const opcoes = anos.length ? anos : [new Date().getFullYear()];
-  const [ano, setAno] = useState(opcoes[0]);
+export function TabelaAnual({ payments, ano }: { payments: { id: string; amount: string; date: string; status: string }[]; ano: number }) {
   const { meses, total } = recebidosPorAno(payments, ano);
 
   return (
     <div className="glass-card rounded-[24px] p-4 sm:p-5">
       <div className="flex items-center justify-between mb-3">
-        <p className="text-xs font-bold text-foreground/40 uppercase tracking-widest">Valores recebidos</p>
-        <select value={ano} onChange={(e) => setAno(Number(e.target.value))} className="text-sm font-semibold rounded-lg bg-white border border-border px-2.5 py-1.5 outline-none">
-          {opcoes.map((a) => <option key={a} value={a}>{a}</option>)}
-        </select>
+        <p className="text-xs font-bold text-foreground/40 uppercase tracking-widest">Valores recebidos em {ano}</p>
       </div>
       <table className="w-full text-sm">
         <thead>

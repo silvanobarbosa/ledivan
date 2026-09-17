@@ -28,6 +28,7 @@ import {
   type RiskLevel,
 } from "@/lib/therapy";
 import { Phone, Plus, Pencil, Trash2, Mic, Loader2, FileText, Repeat, Download } from "lucide-react";
+import { anosDisponiveis } from "@/lib/filtroDeAno";
 
 type Patient = {
   id: string; name: string; email: string | null; phone: string | null; guardianName?: string | null; guardianPhone?: string | null;
@@ -98,6 +99,13 @@ export function PatientDetail({
   cobrancaMessage?: string | null;
 }) {
   const router = useRouter();
+  // Os anos que o paciente tem: das linhas da Geral e dos pagamentos. O corrente entra sempre.
+  const anosDoPaciente = anosDisponiveis([
+    ...geral.map((l) => (l.tipo === "sessao" ? l.data : l.pagamento?.data ?? l.vencimento)),
+    ...payments.map((p) => p.date),
+  ]);
+  const [ano, setAno] = useState(anosDoPaciente[0]);
+
   const [tab, setTab] = useState<(typeof TABS)[number]>("Geral");
   // Vencimento a mostrar no cabeçalho: dia do mês (mensal/quinzenal) ou horas antes (avulso).
   const vencimentoTexto = usaPacote(patient.paymentFormat)
@@ -308,10 +316,26 @@ export function PatientDetail({
               <p className="text-sm font-semibold text-[#92400e] flex items-center gap-1.5">⏰ Reajuste previsto para {formatDate(patient.priceReviewDate)}</p>
             )}
           </div>
-          <GeralTab patientId={patient.id} linhas={geral} responsavel={patient.guardianName || patient.name}
+          {/* O seletor de ano é ÚNICO e vem ANTES da tabela de Controle (documento de 17/09): uma
+              escolha só, e as duas tabelas respondem juntas. Antes o seletor morava dentro da
+              tabela de pagamentos, e dava para ler as sessões de um ano com os pagamentos de outro
+              na mesma tela, sem nada avisar. Filtrar não altera nem apaga dado: só escolhe o que
+              aparece. */}
+          <div className="flex items-center justify-end gap-2">
+            <label htmlFor="ano-do-paciente" className="text-xs font-bold text-foreground/40 uppercase tracking-widest">Ano</label>
+            <select
+              id="ano-do-paciente"
+              value={ano}
+              onChange={(e) => setAno(Number(e.target.value))}
+              className="text-sm font-semibold rounded-lg bg-white border border-border px-2.5 py-1.5 outline-none"
+            >
+              {anosDoPaciente.map((a) => <option key={a} value={a}>{a}</option>)}
+            </select>
+          </div>
+          <GeralTab patientId={patient.id} linhas={geral} ano={ano} responsavel={patient.guardianName || patient.name}
             cobrar={{ telefone: patient.guardianPhone || patient.phone, nome: patient.guardianName || patient.name, modelo: cobrancaMessage }} />
-          {/* GER6: valores recebidos por mês, filtrado por ano */}
-          <TabelaAnual payments={payments} />
+          {/* GER6: valores recebidos por mês, no MESMO ano escolhido acima */}
+          <TabelaAnual payments={payments} ano={ano} />
         </div>
       )}
 
