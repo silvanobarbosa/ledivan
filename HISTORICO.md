@@ -7,6 +7,60 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-09-17 — Demandas do documento: ondas 4, 5 e 6 (#186, #187, #188)
+
+**Entregue:** recibo e nota a partir da linha paga (#186); a pergunta da sequência do pacote, que
+estava inalcançável na agenda (#187); a fragmentação com o mês que não encolhe (#188). Fecha o
+`PLANO-DEMANDAS-2026-09-17.md`.
+
+**Por quê:** as ondas 4 a 6 saíram do mesmo documento das anteriores, mas duas delas viraram
+conserto em vez de construção — o que estava no papel já existia no código e não chegava à tela ou
+cobrava errado.
+
+**Decisões que ficam valendo:**
+- **A nota fiscal reaproveita `receipt_issued_at`.** Essa coluna já significava "emitido no Receita
+  Saúde" e é a que a tela `/dashboard/receita-saude` usa para listar o que falta emitir. Uma coluna
+  nova para a mesma emissão faria as duas telas discordarem. O recibo em papel, esse sim, ganhou a
+  sua (`recibo_emitido_em`): são dois documentos.
+- **Quem pagou não vira coluna no paciente.** `guardian_name`/`guardian_cpf` já eram o pagador do
+  cadastro. O nome e o CPF sugeridos no lançamento saem do ÚLTIMO pagamento; guardar de novo no
+  paciente criaria duas verdades sobre o mesmo fato. (Cheguei a criar `payer_name`/`payer_cpf` e
+  desfiz antes de ir ao banco.)
+- **CPF: dígitos no banco, pontuado no papel.** `apenasCpf` na entrada, `cpfBR` na saída.
+- **No fracionado, desmarcar não encolhe o mês.** Setembro com três marcadas e uma desmarcada segue
+  valendo /3; a vaga é ocupada pela próxima sessão real, que pode ser de outubro — ela atravessa
+  como 3/3 e pertence a setembro. O mês fica ABERTO até a vaga ser ocupada: não cobra 2 (encolher o
+  combinado) nem 3 (cobrar o que não houve).
+- **Reposição é um vínculo, não uma dedução.** `therapy_sessions.repoe_sessao_id`. "Desmarcou sem
+  repor" e "repôs no mesmo mês" chegam ao cálculo como os mesmos dados — um mês com uma desmarcada e
+  uma sessão a mais — e pedem contas diferentes. A janela de Novo atendimento pergunta; uma vaga só
+  aceita uma reposição.
+- **Havendo tamanho contratado (`patient_packages`), ele manda sobre o calendário.** Nenhum dos 6
+  pacientes fracionados tem esse tamanho gravado, então o caminho do mês é o que roda hoje.
+
+**Armadilhas:**
+- **O gate do S1 olhava um campo que a agenda nunca grava.** A pergunta "entra na sequência do
+  pacote?" dependia de `s.pkg`, que vem de `derivePackageLabels` e ignora sessão sem `package_id` —
+  e `createSessionFromAgenda` nunca grava esse campo. Resultado: a pergunta não aparecia para
+  ninguém, e AVUL/GRAT ficaram fora de alcance apesar de implementados ponta a ponta. **Lição: uma
+  feature com teste unitário verde pode estar inalcançável na tela; o gate que a exibe também é
+  código.** O `scripts/e2e-sessao-extra.mjs` já denunciava isso e estava quebrado.
+- **Teste verde pode estar fixando o defeito.** `"fragmentado: a pausa reduz o que o mês cobra"`
+  passava e descrevia exatamente o erro de dinheiro que o dono mandou corrigir. Três testes de 16/09
+  foram reescritos, cada um com o motivo no comentário.
+- **Locator por texto pega o cabeçalho.** `tr` com "Pago" casou com a linha de títulos, que tem a
+  coluna "PAGO EM" — dois checks falharam com os botões visíveis na tela.
+- **Página de impressão dentro do `/dashboard` imprime o painel junto.** O recibo esconde tudo e
+  revela só o papel (`#recibo-papel`), com `@page { margin: 20mm }`.
+- **Duas telas de recibo é uma a mais.** Existia `/recibo/[paymentId]` com logotipo, órfã. Virou
+  redirect para o recibo novo.
+
+**Pendente:** do dono — confirmar as ondas em produção; decidir sobre "Atendimento social"
+(contradiz a decisão dele de 14/09); as 13 sessões antigas de reserva. Da casa — os 6 pacientes
+fracionados seguem sem tamanho contratado gravado; enquanto não tiverem, o mês manda.
+
+---
+
 ## 2026-09-17 — Demandas do documento: ondas 1, 2 e 3 (#182, #183, #184)
 
 **Entregue:** limpeza de tela e a data que andava um dia (#182); recibo nos Ajustes, cobranca com
