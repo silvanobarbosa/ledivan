@@ -297,7 +297,7 @@ const DESCRICAO: Record<Cobranca["tipo"], (c: Cobranca) => string> = {
   sessao: () => "Sessão",
   extra: () => "Sessão avulsa (fora do pacote)",
   pacote: (c) => `Pacote · ${c.sessoes} ${c.sessoes === 1 ? "sessão" : "sessões"}`,
-  quinzena: (c) => `Pacote · ${c.sessoes} sessões · parte ${c.parte}/2`,
+  quinzena: (c) => `${c.parte === 2 ? "2ª" : "1ª"} quinzena · ${c.sessoes} ${c.sessoes === 1 ? "sessão" : "sessões"}`,
 };
 
 /**
@@ -354,7 +354,10 @@ export function resumoDaGeral(e: EntradaDaGeral): ResumoDaGeral {
   };
   const emAberto = cobrancas.filter((c) => c.situacao === "em_aberto" && doMesOuAnterior(c));
   const emAtraso = cobrancas.filter((c) => c.situacao === "em_atraso");
-  const sessoes = (cs: typeof cobrancas) => cs.filter((c) => c.parte !== 2).reduce((a, c) => a + c.sessoes, 0);
+  // As DUAS quinzenas contam. Enquanto cada uma cobrava metade do pacote, as duas diziam o total
+  // inteiro e somar dobrava — dai o descarte da parte 2. Desde 17/09 cada quinzena carrega as
+  // sessoes que cairam nela, e ignorar a segunda passaria a subcontar.
+  const sessoes = (cs: typeof cobrancas) => cs.reduce((a, c) => a + c.sessoes, 0);
   return {
     saldo: Math.round((totalPago - totalExigivel) * 100) / 100,
     totalPago,

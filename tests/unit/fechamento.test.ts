@@ -147,6 +147,39 @@ describe("a linha do paciente", () => {
     expect(l.situacao).toBe("a_receber");
   });
 
+  it("quinzenal: as DUAS quinzenas contam, e cada uma vence no seu dia (17/09)", () => {
+    // Cinco sessões em agosto: duas na primeira quinzena, três na segunda.
+    //
+    // Enquanto cada quinzena cobrava metade do pacote, as duas diziam "5 sessões" e somar dobrava
+    // a conta — dai a soma olhar só a parte 1. Desde 17/09 cada quinzena carrega as que caíram
+    // nela, e continuar ignorando a segunda passaria a subcontar (daria 2 em vez de 5).
+    const l = linhaDoFechamento({
+      paciente: { id: "p1", nome: "Ana", formato: "quinzenal", pacoteTipo: "fragmentado", diaPagamento: 5, diaPagamento2: 20 },
+      sessoes: [sessao(4), sessao(11), sessao(18), sessao(25), sessao(28)],
+      precos,
+      pagamentos: [],
+      tamanhos: [],
+      ano: 2026,
+      mes: 7,
+    });
+    expect(l.sessoesCobradas).toBe(5);
+    expect(l.valorDoMes).toBe(5 * 200);
+  });
+
+  it("quinzenal: quinzena sem atendimento não entra na conta", () => {
+    const l = linhaDoFechamento({
+      paciente: { id: "p1", nome: "Ana", formato: "quinzenal", pacoteTipo: "fragmentado", diaPagamento: 5, diaPagamento2: 20 },
+      sessoes: [sessao(18), sessao(25)],
+      precos,
+      pagamentos: [],
+      tamanhos: [],
+      ano: 2026,
+      mes: 7,
+    });
+    expect(l.sessoesCobradas).toBe(2);
+    expect(l.valorDoMes).toBe(2 * 200);
+  });
+
   it("a desmarcação não encolhe a conta: a sequência ainda vale três", () => {
     // Antes este caso cobrava 400 — o total encolhia junto com a agenda, e o paciente pagava menos
     // do que contratou por ter desmarcado. É o defeito que a cobrança por sequência corrige.

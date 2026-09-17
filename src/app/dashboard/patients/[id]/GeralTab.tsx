@@ -318,7 +318,9 @@ export function GeralTab({ patientId, linhas, responsavel, responsavelCpf, cobra
                       <td className="px-3 py-2 tabular-nums font-semibold">{l.pagamento ? partes(l.pagamento.data).data : "__/__/__"}</td>
                       <td className="px-3 py-2" />
                       <td className="px-3 py-2">
-                        <span className="font-bold text-[#92400e]">Pagamento{l.parte ? ` ${l.parte}/2` : ""}</span>
+                        {/* A quinzena tem nome, nao numero: uma cobranca sozinha marcada "2/2" parece que perdeu a outra
+                            — e desde 17/09 a quinzena sem atendimento nao gera linha nenhuma. */}
+                        <span className="font-bold text-[#92400e]">Pagamento{l.parte ? ` · ${l.parte === 2 ? "2ª" : "1ª"} quinzena` : ""}</span>
                         <span className="block text-[11px] text-foreground/50">{l.sessoes} {l.sessoes === 1 ? "sessão" : "sessões"}{venc ? ` · vence ${venc}` : ""}</span>
                       </td>
                       <td className="px-3 py-2 text-right tabular-nums font-bold">{formatBRL(l.valor)}</td>
