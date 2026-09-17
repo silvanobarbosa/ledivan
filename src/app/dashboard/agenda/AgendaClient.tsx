@@ -27,6 +27,8 @@ type PatientLite = { id: string; name: string; status: string; attendanceMode: s
   paymentFormat?: string | null;
   pacoteTipo?: string | null;
   sessionFee?: string | null;
+  /** Já tem algum agendamento? Vem do histórico INTEIRO (a lista da tela para em 120 dias). */
+  temAgendamento?: boolean;
   /** Formato de pagamento no tempo: a pergunta da sessão extra depende do formato NA DATA marcada. */
   vigencias?: { formato: string; pacoteTipo: string | null; desde: string; criadoEm: string }[];
   /** Vínculo social: convive com qualquer formato de pagamento. */
@@ -180,9 +182,15 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
         { formato: selectedPatient.paymentFormat ?? "sessao", pacoteTipo: selectedPatient.pacoteTipo ?? null },
       ).formato
     : null;
-  // O paciente já tem uma sequência? (tem ao menos uma sessão que ocupa posição — não é extra). Sem
-  // sequência, não faz sentido perguntar "entra na sequência?" — é o primeiro agendamento dele.
-  const jaTemSequencia = !!selectedPatient && sessions.some((s) => s.patientId === selectedPatient.id && !!s.pkg);
+  /**
+   * O paciente já tem outro agendamento? É o gate do documento de 17/09 ("a área aparece quando o
+   * paciente já tem outros agendamentos"): no primeiro agendamento não há sequência para entrar.
+   *
+   * Vem pronto do servidor. Antes a conta era feita aqui, procurando `s.pkg` nas sessões da tela, e
+   * errava duas vezes: `pkg` só existe para sessão criada com `packageId`, que a agenda nunca grava
+   * — então a pergunta não aparecia para ninguém — e a lista da tela começa 120 dias atrás.
+   */
+  const jaTemSequencia = !!selectedPatient?.temAgendamento;
   // Série (semanal/quinzenal) é o próprio ritmo do pacote; a pergunta é para a sessão inserida.
   const perguntaSequencia = !newRecorrente && perguntaSeEntraNaSequencia({ formato: formatoNaDataNova, sessionKind: newKind }, jaTemSequencia);
 

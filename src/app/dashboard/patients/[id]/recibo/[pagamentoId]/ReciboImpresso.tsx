@@ -59,7 +59,7 @@ export function ReciboImpresso({
       )}
 
       {/* O papel. Sem logotipo, como o documento pede. */}
-      <article className="bg-white border border-border rounded-2xl p-6 sm:p-10 print:border-0 print:rounded-none print:p-0">
+      <article id="recibo-papel" className="bg-white border border-border rounded-2xl p-6 sm:p-10 print:border-0 print:rounded-none print:p-0">
         <pre className="whitespace-pre-wrap font-sans text-[15px] leading-relaxed text-foreground">{texto}</pre>
       </article>
 
@@ -75,7 +75,20 @@ export function ReciboImpresso({
         </span>
       </div>
 
-      <style>{`@media print { .no-print { display: none !important; } }`}</style>
+      {/*
+        Esta página mora DENTRO do painel, então o papel sairia com a barra lateral e o cabeçalho
+        junto. Esconder por nome de classe exigiria conhecer o layout; esconder tudo e revelar só o
+        recibo funciona independentemente de como o painel for desenhado amanhã.
+      */}
+      <style>{`
+        @page { margin: 20mm; }
+        @media print {
+          .no-print { display: none !important; }
+          body * { visibility: hidden; }
+          #recibo-papel, #recibo-papel * { visibility: visible; }
+          #recibo-papel { position: absolute; inset: 0 auto auto 0; width: 100%; }
+        }
+      `}</style>
     </main>
   );
 }
