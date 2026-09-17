@@ -93,13 +93,6 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
     return { id: p.id, seq: p.seq, sessions: p.sessions, used, remaining: p.sessions - used };
   });
   const openPkgs = packages.filter((p) => p.remaining > 0);
-  const packageInfo = {
-    list: packages,
-    openSessions: openPkgs.reduce((a, p) => a + p.remaining, 0),
-    currentLabel: openPkgs.map((p) => `P${p.seq}`).join("+") || null,
-    openLabels: openPkgs.map((p) => `P${p.seq}`),
-    totalSessions: packages.reduce((a, p) => a + p.sessions, 0),
-  };
 
   // Agenda recorrente (a partir das reservas recurring futuras)
   const DOW = ["domingo", "segunda", "terça", "quarta", "quinta", "sexta", "sábado"];
@@ -178,7 +171,6 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
         cobrancaMessage={me?.cobrancaMessage ?? null}
         ledger={JSON.parse(JSON.stringify(ledger))}
         sessionStats={sessionStats}
-        packageInfo={packageInfo}
         recurring={recurring}
         statusEnabled={statusEnabled}
         dailyStatus={JSON.parse(JSON.stringify(dailyStatus))}

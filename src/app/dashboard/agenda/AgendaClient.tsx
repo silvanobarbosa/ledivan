@@ -1047,9 +1047,10 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
             </div>
 
             <input type="hidden" name="reserva" value="false" />
-            <select name="status" className="w-full px-4 py-2.5 rounded-xl bg-surface border border-border outline-none text-sm" defaultValue="agendada">
-              {STATUS_OFERECIDOS.map((k) => <option key={k} value={k}>{SESSION_STATUS_LABELS[k]}</option>)}
-            </select>
+            {/* Esta janela so AGENDA. A baixa da sessao — Presente, Faltou, Desmarcou — acontece na
+                janela que abre ao clicar num agendamento ja feito; oferecer o status aqui convidava
+                a dar baixa num atendimento que ainda nem aconteceu. */}
+            <input type="hidden" name="status" value="agendada" />
 
             <div className="rounded-xl bg-surface/60 border border-border px-3 py-2.5 space-y-2">
               <label className="text-xs font-semibold text-foreground/60">Confirmar sessão</label>
