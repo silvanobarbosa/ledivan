@@ -97,7 +97,7 @@ function Prospeccao({ patients }: { patients: PanelPatient[] }) {
   const taxa = base.length ? Math.round((fechados / base.length) * 100) : 0;
   return (
     <div className={card}>
-      <div className="flex items-center justify-between"><h4 className="font-display font-bold text-primary">Prospecção</h4><Link href="/dashboard/prospects" className="text-xs text-primary hover:underline">abrir →</Link></div>
+      <h4 className="font-display font-bold text-primary">Prospecção</h4>
       <div className="grid grid-cols-4 gap-2">
         <Stat n={base.length} label="Prospectados" />
         <Stat n={fechados} label="Fechados" tone="green" />
