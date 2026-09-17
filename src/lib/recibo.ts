@@ -107,15 +107,33 @@ export function porExtenso(valor: number): string {
 }
 
 /**
+ * Só os dígitos de um CPF, ou `null` quando não sobrou nada.
+ *
+ * O banco guarda sem pontuação: cada pessoa digita de um jeito, e o recibo não pode herdar isso.
+ * Guardar limpo e formatar na saída mantém uma forma só no papel.
+ */
+export function apenasCpf(v: string | null | undefined): string | null {
+  return String(v ?? "").replace(/\D/g, "").slice(0, 11) || null;
+}
+
+/** CPF no formato do papel. Número incompleto sai como veio — não se inventa dígito num recibo. */
+export function cpfBR(v: string | null | undefined): string {
+  const d = apenasCpf(v);
+  if (!d) return "";
+  if (d.length !== 11) return d;
+  return `${d.slice(0, 3)}.${d.slice(3, 6)}.${d.slice(6, 9)}-${d.slice(9)}`;
+}
+
+/**
  * O recibo inteiro, pronto para a tela e para o papel.
  *
  * O CPF do responsável só aparece quando informado — o documento do dono diz "CPF, se informado", e
  * escrever "CPF: —" num recibo é pior do que não escrever nada.
  */
 export function montarRecibo(d: DadosDoRecibo): string {
-  const cpfResp = d.responsavelCpf?.trim() ? `, CPF ${d.responsavelCpf.trim()}` : "";
+  const cpfResp = cpfBR(d.responsavelCpf) ? `, CPF ${cpfBR(d.responsavelCpf)}` : "";
   const datas = d.datas.map((x) => `- ${dataBR(x)}`).join("\n");
-  const cpfTerapeuta = d.terapeutaCpf?.trim() ? `\nCPF: ${d.terapeutaCpf.trim()}` : "";
+  const cpfTerapeuta = cpfBR(d.terapeutaCpf) ? `\nCPF: ${cpfBR(d.terapeutaCpf)}` : "";
 
   return [
     "RECIBO DE PAGAMENTO",

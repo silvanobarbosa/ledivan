@@ -36,6 +36,9 @@ export type PagamentoDaGeral = {
   cobrancaChave: string | null;
   /** `pacote` = crédito de pacote (não emite recibo). */
   kind?: string | null;
+  /** Documento já emitido para este pagamento (17/09). Só o fato interessa aqui, não a hora. */
+  recibo?: boolean;
+  nota?: boolean;
 };
 
 /** O fato de uma cobrança ter sido avisada ao paciente. Uma por `cobrancaChave`. */
@@ -65,7 +68,15 @@ export type EntradaDaGeral = Omit<EntradaDasCobrancas, "sessoes"> & {
  */
 export type Situacao = "pago" | "em_aberto" | "em_atraso";
 
-export type PagamentoLancado = { id: string; data: Date; metodo: string | null; pagoPor: string | null };
+export type PagamentoLancado = {
+  id: string;
+  data: Date;
+  metodo: string | null;
+  pagoPor: string | null;
+  /** Marcas de "pago — emitido recibo / emitido nota" que a tela pinta ao lado de Pago. */
+  recibo: boolean;
+  nota: boolean;
+};
 
 /** Marca de "avisada ao paciente" que a tela pinta ao lado da cobrança. */
 /**
@@ -149,7 +160,10 @@ function casarPagamentos(cobrancas: Cobranca[], pagamentos: PagamentoDaGeral[], 
   const chaves = new Set(cobrancas.map((c) => c.chave));
   const recebido = new Map<string, number>();
   const ultimo = new Map<string, PagamentoLancado>();
-  const lancado = (p: (typeof pagos)[number]): PagamentoLancado => ({ id: p.id, data: p.data, metodo: p.metodo, pagoPor: p.pagoPor });
+  const lancado = (p: (typeof pagos)[number]): PagamentoLancado => ({
+    id: p.id, data: p.data, metodo: p.metodo, pagoPor: p.pagoPor,
+    recibo: p.recibo === true, nota: p.nota === true,
+  });
 
   // 1. Os que dizem a qual cobrança pertencem.
   const semChave: typeof pagos = [];

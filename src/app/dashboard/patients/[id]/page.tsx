@@ -121,6 +121,21 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
     payId: m.pagamentoId,
   }));
   const lastPay = paidPayments.slice().sort((a, b) => new Date(horaDeParede(b.date)).getTime() - new Date(horaDeParede(a.date)).getTime())[0];
+
+  /**
+   * Quem "Lançar pagamento" sugere — nome e CPF já preenchidos (documento de 17/09).
+   *
+   * A sugestão sai do ÚLTIMO pagamento que disse quem pagou, e não de uma coluna nova no paciente:
+   * quem paga é fato de cada pagamento, e guardar de novo no cadastro criaria duas verdades. Sem
+   * pagamento anterior, vale o cadastro — responsável se houver, senão o próprio paciente.
+   */
+  const ultimoComPagador = paidPayments
+    .slice()
+    .sort((a, b) => new Date(horaDeParede(b.date)).getTime() - new Date(horaDeParede(a.date)).getTime())
+    .find((p) => (p.pagoPor || "").trim());
+  const pagadorSugerido = ultimoComPagador
+    ? { nome: ultimoComPagador.pagoPor ?? "", cpf: ultimoComPagador.pagoPorCpf ?? "" }
+    : { nome: patient.guardianName || patient.name, cpf: patient.guardianCpf || patient.cpf || "" };
   const finance = {
     fee,
     balance,
@@ -146,6 +161,7 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
 
       <PatientDetail
         patient={JSON.parse(JSON.stringify(patient))}
+        pagador={pagadorSugerido}
         sessions={JSON.parse(JSON.stringify(sessionsList))}
         packageLabels={Object.fromEntries(derivePackageLabels(
           sessionsList.map((s) => ({ id: s.id, date: horaDeParede(s.date), status: s.status, packageId: s.packageId })),

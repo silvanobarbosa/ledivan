@@ -45,6 +45,9 @@ type Patient = {
   tags: string | null;
   timesPerPeriod: number; paymentFormat: string;
 };
+
+/** Nome e CPF que o formulário de pagamento já traz preenchidos (ver `pagadorSugerido` na página). */
+type Pagador = { nome: string; cpf: string };
 type ContractEntry = { id: string; type: string; from: string | null; to: string | null; description: string | null; date: string };
 type Finance = { fee: number; balance: number; totalPaid: number; totalDebit: number; atendimentos: number; lastPaymentDate: string | null; lastPaymentAmount: number | null; creditSessions: number; debtSessions: number; nAberto: number; nAtraso: number; emAberto: number; emAtraso: number };
 type LedgerEntry = { id: string; date: string; kind: "pagamento" | "sessao"; desc: string; amount: number; balance: number; payId: string | null };
@@ -69,9 +72,9 @@ const inputCls = "w-full px-4 py-2.5 rounded-xl bg-white/70 border border-border
 const TABS = ["Geral", "Prontuário", "Atividades", "Materiais"] as const;
 
 export function PatientDetail({
-  patient, payments, statusHistory, records, transcriptionEnabled, risk, assignments, moodToken, moodLogs, scales, treatmentGoals, diaryEntries = [], ratings = [], consents = [], contractHistory = [], finance, sessionStats, recurring, statusEnabled = false, dailyStatus = [], sharedWritings = [], geral = [], cobrancaMessage = null,
+  patient, pagador, payments, statusHistory, records, transcriptionEnabled, risk, assignments, moodToken, moodLogs, scales, treatmentGoals, diaryEntries = [], ratings = [], consents = [], contractHistory = [], finance, sessionStats, recurring, statusEnabled = false, dailyStatus = [], sharedWritings = [], geral = [], cobrancaMessage = null,
 }: {
-  patient: Patient; sessions: Session[]; payments: Payment[];
+  patient: Patient; pagador: Pagador; sessions: Session[]; payments: Payment[];
   statusHistory: StatusEntry[]; priceHistory: PriceEntry[]; records: RecordEntry[];
   contractHistory?: ContractEntry[];
   finance: Finance;
@@ -332,7 +335,8 @@ export function PatientDetail({
               {anosDoPaciente.map((a) => <option key={a} value={a}>{a}</option>)}
             </select>
           </div>
-          <GeralTab patientId={patient.id} linhas={geral} ano={ano} responsavel={patient.guardianName || patient.name}
+          <GeralTab patientId={patient.id} linhas={geral} ano={ano} responsavel={pagador.nome}
+            responsavelCpf={pagador.cpf}
             cobrar={{ telefone: patient.guardianPhone || patient.phone, nome: patient.guardianName || patient.name, modelo: cobrancaMessage }} />
           {/* GER6: valores recebidos por mês, no MESMO ano escolhido acima */}
           <TabelaAnual payments={payments} ano={ano} />
