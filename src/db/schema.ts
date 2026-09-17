@@ -67,6 +67,12 @@ export const users = pgTable("user", {
   // O modelo da mensagem de COBRANÇA, personalizável por terapeuta. Variáveis: {nome}, {valor},
   // {vencimento}. Null = usa o texto padrão do app.
   cobrancaMessage: text("cobranca_message"),
+  // Dados do profissional que entram no RECIBO. O CPF é obrigatório no documento que ela entrega
+  // ao paciente, e não existia em lugar nenhum do cadastro.
+  therapistCpf: text("therapist_cpf"),
+  // Como o atendimento é descrito no recibo: "atendimentos terapêuticos", "psicanalíticos" ou
+  // "psicológicos". A escolha é da terapeuta e vale para todos os recibos dela.
+  descricaoAtendimento: text("descricao_atendimento"),
 
   preferences: text("preferences"), // JSON string
   role: text("role").default("user").notNull(), // user | admin (super admin)
@@ -681,12 +687,16 @@ export const cobrancaEnvios = pgTable("cobranca_envios", {
   patientId: uuid("patient_id").references(() => patients.id, { onDelete: "cascade" }).notNull(),
   // A `chave` de `cobrancasDoPaciente` — a mesma que o pagamento usa para se prender à cobrança.
   cobrancaChave: text("cobranca_chave").notNull(),
-  // Hora de parede (ver horaLocal.ts): guardada como o dia SP ao meio-dia, para o dia não escorregar.
+  // Hora de parede (ver horaLocal.ts). Agora guarda o INSTANTE do envio, não o dia ao meio-dia: o
+  // documento pede a hora junto da data, e dois avisos no mesmo dia precisam ser distinguíveis.
   enviadaEm: timestamp("enviada_em").defaultNow().notNull(),
   enviadaPor: text("enviada_por"), // quem marcou (a terapeuta logada)
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (t) => [
-  uniqueIndex("cob_envio_chave_idx").on(t.userId, t.patientId, t.cobrancaChave),
+  // Era único por (usuário, paciente, cobrança): cada novo aviso SUBSTITUÍA a data do anterior.
+  // O documento de 17/09 pede o contrário — "manter o histórico de todos os envios, sem substituir
+  // os registros anteriores" —, então cada clique em Cobrar passa a ser uma LINHA.
+  index("cob_envio_chave_idx").on(t.userId, t.patientId, t.cobrancaChave),
   index("cob_envio_patient_idx").on(t.patientId),
 ]);
 

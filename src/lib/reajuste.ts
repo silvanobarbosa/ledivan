@@ -143,16 +143,42 @@ export function rotuloDoFormato(formato: string | null | undefined): string {
  *
  * Função pura.
  */
+/**
+ * Um evento do historico de reajuste.
+ *
+ * `data` é a VIGÊNCIA — quando o valor ou a modalidade passa a valer. `solicitadoEm` é quando a
+ * mudança foi PEDIDA, com hora. As duas datas são diferentes de propósito: combina-se hoje um
+ * reajuste que vale mês que vem, e sem a data do pedido uma cobrança contestada não se explica.
+ * `null` nos registros antigos, gravados antes de o app guardar isso.
+ */
 export type EventoDeReajuste =
-  | { data: Date; kind: "valor"; anterior: number | null; novo: number }
-  | { data: Date; kind: "modalidade"; anterior: string | null; novo: string };
+  | { data: Date; kind: "valor"; anterior: number | null; novo: number; solicitadoEm: Date | null }
+  | { data: Date; kind: "modalidade"; anterior: string | null; novo: string; solicitadoEm: Date | null };
 
 export function eventosDeReajuste(
-  precos: { valor: string | number; dataEfetiva: Date | string }[],
-  formatos: { formato: string; dataEfetiva: Date | string }[],
+  precos: { valor: string | number; dataEfetiva: Date | string; dataCriacao?: Date | string | null }[],
+  formatos: { formato: string; dataEfetiva: Date | string; dataCriacao?: Date | string | null }[],
 ): EventoDeReajuste[] {
+  // Quando o reajuste foi PEDIDO, por data de vigência. São duas datas diferentes e as duas
+  // importam: combina-se hoje um valor que passa a valer mês que vem, e uma cobrança contestada
+  // só se explica com a data do pedido.
+  const instante = (d: Date | string | null | undefined): Date | null => {
+    if (!d) return null;
+    const x = d instanceof Date ? d : new Date(d);
+    return Number.isNaN(x.getTime()) ? null : x;
+  };
+  const pedidoPorVigencia = new Map<number, Date>();
+  for (const lista of [precos, formatos]) {
+    for (const item of lista) {
+      const vig = instante(item.dataEfetiva);
+      const ped = instante(item.dataCriacao);
+      if (vig && ped) pedidoPorVigencia.set(vig.getTime(), ped);
+    }
+  }
+  const pedidoDe = (d: Date): Date | null => pedidoPorVigencia.get(d.getTime()) ?? null;
+
   const valores: EventoDeReajuste[] = linhasDeReajuste(precos).map((l) => ({
-    data: l.data, kind: "valor", anterior: l.anterior, novo: l.novo,
+    data: l.data, kind: "valor", anterior: l.anterior, novo: l.novo, solicitadoEm: pedidoDe(l.data),
   }));
 
   const fOrd = [...formatos]
@@ -160,7 +186,7 @@ export function eventosDeReajuste(
     .filter((f) => !Number.isNaN(f.data.getTime()))
     .sort((a, b) => a.data.getTime() - b.data.getTime());
   const modalidades: EventoDeReajuste[] = fOrd
-    .map((f, i) => ({ data: f.data, kind: "modalidade" as const, anterior: i === 0 ? null : fOrd[i - 1].formato, novo: f.formato }))
+    .map((f, i) => ({ data: f.data, kind: "modalidade" as const, anterior: i === 0 ? null : fOrd[i - 1].formato, novo: f.formato, solicitadoEm: pedidoDe(f.data) }))
     .filter((m) => m.anterior === null || m.anterior !== m.novo);
 
   // Empatou na data? A modalidade vem antes do valor — a troca de formato é o que arrasta o preço novo.

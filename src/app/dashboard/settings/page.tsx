@@ -12,6 +12,7 @@ import { TelegramSync } from "./TelegramSync";
 import { IntegrationsCard } from "./IntegrationsCard";
 import { BookingCard } from "./BookingCard";
 import { CobrancaMessageCard } from "./CobrancaMessageCard";
+import { ReciboCard } from "./ReciboCard";
 import { TranscriptionToggle } from "./TranscriptionToggle";
 import { SmtpCard } from "./SmtpCard";
 import { WhatsappCard } from "./WhatsappCard";
@@ -141,6 +142,7 @@ export default async function SettingsPage() {
           <BookingCard initialSlug={user.bookingSlug} initialAutoConfirm={!!prefs.bookingAutoConfirm} />
 
           <CobrancaMessageCard initial={user.cobrancaMessage} />
+          <ReciboCard cpf={user.therapistCpf} descricao={user.descricaoAtendimento} nome={user.name} />
 
           <IntegrationsCard initial={prefs.integrations ?? {}} calendarAuthorized={calendarAuthorized} />
 

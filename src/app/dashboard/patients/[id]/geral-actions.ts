@@ -108,33 +108,38 @@ async function contexto(patientId: string, chave: string): Promise<{ userId: str
 /**
  * Marca uma cobrança como ENVIADA ao paciente — o "hoje ela só mostra" da guia Geral (dono, 13/09).
  *
- * Não envia nada: registra o FATO de que a terapeuta avisou o paciente daquela cobrança, com o dia e
- * quem marcou. Marcar de novo é reenvio: o índice único faz virar atualização da data, não linha nova.
+ * Nao envia nada: registra o FATO de que a terapeuta avisou o paciente daquela cobranca, com o
+ * instante e quem avisou.
+ *
+ * CADA CHAMADA E UMA LINHA. Antes havia um indice unico por (usuario, paciente, cobranca) e o
+ * segundo aviso SUBSTITUIA a data do primeiro — o documento de 17/09 pede o contrario: "manter o
+ * historico de todos os envios, sem substituir os registros anteriores". Quem cobrou tres vezes
+ * precisa ver as tres datas, senao nao da para saber se o paciente esta sendo lembrado ou ignorado.
  */
-export async function marcarCobrancaEnviada(entrada: { patientId: string; cobrancaChave: string }): Promise<{ ok: boolean; error?: string }> {
+export async function registrarCobrancaEnviada(entrada: { patientId: string; cobrancaChave: string }): Promise<{ ok: boolean; error?: string }> {
   const patientId = String(entrada?.patientId ?? "");
   const chave = String(entrada?.cobrancaChave ?? "").slice(0, 200);
   const ctx = await contexto(patientId, chave);
   if ("error" in ctx) return { ok: false, error: ctx.error };
 
   const session = await auth();
-  const h = hojeDeParede();
-  // Dia SP ao meio-dia em UTC: a hora de parede fica nos campos UTC e o dia não escorrega no fuso.
-  const enviadaEm = new Date(Date.UTC(h.getFullYear(), h.getMonth(), h.getDate(), 12));
+  // O INSTANTE, nao o dia ao meio-dia: o documento pede a hora junto da data, e dois avisos no
+  // mesmo dia tem de ser distinguiveis. Gravado como hora de parede (ver horaLocal.ts).
+  const agora = new Date();
+  const enviadaEm = new Date(Date.UTC(
+    agora.getFullYear(), agora.getMonth(), agora.getDate(),
+    agora.getHours(), agora.getMinutes(), agora.getSeconds(),
+  ));
 
   await db.insert(cobrancaEnvios)
-    .values({ userId: ctx.userId, patientId, cobrancaChave: chave, enviadaEm, enviadaPor: session?.user?.name ?? null })
-    .onConflictDoUpdate({
-      target: [cobrancaEnvios.userId, cobrancaEnvios.patientId, cobrancaEnvios.cobrancaChave],
-      set: { enviadaEm, enviadaPor: session?.user?.name ?? null },
-    });
+    .values({ userId: ctx.userId, patientId, cobrancaChave: chave, enviadaEm, enviadaPor: session?.user?.name ?? null });
 
   revalidatePath(`/dashboard/patients/${patientId}`);
   return { ok: true };
 }
 
-/** Desfaz a marca de enviada (marquei por engano). */
-export async function desmarcarCobrancaEnviada(entrada: { patientId: string; cobrancaChave: string }): Promise<{ ok: boolean; error?: string }> {
+/** Apaga TODOS os avisos daquela cobranca (registrei por engano). */
+export async function limparEnviosDaCobranca(entrada: { patientId: string; cobrancaChave: string }): Promise<{ ok: boolean; error?: string }> {
   const patientId = String(entrada?.patientId ?? "");
   const chave = String(entrada?.cobrancaChave ?? "").slice(0, 200);
   const ctx = await contexto(patientId, chave);

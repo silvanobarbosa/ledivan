@@ -12,6 +12,7 @@ import { normalizePhone } from "@/lib/whatsapp";
 import { detectSmtp, verifySmtp } from "@/lib/email";
 import { encryptSecret } from "@/lib/crypto";
 import { connectInstance, checkInstanceState, disconnectInstance } from "@/lib/whatsappEvolution";
+import { descricaoValida } from "@/lib/recibo";
 
 // Modelo da mensagem de cobrança (personalizável por terapeuta). Variáveis {nome}/{valor}/{vencimento}.
 export async function saveCobrancaMessage(formData: FormData) {
@@ -19,6 +20,23 @@ export async function saveCobrancaMessage(formData: FormData) {
   if (!session?.user?.id) throw new Error("Não autorizado");
   const texto = ((formData.get("cobrancaMessage") as string) || "").trim().slice(0, 1000);
   await db.update(users).set({ cobrancaMessage: texto || null }).where(eq(users.id, session.user.id));
+  revalidatePath("/dashboard/settings");
+}
+
+/**
+ * Os dados que entram no RECIBO: CPF da terapeuta e como o atendimento e descrito.
+ *
+ * A descricao passa por `descricaoValida` e nao vai crua para o banco: um valor fora da lista
+ * escreveria no recibo uma profissao que a pessoa nao tem — e recibo e documento.
+ */
+export async function saveDadosDoRecibo(formData: FormData) {
+  const session = await auth();
+  if (!session?.user?.id) throw new Error("Nao autorizado");
+  const cpf = ((formData.get("therapistCpf") as string) || "").trim().slice(0, 20);
+  const descricao = descricaoValida((formData.get("descricaoAtendimento") as string) || null);
+  await db.update(users)
+    .set({ therapistCpf: cpf || null, descricaoAtendimento: descricao })
+    .where(eq(users.id, session.user.id));
   revalidatePath("/dashboard/settings");
 }
 

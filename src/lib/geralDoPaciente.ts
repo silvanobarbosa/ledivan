@@ -37,8 +37,12 @@ export type CobrancaNaTela = Omit<CobrancaDaGeral, "vencimento" | "competencia" 
   tipoDeCobranca: CobrancaDaGeral["tipo"];
   vencimento: string | null;
   pagamento: { id: string; data: string; metodo: string | null; pagoPor: string | null } | null;
-  /** Preenchido quando a cobrança já foi avisada ao paciente (`data` = hora de parede). */
-  envio: { data: string; por: string | null } | null;
+  /**
+   * Os avisos daquela cobranca (`data` = hora de parede). `total` e `datas` trazem o historico
+   * inteiro: cada clique em "Cobrar" e um aviso, e o documento de 17/09 pede que nenhum substitua
+   * o anterior.
+   */
+  envio: { data: string; por: string | null; total: number; datas: string[] } | null;
 };
 
 export type LinhaNaTela =
@@ -57,7 +61,9 @@ function cobrancaNaTela(c: Omit<CobrancaDaGeral, "tipo"> & { tipoDeCobranca: Cob
     situacao: c.situacao,
     vencimento: texto(c.vencimento ?? c.competencia),
     pagamento: c.pagamento ? { ...c.pagamento, data: texto(c.pagamento.data) ?? "" } : null,
-    envio: c.envio ? { data: texto(c.envio.data) ?? "", por: c.envio.por } : null,
+    envio: c.envio
+      ? { data: texto(c.envio.data) ?? "", por: c.envio.por, total: c.envio.total, datas: c.envio.datas.map((d) => texto(d) ?? "") }
+      : null,
   };
 }
 

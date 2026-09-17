@@ -68,7 +68,14 @@ export type Situacao = "pago" | "em_aberto" | "em_atraso";
 export type PagamentoLancado = { id: string; data: Date; metodo: string | null; pagoPor: string | null };
 
 /** Marca de "avisada ao paciente" que a tela pinta ao lado da cobrança. */
-export type EnvioLancado = { data: Date; por: string | null };
+/**
+ * Os avisos de cobranca daquela linha.
+ *
+ * `data` e o ULTIMO aviso — e o que a tela mostra. `datas` traz todos, do mais recente para o mais
+ * antigo: o documento de 17/09 pede o historico completo, "sem substituir os registros anteriores",
+ * porque quem cobrou tres vezes precisa ver as tres datas para saber se esta sendo ignorado.
+ */
+export type EnvioLancado = { data: Date; por: string | null; total: number; datas: Date[] };
 
 export type CobrancaDaGeral = Cobranca & {
   situacao: Situacao;
@@ -97,14 +104,23 @@ export type LinhaDaGeral =
 const TOLERANCIA = 0.005;
 const emData = (d: Date | string) => (d instanceof Date ? d : new Date(d));
 
-/** Mapa chave → envio, ficando com o mais RECENTE quando houver mais de um (reenvio). */
+/** Mapa chave → avisos daquela cobranca: o ultimo em destaque, todos no historico. */
 function mapaDeEnvios(envios: EnvioDaGeral[]): Map<string, EnvioLancado> {
-  const m = new Map<string, EnvioLancado>();
+  const porChave = new Map<string, { data: Date; por: string | null }[]>();
   for (const e of envios) {
     const data = emData(e.enviadaEm);
     if (Number.isNaN(data.getTime())) continue;
-    const atual = m.get(e.cobrancaChave);
-    if (!atual || data.getTime() > atual.data.getTime()) m.set(e.cobrancaChave, { data, por: e.enviadaPor ?? null });
+    const lista = porChave.get(e.cobrancaChave);
+    const item = { data, por: e.enviadaPor ?? null };
+    if (lista) lista.push(item);
+    else porChave.set(e.cobrancaChave, [item]);
+  }
+
+  const m = new Map<string, EnvioLancado>();
+  for (const [chave, lista] of porChave) {
+    // Do mais recente para o mais antigo: e a ordem em que a pessoa le "avisei quando?".
+    lista.sort((a, b) => b.data.getTime() - a.data.getTime());
+    m.set(chave, { data: lista[0].data, por: lista[0].por, total: lista.length, datas: lista.map((x) => x.data) });
   }
   return m;
 }

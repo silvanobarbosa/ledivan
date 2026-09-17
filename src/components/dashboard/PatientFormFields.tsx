@@ -492,8 +492,19 @@ export function PatientFormFields({ p }: { p?: PatientFormData }) {
                 <p className="text-xs font-bold text-foreground/40 uppercase tracking-widest mb-2 mt-3">Histórico de reajuste</p>
                 <ul className="space-y-1">
                   {eventos.slice().reverse().map((e, i) => (
-                    <li key={i} className="flex items-center gap-3 text-sm rounded-xl bg-surface/60 px-3 py-2">
-                      <span className="font-mono text-xs font-bold text-primary">{e.data.toLocaleDateString("pt-BR")}</span>
+                    <li key={i} className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm rounded-xl bg-surface/60 px-3 py-2">
+                      {/* Duas datas, e as duas importam (documento de 17/09): quando a mudança foi
+                          PEDIDA, com hora, e a partir de quando ela VALE. Combina-se hoje um
+                          reajuste que passa a valer mês que vem. */}
+                      <span className="font-mono text-xs font-bold text-primary">
+                        vigência {e.data.toLocaleDateString("pt-BR")}
+                      </span>
+                      {e.solicitadoEm && (
+                        <span className="font-mono text-[11px] text-foreground/40">
+                          pedido em {e.solicitadoEm.toLocaleDateString("pt-BR")} às{" "}
+                          {e.solicitadoEm.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+                        </span>
+                      )}
                       <span className="text-foreground/60">
                         {e.kind === "valor"
                           ? (e.anterior === null
