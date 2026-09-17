@@ -28,7 +28,7 @@ export default async function AgendaPage() {
     }),
     db.query.patients.findMany({
       where: and(eq(patients.userId, session.user.id), ne(patients.patientStatus, "inativo")),
-      columns: { id: true, name: true, patientStatus: true, attendanceMode: true, attendanceLocation: true, birthDate: true, paymentFormat: true, pacoteTipo: true, horasAntesPagamento: true, agendaId: true, registrationNumber: true, atendimentoSocial: true, frequency: true, sessionFee: true },
+      columns: { id: true, name: true, patientStatus: true, attendanceMode: true, attendanceLocation: true, birthDate: true, paymentFormat: true, pacoteTipo: true, horasAntesPagamento: true, agendaId: true, registrationNumber: true, frequency: true, sessionFee: true },
       orderBy: [patients.name],
     }),
     // Os horários tirados do ar que não são paciente: supervisão, curso, médico. Vêm de tabela
@@ -174,7 +174,7 @@ export default async function AgendaPage() {
           codigo: codigos.get(s.id) ?? null,
           pagamentoAtrasado: atrasadas.has(s.id),
         }))}
-        patients={pats.map((p) => ({ id: p.id, name: p.name, status: p.patientStatus, attendanceMode: p.attendanceMode, attendanceLocation: p.attendanceLocation, atendimentoSocial: p.atendimentoSocial, frequency: p.frequency, agendaId: p.agendaId, registrationNumber: p.registrationNumber, paymentFormat: p.paymentFormat, pacoteTipo: p.pacoteTipo, sessionFee: p.sessionFee, temAgendamento: comAgendamento.has(p.id), desmarcadas: desmarcadasPorPaciente.get(p.id) ?? [], vigencias: vigenciasPorPaciente.get(p.id) ?? [] }))}
+        patients={pats.map((p) => ({ id: p.id, name: p.name, status: p.patientStatus, attendanceMode: p.attendanceMode, attendanceLocation: p.attendanceLocation, frequency: p.frequency, agendaId: p.agendaId, registrationNumber: p.registrationNumber, paymentFormat: p.paymentFormat, pacoteTipo: p.pacoteTipo, sessionFee: p.sessionFee, temAgendamento: comAgendamento.has(p.id), desmarcadas: desmarcadasPorPaciente.get(p.id) ?? [], vigencias: vigenciasPorPaciente.get(p.id) ?? [] }))}
         birthdays={pats.filter((p) => p.birthDate).map((p) => { /* `horaDeParede` antes do `new Date`: a data nasce meia-noite e, lida como UTC, recuava um dia — o aniversario de 21 aparecia em 20. */ const b = new Date(horaDeParede(p.birthDate)); return { name: p.name, month: b.getMonth() + 1, day: b.getDate() }; })}
         locations={locations}
         holidays={holidays}

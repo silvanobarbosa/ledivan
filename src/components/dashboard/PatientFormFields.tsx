@@ -16,7 +16,7 @@ const ROTULO_STATUS: Record<string, string> = { prospect: "Prospect", pausado: "
 const brl = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
 export type PatientFormData = {
-  registrationNumber?: number | null; agendaId?: string | null; atendimentoSocial?: boolean | null; dueDateType?: string | null; dueDate?: string | null; queixaPrincipal?: string | null;
+  registrationNumber?: number | null; agendaId?: string | null; dueDateType?: string | null; dueDate?: string | null; queixaPrincipal?: string | null;
   name?: string; phone?: string | null; email?: string | null; patientStatus?: string;
   startedAt?: string | null; birthDate?: string | null; category?: string | null; isCouple?: boolean | null;
   guardianRelationship?: string | null; devolutivaMeses?: number | null; gender?: string | null; cpf?: string | null; address?: string | null;

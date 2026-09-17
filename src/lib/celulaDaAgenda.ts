@@ -41,13 +41,6 @@ export type DadosDaCelula = {
   online?: boolean | null;
   /** `semanal`, `quinzenal` ou `mensal`, quando o agendamento se repete. */
   repeticao?: string | null;
-  /**
-   * Atendimento social: o tipo de VÍNCULO, não o preço.
-   *
-   * Convive com qualquer formato de pagamento. Por isso ele NÃO substitui o código — um paciente
-   * social que fecha por pacote continua mostrando 2/4, e a marca aparece ao lado.
-   */
-  social?: boolean | null;
   /** O agendamento se repete. Pode ser verdade sem a frequência ser conhecida. */
   recorrente?: boolean | null;
   /**
@@ -135,8 +128,6 @@ export type ConteudoDaCelula = {
   online: boolean;
   /** Repete, mas sem frequência conhecida: a célula marca com um ícone em vez de letra. */
   repeteSemLetra: boolean;
-  /** Marca de vínculo social, ao lado do código — nunca no lugar dele. */
-  social: boolean;
 };
 
 /** Tudo que a célula escreve, numa chamada só. */
@@ -148,7 +139,6 @@ export function conteudoDaCelula(dados: DadosDaCelula): ConteudoDaCelula {
     codigo: dados.codigo ?? codigoDaSessao(dados),
     online: !!dados.online,
     repeteSemLetra: !letra && !!dados.recorrente,
-    social: !!dados.social,
   };
 }
 
