@@ -48,15 +48,32 @@ export async function createTransaction(formData: FormData) {
   revalidatePath("/dashboard");
 }
 
+/**
+ * Apagar entrada do caixa. RECUSA a que veio de um pagamento de paciente.
+ *
+ * Antes ela desvinculava o pagamento e apagava só a transação. O pagamento sobrevivia como `paid`,
+ * então a guia Geral seguia dizendo "Pago" enquanto o dinheiro havia sumido do caixa — duas telas
+ * discordando sobre o mesmo fato, em silêncio.
+ *
+ * Pagamento e transação são o MESMO fato contado duas vezes. Desfazer se faz de um lugar só: o
+ * "Remover pagamento" na guia Geral do paciente, que apaga os dois juntos (decisão do dono, 18/09).
+ */
 export async function deleteTransaction(transactionId: string) {
   const session = await auth();
   if (!session?.user?.id) throw new Error("Não autorizado");
   const userId = session.user.id;
 
-  // Se esta transação veio de um pagamento de sessão, desvincula o pagamento antes.
-  await db.update(sessionPayments)
-    .set({ linkedTransactionId: null })
-    .where(and(eq(sessionPayments.linkedTransactionId, transactionId), eq(sessionPayments.userId, userId)));
+  const [doPagamento] = await db
+    .select({ patientId: sessionPayments.patientId })
+    .from(sessionPayments)
+    .where(and(eq(sessionPayments.linkedTransactionId, transactionId), eq(sessionPayments.userId, userId)))
+    .limit(1);
+
+  if (doPagamento) {
+    throw new Error(
+      "Esta entrada veio de um pagamento de paciente. Para desfazer, use “Remover pagamento” na guia Geral do paciente — assim o pagamento e a entrada do caixa saem juntos.",
+    );
+  }
 
   await db.delete(transactions).where(and(eq(transactions.id, transactionId), eq(transactions.userId, userId)));
 

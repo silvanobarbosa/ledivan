@@ -1,12 +1,13 @@
 import { db } from "@/db";
 import { auth } from "@/auth";
-import { transactions, categories, financialAccounts } from "@/db/schema";
-import { eq, desc, ilike, and, gte, lte, or, isNull } from "drizzle-orm";
+import { transactions, categories, financialAccounts, sessionPayments } from "@/db/schema";
+import { eq, desc, ilike, and, gte, lte, or, isNull, isNotNull } from "drizzle-orm";
 import { cn } from "@/lib/utils";
 import { AddTransaction } from "./AddTransaction";
 import { ExportCSV } from "./ExportCSV";
 import { deleteTransaction } from "./actions";
 import { Trash2 } from "lucide-react";
+import Link from "next/link";
 import { PAYMENT_FORM_LABELS } from "@/lib/finance";
 
 export const dynamic = "force-dynamic";
@@ -42,6 +43,21 @@ export default async function TransactionsPage({
     db.query.categories.findMany({ where: or(isNull(categories.userId), eq(categories.userId, userId)) }),
     db.query.financialAccounts.findMany({ where: eq(financialAccounts.userId, userId) }),
   ]);
+
+  /**
+   * Quais entradas vieram de um pagamento de paciente.
+   *
+   * Elas não se apagam por aqui: o pagamento e a entrada do caixa são o mesmo fato, e apagar só um
+   * lado deixava a guia Geral dizendo "Pago" com o dinheiro fora do caixa. A tela troca a lixeira
+   * pelo caminho certo (dono, 18/09).
+   */
+  const dePagamento = new Map(
+    (await db
+      .select({ transacao: sessionPayments.linkedTransactionId, patientId: sessionPayments.patientId })
+      .from(sessionPayments)
+      .where(and(eq(sessionPayments.userId, userId), isNotNull(sessionPayments.linkedTransactionId))))
+      .map((r) => [r.transacao as string, r.patientId]),
+  );
 
   const removeTransaction = async (formData: FormData) => {
     "use server";
@@ -148,12 +164,22 @@ export default async function TransactionsPage({
                   {t.type === "income" ? "+" : "-"} {formatCurrency(t.amount)}
                 </td>
                 <td className="p-6 text-right">
-                  <form action={removeTransaction}>
-                    <input type="hidden" name="id" value={t.id} />
-                    <button className="opacity-100 lg:opacity-0 lg:group-hover:opacity-100 text-foreground/40 hover:text-red-600 transition p-1" title="Excluir">
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                  </form>
+                  {dePagamento.has(t.id) ? (
+                    <Link
+                      href={`/dashboard/patients/${dePagamento.get(t.id)}`}
+                      title="Veio de um pagamento de paciente. Para desfazer, use “Remover pagamento” na guia Geral dele — assim os dois saem juntos."
+                      className="text-xs font-semibold text-primary hover:underline whitespace-nowrap"
+                    >
+                      do paciente →
+                    </Link>
+                  ) : (
+                    <form action={removeTransaction}>
+                      <input type="hidden" name="id" value={t.id} />
+                      <button className="opacity-100 lg:opacity-0 lg:group-hover:opacity-100 text-foreground/40 hover:text-red-600 transition p-1" title="Excluir">
+                        <Trash2 className="w-4 h-4" />
+                      </button>
+                    </form>
+                  )}
                 </td>
               </tr>
             ))}
