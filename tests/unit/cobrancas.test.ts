@@ -117,9 +117,19 @@ describe("mensal — pacote completo", () => {
     expect(c.ids).toEqual(ss.map((s) => s.id));
   });
 
-  it("vence no dia de pagamento do mês em que o pacote começa", () => {
+  it("o PRIMEIRO vencimento não cai antes da primeira sessão (dona, 18/09)", () => {
+    // O dia combinado é 5, mas o paciente só começa em 14/09. Vencer dia 5 faria a cobrança nascer
+    // em atraso, por um atendimento que ainda nem tinha acontecido — então vale a data da primeira.
+    // Até 17/09 este caso devolvia 05/09.
     const [c] = cobrancasDoPaciente({ ...cfg, sessoes: [sessao(14), sessao(21), sessao(28), sessao(5, 9)] });
-    expect(c.vencimento?.getTime()).toBe(new Date(2026, 8, 5).getTime());
+    expect(c.vencimento?.getTime()).toBe(new Date(2026, 8, 14, 14, 0, 0).getTime());
+  });
+
+  it("o SEGUNDO pacote já vence no dia combinado", () => {
+    // "Próximos pagamentos considerar sempre a data de vencimento definida no financeiro."
+    const sessoes = [sessao(14), sessao(21), sessao(28), sessao(5, 9), sessao(12, 9), sessao(19, 9), sessao(26, 9), sessao(3, 10)];
+    const c = cobrancasDoPaciente({ ...cfg, sessoes });
+    expect(c.map((x) => x.vencimento?.getDate())).toEqual([14, 5]);
   });
 
   it("a Fechamento conta quando o pacote FECHA — decisão de 13/09 continua valendo", () => {
@@ -167,9 +177,11 @@ describe("quinzenal", () => {
     ]);
   });
 
-  it("cada quinzena vence no seu dia", () => {
+  it("cada quinzena vence no seu dia, respeitando a primeira sessão", () => {
+    // Dias combinados: 5 e 20. A primeira sessão é 14/09, então a primeira quinzena vence 14 e não
+    // 5 (dona, 18/09); a segunda segue no dia 20, como combinado.
     const c = cobrancasDoPaciente({ ...cfg, sessoes: [14, 21, 28].map((d) => sessao(d)).concat(sessao(5, 9)) });
-    expect(c.map((x) => x.vencimento?.getDate())).toEqual([5, 20]);
+    expect(c.map((x) => x.vencimento?.getDate())).toEqual([14, 20]);
   });
 
   it("fracionado: cada quinzena cobra o que caiu nela, não metade do mês", () => {

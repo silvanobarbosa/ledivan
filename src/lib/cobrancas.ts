@@ -175,6 +175,18 @@ function cobrancasDoPeriodo(periodo: PeriodoDeVigencia, sessoes: Ordenada[], e: 
       competencia,
     };
 
+    /**
+     * O PRIMEIRO vencimento nao pode cair antes da primeira sessao (dona, 18/09).
+     *
+     * Paciente que comeca dia 15 com pagamento combinado para o dia 10 nasceria devendo: a cobranca
+     * vence cinco dias antes de existir atendimento. Nesse caso vale a data da primeira sessao.
+     *
+     * So o primeiro ciclo e ajustado — "proximos pagamentos considerar sempre a data de vencimento
+     * definida no financeiro", nas palavras dela.
+     */
+    const primeiroCiclo = seq.sequencia === 0;
+    const naoAntesDaPrimeira = (d: Date) => (primeiroCiclo && d.getTime() < inicio.getTime() ? inicio : d);
+
     if (formato === "quinzenal") {
       /**
        * A QUINZENA É DO CALENDÁRIO (dono, 17/09): do dia 01 ao 15, e do 16 ao fim do mês. Cada uma
@@ -196,7 +208,10 @@ function cobrancasDoPeriodo(periodo: PeriodoDeVigencia, sessoes: Ordenada[], e: 
       const d1 = e.diaPagamento ?? inicio.getDate();
       const d2 = e.diaPagamento2 ?? d1;
       // Segundo dia antes do primeiro no calendário quer dizer o mês seguinte.
-      const vencimentos = { 1: diaDoMes(inicio, d1), 2: diaDoMes(inicio, d2, d2 < d1 ? 1 : 0) };
+      const vencimentos = {
+        1: naoAntesDaPrimeira(diaDoMes(inicio, d1)),
+        2: naoAntesDaPrimeira(diaDoMes(inicio, d2, d2 < d1 ? 1 : 0)),
+      };
 
       for (const metade of metades) {
         if (!metade.ids.length) continue;
@@ -218,7 +233,7 @@ function cobrancasDoPeriodo(periodo: PeriodoDeVigencia, sessoes: Ordenada[], e: 
     const vencimento =
       formato === "mensal"
         ? e.diaPagamento
-          ? diaDoMes(inicio, e.diaPagamento)
+          ? naoAntesDaPrimeira(diaDoMes(inicio, e.diaPagamento))
           : inicio
         : formato === "primeira_pacote"
           ? inicio
