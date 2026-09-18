@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { UserPlus, ArrowRight, Trash2, Save, ChevronDown, ChevronRight, Plus } from "lucide-react";
 import { formatDate } from "@/lib/therapy";
 import { valorParaCampoBR } from "@/lib/dataForm";
+import { idadeEmAnos } from "@/lib/idade";
 import {
   createProspect, updateProspect, deleteProspect, convertProspect,
   addProspectContact, deleteProspectContact,
@@ -20,13 +21,8 @@ export type ContatoLinha = { id: string; patientId: string; date: string; observ
 const inputCls = "w-full px-3 py-2 rounded-xl bg-white/70 border border-border focus:ring-2 focus:ring-accent/20 focus:border-accent outline-none transition text-sm";
 const lbl = "text-[11px] font-semibold uppercase tracking-wide text-foreground/40";
 
-const idadeDe = (nasc: string | null): number | null => {
-  if (!nasc) return null;
-  const b = new Date(nasc), h = new Date();
-  let a = h.getFullYear() - b.getFullYear();
-  if (h.getMonth() < b.getMonth() || (h.getMonth() === b.getMonth() && h.getDate() < b.getDate())) a--;
-  return a >= 0 && a < 130 ? a : null;
-};
+// A conta da idade e uma so, em lib/idade: copiada aqui, ela errava o dia por causa do fuso.
+const idadeDe = (nasc: string | null): number | null => idadeEmAnos(nasc);
 /** YYYY-MM-DD para o input date. */
 const paraInput = (iso: string | null) => (iso ? new Date(iso).toISOString().slice(0, 10) : "");
 

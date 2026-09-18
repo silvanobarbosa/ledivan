@@ -3,7 +3,7 @@
 import { db } from "@/db";
 import { therapySessions, patients, patientPaymentFormatHistory } from "@/db/schema";
 import { auth } from "@/auth";
-import { canalParaGravar, ehMensal, ehOnline, geraRepeticoes, horasAntesParaGravar, pedeLocal } from "@/lib/agendamentoNovo";
+import { canalParaGravar, datasDaRepeticao, ehMensal, ehOnline, geraRepeticoes, horasAntesParaGravar, pedeLocal, segundoDiaValido } from "@/lib/agendamentoNovo";
 import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -43,31 +43,43 @@ export async function createRecurring(formData: FormData): Promise<{ ok: boolean
     ? ((formData.get("location") as string) || patient.attendanceLocation || null)
     : null;
 
-  // Só semanal e quinzenal chegam aqui. O MENSAL deixou de gerar sessões: em vez de encher a
-  // agenda de meses à frente, o paciente entra na lista de "Lembrar agendamento" no fim do mês —
-  // quem atende uma vez por mês combina a data na própria sessão, e datas presumidas atrapalham.
+  // Só semanal, 2x na semana e quinzenal chegam aqui. O MENSAL deixou de gerar sessões: em vez de
+  // encher a agenda de meses à frente, o paciente entra na lista de "Lembrar agendamento" no fim do
+  // mês — quem atende 1x por mês combina a data na própria sessão, e datas presumidas atrapalham.
   const freqRaw = (formData.get("freq") as string) || "semanal";
   if (!geraRepeticoes(freqRaw)) return { ok: false, error: "Esta repetição não gera agendamentos." };
-  const freq = freqRaw === "quinzenal" ? "quinzenal" : "semanal";
-  const advance = (d: Date) => {
-    if (freq === "quinzenal") d.setDate(d.getDate() + 14);
-    else d.setDate(d.getDate() + 7);
-  };
 
-  const rows: typeof therapySessions.$inferInsert[] = [];
-  const cur = new Date(first);
-  let guard = 0;
-  while (cur <= until && guard++ < 260) {
-    rows.push({
-      userId, patientId, date: new Date(cur), duration, fee: patient.sessionFee,
-      status: "agendada", chargeable: true, isOnline, location,
-      modality: extras.modality, confirmChannel: extras.confirmChannel, confirmLeadHours: extras.confirmLeadHours,
-      pendingConfirmation: true, recurring: true, recurrenceFreq: freq, recurrenceUntil: until,
-    });
-    advance(cur);
+  const segundoDiaRaw = formData.get("segundoDia");
+  const segundoDia = segundoDiaRaw == null || segundoDiaRaw === "" ? null : Number(segundoDiaRaw);
+  const segundoHorario = (formData.get("segundoHorario") as string) || null;
+  if (!segundoDiaValido(freqRaw, segundoDia, segundoHorario, first)) {
+    return { ok: false, error: "Informe o segundo dia da semana e o horário — num dia diferente do primeiro." };
   }
+
+  const freq = freqRaw === "quinzenal" ? "quinzenal" : "semanal";
+  const datas = datasDaRepeticao({ primeira: first, limite: until, freq: freqRaw, segundoDia, segundoHorario });
+
+  const rows: typeof therapySessions.$inferInsert[] = datas.map((quando) => ({
+    userId, patientId, date: quando, duration, fee: patient.sessionFee,
+    status: "agendada" as const, chargeable: true, isOnline, location,
+    modality: extras.modality, confirmChannel: extras.confirmChannel, confirmLeadHours: extras.confirmLeadHours,
+    pendingConfirmation: true, recurring: true, recurrenceFreq: freq, recurrenceUntil: until,
+  }));
   if (!rows.length) return { ok: false, error: "Nenhuma data gerada." };
   await db.insert(therapySessions).values(rows);
+
+  /**
+   * O ritmo semanal escolhido aqui MANDA no tamanho do pacote (documento de 18/09): 2x na semana
+   * fecha em oito sessões, 1x em quatro. Por isso ele grava no cadastro — é de lá que a cobrança
+   * lê, e foi para cá que a opção veio quando saiu da tela do Financeiro.
+   *
+   * Quinzenal e mensal não dizem nada sobre isso e deixam o cadastro como está.
+   */
+  if (freqRaw === "semanal" || freqRaw === "semanal2x") {
+    await db.update(patients)
+      .set({ frequency: "semanal", timesPerPeriod: freqRaw === "semanal2x" ? 2 : 1 })
+      .where(and(eq(patients.id, patientId), eq(patients.userId, userId)));
+  }
   revalidatePath("/dashboard/agenda");
   revalidatePath(`/dashboard/patients/${patientId}`);
   return { ok: true, count: rows.length };

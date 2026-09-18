@@ -2,6 +2,7 @@
 import { db } from "@/db";
 import { users } from "@/db/schema";
 import { eq } from "drizzle-orm";
+import { numeroDoWhatsapp } from "./telefoneWhatsapp";
 
 const URL = () => (process.env.EVOLUTION_API_URL || "").replace(/\/$/, "");
 const KEY = () => process.env.EVOLUTION_API_KEY || "";
@@ -109,8 +110,8 @@ export async function sendViaInstance(instance: string, toNumberDigits: string, 
 export async function sendWhatsappFromUser(userId: string, toPhone: string, text: string): Promise<boolean> {
   const user = await db.query.users.findFirst({ where: eq(users.id, userId) });
   if (!user?.whatsappConnected || !user.whatsappInstance) return false;
-  const digits = (toPhone || "").replace(/\D/g, "");
-  const number = digits.length <= 11 ? `55${digits}` : digits;
+  // A mesma conta do botao da tela: uma regra so para o numero (ver lib/telefoneWhatsapp).
+  const number = numeroDoWhatsapp(toPhone);
   if (!number) return false;
   return sendViaInstance(user.whatsappInstance, number, text);
 }

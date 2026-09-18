@@ -5,6 +5,7 @@ import Link from "next/link";
 import { Printer } from "lucide-react";
 import { formatBRL, formatDate } from "@/lib/therapy";
 import { queixaGroup } from "@/lib/queixas";
+import { idadeEmAnos } from "@/lib/idade";
 
 export type LinhaRelatorio = {
   id: string;
@@ -27,13 +28,8 @@ export type LinhaRelatorio = {
   queixaPrincipal: string | null;
 };
 
-const idade = (nasc: string | null): number | null => {
-  if (!nasc) return null;
-  const b = new Date(nasc), h = new Date();
-  let a = h.getFullYear() - b.getFullYear();
-  if (h.getMonth() < b.getMonth() || (h.getMonth() === b.getMonth() && h.getDate() < b.getDate())) a--;
-  return a >= 0 && a < 130 ? a : null;
-};
+// A conta da idade e uma so, em lib/idade: copiada aqui, ela errava o dia por causa do fuso.
+const idade = (nasc: string | null): number | null => idadeEmAnos(nasc);
 
 const VENCIMENTO: Record<string, string> = {
   avista: "À vista", "7d": "7 dias", "15d": "15 dias", "30d": "30 dias", fim_mes: "Fim do mês", data: "Data fixa",

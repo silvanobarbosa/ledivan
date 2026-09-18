@@ -7,7 +7,7 @@
  */
 
 export type Modalidade = "presencial" | "online" | "misto";
-export type Repeticao = "pontual" | "semanal" | "quinzenal" | "mensal" | "mes" ;
+export type Repeticao = "pontual" | "semanal" | "semanal2x" | "quinzenal" | "mensal" | "mes" ;
 export type CanalDeConfirmacao = "nenhum" | "whatsapp" | "email";
 
 export const MODALIDADES: { valor: Modalidade; rotulo: string }[] = [
@@ -27,9 +27,13 @@ export function modalidadesDe(tipo: string | null | undefined): { valor: Modalid
   return tipo === "devolutiva" ? MODALIDADES.filter((m) => m.valor !== "misto") : MODALIDADES;
 }
 
+/** Dias da semana no padrão do `Date`: o índice é o `getDay()`. */
+export const DIAS_DA_SEMANA = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
+
 export const REPETICOES: { valor: Repeticao; rotulo: string }[] = [
   { valor: "pontual", rotulo: "Não repetir" },
   { valor: "semanal", rotulo: "Semanal (1x na semana)" },
+  { valor: "semanal2x", rotulo: "Semanal (2x na semana)" },
   { valor: "quinzenal", rotulo: "Quinzenal" },
   { valor: "mensal", rotulo: "Mensal" },
 ];
@@ -63,7 +67,79 @@ export function repeticoesDe(opts: { tipo?: string | null; slotIntercalado?: boo
  * datas presumidas atrapalha mais do que ajuda.
  */
 export function geraRepeticoes(repeticao: string | null | undefined): boolean {
-  return repeticao === "semanal" || repeticao === "quinzenal";
+  return repeticao === "semanal" || repeticao === "semanal2x" || repeticao === "quinzenal";
+}
+
+/**
+ * A repetição marca DOIS dias na semana?
+ *
+ * Quem vem 2x por semana fecha pacote de oito, não de quatro (documento de 18/09) — e é esta
+ * escolha, na janela do agendamento, que passa isso ao cadastro do paciente.
+ */
+export function ehSemanal2x(repeticao: string | null | undefined): boolean {
+  return repeticao === "semanal2x";
+}
+
+/**
+ * O segundo dia foi informado por completo?
+ *
+ * Só a repetição 2x na semana pede segundo dia e horário. E ele não pode cair no MESMO dia da
+ * semana do primeiro: dois no mesmo dia não são "2x na semana", e o pacote passaria a contar oito
+ * onde ela marcou duas na mesma tarde.
+ *
+ * `segundoDia` é o dia da semana no padrão do `Date`: 0 = domingo.
+ */
+export function segundoDiaValido(
+  repeticao: string | null | undefined,
+  segundoDia: number | null | undefined,
+  segundoHorario: string | null | undefined,
+  primeira?: Date,
+): boolean {
+  if (!ehSemanal2x(repeticao)) return true;
+  if (segundoDia == null || !Number.isFinite(segundoDia)) return false;
+  if (!segundoHorario) return false;
+  if (primeira && primeira.getDay() === segundoDia) return false;
+  return true;
+}
+
+/**
+ * As datas que a repetição gera, em ordem de calendário.
+ *
+ * Mora aqui, fora da action, porque é regra e não acesso a banco — e porque o 2x na semana
+ * intercala duas séries, que é exatamente o tipo de conta que se quer ver escrita num teste.
+ */
+export function datasDaRepeticao(opts: {
+  primeira: Date;
+  limite: Date;
+  freq: string | null | undefined;
+  /** Dia da semana do segundo atendimento (0 = domingo), só no 2x na semana. */
+  segundoDia?: number | null;
+  /** "HH:MM" do segundo atendimento. */
+  segundoHorario?: string | null;
+}): Date[] {
+  const { primeira, limite, freq } = opts;
+  const passo = freq === "quinzenal" ? 14 : 7;
+  const datas: Date[] = [];
+
+  for (const d = new Date(primeira); d <= limite && datas.length < 260; d.setDate(d.getDate() + passo)) {
+    datas.push(new Date(d));
+  }
+
+  if (ehSemanal2x(freq) && opts.segundoDia != null && opts.segundoHorario) {
+    const [h, m] = String(opts.segundoHorario).split(":").map((x) => Number(x) || 0);
+    // A primeira ocorrência do segundo dia é a próxima DEPOIS da primeira sessão: se o dia
+    // escolhido já passou nesta semana, ele começa na semana seguinte.
+    const segunda = new Date(primeira);
+    segunda.setHours(h, m, 0, 0);
+    do { segunda.setDate(segunda.getDate() + 1); } while (segunda.getDay() !== opts.segundoDia);
+
+    for (const d = new Date(segunda); d <= limite && datas.length < 520; d.setDate(d.getDate() + 7)) {
+      datas.push(new Date(d));
+    }
+    datas.sort((x, y) => x.getTime() - y.getTime());
+  }
+
+  return datas;
 }
 
 /**
