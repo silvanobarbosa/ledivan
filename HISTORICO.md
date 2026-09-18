@@ -7,6 +7,50 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-09-18 — "2x na semana" mudou de lugar, e três correções (#195)
+
+**Entregue:** "Semanal (2x na semana)" na repetição da janela de agendamento, com segundo dia e
+horário; aniversário deixou de andar um dia; slot espelho do quinzenal sem o nome; e o número do
+WhatsApp do botão Cobrar.
+
+**Por quê:** a leva anterior (#193) pôs a escolha do ritmo no cadastro, e ela pediu o contrário —
+que fosse na repetição do agendamento, e que o sistema marcasse os dois dias. A conta do pacote de
+oito ficou como estava; mudou só por onde ela diz.
+
+**Decisões que ficam valendo:**
+- **O ritmo semanal se escolhe na REPETIÇÃO do agendamento**, não no cadastro. Escolher "Semanal
+  (2x na semana)" pede o segundo dia e horário, marca as duas séries intercaladas e **grava
+  `times_per_period` no paciente** — é de lá que a cobrança lê o tamanho do pacote.
+- **O dia da primeira sessão não pode ser o segundo dia.** Duas no mesmo dia da semana não são "2x
+  na semana" e fariam o pacote contar oito à toa. Não foi pedido; é trava minha, confirmar com ela.
+- **Data de nascimento é data de calendário** — passa por `horaDeParede` em toda leitura. A conta da
+  IDADE tinha o mesmo defeito e fazia a pessoa "fazer aniversário" um dia antes; as duas cópias
+  dessa conta (prospects e relatório) agora chamam `lib/idade`.
+- **Uma regra só para o número do WhatsApp** (`lib/telefoneWhatsapp`), usada pelo botão da tela e
+  pelo envio do servidor. Número sem DDD devolve `null` de propósito: abrir a conversa de um
+  desconhecido é pior do que avisar que falta o telefone.
+- **Sem telefone, "Cobrar" não marca mais como avisada.** Antes copiava calado e marcava — o
+  paciente aparecia avisado sem ninguém ter avisado.
+
+**Armadilhas:**
+- **O relato "o botão não funciona" pode ser um número malformado.** O Cobrar já abria o WhatsApp e
+  já registrava o aviso; o `55` colado sem critério fazia o WhatsApp dizer "número inválido", o que
+  de fora é idêntico a não funcionar. **Antes de reescrever o que foi relatado, confira se o que
+  existe está apenas recebendo lixo.**
+- **Existem DOIS botões "Cobrar"** com comportamentos diferentes: o da guia Geral (abre o WhatsApp,
+  usa o modelo dela, registra) e o de `/dashboard/pagamentos` (envia pela Evolution, não abre nada,
+  ignora o modelo, só olha `patients.phone`, não registra). Pendente saber qual ela usa.
+- **A conta de demonstração (`/demo`) serve de banco de provas sem credencial.** Quando a sessão de
+  QA expirou, ela permitiu conferir aniversário, repetição, slot Q e a URL do WhatsApp — sempre
+  comparando com o banco. O que ela não permite é escrever.
+- Heurística de "última linha de import" quebra em import multilinha — conferir depois de inserir.
+
+**Pendente:** com a Gisele — qual botão "Cobrar" ela usa; se o segundo dia pode repetir o primeiro.
+Da casa — renovar a sessão de QA (`node scripts/e2e-escrita.mjs <email> <senha>`) para rodar
+`scripts/e2e-semanal2x.mjs`, a única parte sem prova de ponta a ponta (a gravação das 8 sessões).
+
+---
+
 ## 2026-09-17 — Segunda leva ("prints 5") e o fim do atendimento social (#190–#193)
 
 **Entregue:** remoção do "atendimento social" (#190); prospecção no menu e relatório sem aba
