@@ -131,6 +131,32 @@ function diaDoMes(base: Date, dia: number, somaMeses = 0): Date {
   return new Date(ano, mes, Math.min(Math.max(1, Math.floor(dia)), ultimo));
 }
 
+/**
+ * O proximo dia combinado de pagamento, a partir de uma data (inclusive).
+ *
+ * Quem paga por quinzena combina dois dias no mes — 10 e 20, por exemplo. O vencimento de cada
+ * pagamento e o primeiro desses dias que chega DEPOIS (ou no mesmo dia) da primeira sessao que ele
+ * cobre. E isso que faz o primeiro pagamento de quem comecou em 16/10 cair no dia 20, e nao no 10:
+ * "no dia 10 a pessoa ainda nao era paciente" (dona, 18/09).
+ *
+ * Sem dia combinado, vence na propria sessao.
+ */
+export function proximoDiaDePagamento(dias: number[], apartirDe: Date): Date {
+  const validos = dias.filter((d) => Number.isFinite(d) && d >= 1).map((d) => Math.floor(d));
+  if (!validos.length) return apartirDe;
+
+  // Este mes e o seguinte bastam: dois dias no mes nunca deixam um vao maior que um mes.
+  const candidatos: Date[] = [];
+  for (const soma of [0, 1, 2]) {
+    for (const dia of validos) candidatos.push(diaDoMes(apartirDe, dia, soma));
+  }
+  const alvo = apartirDe.getTime();
+  const proximo = candidatos
+    .filter((d) => d.getTime() >= new Date(apartirDe.getFullYear(), apartirDe.getMonth(), apartirDe.getDate()).getTime())
+    .sort((a, b) => a.getTime() - b.getTime())[0];
+  return proximo ?? new Date(alvo);
+}
+
 function cobrancasDoPeriodo(periodo: PeriodoDeVigencia, sessoes: Ordenada[], e: EntradaDasCobrancas): Cobranca[] {
   const formato = periodo.formato;
   if (!cobra(formato)) return [];
@@ -199,22 +225,41 @@ function cobrancasDoPeriodo(periodo: PeriodoDeVigencia, sessoes: Ordenada[], e: 
        * Quinzena sem atendimento não vira cobrança. Uma linha de R$ 0,00 apareceria como "Pago"
        * sem ninguém ter pago — a conta trata falta zero como quitada.
        */
-      const doPeriodo = doPacote.filter((s) => seq.ids.includes(s.id));
-      const metades = [
-        { parte: 1 as const, ids: doPeriodo.filter((s) => s.date.getDate() <= 15) },
-        { parte: 2 as const, ids: doPeriodo.filter((s) => s.date.getDate() > 15) },
-      ];
+      const doPeriodo = doPacote
+        .filter((s) => seq.ids.includes(s.id))
+        .sort((a, b) => a.date.getTime() - b.date.getTime());
 
-      const d1 = e.diaPagamento ?? inicio.getDate();
-      const d2 = e.diaPagamento2 ?? d1;
-      // Segundo dia antes do primeiro no calendário quer dizer o mês seguinte.
-      const vencimentos = {
-        1: naoAntesDaPrimeira(diaDoMes(inicio, d1)),
-        2: naoAntesDaPrimeira(diaDoMes(inicio, d2, d2 < d1 ? 1 : 0)),
-      };
+      /**
+       * Como o pacote se parte em dois pagamentos (dona, 18/09, com o calendario dela inteiro):
+       *
+       * - **Completo**: por CONTAGEM — o pacote de quatro vira 2 + 2, o de oito vira 4 + 4. Era
+       *   aqui que a tela saia torta: tres sessoes depois do dia 15 viravam um pagamento de tres e
+       *   deixavam a quarta sozinha.
+       * - **Fracionado**: pela quinzena do CALENDARIO (01-15 e 16-fim), como em #192 — no
+       *   fracionado o mes ja e a unidade, e o exemplo dela confirma (outubro com 16, 23 e 30 e um
+       *   pagamento so).
+       */
+      const metades =
+        tipoPacote === "fragmentado"
+          ? [
+              { parte: 1 as const, ids: doPeriodo.filter((s) => s.date.getDate() <= 15) },
+              { parte: 2 as const, ids: doPeriodo.filter((s) => s.date.getDate() > 15) },
+            ]
+          : (() => {
+              const meio = Math.ceil(doPeriodo.length / 2);
+              return [
+                { parte: 1 as const, ids: doPeriodo.slice(0, meio) },
+                { parte: 2 as const, ids: doPeriodo.slice(meio) },
+              ];
+            })();
+
+      const diasCombinados = [e.diaPagamento, e.diaPagamento2].filter((d): d is number => !!d);
 
       for (const metade of metades) {
         if (!metade.ids.length) continue;
+        // O vencimento sai da PRIMEIRA sessao do grupo, nao do inicio do pacote: e o que poe o
+        // primeiro pagamento no dia 20 quando o paciente comecou dia 16.
+        const vencimento = proximoDiaDePagamento(diasCombinados, metade.ids[0].date);
         out.push({
           ...comum,
           sessoes: metade.ids.length,
@@ -222,7 +267,7 @@ function cobrancasDoPeriodo(periodo: PeriodoDeVigencia, sessoes: Ordenada[], e: 
           chave: `quinzena:${chavePeriodo}:${seq.sequencia}:${metade.parte}`,
           tipo: "quinzena",
           valor: dinheiro(unitario * metade.ids.length),
-          vencimento: vencimentos[metade.parte],
+          vencimento,
           posicao: "antes",
           parte: metade.parte,
         });

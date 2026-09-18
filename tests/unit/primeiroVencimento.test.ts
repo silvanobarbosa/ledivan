@@ -69,17 +69,21 @@ describe("mensal", () => {
 });
 
 describe("quinzenal", () => {
-  it("a primeira quinzena não vence antes da primeira sessão", () => {
-    // Começa 18/09 (segunda quinzena). Dias de pagamento 10 e 20: o 20 vale, mas se a primeira
-    // cobrança fosse a da 1ª quinzena ela venceria dia 10, antes de existir atendimento.
+  /**
+   * No quinzenal a regra do primeiro vencimento virou um caso particular de outra, maior (dona,
+   * 18/09): cada pagamento vence no PROXIMO dia combinado a partir da primeira sessao dele. Como
+   * esse dia nunca e anterior a sessao, a cobranca nunca nasce em atraso — de graca.
+   */
+  it("nenhum pagamento vence antes da primeira sessão que ele cobre", () => {
     const c = cobrar("quinzenal", [sessao(18), sessao(25)], { diaPagamento: 10, diaPagamento2: 20 });
-    expect(vencimentos(c)).toEqual(["20/09"]);
+    // 18/09 -> proximo dos dias {10,20} e 20/09;  25/09 -> 10/10.
+    expect(vencimentos(c)).toEqual(["20/09", "10/10"]);
   });
 
-  it("com sessões nas duas quinzenas, só a primeira cobrança é ajustada", () => {
-    // Começa 12/09 (primeira quinzena) e o dia combinado é 10 — antes da primeira sessão.
+  it("o dia combinado que ja passou nao e usado: vai para o proximo", () => {
+    // Comeca 12/09 e o dia 10 ja passou. [12,19] vence 20/09; [26] vence 10/10.
     const c = cobrar("quinzenal", [sessao(12), sessao(19), sessao(26)], { diaPagamento: 10, diaPagamento2: 20 });
-    expect(vencimentos(c)).toEqual(["12/09", "20/09"]);
+    expect(vencimentos(c)).toEqual(["20/09", "10/10"]);
   });
 });
 
