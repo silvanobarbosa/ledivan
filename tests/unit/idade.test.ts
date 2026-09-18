@@ -61,3 +61,22 @@ describe("idade escrita", () => {
     expect(idadeEmPalavras(null, hoje)).toBe("");
   });
 });
+
+describe("a data que vem do banco não anda um dia (18/09)", () => {
+  /**
+   * A data de nascimento é data de CALENDÁRIO. Ela nasce meia-noite sem fuso e, lida como UTC num
+   * fuso negativo, recua um dia — era o mesmo defeito da lista de aniversariantes, onde 21/09
+   * aparecia como 20/09.
+   *
+   * Aqui isso fazia a pessoa "fazer aniversário" um dia antes: em 20/09 já contava a idade nova.
+   */
+  const nascidoEm21DeSetembro = "1984-09-21T00:00:00.000Z";
+
+  it("no dia 20 ainda não fez aniversário", () => {
+    expect(idadeEmAnos(nascidoEm21DeSetembro, new Date(2026, 8, 20))).toBe(41);
+  });
+
+  it("no dia 21 faz", () => {
+    expect(idadeEmAnos(nascidoEm21DeSetembro, new Date(2026, 8, 21))).toBe(42);
+  });
+});

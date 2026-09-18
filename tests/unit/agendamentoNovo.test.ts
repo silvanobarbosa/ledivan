@@ -27,8 +27,9 @@ describe("as modalidades que cada tipo oferece", () => {
 });
 
 describe("as repetições que a janela oferece", () => {
-  it("a consulta comum oferece as quatro", () => {
-    expect(valores(repeticoesDe({ tipo: "consulta" }))).toEqual(["pontual", "semanal", "quinzenal", "mensal"]);
+  it("a consulta comum oferece as cinco", () => {
+    // "Semanal (2x na semana)" entrou em 18/09: a terapeuta pediu a opção aqui, e não no cadastro.
+    expect(valores(repeticoesDe({ tipo: "consulta" }))).toEqual(["pontual", "semanal", "semanal2x", "quinzenal", "mensal"]);
   });
 
   it("a devolutiva não se repete", () => {

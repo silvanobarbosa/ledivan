@@ -7,6 +7,7 @@ import { MessagePatient } from "./MessagePatient";
 import { ModalPacientes } from "./ModalPacientes";
 import { salvarMensagemAgendamento, salvarMensagemAniversario } from "@/app/dashboard/actions";
 import { mensagemPara, MODELO_PADRAO_DO_LEMBRETE } from "@/lib/lembrarAgendamento";
+import { horaDeParede } from "@/lib/horaLocal";
 
 export type PanelPatient = {
   id: string; name: string; status: string;
@@ -198,8 +199,16 @@ function LembrarAgendamento({ lista, modeloSalvo }: { lista: ParaLembrar[]; mode
     </div>
   );
 }
+/**
+ * Dia e mês do aniversário, sem passar por fuso.
+ *
+ * A data de nascimento é data de CALENDÁRIO: 21/09 é 21/09 em qualquer lugar do mundo. Ela nasce
+ * meia-noite sem fuso no banco e, lida como UTC num fuso negativo, recuava um dia — 21/09 aparecia
+ * como 20/09 na lista de aniversariantes, que foi o que o dono fotografou (18/09). Pior: o servidor
+ * roda em UTC e o navegador não, então os dois desenhavam dias diferentes.
+ */
 const ddmm = (iso: string) => {
-  const d = new Date(iso);
+  const d = new Date(horaDeParede(iso));
   return { dia: d.getDate(), mes: d.getMonth() + 1 };
 };
 /** Dia do ano (1..366) ignorando o ano, para poder comparar intervalos que não viram o ano. */

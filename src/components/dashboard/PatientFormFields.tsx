@@ -208,24 +208,7 @@ export function PatientFormFields({ p }: { p?: PatientFormData }) {
 
   // Pacote (completo ou fragmentado): aparece em todo formato que fecha por pacote.
   const blocoPacote = (
-    <div className="space-y-4">
-      <div>
-        <label className={labelCls}>Quantas vezes por semana</label>
-        <div className="grid sm:grid-cols-2 gap-2">
-          {[
-            { v: 1, rotulo: "1x por semana", ajuda: "O pacote fecha em 4 sessões." },
-            { v: 2, rotulo: "2x por semana", ajuda: "O pacote fecha em 8, com um pagamento só." },
-          ].map((o) => (
-            <label key={o.v} className={`flex items-start gap-2 rounded-2xl border px-4 py-3 cursor-pointer ${vezes === o.v ? "border-primary bg-primary/5" : "border-border bg-surface/60"}`}>
-              <input type="radio" name="recorrencia" value={o.v === 2 ? "2x_semana" : "semanal"} checked={vezes === o.v} onChange={() => setVezes(o.v)} className="accent-primary mt-0.5" />
-              <span>
-                <span className="block text-sm font-bold">{o.rotulo}</span>
-                <span className="block text-xs text-foreground/50">{o.ajuda}</span>
-              </span>
-            </label>
-          ))}
-        </div>
-      </div>
+    <div>
       <label className={labelCls}>Pacote</label>
       <div className="grid sm:grid-cols-2 gap-2">
         <label className={`flex items-start gap-2 rounded-2xl border px-4 py-3 cursor-pointer ${pacote === "completo" ? "border-primary bg-primary/5" : "border-border bg-surface/60"}`}>

@@ -11,6 +11,7 @@ import { montarMensagemCobranca } from "@/lib/mensagemCobranca";
 import { lancarPagamento, limparEnviosDaCobranca, registrarCobrancaEnviada } from "./geral-actions";
 import { marcarEmissao } from "./recibo-actions";
 import { doAno } from "@/lib/filtroDeAno";
+import { numeroDoWhatsapp } from "@/lib/telefoneWhatsapp";
 
 /** Dados para o botão "Cobrar" compor a mensagem da terapeuta. */
 export type CobrarInfo = { telefone: string | null; nome: string; modelo: string | null };
@@ -19,32 +20,49 @@ export type CobrarInfo = { telefone: string | null; nome: string; modelo: string
 function BotaoCobrar({ patientId, c, cobrar }: { patientId: string; c: CobrancaNaTela; cobrar: CobrarInfo }) {
   const router = useRouter();
   const [pending, start] = useTransition();
+  const [copiado, setCopiado] = useState(false);
   const msg = montarMensagemCobranca(cobrar.modelo, {
     nome: cobrar.nome,
     valor: formatBRL(c.falta),
     vencimento: c.vencimento ? partes(c.vencimento).data : null,
   });
-  const tel = (cobrar.telefone || "").replace(/\D/g, "");
+  const numero = numeroDoWhatsapp(cobrar.telefone);
   /**
    * Abre o WhatsApp E registra o aviso.
    *
    * O botao "Marcar enviada" saiu (documento de 17/09): o registro deixa de depender de alguem
    * lembrar de apertar um segundo botao. A janela abre primeiro — se o registro demorar, quem
    * cobra nao fica esperando.
+   *
+   * Sem telefone, ele COPIA e diz isso na tela (18/09). Antes copiava calado e marcava como
+   * avisada do mesmo jeito: de fora, era igual a o botao nao ter funcionado — e o paciente
+   * aparecia avisado sem ninguem ter avisado.
    */
   function acionar() {
-    if (tel) window.open(`https://wa.me/55${tel}?text=${encodeURIComponent(msg)}`, "_blank", "noopener");
-    else navigator.clipboard?.writeText(msg);
-    start(async () => {
-      await registrarCobrancaEnviada({ patientId, cobrancaChave: c.chave });
-      router.refresh();
-    });
+    if (numero) {
+      window.open(`https://wa.me/${numero}?text=${encodeURIComponent(msg)}`, "_blank", "noopener");
+      start(async () => {
+        await registrarCobrancaEnviada({ patientId, cobrancaChave: c.chave });
+        router.refresh();
+      });
+      return;
+    }
+    navigator.clipboard?.writeText(msg);
+    setCopiado(true);
   }
   return (
-    <button type="button" onClick={acionar} disabled={pending} title={tel ? "Cobrar pelo WhatsApp (registra o aviso)" : "Copiar mensagem de cobranca (registra o aviso)"}
-      className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#047857] border border-[#a7f3d0] bg-[#ecfdf5] rounded-full px-2 py-0.5 hover:bg-[#d1fae5] disabled:opacity-60 whitespace-nowrap">
-      <MessageCircle className="w-3 h-3" aria-hidden /> {pending ? "..." : "Cobrar"}
-    </button>
+    <span className="inline-flex items-center gap-1.5 flex-wrap">
+      <button type="button" onClick={acionar} disabled={pending}
+        title={numero ? "Cobrar pelo WhatsApp (registra o aviso)" : "Sem telefone no cadastro: copia a mensagem"}
+        className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#047857] border border-[#a7f3d0] bg-[#ecfdf5] rounded-full px-2 py-0.5 hover:bg-[#d1fae5] disabled:opacity-60 whitespace-nowrap">
+        <MessageCircle className="w-3 h-3" aria-hidden /> {pending ? "..." : "Cobrar"}
+      </button>
+      {copiado && (
+        <span className="text-[11px] text-[#92400e]">
+          Sem telefone no cadastro — mensagem copiada. Nao marquei como avisada.
+        </span>
+      )}
+    </span>
   );
 }
 

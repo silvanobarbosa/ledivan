@@ -11,7 +11,7 @@ import { geometriaDaFaixa, posicoesDoDia } from "@/lib/agendaLayout";
 import { conteudoDaCelula, identificacao } from "@/lib/celulaDaAgenda";
 import { textoDoBloqueio } from "@/lib/bloqueioDeHorario";
 import { ehQuinzenal, espelhosDoDia, sinaisDaSessao } from "@/lib/ocupacaoDaAgenda";
-import { CANAIS_DE_CONFIRMACAO, geraRepeticoes, modalidadesDe, pedeHorasAntes, pedeLocal, repeticoesDe } from "@/lib/agendamentoNovo";
+import { CANAIS_DE_CONFIRMACAO, DIAS_DA_SEMANA, ehSemanal2x, geraRepeticoes, modalidadesDe, pedeHorasAntes, pedeLocal, repeticoesDe } from "@/lib/agendamentoNovo";
 import { CAMPOS_EDITAVEIS } from "@/lib/editarAgendamento";
 import { contarAlcance, excluirAgendamento, salvarEdicao } from "./edicao-actions";
 import { BloquearHorario } from "@/components/dashboard/BloquearHorario";
@@ -136,6 +136,11 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
   // Só semanal e quinzenal geram as sessões seguintes. Mensal marca uma só, e o paciente entra
   // na lista de "Lembrar agendamento" no fim do mês.
   const newRecorrente = geraRepeticoes(newFreq);
+  const [newSegundoDia, setNewSegundoDia] = useState("");
+  const [newSegundoHorario, setNewSegundoHorario] = useState("");
+  // O dia da semana do agendamento que está sendo criado: ele sai da lista do segundo dia, porque
+  // duas sessões no MESMO dia não são "2x na semana" — e fariam o pacote contar oito à toa.
+  const diaDaPrimeira = newDate ? new Date(newDate).getDay() : -1;
   const [newKind, setNewKind] = useState("consulta");
   const [newCharge, setNewCharge] = useState(true);
   const [newError, setNewError] = useState<string | null>(null);
@@ -580,7 +585,9 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
                           className="absolute left-1 right-1 rounded-lg px-2 py-1 text-left overflow-hidden border-l-[3px] border-dashed border-amber-400 bg-amber-400/10 hover:bg-amber-400/20 transition"
                         >
                           <p className="text-[10px] font-bold leading-tight text-amber-700">{hh}</p>
-                          <p className="text-[11px] font-black leading-tight truncate text-amber-700">Q · {quem}</p>
+                          {/* Só o Q: o slot espelho diz que o horário intercala, não de quem ele é (dono, 18/09). O
+                              nome segue no `title` e na janela de encaixe, onde ele importa para decidir. */}
+                          <p className="text-[11px] font-black leading-tight truncate text-amber-700">Q</p>
                         </button>
                       );
                     })}
@@ -1081,7 +1088,28 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
                   O mensal marca só esta data. No fim do mês o paciente aparece em “Lembrar agendamento”, no Dashboard.
                 </p>
               )}
-              <p className="text-[11px] text-[#1e40af]/70">Para 2x na semana, crie duas repetições semanais (uma por dia).</p>
+              {ehSemanal2x(newFreq) && (
+                <div className="rounded-xl bg-white/70 border border-[#bfdbfe] px-3 py-2.5 space-y-2" data-testid="segundo-dia">
+                  {/* O primeiro dia e horário já vieram do próprio agendamento; aqui só falta o segundo. */}
+                  <p className="text-[11px] font-semibold text-[#1e40af]">Segundo atendimento da semana</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    <label className="block">
+                      <span className="text-[11px] font-semibold text-[#1e40af]/70">Dia da semana</span>
+                      <select name="segundoDia" value={newSegundoDia} onChange={(e) => setNewSegundoDia(e.target.value)} required
+                        className="w-full px-3 py-2 rounded-xl bg-white border border-[#bfdbfe] outline-none text-sm">
+                        <option value="">Escolha…</option>
+                        {DIAS_DA_SEMANA.map((d, i) => <option key={d} value={i} disabled={i === diaDaPrimeira}>{d}</option>)}
+                      </select>
+                    </label>
+                    <label className="block">
+                      <span className="text-[11px] font-semibold text-[#1e40af]/70">Horário</span>
+                      <input name="segundoHorario" type="time" required value={newSegundoHorario} onChange={(e) => setNewSegundoHorario(e.target.value)}
+                        className="w-full px-3 py-2 rounded-xl bg-white border border-[#bfdbfe] outline-none text-sm" />
+                    </label>
+                  </div>
+                  <p className="text-[11px] text-[#1e40af]/70">Neste caso o pacote será considerado com <strong>8 sessões</strong>.</p>
+                </div>
+              )}
             </div>
 
             <input type="hidden" name="reserva" value="false" />

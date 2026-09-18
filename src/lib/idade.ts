@@ -8,9 +8,14 @@
  * A conta é por data de calendário, não por divisão de milissegundos: quem faz aniversário hoje
  * já tem a idade nova, e ano bissexto não tira um dia de ninguém.
  */
+import { horaDeParede } from "./horaLocal";
+
 export function idadeEmAnos(nascimento: Date | string | null | undefined, hoje: Date = new Date()): number | null {
   if (!nascimento) return null;
-  const d = nascimento instanceof Date ? nascimento : new Date(nascimento);
+  // Data de nascimento e data de CALENDARIO: 21/09 e 21/09 em qualquer fuso. Ela nasce meia-noite
+  // sem fuso e, lida como UTC num fuso negativo, recua um dia — a pessoa passava a "fazer
+  // aniversario" no dia 20 (dono, 18/09).
+  const d = new Date(horaDeParede(nascimento));
   if (Number.isNaN(d.getTime())) return null;
 
   let anos = hoje.getFullYear() - d.getFullYear();
