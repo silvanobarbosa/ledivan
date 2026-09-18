@@ -40,10 +40,10 @@ export default async function DashboardLayout({
   // barra inferior saem no papel. As classes `print:` abaixo tiram o cromo e deixam o conteúdo
   // fluir por quantas páginas precisar. Ver também o bloco @media print no globals.css.
   return (
-    <div className="flex min-h-screen bg-surface selection:bg-primary selection:text-white print:block print:min-h-0">
+    <div className="flex min-h-[100dvh] bg-surface selection:bg-primary selection:text-white print:block print:min-h-0">
       <Sidebar />
 
-      <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden print:h-auto print:overflow-visible print:block">
+      <div className="flex-1 flex flex-col min-w-0 h-[100dvh] overflow-hidden print:h-auto print:overflow-visible print:block">
         <header className="print:hidden h-20 lg:h-24 bg-white/80 backdrop-blur-md border-b border-border flex items-center justify-between px-6 lg:px-8 shrink-0 z-10">
           <div className="flex items-center gap-3 lg:gap-4 min-w-0">
             <MobileSidebar />
@@ -78,7 +78,9 @@ export default async function DashboardLayout({
             <a href="/auth/logout" className="font-bold underline underline-offset-2 whitespace-nowrap">Sair da demonstração →</a>
           </div>
         )}
-        <main className="flex-1 overflow-y-auto print:overflow-visible print:flex-none">
+        {/* `pb-28` no celular: a barra inferior mede 96px de verdade (ver lib/modal), e sem isso o
+            ultimo bloco de cada pagina morre atras dela. */}
+        <main className="flex-1 overflow-y-auto pb-28 lg:pb-0 print:overflow-visible print:pb-0 print:flex-none">
           <AreaTint>{children}</AreaTint>
         </main>
       </div>

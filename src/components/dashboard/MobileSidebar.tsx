@@ -32,11 +32,12 @@ export function MobileSidebar() {
     if (!open) return;
     const onKey = (e: KeyboardEvent) => e.key === "Escape" && setOpen(false);
     document.addEventListener("keydown", onKey);
-    const prev = document.body.style.overflow;
-    document.body.style.overflow = "hidden";
+    // Quem rola NAO e o body: e o <main> do layout do painel. Travar o body era um no-op, e o
+    // conteudo continuava correndo por tras do menu aberto. A classe no <html> alcanca o main.
+    document.documentElement.classList.add("menu-aberto");
     return () => {
       document.removeEventListener("keydown", onKey);
-      document.body.style.overflow = prev;
+      document.documentElement.classList.remove("menu-aberto");
     };
   }, [open]);
 
@@ -55,7 +56,7 @@ export function MobileSidebar() {
       <div
         onClick={() => setOpen(false)}
         aria-hidden
-        className={`lg:hidden fixed inset-0 z-[60] bg-black/40 backdrop-blur-sm transition-opacity duration-300 ${
+        className={`lg:hidden fixed inset-0 z-[58] bg-black/40 backdrop-blur-sm transition-opacity duration-300 ${
           open ? "opacity-100" : "opacity-0 pointer-events-none"
         }`}
       />
@@ -65,7 +66,19 @@ export function MobileSidebar() {
         role="dialog"
         aria-modal="true"
         aria-label="Menu de navegação"
-        className={`lg:hidden fixed inset-y-0 left-0 z-[70] w-[82%] max-w-xs bg-white flex flex-col shadow-2xl transition-transform duration-300 ease-out ${
+        /*
+         * `z-[59]`: acima da barra inferior (z-50) e do conteudo, e ABAIXO das janelas (z-[70] em
+         * lib/modal). Antes o drawer empatava com elas em z-[70] e o desempate ficava por ordem no
+         * DOM — o mesmo tropeco que a barra inferior ja tinha dado.
+         *
+         * `dvh`, nao `vh`: no celular a barra do navegador aparece e some, e `vh` mede a tela como
+         * se ela nunca estivesse la — cortando justamente o fim do menu.
+         *
+         * E a gaveta TERMINA acima da barra inferior (6rem = os 96px medidos em lib/modal), em vez
+         * de ir ate o fim da tela. So respiro interno nao bastava: no tablet a lista cabe inteira
+         * sem rolar, e ai o ultimo item pousa onde pousar — em cima da barra.
+         */
+        className={`lg:hidden fixed left-0 top-0 h-[calc(100dvh-6rem)] z-[59] w-[82%] max-w-xs bg-white flex flex-col shadow-2xl transition-transform duration-300 ease-out ${
           open ? "translate-x-0" : "-translate-x-full"
         }`}
       >
@@ -82,8 +95,12 @@ export function MobileSidebar() {
           </button>
         </div>
 
-        <div className="flex-1 py-4 overflow-y-auto no-scrollbar">
-          <NavList onNavigate={() => setOpen(false)} />
+        {/* Um scroller so: o `flex-1 overflow-y-auto` ja vive dentro do NavList. Dois aninhados
+            faziam o de dentro perder o efeito, e a lista crescia sem rolar. O respiro no fim
+            garante que "Meu Perfil" e "Ajuda" nao morram atras da barra inferior nem do gesto do
+            sistema. */}
+        <div className="flex-1 min-h-0 flex flex-col py-4">
+          <NavList onNavigate={() => setOpen(false)} className="pb-4" />
         </div>
       </aside>
     </>
