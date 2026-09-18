@@ -84,8 +84,12 @@ export function diasParaReajuste(vencimento: Date | null, hoje: Date = new Date(
 export function sessoesNoMes(opts: {
   pacote: "completo" | "fragmentado" | null | undefined;
   sessoesAgendadas?: number | null;
+  /** 1 ou 2 por semana (cadastro): o pacote completo tem 4 ou 8 (documento de 17/09). */
+  vezesPorSemana?: number | null;
 }): number {
-  if (opts.pacote !== "fragmentado") return SESSOES_PACOTE_COMPLETO;
+  if (opts.pacote !== "fragmentado") {
+    return SESSOES_PACOTE_COMPLETO * Math.max(1, Math.floor(opts.vezesPorSemana ?? 1));
+  }
   return Math.max(0, Math.floor(opts.sessoesAgendadas ?? 0));
 }
 
@@ -95,10 +99,11 @@ export function valorDoMes(opts: {
   valorSessao: number;
   pacote?: "completo" | "fragmentado" | null;
   sessoesAgendadas?: number | null;
+  vezesPorSemana?: number | null;
 }): number {
   if (!cobra(opts.formato)) return 0;
   if (opts.formato === "sessao") return opts.valorSessao;   // paga por atendimento, não por mês
-  const sessoes = sessoesNoMes({ pacote: opts.pacote, sessoesAgendadas: opts.sessoesAgendadas });
+  const sessoes = sessoesNoMes({ pacote: opts.pacote, sessoesAgendadas: opts.sessoesAgendadas, vezesPorSemana: opts.vezesPorSemana });
   return Number((sessoes * opts.valorSessao).toFixed(2));
 }
 

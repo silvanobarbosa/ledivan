@@ -193,6 +193,14 @@ export function PatientFormFields({ p }: { p?: PatientFormData }) {
   // Hoje no fuso de quem preenche, no formato do <input type="date">.
   const hojeISO = (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; })();
   const [pacote, setPacote] = useState(p?.pacoteTipo || "completo");
+  /**
+   * Quantas vezes por semana o paciente vem. Manda no tamanho do pacote fechado: 4 ou 8.
+   *
+   * O campo `times_per_period` já existia no banco e a ação já entendia "2x_semana" — só que
+   * nenhuma tela o enviava, então quem vinha duas vezes por semana fechava dois pacotes de quatro
+   * e recebia dois pagamentos no mês (documento de 17/09).
+   */
+  const [vezes, setVezes] = useState(Number(p?.timesPerPeriod) === 2 ? 2 : 1);
   // A classificação saiu: a idade é CALCULADA da data de nascimento, e "casal" virou item próprio.
   const [casal, setCasal] = useState(!!p?.isCouple || p?.category === "casal");
   const dateVal = (d?: string | null) => (d ? new Date(d).toISOString().slice(0, 10) : "");
@@ -200,13 +208,30 @@ export function PatientFormFields({ p }: { p?: PatientFormData }) {
 
   // Pacote (completo ou fragmentado): aparece em todo formato que fecha por pacote.
   const blocoPacote = (
-    <div>
+    <div className="space-y-4">
+      <div>
+        <label className={labelCls}>Quantas vezes por semana</label>
+        <div className="grid sm:grid-cols-2 gap-2">
+          {[
+            { v: 1, rotulo: "1x por semana", ajuda: "O pacote fecha em 4 sessões." },
+            { v: 2, rotulo: "2x por semana", ajuda: "O pacote fecha em 8, com um pagamento só." },
+          ].map((o) => (
+            <label key={o.v} className={`flex items-start gap-2 rounded-2xl border px-4 py-3 cursor-pointer ${vezes === o.v ? "border-primary bg-primary/5" : "border-border bg-surface/60"}`}>
+              <input type="radio" name="recorrencia" value={o.v === 2 ? "2x_semana" : "semanal"} checked={vezes === o.v} onChange={() => setVezes(o.v)} className="accent-primary mt-0.5" />
+              <span>
+                <span className="block text-sm font-bold">{o.rotulo}</span>
+                <span className="block text-xs text-foreground/50">{o.ajuda}</span>
+              </span>
+            </label>
+          ))}
+        </div>
+      </div>
       <label className={labelCls}>Pacote</label>
       <div className="grid sm:grid-cols-2 gap-2">
         <label className={`flex items-start gap-2 rounded-2xl border px-4 py-3 cursor-pointer ${pacote === "completo" ? "border-primary bg-primary/5" : "border-border bg-surface/60"}`}>
           <input type="radio" name="pacoteTipo" value="completo" checked={pacote === "completo"} onChange={() => setPacote("completo")} className="accent-primary mt-0.5" />
           <span>
-            <span className="block text-sm font-bold">Completo — 4 sessões</span>
+            <span className="block text-sm font-bold">Completo — {vezes === 2 ? 8 : 4} sessões</span>
             <span className="block text-xs text-foreground/50">O padrão.</span>
           </span>
         </label>
