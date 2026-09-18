@@ -8,7 +8,12 @@
 //   5. confere no Dashboard que o aniversário aparece em 21/09, não 20/09;
 //   6. apaga o paciente (cascata leva as sessões).
 //
-// Uso: node scripts/e2e-semanal2x.mjs        (servidor em http://localhost:3000)
+// IMPORTANTE: suba o servidor com TZ=UTC, como a Vercel roda. A janela manda a data/hora como texto
+// sem fuso ("2026-09-14T14:00") e o servidor a interpreta no fuso DELE — num servidor em Sao Paulo
+// as 14h viram 17h gravadas, e o limite do "repetir ate" corta a ultima sessao. O app esta certo em
+// producao; o que muda e o ambiente.
+//
+// Uso: TZ=UTC npx next start -p 3000   e entao   node scripts/e2e-semanal2x.mjs
 
 import fs from "node:fs";
 import { createRequire } from "node:module";
@@ -74,9 +79,9 @@ try {
   check("escolher 2x na semana abre a área do segundo dia", await area.isVisible());
   check("e avisa que o pacote passa a ter 8 sessões", await janela().getByText("8 sessões").isVisible());
 
-  // O mesmo dia da semana da primeira não pode ser escolhido.
-  const segundaDesabilitada = await area.locator('select[name="segundoDia"] option[value="1"]').isDisabled();
-  check("o dia da primeira sessão sai da lista (segunda)", segundaDesabilitada);
+  // A dona liberou o mesmo dia da semana em outro horário (18/09): a opção continua escolhível.
+  const mesmoDia = area.locator('select[name="segundoDia"] option[value="1"]');
+  check("o dia da primeira sessão CONTINUA na lista, com o lembrete", !(await mesmoDia.isDisabled()) && (await mesmoDia.innerText()).includes("mesmo dia"));
 
   await area.locator('select[name="segundoDia"]').selectOption("3"); // quarta
   await area.locator('input[name="segundoHorario"]').fill("16:00");
