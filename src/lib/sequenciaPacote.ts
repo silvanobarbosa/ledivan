@@ -59,6 +59,16 @@ export type OpcoesDaSequencia = {
    * valendo, que é o comportamento de quem contratou um ritmo e seguiu nele.
    */
   tamanhos?: number[];
+  /**
+   * Quantas sessões por semana o paciente tem combinadas (1 ou 2). Vem do cadastro
+   * (`patients.times_per_period`).
+   *
+   * É o que faz o pacote de quem vem 2x por semana ter OITO sessões em vez de quatro (documento de
+   * 17/09). O pacote fechado sempre foi "um mês de sessões semanais"; para quem vem duas vezes, um
+   * mês são oito. Sem isso, oito sessões no mês viravam duas sequências de quatro — dois pagamentos
+   * onde o combinado é um.
+   */
+  vezesPorSemana?: number;
 };
 
 export type SequenciaFechada = {
@@ -100,10 +110,12 @@ function contratados(opts: OpcoesDaSequencia): number[] {
 
 /** O tamanho da sequência de índice `i`, com o último da lista valendo para as seguintes. */
 function tamanhoDe(opts: OpcoesDaSequencia, i: number): number {
-  if (opts.pacoteTipo !== "fragmentado") return TAMANHO_PADRAO;
-  const lista = contratados(opts);
-  if (lista.length === 0) return TAMANHO_PADRAO;
-  return lista[Math.min(i, lista.length - 1)];
+  // Contrato registrado manda sobre tudo.
+  const lista = opts.pacoteTipo === "fragmentado" ? contratados(opts) : [];
+  if (lista.length) return lista[Math.min(i, lista.length - 1)];
+  // Senão, o pacote é um mês do ritmo combinado: 4 para quem vem 1x por semana, 8 para 2x.
+  const vezes = Math.max(1, Math.floor(opts.vezesPorSemana ?? 1));
+  return TAMANHO_PADRAO * vezes;
 }
 
 /**

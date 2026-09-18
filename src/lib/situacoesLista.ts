@@ -28,6 +28,7 @@ export type PacienteParaSituacao = {
   sessionFee: string | null;
   paymentDay: number | null;
   paymentDay2: number | null;
+  timesPerPeriod: number | null;
   horasAntesPagamento: number | null;
 };
 
@@ -78,6 +79,7 @@ export async function situacoesDaLista(userId: string, pacientes: PacienteParaSi
       precos: (porPaciente.precos.get(p.id) ?? []).map((x) => ({ valor: Number(x.valor) || 0, desde: local(x.dataEfetiva) })),
       valorDaSessao: Number(p.sessionFee) || 0,
       tamanhos: tamanhosDasSequencias(porPaciente.pacotes.get(p.id) ?? []),
+      vezesPorSemana: p.timesPerPeriod ?? 1,
       diaPagamento: p.paymentDay,
       diaPagamento2: p.paymentDay2,
       horasAntesPagamento: p.horasAntesPagamento,

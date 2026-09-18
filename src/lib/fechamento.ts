@@ -35,6 +35,8 @@ export type PacienteDoFechamento = {
   diaPagamento?: number | null;
   /** O dia da SEGUNDA quinzena. Sem ele as duas quinzenas venciam no mesmo dia aqui. */
   diaPagamento2?: number | null;
+  /** Quantas sessões por semana — define se o pacote fechado tem 4 ou 8 (documento de 17/09). */
+  vezesPorSemana?: number | null;
   /**
    * O valor da sessão no cadastro, usado quando o histórico de preço não alcança a data.
    *
@@ -116,6 +118,8 @@ export function pacotesCobraveis(opts: {
   pacoteTipo: string | null | undefined;
   sessoes: SessaoDoPacote[];
   tamanhos?: number[];
+  /** 1 ou 2 sessões por semana (cadastro): o pacote fechado tem 4 ou 8. */
+  vezesPorSemana?: number;
   ano: number;
   mes: number;
 }) {
@@ -125,7 +129,7 @@ export function pacotesCobraveis(opts: {
   const momento = opts.formato === "primeira_pacote" ? "abertura" : "fechamento";
   return sequenciasFechadasNoMes(
     opts.sessoes,
-    { pacoteTipo: tipo, tamanhos: opts.tamanhos },
+    { pacoteTipo: tipo, tamanhos: opts.tamanhos, vezesPorSemana: opts.vezesPorSemana },
     opts.ano,
     opts.mes,
     momento,
@@ -194,8 +198,10 @@ export function sessoesCobradas(opts: {
   pacoteTipo: string | null | undefined;
   /** Todas as sessões do paciente, de qualquer mês — a sequência não cabe num mês só. */
   sessoes: SessaoDoPacote[];
-  /** Os tamanhos contratados, na ordem. Vazio cai no pacote de quatro. */
+  /** Os tamanhos contratados, na ordem. Vazio cai no pacote do ritmo combinado. */
   tamanhos?: number[];
+  /** 1 ou 2 sessões por semana (cadastro): o pacote fechado tem 4 ou 8. */
+  vezesPorSemana?: number;
   ano: number;
   mes: number;
 }): number {
@@ -283,6 +289,7 @@ export function linhaDoFechamento(opts: {
     tamanhos: opts.tamanhos,
     diaPagamento: paciente.diaPagamento ?? null,
     diaPagamento2: paciente.diaPagamento2 ?? null,
+    vezesPorSemana: paciente.vezesPorSemana ?? 1,
   });
 
   const doMes = cobrancas.filter((c) => noMes(c.competencia, ano, mes));
