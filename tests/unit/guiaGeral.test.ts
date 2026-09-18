@@ -71,9 +71,10 @@ describe("quinzenal", () => {
    * partido ao meio em valor, sem olhar data. O dono desfez isso com todas as letras — *"não pode
    * simplesmente dividir o valor por 2"*.
    */
-  it("cada quinzena vem antes das sessões dela, cobrando o que caiu nela", () => {
-    // Dias 1, 8 e 15 são da primeira quinzena (3 × 130 = 390); o dia 22 é da segunda (130).
-    expect(resumo(geral("quinzenal", [terca(1), terca(8), terca(15), terca(22)]))).toEqual(["P 390", "1/4", "2/4", "3/4", "P 130", "4/4"]);
+  it("cada pagamento vem antes das sessões dele — o pacote de quatro parte em 2 + 2", () => {
+    // Documento de 18/09: no pacote COMPLETO a divisao e por contagem, nao por quinzena de
+    // calendario. Ate entao este caso dava "P 390" e "P 130", com tres sessoes num pagamento so.
+    expect(resumo(geral("quinzenal", [terca(1), terca(8), terca(15), terca(22)]))).toEqual(["P 260", "1/4", "2/4", "P 260", "3/4", "4/4"]);
   });
 
   it("mês inteiro na primeira quinzena: uma cobrança só", () => {
