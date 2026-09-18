@@ -1,10 +1,10 @@
 "use server";
 
 import { db } from "@/db";
-import { therapySessions, patients, patientPaymentFormatHistory } from "@/db/schema";
+import { therapySessions, patients, patientPaymentFormatHistory, blockedSlots } from "@/db/schema";
 import { auth } from "@/auth";
 import { canalParaGravar, datasDaRepeticao, ehMensal, ehOnline, geraRepeticoes, horasAntesParaGravar, pedeLocal, segundoDiaValido } from "@/lib/agendamentoNovo";
-import { and, eq } from "drizzle-orm";
+import { and, eq, gte, lte } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getPreferences } from "@/lib/preferences";
@@ -57,7 +57,25 @@ export async function createRecurring(formData: FormData): Promise<{ ok: boolean
   }
 
   const freq = freqRaw === "quinzenal" ? "quinzenal" : "semanal";
-  const datas = datasDaRepeticao({ primeira: first, limite: until, freq: freqRaw, segundoDia, segundoHorario });
+
+  /**
+   * A serie PULA horario bloqueado (dona, 18/09).
+   *
+   * Os bloqueios da janela inteira vem de uma vez — a serie pode ir ate um ano a frente, e uma
+   * consulta por data seria uma por semana. A comparacao e por instante exato: bloqueio e sessao
+   * tem a mesma hora de parede, entao coincidir o minuto e coincidir o horario.
+   */
+  const bloqueios = await db
+    .select({ date: blockedSlots.date })
+    .from(blockedSlots)
+    .where(and(eq(blockedSlots.userId, userId), gte(blockedSlots.date, first), lte(blockedSlots.date, until)));
+  const ocupados = new Set(bloqueios.map((b) => new Date(b.date).getTime()));
+  const bloqueado = (quando: Date) => ocupados.has(quando.getTime());
+
+  const datas = datasDaRepeticao({ primeira: first, limite: until, freq: freqRaw, segundoDia, segundoHorario, bloqueado });
+  if (!datas.length) {
+    return { ok: false, error: "Todas as datas dessa repetiç\u00e3o caem em horário bloqueado." };
+  }
 
   const rows: typeof therapySessions.$inferInsert[] = datas.map((quando) => ({
     userId, patientId, date: quando, duration, fee: patient.sessionFee,

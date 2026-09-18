@@ -124,13 +124,25 @@ export function datasDaRepeticao(opts: {
   segundoDia?: number | null;
   /** "HH:MM" do segundo atendimento. */
   segundoHorario?: string | null;
+  /**
+   * A data esta bloqueada? (documento de 18/09)
+   *
+   * *"Se o horario estiver bloqueado, o agendamento nao devera ser realizado nesta data. O sistema
+   * devera pular a data do bloqueio e procurar a proxima data disponivel, mantendo a sequencia."*
+   *
+   * O bloqueio mora em tabela propria, longe das sessoes — e so isso que ele faz aqui: impedir que
+   * a data vire agendamento. Sem a funcao, nada e pulado.
+   */
+  bloqueado?: (quando: Date) => boolean;
 }): Date[] {
   const { primeira, limite, freq } = opts;
   const passo = freq === "quinzenal" ? 14 : 7;
   const datas: Date[] = [];
 
+  const livre = (d: Date) => !opts.bloqueado?.(d);
+
   for (const d = new Date(primeira); d <= limite && datas.length < 260; d.setDate(d.getDate() + passo)) {
-    datas.push(new Date(d));
+    if (livre(d)) datas.push(new Date(d));
   }
 
   if (ehSemanal2x(freq) && opts.segundoDia != null && opts.segundoHorario) {
@@ -147,7 +159,7 @@ export function datasDaRepeticao(opts: {
     }
 
     for (const d = new Date(segunda); d <= limite && datas.length < 520; d.setDate(d.getDate() + 7)) {
-      datas.push(new Date(d));
+      if (livre(d)) datas.push(new Date(d));
     }
     datas.sort((x, y) => x.getTime() - y.getTime());
   }
