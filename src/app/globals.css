@@ -274,3 +274,11 @@
   tr, td, th { break-inside: avoid; }
   thead { display: table-header-group; } /* cabeçalho repete em toda página */
 }
+
+/*
+ * Menu aberto no celular: quem rola no painel e o <main>, nao o body. Sem isto, o conteudo corria
+ * por tras da gaveta (dona, 18/09).
+ */
+.menu-aberto main {
+  overflow: hidden;
+}
