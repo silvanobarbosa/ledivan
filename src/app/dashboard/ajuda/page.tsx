@@ -89,9 +89,9 @@ const GUIDES: Guide[] = [
     ],
   },
   {
-    id: "prospects", icon: UserPlus, title: "Prospects e autoagendamento",
+    id: "prospects", icon: UserPlus, title: "Prospecção e autoagendamento",
     items: [
-      { q: "O que são Prospects?", a: "Possíveis pacientes que ainda não fecharam. Acompanhe o status e converta em paciente ativo quando fechar." },
+      { q: "O que é a Prospecção?", a: "Possíveis pacientes que ainda não fecharam — os prospectados. Acompanhe o status e converta em paciente ativo quando fechar." },
       { q: "Link de autoagendamento", a: "Ajustes → defina seu link /agendar/seu-nome. O paciente solicita horário e entra na sua agenda como prospect." },
     ],
   },

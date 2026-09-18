@@ -105,7 +105,7 @@ export default async function AdminPage() {
             <Stat n={pat("ativo")} l="ativos" c="text-[#047857]" />
             <Stat n={pat("pausado")} l="pausados" c="text-[#b45309]" />
             <Stat n={pat("inativo")} l="inativos" c="text-foreground/50" />
-            <Stat n={pat("prospect")} l="prospects" c="text-secondary" />
+            <Stat n={pat("prospect")} l="prospecção" c="text-secondary" />
           </div>
         </Card>
         <Card icon={CalendarDays} title="Sessões">

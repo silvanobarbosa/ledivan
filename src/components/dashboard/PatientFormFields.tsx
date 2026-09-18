@@ -12,7 +12,7 @@ const inputCls = "w-full px-4 py-3 rounded-2xl bg-white/70 border border-border 
 const labelCls = "block text-sm font-semibold text-foreground/70 mb-1.5";
 
 // Rótulo dos status legados que ainda podem estar gravados (prospect/pausado), só para preservar.
-const ROTULO_STATUS: Record<string, string> = { prospect: "Prospect", pausado: "Pausado" };
+const ROTULO_STATUS: Record<string, string> = { prospect: "Prospectado", pausado: "Pausado" };
 const brl = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
 export type PatientFormData = {
