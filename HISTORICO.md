@@ -7,6 +7,50 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-09-17 — Segunda leva ("prints 5") e o fim do atendimento social (#190–#193)
+
+**Entregue:** remoção do "atendimento social" (#190); prospecção no menu e relatório sem aba
+duplicada (#191); a quinzena virou do calendário (#192); 2x por semana virou um pacote de oito
+(#193). Plano em `PLANO-DEMANDAS-2026-09-17-b.md`.
+
+**Por quê:** duas das quatro demandas eram de dinheiro e estavam cobrando errado; as outras duas
+eram caminho no lugar errado. O atendimento social era pendência antiga, decidida agora.
+
+**Decisões que ficam valendo:**
+- **A quinzena é do CALENDÁRIO**: 01–15 e 16–fim, e cada uma cobra as sessões que caíram nela, ao
+  preço da sessão. Antes eram duas metades de valor igual, sem olhar data — daí a cobrança vencendo
+  05/09 de uma quinzena sem atendimento. **Quinzena sem atendimento não vira cobrança**: uma linha de
+  R$ 0,00 apareceria como "Pago" sem ninguém pagar, porque falta zero é tratada como quitada. (Se o
+  dono quiser a linha zerada, é uma linha de código.)
+- **O pacote fechado é um mês do RITMO combinado**: 4 sessões para quem vem 1x por semana, 8 para
+  quem vem 2x. Quem diz é `patients.times_per_period`, que já existia e que nenhuma tela enviava.
+  Contrato registrado (`patient_packages`) continua mandando sobre tudo; o fracionado segue pelo mês.
+- **"Atendimento social" não existe mais** — coluna, selo SOC e leituras. Zero pacientes estavam
+  marcados. Se o caso "social e pagante" voltar, volta como campo novo e explícito, não como resto.
+- **Prospecção tem porta própria no menu**; o dashboard ficou só com o número. Nota: o formulário de
+  paciente comum também cria prospect (status "prospect") — são duas portas para a mesma coisa.
+
+**Armadilhas:**
+- **O diagnóstico do documento estava errado em D1**, e seguir por ele custaria caro. Não eram "dois
+  agendamentos": a numeração não sabe de que repetição a sessão veio — ela fechava a cada 4 porque
+  `TAMANHO_PADRAO` era fixo. Com uma repetição só daria no mesmo. **Ler o código antes de aceitar a
+  causa relatada encurtou a demanda inteira.**
+- **Um teste que não falha com o defeito presente não é cobertura.** Escrevi um teste do conserto da
+  Fechamento que passava nos dois lados — batia em `sessoesCobradas`, que não é a função alterada.
+  Desde então, todo conserto de conta é conferido revertendo o código e vendo o teste falhar.
+- **A mesma regra de "descartar a parte 2" estava em TRÊS lugares** (Fechamento, guia Geral e o
+  rótulo). Fazia sentido quando as duas quinzenas diziam o total inteiro; com valores diferentes,
+  passaria a subcontar. Quando um cálculo muda de forma, procure quem compensava a forma antiga.
+- **Coluna do banco só cai depois do deploy** que parou de lê-la — derrubar antes deixa produção
+  rodando código que ainda a seleciona.
+- A tabela de usuários é `"user"` (com aspas) e a coluna do 2º vencimento é `payment_day_2`.
+
+**Pendente:** com a Gisele — escolher entre marcar os dois dias da semana ela mesma (como agora) ou
+o sistema marcar os dois de uma vez; a base de 8 sessões já está pronta para as duas. Da casa —
+`sessoesNoMes`/`valorDoMes` em `reajuste.ts` não têm chamador em produção, candidatos a remoção.
+
+---
+
 ## 2026-09-17 — Demandas do documento: ondas 4, 5 e 6 (#186, #187, #188)
 
 **Entregue:** recibo e nota a partir da linha paga (#186); a pergunta da sequência do pacote, que
