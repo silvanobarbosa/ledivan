@@ -198,12 +198,35 @@ function casarPagamentos(cobrancas: Cobranca[], pagamentos: PagamentoDaGeral[], 
   }
 
   return cobrancas.map((c) => {
-    const pago = c.valor - (recebido.get(c.chave) ?? 0) <= TOLERANCIA;
+    /**
+     * PAGO exige uma BAIXA LANCADA (dona, 18/09): *"o pagamento so podera ser considerado pago
+     * quando existir uma data de pagamento efetivamente lancada. Apenas a existencia de um
+     * vencimento, a passagem da data de vencimento ou qualquer outra informacao financeira nao deve
+     * alterar o pagamento para 'pago'."*
+     *
+     * Antes bastava o saldo fechar. Uma cobranca que nascia valendo R$ 0,00 — o que acontece quando
+     * nao ha faixa de preco que alcance a data — aparecia verde, escrita "Pago", sem ninguem ter
+     * pago e sem data nenhuma. Na base de demonstracao sao 12 pacientes de 103 nessa situacao.
+     *
+     * As duas condicoes, entao: existe pagamento casado com esta cobranca E o saldo fechou.
+     */
+    const lancado = ultimo.get(c.chave) ?? null;
+    const falta = Math.round((c.valor - (recebido.get(c.chave) ?? 0)) * 100) / 100;
+    const pago = !!lancado && falta <= TOLERANCIA;
+
     const limite = limiteDaCobranca(c, horasAntes);
     const atrasada = limite ? hoje.getTime() > limite.getTime() : false;
     const situacao: Situacao = pago ? "pago" : atrasada ? "em_atraso" : "em_aberto";
-    const falta = pago ? 0 : Math.round((c.valor - (recebido.get(c.chave) ?? 0)) * 100) / 100;
-    return { ...c, situacao, falta, pagamento: pago ? (ultimo.get(c.chave) ?? null) : null, envio: enviosPorChave.get(c.chave) ?? null };
+
+    return {
+      ...c,
+      situacao,
+      falta: pago ? 0 : falta,
+      // O que ja foi recebido NAO some quando falta o resto: quem pagou metade aparecia como quem
+      // nao pagou nada, e a terapeuta perdia a data e o nome de quem pagou.
+      pagamento: lancado,
+      envio: enviosPorChave.get(c.chave) ?? null,
+    };
   });
 }
 

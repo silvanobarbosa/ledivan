@@ -8,7 +8,7 @@ import { Check, MessageCircle } from "lucide-react";
 import { formatBRL, PAYMENT_METHOD_LABELS, sessionColorClasses } from "@/lib/therapy";
 import type { CobrancaNaTela, LinhaNaTela } from "@/lib/geralDoPaciente";
 import { montarMensagemCobranca } from "@/lib/mensagemCobranca";
-import { lancarPagamento, limparEnviosDaCobranca, registrarCobrancaEnviada } from "./geral-actions";
+import { lancarPagamento, limparEnviosDaCobranca, registrarCobrancaEnviada, removerPagamento } from "./geral-actions";
 import { marcarEmissao } from "./recibo-actions";
 import { doAno } from "@/lib/filtroDeAno";
 import { numeroDoWhatsapp } from "@/lib/telefoneWhatsapp";
@@ -170,9 +170,45 @@ function BotaoNotaFiscal({ patientId, pagamentoId }: { patientId: string; pagame
   );
 }
 
+/**
+ * DESFAZ o lancamento do pagamento.
+ *
+ * A dona pediu o par completo (18/09): lancar a data marca como pago, remover a data devolve o
+ * status para Em aberto ou Atrasado, conforme o vencimento.
+ *
+ * Pede confirmacao porque apaga registro de dinheiro: some o pagamento E a transacao do caixa.
+ */
+function BotaoRemoverPagamento({ patientId, pagamentoId }: { patientId: string; pagamentoId: string }) {
+  const router = useRouter();
+  const [pending, start] = useTransition();
+  const [erro, setErro] = useState<string | null>(null);
+
+  function acionar() {
+    if (!window.confirm("Remover este pagamento? A cobranca volta a ficar em aberto e a entrada sai do caixa.")) return;
+    setErro(null);
+    start(async () => {
+      const r = await removerPagamento({ pagamentoId, patientId });
+      if (r.ok) router.refresh();
+      else setErro(r.error ?? "Nao foi possivel remover.");
+    });
+  }
+
+  return (
+    <>
+      <button type="button" onClick={acionar} disabled={pending} title="Remover o pagamento lancado"
+        className="text-[11px] font-semibold text-[#b91c1c] border border-[#fecaca] rounded-full px-2 py-0.5 hover:bg-[#fef2f2] disabled:opacity-60 whitespace-nowrap">
+        {pending ? "..." : "Remover pagamento"}
+      </button>
+      {erro && <span className="text-[11px] text-[#b91c1c]">{erro}</span>}
+    </>
+  );
+}
+
 function ColunasDoPagamento({ patientId, c, onLancar, cobrar }: { patientId: string; c: CobrancaNaTela; onLancar: () => void; cobrar?: CobrarInfo }) {
   const pg = c.pagamento;
-  if (pg) {
+  // Quem decide a coluna e a SITUACAO, nao a existencia de um pagamento. Desde 18/09 a cobranca
+  // carrega o que ja foi recebido mesmo sem estar quitada — e meia entrada nao e "Pago".
+  if (pg && c.situacao === "pago") {
     return (
       <>
         <td className="px-3 py-2">
@@ -189,6 +225,7 @@ function ColunasDoPagamento({ patientId, c, onLancar, cobrar }: { patientId: str
                 Emitir recibo
               </Link>
               <BotaoNotaFiscal patientId={patientId} pagamentoId={pg.id} />
+              <BotaoRemoverPagamento patientId={patientId} pagamentoId={pg.id} />
             </div>
           </div>
         </td>
@@ -208,6 +245,7 @@ function ColunasDoPagamento({ patientId, c, onLancar, cobrar }: { patientId: str
               Lançar pagamento
             </button>
             <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap ${s.cls}`}>{s.rotulo}</span>
+            {pg && <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#fef3c7] text-[#92400e] whitespace-nowrap">pago em parte</span>}
           </div>
           <div className="flex items-center gap-2 flex-wrap">
             <EnvioControle patientId={patientId} chave={c.chave} envio={c.envio} />
@@ -215,9 +253,11 @@ function ColunasDoPagamento({ patientId, c, onLancar, cobrar }: { patientId: str
           </div>
         </div>
       </td>
-      <td className="px-3 py-2 text-foreground/30">—</td>
-      <td className="px-3 py-2 text-foreground/30">—</td>
-      <td className="px-3 py-2 text-foreground/30">—</td>
+      {/* Pagamento parcial: o que JA entrou continua na tela. Antes a linha zerava tudo e quem
+          pagou metade aparecia como quem nao pagou nada. */}
+      <td className="px-3 py-2 tabular-nums">{pg ? partes(pg.data).data : <span className="text-foreground/30">—</span>}</td>
+      <td className="px-3 py-2">{pg?.pagoPor || <span className="text-foreground/30">—</span>}</td>
+      <td className="px-3 py-2">{pg?.metodo ? PAYMENT_METHOD_LABELS[pg.metodo] ?? pg.metodo : <span className="text-foreground/30">—</span>}</td>
     </>
   );
 }

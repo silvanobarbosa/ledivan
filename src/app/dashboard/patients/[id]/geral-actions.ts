@@ -95,6 +95,50 @@ export async function lancarPagamento(entrada: {
   return { ok: true };
 }
 
+/**
+ * DESFAZ um pagamento lancado.
+ *
+ * A dona pediu o par completo (18/09): *"ao remover essa data, o pagamento volta para Em aberto ou
+ * Atrasado, conforme a data de vencimento"*. Sem isso, um lancamento errado ficava para sempre.
+ *
+ * Apaga tambem a transacao vinculada. Pagamento e transacao sao o MESMO fato contado em duas telas;
+ * deixar a transacao para tras faria a guia Geral dizer "em aberto" enquanto o caixa segue com o
+ * dinheiro — foi por esse caminho que o financeiro ja divergiu antes.
+ *
+ * O `userId` vai nas duas clausulas: id de pagamento de outro consultorio responde "nao encontrado"
+ * em vez de apagar.
+ */
+export async function removerPagamento(
+  entrada: { pagamentoId: string; patientId: string },
+): Promise<{ ok: boolean; error?: string }> {
+  const session = await auth();
+  if (!session?.user?.id) return { ok: false, error: "Sessão inválida." };
+  const userId = session.user.id;
+
+  const pagamentoId = String(entrada?.pagamentoId ?? "");
+  const patientId = String(entrada?.patientId ?? "");
+  if (!/^[0-9a-f-]{36}$/i.test(pagamentoId)) return { ok: false, error: "Pagamento inválido." };
+
+  const [pagamento] = await db
+    .select({ id: sessionPayments.id, linkedTransactionId: sessionPayments.linkedTransactionId })
+    .from(sessionPayments)
+    .where(and(eq(sessionPayments.id, pagamentoId), eq(sessionPayments.userId, userId), eq(sessionPayments.patientId, patientId)))
+    .limit(1);
+  if (!pagamento) return { ok: false, error: "Pagamento não encontrado." };
+
+  if (pagamento.linkedTransactionId) {
+    await db.delete(transactions)
+      .where(and(eq(transactions.id, pagamento.linkedTransactionId), eq(transactions.userId, userId)));
+  }
+  await db.delete(sessionPayments)
+    .where(and(eq(sessionPayments.id, pagamentoId), eq(sessionPayments.userId, userId)));
+
+  revalidatePath(`/dashboard/patients/${patientId}`);
+  revalidatePath("/dashboard/fechamento");
+  revalidatePath("/dashboard/transactions");
+  return { ok: true };
+}
+
 /** Valida a dupla paciente+cobrança para as ações de envio. Devolve o userId ou um erro. */
 async function contexto(patientId: string, chave: string): Promise<{ userId: string } | { error: string }> {
   const session = await auth();
