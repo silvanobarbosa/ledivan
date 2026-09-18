@@ -7,6 +7,47 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-09-18 — Quinzenal por contagem, menu do celular e série × bloqueio (#204–#208)
+
+**Entregue:** o pacote completo do quinzenal parte em 2+2 e o vencimento sai da sessão (#204);
+formatos com o nome do Financeiro e pacote em caixa de lista (#205); o menu do celular parou de
+cortar itens (#206); "Prospecção"/"Prospectado" nos textos (#207); a série pula horário bloqueado
+(#208).
+
+**Por quê:** documento com seis demandas. A dona mandou o calendário inteiro de um paciente, e ele
+provou que eu tinha entendido o quinzenal pela metade.
+
+**Decisões que ficam valendo:**
+- **No pacote COMPLETO o quinzenal divide por CONTAGEM** (4 → 2+2, 8 → 4+4). No **fracionado**
+  continua sendo a quinzena do calendário (01–15 / 16–fim), porque ali o mês já é a unidade.
+- **O vencimento de cada quinzena é o próximo dia combinado a partir da PRIMEIRA SESSÃO dele** — não
+  um dia fixo do mês em que o pacote começou. Isso põe o primeiro pagamento em 20/10 quando o
+  paciente começou em 16/10, e torna a regra de #199 desnecessária no quinzenal (no mensal ela fica).
+- **A série de agendamentos pula horário bloqueado**, nas três repetições. No 2x na semana derruba
+  só o dia bloqueado, não o par. O bloqueio segue em tabela própria, sem vínculo com paciente.
+- **A gaveta do celular termina ACIMA da barra inferior** (`h-[calc(100dvh-6rem)]`), e não só com
+  respiro interno: no tablet a lista cabe sem rolar e o último item pousa onde pousar.
+- **Os três grupos do menu se parecem.** A caixa azul do Financeiro saiu.
+
+**Armadilhas:**
+- **`Intl` separa `R$` do valor com espaço NÃO-SEPARÁVEL (código 160).** Comparar com espaço comum
+  em teste de tela nunca casa — e o e2e acusa falha onde o app está certo.
+- **Respiro interno não resolve sobreposição quando o conteúdo CABE.** O `pb` só empurra quando há
+  rolagem; sem ela, o último item fica onde estava. O contêiner é que precisa terminar antes.
+- **Medir item a item, não só o último.** Foi assim que o tablet apareceu: o celular passava e o
+  tablet não.
+- **O modal do tutorial (z-100) engole o clique** em teste de navegação; tirar do caminho antes de
+  medir. Já registrado em 04/09 e voltou a custar tempo.
+- **Teste de tela mede o AMBIENTE se o servidor não estiver em UTC.** Ver a entrada anterior.
+
+**Pendente:** com o dono — **como o WhatsApp vai funcionar** (hoje o aniversário envia pelo servidor
+via Evolution, e só se a instância dela estiver conectada; `wa.me` não manda imagem, e envio de
+mídia não existe no repo). Disso dependem: aniversariantes só-WhatsApp com anexo, e a lista de
+Prospecção com botão "Mensagem". E a escolha de modelagem para as partes 2 e 3 do bloqueio (guardar
+a falta numa tabela, ou derivar da recorrência).
+
+---
+
 ## 2026-09-18 — Tabela da guia Geral: vencimento, status e o caixa (#199, #200, #201)
 
 **Entregue:** o primeiro vencimento deixou de cair antes da primeira sessão (#199); "pago" passou a
