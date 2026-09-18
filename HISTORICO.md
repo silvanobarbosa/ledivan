@@ -7,6 +7,47 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-09-18 — Tabela da guia Geral: vencimento, status e o caixa (#199, #200, #201)
+
+**Entregue:** o primeiro vencimento deixou de cair antes da primeira sessão (#199); "pago" passou a
+exigir baixa lançada, pagamento parcial parou de sumir e nasceu o "Remover pagamento" (#200); e
+apagar entrada do caixa vinda de pagamento passou a ser recusado, com o caminho certo na tela (#201).
+
+**Por quê:** documento "Tabela área geral". Das quatro regras, duas já estavam certas e duas eram
+defeito — um deles inventando dinheiro recebido.
+
+**Decisões que ficam valendo:**
+- **O PRIMEIRO vencimento nunca cai antes da primeira sessão.** Paciente que começa dia 15 com dia
+  de pagamento 10 vence 15, não 10 — senão a cobrança nasce em atraso por um atendimento que não
+  aconteceu. **Só o primeiro ciclo**; os seguintes usam o dia combinado sempre.
+- **"Pago" exige BAIXA LANÇADA**, não saldo zerado. Duas condições: existe pagamento casado com a
+  cobrança E o saldo fechou. Vencimento, passagem do vencimento ou qualquer outro dado financeiro
+  não podem marcar como pago.
+- **O que já foi recebido não some quando falta o resto.** A cobrança carrega o pagamento mesmo sem
+  estar quitada; quem decide a coluna "Pago" na tela é a `situacao`, não a existência do pagamento.
+- **Apagar pagamento apaga a transação junto**, e **a recíproca é bloqueada**: entrada do caixa
+  vinda de pagamento não se apaga pelo Financeiro (decisão do dono, 18/09 — "bloquear e avisar do
+  efeito"). São o mesmo fato em duas telas, e desfazer se faz de um lugar só: a guia Geral do
+  paciente. A tela troca a lixeira pelo caminho para o paciente, explicando o porquê.
+
+**Armadilhas:**
+- **Contornar o sintoma deixa a causa viva, e ela volta.** Em #192 eu escrevi um comentário
+  admitindo que cobrança de R$ 0,00 aparecia como "Pago" — e tratei UM caso (pular a quinzena
+  vazia) em vez da conta errada. Seis dias depois a dona relatou o mesmo defeito por outro caminho.
+  **Quando escrever um comentário explicando por que um caso é contornado, esse comentário é um
+  relatório de bug: ou conserte a causa, ou registre como pendência.**
+- **Ação correta e órfã é pior que ausente:** `deletePayment` existia, apagava a transação junto e
+  tinha ZERO chamadas no repositório. A funcionalidade parecia existir no código e não existia para
+  quem usa. Removida; ficou uma implementação só, ligada a um botão.
+- **A base de demonstração nem sempre tem o caso.** Ela não tem paciente sem preço, então o "Pago"
+  fantasma não foi reproduzível no navegador — provado só por teste, e dito assim no PR.
+
+**Pendente:** com a Gisele — avisar que cobranças que apareciam "Pago" por valor zero passarão a
+aparecer como Em aberto/Em atraso (o dono já está ciente); e renovar a sessão de QA para rodar
+`scripts/e2e-semanal2x.mjs`, a gravação das 8 sessões, única parte sem prova de ponta a ponta.
+
+---
+
 ## 2026-09-18 — "2x na semana" mudou de lugar, e três correções (#195)
 
 **Entregue:** "Semanal (2x na semana)" na repetição da janela de agendamento, com segundo dia e
