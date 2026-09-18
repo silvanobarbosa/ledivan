@@ -922,7 +922,7 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
               <select name="patientId" required value={newPatient} onChange={(e) => setNewPatient(e.target.value)} className="w-full px-4 py-2.5 rounded-xl bg-surface border border-border outline-none text-sm">
                 <option value="">Selecione…</option>
                 {patients.map((p) => (
-                  <option key={p.id} value={p.id}>{p.name}{p.status === "prospect" ? " (prospect)" : ""}</option>
+                  <option key={p.id} value={p.id}>{p.name}{p.status === "prospect" ? " (prospectado)" : ""}</option>
                 ))}
               </select>
             </div>

@@ -61,7 +61,7 @@ export function ListaProspects({ prospects, contatos }: { prospects: ProspectLin
   }), [prospects, de, ate, idadeMin, idadeMax, sexo]);
 
   function excluir(p: ProspectLinha) {
-    if (!confirm(`Excluir o prospect ${p.name}? O histórico de contatos dele vai junto.`)) return;
+    if (!confirm(`Excluir o prospectado ${p.name}? O histórico de contatos dele vai junto.`)) return;
     setErro(null);
     iniciar(async () => {
       const r = await deleteProspect(p.id);
@@ -74,10 +74,10 @@ export function ListaProspects({ prospects, contatos }: { prospects: ProspectLin
 
   return (
     <div className="space-y-6">
-      {/* Novo prospect */}
+      {/* Novo prospectado */}
       <form action={createProspect} className="glass-card rounded-[24px] p-5 space-y-3">
         <div className="flex items-center gap-2 text-primary font-semibold text-sm">
-          <UserPlus className="w-4 h-4" /> Novo prospect
+          <UserPlus className="w-4 h-4" /> Novo prospectado
         </div>
         <div className="grid sm:grid-cols-3 gap-3">
           <div><span className={lbl}>Data do contato</span><input name="prospectDate" type="date" className={inputCls} /></div>
@@ -97,7 +97,7 @@ export function ListaProspects({ prospects, contatos }: { prospects: ProspectLin
           </div>
           <div><span className={lbl}>Observação do contato</span><input name="prospectObservacoes" placeholder="O que foi conversado" className={inputCls} /></div>
         </div>
-        <button className="w-full sm:w-auto bg-primary text-white px-6 py-2.5 rounded-xl font-bold">Adicionar prospect</button>
+        <button className="w-full sm:w-auto bg-primary text-white px-6 py-2.5 rounded-xl font-bold">Adicionar prospectado</button>
       </form>
 
       {/* Filtros — ficam logo abaixo do botão de adicionar, conforme pedido */}
@@ -127,7 +127,7 @@ export function ListaProspects({ prospects, contatos }: { prospects: ProspectLin
 
       {filtrados.length === 0 ? (
         <p className="glass-card rounded-[24px] p-10 text-center text-foreground/40">
-          {prospects.length === 0 ? "Nenhum prospect no momento." : "Nenhum prospect nesse filtro."}
+          {prospects.length === 0 ? "Nenhum prospectado no momento." : "Nenhum prospectado nesse filtro."}
         </p>
       ) : (
         <div className="space-y-3">
@@ -174,7 +174,7 @@ export function ListaProspects({ prospects, contatos }: { prospects: ProspectLin
                     <form action={async () => { await convertProspect(p.id); }}>
                       <button className="inline-flex items-center gap-1.5 bg-primary text-white text-sm px-4 py-2 rounded-xl font-semibold">Converter <ArrowRight className="w-4 h-4" /></button>
                     </form>
-                    <button type="button" onClick={() => excluir(p)} disabled={pendente} title="Excluir prospect" aria-label={`Excluir prospect ${p.name}`} className="inline-flex items-center justify-center p-2 rounded-xl border border-border text-red-600 hover:bg-red-50 transition disabled:opacity-50">
+                    <button type="button" onClick={() => excluir(p)} disabled={pendente} title="Excluir prospectado" aria-label={`Excluir prospectado ${p.name}`} className="inline-flex items-center justify-center p-2 rounded-xl border border-border text-red-600 hover:bg-red-50 transition disabled:opacity-50">
                       <Trash2 className="w-4 h-4" />
                     </button>
                   </div>

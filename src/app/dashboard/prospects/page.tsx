@@ -29,7 +29,7 @@ export default async function ProspectsPage() {
     <div className="max-w-5xl space-y-6 pb-20">
       <div>
         <h1 className="text-3xl lg:text-4xl font-display font-bold text-primary flex items-center gap-2">
-          <UserPlus className="w-7 h-7" /> Prospects
+          <UserPlus className="w-7 h-7" /> Prospecção
         </h1>
         <p className="text-foreground/50 mt-1">Potenciais pacientes em prospecção, com o histórico de contatos de cada um.</p>
       </div>

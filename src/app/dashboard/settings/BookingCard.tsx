@@ -43,7 +43,7 @@ export function BookingCard({ initialSlug, initialAutoConfirm = false }: { initi
         <CalendarCheck className="w-5 h-5 text-primary" /> Link de autoagendamento
       </h3>
       <p className="text-sm text-foreground/50 leading-relaxed">
-        Compartilhe um link público para o paciente solicitar horário. Cada pedido entra na sua agenda e cria um prospect.
+        Compartilhe um link público para o paciente solicitar horário. Cada pedido entra na sua agenda e cria um prospectado.
       </p>
 
       <div className="flex items-center gap-2">
