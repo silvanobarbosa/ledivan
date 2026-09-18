@@ -49,12 +49,17 @@ describe("o segundo dia", () => {
     expect(segundoDiaValido("quinzenal", null, "")).toBe(true);
   });
 
-  it("não pode ser o mesmo dia da semana do primeiro", () => {
-    // Segunda 14h + segunda 16h não é "2x na semana": é o mesmo dia duas vezes, e a conta do
-    // pacote passaria a contar oito onde ela marcou duas no mesmo dia.
-    const segunda = new Date(2026, 8, 14, 14, 0);
-    expect(segundoDiaValido("semanal2x", 1, "16:00", segunda)).toBe(false);
-    expect(segundoDiaValido("semanal2x", 3, "16:00", segunda)).toBe(true);
+  it("PODE ser o mesmo dia da semana, em outro horário (dona, 18/09)", () => {
+    // Eu tinha travado isto achando que "2x na semana" exigia dias diferentes. Ela corrigiu: as
+    // duas sessões podem cair no mesmo dia, desde que em horários diferentes.
+    const segunda14h = new Date(2026, 8, 14, 14, 0);
+    expect(segundoDiaValido("semanal2x", 1, "16:00", segunda14h)).toBe(true);
+    expect(segundoDiaValido("semanal2x", 3, "16:00", segunda14h)).toBe(true);
+  });
+
+  it("o que não vale é repetir dia E horário — seria a mesma sessão duas vezes", () => {
+    const segunda14h = new Date(2026, 8, 14, 14, 0);
+    expect(segundoDiaValido("semanal2x", 1, "14:00", segunda14h)).toBe(false);
   });
 });
 
@@ -89,6 +94,34 @@ describe("as datas geradas", () => {
       segundoHorario: "09:00",
     });
     expect(datas.map(iso)).toEqual(["16/09 14h", "21/09 09h", "23/09 14h", "28/09 09h", "30/09 14h"]);
+  });
+
+  it("duas no MESMO dia da semana: mesma data, horários diferentes", () => {
+    // Segunda 14h + segunda 16h — o caso que ela liberou. São oito sessões em quatro semanas.
+    const datas = datasDaRepeticao({
+      primeira,
+      limite: new Date(2026, 9, 5, 23, 59, 59, 999),
+      freq: "semanal2x",
+      segundoDia: 1,
+      segundoHorario: "16:00",
+    });
+    expect(datas.map(iso)).toEqual([
+      "14/09 14h", "14/09 16h",
+      "21/09 14h", "21/09 16h",
+      "28/09 14h", "28/09 16h",
+      "05/10 14h", "05/10 16h",
+    ]);
+  });
+
+  it("no mesmo dia, o segundo horário ANTES do primeiro também vale", () => {
+    const datas = datasDaRepeticao({
+      primeira,
+      limite: new Date(2026, 8, 21, 23, 59, 59, 999),
+      freq: "semanal2x",
+      segundoDia: 1,
+      segundoHorario: "09:00",
+    });
+    expect(datas.map(iso)).toEqual(["14/09 09h", "14/09 14h", "21/09 09h", "21/09 14h"]);
   });
 
   it("semanal comum continua um dia só", () => {

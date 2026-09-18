@@ -53,7 +53,7 @@ export async function createRecurring(formData: FormData): Promise<{ ok: boolean
   const segundoDia = segundoDiaRaw == null || segundoDiaRaw === "" ? null : Number(segundoDiaRaw);
   const segundoHorario = (formData.get("segundoHorario") as string) || null;
   if (!segundoDiaValido(freqRaw, segundoDia, segundoHorario, first)) {
-    return { ok: false, error: "Informe o segundo dia da semana e o horário — num dia diferente do primeiro." };
+    return { ok: false, error: "Informe o segundo dia da semana e o horário. No mesmo dia, o horário tem de ser outro." };
   }
 
   const freq = freqRaw === "quinzenal" ? "quinzenal" : "semanal";

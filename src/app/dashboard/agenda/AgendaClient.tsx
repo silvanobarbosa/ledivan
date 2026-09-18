@@ -138,8 +138,8 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
   const newRecorrente = geraRepeticoes(newFreq);
   const [newSegundoDia, setNewSegundoDia] = useState("");
   const [newSegundoHorario, setNewSegundoHorario] = useState("");
-  // O dia da semana do agendamento que está sendo criado: ele sai da lista do segundo dia, porque
-  // duas sessões no MESMO dia não são "2x na semana" — e fariam o pacote contar oito à toa.
+  // O dia da semana do agendamento que está sendo criado. Ele CONTINUA na lista: as duas sessões
+  // podem cair no mesmo dia, em horários diferentes (dona, 18/09). Só a opção ganha um lembrete.
   const diaDaPrimeira = newDate ? new Date(newDate).getDay() : -1;
   const [newKind, setNewKind] = useState("consulta");
   const [newCharge, setNewCharge] = useState(true);
@@ -1098,7 +1098,7 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
                       <select name="segundoDia" value={newSegundoDia} onChange={(e) => setNewSegundoDia(e.target.value)} required
                         className="w-full px-3 py-2 rounded-xl bg-white border border-[#bfdbfe] outline-none text-sm">
                         <option value="">Escolha…</option>
-                        {DIAS_DA_SEMANA.map((d, i) => <option key={d} value={i} disabled={i === diaDaPrimeira}>{d}</option>)}
+                        {DIAS_DA_SEMANA.map((d, i) => <option key={d} value={i}>{d}{i === diaDaPrimeira ? " (mesmo dia, outro horário)" : ""}</option>)}
                       </select>
                     </label>
                     <label className="block">

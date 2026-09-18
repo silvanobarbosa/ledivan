@@ -80,12 +80,20 @@ export function ehSemanal2x(repeticao: string | null | undefined): boolean {
   return repeticao === "semanal2x";
 }
 
+/** "14:05" a partir de uma data. */
+function horario(d: Date): string {
+  return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
+}
+
 /**
- * O segundo dia foi informado por completo?
+ * O segundo atendimento da semana foi informado por completo?
  *
- * Só a repetição 2x na semana pede segundo dia e horário. E ele não pode cair no MESMO dia da
- * semana do primeiro: dois no mesmo dia não são "2x na semana", e o pacote passaria a contar oito
- * onde ela marcou duas na mesma tarde.
+ * Só a repetição 2x na semana pede segundo dia e horário. As duas sessões **podem cair no mesmo
+ * dia da semana**, em horários diferentes (dona, 18/09) — segunda 14h e segunda 16h é um combinado
+ * de duas por semana como qualquer outro.
+ *
+ * O que não vale é repetir dia E horário: seria a mesma sessão duas vezes, e o pacote contaria oito
+ * onde só quatro aconteceram.
  *
  * `segundoDia` é o dia da semana no padrão do `Date`: 0 = domingo.
  */
@@ -98,7 +106,7 @@ export function segundoDiaValido(
   if (!ehSemanal2x(repeticao)) return true;
   if (segundoDia == null || !Number.isFinite(segundoDia)) return false;
   if (!segundoHorario) return false;
-  if (primeira && primeira.getDay() === segundoDia) return false;
+  if (primeira && primeira.getDay() === segundoDia && horario(primeira) === segundoHorario) return false;
   return true;
 }
 
@@ -131,7 +139,12 @@ export function datasDaRepeticao(opts: {
     // escolhido já passou nesta semana, ele começa na semana seguinte.
     const segunda = new Date(primeira);
     segunda.setHours(h, m, 0, 0);
-    do { segunda.setDate(segunda.getDate() + 1); } while (segunda.getDay() !== opts.segundoDia);
+    // Mesmo dia da semana: o segundo atendimento e na MESMA data, noutro horario. Dia diferente: a
+    // proxima ocorrencia depois da primeira sessao — se o dia escolhido ja passou nesta semana, ele
+    // comeca na semana seguinte.
+    if (opts.segundoDia !== primeira.getDay()) {
+      do { segunda.setDate(segunda.getDate() + 1); } while (segunda.getDay() !== opts.segundoDia);
+    }
 
     for (const d = new Date(segunda); d <= limite && datas.length < 520; d.setDate(d.getDate() + 7)) {
       datas.push(new Date(d));
