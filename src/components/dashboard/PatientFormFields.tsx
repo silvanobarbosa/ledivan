@@ -206,28 +206,30 @@ export function PatientFormFields({ p }: { p?: PatientFormData }) {
   const dateVal = (d?: string | null) => (d ? new Date(d).toISOString().slice(0, 10) : "");
   const show = (k: string) => (tab === k ? "space-y-4" : "hidden");
 
-  // Pacote (completo ou fragmentado): aparece em todo formato que fecha por pacote.
+  /**
+   * Pacote (completo ou fragmentado): aparece em todo formato que fecha por pacote.
+   *
+   * Virou caixa de lista a pedido da dona (18/09) — os dois cartoes lado a lado ocupavam meia tela
+   * no celular. A explicacao de cada opcao NAO se perde: ela vai junto no texto da opcao e, de novo,
+   * abaixo da caixa, para quem ja escolheu continuar lendo o que escolheu.
+   */
+  const TIPOS_DE_PACOTE = [
+    { valor: "completo", nome: `Completo — ${vezes === 2 ? 8 : 4} sessões`, ajuda: "O padrão." },
+    // Nao se informa mais quantas semanas: quem diz e a agenda. Setembro com tres quartas cobra
+    // tres sessoes; outubro com quatro cobra quatro.
+    { valor: "fragmentado", nome: "Fragmentado", ajuda: "O sistema considera as sessões dentro do mês." },
+  ];
   const blocoPacote = (
     <div>
-      <label className={labelCls}>Pacote</label>
-      <div className="grid sm:grid-cols-2 gap-2">
-        <label className={`flex items-start gap-2 rounded-2xl border px-4 py-3 cursor-pointer ${pacote === "completo" ? "border-primary bg-primary/5" : "border-border bg-surface/60"}`}>
-          <input type="radio" name="pacoteTipo" value="completo" checked={pacote === "completo"} onChange={() => setPacote("completo")} className="accent-primary mt-0.5" />
-          <span>
-            <span className="block text-sm font-bold">Completo — {vezes === 2 ? 8 : 4} sessões</span>
-            <span className="block text-xs text-foreground/50">O padrão.</span>
-          </span>
-        </label>
-        <label className={`flex items-start gap-2 rounded-2xl border px-4 py-3 cursor-pointer ${pacote === "fragmentado" ? "border-primary bg-primary/5" : "border-border bg-surface/60"}`}>
-          <input type="radio" name="pacoteTipo" value="fragmentado" checked={pacote === "fragmentado"} onChange={() => setPacote("fragmentado")} className="accent-primary mt-0.5" />
-          <span>
-            <span className="block text-sm font-bold">Fragmentado</span>
-            {/* Não se informa mais quantas semanas: quem diz é a agenda. Setembro com três
-                quartas cobra três sessões; outubro com quatro cobra quatro. */}
-            <span className="block text-xs text-foreground/50">O sistema considera as sessões dentro do mês.</span>
-          </span>
-        </label>
-      </div>
+      <label htmlFor="pacoteTipo" className={labelCls}>Pacote</label>
+      <select id="pacoteTipo" name="pacoteTipo" value={pacote} onChange={(e) => setPacote(e.target.value)} className={inputCls}>
+        {TIPOS_DE_PACOTE.map((t) => (
+          <option key={t.valor} value={t.valor}>{t.nome} — {t.ajuda}</option>
+        ))}
+      </select>
+      <p className="text-xs text-foreground/50 mt-1">
+        {TIPOS_DE_PACOTE.find((t) => t.valor === pacote)?.ajuda}
+      </p>
     </div>
   );
 
@@ -487,7 +489,7 @@ export function PatientFormFields({ p }: { p?: PatientFormData }) {
 
           {usaPacote(format) && (
             <p className="text-xs text-foreground/50">
-              A contagem das sessões do pacote (1/3, 2/3…) sai da agenda: no pacote completo são
+              A contagem das sessões do pacote (1/3, 2/3…) aparecem na agenda: no pacote completo são
               sempre quatro; no fragmentado, quantas caírem dentro do mês.
             </p>
           )}
