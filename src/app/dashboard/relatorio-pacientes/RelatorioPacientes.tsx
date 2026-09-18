@@ -6,6 +6,7 @@ import { Printer } from "lucide-react";
 import { formatBRL, formatDate } from "@/lib/therapy";
 import { queixaGroup } from "@/lib/queixas";
 import { idadeEmAnos } from "@/lib/idade";
+import { rotuloDoFormato } from "@/lib/reajuste";
 
 export type LinhaRelatorio = {
   id: string;
@@ -42,10 +43,17 @@ const vencimentoDe = (p: LinhaRelatorio): string => {
   return "—";
 };
 
-/** Avulso ou pacote: `paymentFormat` é mais específico que `contractType`, então vem primeiro. */
+/**
+ * Avulso ou pacote: `paymentFormat` é mais específico que `contractType`, então vem primeiro.
+ *
+ * O rótulo vem de `lib/reajuste`, o mesmo que o Financeiro usa — "o padrão definido no financeiro",
+ * como a dona pediu (18/09). A tabela daqui tinha um mapa próprio e incompleto, e os formatos que
+ * faltavam nele (`sessao`, `gratuito`, `primeira_pacote`, `ultima_pacote`) vazavam crus para a tela
+ * e para o CSV.
+ */
 const contratoDe = (p: LinhaRelatorio): string => {
   const f = p.paymentFormat || p.contractType || "";
-  return ({ avulso: "Avulso", mensal: "Mensal", quinzenal: "Quinzenal", pacote: "Pacote" } as Record<string, string>)[f] ?? (f || "—");
+  return f ? rotuloDoFormato(f) : "—";
 };
 
 // Cada coluna sabe o próprio rótulo e como se extrai do paciente. Assim o cabeçalho, o corpo da
