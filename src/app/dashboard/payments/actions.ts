@@ -77,25 +77,3 @@ export async function createPayment(formData: FormData) {
   redirect(`/dashboard/patients/${patientId}`);
 }
 
-export async function deletePayment(paymentId: string) {
-  const session = await auth();
-  if (!session?.user?.id) throw new Error("Não autorizado");
-  const userId = session.user.id;
-
-  const payment = await db.query.sessionPayments.findFirst({
-    where: and(eq(sessionPayments.id, paymentId), eq(sessionPayments.userId, userId)),
-  });
-  if (!payment) return;
-
-  // Remove tambem a transacao vinculada (se houver), mantendo financeiro consistente.
-  if (payment.linkedTransactionId) {
-    await db.delete(transactions).where(
-      and(eq(transactions.id, payment.linkedTransactionId), eq(transactions.userId, userId))
-    );
-  }
-  await db.delete(sessionPayments).where(and(eq(sessionPayments.id, paymentId), eq(sessionPayments.userId, userId)));
-
-  revalidatePath(`/dashboard/patients/${payment.patientId}`);
-  revalidatePath("/dashboard");
-  revalidatePath("/dashboard/transactions");
-}
