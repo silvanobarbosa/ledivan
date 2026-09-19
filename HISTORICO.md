@@ -7,6 +7,41 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-09-19 — "Hor. Bloq." na guia Geral e o remanejamento (#210)
+
+**Entregue:** a data que a série pulou por bloqueio aparece na guia Geral como "Hor. Bloq.", some
+sozinha ao desbloquear, e a tela oferece remanejar a agenda para devolver a sequência àquela data.
+
+**Por quê:** ela mandou as duas tabelas desenhadas — antes e depois do desbloqueio —, o que resolveu
+a decisão de modelagem que estava em aberto.
+
+**Decisões que ficam valendo:**
+- **A falta fica GUARDADA** (`sessoes_puladas`), não deduzida da recorrência. O bloqueio mora em
+  tabela própria e **não conhece paciente nenhum** — é o que impede que vire contagem de pacote ou
+  dinheiro. Mas a guia precisa dizer "Hor. Bloq." NAQUELA linha, e isso exige saber de quem era a
+  vaga. Deduzir quebraria assim que ela movesse uma sessão à mão.
+- **A guia só mostra falta cujo horário AINDA está bloqueado** (join com `blocked_slots`).
+  Desbloqueou, a linha some sozinha; o registro fica, porque é ele que sabe para onde devolver a
+  sequência. Some a linha, não a memória.
+- **O remanejamento usa as PRÓPRIAS datas**, não o ritmo da série: cada sessão anda para a data da
+  anterior, em cascata. Deduzir "semanal"/"quinzenal" inventaria um ritmo que ela pode ter mudado.
+- **Não move sessão que já teve desfecho** (realizada, faltou, desmarcada): reescreveria o histórico.
+- **Remanejar é confirmado, não automático.** Mover sessão de paciente é coisa que ela precisa
+  querer — o documento de 18/09 pedia a pergunta.
+
+**Armadilhas:**
+- Ia devolver as datas puladas por **variável de módulo** (estado global escondido). Virou uma função
+  que devolve `{ datas, puladas }`. Função pura não fala por canal lateral.
+- A linha "Hor. Bloq." **ficaria na tela depois de desbloquear** se a guia lesse a falta direto.
+  Perceber isso levou ao filtro por "ainda bloqueado", que é o que a torna auto-limpante.
+
+**Pendente:** com o dono — **como o WhatsApp vai funcionar**. Hoje o aniversário envia pelo servidor
+via Evolution (e só com a instância conectada), `wa.me` não manda imagem, e envio de mídia não existe
+no repo. Disso dependem: aniversariantes só-WhatsApp com anexo, e a lista de Prospecção com botão
+"Mensagem".
+
+---
+
 ## 2026-09-18 — Quinzenal por contagem, menu do celular e série × bloqueio (#204–#208)
 
 **Entregue:** o pacote completo do quinzenal parte em 2+2 e o vencimento sai da sessão (#204);
