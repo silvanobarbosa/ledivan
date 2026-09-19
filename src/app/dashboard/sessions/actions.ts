@@ -1,9 +1,9 @@
 "use server";
 
 import { db } from "@/db";
-import { therapySessions, patients, patientPaymentFormatHistory, blockedSlots } from "@/db/schema";
+import { therapySessions, patients, patientPaymentFormatHistory, blockedSlots, sessoesPuladas } from "@/db/schema";
 import { auth } from "@/auth";
-import { canalParaGravar, datasDaRepeticao, ehMensal, ehOnline, geraRepeticoes, horasAntesParaGravar, pedeLocal, segundoDiaValido } from "@/lib/agendamentoNovo";
+import { canalParaGravar, datasEPuladas, ehMensal, ehOnline, geraRepeticoes, horasAntesParaGravar, pedeLocal, segundoDiaValido } from "@/lib/agendamentoNovo";
 import { and, eq, gte, lte } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
@@ -72,7 +72,7 @@ export async function createRecurring(formData: FormData): Promise<{ ok: boolean
   const ocupados = new Set(bloqueios.map((b) => new Date(b.date).getTime()));
   const bloqueado = (quando: Date) => ocupados.has(quando.getTime());
 
-  const datas = datasDaRepeticao({ primeira: first, limite: until, freq: freqRaw, segundoDia, segundoHorario, bloqueado });
+  const { datas, puladas } = datasEPuladas({ primeira: first, limite: until, freq: freqRaw, segundoDia, segundoHorario, bloqueado });
   if (!datas.length) {
     return { ok: false, error: "Todas as datas dessa repetiç\u00e3o caem em horário bloqueado." };
   }
@@ -85,6 +85,16 @@ export async function createRecurring(formData: FormData): Promise<{ ok: boolean
   }));
   if (!rows.length) return { ok: false, error: "Nenhuma data gerada." };
   await db.insert(therapySessions).values(rows);
+
+  /**
+   * Registra as datas que a serie PULOU por horario bloqueado (dona, 19/09).
+   *
+   * E o que permite a guia Geral mostrar "Hor. Bloq." naquela linha — o bloqueio em si nao conhece
+   * paciente nenhum, de proposito. Some quando o horario for desbloqueado.
+   */
+  if (puladas.length) {
+    await db.insert(sessoesPuladas).values(puladas.map((date) => ({ userId, patientId, date })));
+  }
 
   /**
    * O ritmo semanal escolhido aqui MANDA no tamanho do pacote (documento de 18/09): 2x na semana

@@ -13,7 +13,7 @@ import "server-only";
 
 import { and, eq } from "drizzle-orm";
 import { db } from "@/db";
-import { cobrancaEnvios, patientPackages, patientPaymentFormatHistory, patientPriceHistory, patients, sessionPayments, therapySessions } from "@/db/schema";
+import { blockedSlots, cobrancaEnvios, sessoesPuladas, patientPackages, patientPaymentFormatHistory, patientPriceHistory, patients, sessionPayments, therapySessions } from "@/db/schema";
 import { horaDeParede } from "./horaLocal";
 import { linhasDaGeral, resumoDaGeral, type CobrancaDaGeral, type EntradaDaGeral, type LinhaDaGeral } from "./guiaGeral";
 import { tamanhosDasSequencias } from "./sequenciaPacote";
@@ -47,7 +47,9 @@ export type CobrancaNaTela = Omit<CobrancaDaGeral, "vencimento" | "competencia" 
 
 export type LinhaNaTela =
   | { tipo: "sessao"; id: string; data: string; online: boolean; status: string; rotulo: string; valor: number | null; cobranca: CobrancaNaTela | null }
-  | ({ tipo: "pagamento" } & CobrancaNaTela);
+  | ({ tipo: "pagamento" } & CobrancaNaTela)
+  /** Data que a serie pulou por horario bloqueado. Nao e sessao: so ocupa a linha (dona, 19/09). */
+  | { tipo: "bloqueio"; data: string };
 
 function cobrancaNaTela(c: Omit<CobrancaDaGeral, "tipo"> & { tipoDeCobranca: CobrancaDaGeral["tipo"] }): CobrancaNaTela {
   return {
@@ -69,6 +71,7 @@ function cobrancaNaTela(c: Omit<CobrancaDaGeral, "tipo"> & { tipoDeCobranca: Cob
 
 function naTela(l: LinhaDaGeral): LinhaNaTela {
   if (l.tipo === "pagamento") return { tipo: "pagamento", ...cobrancaNaTela(l) };
+  if (l.tipo === "bloqueio") return { tipo: "bloqueio", data: texto(l.data) ?? "" };
   return {
     tipo: "sessao",
     id: l.id,
@@ -102,7 +105,7 @@ export async function geralDoPaciente(userId: string, patientId: string): Promis
   });
   if (!paciente) return null;
 
-  const [sessoes, pagamentos, precos, pacotes, vigencias, envios] = await Promise.all([
+  const [sessoes, pagamentos, precos, pacotes, vigencias, envios, puladas] = await Promise.all([
     db.select({ id: therapySessions.id, date: therapySessions.date, status: therapySessions.status, sessionKind: therapySessions.sessionKind, abaterDoPacote: therapySessions.abaterDoPacote, chargeable: therapySessions.chargeable, extra: therapySessions.extra, valorExtra: therapySessions.valorExtra, repoeSessaoId: therapySessions.repoeSessaoId, isOnline: therapySessions.isOnline })
       .from(therapySessions).where(and(eq(therapySessions.patientId, patientId), eq(therapySessions.userId, userId))),
     db.select({ id: sessionPayments.id, amount: sessionPayments.amount, date: sessionPayments.date, status: sessionPayments.status, method: sessionPayments.method, pagoPor: sessionPayments.pagoPor, cobrancaChave: sessionPayments.cobrancaChave, kind: sessionPayments.kind, reciboEmitidoEm: sessionPayments.reciboEmitidoEm, notaEmitidaEm: sessionPayments.receiptIssuedAt })
@@ -115,6 +118,17 @@ export async function geralDoPaciente(userId: string, patientId: string): Promis
       .from(patientPaymentFormatHistory).where(eq(patientPaymentFormatHistory.patientId, patientId)),
     db.select({ cobrancaChave: cobrancaEnvios.cobrancaChave, enviadaEm: cobrancaEnvios.enviadaEm, enviadaPor: cobrancaEnvios.enviadaPor })
       .from(cobrancaEnvios).where(and(eq(cobrancaEnvios.patientId, patientId), eq(cobrancaEnvios.userId, userId))),
+    /**
+     * So as faltas cujo horario AINDA esta bloqueado.
+     *
+     * Desbloqueou, a linha "Hor. Bloq." some sozinha — e o que a dona pede (19/09: "o registro
+     * devera ser removido"). O registro em si fica, porque e ele que sabe para onde devolver a
+     * sequencia se ela mandar remanejar; quem some e a linha.
+     */
+    db.select({ date: sessoesPuladas.date })
+      .from(sessoesPuladas)
+      .innerJoin(blockedSlots, and(eq(blockedSlots.userId, sessoesPuladas.userId), eq(blockedSlots.date, sessoesPuladas.date)))
+      .where(and(eq(sessoesPuladas.patientId, patientId), eq(sessoesPuladas.userId, userId))),
   ]);
 
   const entrada: EntradaDaGeral = {
@@ -130,6 +144,8 @@ export async function geralDoPaciente(userId: string, patientId: string): Promis
     horasAntesPagamento: paciente.horasAntesPagamento,
     pagamentos: pagamentos.map((p) => ({ id: p.id, valor: p.amount, data: local(p.date), status: p.status, metodo: p.method, pagoPor: p.pagoPor, cobrancaChave: p.cobrancaChave, kind: p.kind, recibo: !!p.reciboEmitidoEm, nota: !!p.notaEmitidaEm })),
     envios: envios.map((e) => ({ cobrancaChave: e.cobrancaChave, enviadaEm: local(e.enviadaEm), enviadaPor: e.enviadaPor })),
+    // As datas que a serie pulou por horario bloqueado: viram a linha "Hor. Bloq.", nunca sessao.
+    bloqueios: puladas.map((b) => ({ data: local(b.date) })),
     hoje: hojeDeParede(),
   };
   const resumo = resumoDaGeral(entrada);

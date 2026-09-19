@@ -4,7 +4,8 @@ import { and, eq, gte, inArray, lt } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { db } from "@/db";
 import { auth } from "@/auth";
-import { blockedSlots, therapySessions } from "@/db/schema";
+import { blockedSlots, therapySessions, sessoesPuladas } from "@/db/schema";
+import { remanejamento } from "@/lib/remanejamento";
 import { emRotulo, horariosLivres, notaParaGravar } from "@/lib/bloqueioDeHorario";
 
 /**
@@ -17,6 +18,12 @@ import { emRotulo, horariosLivres, notaParaGravar } from "@/lib/bloqueioDeHorari
  */
 
 type Resultado = { ok: boolean; error?: string };
+
+/** Desbloquear pode revelar series que pularam aquela data. A tela pergunta antes de remanejar. */
+type ResultadoDeDesbloqueio = Resultado & {
+  /** Quantas sessões ficaram esperando aquele horário. Zero = nada a perguntar. */
+  puladas?: number;
+};
 
 const diaInteiro = (iso: string) => {
   const [a, m, d] = iso.split("-").map(Number);
@@ -102,16 +109,89 @@ export async function bloquearHorarios(
 }
 
 /** Desbloqueia. Só apaga o que é de quem pediu. */
-export async function desbloquearHorarios(ids: string[]): Promise<Resultado> {
+export async function desbloquearHorarios(ids: string[]): Promise<ResultadoDeDesbloqueio> {
   const session = await auth();
   if (!session?.user?.id) return { ok: false, error: "Sessão inválida." };
+  const userId = session.user.id;
 
   const limpos = (Array.isArray(ids) ? ids : []).filter((id) => typeof id === "string" && id.length > 0).slice(0, 48);
   if (limpos.length === 0) return { ok: false, error: "Escolha ao menos um horário." };
 
+  // As datas ANTES de apagar: depois nao ha como saber quais horarios foram liberados.
+  const alvos = await db
+    .select({ date: blockedSlots.date })
+    .from(blockedSlots)
+    .where(and(eq(blockedSlots.userId, userId), inArray(blockedSlots.id, limpos)));
+
   // O `user_id` no WHERE é o que impede apagar o bloqueio de outra terapeuta trocando um id.
-  await db.delete(blockedSlots).where(and(eq(blockedSlots.userId, session.user.id), inArray(blockedSlots.id, limpos)));
+  await db.delete(blockedSlots).where(and(eq(blockedSlots.userId, userId), inArray(blockedSlots.id, limpos)));
+
+  /**
+   * Alguma serie pulou essas datas? (dona, 18 e 19/09)
+   *
+   * Se sim, a tela pergunta "Remanejar a agenda?" — o remanejamento nao acontece sozinho, porque
+   * mover sessao de paciente e coisa que ela precisa querer. So contamos aqui; quem move e a acao
+   * `remanejarAgenda`.
+   */
+  const datas = alvos.map((a) => a.date);
+  const puladas = datas.length
+    ? await db
+        .select({ id: sessoesPuladas.id })
+        .from(sessoesPuladas)
+        .where(and(eq(sessoesPuladas.userId, userId), inArray(sessoesPuladas.date, datas)))
+    : [];
 
   revalidatePath("/dashboard/agenda");
-  return { ok: true };
+  return { ok: true, puladas: puladas.length };
+}
+
+/**
+ * REMANEJA a agenda depois de um desbloqueio, se a terapeuta confirmar.
+ *
+ * Roda por PACIENTE e por VAGA: cada data liberada que alguma serie tinha pulado devolve a
+ * sequencia para la, em cascata (ver `lib/remanejamento`). A falta registrada some junto — ela
+ * existia so para a guia Geral poder dizer "Hor. Bloq." naquela linha.
+ *
+ * Nao move sessao que ja teve desfecho, e nao move para cima de horario ainda bloqueado: as vagas
+ * consideradas sao justamente as que acabaram de ser liberadas.
+ */
+export async function remanejarAgenda(): Promise<Resultado & { movidas?: number }> {
+  const session = await auth();
+  if (!session?.user?.id) return { ok: false, error: "Sessão inv\u00e1lida." };
+  const userId = session.user.id;
+
+  // Faltas registradas cujo bloqueio nao existe mais = vagas abertas esperando a sequencia voltar.
+  const pendentes = await db
+    .select({ id: sessoesPuladas.id, patientId: sessoesPuladas.patientId, date: sessoesPuladas.date })
+    .from(sessoesPuladas)
+    .where(eq(sessoesPuladas.userId, userId));
+  if (!pendentes.length) return { ok: true, movidas: 0 };
+
+  const aindaBloqueadas = new Set(
+    (await db.select({ date: blockedSlots.date }).from(blockedSlots).where(eq(blockedSlots.userId, userId)))
+      .map((b) => new Date(b.date).getTime()),
+  );
+  const vagas = pendentes.filter((p) => !aindaBloqueadas.has(new Date(p.date).getTime()));
+  if (!vagas.length) return { ok: true, movidas: 0 };
+
+  let movidas = 0;
+  // Da mais antiga para a mais nova: remanejar de tras para frente embaralharia a cascata.
+  for (const vaga of vagas.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())) {
+    const doPaciente = await db
+      .select({ id: therapySessions.id, date: therapySessions.date, status: therapySessions.status })
+      .from(therapySessions)
+      .where(and(eq(therapySessions.userId, userId), eq(therapySessions.patientId, vaga.patientId)));
+
+    for (const m of remanejamento(new Date(vaga.date), doPaciente)) {
+      await db.update(therapySessions)
+        .set({ date: m.para })
+        .where(and(eq(therapySessions.id, m.id), eq(therapySessions.userId, userId)));
+      movidas++;
+    }
+    await db.delete(sessoesPuladas).where(and(eq(sessoesPuladas.id, vaga.id), eq(sessoesPuladas.userId, userId)));
+    revalidatePath(`/dashboard/patients/${vaga.patientId}`);
+  }
+
+  revalidatePath("/dashboard/agenda");
+  return { ok: true, movidas };
 }

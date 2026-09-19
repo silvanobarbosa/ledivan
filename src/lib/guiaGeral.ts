@@ -52,6 +52,8 @@ export type EntradaDaGeral = Omit<EntradaDasCobrancas, "sessoes"> & {
   sessoes: (SessaoDaCobranca & { online?: boolean | null })[];
   pagamentos: PagamentoDaGeral[];
   envios?: EnvioDaGeral[];
+  /** As datas que a serie pulou por horario bloqueado. Viram linha, nunca sessao. */
+  bloqueios?: { data: Date | string }[];
   /** "A cada sessão": horas ANTES da sessão em que o pagamento vence. Null/0 = vence na hora da sessão. */
   horasAntesPagamento?: number | null;
   hoje: Date;
@@ -110,7 +112,15 @@ export type LinhaDaGeral =
       /** A cobrança da própria linha (a cada sessão, AVUL). */
       cobranca: CobrancaDaGeral | null;
     }
-  | ({ tipo: "pagamento"; tipoDeCobranca: Cobranca["tipo"] } & Omit<CobrancaDaGeral, "tipo">);
+  | ({ tipo: "pagamento"; tipoDeCobranca: Cobranca["tipo"] } & Omit<CobrancaDaGeral, "tipo">)
+  /**
+   * Uma data em que a serie NAO pode ser marcada porque o horario estava bloqueado (dona, 19/09).
+   *
+   * Ela aparece na tabela como "Hor. Bloq." para o historico nao sumir, mas **nao e sessao**: nao
+   * tem status, nao consome posicao no pacote e nao entra em conta nenhuma. Some sozinha quando o
+   * horario for desbloqueado.
+   */
+  | { tipo: "bloqueio"; data: Date };
 
 const TOLERANCIA = 0.005;
 const emData = (d: Date | string) => (d instanceof Date ? d : new Date(d));
@@ -256,7 +266,26 @@ export function linhasDaGeral(e: EntradaDaGeral): LinhaDaGeral[] {
   }
 
   const out: LinhaDaGeral[] = [];
+
+  /**
+   * Os bloqueios entram na ordem do calendario, junto das sessoes.
+   *
+   * Eles nao passam pelo `rotulos` nem pelas cobrancas: nao sao sessao. So ocupam a linha da data
+   * para o historico nao ficar com um buraco inexplicado.
+   */
+  const bloqueios = (e.bloqueios ?? [])
+    .map((b) => emData(b.data))
+    .filter((d) => !Number.isNaN(d.getTime()))
+    .sort((a, b) => a.getTime() - b.getTime());
+  let proximoBloqueio = 0;
+  const despejaBloqueiosAte = (limite: number) => {
+    while (proximoBloqueio < bloqueios.length && bloqueios[proximoBloqueio].getTime() <= limite) {
+      out.push({ tipo: "bloqueio", data: bloqueios[proximoBloqueio++] });
+    }
+  };
+
   for (const s of sessoes) {
+    despejaBloqueiosAte(s.data.getTime());
     for (const c of antes.get(s.id) ?? []) out.push(comoLinha(c));
 
     const cobranca = naSessao.get(s.id) ?? null;
@@ -279,6 +308,8 @@ export function linhasDaGeral(e: EntradaDaGeral): LinhaDaGeral[] {
 
     for (const c of depois.get(s.id) ?? []) out.push(comoLinha(c));
   }
+  // Bloqueio depois da ultima sessao ainda e historico: entra no fim.
+  despejaBloqueiosAte(Number.POSITIVE_INFINITY);
   for (const c of soltas) out.push(comoLinha(c));
   return out;
 }

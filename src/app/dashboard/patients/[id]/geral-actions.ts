@@ -50,7 +50,7 @@ export async function lancarPagamento(entrada: {
   if (!geral) return { ok: false, error: "Paciente não encontrado." };
 
   const cobranca = geral.linhas
-    .flatMap((l) => (l.tipo === "pagamento" ? [l] : l.cobranca ? [l.cobranca] : []))
+    .flatMap((l) => (l.tipo === "pagamento" ? [l] : l.tipo === "sessao" && l.cobranca ? [l.cobranca] : []))
     .find((c) => c.chave === chave);
   if (!cobranca) return { ok: false, error: "Cobrança não encontrada." };
   if (cobranca.situacao === "pago" || cobranca.falta <= 0) return { ok: false, error: "Esta cobrança já está paga." };
@@ -149,7 +149,7 @@ async function contexto(patientId: string, chave: string): Promise<{ userId: str
   const geral = await geralDoPaciente(userId, patientId);
   if (!geral) return { error: "Paciente não encontrado." };
   const existe = geral.linhas
-    .flatMap((l) => (l.tipo === "pagamento" ? [l.chave] : l.cobranca ? [l.cobranca.chave] : []))
+    .flatMap((l) => (l.tipo === "pagamento" ? [l.chave] : l.tipo === "sessao" && l.cobranca ? [l.cobranca.chave] : []))
     .includes(chave);
   if (!existe) return { error: "Cobrança não encontrada." };
   return { userId };
