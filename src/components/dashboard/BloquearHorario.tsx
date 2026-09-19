@@ -3,7 +3,7 @@
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Lock, X } from "lucide-react";
-import { bloquearHorarios, desbloquearHorarios, horariosDoDia } from "@/app/dashboard/agenda/bloqueio-actions";
+import { bloquearHorarios, desbloquearHorarios, horariosDoDia, remanejarAgenda } from "@/app/dashboard/agenda/bloqueio-actions";
 import { TEXTO_PADRAO_DO_BLOQUEIO } from "@/lib/bloqueioDeHorario";
 import { FUNDO_DA_JANELA, JANELA } from "@/lib/modal";
 
@@ -76,6 +76,21 @@ export function BloquearHorario() {
     comecar(async () => {
       const r = await desbloquearHorarios(ids);
       if (!r.ok) return setErro(r.error ?? "Não consegui desbloquear.");
+
+      /**
+       * Alguma serie tinha pulado esse horario? Entao a agenda pode voltar para la (dona, 18/09).
+       *
+       * A pergunta existe porque mover sessao de paciente e coisa que ela precisa querer — o
+       * documento pede "Remanejar a agenda?" antes, nao depois.
+       */
+      if (r.puladas) {
+        const quantas = r.puladas === 1 ? "1 sessão ficou" : `${r.puladas} sessões ficaram`;
+        if (window.confirm(`${quantas} esperando esse horário. Remanejar a agenda para usá-lo?`)) {
+          const rm = await remanejarAgenda();
+          if (!rm.ok) setErro(rm.error ?? "Não consegui remanejar.");
+        }
+      }
+
       await carregar(data);
       router.refresh();
     });

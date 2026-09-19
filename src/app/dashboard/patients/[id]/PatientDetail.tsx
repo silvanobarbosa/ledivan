@@ -104,7 +104,7 @@ export function PatientDetail({
   const router = useRouter();
   // Os anos que o paciente tem: das linhas da Geral e dos pagamentos. O corrente entra sempre.
   const anosDoPaciente = anosDisponiveis([
-    ...geral.map((l) => (l.tipo === "sessao" ? l.data : l.pagamento?.data ?? l.vencimento)),
+    ...geral.map((l) => (l.tipo === "sessao" || l.tipo === "bloqueio" ? l.data : l.pagamento?.data ?? l.vencimento)),
     ...payments.map((p) => p.date),
   ]);
   const [ano, setAno] = useState(anosDoPaciente[0]);

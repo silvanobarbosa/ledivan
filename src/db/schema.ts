@@ -742,6 +742,28 @@ export const blockedSlots = pgTable("blocked_slots", {
   index("blocked_user_date_idx").on(t.userId, t.date),
 ]);
 
+/**
+ * A data que uma serie de agendamentos PULOU por causa de um horario bloqueado (dona, 19/09).
+ *
+ * Fica guardada, e nao deduzida, por dois motivos. O bloqueio mora em tabela propria e **nao
+ * conhece paciente nenhum** — de proposito, para nunca virar contagem de pacote nem dinheiro; e a
+ * guia Geral precisa mostrar "Hor. Bloq." NAQUELA linha, o que exige saber de quem era a vaga.
+ *
+ * Nao e sessao e nao vira sessao: so ocupa a linha da data na tabela, para o historico nao ficar
+ * com um buraco inexplicado. Some quando o horario for desbloqueado.
+ */
+export const sessoesPuladas = pgTable("sessoes_puladas", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: text("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
+  patientId: uuid("patient_id").references(() => patients.id, { onDelete: "cascade" }).notNull(),
+  /** O instante exato que a serie teria usado. Bate com `blocked_slots.date`. */
+  date: timestamp("date").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (t) => [
+  index("puladas_user_date_idx").on(t.userId, t.date),
+  index("puladas_patient_idx").on(t.patientId),
+]);
+
 export const rateLimits = pgTable("rate_limits", {
   key: text("key").primaryKey(),
   count: integer("count").default(0).notNull(),

@@ -78,6 +78,25 @@ try {
   const [restou] = await sql`SELECT count(*)::int AS n FROM blocked_slots WHERE id = ${bloqueioId}`;
   check("o bloqueio continua sendo bloqueio, não virou sessão", restou.n === 1);
 
+  // ---------------------------------------------- a linha "Hor. Bloq." na guia Geral (19/09)
+  const [pulada] = await sql`SELECT count(*)::int AS n FROM sessoes_puladas WHERE patient_id = ${pid}`;
+  check("a falta ficou registrada", pulada.n === 1, `${pulada.n} registro(s)`);
+
+  await page.goto(`${BASE}/dashboard/patients/${pid}`, { waitUntil: "domcontentloaded", timeout: 90000 });
+  await page.waitForTimeout(2500);
+  const geral = await page.locator("body").innerText();
+  check("a guia Geral mostra a data como Hor. Bloq.", geral.includes("Hor. Bloq."));
+  check("e a data bloqueada aparece na tabela", geral.includes("21/09/26"));
+  await page.screenshot({ path: "_visual/geral-hor-bloq.png", fullPage: true });
+
+  // ------------------------------- desbloqueado, a linha some sozinha da guia Geral (19/09)
+  await sql`DELETE FROM blocked_slots WHERE id = ${bloqueioId}`;
+  bloqueioId = null;
+  await page.reload({ waitUntil: "domcontentloaded", timeout: 90000 });
+  await page.waitForTimeout(2500);
+  const depois = await page.locator("body").innerText();
+  check("desbloqueado, 'Hor. Bloq.' some da guia Geral", !depois.includes("Hor. Bloq."));
+
   check("sem erro no console do navegador", erros.length === 0, erros.slice(0, 2).join(" | "));
 } catch (e) {
   check("percurso", false, String(e?.message ?? e).replace(/postgresql:\/\/[^\s]*/g, "[url omitida]"));

@@ -340,7 +340,7 @@ export function GeralTab({ patientId, linhas, responsavel, responsavelCpf, cobra
   // clique de distância.
   // A data que define o ano muda com o tipo da linha: a sessão tem a dela; o pagamento vale pelo
   // dia em que foi pago, e não pelo vencimento da cobrança que ele quitou.
-  const doAnoEscolhido = doAno(linhas, ano, (l) => (l.tipo === "sessao" ? l.data : l.pagamento?.data ?? l.vencimento));
+  const doAnoEscolhido = doAno(linhas, ano, (l) => (l.tipo === "sessao" || l.tipo === "bloqueio" ? l.data : l.pagamento?.data ?? l.vencimento));
 
   if (!linhas.length) {
     return <div className="glass-card rounded-[24px] p-6 text-sm text-foreground/50">Nenhuma sessão registrada ainda.</div>;
@@ -388,6 +388,27 @@ export function GeralTab({ patientId, linhas, responsavel, responsavelCpf, cobra
                   </Fragment>
                 );
               }
+              /*
+               * HORARIO BLOQUEADO (dona, 19/09). A data em que a serie NAO pode ser marcada
+               * continua na tabela — "para que o historico e a sequencia do pacote nao sejam
+               * perdidos" — mas nao e sessao: sem posicao no pacote, sem valor, sem clique.
+               * Some sozinha quando o horario for desbloqueado.
+               */
+              if (l.tipo === "bloqueio") {
+                const b = partes(l.data);
+                return (
+                  <tr key={`bloq-${l.data}`} className="border-t border-border bg-surface/40 text-foreground/50">
+                    <td className="px-3 py-2 tabular-nums whitespace-nowrap">{b.data} {b.hora}</td>
+                    <td className="px-3 py-2">
+                      <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-[#fee2e2] text-[#991b1b] whitespace-nowrap">Hor. Bloq.</span>
+                    </td>
+                    <td className="px-3 py-2 text-foreground/30">—</td>
+                    <td className="px-3 py-2 text-foreground/30">—</td>
+                    <td className="px-3 py-2 text-foreground/30" colSpan={4}>—</td>
+                  </tr>
+                );
+              }
+
               const p = partes(l.data);
               const c = l.cobranca;
               return (

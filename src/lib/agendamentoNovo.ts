@@ -116,7 +116,13 @@ export function segundoDiaValido(
  * Mora aqui, fora da action, porque é regra e não acesso a banco — e porque o 2x na semana
  * intercala duas séries, que é exatamente o tipo de conta que se quer ver escrita num teste.
  */
-export function datasDaRepeticao(opts: {
+/**
+ * As datas da repeticao E as que ela pulou por horario bloqueado.
+ *
+ * Duas funcoes porque quase todo mundo so quer as datas; quem cria a serie precisa tambem saber o
+ * que ficou de fora, para registrar a falta e a guia Geral poder mostrar "Hor. Bloq." na linha.
+ */
+export function datasEPuladas(opts: {
   primeira: Date;
   limite: Date;
   freq: string | null | undefined;
@@ -134,15 +140,17 @@ export function datasDaRepeticao(opts: {
    * a data vire agendamento. Sem a funcao, nada e pulado.
    */
   bloqueado?: (quando: Date) => boolean;
-}): Date[] {
+}): { datas: Date[]; puladas: Date[] } {
   const { primeira, limite, freq } = opts;
   const passo = freq === "quinzenal" ? 14 : 7;
   const datas: Date[] = [];
 
   const livre = (d: Date) => !opts.bloqueado?.(d);
+  const puladas: Date[] = [];
 
   for (const d = new Date(primeira); d <= limite && datas.length < 260; d.setDate(d.getDate() + passo)) {
     if (livre(d)) datas.push(new Date(d));
+    else puladas.push(new Date(d));
   }
 
   if (ehSemanal2x(freq) && opts.segundoDia != null && opts.segundoHorario) {
@@ -160,11 +168,18 @@ export function datasDaRepeticao(opts: {
 
     for (const d = new Date(segunda); d <= limite && datas.length < 520; d.setDate(d.getDate() + 7)) {
       if (livre(d)) datas.push(new Date(d));
+      else puladas.push(new Date(d));
     }
     datas.sort((x, y) => x.getTime() - y.getTime());
   }
 
-  return datas;
+  puladas.sort((x, y) => x.getTime() - y.getTime());
+  return { datas, puladas };
+}
+
+/** So as datas. E o que quase todo chamador quer. */
+export function datasDaRepeticao(opts: Parameters<typeof datasEPuladas>[0]): Date[] {
+  return datasEPuladas(opts).datas;
 }
 
 /**
