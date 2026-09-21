@@ -7,6 +7,27 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-09-20 — Nova leva de testes: base da Gisele e da Ana zerada
+
+**Entregue:** os dados de paciente das duas beta testers apagados para recomeçar os testes, com as
+configurações intactas. Gisele tinha 7 pacientes/284 sessões, Ana 14 pacientes/233 sessões. Backup
+JSON gravado antes do primeiro delete.
+
+**Por quê:** o dono pediu para limpar e recomeçar.
+
+**Armadilha (custou e vale para a próxima):** o `scripts/limpar-dados-beta.mjs` estava
+**desatualizado** — três tabelas ganharam `patient_id` desde 13/09 e ficaram fora da lista:
+`cobranca_envios`, `patient_payment_format_history` e `sessoes_puladas` (#210). As três têm FK para
+`patients`, então o script antigo **abortaria no DELETE de patients** por constraint. Antes de rodar
+qualquer limpeza, conferir no schema quais tabelas têm `patient_id`/`user_id` e comparar com a lista
+— o schema anda, o script não anda sozinho.
+
+**Decisões que ficam valendo:** as mesmas duas travas de sempre — lista **fechada** de ids (a demo do
+Dr. Sócrates e a conta do dono ficam de fora por construção) e **backup antes** do delete. Config
+× dado continua sendo decidido no script, não no schema.
+
+---
+
 ## 2026-09-19 — "Hor. Bloq." na guia Geral e o remanejamento (#210)
 
 **Entregue:** a data que a série pulou por bloqueio aparece na guia Geral como "Hor. Bloq.", some

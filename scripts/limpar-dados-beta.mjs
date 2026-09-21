@@ -58,6 +58,12 @@ const PELO_PACIENTE = [
   "messages",
   "message_log",
   "push_tokens",
+  // Adicionadas em 20/09: têm FK para patients, então SEM elas o DELETE de patients aborta.
+  // cobranca_envios e patient_payment_format_history são rastro do paciente; sessoes_puladas é a
+  // falta guardada por bloqueio (o #210 — a tabela conhece o paciente da vaga pulada).
+  "cobranca_envios",
+  "patient_payment_format_history",
+  "sessoes_puladas",
 ];
 
 /** Movimento do financeiro nasce do atendimento; a conta e a categoria onde ele cai, não. */
