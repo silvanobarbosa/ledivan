@@ -7,6 +7,32 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-09-27 — Agenda de anos anteriores + salvar por guia (#215)
+
+**Entregue:** duas demandas do dono (PDF).
+- **Agendamento de 2024 não aparecia na Agenda.** A consulta do dashboard (`agenda/page.tsx`) cortava
+  em `date >= hoje-120dias` e o `AgendaClient` navega semanas só sobre o que veio — sessão de ano
+  anterior nunca carregava (salvava, mas sumia). Agora a **exibição carrega o histórico inteiro**;
+  **risco** e **pagamento atrasado** continuam na janela de 120 dias (sem regressão).
+- **Salvar independente por guia.** "Salvar alterações" de **Dados** e **Financeiro** virou um
+  `<form>` por guia (componente `Secao`, só no modo edição). Cada form envia só os seus campos e o
+  `updatePatient` mantém coluna ausente no valor atual → salvar uma guia não persiste o pendente da
+  outra. O cadastro (novo paciente) segue com form único (sem `save` → `Secao` vira `<div>`).
+
+**Decisões que ficam valendo:**
+- A janela de 120 dias é só para **cálculo** (risco/atraso), nunca para **exibição** da agenda.
+- `updatePatient` não redireciona (só revalida) → dá pra salvar as duas guias sem sair da tela.
+
+**Armadilha (custou e não pode custar de novo):** o `git config` LOCAL do repo estava como
+`renan@rdmss.com.br` — o commit nasceu com autor errado e a Vercel BLOQUEIA deploy de produção de
+autor não-membro (gitForkProtection). Sempre conferir `git config user.email` = `silvanobarbosa@gmail.com`
+ANTES de commitar; se errar, `git commit --amend --reset-author` + force-push.
+
+**Pendente:** segue o do bloco anterior — decisão do dono sobre **como o WhatsApp vai funcionar**
+(envio de mídia/anexo).
+
+---
+
 ## 2026-09-20 — Nova leva de testes: base da Gisele e da Ana zerada
 
 **Entregue:** os dados de paciente das duas beta testers apagados para recomeçar os testes, com as
