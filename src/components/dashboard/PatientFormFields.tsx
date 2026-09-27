@@ -2,6 +2,7 @@
 
 import { useState, type ReactNode } from "react";
 import { InfoTip } from "@/components/InfoTip";
+import { SubmitButton } from "@/components/SubmitButton";
 import { MessageCircle } from "lucide-react";
 import { QUEIXAS } from "@/lib/queixas";
 import { idadeEmPalavras } from "@/lib/idade";
@@ -185,7 +186,30 @@ function NumeroCom({ name, label, dica, unidade, defaultValue, placeholder, min 
   );
 }
 
-export function PatientFormFields({ p }: { p?: PatientFormData }) {
+type SaveAction = (formData: FormData) => void | Promise<void>;
+
+/**
+ * Cada guia (Dados/Financeiro) num CONTÊINER próprio. Na EDIÇÃO (`save` presente) o contêiner é um
+ * `<form>` INDEPENDENTE com seu próprio botão "Salvar alterações": como o form só envia os campos
+ * que estão DENTRO dele, salvar uma guia não persiste o que ficou pendente na outra, e o
+ * `updatePatient` mantém as colunas ausentes no valor atual (campo ausente → `existing`). No CADASTRO
+ * (`save` ausente) vira `<div>` e o form único do pai envolve tudo, com um botão só.
+ */
+function Secao({ show, save, children }: { show: string; save?: SaveAction; children: ReactNode }) {
+  if (!save) return <div className={show}>{children}</div>;
+  return (
+    <form action={save} className={show}>
+      {children}
+      <div className="pt-1">
+        <SubmitButton pendingLabel="Salvando…" className="inline-flex items-center justify-center gap-2 bg-primary text-white py-3 px-6 rounded-2xl font-bold shadow-lg shadow-primary/20 hover:scale-[1.01] transition">
+          Salvar alterações
+        </SubmitButton>
+      </div>
+    </form>
+  );
+}
+
+export function PatientFormFields({ p, save }: { p?: PatientFormData; save?: SaveAction }) {
   const [tab, setTab] = useState("dados");
   // Formato antigo "avulso" e o "a cada sessao" do dono; "pacote" virou mensal com pacote.
   const formatoInicial = p?.paymentFormat === "avulso" ? "sessao" : p?.paymentFormat === "pacote" ? "mensal" : (p?.paymentFormat || "sessao");
@@ -334,7 +358,7 @@ export function PatientFormFields({ p }: { p?: PatientFormData }) {
       </div>
 
       {/* DADOS: pessoais → cônjuge → responsável/emergência → devolutiva → escola */}
-      <div className={show("dados")}>
+      <Secao show={show("dados")} save={save}>
         <Card title="Dados pessoais">
           <div className="grid sm:grid-cols-2 gap-4">
             <div>
@@ -448,12 +472,12 @@ export function PatientFormFields({ p }: { p?: PatientFormData }) {
             <div><label className={labelCls}>Contato da escola</label><input name="schoolContact" defaultValue={p?.schoolContact ?? ""} className={inputCls} placeholder="Telefone, e-mail ou coordenação" /></div>
           </div>
         </Card>
-      </div>
+      </Secao>
 
       {/* FINANCEIRO — o formato vem primeiro, e é ele que decide o que se pergunta depois. Os
           campos abrem LOGO ABAIXO do formato escolhido, e não no fim da lista: assim se lê o que
           foi marcado junto com o que ele pede. */}
-      <div className={show("financeiro")}>
+      <Secao show={show("financeiro")} save={save}>
         <Card title="Financeiro">
           <div>
             <label className={labelCls}>Formato de pagamento</label>
@@ -531,7 +555,7 @@ export function PatientFormFields({ p }: { p?: PatientFormData }) {
             );
           })()}
         </Card>
-      </div>
+      </Secao>
 
       <p className="text-xs text-foreground/50 px-1">💡 Etiquetas e observações ficam no <strong>Prontuário</strong> do paciente.</p>
     </div>

@@ -17,12 +17,14 @@ export default async function AgendaPage() {
   const session = await auth();
   if (!session?.user?.id) return null;
 
-  // Janela de exibição: últimos 120 dias (para cálculo de risco/histórico recente) em diante.
+  // `windowStart` (120 dias) serve só ao cálculo de RISCO/ATRASO (histórico recente). A EXIBIÇÃO
+  // carrega o histórico INTEIRO, senão a agenda não consegue navegar para semanas antigas — um
+  // agendamento de 2024, por exemplo, era salvo mas nunca aparecia porque caía fora da janela.
   const windowStart = new Date(); windowStart.setDate(windowStart.getDate() - 120);
 
   const [list, pats, bloqueios, me] = await Promise.all([
     db.query.therapySessions.findMany({
-      where: and(eq(therapySessions.userId, session.user.id), gte(therapySessions.date, windowStart)),
+      where: eq(therapySessions.userId, session.user.id),
       columns: { id: true, patientId: true, date: true, duration: true, status: true, isOnline: true, meetingUrl: true, meetingOpenedAt: true, guestJoinedAt: true, meetingEndedAt: true, pendingConfirmation: true, patientConfirmedAt: true, rescheduleRequestedAt: true, patientArrivedAt: true, location: true, recurring: true, recurrenceFreq: true, sessionKind: true, packageId: true, abaterDoPacote: true },
       with: { patient: { columns: { name: true } } },
     }),
@@ -115,6 +117,7 @@ export default async function AgendaPage() {
       .where(and(eq(sessionPayments.userId, session.user.id), eq(sessionPayments.status, "paid")));
     const pagas = new Set(pagos.map((x) => x.sessionId).filter(Boolean) as string[]);
     for (const s of list) {
+      if ((s.date as Date) < windowStart) continue; // atraso só na janela recente
       const horas = porSessao.get(s.patientId);
       if (!horas) continue;
       if (pagamentoAtrasado({ agora, dataSessao: s.date as Date, horasAntes: horas, pago: pagas.has(s.id), status: s.status })) {
@@ -135,6 +138,8 @@ export default async function AgendaPage() {
   // risco de falta por paciente (calculado sobre o histórico completo)
   const byPatient = new Map<string, { status: string; date: Date }[]>();
   for (const s of list) {
+    // risco olha só a janela recente (o `list` agora traz o histórico inteiro para a exibição)
+    if ((s.date as Date) < windowStart) continue;
     const arr = byPatient.get(s.patientId) ?? [];
     arr.push({ status: s.status, date: s.date as Date });
     byPatient.set(s.patientId, arr);

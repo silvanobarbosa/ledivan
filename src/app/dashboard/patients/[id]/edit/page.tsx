@@ -47,8 +47,8 @@ export default async function EditPatientPage({ params }: { params: Promise<{ id
         <p className="text-foreground/50 mt-1">{patient.name}</p>
       </div>
 
-      <form action={save} className="space-y-5">
-        <PatientFormFields p={{
+      <div className="space-y-5">
+        <PatientFormFields save={save} p={{
           registrationNumber: patient.registrationNumber, agendaId: patient.agendaId, dueDateType: patient.dueDateType, dueDate: iso(patient.dueDate), queixaPrincipal: patient.queixaPrincipal,
           name: patient.name, phone: patient.phone, email: patient.email, patientStatus: patient.patientStatus,
           startedAt: iso(patient.startedAt), birthDate: iso(patient.birthDate), category: patient.category, isCouple: patient.isCouple, guardianRelationship: patient.guardianRelationship,
@@ -66,15 +66,12 @@ export default async function EditPatientPage({ params }: { params: Promise<{ id
           reminderEnabled: patient.reminderEnabled, reminderChannel: patient.reminderChannel, reminderLeadMinutes: patient.reminderLeadMinutes,
           photo3x4: patient.photo3x4, photoExtra1: patient.photoExtra1, photoExtra2: patient.photoExtra2, photoExtra3: patient.photoExtra3,
         }} />
-        <div className="flex gap-3 pt-2">
-          <SubmitButton pendingLabel="Salvando…" className="flex-1 inline-flex items-center justify-center gap-2 bg-primary text-white py-3.5 rounded-2xl font-bold shadow-lg shadow-primary/20 hover:scale-[1.01] transition">
-            Salvar alterações
-          </SubmitButton>
+        <div className="flex justify-end pt-1">
           <Link href={`/dashboard/patients/${id}`} className="px-6 py-3.5 rounded-2xl font-semibold text-foreground/60 hover:bg-white/60 transition">
             Cancelar
           </Link>
         </div>
-      </form>
+      </div>
 
       <form action={remove} className="flex justify-end">
         <SubmitButton pendingLabel="Excluindo…" className="inline-flex items-center gap-2 text-sm font-semibold text-red-500/70 hover:text-red-600 transition px-4 py-2">
