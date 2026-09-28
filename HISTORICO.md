@@ -7,6 +7,28 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-09-27 — Reorganização do dashboard: analíticos + relatórios (#219)
+
+**Entregue:** reorganização dos painéis do dashboard pedida pelo dono (PDF).
+- **Removidos** os painéis **Presença** e **Ativos e inativos**.
+- **Analíticos de atendimento** ganhou, no mesmo layout dos atendimentos realizados, dois cartões:
+  **Faltas** e **% Comparecimento** — no período que o dono escolhe na tela (`nao_realizada` vs
+  `realizada`). É onde a informação de presença passou a viver.
+- **Relatórios** absorveu **Ativos / Inativos / "Não vieram na semana"**, cada um com **ver lista**
+  (modal `ModalPacientes`), além do "Montar relatório".
+- Junto: o teste órfão do #217 (preço 0 do período gratuito não zera cobrança) que ficou sem commit.
+
+**Por quê:** o painel Presença duplicava a leitura de faltas e o "Ativos e inativos" competia com
+Relatórios. Consolidação num lugar só, sem perder nenhum número.
+
+**Decisões que ficam valendo:**
+- Faltas e comparecimento vivem nos **analíticos**, no período da tela — não há mais painel Presença.
+- Ativos/Inativos/Não-vieram são **atalhos de lista** dentro de Relatórios, não painel próprio.
+
+**Pendente:** segue a decisão do dono sobre **como o WhatsApp vai funcionar** (mídia/anexo).
+
+---
+
 ## 2026-09-27 — Cinco correções: cobrança R$0, pagamento, cor Presente, horas, presenças (#217)
 
 **Entregue:** cinco demandas do dono (PDF).
