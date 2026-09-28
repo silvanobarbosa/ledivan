@@ -76,13 +76,11 @@ export function DashboardPanels({
           um painel curto ao lado de uma lista longa virava meia tela de espaço vazio. */}
       <div className="grid lg:grid-cols-2 gap-4 items-start">
         <Prospeccao patients={patients} />
-        <Relatorios patients={patients} />
+        <Relatorios patients={patients} presence={presence} corte={corteSemana} />
         <Aniversariantes patients={patients} modeloSalvo={mensagemAniversario} hoje={hoje} />
         {mostrarLembrar && <LembrarAgendamento lista={aLembrar} modeloSalvo={mensagemAgendamento} />}
-        <AtivosInativos patients={patients} presence={presence} corte={corteSemana} />
         <QueixaBloco patients={patients} />
         <Pagamentos patients={patients} />
-        <Presenca presence={presence} />
       </div>
     </section>
   );
@@ -112,19 +110,28 @@ function Prospeccao({ patients }: { patients: PanelPatient[] }) {
 // 2. RELATÓRIOS — o painel virou porta de entrada, não a ferramenta. Os filtros e as colunas
 // vivem em /dashboard/relatorio-pacientes: caixa de seleção de coluna não cabe num cartão de
 // dashboard, e o resultado é uma tabela larga. Aqui ficam só os números que orientam o clique.
-function Relatorios({ patients }: { patients: PanelPatient[] }) {
-  const ativos = patients.filter((p) => p.status === "ativo").length;
-  const inativos = patients.filter((p) => p.status === "inativo").length;
+function Relatorios({ patients, presence, corte }: { patients: PanelPatient[]; presence: PanelPresence[]; corte: string }) {
+  const [lista, setLista] = useState<{ titulo: string; itens: PanelPatient[] } | null>(null);
+  const ativos = patients.filter((p) => p.status === "ativo");
+  const inativos = patients.filter((p) => p.status === "inativo");
+  // "Não vieram na semana": ativo sem sessão realizada nos últimos 7 dias. `corte` vem do servidor.
+  const semana = useMemo(() => {
+    const limite = new Date(corte).getTime();
+    const vieram = new Set(presence.filter((r) => r.presente && new Date(r.date).getTime() >= limite).map((r) => r.patientId));
+    return ativos.filter((p) => !vieram.has(p.id));
+  }, [ativos, presence, corte]);
   return (
     <div className={card}>
       <h4 className="font-display font-bold text-primary">Relatórios</h4>
       <p className="text-sm text-foreground/50">Recorte por tipo e por período de início, escolhendo as colunas: sexo, e-mail, endereço, escola, idade, telefone, avulso/pacote, vencimento, valor, data de início e data de reajuste.</p>
-      <div className="grid grid-cols-3 gap-2">
-        <Stat n={ativos + inativos} label="No cadastro" />
-        <Stat n={ativos} label="Ativos" tone="green" />
-        <Stat n={inativos} label="Inativos" />
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+        <Stat n={ativos.length + inativos.length} label="No cadastro" />
+        <Stat n={ativos.length} label="Ativos" tone="green" onAbrir={() => setLista({ titulo: "Pacientes ativos", itens: ativos })} />
+        <Stat n={inativos.length} label="Inativos" onAbrir={() => setLista({ titulo: "Pacientes inativos", itens: inativos })} />
+        <Stat n={semana.length} label="Não vieram na semana" tone="amber" onAbrir={() => setLista({ titulo: "Ativos sem sessão realizada nos últimos 7 dias", itens: semana })} />
       </div>
       <Link href="/dashboard/relatorio-pacientes" className="inline-block text-xs font-bold px-3 py-1.5 rounded-lg bg-primary text-white">Montar relatório</Link>
+      {lista && <ModalPacientes titulo={lista.titulo} pacientes={lista.itens} onFechar={() => setLista(null)} />}
     </div>
   );
 }
@@ -293,37 +300,6 @@ function Aniversariantes({ patients, modeloSalvo, hoje }: { patients: PanelPatie
   );
 }
 
-// 4. ATIVOS x INATIVOS — e, dentro dos ativos, quem NÃO passou na semana. É a pergunta que o
-// consultório faz de verdade: paciente ativo que sumiu não aparece em nenhuma contagem de falta,
-// porque falta pressupõe sessão marcada; aqui basta não ter sessão realizada nos últimos 7 dias.
-// `corte` vem do SERVIDOR de propósito. Chamar Date.now() aqui dentro seria impuro: o memo
-// nunca recomputaria com a passagem do tempo, e cliente e servidor discordariam na hidratação.
-//
-// As três contagens ABREM a lista correspondente numa janela. Antes o cartão trazia a lista de
-// "não vieram" fixa embaixo e um link "abrir" no canto — duas formas de chegar no mesmo lugar,
-// e o cartão crescia sem limite quando a lista era longa.
-function AtivosInativos({ patients, presence, corte }: { patients: PanelPatient[]; presence: PanelPresence[]; corte: string }) {
-  const [lista, setLista] = useState<{ titulo: string; itens: PanelPatient[] } | null>(null);
-  const ativos = patients.filter((p) => p.status === "ativo");
-  const inativos = patients.filter((p) => p.status === "inativo");
-  const semana = useMemo(() => {
-    const limite = new Date(corte).getTime();
-    const vieram = new Set(presence.filter((r) => r.presente && new Date(r.date).getTime() >= limite).map((r) => r.patientId));
-    return ativos.filter((p) => !vieram.has(p.id));
-  }, [ativos, presence, corte]);
-  return (
-    <div className={card}>
-      <h4 className="font-display font-bold text-primary">Ativos e inativos</h4>
-      <div className="grid grid-cols-3 gap-2">
-        <Stat n={ativos.length} label="Ativos" tone="green" onAbrir={() => setLista({ titulo: "Pacientes ativos", itens: ativos })} />
-        <Stat n={inativos.length} label="Inativos" onAbrir={() => setLista({ titulo: "Pacientes inativos", itens: inativos })} />
-        <Stat n={semana.length} label="Não vieram na semana" tone="amber" onAbrir={() => setLista({ titulo: "Ativos sem sessão realizada nos últimos 7 dias", itens: semana })} />
-      </div>
-      {lista && <ModalPacientes titulo={lista.titulo} pacientes={lista.itens} onFechar={() => setLista(null)} />}
-    </div>
-  );
-}
-
 // 5. QUEIXA PRINCIPAL — mostra as 3 principais e abre o resto sob demanda
 function QueixaBloco({ patients }: { patients: PanelPatient[] }) {
   const [from, setFrom] = useState(""), [to, setTo] = useState(""), [tipo, setTipo] = useState(""), [tudo, setTudo] = useState(false);
@@ -393,22 +369,3 @@ function Pagamentos({ patients }: { patients: PanelPatient[] }) {
   );
 }
 
-// 7. PRESENÇA — presenças e faltas no período. Sem filtro de idade: era a única leitura do
-// painel que ninguém usava, e a idade já recorta no relatório de pacientes.
-function Presenca({ presence }: { presence: PanelPresence[] }) {
-  const [from, setFrom] = useState(""), [to, setTo] = useState("");
-  const rows = presence.filter((r) => ((from || to) ? inRange(r.date, from, to) : true));
-  const presencas = rows.filter((r) => r.presente).length;
-  const faltas = rows.length - presencas;
-  const taxa = rows.length ? Math.round((presencas / rows.length) * 100) : 0;
-  return (
-    <div className={card}>
-      <h4 className="font-display font-bold text-primary">Presença</h4>
-      <div className="flex gap-2 flex-wrap items-end">
-        <div><span className={lbl}>De</span><input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className={inp} /></div>
-        <div><span className={lbl}>Até</span><input type="date" value={to} onChange={(e) => setTo(e.target.value)} className={inp} /></div>
-      </div>
-      <div className="grid grid-cols-3 gap-2"><Stat n={presencas} label="Presenças" tone="green" /><Stat n={faltas} label="Faltas" tone="red" /><Stat n={`${taxa}%`} label="Comparecimento" /></div>
-    </div>
-  );
-}

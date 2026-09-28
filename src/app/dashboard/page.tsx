@@ -3,7 +3,7 @@ import { auth } from "@/auth";
 import { users, patients, therapySessions, patientPackages } from "@/db/schema";
 import { and, eq, gte, lte, sql, count, inArray } from "drizzle-orm";
 import { formatDateTime } from "@/lib/therapy";
-import { Users as UsersIcon, CalendarCheck, Clock, ChevronRight, Video, MapPin, AlertTriangle } from "lucide-react";
+import { Users as UsersIcon, CalendarCheck, Clock, ChevronRight, Video, MapPin, AlertTriangle, Percent } from "lucide-react";
 import { AnaliticosCharts } from "@/components/dashboard/AnaliticosCharts";
 import { DashboardPanels } from "@/components/dashboard/DashboardPanels";
 import { apareceHoje, mesQueVem, pacientesALembrar } from "@/lib/lembrarAgendamento";
@@ -144,6 +144,10 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   const online = done.filter((r) => r.isOnline).length;
   const presencial = total - online;
   const pct = (n: number) => (total ? Math.round((n / total) * 100) : 0);
+  // Faltas e comparecimento no MESMO período dos analíticos (Presente vs Faltou). Substituem o
+  // antigo painel "Presença" — a informação vive aqui, junto dos atendimentos realizados.
+  const faltas = anRows.filter((r) => r.status === "nao_realizada").length;
+  const comparecimento = total + faltas > 0 ? Math.round((total / (total + faltas)) * 100) : 0;
 
   const byLocation = new Map<string, number>();
   for (const r of done) { if (r.isOnline) continue; const k = (r.location || "Sem local definido").trim() || "Sem local definido"; byLocation.set(k, (byLocation.get(k) ?? 0) + 1); }
@@ -221,10 +225,12 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
           <AnalyticsFilters activePeriod={activePeriod} from={from} to={to} />
         </div>
 
-        <div className="grid sm:grid-cols-3 gap-4">
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4">
           <div className="glass-card rounded-[28px] p-6 flex items-center gap-4"><div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center"><CalendarCheck className="w-6 h-6" /></div><div><p className="text-2xl font-display font-bold text-primary leading-none">{total}</p><p className="text-sm text-foreground/50 mt-1">Atendimentos realizados</p></div></div>
           <div className="glass-card rounded-[28px] p-6 flex items-center gap-4"><div className="w-12 h-12 rounded-2xl bg-accent/10 text-accent flex items-center justify-center"><Video className="w-6 h-6" /></div><div><p className="text-2xl font-display font-bold text-primary leading-none">{online} <span className="text-sm font-normal text-foreground/40">({pct(online)}%)</span></p><p className="text-sm text-foreground/50 mt-1">Online</p></div></div>
           <div className="glass-card rounded-[28px] p-6 flex items-center gap-4"><div className="w-12 h-12 rounded-2xl bg-[#ecfdf5] text-[#047857] flex items-center justify-center"><MapPin className="w-6 h-6" /></div><div><p className="text-2xl font-display font-bold text-primary leading-none">{presencial} <span className="text-sm font-normal text-foreground/40">({pct(presencial)}%)</span></p><p className="text-sm text-foreground/50 mt-1">Presencial</p></div></div>
+          <div className="glass-card rounded-[28px] p-6 flex items-center gap-4"><div className="w-12 h-12 rounded-2xl bg-[#fee2e2] text-[#b91c1c] flex items-center justify-center"><AlertTriangle className="w-6 h-6" /></div><div><p className="text-2xl font-display font-bold text-primary leading-none">{faltas}</p><p className="text-sm text-foreground/50 mt-1">Faltas</p></div></div>
+          <div className="glass-card rounded-[28px] p-6 flex items-center gap-4"><div className="w-12 h-12 rounded-2xl bg-[#fef9c3] text-[#854d0e] flex items-center justify-center"><Percent className="w-6 h-6" /></div><div><p className="text-2xl font-display font-bold text-primary leading-none">{comparecimento}%</p><p className="text-sm text-foreground/50 mt-1">Comparecimento</p></div></div>
         </div>
 
         <AnaliticosCharts monthly={chartMonthly} weekday={chartWeekday} />
