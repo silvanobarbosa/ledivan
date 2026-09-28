@@ -7,6 +7,30 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-09-27 — Cinco correções: cobrança R$0, pagamento, cor Presente, horas, presenças (#217)
+
+**Entregue:** cinco demandas do dono (PDF).
+- **Gratuito→Mensal mostrava R$0,00** na guia Geral e **"Confirmar pagamento" dizia "já está paga"**
+  (mesma raiz): o cadastro gratuito grava `patientPriceHistory` **valor 0** (`createPatient`); numa
+  cobrança cujo período cai sobre essa faixa, `precoNaData` devolvia 0 → valor 0 e `falta ≤ 0`. Novo
+  **`precoCobravel`** (`preco.ts`): num formato QUE COBRA, preço 0 cai no valor do cadastro
+  (mensalidade). Motor `cobrancas.ts` passou a usá-lo nos 3 pontos de preço. Teste de regressão em
+  `tests/unit/preco.test.ts`.
+- **Status "Presente" aparecia verde** no modal de editar agendamento: `sessionStatusColor("realizada")`
+  era verde; virou **amarelo**, igual à legenda e à célula da agenda.
+- **Agenda passa a exibir 6h–21h** (`END_HOUR` 21→22).
+- **Presenças/Faltas do dashboard incluem INATIVOS**: a consulta de presença cortava em 24 meses;
+  agora conta por **status do agendamento** no período escolhido, sem corte e sem filtro de ativo.
+
+**Decisões que ficam valendo:**
+- Um formato que COBRA nunca vale R$0,00 quando há mensalidade — a faixa 0 (resíduo do gratuito) não
+  zera a cobrança; vale o valor do cadastro.
+- Contagem de presença/falta é por status de agendamento no período, nunca pela lista de ativos.
+
+**Pendente:** segue a decisão do dono sobre **como o WhatsApp vai funcionar** (mídia/anexo).
+
+---
+
 ## 2026-09-27 — Agenda de anos anteriores + salvar por guia (#215)
 
 **Entregue:** duas demandas do dono (PDF).
