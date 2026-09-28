@@ -212,7 +212,7 @@ export const PAYMENT_STATUS_LABELS: Record<string, string> = {
 // classes de cor (Tailwind) por status — paleta Warm Glass
 export function sessionStatusColor(status: string): string {
   switch (status) {
-    case "realizada": return "bg-[#ecfdf5] text-[#047857]";
+    case "realizada": return "bg-[#fef9c3] text-[#854d0e]"; // Presente — AMARELO (igual à legenda e à célula da agenda)
     case "agendada": return "bg-[#f3e8ff] text-primary";
     case "realocada":
     case "cancelada": return "bg-[#ede9fe] text-[#6d28d9]";     // Desmarcou — violeta
