@@ -344,3 +344,16 @@ describe("as chaves das cobranças", () => {
     expect(a).toEqual(b);
   });
 });
+
+describe("Gratuito→Mensal: preço 0 do período gratuito não zera a cobrança (#217)", () => {
+  it("sessão cobrável cujo único preço aplicável é 0 usa o valor do cadastro (não R$0,00)", () => {
+    // Cadastro gratuito grava priceHistory 0 (jan); depois vira cobrável a R$130 (a partir de set).
+    // Uma sessão de MAIO cai onde só a faixa 0 alcança — antes a cobrança saía R$ 0,00.
+    const s = sessao(10, 4); // maio/2026
+    const c = cobrancasDoPaciente({
+      ...base({ precos: [{ valor: 0, desde: new Date(2026, 0, 1) }, { valor: FEE, desde: new Date(2026, 8, 1) }] }),
+      sessoes: [s],
+    });
+    expect(c[0].valor).toBe(FEE);
+  });
+});
