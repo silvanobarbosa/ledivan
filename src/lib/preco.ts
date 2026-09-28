@@ -44,3 +44,18 @@ export function precoNaData(historico: PrecoVigente[], quando: Date, reserva = 0
   const r = Number(reserva);
   return Number.isFinite(r) && r > 0 ? r : 0;
 }
+
+/**
+ * Preço para FORMATOS QUE COBRAM (mensal, a cada sessão, pacote). Um preço **0** vindo do histórico
+ * — tipicamente a entrada residual gravada quando o paciente era **gratuito** (o cadastro grava
+ * `patientPriceHistory` valor 0) — NÃO pode zerar a cobrança. Se a faixa aplicável for 0 mas houver
+ * valor no cadastro (reserva), vale o do cadastro. Assim, ao trocar Gratuito→Mensal, a linha da
+ * cobrança mostra o valor da mensalidade em vez de R$ 0,00 (e "Confirmar pagamento" deixa de dizer
+ * "já está paga" por falta ≤ 0). Formato gratuito não passa por aqui — ele nem gera cobrança.
+ */
+export function precoCobravel(historico: PrecoVigente[], quando: Date, reserva = 0): number {
+  const p = precoNaData(historico, quando, reserva);
+  if (p > 0) return p;
+  const r = Number(reserva);
+  return Number.isFinite(r) && r > 0 ? r : p;
+}

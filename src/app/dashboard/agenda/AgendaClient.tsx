@@ -69,7 +69,7 @@ const LEGENDA_DO_SINAL: Record<string, string> = {
 
 const DAY_NAMES = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 const START_HOUR = 6;
-const END_HOUR = 21;
+const END_HOUR = 22; // exibe as linhas de 6h até 21h (o dono pediu 6h–21h)
 const HOUR_PX = 64;
 const hours = Array.from({ length: END_HOUR - START_HOUR }, (_, i) => START_HOUR + i);
 

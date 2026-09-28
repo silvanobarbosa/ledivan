@@ -83,11 +83,14 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   ]);
   const pkgRealizedMap = new Map(pkgRealizedRows.map((r) => [r.pid, Number(r.cnt)]));
 
-  // Presença dos últimos 24 meses (para o bloco Presença: filtro por data/idade).
-  const presStart = new Date(); presStart.setMonth(presStart.getMonth() - 24);
+  // Presença: TODAS as sessões realizadas/faltadas do profissional — sem corte de janela e sem
+  // filtro de paciente ativo. A contagem é pelo STATUS do agendamento no período que o dono escolhe
+  // na tela (Presente = presença, Faltou = falta; Desmarcou/Prof/Atestado/sem status não entram, pois
+  // a consulta só traz realizada/nao_realizada). Inclui INATIVOS: quem fez 10 sessões e foi inativado
+  // continua contando 7/3. Antes o corte de 24 meses escondia sessões antigas (bug do dono, 27/09).
   const presenceRows = await db.select({ patientId: therapySessions.patientId, status: therapySessions.status, date: therapySessions.date })
     .from(therapySessions)
-    .where(and(eq(therapySessions.userId, userId), gte(therapySessions.date, presStart), inArray(therapySessions.status, ["realizada", "nao_realizada"])));
+    .where(and(eq(therapySessions.userId, userId), inArray(therapySessions.status, ["realizada", "nao_realizada"])));
   // LEMBRAR AGENDAMENTO: quem atende uma vez por mês e ainda não marcou o mês que vem.
   //
   // Quem é mensal sai da própria agenda — a sessão mensal guarda a frequência, mesmo sem gerar as

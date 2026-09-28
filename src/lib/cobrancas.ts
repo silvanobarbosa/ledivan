@@ -37,7 +37,7 @@
  */
 
 import { codigoDaSessao } from "./celulaDaAgenda";
-import { precoNaData, type PrecoVigente } from "./preco";
+import { precoCobravel, type PrecoVigente } from "./preco";
 import { cobra, usaPacote } from "./reajuste";
 import { posicoesDaSequencia, todasAsSequencias } from "./sequenciaPacote";
 import { STATUS_QUE_PAUSAM } from "./therapy";
@@ -171,7 +171,7 @@ function cobrancasDoPeriodo(periodo: PeriodoDeVigencia, sessoes: Ordenada[], e: 
         chave: `sessao:${s.id}`,
         tipo: "sessao" as const,
         formato,
-        valor: dinheiro(precoNaData(e.precos, s.data, reservaPreco)),
+        valor: dinheiro(precoCobravel(e.precos, s.data, reservaPreco)),
         sessoes: 1,
         ids: [s.id],
         vencimento: s.data,
@@ -190,7 +190,7 @@ function cobrancasDoPeriodo(periodo: PeriodoDeVigencia, sessoes: Ordenada[], e: 
     if (!inicio) continue;
     const naAbertura = formato === "primeira_pacote";
     const competencia = naAbertura ? inicio : seq.fechouEm;
-    const unitario = precoNaData(e.precos, competencia ?? inicio, reservaPreco);
+    const unitario = precoCobravel(e.precos, competencia ?? inicio, reservaPreco);
     const valor = dinheiro(unitario * seq.total);
     const ultimaData = doPacote.filter((s) => seq.ids.includes(s.id)).reduce<Date>((m, s) => (s.date > m ? s.date : m), inicio);
 
@@ -308,7 +308,7 @@ export function cobrancasDoPaciente(e: EntradaDasCobrancas): Cobranca[] {
   for (const s of ordenadas) {
     if (s.extra !== "avul" || STATUS_QUE_PAUSAM.has(s.status)) continue;
     const informado = Number(s.valorExtra);
-    const valor = Number.isFinite(informado) && informado >= 0 ? informado : precoNaData(e.precos, s.data, reservaPreco);
+    const valor = Number.isFinite(informado) && informado >= 0 ? informado : precoCobravel(e.precos, s.data, reservaPreco);
     out.push({
       chave: `extra:${s.id}`,
       tipo: "extra",
