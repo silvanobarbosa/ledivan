@@ -212,8 +212,16 @@ function Secao({ show, save, children }: { show: string; save?: SaveAction; chil
 export function PatientFormFields({ p, save }: { p?: PatientFormData; save?: SaveAction }) {
   const [tab, setTab] = useState("dados");
   // Formato antigo "avulso" e o "a cada sessao" do dono; "pacote" virou mensal com pacote.
-  const formatoInicial = p?.paymentFormat === "avulso" ? "sessao" : p?.paymentFormat === "pacote" ? "mensal" : (p?.paymentFormat || "sessao");
+  // primeira/última do pacote deixaram de ser modalidades próprias (prints 6.pdf, item 20): viram
+  // OPÇÕES de "quando cobrar" dentro do Mensal pacote completo. No radio elas aparecem como "mensal".
+  const ehTimingDePacote = (f?: string | null) => f === "primeira_pacote" || f === "ultima_pacote";
+  const formatoInicial = p?.paymentFormat === "avulso" ? "sessao"
+    : p?.paymentFormat === "pacote" ? "mensal"
+    : ehTimingDePacote(p?.paymentFormat) ? "mensal"
+    : (p?.paymentFormat || "sessao");
   const [format, setFormat] = useState(formatoInicial);
+  // Quando cobrar o pacote completo: no vencimento mensal (padrão) ou na 1ª/última sessão do pacote.
+  const [quandoCobra, setQuandoCobra] = useState(ehTimingDePacote(p?.paymentFormat) ? p!.paymentFormat! : "mensal");
   // Hoje no fuso de quem preenche, no formato do <input type="date">.
   const hojeISO = (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; })();
   const [pacote, setPacote] = useState(p?.pacoteTipo || "completo");
@@ -269,6 +277,22 @@ export function PatientFormFields({ p, save }: { p?: PatientFormData; save?: Sav
     />
   );
 
+  // O paymentFormat que de fato vai para o banco: no Mensal pacote completo, "quando cobrar" decide
+  // se é mensal (vencimento), primeira_pacote ou ultima_pacote. O motor já entende os três.
+  const formatoEfetivo = format === "mensal" && pacote === "completo" ? quandoCobra : format;
+
+  // "Quando cobrar o pacote completo" — só no Mensal + Completo (prints 6.pdf, item 20).
+  const blocoQuandoCobra = (
+    <div>
+      <label htmlFor="quandoCobra" className={labelCls}>Quando cobrar o pacote</label>
+      <select id="quandoCobra" value={quandoCobra} onChange={(e) => setQuandoCobra(e.target.value)} className={inputCls}>
+        <option value="mensal">No dia de pagamento do mês</option>
+        <option value="primeira_pacote">Na 1ª sessão do pacote (pacote inteiro ao começar)</option>
+        <option value="ultima_pacote">Na última sessão do pacote (pacote inteiro ao terminar)</option>
+      </select>
+    </div>
+  );
+
   // O que cada formato abre, logo abaixo do próprio item — e na ordem que o dono pediu.
   const camposDoFormato: Record<string, ReactNode> = {
     gratuito: (
@@ -291,12 +315,17 @@ export function PatientFormFields({ p, save }: { p?: PatientFormData; save?: Sav
       <div className="space-y-4">
         <div className="grid sm:grid-cols-2 gap-4">
           {valorDaSessao}
-          <div>
-            <label className={labelCls}>Dia de pagamento</label>
-            <input name="paymentDay" type="number" min={1} max={31} defaultValue={p?.paymentDay ?? ""} className={inputCls} placeholder="ex: 5" />
-          </div>
+          {/* Dia de pagamento só quando a cobrança é no vencimento do mês. Se o pacote é cobrado na
+              1ª/última sessão, o dia é o da própria sessão — não se pergunta. */}
+          {!(pacote === "completo" && quandoCobra !== "mensal") && (
+            <div>
+              <label className={labelCls}>Dia de pagamento</label>
+              <input name="paymentDay" type="number" min={1} max={31} defaultValue={p?.paymentDay ?? ""} className={inputCls} placeholder="ex: 5" />
+            </div>
+          )}
         </div>
         {blocoPacote}
+        {pacote === "completo" && blocoQuandoCobra}
         <div className="sm:max-w-sm">{proximoReajuste}</div>
       </div>
     ),
@@ -318,31 +347,13 @@ export function PatientFormFields({ p, save }: { p?: PatientFormData; save?: Sav
         <div className="sm:max-w-sm">{proximoReajuste}</div>
       </div>
     ),
-    // Pagar o pacote inteiro de uma vez: o dia do pagamento é o dia da sessão, então não se
-    // pergunta dia nenhum.
-    primeira_pacote: (
-      <div className="space-y-4">
-        <div className="sm:max-w-sm">{valorDaSessao}</div>
-        {blocoPacote}
-        <div className="sm:max-w-sm">{proximoReajuste}</div>
-      </div>
-    ),
-    ultima_pacote: (
-      <div className="space-y-4">
-        <div className="sm:max-w-sm">{valorDaSessao}</div>
-        {blocoPacote}
-        <div className="sm:max-w-sm">{proximoReajuste}</div>
-      </div>
-    ),
   };
 
   const FORMATOS = [
     { v: "gratuito", t: "Gratuito", d: "Sem cobrança." },
     { v: "sessao", t: "Avulso", d: "Paga a cada atendimento (aparece como AVUL na agenda)." },
-    { v: "mensal", t: "Mensal", d: "Um pagamento por mês." },
+    { v: "mensal", t: "Mensal", d: "Um pagamento por mês. No pacote completo dá para cobrar na 1ª ou na última sessão." },
     { v: "quinzenal", t: "Quinzenal", d: "Dois pagamentos por mês." },
-    { v: "primeira_pacote", t: "Na primeira sessão do pacote", d: "Paga o pacote inteiro ao começar." },
-    { v: "ultima_pacote", t: "Na última sessão do pacote", d: "Paga o pacote inteiro ao terminar." },
   ];
 
   return (
@@ -486,7 +497,9 @@ export function PatientFormFields({ p, save }: { p?: PatientFormData; save?: Sav
                 <div key={o.v} className="space-y-3">
                   <label className={`flex items-start gap-2 rounded-2xl border px-4 py-3 cursor-pointer transition ${format === o.v ? "border-primary bg-primary/5" : "border-border bg-surface/60"}`}>
                     {/* Seleção ÚNICA: o formato de pagamento é um só. */}
-                    <input type="radio" name="paymentFormat" value={o.v} checked={format === o.v} onChange={() => setFormat(o.v)} className="accent-primary mt-0.5" />
+                    {/* O radio controla só o estado visual; o paymentFormat enviado é o `formatoEfetivo`
+                        (hidden abaixo), que no Mensal completo vira primeira_pacote/ultima_pacote. */}
+                    <input type="radio" value={o.v} checked={format === o.v} onChange={() => setFormat(o.v)} className="accent-primary mt-0.5" />
                     <span>
                       <span className="block text-sm font-bold">{o.t}</span>
                       <span className="block text-xs text-foreground/50">{o.d}</span>
@@ -496,11 +509,13 @@ export function PatientFormFields({ p, save }: { p?: PatientFormData; save?: Sav
                 </div>
               ))}
             </div>
+            {/* O valor REAL do formato (um só campo no POST). */}
+            <input type="hidden" name="paymentFormat" value={formatoEfetivo} />
           </div>
 
           {/* VIGÊNCIA: só aparece quando o formato de um paciente JÁ CADASTRADO mudou. A troca vale a
               partir desta data e não mexe no que aconteceu antes — é a regra do dono de 15/09/2026. */}
-          {p && format !== formatoInicial && (
+          {p && formatoEfetivo !== (ehTimingDePacote(p.paymentFormat) ? p.paymentFormat : formatoInicial) && (
             <div className="rounded-2xl border border-primary/30 bg-primary/5 px-4 py-3 space-y-2">
               <label className={labelCls} htmlFor="formatoDesde">Vale a partir de</label>
               <input id="formatoDesde" name="formatoDesde" type="date" defaultValue={hojeISO} className={`${inputCls} sm:max-w-xs`} />
