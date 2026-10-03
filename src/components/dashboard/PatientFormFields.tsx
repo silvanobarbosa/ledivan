@@ -338,7 +338,7 @@ export function PatientFormFields({ p, save }: { p?: PatientFormData; save?: Sav
 
   const FORMATOS = [
     { v: "gratuito", t: "Gratuito", d: "Sem cobrança." },
-    { v: "sessao", t: "A cada sessão", d: "Paga a cada atendimento." },
+    { v: "sessao", t: "Avulso", d: "Paga a cada atendimento (aparece como AVUL na agenda)." },
     { v: "mensal", t: "Mensal", d: "Um pagamento por mês." },
     { v: "quinzenal", t: "Quinzenal", d: "Dois pagamentos por mês." },
     { v: "primeira_pacote", t: "Na primeira sessão do pacote", d: "Paga o pacote inteiro ao começar." },

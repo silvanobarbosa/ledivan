@@ -17,8 +17,8 @@ export function BottomNavBar() {
   const navItems = [
     { icon: Users, label: "Pacientes", href: "/dashboard/patients" },
     { icon: CalendarDays, label: "Agenda", href: "/dashboard/agenda" },
-    { icon: LayoutDashboard, label: "Início", href: "/dashboard" },
-    { icon: ArrowLeftRight, label: "Financeiro", href: "/dashboard/transactions" },
+    { icon: LayoutDashboard, label: "Dashboard", href: "/dashboard" },
+    { icon: ArrowLeftRight, label: "Caixa", href: "/dashboard/transactions" },
     { icon: Settings, label: "Ajustes", href: "/dashboard/settings" },
   ];
 

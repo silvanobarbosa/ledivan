@@ -430,7 +430,7 @@ export async function updatePatient(patientId: string, formData: FormData) {
     // O mapa só conhecia os formatos antigos: "gratuito" e "sessao" iam para o histórico como chave
     // crua, e "mensal" como rótulo — a mesma tela misturava as duas coisas.
     const FMT: Record<string, string> = {
-      avulso: "Avulso", pacote: "Pacote", gratuito: "Gratuito", sessao: "A cada sessão", mensal: "Mensal",
+      avulso: "Avulso", pacote: "Pacote", gratuito: "Gratuito", sessao: "Avulso", mensal: "Mensal",
       quinzenal: "Quinzenal", primeira_pacote: "Na primeira sessão do pacote", ultima_pacote: "Na última sessão do pacote",
     };
     await db.insert(patientContractHistory).values({

@@ -4,7 +4,7 @@ import { rotuloFinanceiro, rotuloFrequencia, situacaoDaLista, ROTULO_SITUACAO_LI
 describe("rótulo financeiro da lista", () => {
   it("gratuito e a cada sessão falam por si", () => {
     expect(rotuloFinanceiro("gratuito", null)).toBe("Gratuito");
-    expect(rotuloFinanceiro("sessao", null)).toBe("A cada sessão");
+    expect(rotuloFinanceiro("sessao", null)).toBe("Avulso");
   });
 
   it("mensal e quinzenal dizem pacote ou fragmentado", () => {
@@ -21,7 +21,7 @@ describe("rótulo financeiro da lista", () => {
   });
 
   it("valores legados avulso/pacote", () => {
-    expect(rotuloFinanceiro("avulso", null)).toBe("A cada sessão");
+    expect(rotuloFinanceiro("avulso", null)).toBe("Avulso");
     expect(rotuloFinanceiro("pacote", "completo")).toBe("Mensal pacote");
   });
 });

@@ -7,6 +7,46 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-10-03 — Rótulos: Dashboard, Caixa, Avulso (onda 4 — #16, #17, #23)
+
+**Entregue:** três renomeações de rótulo pedidas pelo dono (prints 6.pdf), com as decisões dele.
+- **#17** BottomNavBar: "Início" → **"Dashboard"** (a sidebar já usava Dashboard).
+- **#16** "Financeiro" confundia ("nos faz procurar os pagamentos lá") → **"Caixa"**: botão do
+  BottomNavBar e título do grupo na sidebar (`nav.ts`). Rotas inalteradas.
+- **#23** "A cada sessão" (cadastro) e "AVUL" (agenda) eram o MESMO formato (`sessao`) com nomes
+  diferentes → unificado para **"Avulso"** na fonte canônica (`ROTULO_FORMATO` em `reajuste.ts`,
+  usado por `rotuloDoFormato`/`rotuloFinanceiro`) + cadastro, fechamento e log de auditoria. A agenda
+  segue com o código curto AVUL (abreviação de Avulso).
+
+**Decisões que ficam valendo:** o formato `sessao`/legado `avulso` chama-se **"Avulso"** em toda a
+UI (abreviado AVUL na célula da agenda). "Caixa" é o nome do grupo financeiro na navegação.
+
+**Validado:** tsc limpo, lint limpo, **711 testes verdes** (os 2 que fixavam "A cada sessão" em
+`rotuloDoFormato`/`rotuloFinanceiro` passaram a esperar "Avulso").
+
+---
+
+## 2026-10-03 — Cobrança: em aberto × em atraso + o que cada cobrança cobre (onda 2 — #12, #15, #22) (#222)
+
+**Entregue (no ar):** decisão do dono — **manter o cálculo, corrigir a exibição**.
+- **#22** O "3 e não 5 do mês" é a troca **avulso→pacote no meio do mês**: pela regra de 15/09
+  (vigência: só vale a partir da data, nunca mexe no passado) as sessões anteriores à troca seguem
+  avulsas e as posteriores viram o pacote (1/3–3/3). Decisão: **manter**. Para o mês inteiro virar
+  um pacote, registrar a troca no **1º dia do mês** (fluxo, sem código).
+- **#12** Cards "Em aberto"/"Em atraso" ganharam tooltip (no prazo × vencida) + sub-linha. O dono
+  perguntava a diferença.
+- **#15** O formulário de confirmar pagamento passou a dizer o que **aquela** cobrança cobre
+  (N sessões · valor · falta), para não confundir com "o valor do mês".
+
+**Decisões que ficam valendo:** troca de formato nunca reescreve cobrança passada (vigência vale da
+data em diante). "Em aberto" = no prazo; "em atraso" = vencida e não paga. Sem mudança no motor.
+
+**Armadilha:** a raiz parecia bug de fragmentação; era a troca mid-mês + confusão de rótulos. Ler o
+motor (`cobrancas.ts`/`sequenciaPacote.ts`/`vigenciaDoFormato.ts`) antes de prometer evitou mexer no
+cálculo à toa.
+
+---
+
 ## 2026-09-27 — Reorganização do dashboard: analíticos + relatórios (#219)
 
 **Entregue:** reorganização dos painéis do dashboard pedida pelo dono (PDF).
