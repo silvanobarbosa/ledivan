@@ -7,6 +7,20 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-10-03 — Agenda: horário fixo, legenda, escolher data, rótulos (onda 3 — #9,#10,#11,#18)
+
+**Entregue:** quatro ajustes da agenda (prints 6.pdf).
+- **#9** O **gutter de horas** (cabeçalho + corpo) virou `sticky left-0` — ao rolar a agenda para o
+  lado no celular, o horário continua visível.
+- **#10** Legenda de cores compactada (`gap-3` → `gap-x-3 gap-y-1`), menos espaço entre linhas.
+- **#11** Botão **"Escolher data"** voltou a abrir o calendário: o input é `sr-only` e clicar o rótulo
+  nem sempre abria o picker (mobile) — agora chama `showPicker()` no clique (fallback: foco).
+- **#18** No agendamento: **"Repetição" → "Frequência"** e **"Repetir até" → "Recorrência"**.
+
+**Pendente da onda 3:** #21 (aviso ao salvar quando 2 pacientes caem no mesmo horário) — PR próprio.
+
+---
+
 ## 2026-10-03 — Prontuário: anexo em cada registro do histórico terapêutico (onda 1 — #5)
 
 **Entregue:** fecha a onda 1. Cada registro do histórico terapêutico ganhou um **"Anexar arquivo"**
