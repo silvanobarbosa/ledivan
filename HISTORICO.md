@@ -7,6 +7,23 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-10-03 — Formato de pagamento: 1ª/última do pacote viram opção do Mensal completo (onda 6 — #20)
+
+**Entregue:** "Na primeira sessão do pacote" e "Na última sessão do pacote" **deixaram de ser
+modalidades à parte** no cadastro (prints 6.pdf, item 20). Agora, ao escolher **Mensal + pacote
+completo**, aparece **"Quando cobrar o pacote"**: no dia do mês (padrão) · na 1ª sessão · na última.
+O dia de pagamento some quando a cobrança é na sessão.
+
+**Como (sem tocar no motor):** o `paymentFormat` enviado é um `formatoEfetivo` derivado em tela — Mensal
+completo + "quando cobrar" vira `mensal`/`primeira_pacote`/`ultima_pacote`, os mesmos valores que o motor
+de cobranças (`cobrancas.ts`) e os rótulos já entendiam. Os radios controlam só o estado visual; um
+hidden único manda o valor. A vigência (troca de formato) compara o formato efetivo.
+
+**Decisão que fica valendo:** cobrar na 1ª/última sessão é uma OPÇÃO do Mensal pacote completo, não uma
+modalidade própria. Valores no banco inalterados (`primeira_pacote`/`ultima_pacote`).
+
+---
+
 ## 2026-10-03 — Lista de pacientes: card cabe na tela + ordenar por cadastro (onda 5 — #13, #14)
 
 **Entregue:**
