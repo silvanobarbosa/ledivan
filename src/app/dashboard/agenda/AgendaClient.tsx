@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronLeft, ChevronRight, X, Stethoscope, Repeat, Video, AlertTriangle, MapPin, Pencil, CalendarDays, Trash2 } from "lucide-react";
 import { SESSION_STATUS_LABELS, sessionStatusColor, sessionColorClasses, reservaVencida, RISK_LABELS, riskColor, LEGENDA_DA_AGENDA, corDaLegenda, STATUS_OFERECIDOS, type RiskLevel } from "@/lib/therapy";
@@ -110,6 +110,9 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
     });
   };
   const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date()));
+  // "Escolher data": o input de data é sr-only; clicar o rótulo nem sempre abre o calendário nativo
+  // (sobretudo no mobile). showPicker() abre direto, sob o gesto do clique. Fallback: foco no input.
+  const dateRef = useRef<HTMLInputElement>(null);
   const [selected, setSelected] = useState<AgendaSession | null>(null);
   const [pending, startTransition] = useTransition();
   const router = useRouter();
@@ -382,10 +385,13 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
         </div>
         <div className="flex flex-wrap items-center justify-center gap-2">
           <button onClick={() => setWeekStart(startOfWeek(new Date()))} className="text-xs font-semibold px-3 py-1.5 rounded-full bg-primary/10 text-primary hover:bg-primary/20 transition">Hoje</button>
-          <label className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full bg-primary/10 text-primary hover:bg-primary/20 transition cursor-pointer">
+          <label
+            onClick={() => { try { dateRef.current?.showPicker?.(); } catch { dateRef.current?.focus(); } }}
+            className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-1.5 rounded-full bg-primary/10 text-primary hover:bg-primary/20 transition cursor-pointer">
             <CalendarDays className="w-3.5 h-3.5" aria-hidden="true" />
             Escolher data
             <input
+              ref={dateRef}
               type="date"
               aria-label="Ir para a semana de uma data"
               className="sr-only"
@@ -402,7 +408,7 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
       </div>
 
       {/* Legenda de cores */}
-      <div className="flex flex-wrap gap-3 px-1 text-[11px] text-foreground/50">
+      <div className="flex flex-wrap gap-x-3 gap-y-1 px-1 text-[11px] text-foreground/50">
         {LEGENDA_DA_AGENDA.map((st) => {
           const { fundo, borda } = corDaLegenda(st);
           return (
@@ -475,7 +481,7 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
           <div className="min-w-[900px]">
             {/* Cabeçalho dos dias */}
             <div className="flex border-b border-border bg-white/40">
-              <div className="w-14 shrink-0" />
+              <div className="w-14 shrink-0 sticky left-0 z-20 bg-white/80 backdrop-blur-sm" />
               {days.map((day) => {
                 const isToday = day.toDateString() === new Date().toDateString();
                 const hs = holidaysForDay(day);
@@ -515,8 +521,9 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
 
             {/* Corpo: gutter de horas + 7 colunas */}
             <div className="flex" style={{ height: (END_HOUR - START_HOUR) * HOUR_PX }}>
-              {/* Gutter */}
-              <div className="w-14 shrink-0 relative border-r border-border">
+              {/* Gutter — fixo à esquerda: ao rolar a agenda para o lado, o horário continua visível
+                  (prints 6.pdf, item 9, especialmente no celular). */}
+              <div className="w-14 shrink-0 relative border-r border-border sticky left-0 z-20 bg-white/80 backdrop-blur-sm">
                 {hours.map((h) => (
                   <div key={h} className="absolute inset-x-0 border-t border-border/60 pt-1 pr-2 text-right text-[10px] font-semibold tabular-nums text-foreground/50" style={{ top: (h - START_HOUR) * HOUR_PX, height: HOUR_PX }}>
                     {pad(h)}:00
@@ -1067,14 +1074,14 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
 
             <div className="rounded-xl bg-[#dbeafe] px-3 py-2.5 space-y-2">
               <label className="flex items-center gap-2 text-sm font-semibold text-[#1e40af]">
-                <Repeat className="w-4 h-4" /> Repetição
+                <Repeat className="w-4 h-4" /> Frequência
               </label>
               <select name="freq" value={newFreq} onChange={(e) => setNewFreq(e.target.value)} className="w-full px-3 py-2 rounded-xl bg-white border border-[#bfdbfe] outline-none text-sm">
                 {repeticoesDe({ tipo: newKind, slotIntercalado: deSlotQ }).map((r) => <option key={r.valor} value={r.valor}>{r.rotulo}</option>)}
               </select>
               {newRecorrente && (
                 <div>
-                  <label className="text-[11px] font-semibold text-[#1e40af]/80">Repetir até</label>
+                  <label className="text-[11px] font-semibold text-[#1e40af]/80">Recorrência</label>
                   <input name="until" type="date" required className="w-full px-3 py-2 rounded-xl bg-white border border-[#bfdbfe] outline-none text-sm" />
                 </div>
               )}
