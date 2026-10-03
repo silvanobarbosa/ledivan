@@ -142,9 +142,13 @@ export const patientDocument = pgTable("patient_document", {
   // O padrão é `true` porque tudo o que já existia era material para o paciente ver; os anexos
   // do prontuário nascem com `false` e nunca saem do lado do terapeuta.
   compartilhado: boolean("compartilhado").default(true).notNull(),
+  // Anexo preso a UM registro do histórico terapêutico (prints 6.pdf, item 5). Null = anexo do
+  // prontuário em geral (nível do paciente). Cai junto quando o registro é apagado.
+  recordId: uuid("record_id").references(() => patientRecords.id, { onDelete: "cascade" }),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (t) => ([
   index("patient_document_patient_idx").on(t.patientId),
+  index("patient_document_record_idx").on(t.recordId),
 ]));
 
 // Diário entre sessões (#6/diary): o paciente escreve; o terapeuta lê antes da próxima sessão.
