@@ -1,8 +1,8 @@
 "use server";
 
 import { db } from "@/db";
-import { patientDocument, patients } from "@/db/schema";
-import { and, eq, desc } from "drizzle-orm";
+import { patientDocument, patientRecords, patients } from "@/db/schema";
+import { and, eq, desc, isNull } from "drizzle-orm";
 import { auth } from "@/auth";
 import { revalidatePath } from "next/cache";
 import { put } from "@vercel/blob";
@@ -106,9 +106,60 @@ export async function listAnexosProntuario(patientId: string) {
       eq(patientDocument.userId, s.user.id),
       eq(patientDocument.patientId, patientId),
       eq(patientDocument.compartilhado, false),
+      // anexos presos a um registro aparecem SÓ dentro do registro, não na lista geral.
+      isNull(patientDocument.recordId),
     ))
     .orderBy(desc(patientDocument.createdAt));
   return rows.map((r) => ({ id: r.id, title: r.title, kind: r.kind, content: r.content, at: (r.createdAt as Date).toISOString() }));
+}
+
+/** Anexos presos a UM registro do histórico terapêutico (prints 6.pdf, item 5). */
+export async function listAnexosDoRegistro(recordId: string) {
+  const s = await auth();
+  if (!s?.user?.id) return [];
+  const rows = await db.select().from(patientDocument)
+    .where(and(eq(patientDocument.userId, s.user.id), eq(patientDocument.recordId, recordId)))
+    .orderBy(desc(patientDocument.createdAt));
+  return rows.map((r) => ({ id: r.id, title: r.title, kind: r.kind, content: r.content, at: (r.createdAt as Date).toISOString() }));
+}
+
+/** Anexa um arquivo a um registro específico do histórico terapêutico. */
+export async function uploadAnexoDoRegistro(formData: FormData): Promise<{ ok: boolean; error?: string }> {
+  const s = await auth();
+  if (!s?.user?.id) return { ok: false, error: "Sessão inválida." };
+  const patientId = formData.get("patientId") as string;
+  const recordId = formData.get("recordId") as string;
+  if (!patientId || !(await owns(s.user.id, patientId))) return { ok: false, error: "Sem acesso a este paciente." };
+  if (!recordId) return { ok: false, error: "Registro inválido." };
+  // o registro tem que ser deste profissional e deste paciente
+  const [rec] = await db.select({ id: patientRecords.id }).from(patientRecords)
+    .where(and(eq(patientRecords.id, recordId), eq(patientRecords.userId, s.user.id), eq(patientRecords.patientId, patientId))).limit(1);
+  if (!rec) return { ok: false, error: "Registro não encontrado." };
+
+  const file = formData.get("file") as File | null;
+  const title = ((formData.get("title") as string) || "").trim() || (file?.name ?? "Anexo");
+  if (!file || file.size === 0) return { ok: false, error: "Escolha um arquivo." };
+  const ALLOWED = ["application/pdf", "image/jpeg", "image/png", "image/webp", "image/gif", "image/heic"];
+  if (!ALLOWED.includes(file.type)) return { ok: false, error: "Envie PDF, JPG, PNG, WEBP ou GIF." };
+  if (file.size > 15 * 1024 * 1024) return { ok: false, error: "Arquivo muito grande (máx. 15MB)." };
+  if (!process.env.BLOB_READ_WRITE_TOKEN) return { ok: false, error: "Upload não configurado." };
+
+  try {
+    const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_").slice(-60) || "arquivo";
+    const blob = await put(`anexos/${s.user.id}/${patientId}/${crypto.randomUUID()}/${safeName}`, file, {
+      access: "private",
+      addRandomSuffix: true,
+    });
+    await db.insert(patientDocument).values({
+      userId: s.user.id, patientId, title: title.slice(0, 160), kind: "file", content: blob.pathname,
+      compartilhado: false, recordId,
+    });
+    revalidatePath(`/dashboard/patients/${patientId}`);
+    return { ok: true };
+  } catch (e) {
+    console.error("upload anexo registro:", e);
+    return { ok: false, error: "Falha ao enviar o arquivo." };
+  }
 }
 
 export async function listMaterials(patientId: string) {

@@ -7,6 +7,25 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-10-03 — Prontuário: anexo em cada registro do histórico terapêutico (onda 1 — #5)
+
+**Entregue:** fecha a onda 1. Cada registro do histórico terapêutico ganhou um **"Anexar arquivo"**
+próprio (prints 6.pdf, item 5) — PDF/imagem até 15 MB, privado (o paciente não vê), com abrir/excluir.
+- Schema: `patient_document.record_id` (FK → `patient_records`, `onDelete: cascade`, nullable) + índice.
+  Anexo preso ao registro cai junto quando o registro é apagado; anexo geral do prontuário segue com
+  `record_id` nulo. **`drizzle-kit push`** aplicado no banco (coluna aditiva).
+- Ações: `uploadAnexoDoRegistro` / `listAnexosDoRegistro` (mesmo cofre privado, `/api/files/[id]` para
+  abrir). `listAnexosProntuario` passou a excluir os presos a registro (`record_id IS NULL`) — eles
+  aparecem só dentro do registro.
+- UI: componente `AnexosDoRegistro` compacto, renderizado em cada entrada do histórico.
+
+**Decisão que fica valendo:** anexo pode ser do prontuário em geral (nível do paciente, `record_id`
+nulo) OU preso a um registro específico.
+
+**Onda 1 completa** (#1–#8). Pendente geral do backlog: ondas 3, 5, 6; e "como o WhatsApp vai funcionar".
+
+---
+
 ## 2026-10-03 — Prontuário: limpeza + registro livre (onda 1 — #1,2,3,4,6,7,8)
 
 **Entregue:** faxina do prontuário pedida pelo dono (prints 6.pdf), com as decisões dele.

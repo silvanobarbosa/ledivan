@@ -12,6 +12,7 @@ import { MessagePatient } from "@/components/dashboard/MessagePatient";
 import { AssignmentsTab } from "./AssignmentsTab";
 import { MaterialsTab } from "./MaterialsTab";
 import { AnexosProntuario } from "./AnexosProntuario";
+import { AnexosDoRegistro } from "./AnexosDoRegistro";
 import { PatientFeatures } from "./PatientFeatures";
 import { TreatmentPlan } from "./TreatmentPlan";
 import { GeralTab } from "./GeralTab";
@@ -439,6 +440,7 @@ export function PatientDetail({
                     </div>
                   </div>
                   <p className="text-sm text-foreground/80 whitespace-pre-wrap leading-relaxed">{r.content}</p>
+                  <AnexosDoRegistro patientId={patient.id} recordId={r.id} />
                 </div>
               ))}
             </div>
