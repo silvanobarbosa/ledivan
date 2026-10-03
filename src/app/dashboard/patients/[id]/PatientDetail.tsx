@@ -250,15 +250,17 @@ export function PatientDetail({
           <p className="text-2xl font-display font-bold text-primary">{sessionStats.agendadasFuturas}</p>
           <p className="text-xs text-foreground/50">Sessões agendadas</p>
         </Link>
-        <button onClick={() => setTab("Geral")} className={`rounded-[20px] p-4 text-left border transition hover:shadow-md ${finance.nAberto > 0 ? "bg-[#fffbeb] border-[#fde68a]" : "glass-card border-transparent"}`}>
+        <button onClick={() => setTab("Geral")} title="Cobranças ainda no prazo — já geradas, mas que ainda não venceram. Quando a data de vencimento passar sem pagamento, viram “em atraso”."
+          className={`rounded-[20px] p-4 text-left border transition hover:shadow-md ${finance.nAberto > 0 ? "bg-[#fffbeb] border-[#fde68a]" : "glass-card border-transparent"}`}>
           <p className={`text-2xl font-display font-bold ${finance.nAberto > 0 ? "text-[#b45309]" : "text-primary"}`}>{finance.nAberto}</p>
           <p className="text-xs text-foreground/50">Em aberto</p>
-          <p className="text-[10px] text-foreground/40">{finance.emAberto > 0 ? formatBRL(finance.emAberto.toFixed(2)) : "no prazo"}</p>
+          <p className="text-[10px] text-foreground/40">{finance.emAberto > 0 ? `${formatBRL(finance.emAberto.toFixed(2))} · no prazo` : "no prazo"}</p>
         </button>
-        <button onClick={() => setTab("Geral")} className={`rounded-[20px] p-4 text-left border transition hover:shadow-md ${finance.nAtraso > 0 ? "bg-[#fef2f2] border-[#fecaca]" : "glass-card border-transparent"}`}>
+        <button onClick={() => setTab("Geral")} title="Cobranças vencidas e ainda não pagas — passou a data de vencimento sem o pagamento ser lançado."
+          className={`rounded-[20px] p-4 text-left border transition hover:shadow-md ${finance.nAtraso > 0 ? "bg-[#fef2f2] border-[#fecaca]" : "glass-card border-transparent"}`}>
           <p className={`text-2xl font-display font-bold ${finance.nAtraso > 0 ? "text-[#b91c1c]" : "text-primary"}`}>{finance.nAtraso}</p>
           <p className="text-xs text-foreground/50">Em atraso</p>
-          <p className="text-[10px] text-foreground/40">{finance.emAtraso > 0 ? formatBRL(finance.emAtraso.toFixed(2)) : "—"}</p>
+          <p className="text-[10px] text-foreground/40">{finance.emAtraso > 0 ? `${formatBRL(finance.emAtraso.toFixed(2))} · vencida` : "—"}</p>
         </button>
       </div>
 
