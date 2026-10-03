@@ -7,6 +7,18 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-10-03 — Agenda: lembrete de reajuste 30 dias antes (onda 6 — #19)
+
+**Entregue:** fecha a onda 6 (e o backlog do prints 6.pdf, salvo o WhatsApp). A agenda mostra um
+lembrete **"⏰ Reajuste <nome>"** no dia **30 dias antes** da data de reajuste prevista do paciente
+(`patients.priceReviewDate`), ao lado dos aniversários no cabeçalho do dia. Só exibição (nada é
+gravado): a página passa `reajustes` e o `AgendaClient` calcula `data − 30 dias`.
+
+**Backlog prints 6.pdf: completo** (ondas 1–6). Em aberto só o WhatsApp (mídia/anexo), que aguarda a
+definição do dono de como deve funcionar.
+
+---
+
 ## 2026-10-03 — Formato de pagamento: 1ª/última do pacote viram opção do Mensal completo (onda 6 — #20)
 
 **Entregue:** "Na primeira sessão do pacote" e "Na última sessão do pacote" **deixaram de ser
