@@ -7,6 +7,20 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-10-03 — Agenda: aviso de colisão de horário (onda 3 — #21)
+
+**Entregue:** fecha a onda 3. Ao salvar um **agendamento novo** ou uma **mudança** de horário que cai
+sobre outro paciente, a agenda **avisa** ("Já há Fulano agendado nesse horário — agendar mesmo
+assim?") e o profissional decide. **Não barra** (dois no mesmo horário só faz sentido ao bloquear).
+Status que pausam (desmarcou/atestado/prof. desm.) liberam o horário e não disparam o aviso; o próprio
+paciente no mesmo horário também não. `colisaoDeHorario` + `avisaColisao` em `AgendaClient`.
+
+**Decisão que fica valendo:** colisão de pacientes é aviso, não bloqueio.
+
+**Onda 3 completa** (#9,#10,#11,#18,#21).
+
+---
+
 ## 2026-10-03 — Agenda: horário fixo, legenda, escolher data, rótulos (onda 3 — #9,#10,#11,#18)
 
 **Entregue:** quatro ajustes da agenda (prints 6.pdf).
