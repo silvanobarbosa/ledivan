@@ -33,7 +33,7 @@ export const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
-    title: "Financeiro",
+    title: "Caixa",
     items: [
       { icon: Banknote, label: "Pagamentos", href: "/dashboard/pagamentos" },
       { icon: LayoutDashboard, label: "Visão geral", href: "/dashboard/financeiro" },

@@ -295,7 +295,7 @@ const reais = (v: number) =>
 
 const FORMATO: Record<string, string> = {
   gratuito: "gratuito",
-  sessao: "a cada sessão",
+  sessao: "avulso",
   mensal: "mensal",
   quinzenal: "quinzenal",
   primeira_pacote: "na 1ª do pacote",

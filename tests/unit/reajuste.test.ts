@@ -172,10 +172,10 @@ describe("histórico de reajuste unificado (valor + modalidade)", () => {
   });
 
   it("rótulo do formato fala como o dono", () => {
-    expect(rotuloDoFormato("sessao")).toBe("A cada sessão");
+    expect(rotuloDoFormato("sessao")).toBe("Avulso");
     expect(rotuloDoFormato("gratuito")).toBe("Gratuito");
     expect(rotuloDoFormato("primeira_pacote")).toBe("Na primeira sessão do pacote");
-    expect(rotuloDoFormato("avulso")).toBe("A cada sessão"); // valor antigo
+    expect(rotuloDoFormato("avulso")).toBe("Avulso"); // valor antigo
   });
 });
 

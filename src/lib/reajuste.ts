@@ -130,9 +130,9 @@ export function linhasDeReajuste(
 
 /** O nome do formato como o dono fala. Aceita os valores antigos (`avulso`/`pacote`) também. */
 const ROTULO_FORMATO: Record<string, string> = {
-  gratuito: "Gratuito", sessao: "A cada sessão", mensal: "Mensal", quinzenal: "Quinzenal",
+  gratuito: "Gratuito", sessao: "Avulso", mensal: "Mensal", quinzenal: "Quinzenal",
   primeira_pacote: "Na primeira sessão do pacote", ultima_pacote: "Na última sessão do pacote",
-  avulso: "A cada sessão", pacote: "Mensal",
+  avulso: "Avulso", pacote: "Mensal",
 };
 export function rotuloDoFormato(formato: string | null | undefined): string {
   return ROTULO_FORMATO[formato ?? ""] ?? formato ?? "—";
