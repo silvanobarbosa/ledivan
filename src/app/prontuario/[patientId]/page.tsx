@@ -82,7 +82,7 @@ export default async function ProntuarioExport({ params }: { params: Promise<{ p
             {patient.notes && <p className="text-sm mt-2 text-[#1a0f1f]/80 whitespace-pre-wrap"><span className="text-[#6b5b6f]">Observações:</span> {patient.notes}</p>}
           </Section>
 
-          <Section title="Plano terapêutico">
+          <Section title="Histórico terapêutico">
             {goals.length === 0 ? <Empty /> : goals.map((g) => (
               <div key={g.id} className="py-1.5 border-b border-[#f0e9e0] last:border-0">
                 <p className="text-sm font-semibold">{g.title} <span className="text-xs font-normal text-[#6b5b6f]">· {g.progress}% · {g.status}</span></p>

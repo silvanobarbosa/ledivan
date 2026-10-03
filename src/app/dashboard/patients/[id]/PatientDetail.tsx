@@ -6,7 +6,8 @@ import { cobra, usaPacote } from "@/lib/reajuste";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { createRecord, deleteRecord, updatePatientNotes } from "../actions";
+import { createRecord, deleteRecord } from "../actions";
+import { useFormStatus } from "react-dom";
 import { MessagePatient } from "@/components/dashboard/MessagePatient";
 import { AssignmentsTab } from "./AssignmentsTab";
 import { MaterialsTab } from "./MaterialsTab";
@@ -62,7 +63,18 @@ type AssignmentEntry = {
   responseFileType: string | null; respondedAt: string | null; therapistComment: string | null;
 };
 
-const RECORD_TYPE_LABELS: Record<string, string> = { evolucao: "Evolução", anamnese: "Anamnese", nota: "Nota" };
+const RECORD_TYPE_LABELS: Record<string, string> = { evolucao: "Evolução", anamnese: "Anamnese", nota: "Nota", registro: "Registro" };
+
+/** Botão de salvar que se desabilita enquanto o envio está em curso: evita o registro duplicado
+ *  do clique-duplo (prints 6.pdf, item 8). Precisa viver DENTRO do <form action>. */
+function BotaoSalvar({ children }: { children: React.ReactNode }) {
+  const { pending } = useFormStatus();
+  return (
+    <button disabled={pending} className="bg-primary text-white py-2.5 px-5 rounded-xl font-bold disabled:opacity-60">
+      {pending ? "Salvando…" : children}
+    </button>
+  );
+}
 const PATIENT_STATUS_LABELS: Record<string, string> = { ativo: "Ativo", pausado: "Pausado", inativo: "Inativo", prospect: "Prospectado" };
 
 const inputCls = "w-full px-4 py-2.5 rounded-xl bg-white/70 border border-border focus:ring-2 focus:ring-accent/20 focus:border-accent outline-none transition text-sm";
@@ -72,7 +84,7 @@ const inputCls = "w-full px-4 py-2.5 rounded-xl bg-white/70 border border-border
 const TABS = ["Geral", "Prontuário", "Atividades", "Materiais"] as const;
 
 export function PatientDetail({
-  patient, pagador, payments, statusHistory, records, transcriptionEnabled, risk, assignments, moodToken, moodLogs, scales, treatmentGoals, diaryEntries = [], ratings = [], consents = [], contractHistory = [], finance, sessionStats, recurring, statusEnabled = false, dailyStatus = [], sharedWritings = [], geral = [], cobrancaMessage = null,
+  patient, pagador, payments, statusHistory, records, transcriptionEnabled, risk, assignments, moodToken, moodLogs, scales, treatmentGoals, diaryEntries = [], ratings = [], consents = [], contractHistory: _contractHistory = [], finance, sessionStats, recurring, statusEnabled = false, dailyStatus = [], sharedWritings = [], geral = [], cobrancaMessage = null,
 }: {
   patient: Patient; pagador: Pagador; sessions: Session[]; payments: Payment[];
   statusHistory: StatusEntry[]; priceHistory: PriceEntry[]; records: RecordEntry[];
@@ -349,31 +361,10 @@ export function PatientDetail({
       {/* Prontuário */}
       {tab === "Prontuário" && (
         <div className="space-y-4">
+          {/* Cabeçalho do prontuário (etiquetas + observações + histórico) removido a pedido do dono
+              (prints 6.pdf, itens 1 e 2): o prontuário fica só com o histórico terapêutico e os
+              registros livres. */}
           <AnexosProntuario patientId={patient.id} />
-          {/* Cabeçalho do prontuário: etiquetas + observações (editáveis, com histórico) */}
-          <form action={updatePatientNotes.bind(null, patient.id)} className="glass-card rounded-[24px] p-5 space-y-3">
-            <p className="text-xs font-bold text-foreground/40 uppercase tracking-widest">Cabeçalho do prontuário</p>
-            <div>
-              <label className="text-xs font-semibold text-foreground/60">Etiquetas (separadas por vírgula)</label>
-              <input name="tags" defaultValue={patient.tags ?? ""} className={inputCls} placeholder="ex: TCC, ansiedade, casal" />
-            </div>
-            <div>
-              <label className="text-xs font-semibold text-foreground/60">Observações</label>
-              <textarea name="notes" rows={3} defaultValue={patient.notes ?? ""} className={inputCls} placeholder="Anotações gerais sobre o paciente (aparecem no topo do prontuário)" />
-            </div>
-            <button className="bg-primary text-white py-2.5 px-5 rounded-xl font-bold text-sm">Salvar cabeçalho</button>
-            {contractHistory.filter((h) => h.type === "tags" || h.type === "observacoes").length > 0 && (
-              <div className="pt-3 border-t border-border space-y-1">
-                <p className="text-[11px] font-bold text-foreground/40 uppercase tracking-widest">Histórico de alterações</p>
-                {contractHistory.filter((h) => h.type === "tags" || h.type === "observacoes").map((h) => (
-                  <div key={h.id} className="flex justify-between gap-3 py-1 text-[11px] text-foreground/60 border-b border-border last:border-0">
-                    <span className="truncate">{h.description}: {h.to}</span>
-                    <span className="text-foreground/40 shrink-0">{formatDate(h.date)}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </form>
 
           <TreatmentPlan patientId={patient.id} goals={treatmentGoals} />
           <div className="flex flex-wrap gap-4">
@@ -418,22 +409,15 @@ export function PatientDetail({
           )}
           {showRecord && (
             <form action={createRecord.bind(null, patient.id)} className="glass-card rounded-[24px] p-5 space-y-3">
-              <div className="grid sm:grid-cols-2 gap-3">
-                <div>
-                  <label className="text-xs font-semibold text-foreground/60">Tipo</label>
-                  <select name="type" className={inputCls} defaultValue="evolucao">
-                    <option value="evolucao">Evolução</option>
-                    <option value="anamnese">Anamnese</option>
-                    <option value="nota">Nota</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="text-xs font-semibold text-foreground/60">Título (opcional)</label>
-                  <input name="title" className={inputCls} placeholder="ex: Sessão 12" />
-                </div>
+              {/* Registro livre (prints 6.pdf, item 7): sem opções de tipo — o profissional registra o
+                  que achar interessante. Anamnese tem o botão dedicado acima; nota saiu. */}
+              <input type="hidden" name="type" value="registro" />
+              <div>
+                <label className="text-xs font-semibold text-foreground/60">Título (opcional)</label>
+                <input name="title" className={inputCls} placeholder="ex: Sessão 12" />
               </div>
               <textarea name="content" rows={5} required className={inputCls} placeholder="Registro clínico, evolução do paciente, observações da sessão..." />
-              <button className="bg-primary text-white py-2.5 px-5 rounded-xl font-bold">Salvar registro</button>
+              <BotaoSalvar>Salvar registro</BotaoSalvar>
             </form>
           )}
           {records.length === 0 ? <Empty text="Nenhum registro no prontuário." /> : (

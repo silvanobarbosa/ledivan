@@ -7,6 +7,31 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-10-03 — Prontuário: limpeza + registro livre (onda 1 — #1,2,3,4,6,7,8)
+
+**Entregue:** faxina do prontuário pedida pelo dono (prints 6.pdf), com as decisões dele.
+- **#1/#2** Removido o **cabeçalho do prontuário** (etiquetas + observações + "Salvar cabeçalho") e o
+  **"Histórico de alterações"** que vinha junto. O prontuário fica só com o histórico terapêutico + os
+  registros + anexos. (As etiquetas/observações já gravadas persistem e ainda aparecem no prontuário
+  impresso; deixam de ser EDITÁVEIS aqui — se o dono quiser editá-las, levo ao cadastro.)
+- **#3** "Plano terapêutico" → **"Histórico terapêutico"** (aba do paciente + prontuário impresso).
+- **#4** Removido o botão **"+ Objetivo"** e o formulário de objetivo (os objetivos já existentes
+  seguem listados; novas entradas vão pelo registro livre).
+- **#7** "Novo registro" virou **registro livre**: sem as opções Evolução/Anamnese/Nota (type fixo
+  `registro`). O profissional registra o que achar interessante.
+- **#6** Como o seletor de tipo saiu, some a **"Anamnese" duplicada** — fica só o botão dedicado
+  "Anamnese estruturada".
+- **#8** **Trava o salvar duplicado**: o botão "Salvar registro" se desabilita enquanto envia
+  (`useFormStatus`), evitando os 2 registros iguais do clique-duplo.
+
+**Decisões que ficam valendo:** prontuário sem cabeçalho de etiquetas/observações; registro é livre
+(sem tipo escolhível), anamnese só pelo botão próprio; "Histórico terapêutico" é o nome.
+
+**Pendente (#5):** botão de **anexo em cada inclusão** do histórico terapêutico — precisa vincular
+anexo↔registro (schema/ação); fica para o próximo PR. Há anexos no nível do paciente (AnexosProntuário).
+
+---
+
 ## 2026-10-03 — Rótulos: Dashboard, Caixa, Avulso (onda 4 — #16, #17, #23)
 
 **Entregue:** três renomeações de rótulo pedidas pelo dono (prints 6.pdf), com as decisões dele.
