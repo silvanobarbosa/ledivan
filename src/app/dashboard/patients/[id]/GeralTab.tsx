@@ -297,6 +297,13 @@ function FormularioDeLancamento({ patientId, c, responsavel, responsavelCpf, fec
     <tr>
       <td colSpan={8} className="px-3 pb-3">
         <form action={enviar} className="rounded-xl bg-surface/70 border border-border p-3 grid gap-2 sm:grid-cols-[auto_1fr_auto_auto_auto_auto] items-end" data-testid="lancar-pagamento">
+          {/* O que ESTA cobrança cobre — para não confundir com "o valor do mês": cada cobrança é a
+              sua sequência/sessões, e um mês pode ter mais de uma (ex.: pacote + sessões avulsas). */}
+          <p className="sm:col-span-6 text-[11px] text-foreground/60 -mb-1">
+            Lançando esta cobrança: <b>{c.sessoes} {c.sessoes === 1 ? "sessão" : "sessões"}</b>
+            {" · "}{formatBRL(c.valor)}
+            {c.falta !== c.valor ? <> <span className="text-foreground/45">(falta {formatBRL(c.falta)})</span></> : null}
+          </p>
           <div>
             <label className="text-[11px] font-semibold text-foreground/60 block">Data do pagamento</label>
             <input name="data" type="date" required defaultValue={hojeISO()} className="px-3 py-2 rounded-lg bg-white border border-border text-sm" />
