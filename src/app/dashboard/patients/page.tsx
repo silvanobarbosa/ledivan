@@ -100,6 +100,7 @@ export default async function PatientsPage({ searchParams }: { searchParams: Pro
             situacao: sit?.situacao ?? "em_dia",
             nAberto: sit?.nAberto ?? 0,
             nAtraso: sit?.nAtraso ?? 0,
+            createdAt: p.createdAt ? new Date(p.createdAt).toISOString() : "",
           };
         })}
         initial={{ status: sp.status, tipo: sp.tipo, dia: sp.dia, tag: sp.tag }}

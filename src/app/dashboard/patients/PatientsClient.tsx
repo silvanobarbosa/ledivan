@@ -40,6 +40,7 @@ type PatientCard = {
   situacao: SituacaoDaLista;
   nAberto: number;
   nAtraso: number;
+  createdAt: string;
 };
 
 const SITUACAO_CLS: Record<SituacaoDaLista, string> = {
@@ -68,7 +69,7 @@ export function PatientsClient({ patients, initial }: { patients: PatientCard[];
   const [tag, setTag] = useState<string | null>(initial?.tag || null);
   const [day, setDay] = useState<string | null>(initial?.dia || null);
   const [fmt, setFmt] = useState<string | null>(initial?.tipo || null);
-  const [sortHour, setSortHour] = useState(false);
+  const [sortBy, setSortBy] = useState<"alfa" | "hora" | "antigo" | "novo">("alfa");
 
   const allTags = Array.from(new Set(patients.flatMap((p) => parseTags(p.tags)))).sort();
   const norm = (d: string | null) => (d || "").toLowerCase().replace("terca", "terça").replace("sabado", "sábado");
@@ -81,17 +82,23 @@ export function PatientsClient({ patients, initial }: { patients: PatientCard[];
     const matchFmt = !fmt || (p.paymentFormat || "avulso") === fmt;
     return matchQuery && matchFilter && matchTag && matchDay && matchFmt;
   });
-  if (sortHour) {
+  if (sortBy === "hora") {
     const key = (p: PatientCard) => `${p.attendanceTime || "99:99"}#${DAY_ORDER[p.attendanceDay || ""] ?? 9}`;
     filtered.sort((a, b) => key(a).localeCompare(key(b)));
+  } else if (sortBy === "antigo") {
+    // ISO (aaaa-mm-dd...) ordena cronologicamente como texto.
+    filtered.sort((a, b) => (a.createdAt || "").localeCompare(b.createdAt || ""));
+  } else if (sortBy === "novo") {
+    filtered.sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""));
   }
+  // "alfa": o servidor já devolve em ordem A–Z.
 
 
   const activeChips = [
     fmt && { label: FORMATS.find((f) => f.k === fmt)?.l, clear: () => setFmt(null) },
     day && { label: day, clear: () => setDay(null) },
     tag && { label: tag, clear: () => setTag(null) },
-    sortHour && { label: "Por horário", clear: () => setSortHour(false) },
+    sortBy !== "alfa" && { label: { hora: "Por horário", antigo: "Cadastro: antigo→novo", novo: "Cadastro: novo→antigo" }[sortBy], clear: () => setSortBy("alfa") },
   ].filter(Boolean) as { label: string; clear: () => void }[];
 
   return (
@@ -124,9 +131,11 @@ export function PatientsClient({ patients, initial }: { patients: PatientCard[];
               {allTags.map((t) => <option key={t} value={t}>{t}</option>)}
             </Sel>
           )}
-          <Sel value={sortHour ? "hora" : "alfa"} onChange={(v) => setSortHour(v === "hora")}>
+          <Sel value={sortBy} onChange={(v) => setSortBy(v as "alfa" | "hora" | "antigo" | "novo")}>
             <option value="alfa">Ordem: A–Z</option>
             <option value="hora">Ordem: horário</option>
+            <option value="antigo">Cadastro: antigo→novo</option>
+            <option value="novo">Cadastro: novo→antigo</option>
           </Sel>
         </div>
       </div>
@@ -154,7 +163,9 @@ export function PatientsClient({ patients, initial }: { patients: PatientCard[];
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center gap-2 flex-wrap">
-                    <p className="font-bold truncate">{p.name}</p>
+                    {/* Nome em até 2 linhas (prints 6.pdf, item 13): cabe na tela sem rolar para o
+                        lado; o nome completo também abre no cadastro. */}
+                    <p className="font-bold leading-tight line-clamp-2 break-words">{p.name}</p>
                     <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wide ${patientStatusColor(p.patientStatus)}`}>
                       {p.patientStatus === "inativo" ? "Inativo" : "Ativo"}
                     </span>

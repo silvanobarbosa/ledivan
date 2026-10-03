@@ -7,6 +7,18 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-10-03 — Lista de pacientes: card cabe na tela + ordenar por cadastro (onda 5 — #13, #14)
+
+**Entregue:**
+- **#13** O nome do paciente no card passa a quebrar em **até 2 linhas** (`line-clamp-2`), em vez de
+  cortar — cabe na tela sem rolar para o lado; o nome completo também abre no cadastro.
+- **#14** Nova ordenação: **Cadastro antigo→novo** e **novo→antigo** (além de A–Z e horário). Usa
+  `patients.createdAt` (ISO ordena cronologicamente como texto); exposto no card pela página.
+
+**Onda 5 completa.**
+
+---
+
 ## 2026-10-03 — Agenda: aviso de colisão de horário (onda 3 — #21)
 
 **Entregue:** fecha a onda 3. Ao salvar um **agendamento novo** ou uma **mudança** de horário que cai
