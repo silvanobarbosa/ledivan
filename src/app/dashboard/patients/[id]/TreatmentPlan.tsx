@@ -1,14 +1,12 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Target, Plus, Trash2, Minus, Check } from "lucide-react";
-import { createTreatmentGoal, updateTreatmentGoal, deleteTreatmentGoal } from "../actions";
+import { updateTreatmentGoal, deleteTreatmentGoal } from "../actions";
 import { formatDate } from "@/lib/therapy";
 
 type Goal = { id: string; title: string; description: string | null; status: string; progress: number; targetDate: string | null };
-
-const inputCls = "w-full px-4 py-2.5 rounded-xl bg-white/70 border border-border focus:ring-2 focus:ring-accent/20 focus:border-accent outline-none transition text-sm";
 
 const STATUS_COLOR: Record<string, string> = {
   ativo: "bg-[#f3e8ff] text-primary",
@@ -16,9 +14,8 @@ const STATUS_COLOR: Record<string, string> = {
   pausado: "bg-[#fffbeb] text-[#b45309]",
 };
 
-export function TreatmentPlan({ patientId, goals }: { patientId: string; goals: Goal[] }) {
+export function TreatmentPlan({ patientId: _patientId, goals }: { patientId: string; goals: Goal[] }) {
   const router = useRouter();
-  const [showNew, setShowNew] = useState(false);
   const [, startTransition] = useTransition();
 
   const bump = (g: Goal, delta: number) => {
@@ -37,23 +34,11 @@ export function TreatmentPlan({ patientId, goals }: { patientId: string; goals: 
   return (
     <div className="glass-card rounded-[24px] p-5 space-y-4">
       <div className="flex items-center justify-between">
-        <p className="font-semibold text-primary flex items-center gap-2"><Target className="w-4 h-4" /> Plano terapêutico</p>
-        <button onClick={() => setShowNew((s) => !s)} className="text-sm font-semibold text-primary hover:underline flex items-center gap-1">
-          <Plus className="w-4 h-4" /> Objetivo
-        </button>
+        <p className="font-semibold text-primary flex items-center gap-2"><Target className="w-4 h-4" /> Histórico terapêutico</p>
       </div>
 
-      {showNew && (
-        <form action={createTreatmentGoal.bind(null, patientId)} className="space-y-2 bg-surface/50 rounded-xl p-3">
-          <input name="title" required placeholder="Objetivo (ex: Reduzir crises de ansiedade)" className={inputCls} />
-          <textarea name="description" rows={2} placeholder="Detalhes / critério de sucesso (opcional)" className={inputCls} />
-          <input name="targetDate" type="date" className={inputCls} />
-          <button className="bg-primary text-white py-2 px-4 rounded-xl font-bold text-sm">Adicionar objetivo</button>
-        </form>
-      )}
-
       {goals.length === 0 ? (
-        <p className="text-sm text-foreground/40">Nenhum objetivo definido ainda.</p>
+        <p className="text-sm text-foreground/40">Nenhum histórico terapêutico ainda.</p>
       ) : (
         <div className="space-y-3">
           {goals.map((g) => (
