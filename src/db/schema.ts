@@ -676,6 +676,11 @@ export const sessionPayments = pgTable("session_payments", {
   // A qual cobrança este pagamento pertence (a `chave` de `cobrancasDoPaciente`). Pagamento antigo
   // sem chave é distribuído pela ordem de vencimento.
   cobrancaChave: text("cobranca_chave"),
+  // "Não haverá diferença de valor" (doc 17): quando a pessoa lança MENOS do que a cobrança e marca
+  // esta opção, a cobrança é QUITADA mesmo faltando — a diferença é perdoada, nunca vira "pago em
+  // parte". O caixa continua honesto: guarda o valor REALMENTE recebido (`amount`); quem fecha a
+  // cobrança é esta marca, lida por `guiaGeral.casarPagamentos`.
+  quitaDiferenca: boolean("quita_diferenca").default(false),
   // VINCULO OPCIONAL com o financeiro: se preenchido, este pagamento gerou uma transacao de receita.
   linkedTransactionId: uuid("linked_transaction_id").references(() => transactions.id, { onDelete: "set null" }),
   // Receita Saúde (recibo eletrônico da RF, emissão manual no app): controle de emissão por pagamento.

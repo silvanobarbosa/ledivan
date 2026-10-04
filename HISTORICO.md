@@ -7,6 +7,27 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-10-04 — Cadastro: Salvar Dados ≠ Salvar Financeiro (2º backlog, doc 17)
+
+**Entregue (#234):** salvar o **primeiro cadastro** só com a aba **Dados** não cria mais financeiro
+("Gratuito"/padrão) sem a pessoa pedir. O formato fica **"não definido"** (null) até ela abrir e salvar
+a aba Financeiro.
+- `payment_format` agora é **nullable** (migração aplicada em PROD).
+- `createPatient` ganhou a flag `financeiroTocado` (input hidden, ligada pelo 1º `onChange` na seção
+  Financeiro). Sem toque: formato `null`, sem `priceReviewDate`, sem histórico de preço/formato, e
+  **redireciona para a aba Financeiro** (`edit?guia=financeiro`) para completar.
+- Motor trata formato `null`/`""` como **sem cobrança** (`vigenciaDoFormato` cai para `""`;
+  `rotuloDoFormato("")` = "Não definido"). Paciente novo não tem sessões → nenhuma cobrança de todo jeito.
+
+**Por quê:** o form é único (Dados + Financeiro juntos); quem só queria cadastrar a pessoa saía com um
+contrato financeiro que não escolheu. Editar já isolava (updatePatient só grava histórico em troca real);
+o furo era só o 1º cadastro.
+
+**Decisão que fica valendo:** financeiro "não definido" é estado legítimo (null). Quem lê `paymentFormat`
+tem que aceitar `string | null`.
+
+---
+
 ## 2026-10-03 — Financeiro: ordem dos campos + quantidade de sessões do pacote (2º backlog, doc 16)
 
 **Entregue:**

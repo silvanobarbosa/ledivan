@@ -58,6 +58,7 @@ function cobrancaNaTela(c: Omit<CobrancaDaGeral, "tipo"> & { tipoDeCobranca: Cob
     formato: c.formato,
     valor: c.valor,
     falta: c.falta,
+    valorDevido: c.valorDevido,
     sessoes: c.sessoes,
     parte: c.parte,
     situacao: c.situacao,
@@ -108,7 +109,7 @@ export async function geralDoPaciente(userId: string, patientId: string): Promis
   const [sessoes, pagamentos, precos, pacotes, vigencias, envios, puladas] = await Promise.all([
     db.select({ id: therapySessions.id, date: therapySessions.date, status: therapySessions.status, sessionKind: therapySessions.sessionKind, abaterDoPacote: therapySessions.abaterDoPacote, chargeable: therapySessions.chargeable, extra: therapySessions.extra, valorExtra: therapySessions.valorExtra, repoeSessaoId: therapySessions.repoeSessaoId, isOnline: therapySessions.isOnline })
       .from(therapySessions).where(and(eq(therapySessions.patientId, patientId), eq(therapySessions.userId, userId))),
-    db.select({ id: sessionPayments.id, amount: sessionPayments.amount, date: sessionPayments.date, status: sessionPayments.status, method: sessionPayments.method, pagoPor: sessionPayments.pagoPor, cobrancaChave: sessionPayments.cobrancaChave, kind: sessionPayments.kind, reciboEmitidoEm: sessionPayments.reciboEmitidoEm, notaEmitidaEm: sessionPayments.receiptIssuedAt })
+    db.select({ id: sessionPayments.id, amount: sessionPayments.amount, date: sessionPayments.date, status: sessionPayments.status, method: sessionPayments.method, pagoPor: sessionPayments.pagoPor, cobrancaChave: sessionPayments.cobrancaChave, quita: sessionPayments.quitaDiferenca, kind: sessionPayments.kind, reciboEmitidoEm: sessionPayments.reciboEmitidoEm, notaEmitidaEm: sessionPayments.receiptIssuedAt })
       .from(sessionPayments).where(and(eq(sessionPayments.patientId, patientId), eq(sessionPayments.userId, userId))),
     db.select({ valor: patientPriceHistory.valor, dataEfetiva: patientPriceHistory.dataEfetiva })
       .from(patientPriceHistory).where(eq(patientPriceHistory.patientId, patientId)),
@@ -143,7 +144,7 @@ export async function geralDoPaciente(userId: string, patientId: string): Promis
     diaPagamento: paciente.paymentDay,
     diaPagamento2: paciente.paymentDay2,
     horasAntesPagamento: paciente.horasAntesPagamento,
-    pagamentos: pagamentos.map((p) => ({ id: p.id, valor: p.amount, data: local(p.date), status: p.status, metodo: p.method, pagoPor: p.pagoPor, cobrancaChave: p.cobrancaChave, kind: p.kind, recibo: !!p.reciboEmitidoEm, nota: !!p.notaEmitidaEm })),
+    pagamentos: pagamentos.map((p) => ({ id: p.id, valor: p.amount, data: local(p.date), status: p.status, metodo: p.method, pagoPor: p.pagoPor, cobrancaChave: p.cobrancaChave, quita: p.quita, kind: p.kind, recibo: !!p.reciboEmitidoEm, nota: !!p.notaEmitidaEm })),
     envios: envios.map((e) => ({ cobrancaChave: e.cobrancaChave, enviadaEm: local(e.enviadaEm), enviadaPor: e.enviadaPor })),
     // As datas que a serie pulou por horario bloqueado: viram a linha "Hor. Bloq.", nunca sessao.
     bloqueios: puladas.map((b) => ({ data: local(b.date) })),

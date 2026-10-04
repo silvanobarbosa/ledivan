@@ -9,13 +9,22 @@ import { ensureSessionCategory } from "@/lib/categoriaSessoes";
 import { geralDoPaciente, hojeDeParede } from "@/lib/geralDoPaciente";
 import { diaDoFormulario } from "@/lib/trocaDeFormato";
 import { apenasCpf } from "@/lib/recibo";
+import { parseMoedaBR } from "@/lib/money";
 
 /**
- * "Lançar pagamento" da guia Geral: data, responsável e forma. Mais nada vem do formulário.
+ * "Lançar pagamento" da guia Geral: data, responsável, forma e VALOR.
  *
- * O VALOR é o que falta na cobrança, refeito aqui pelo mesmo motor da tela. Aceitar valor do
- * navegador deixaria qualquer um quitar R$ 520 com R$ 1. E a cobrança tem de existir para ESTE
- * paciente DESTE profissional — a chave é texto que qualquer um digita.
+ * O valor passou a ser editável (doc 17): vem pré-preenchido com o que falta, mas a terapeuta pode
+ * registrar um pagamento parcial (recebeu menos) ou a mais. O que ela NÃO controla é a cobrança a
+ * que o pagamento se prende — essa é refeita aqui pelo mesmo motor da tela, e tem de existir para
+ * ESTE paciente DESTE profissional (a chave é texto que qualquer um digita).
+ *
+ * - valor MENOR que o que falta → registra o parcial; a cobrança segue em aberto/atraso com a
+ *   diferença à mostra (nunca "pago em parte").
+ * - `quitarDiferenca` + valor menor → a cobrança é QUITADA mesmo faltando (diferença perdoada). O
+ *   caixa guarda o valor realmente recebido; quem fecha a cobrança é a marca `quitaDiferenca`.
+ * - valor MAIOR → registra o valor informado; a sobra vira crédito no saldo, como qualquer
+ *   pagamento a mais.
  */
 
 const METODOS = new Set(["pix", "card", "cash", "transfer"]);
@@ -27,6 +36,8 @@ export async function lancarPagamento(entrada: {
   pagoPor: string;
   pagoPorCpf?: string | null;
   metodo: string;
+  valor?: string | null;
+  quitarDiferenca?: boolean;
 }): Promise<{ ok: boolean; error?: string }> {
   const session = await auth();
   if (!session?.user?.id) return { ok: false, error: "Sessão inválida." };
@@ -56,7 +67,16 @@ export async function lancarPagamento(entrada: {
   if (cobranca.situacao === "pago" || cobranca.falta <= 0) return { ok: false, error: "Esta cobrança já está paga." };
 
   const [paciente] = await db.select({ name: patients.name }).from(patients).where(eq(patients.id, patientId));
-  const amount = cobranca.falta.toFixed(2);
+
+  // Valor: o que a pessoa digitou (pt-BR), caindo no que falta quando o campo vem vazio (retro-
+  // compat com quem só confirma). Tem de ser um número positivo — zerar ou negativar não lança nada.
+  const valorInformado = parseMoedaBR(entrada?.valor);
+  const valorNum = valorInformado != null ? Number(valorInformado) : cobranca.falta;
+  if (!(valorNum > 0)) return { ok: false, error: "Informe um valor maior que zero." };
+  const amount = valorNum.toFixed(2);
+  // Quitar a diferença só faz sentido quando se recebeu MENOS que o devido. Pagou o total (ou mais)?
+  // A cobrança já fecha sozinha — não marca nada.
+  const quita = entrada?.quitarDiferenca === true && valorNum < cobranca.falta - 0.005;
   // Meio-dia: a coluna é hora de parede, e meio-dia não troca de dia em fuso nenhum do caminho.
   const date = new Date(`${entrada.data}T12:00:00`);
 
@@ -86,6 +106,7 @@ export async function lancarPagamento(entrada: {
     pagoPorCpf,
     pagoPor,
     cobrancaChave: chave,
+    quitaDiferenca: quita,
     linkedTransactionId: tx.id,
   });
 
