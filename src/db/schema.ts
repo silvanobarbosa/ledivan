@@ -395,7 +395,9 @@ export const patients = pgTable("patients", {
   //
   // "avulso" virou "sessao" e "pacote" virou uma FORMA de cobrar dentro de mensal/quinzenal, que
   // é como o dono descreve o combinado com o paciente: primeiro o formato, depois o pacote.
-  paymentFormat: text("payment_format").default("sessao").notNull(),
+  // Nullable (doc 17): no 1º cadastro o usuário pode salvar só os Dados; aí o financeiro fica
+  // "não definido" (null) — nem Gratuito, nem padrão — até ele preencher a guia Financeiro.
+  paymentFormat: text("payment_format").default("sessao"),
   // Só para "a cada sessão": quantas horas ANTES do atendimento o pagamento deve estar feito.
   // É o gatilho da cobrança automática, que ainda não foi ligada.
   horasAntesPagamento: integer("horas_antes_pagamento"),
