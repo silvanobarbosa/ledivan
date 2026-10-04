@@ -464,3 +464,52 @@ describe("em aberto: mês vigente e anteriores, nunca o futuro (documento de 17/
     expect(r.emAtraso).toBeGreaterThan(0);
   });
 });
+
+/**
+ * PAGAMENTO PARCIAL E "NÃO HAVERÁ DIFERENÇA DE VALOR" (doc 17).
+ *
+ * Um mensal completo de 4 × R$ 130 = R$ 520, a cobrança "pacote:inicio:1". Hoje é 15/09, então o
+ * pacote já venceu (a linha de pagamento vem antes da 1ª sessão, dia 01).
+ */
+describe("pagamento parcial e quitar diferença (doc 17)", () => {
+  const seq = [terca(1), terca(8), terca(15), terca(22)];
+  const base = {
+    vigencias: [{ formato: "mensal", pacoteTipo: "completo", desde }],
+    reserva: { formato: "mensal" },
+    precos, sessoes: seq, hoje,
+  } as const;
+  const pg = (valor: number, extra: Record<string, unknown> = {}) => ({
+    id: "pg", valor, data: new Date(2026, 8, 3), status: "paid", metodo: "pix", pagoPor: "Mãe", cobrancaChave: "pacote:inicio:0", ...extra,
+  });
+
+  it("recebeu menos: segue em atraso, com a diferença à mostra (nunca pago)", () => {
+    const [p] = linhasDaGeral({ ...base, pagamentos: [pg(400)] }).filter((l) => l.tipo === "pagamento");
+    if (p.tipo !== "pagamento") throw new Error("esperava pagamento");
+    expect(p.situacao).toBe("em_atraso");
+    expect(p.falta).toBe(120);
+    expect(p.pagamento?.id).toBe("pg"); // o que entrou NÃO some da linha
+  });
+
+  it("recebeu menos + quitar: fica paga, e o devido cai para o recebido", () => {
+    const [p] = linhasDaGeral({ ...base, pagamentos: [pg(400, { quita: true })] }).filter((l) => l.tipo === "pagamento");
+    if (p.tipo !== "pagamento") throw new Error("esperava pagamento");
+    expect(p.situacao).toBe("pago");
+    expect(p.falta).toBe(0);
+    expect(p.valorDevido).toBe(400);
+  });
+
+  it("quitada com desconto: saldo fecha em zero (a diferença foi perdoada)", () => {
+    const r = resumoDaGeral({ ...base, pagamentos: [pg(400, { quita: true })] });
+    expect(r.saldo).toBe(0);
+    expect(r.totalPago).toBe(400);
+  });
+
+  it("recebeu mais: paga, e a sobra vira crédito no saldo", () => {
+    const r = resumoDaGeral({ ...base, pagamentos: [pg(560)] });
+    const [p] = linhasDaGeral({ ...base, pagamentos: [pg(560)] }).filter((l) => l.tipo === "pagamento");
+    if (p.tipo !== "pagamento") throw new Error("esperava pagamento");
+    expect(p.situacao).toBe("pago");
+    expect(p.valorDevido).toBe(520);
+    expect(r.saldo).toBe(40);
+  });
+});

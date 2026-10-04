@@ -34,6 +34,11 @@ export type PagamentoDaGeral = {
   metodo: string | null;
   pagoPor: string | null;
   cobrancaChave: string | null;
+  /**
+   * "Não haverá diferença de valor" (doc 17): este pagamento QUITA a cobrança mesmo cobrindo menos
+   * que o total. A diferença é perdoada — a cobrança fica "paga", nunca "em parte".
+   */
+  quita?: boolean | null;
   /** `pacote` = crédito de pacote (não emite recibo). */
   kind?: string | null;
   /** Documento já emitido para este pagamento (17/09). Só o fato interessa aqui, não a hora. */
@@ -94,6 +99,12 @@ export type CobrancaDaGeral = Cobranca & {
   situacao: Situacao;
   /** O que ainda falta receber — é o valor que "Lançar pagamento" grava. */
   falta: number;
+  /**
+   * O valor DEVIDO para efeito de saldo. Igual a `valor`, exceto quando a cobrança foi quitada com
+   * diferença perdoada ("não haverá diferença de valor"): aí vale o que foi realmente recebido, para
+   * o saldo não carregar para sempre uma dívida que a terapeuta já abriu mão.
+   */
+  valorDevido: number;
   pagamento: PagamentoLancado | null;
   /** Preenchido quando a cobrança já foi avisada ao paciente. */
   envio: EnvioLancado | null;
@@ -175,12 +186,16 @@ function casarPagamentos(cobrancas: Cobranca[], pagamentos: PagamentoDaGeral[], 
     recibo: p.recibo === true, nota: p.nota === true,
   });
 
+  // As cobranças que um pagamento mandou QUITAR mesmo sem o valor fechar (diferença perdoada).
+  const quitadas = new Set<string>();
+
   // 1. Os que dizem a qual cobrança pertencem.
   const semChave: typeof pagos = [];
   for (const p of pagos) {
     if (p.cobrancaChave && chaves.has(p.cobrancaChave)) {
       recebido.set(p.cobrancaChave, (recebido.get(p.cobrancaChave) ?? 0) + p.valor);
       ultimo.set(p.cobrancaChave, lancado(p));
+      if (p.quita) quitadas.add(p.cobrancaChave);
     } else {
       semChave.push(p);
     }
@@ -221,8 +236,13 @@ function casarPagamentos(cobrancas: Cobranca[], pagamentos: PagamentoDaGeral[], 
      * As duas condicoes, entao: existe pagamento casado com esta cobranca E o saldo fechou.
      */
     const lancado = ultimo.get(c.chave) ?? null;
-    const falta = Math.round((c.valor - (recebido.get(c.chave) ?? 0)) * 100) / 100;
-    const pago = !!lancado && falta <= TOLERANCIA;
+    const receb = recebido.get(c.chave) ?? 0;
+    const falta = Math.round((c.valor - receb) * 100) / 100;
+    // Quitada com diferença perdoada: fica "paga" mesmo faltando, e o DEVIDO cai para o que entrou —
+    // senão o saldo carregaria eternamente a diferença de que a terapeuta já abriu mão.
+    const quitada = quitadas.has(c.chave) && !!lancado;
+    const pago = quitada || (!!lancado && falta <= TOLERANCIA);
+    const valorDevido = quitada ? Math.min(c.valor, Math.round(receb * 100) / 100) : c.valor;
 
     const limite = limiteDaCobranca(c, horasAntes);
     const atrasada = limite ? hoje.getTime() > limite.getTime() : false;
@@ -232,6 +252,7 @@ function casarPagamentos(cobrancas: Cobranca[], pagamentos: PagamentoDaGeral[], 
       ...c,
       situacao,
       falta: pago ? 0 : falta,
+      valorDevido,
       // O que ja foi recebido NAO some quando falta o resto: quem pagou metade aparecia como quem
       // nao pagou nada, e a terapeuta perdia a data e o nome de quem pagou.
       pagamento: lancado,
@@ -374,7 +395,9 @@ export function resumoDaGeral(e: EntradaDaGeral): ResumoDaGeral {
       data: (c.vencimento ?? c.competencia) as Date,
       tipo: "cobranca" as const,
       descricao: DESCRICAO[c.tipo](c),
-      valor: -c.valor,
+      // `valorDevido`: numa cobrança quitada com desconto, o saldo deve fechar com o que entrou, não
+      // com o valor cheio (a diferença foi perdoada).
+      valor: -c.valorDevido,
       pagamentoId: null,
     })),
     ...pagos.map((p) => ({
@@ -397,7 +420,7 @@ export function resumoDaGeral(e: EntradaDaGeral): ResumoDaGeral {
 
   const soma = (xs: number[]) => Math.round(xs.reduce((a, b) => a + b, 0) * 100) / 100;
   const totalPago = soma(pagos.map((p) => Number(p.valor) || 0));
-  const totalExigivel = soma(exigiveis.map((c) => c.valor));
+  const totalExigivel = soma(exigiveis.map((c) => c.valorDevido));
   // "Em aberto" é o que dá para cobrar AGORA: o mês vigente e o que ficou para trás. Cobrança de
   // mês futuro inflava o número que a terapeuta usa para saber quanto tem a receber — dinheiro que
   // ainda nem podia ser pedido (documento de 17/09).

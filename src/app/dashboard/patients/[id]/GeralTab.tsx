@@ -219,6 +219,12 @@ function ColunasDoPagamento({ patientId, c, onLancar, cobrar }: { patientId: str
               {pg.recibo && <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#ecfdf5] text-[#047857] whitespace-nowrap">recibo emitido</span>}
               {pg.nota && <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#eef2ff] text-[#4338ca] whitespace-nowrap">nota emitida</span>}
             </div>
+            {/* Quitada recebendo MENOS, com a diferença perdoada ("não haverá diferença de valor"). */}
+            {c.valorDevido < c.valor && (
+              <span className="text-[11px] text-foreground/55">
+                Recebido {formatBRL(c.valorDevido)} de {formatBRL(c.valor)} · diferença perdoada
+              </span>
+            )}
             <div className="flex items-center gap-2 flex-wrap">
               <Link href={`/dashboard/patients/${patientId}/recibo/${pg.id}`}
                 className="text-[11px] font-semibold text-primary border border-border rounded-full px-2 py-0.5 hover:bg-surface whitespace-nowrap">
@@ -245,8 +251,14 @@ function ColunasDoPagamento({ patientId, c, onLancar, cobrar }: { patientId: str
               Lançar pagamento
             </button>
             <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap ${s.cls}`}>{s.rotulo}</span>
-            {pg && <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#fef3c7] text-[#92400e] whitespace-nowrap">pago em parte</span>}
           </div>
+          {/* Pagamento parcial: a diferença aparece na PRÓPRIA linha, nunca como "pago em parte"
+              (doc 17). A cobrança continua Em aberto/Em atraso; isto só diz quanto ainda falta. */}
+          {pg && c.falta > 0 && (
+            <div className="text-[11px] font-semibold text-[#92400e]">
+              Diferença em aberto: {formatBRL(c.falta)}
+            </div>
+          )}
           <div className="flex items-center gap-2 flex-wrap">
             <EnvioControle patientId={patientId} chave={c.chave} envio={c.envio} />
             {cobrar && <BotaoCobrar patientId={patientId} c={c} cobrar={cobrar} />}
@@ -277,6 +289,15 @@ function FormularioDeLancamento({ patientId, c, responsavel, responsavelCpf, fec
   const [cpf, setCpf] = useState(responsavelCpf);
   const mesmoPagador = nome.trim().toLowerCase() === responsavel.trim().toLowerCase();
 
+  // Valor editável (doc 17): pré-preenchido com o que FALTA, em pt-BR. A diferença e o aviso são
+  // recalculados ao vivo a partir do que a pessoa digita.
+  const [valor, setValor] = useState(c.falta.toFixed(2).replace(".", ","));
+  const [quitar, setQuitar] = useState(false);
+  const valorNum = Number(valor.replace(/\./g, "").replace(",", ".")) || 0;
+  const diferenca = Math.round((c.falta - valorNum) * 100) / 100;
+  const aMenos = diferenca > 0.005;
+  const aMais = diferenca < -0.005;
+
   function enviar(fd: FormData) {
     setErro(null);
     start(async () => {
@@ -287,6 +308,8 @@ function FormularioDeLancamento({ patientId, c, responsavel, responsavelCpf, fec
         pagoPor: String(fd.get("pagoPor") ?? ""),
         pagoPorCpf: String(fd.get("pagoPorCpf") ?? ""),
         metodo: String(fd.get("metodo") ?? ""),
+        valor: String(fd.get("valor") ?? ""),
+        quitarDiferenca: aMenos && quitar,
       });
       if (r.ok) { fechar(); router.refresh(); }
       else setErro(r.error ?? "Não foi possível lançar.");
@@ -296,14 +319,20 @@ function FormularioDeLancamento({ patientId, c, responsavel, responsavelCpf, fec
   return (
     <tr>
       <td colSpan={8} className="px-3 pb-3">
-        <form action={enviar} className="rounded-xl bg-surface/70 border border-border p-3 grid gap-2 sm:grid-cols-[auto_1fr_auto_auto_auto_auto] items-end" data-testid="lancar-pagamento">
+        <form action={enviar} className="rounded-xl bg-surface/70 border border-border p-3 grid gap-2 sm:grid-cols-[auto_auto_1fr_auto_auto_auto_auto] items-end" data-testid="lancar-pagamento">
           {/* O que ESTA cobrança cobre — para não confundir com "o valor do mês": cada cobrança é a
               sua sequência/sessões, e um mês pode ter mais de uma (ex.: pacote + sessões avulsas). */}
-          <p className="sm:col-span-6 text-[11px] text-foreground/60 -mb-1">
+          <p className="sm:col-span-7 text-[11px] text-foreground/60 -mb-1">
             Lançando esta cobrança: <b>{c.sessoes} {c.sessoes === 1 ? "sessão" : "sessões"}</b>
             {" · "}{formatBRL(c.valor)}
             {c.falta !== c.valor ? <> <span className="text-foreground/45">(falta {formatBRL(c.falta)})</span></> : null}
           </p>
+          <div>
+            <label htmlFor="valor-pg" className="text-[11px] font-semibold text-foreground/60 block">Valor recebido</label>
+            <input id="valor-pg" name="valor" inputMode="decimal" required value={valor}
+              onChange={(e) => setValor(e.target.value)}
+              className="w-[110px] px-3 py-2 rounded-lg bg-white border border-border text-sm tabular-nums" />
+          </div>
           <div>
             <label className="text-[11px] font-semibold text-foreground/60 block">Data do pagamento</label>
             <input name="data" type="date" required defaultValue={hojeISO()} className="px-3 py-2 rounded-lg bg-white border border-border text-sm" />
@@ -329,10 +358,31 @@ function FormularioDeLancamento({ patientId, c, responsavel, responsavelCpf, fec
             </select>
           </div>
           <button disabled={pending} className="bg-primary text-white px-4 py-2 rounded-lg font-bold text-sm disabled:opacity-60">
-            {pending ? "Salvando…" : `Confirmar ${formatBRL(c.falta)}`}
+            {pending ? "Salvando…" : `Confirmar ${formatBRL(valorNum)}`}
           </button>
           <button type="button" onClick={fechar} className="text-foreground/50 text-sm px-2 py-2">Cancelar</button>
-          {erro && <p className="sm:col-span-6 text-xs text-[#b91c1c]">{erro}</p>}
+
+          {/* Recebeu MENOS: por padrão a diferença fica em aberto; a pessoa pode optar por perdoá-la
+              (doc 17 — nunca "pago em parte"). Recebeu MAIS: a sobra vira crédito. */}
+          {aMenos && (
+            <div className="sm:col-span-7 text-[11px] flex flex-wrap items-center gap-x-3 gap-y-1">
+              {quitar ? (
+                <span className="text-foreground/60">Diferença de <b>{formatBRL(diferenca)}</b> será desconsiderada — cobrança quitada.</span>
+              ) : (
+                <span className="text-[#92400e] font-semibold">Diferença em aberto: {formatBRL(diferenca)}</span>
+              )}
+              <label className="inline-flex items-center gap-1.5 text-foreground/70 cursor-pointer">
+                <input type="checkbox" checked={quitar} onChange={(e) => setQuitar(e.target.checked)} />
+                Não haverá diferença de valor
+              </label>
+            </div>
+          )}
+          {aMais && (
+            <p className="sm:col-span-7 text-[11px] text-foreground/60">
+              {formatBRL(-diferenca)} a mais entram como crédito no saldo.
+            </p>
+          )}
+          {erro && <p className="sm:col-span-7 text-xs text-[#b91c1c]">{erro}</p>}
         </form>
       </td>
     </tr>
