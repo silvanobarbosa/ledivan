@@ -25,8 +25,6 @@ import {
   formatDate,
   formatDateTime,
   patientStatusColor,
-  RISK_LABELS,
-  riskColor,
   type RiskLevel,
 } from "@/lib/therapy";
 import { Phone, Plus, Pencil, Trash2, Mic, Loader2, FileText, Repeat, Download } from "lucide-react";
@@ -85,7 +83,7 @@ const inputCls = "w-full px-4 py-2.5 rounded-xl bg-white/70 border border-border
 const TABS = ["Geral", "Prontuário", "Atividades", "Materiais"] as const;
 
 export function PatientDetail({
-  patient, pagador, payments, statusHistory, records, transcriptionEnabled, risk, assignments, moodToken, moodLogs, scales, treatmentGoals, diaryEntries = [], ratings = [], consents = [], contractHistory: _contractHistory = [], finance, sessionStats, recurring, statusEnabled = false, dailyStatus = [], sharedWritings = [], geral = [], cobrancaMessage = null,
+  patient, pagador, payments, statusHistory, records, transcriptionEnabled, risk: _risk, assignments, moodToken, moodLogs, scales, treatmentGoals, diaryEntries = [], ratings = [], consents = [], contractHistory: _contractHistory = [], finance, sessionStats, recurring, statusEnabled = false, dailyStatus = [], sharedWritings = [], geral = [], cobrancaMessage = null,
 }: {
   patient: Patient; pagador: Pagador; sessions: Session[]; payments: Payment[];
   statusHistory: StatusEntry[]; priceHistory: PriceEntry[]; records: RecordEntry[];
@@ -179,11 +177,8 @@ export function PatientDetail({
             <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase ${patientStatusColor(patient.patientStatus)}`}>
               {statusLabel}
             </span>
-            {risk.total >= 1 && (
-              <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${riskColor(risk.level)}`} title={`${risk.faltas} falta(s) em ${risk.total} sessões passadas`}>
-                {RISK_LABELS[risk.level]}
-              </span>
-            )}
+            {/* Badge de risco (baixo/médio/alto) removido a pedido do dono (doc 16): o card não exibe
+                mais "Risco alto". O cálculo de risco segue existindo para quem precisar. */}
           </div>
           {(patient.isCouple || patient.category === "casal") && patient.spouseName && (
             <p className="text-sm text-foreground/50 -mt-0.5">com {patient.spouseName}</p>
