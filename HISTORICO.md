@@ -7,6 +7,14 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-10-03 — Remove o badge "Risco alto" do card do paciente (2º backlog, doc 16)
+
+**Entregue:** o card do paciente não exibe mais o selo de risco (baixo/médio/alto) — o dono pediu
+remover o "Risco alto". O cálculo de risco (`risk`) continua existindo no modelo, só não aparece no
+card. Sem outras telas afetadas.
+
+---
+
 ## 2026-10-03 — Agenda: lembrete de reajuste 30 dias antes (onda 6 — #19)
 
 **Entregue:** fecha a onda 6 (e o backlog do prints 6.pdf, salvo o WhatsApp). A agenda mostra um
