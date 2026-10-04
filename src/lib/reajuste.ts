@@ -198,3 +198,88 @@ export function eventosDeReajuste(
   const ordem = (e: EventoDeReajuste) => (e.kind === "modalidade" ? 0 : 1);
   return [...valores, ...modalidades].sort((a, b) => a.data.getTime() - b.data.getTime() || ordem(a) - ordem(b));
 }
+
+/**
+ * O histórico de reajuste no formato que o dono pediu (doc 16, 03/10/2026): uma linha por mudança,
+ * combinando modalidade e valor. Regras:
+ *  - Entrada Gratuito → "Gratuito" (sem R$ 0,00).
+ *  - Entrada paga → "Mensal → R$ 150,00" (modalidade → valor do 1º cadastro).
+ *  - Troca de modalidade → "Gratuito → Mensal → R$ 150,00" (de → para → valor novo); se a nova for
+ *    Gratuito, "Mensal → Gratuito" (sem valor).
+ *  - Só valor (mesma modalidade) → "Mensal → R$ 150,00 → R$ 180,00" (modalidade, anterior, novo).
+ * Função pura.
+ */
+export type LinhaDeHistorico = { data: Date; solicitadoEm: Date | null; texto: string };
+
+export function historicoDeReajuste(
+  precos: { valor: string | number; dataEfetiva: Date | string; dataCriacao?: Date | string | null }[],
+  formatos: { formato: string; dataEfetiva: Date | string; dataCriacao?: Date | string | null }[],
+): LinhaDeHistorico[] {
+  const brl = (v: number) => "R$ " + v.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const inst = (d: Date | string | null | undefined): Date | null => {
+    if (!d) return null;
+    const x = d instanceof Date ? d : new Date(d);
+    return Number.isNaN(x.getTime()) ? null : x;
+  };
+  const pedidoPorVigencia = new Map<number, Date>();
+  for (const lista of [precos, formatos]) {
+    for (const item of lista) {
+      const vig = inst(item.dataEfetiva);
+      const ped = inst(item.dataCriacao);
+      if (vig && ped) pedidoPorVigencia.set(vig.getTime(), ped);
+    }
+  }
+  const pedidoDe = (d: Date): Date | null => pedidoPorVigencia.get(d.getTime()) ?? null;
+
+  const pOrd = precos
+    .map((p) => ({ data: new Date(p.dataEfetiva), valor: Number(p.valor) }))
+    .filter((p) => !Number.isNaN(p.data.getTime()) && !Number.isNaN(p.valor))
+    .sort((a, b) => a.data.getTime() - b.data.getTime());
+  const valorNaData = (d: Date): number | null => {
+    let v: number | null = null;
+    for (const p of pOrd) { if (p.data.getTime() <= d.getTime()) v = p.valor; else break; }
+    return v;
+  };
+
+  const fOrd = formatos
+    .map((f) => ({ data: new Date(f.dataEfetiva), formato: f.formato }))
+    .filter((f) => !Number.isNaN(f.data.getTime()))
+    .sort((a, b) => a.data.getTime() - b.data.getTime());
+  const fDedup = fOrd.filter((f, i) => i === 0 || f.formato !== fOrd[i - 1].formato);
+  const modNaData = (d: Date): string | null => {
+    let m: string | null = null;
+    for (const f of fDedup) { if (f.data.getTime() <= d.getTime()) m = f.formato; else break; }
+    return m;
+  };
+
+  const out: LinhaDeHistorico[] = [];
+  const fDatas = new Set(fDedup.map((f) => f.data.getTime()));
+
+  for (let i = 0; i < fDedup.length; i++) {
+    const f = fDedup[i];
+    const rot = rotuloDoFormato(f.formato);
+    const pago = cobra(f.formato);
+    const v = valorNaData(f.data);
+    let texto: string;
+    if (i === 0) {
+      texto = pago && v != null ? `${rot} → ${brl(v)}` : rot;
+    } else {
+      const de = rotuloDoFormato(fDedup[i - 1].formato);
+      texto = pago && v != null ? `${de} → ${rot} → ${brl(v)}` : `${de} → ${rot}`;
+    }
+    out.push({ data: f.data, solicitadoEm: pedidoDe(f.data), texto });
+  }
+
+  for (const l of linhasDeReajuste(precos)) {
+    if (l.anterior === null) {
+      if (fDedup.length === 0 && l.novo > 0) out.push({ data: l.data, solicitadoEm: pedidoDe(l.data), texto: `Preço inicial → ${brl(l.novo)}` });
+      continue;
+    }
+    if (fDatas.has(l.data.getTime())) continue;
+    const m = modNaData(l.data);
+    const prefixo = m ? `${rotuloDoFormato(m)} → ` : "";
+    out.push({ data: l.data, solicitadoEm: pedidoDe(l.data), texto: `${prefixo}${brl(l.anterior)} → ${brl(l.novo)}` });
+  }
+
+  return out.sort((a, b) => a.data.getTime() - b.data.getTime());
+}

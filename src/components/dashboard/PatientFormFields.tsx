@@ -6,7 +6,7 @@ import { SubmitButton } from "@/components/SubmitButton";
 import { MessageCircle } from "lucide-react";
 import { QUEIXAS } from "@/lib/queixas";
 import { idadeEmPalavras } from "@/lib/idade";
-import { eventosDeReajuste, rotuloDoFormato, usaPacote } from "@/lib/reajuste";
+import { historicoDeReajuste, usaPacote } from "@/lib/reajuste";
 import { parseMoedaBR } from "@/lib/money";
 
 const inputCls = "w-full px-4 py-3 rounded-2xl bg-white/70 border border-border focus:ring-2 focus:ring-accent/20 focus:border-accent outline-none transition";
@@ -14,7 +14,6 @@ const labelCls = "block text-sm font-semibold text-foreground/70 mb-1.5";
 
 // Rótulo dos status legados que ainda podem estar gravados (prospect/pausado), só para preservar.
 const ROTULO_STATUS: Record<string, string> = { prospect: "Prospectado", pausado: "Pausado" };
-const brl = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
 export type PatientFormData = {
   registrationNumber?: number | null; agendaId?: string | null; dueDateType?: string | null; dueDate?: string | null; queixaPrincipal?: string | null;
@@ -534,17 +533,17 @@ export function PatientFormFields({ p, save }: { p?: PatientFormData; save?: Sav
           )}
 
           {(() => {
-            const eventos = eventosDeReajuste(p?.priceHistory ?? [], p?.formatHistory ?? []);
-            if (!eventos.length) return null;
+            // Histórico no formato do dono (doc 16): uma linha por mudança, combinando modalidade e valor.
+            const linhas = historicoDeReajuste(p?.priceHistory ?? [], p?.formatHistory ?? []);
+            if (!linhas.length) return null;
             return (
               <div className="pt-2 border-t border-border">
                 <p className="text-xs font-bold text-foreground/40 uppercase tracking-widest mb-2 mt-3">Histórico de reajuste</p>
                 <ul className="space-y-1">
-                  {eventos.slice().reverse().map((e, i) => (
+                  {linhas.slice().reverse().map((e, i) => (
                     <li key={i} className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm rounded-xl bg-surface/60 px-3 py-2">
                       {/* Duas datas, e as duas importam (documento de 17/09): quando a mudança foi
-                          PEDIDA, com hora, e a partir de quando ela VALE. Combina-se hoje um
-                          reajuste que passa a valer mês que vem. */}
+                          PEDIDA, com hora, e a partir de quando ela VALE. */}
                       <span className="font-mono text-xs font-bold text-primary">
                         vigência {e.data.toLocaleDateString("pt-BR")}
                       </span>
@@ -554,15 +553,7 @@ export function PatientFormFields({ p, save }: { p?: PatientFormData; save?: Sav
                           {e.solicitadoEm.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
                         </span>
                       )}
-                      <span className="text-foreground/60">
-                        {e.kind === "valor"
-                          ? (e.anterior === null
-                              ? <>preço inicial <strong>{brl(e.novo)}</strong></>
-                              : <>de {brl(e.anterior)} para <strong>{brl(e.novo)}</strong></>)
-                          : (e.anterior === null
-                              ? <>modalidade inicial <strong>{rotuloDoFormato(e.novo)}</strong></>
-                              : <>modalidade: {rotuloDoFormato(e.anterior)} → <strong>{rotuloDoFormato(e.novo)}</strong></>)}
-                      </span>
+                      <span className="text-foreground/70 font-medium">{e.texto}</span>
                     </li>
                   ))}
                 </ul>

@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
-  cobra, diasParaReajuste, eventosDeReajuste, linhasDeReajuste, referenciaDoPreco, rotuloDoFormato,
+  cobra, diasParaReajuste, eventosDeReajuste, historicoDeReajuste, linhasDeReajuste, referenciaDoPreco, rotuloDoFormato,
   sessoesNoMes, valorDoMes, vencimentoDoPreco,
 } from "@/lib/reajuste";
 
@@ -214,5 +214,41 @@ describe("quando a alteração foi PEDIDA, e não só quando passa a valer (docu
   it("registro antigo, sem a data do pedido, não quebra a tela", () => {
     const eventos = eventosDeReajuste([{ valor: 130, dataEfetiva: pedido(2026, 1, 1) }], []);
     expect(eventos[0].solicitadoEm).toBeNull();
+  });
+});
+
+describe("historicoDeReajuste — formato do dono (doc 16)", () => {
+  const txt = (precos: Parameters<typeof historicoDeReajuste>[0], formatos: Parameters<typeof historicoDeReajuste>[1]) =>
+    historicoDeReajuste(precos, formatos).map((l) => l.texto);
+
+  it("entrada Gratuito: só 'Gratuito' (sem R$ 0,00)", () => {
+    expect(txt([{ valor: 0, dataEfetiva: "2026-01-01" }], [{ formato: "gratuito", dataEfetiva: "2026-01-01" }]))
+      .toEqual(["Gratuito"]);
+  });
+
+  it("entrada paga: 'Mensal → R$ 150,00'", () => {
+    expect(txt([{ valor: 150, dataEfetiva: "2026-01-01" }], [{ formato: "mensal", dataEfetiva: "2026-01-01" }]))
+      .toEqual(["Mensal → R$ 150,00"]);
+  });
+
+  it("troca Gratuito → Mensal: 'Gratuito → Mensal → R$ 150,00'", () => {
+    expect(txt(
+      [{ valor: 0, dataEfetiva: "2026-01-01" }, { valor: 150, dataEfetiva: "2026-02-01" }],
+      [{ formato: "gratuito", dataEfetiva: "2026-01-01" }, { formato: "mensal", dataEfetiva: "2026-02-01" }],
+    )).toEqual(["Gratuito", "Gratuito → Mensal → R$ 150,00"]);
+  });
+
+  it("troca para Gratuito: 'Mensal → Gratuito' (sem valor)", () => {
+    expect(txt(
+      [{ valor: 150, dataEfetiva: "2026-01-01" }],
+      [{ formato: "mensal", dataEfetiva: "2026-01-01" }, { formato: "gratuito", dataEfetiva: "2026-02-01" }],
+    )).toEqual(["Mensal → R$ 150,00", "Mensal → Gratuito"]);
+  });
+
+  it("só valor (mesma modalidade): 'Mensal → R$ 150,00 → R$ 180,00'", () => {
+    expect(txt(
+      [{ valor: 150, dataEfetiva: "2026-01-01" }, { valor: 180, dataEfetiva: "2026-03-01" }],
+      [{ formato: "mensal", dataEfetiva: "2026-01-01" }],
+    )).toEqual(["Mensal → R$ 150,00", "Mensal → R$ 150,00 → R$ 180,00"]);
   });
 });
