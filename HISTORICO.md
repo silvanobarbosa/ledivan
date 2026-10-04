@@ -7,6 +7,27 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-10-04 — Pagamento: Valor editável + diferença na própria linha (2º backlog, doc 17)
+
+**Entregue (#235):** "Lançar pagamento" (guia Geral) ganhou campo **Valor editável**, pré-preenchido
+com o que falta.
+- Recebeu **menos** → registra o parcial; a cobrança segue **Em aberto/Em atraso** com
+  **"Diferença em aberto: R$X" na própria linha**. O selo "pago em parte" **saiu** (dono: nunca).
+- Opção **"Não haverá diferença de valor"** → quita a cobrança mesmo faltando (diferença perdoada).
+- Recebeu **mais** → registra o valor informado; a sobra vira crédito no saldo.
+
+**Como:** coluna `session_payments.quita_diferenca` (boolean). O **caixa fica honesto** — guarda o
+valor realmente recebido (`amount`); quem fecha a cobrança é a marca. No motor
+(`guiaGeral.casarPagamentos`), conjunto de `quitadas` + campo **`valorDevido`** (= recebido quando
+quitada com desconto); `resumoDaGeral` soma `valorDevido`, então o saldo não carrega a diferença
+perdoada. A action `lancarPagamento` aceita `valor` (via `parseMoedaBR`) e `quitarDiferenca`.
+
+**Decisão que fica valendo:** parcial **nunca** é "pago em parte" — é a cobrança Em aberto/Atraso com
+a diferença à mostra. "Não haverá diferença" é perdão explícito da terapeuta; o caixa registra o
+dinheiro real, o saldo usa `valorDevido`.
+
+---
+
 ## 2026-10-04 — Cadastro: Salvar Dados ≠ Salvar Financeiro (2º backlog, doc 17)
 
 **Entregue (#234):** salvar o **primeiro cadastro** só com a aba **Dados** não cria mais financeiro
