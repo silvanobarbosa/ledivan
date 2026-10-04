@@ -20,7 +20,7 @@ export type LinhaRelatorio = {
   birthDate: string | null;
   startedAt: string | null;
   priceReviewDate: string | null;
-  paymentFormat: string;
+  paymentFormat: string | null;
   contractType: string | null;
   paymentDay: number | null;
   dueDateType: string | null;

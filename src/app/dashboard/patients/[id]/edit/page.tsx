@@ -9,8 +9,9 @@ import { updatePatient, deletePatient } from "../../actions";
 import { SubmitButton } from "@/components/SubmitButton";
 import { PatientFormFields } from "@/components/dashboard/PatientFormFields";
 
-export default async function EditPatientPage({ params }: { params: Promise<{ id: string }> }) {
+export default async function EditPatientPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams?: Promise<{ guia?: string }> }) {
   const { id } = await params;
+  const guia = (await searchParams)?.guia;
   const session = await auth();
   if (!session?.user?.id) return null;
   if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id)) notFound();
@@ -48,7 +49,7 @@ export default async function EditPatientPage({ params }: { params: Promise<{ id
       </div>
 
       <div className="space-y-5">
-        <PatientFormFields save={save} p={{
+        <PatientFormFields save={save} tabInicial={guia === "financeiro" ? "financeiro" : undefined} p={{
           registrationNumber: patient.registrationNumber, agendaId: patient.agendaId, dueDateType: patient.dueDateType, dueDate: iso(patient.dueDate), queixaPrincipal: patient.queixaPrincipal,
           name: patient.name, phone: patient.phone, email: patient.email, patientStatus: patient.patientStatus,
           startedAt: iso(patient.startedAt), birthDate: iso(patient.birthDate), category: patient.category, isCouple: patient.isCouple, guardianRelationship: patient.guardianRelationship,

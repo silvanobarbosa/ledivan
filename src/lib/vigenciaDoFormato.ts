@@ -85,7 +85,9 @@ export function periodosDeVigencia(vigencias: VigenciaDoFormato[], reserva: Rese
     );
 
   if (validas.length === 0) {
-    return [{ formato: reserva.formato || "sessao", pacoteTipo: reserva.pacoteTipo ?? null, inicio: null, fim: null }];
+    // Sem histórico nenhum, vale o cadastro. Formato ausente (null/"") = "não definido" (doc 17):
+    // fica como "" e o resto do motor (cobra/usaPacote) trata como SEM cobrança.
+    return [{ formato: reserva.formato || "", pacoteTipo: reserva.pacoteTipo ?? null, inicio: null, fim: null }];
   }
 
   // Duas trocas no mesmo dia: a última apaga a anterior. Ninguém quer um período de zero dias.

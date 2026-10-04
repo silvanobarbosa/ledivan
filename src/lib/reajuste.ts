@@ -135,7 +135,8 @@ const ROTULO_FORMATO: Record<string, string> = {
   avulso: "Avulso", pacote: "Mensal",
 };
 export function rotuloDoFormato(formato: string | null | undefined): string {
-  return ROTULO_FORMATO[formato ?? ""] ?? formato ?? "—";
+  if (!formato) return "Não definido"; // 1º cadastro só com Dados: financeiro ainda não preenchido (doc 17)
+  return ROTULO_FORMATO[formato] ?? formato ?? "—";
 }
 
 /**

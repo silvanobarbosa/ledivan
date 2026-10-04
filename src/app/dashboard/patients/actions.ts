@@ -110,7 +110,11 @@ export async function createPatient(formData: FormData) {
   if (!name?.trim()) throw new Error("Nome obrigatório");
 
   const startedAtRaw = formData.get("startedAt") as string;
-  const sessionFee = num(formData.get("sessionFee"));
+  // Salvar Dados ≠ Salvar Financeiro (doc 17): no 1º cadastro o usuário pode salvar só os Dados, sem
+  // mexer no Financeiro. Nesse caso NÃO criamos nada financeiro (formato, valor, reajuste), nem
+  // assumimos Gratuito/padrão — o financeiro fica "não definido" até ele preencher a guia Financeiro.
+  const financeiroTocado = formData.get("financeiroTocado") === "1";
+  const sessionFee = financeiroTocado ? num(formData.get("sessionFee")) : "0";
   const rec = recorrenciaOf(formData);
 
   // Número do cadastro: sequencial por terapeuta (0001, 0002…).
@@ -161,7 +165,7 @@ export async function createPatient(formData: FormData) {
     emergencyEmail: (formData.get("emergencyEmail") as string) || null,
     attendanceDay: (formData.get("attendanceDay") as string) || null,
     attendanceTime: (formData.get("attendanceTime") as string) || null,
-    paymentFormat: (formData.get("paymentFormat") as string) || "sessao",
+    paymentFormat: financeiroTocado ? ((formData.get("paymentFormat") as string) || "sessao") : null,
     horasAntesPagamento: formData.get("horasAntesPagamento") ? parseInt(formData.get("horasAntesPagamento") as string) : null,
     validadePrecoMeses: formData.get("validadePrecoMeses") ? parseInt(formData.get("validadePrecoMeses") as string) : null,
     pacoteTipo: (formData.get("pacoteTipo") as string) || null,
@@ -170,11 +174,11 @@ export async function createPatient(formData: FormData) {
     // A data do próximo reajuste deixou de ser digitada: ela SAI da validade em meses, contada do
     // início — ou do retorno, quando o paciente parou e voltou. Data digitada à mão envelhecia
     // sozinha e ninguém voltava para corrigir.
-    priceReviewDate: vencimentoDoPreco(
+    priceReviewDate: financeiroTocado ? vencimentoDoPreco(
       startedAtRaw ? new Date(startedAtRaw) : new Date(),
       null,
       formData.get("validadePrecoMeses") ? parseInt(formData.get("validadePrecoMeses") as string) : null,
-    ),
+    ) : null,
     address: (formData.get("address") as string) || null,
     schoolName: (formData.get("schoolName") as string) || null,
     schoolContact: (formData.get("schoolContact") as string) || null,
@@ -209,24 +213,28 @@ export async function createPatient(formData: FormData) {
     patientId: created.id,
     status: created.patientStatus,
   });
-  await db.insert(patientPriceHistory).values({
-    patientId: created.id,
-    valor: sessionFee,
-    dataEfetiva: created.startedAt ?? new Date(),
-  });
-  // A primeira VIGÊNCIA do formato, desde o início do tratamento. É o que a cobrança lê para saber o
-  // formato de cada sessão; sem ela, uma troca futura tomaria o passado inteiro.
-  await db.insert(patientPaymentFormatHistory).values({
-    patientId: created.id,
-    formato: created.paymentFormat,
-    pacoteTipo: usaPacote(created.paymentFormat) ? (created.pacoteTipo === "fragmentado" ? "fragmentado" : "completo") : null,
-    dataEfetiva: created.startedAt ?? new Date(),
-  });
-
+  // Financeiro só nasce quando o usuário salva a guia Financeiro (doc 17). Se salvou só os Dados,
+  // NÃO criamos preço nem vigência de formato — nenhum lançamento financeiro.
+  if (financeiroTocado && created.paymentFormat) {
+    await db.insert(patientPriceHistory).values({
+      patientId: created.id,
+      valor: sessionFee,
+      dataEfetiva: created.startedAt ?? new Date(),
+    });
+    // A primeira VIGÊNCIA do formato, desde o início do tratamento. É o que a cobrança lê para saber o
+    // formato de cada sessão; sem ela, uma troca futura tomaria o passado inteiro.
+    await db.insert(patientPaymentFormatHistory).values({
+      patientId: created.id,
+      formato: created.paymentFormat,
+      pacoteTipo: usaPacote(created.paymentFormat) ? (created.pacoteTipo === "fragmentado" ? "fragmentado" : "completo") : null,
+      dataEfetiva: created.startedAt ?? new Date(),
+    });
+  }
 
   revalidatePath("/dashboard/patients");
   revalidatePath("/dashboard/agenda");
-  redirect(`/dashboard/patients/${created.id}`);
+  // Salvou só os Dados → leva para o cadastro na guia Financeiro, para completar quando quiser.
+  redirect(financeiroTocado ? `/dashboard/patients/${created.id}` : `/dashboard/patients/${created.id}/edit?guia=financeiro`);
 }
 
 export async function updatePatient(patientId: string, formData: FormData) {

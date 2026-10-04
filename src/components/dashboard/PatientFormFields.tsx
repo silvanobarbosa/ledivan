@@ -208,8 +208,8 @@ function Secao({ show, save, children }: { show: string; save?: SaveAction; chil
   );
 }
 
-export function PatientFormFields({ p, save }: { p?: PatientFormData; save?: SaveAction }) {
-  const [tab, setTab] = useState("dados");
+export function PatientFormFields({ p, save, tabInicial }: { p?: PatientFormData; save?: SaveAction; tabInicial?: string }) {
+  const [tab, setTab] = useState(tabInicial || "dados");
   // Formato antigo "avulso" e o "a cada sessao" do dono; "pacote" virou mensal com pacote.
   // primeira/última do pacote deixaram de ser modalidades próprias (prints 6.pdf, item 20): viram
   // OPÇÕES de "quando cobrar" dentro do Mensal pacote completo. No radio elas aparecem como "mensal".
@@ -221,6 +221,9 @@ export function PatientFormFields({ p, save }: { p?: PatientFormData; save?: Sav
   const [format, setFormat] = useState(formatoInicial);
   // Quando cobrar o pacote completo: no vencimento mensal (padrão) ou na 1ª/última sessão do pacote.
   const [quandoCobra, setQuandoCobra] = useState(ehTimingDePacote(p?.paymentFormat) ? p!.paymentFormat! : "mensal");
+  // Salvar Dados ≠ Salvar Financeiro (doc 17): no 1º cadastro, se o usuário não mexer no Financeiro,
+  // nada financeiro é criado. Em paciente já existente (p) o financeiro já existe, então vale true.
+  const [financeiroTocado, setFinanceiroTocado] = useState(!!p);
   // Hoje no fuso de quem preenche, no formato do <input type="date">.
   const hojeISO = (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; })();
   const [pacote, setPacote] = useState(p?.pacoteTipo || "completo");
@@ -529,6 +532,10 @@ export function PatientFormFields({ p, save }: { p?: PatientFormData; save?: Sav
           campos abrem LOGO ABAIXO do formato escolhido, e não no fim da lista: assim se lê o que
           foi marcado junto com o que ele pede. */}
       <Secao show={show("financeiro")} save={save}>
+        {/* Qualquer mexida aqui marca o Financeiro como "tocado" (doc 17): no 1º cadastro, sem isso,
+            nada financeiro é criado ao salvar só os Dados. */}
+        <div onChange={() => { if (!financeiroTocado) setFinanceiroTocado(true); }}>
+        <input type="hidden" name="financeiroTocado" value={financeiroTocado ? "1" : "0"} />
         <Card title="Financeiro">
           <div>
             <label className={labelCls}>Formato de pagamento</label>
@@ -591,6 +598,7 @@ export function PatientFormFields({ p, save }: { p?: PatientFormData; save?: Sav
             );
           })()}
         </Card>
+        </div>
       </Secao>
 
       <p className="text-xs text-foreground/50 px-1">💡 Etiquetas e observações ficam no <strong>Prontuário</strong> do paciente.</p>

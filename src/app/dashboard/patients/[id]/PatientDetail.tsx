@@ -43,7 +43,7 @@ type Patient = {
   priceReviewDate: string | null;
   sessionsInPacket: number | null; packageCreditsUsed: number; deductPackageOnSession: boolean;
   tags: string | null;
-  timesPerPeriod: number; paymentFormat: string;
+  timesPerPeriod: number; paymentFormat: string | null;
 };
 
 /** Nome e CPF que o formulário de pagamento já traz preenchidos (ver `pagadorSugerido` na página). */
