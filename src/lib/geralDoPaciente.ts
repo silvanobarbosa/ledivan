@@ -101,7 +101,7 @@ export type ResumoNaTela = {
 export async function geralDoPaciente(userId: string, patientId: string): Promise<{ linhas: LinhaNaTela[]; resumo: ResumoNaTela } | null> {
   const paciente = await db.query.patients.findFirst({
     where: and(eq(patients.id, patientId), eq(patients.userId, userId)),
-    columns: { id: true, paymentFormat: true, pacoteTipo: true, sessionFee: true, paymentDay: true, paymentDay2: true, horasAntesPagamento: true, timesPerPeriod: true },
+    columns: { id: true, paymentFormat: true, pacoteTipo: true, sessionFee: true, paymentDay: true, paymentDay2: true, horasAntesPagamento: true, timesPerPeriod: true, sessionsInPacket: true },
   });
   if (!paciente) return null;
 
@@ -138,6 +138,7 @@ export async function geralDoPaciente(userId: string, patientId: string): Promis
     precos: precos.map((p) => ({ valor: Number(p.valor) || 0, desde: local(p.dataEfetiva) })),
     valorDaSessao: Number(paciente.sessionFee) || 0,
     tamanhos: tamanhosDasSequencias(pacotes),
+    tamanhoPacote: paciente.sessionsInPacket,
     vezesPorSemana: paciente.timesPerPeriod,
     diaPagamento: paciente.paymentDay,
     diaPagamento2: paciente.paymentDay2,

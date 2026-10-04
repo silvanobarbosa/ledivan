@@ -273,3 +273,24 @@ describe("casos que não podem derrubar a agenda", () => {
     expect(p.get("a")!.index).not.toBe(p.get("b")!.index);
   });
 });
+
+describe("pacote completo: a quantidade informada manda, não mais o padrão 4 (doc 16)", () => {
+  const seis = ["2026-03-02", "2026-03-04", "2026-03-06", "2026-03-09", "2026-03-11", "2026-03-13"].map((d) => s(d));
+
+  it("tamanhoPacote = 3: numera 1/3..3/3 e recomeça", () => {
+    const m = posicoes(seis, { pacoteTipo: "completo", tamanhoPacote: 3 });
+    const fmt = seis.map((x) => { const p = m.get(x.id)!; return `${p.index}/${p.total}@${p.sequencia}`; });
+    expect(fmt).toEqual(["1/3@0", "2/3@0", "3/3@0", "1/3@1", "2/3@1", "3/3@1"]);
+  });
+
+  it("sem tamanhoPacote, cai no padrão 4", () => {
+    const m = posicoes(seis, { pacoteTipo: "completo" });
+    expect(m.get(seis[0].id)!.total).toBe(4);
+    expect(m.get(seis[4].id)!.total).toBe(4);
+  });
+
+  it("tamanhoPacote vazio/0 não vale (cai no padrão)", () => {
+    expect(posicoes(seis, { pacoteTipo: "completo", tamanhoPacote: 0 }).get(seis[0].id)!.total).toBe(4);
+    expect(posicoes(seis, { pacoteTipo: "completo", tamanhoPacote: null }).get(seis[0].id)!.total).toBe(4);
+  });
+});

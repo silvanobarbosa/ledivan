@@ -60,6 +60,13 @@ export type OpcoesDaSequencia = {
    */
   tamanhos?: number[];
   /**
+   * Quantidade de sessões do pacote COMPLETO, informada pelo usuário (doc 16, 03/10/2026):
+   * acabou o padrão fixo de 4/8 — quem define o tamanho do pacote completo é o cadastro
+   * (`patients.sessions_in_packet`). Vazio/0 cai no comportamento antigo (4 × vezes por semana),
+   * para não quebrar pacientes que nunca informaram. Só vale para o COMPLETO; o fracionado é o mês.
+   */
+  tamanhoPacote?: number | null;
+  /**
    * Quantas sessões por semana o paciente tem combinadas (1 ou 2). Vem do cadastro
    * (`patients.times_per_period`).
    *
@@ -113,6 +120,9 @@ function tamanhoDe(opts: OpcoesDaSequencia, i: number): number {
   // Contrato registrado manda sobre tudo.
   const lista = opts.pacoteTipo === "fragmentado" ? contratados(opts) : [];
   if (lista.length) return lista[Math.min(i, lista.length - 1)];
+  // Completo com quantidade informada pelo usuário manda (doc 16): acabou o padrão 4/8.
+  const qtd = Number(opts.tamanhoPacote);
+  if (opts.pacoteTipo !== "fragmentado" && Number.isFinite(qtd) && qtd >= 1) return Math.floor(qtd);
   // Senão, o pacote é um mês do ritmo combinado: 4 para quem vem 1x por semana, 8 para 2x.
   const vezes = Math.max(1, Math.floor(opts.vezesPorSemana ?? 1));
   return TAMANHO_PADRAO * vezes;
