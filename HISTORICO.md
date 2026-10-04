@@ -7,6 +7,24 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-10-03 — Histórico de reajuste no formato do dono (2º backlog, doc 16)
+
+**Entregue:** o Histórico de reajuste (aba Financeiro do cadastro) passou a mostrar **uma linha por
+mudança, combinando modalidade e valor**, em vez de duas linhas separadas (valor + modalidade):
+- Entrada Gratuito → **"Gratuito"** (sem a linha de R$ 0,00).
+- Entrada paga → **"Mensal → R$ 150,00"**.
+- Troca de modalidade → **"Gratuito → Mensal → R$ 150,00"** (de → para → valor novo); se a nova for
+  Gratuito, **"Mensal → Gratuito"** (sem valor).
+- Só valor (mesma modalidade) → **"Mensal → R$ 150,00 → R$ 180,00"**.
+
+Nova função pura `historicoDeReajuste` em `reajuste.ts` (5 testes com os exemplos do doc); a UI usa ela.
+`eventosDeReajuste` (antiga) fica no código, sem uso na tela.
+
+**Nota:** usei **"Avulso"** (rótulo unificado, decisão do prints6 #23) onde o doc escreveu "A cada
+sessão (Avulso)" — fonte única `rotuloDoFormato`. Se o dono quiser o texto longo no histórico, é trivial.
+
+---
+
 ## 2026-10-03 — Remove o badge "Risco alto" do card do paciente (2º backlog, doc 16)
 
 **Entregue:** o card do paciente não exibe mais o selo de risco (baixo/médio/alto) — o dono pediu
