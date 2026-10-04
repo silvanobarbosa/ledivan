@@ -261,7 +261,7 @@ export function PatientFormFields({ p, save, tabInicial }: { p?: PatientFormData
           <option key={t.valor} value={t.valor}>{t.nome} — {t.ajuda}</option>
         ))}
       </select>
-      <p className="text-xs text-foreground/50 mt-1">
+      <p className="text-[10px] text-foreground/50 mt-1">
         {TIPOS_DE_PACOTE.find((t) => t.valor === pacote)?.ajuda}
       </p>
     </div>
@@ -303,7 +303,7 @@ export function PatientFormFields({ p, save, tabInicial }: { p?: PatientFormData
     <div className="rounded-2xl border border-primary/30 bg-primary/5 px-4 py-3 space-y-2">
       <label className={labelCls} htmlFor="formatoDesde">Vale a partir de</label>
       <input id="formatoDesde" name="formatoDesde" type="date" defaultValue={hojeISO} className={`${inputCls} sm:max-w-xs`} />
-      <p className="text-[11px] text-foreground/60">
+      <p className="text-[10px] text-foreground/60">
         Os atendimentos <strong>antes</strong> desta data continuam com o formato anterior — nada do que
         já foi cobrado, ou deixou de ser, é alterado.
       </p>
@@ -317,7 +317,7 @@ export function PatientFormFields({ p, save, tabInicial }: { p?: PatientFormData
       <label htmlFor="sessionsInPacket" className={labelCls}>Quantidade de sessões do pacote</label>
       <input id="sessionsInPacket" name="sessionsInPacket" type="number" min={1} max={60}
         defaultValue={p?.sessionsInPacket ?? ""} className={inputCls} placeholder="ex: 4" />
-      <p className="text-[11px] text-foreground/50 mt-1">Quantas sessões compõem o pacote (usado no Completo).</p>
+      <p className="text-[10px] text-foreground/50 mt-1">Quantas sessões compõem o pacote (usado no Completo).</p>
     </div>
   );
 
@@ -326,7 +326,7 @@ export function PatientFormFields({ p, save, tabInicial }: { p?: PatientFormData
     // Gratuito: sem valor; "Vale a partir de" aparece aqui quando a troca é PARA gratuito.
     gratuito: (
       <div className="space-y-4">
-        <p className="text-sm text-foreground/60 rounded-2xl bg-surface/70 border border-border px-4 py-3">
+        <p className="text-[10px] text-foreground/60 rounded-2xl bg-surface/70 border border-border px-4 py-3">
           Atendimento <strong>gratuito</strong>: sem valor, sem dia de pagamento e sem cobrança.
         </p>
         {blocoValeAPartir}
@@ -549,7 +549,7 @@ export function PatientFormFields({ p, save, tabInicial }: { p?: PatientFormData
                     <input type="radio" value={o.v} checked={format === o.v} onChange={() => setFormat(o.v)} className="accent-primary mt-0.5" />
                     <span>
                       <span className="block text-sm font-bold">{o.t}</span>
-                      <span className="block text-xs text-foreground/50">{o.d}</span>
+                      <span className="block text-[10px] text-foreground/50">{o.d}</span>
                     </span>
                   </label>
                   {format === o.v && <div className="pl-1 pb-2">{camposDoFormato[o.v]}</div>}
@@ -563,9 +563,9 @@ export function PatientFormFields({ p, save, tabInicial }: { p?: PatientFormData
           {/* "Vale a partir de" agora mora DENTRO da modalidade selecionada (doc 16) — ver blocoValeAPartir. */}
 
           {usaPacote(format) && (
-            <p className="text-xs text-foreground/50">
-              A contagem das sessões do pacote (1/3, 2/3…) aparecem na agenda: no pacote completo são
-              sempre quatro; no fragmentado, quantas caírem dentro do mês.
+            <p className="text-[10px] text-foreground/50">
+              A contagem das sessões do pacote (1/3, 2/3…) aparece na agenda: no pacote completo é a
+              quantidade informada acima; no fragmentado, quantas caírem dentro do mês.
             </p>
           )}
 
