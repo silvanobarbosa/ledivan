@@ -292,47 +292,88 @@ export function PatientFormFields({ p, save }: { p?: PatientFormData; save?: Sav
     </div>
   );
 
+  // "Vale a partir de" passou a morar DENTRO da modalidade (doc 16): aparece só quando a troca de
+  // formato de um paciente já cadastrado muda o que vale (edição), em cada modalidade (incl. Gratuito).
+  const formatoSalvoReal = ehTimingDePacote(p?.paymentFormat) ? p!.paymentFormat! : formatoInicial;
+  const mostraVigencia = !!p && formatoEfetivo !== formatoSalvoReal;
+  const blocoValeAPartir = mostraVigencia ? (
+    <div className="rounded-2xl border border-primary/30 bg-primary/5 px-4 py-3 space-y-2">
+      <label className={labelCls} htmlFor="formatoDesde">Vale a partir de</label>
+      <input id="formatoDesde" name="formatoDesde" type="date" defaultValue={hojeISO} className={`${inputCls} sm:max-w-xs`} />
+      <p className="text-[11px] text-foreground/60">
+        Os atendimentos <strong>antes</strong> desta data continuam com o formato anterior — nada do que
+        já foi cobrado, ou deixou de ser, é alterado.
+      </p>
+    </div>
+  ) : null;
+
+  // Quantidade de sessões do pacote (doc 16): acabou o padrão 4/8, o usuário define. Vale para o
+  // Completo; no Fracionado quem diz é a agenda (o mês).
+  const qtdSessoesPacote = (
+    <div>
+      <label htmlFor="sessionsInPacket" className={labelCls}>Quantidade de sessões do pacote</label>
+      <input id="sessionsInPacket" name="sessionsInPacket" type="number" min={1} max={60}
+        defaultValue={p?.sessionsInPacket ?? ""} className={inputCls} placeholder="ex: 4" />
+      <p className="text-[11px] text-foreground/50 mt-1">Quantas sessões compõem o pacote (usado no Completo).</p>
+    </div>
+  );
+
   // O que cada formato abre, logo abaixo do próprio item — e na ordem que o dono pediu.
   const camposDoFormato: Record<string, ReactNode> = {
+    // Gratuito: sem valor; "Vale a partir de" aparece aqui quando a troca é PARA gratuito.
     gratuito: (
-      <p className="text-sm text-foreground/60 rounded-2xl bg-surface/70 border border-border px-4 py-3">
-        Atendimento <strong>gratuito</strong>: sem valor, sem dia de pagamento e sem cobrança.
-      </p>
-    ),
-    sessao: (
-      <div className="grid sm:grid-cols-2 gap-4">
-        {valorDaSessao}
-        <NumeroCom
-          name="horasAntesPagamento" label="Pagar até" unidade="horas antes" max={168}
-          dica="Quantas horas ANTES do atendimento o pagamento deve estar feito. É o gatilho do aviso ao paciente."
-          defaultValue={p?.horasAntesPagamento} placeholder="ex: 24"
-        />
-        {proximoReajuste}
+      <div className="space-y-4">
+        <p className="text-sm text-foreground/60 rounded-2xl bg-surface/70 border border-border px-4 py-3">
+          Atendimento <strong>gratuito</strong>: sem valor, sem dia de pagamento e sem cobrança.
+        </p>
+        {blocoValeAPartir}
       </div>
     ),
+    // Avulso: Valor da sessão · Pagar até · Vale a partir de (quando necessário) · Próximo reajuste.
+    sessao: (
+      <div className="space-y-4">
+        <div className="grid sm:grid-cols-2 gap-4">
+          {valorDaSessao}
+          <NumeroCom
+            name="horasAntesPagamento" label="Pagar até" unidade="horas antes" max={168}
+            dica="Quantas horas ANTES do atendimento o pagamento deve estar feito. É o gatilho do aviso ao paciente."
+            defaultValue={p?.horasAntesPagamento} placeholder="ex: 24"
+          />
+        </div>
+        {blocoValeAPartir}
+        <div className="sm:max-w-sm">{proximoReajuste}</div>
+      </div>
+    ),
+    // Mensal: Valor · Qtd do pacote · Pacote · Dia de pagamento (+ 1ª/última) · Vale a partir de · Reajuste.
     mensal: (
       <div className="space-y-4">
         <div className="grid sm:grid-cols-2 gap-4">
           {valorDaSessao}
-          {/* Dia de pagamento só quando a cobrança é no vencimento do mês. Se o pacote é cobrado na
-              1ª/última sessão, o dia é o da própria sessão — não se pergunta. */}
-          {!(pacote === "completo" && quandoCobra !== "mensal") && (
-            <div>
-              <label className={labelCls}>Dia de pagamento</label>
-              <input name="paymentDay" type="number" min={1} max={31} defaultValue={p?.paymentDay ?? ""} className={inputCls} placeholder="ex: 5" />
-            </div>
-          )}
+          {qtdSessoesPacote}
         </div>
         {blocoPacote}
+        {/* Dia de pagamento só quando a cobrança é no vencimento do mês. Se o pacote é cobrado na
+            1ª/última sessão, o dia é o da própria sessão — não se pergunta. */}
+        {!(pacote === "completo" && quandoCobra !== "mensal") && (
+          <div className="sm:max-w-sm">
+            <label className={labelCls}>Dia de pagamento</label>
+            <input name="paymentDay" type="number" min={1} max={31} defaultValue={p?.paymentDay ?? ""} className={inputCls} placeholder="ex: 5" />
+          </div>
+        )}
         {pacote === "completo" && blocoQuandoCobra}
+        {blocoValeAPartir}
         <div className="sm:max-w-sm">{proximoReajuste}</div>
       </div>
     ),
+    // Quinzenal: Valor · Qtd do pacote · Pacote · Dias de pagamento (1ª/2ª) · Vale a partir de · Reajuste.
     quinzenal: (
       <div className="space-y-4">
         <div className="grid sm:grid-cols-2 gap-4">
           {valorDaSessao}
-          <div className="hidden sm:block" />
+          {qtdSessoesPacote}
+        </div>
+        {blocoPacote}
+        <div className="grid sm:grid-cols-2 gap-4">
           <div>
             <label className={labelCls}>Dia de pagamento — 1ª quinzena</label>
             <input name="paymentDay" type="number" min={1} max={31} defaultValue={p?.paymentDay ?? ""} className={inputCls} placeholder="ex: 5" />
@@ -342,7 +383,7 @@ export function PatientFormFields({ p, save }: { p?: PatientFormData; save?: Sav
             <input name="paymentDay2" type="number" min={1} max={31} defaultValue={p?.paymentDay2 ?? ""} className={inputCls} placeholder="ex: 20" />
           </div>
         </div>
-        {blocoPacote}
+        {blocoValeAPartir}
         <div className="sm:max-w-sm">{proximoReajuste}</div>
       </div>
     ),
@@ -512,18 +553,7 @@ export function PatientFormFields({ p, save }: { p?: PatientFormData; save?: Sav
             <input type="hidden" name="paymentFormat" value={formatoEfetivo} />
           </div>
 
-          {/* VIGÊNCIA: só aparece quando o formato de um paciente JÁ CADASTRADO mudou. A troca vale a
-              partir desta data e não mexe no que aconteceu antes — é a regra do dono de 15/09/2026. */}
-          {p && formatoEfetivo !== (ehTimingDePacote(p.paymentFormat) ? p.paymentFormat : formatoInicial) && (
-            <div className="rounded-2xl border border-primary/30 bg-primary/5 px-4 py-3 space-y-2">
-              <label className={labelCls} htmlFor="formatoDesde">Vale a partir de</label>
-              <input id="formatoDesde" name="formatoDesde" type="date" defaultValue={hojeISO} className={`${inputCls} sm:max-w-xs`} />
-              <p className="text-xs text-foreground/60">
-                Os atendimentos <strong>antes</strong> desta data continuam com o formato anterior — nada do
-                que já foi cobrado, ou deixou de ser, é alterado.
-              </p>
-            </div>
-          )}
+          {/* "Vale a partir de" agora mora DENTRO da modalidade selecionada (doc 16) — ver blocoValeAPartir. */}
 
           {usaPacote(format) && (
             <p className="text-xs text-foreground/50">

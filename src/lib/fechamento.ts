@@ -37,6 +37,8 @@ export type PacienteDoFechamento = {
   diaPagamento2?: number | null;
   /** Quantas sessões por semana — define se o pacote fechado tem 4 ou 8 (documento de 17/09). */
   vezesPorSemana?: number | null;
+  /** Quantidade de sessões do pacote completo informada no cadastro (doc 16). */
+  tamanhoPacote?: number | null;
   /**
    * O valor da sessão no cadastro, usado quando o histórico de preço não alcança a data.
    *
@@ -287,6 +289,7 @@ export function linhaDoFechamento(opts: {
     precos: opts.precos,
     valorDaSessao: reserva,
     tamanhos: opts.tamanhos,
+    tamanhoPacote: paciente.tamanhoPacote,
     diaPagamento: paciente.diaPagamento ?? null,
     diaPagamento2: paciente.diaPagamento2 ?? null,
     vezesPorSemana: paciente.vezesPorSemana ?? 1,

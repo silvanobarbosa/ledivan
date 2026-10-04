@@ -7,6 +7,25 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-10-03 — Financeiro: ordem dos campos + quantidade de sessões do pacote (2º backlog, doc 16)
+
+**Entregue:**
+- **Quantidade de sessões do pacote** (campo `sessionsInPacket`) passou a valer no **pacote Completo**:
+  acabou o padrão fixo 4/8 — quem define é o cadastro. **Motor:** `sequenciaPacote.tamanhoDe` usa
+  `tamanhoPacote` para o Completo (fallback 4×vezes quando vazio, para não quebrar quem nunca informou);
+  o campo foi threadado por `cobrancas` → `guiaGeral`/`geralDoPaciente` e por `fechamento` (`linhaDoFechamento`
+  + a página). Fracionado segue sendo o mês (agenda).
+- **Ordem dos campos** no Financeiro (doc 16): Avulso = Valor · Pagar até · Vale a partir de · Reajuste;
+  Mensal/Quinzenal = Valor · **Qtd do pacote** · Pacote · Dia(s) de pagamento (Mensal: + opção 1ª/última
+  sessão) · Vale a partir de · Reajuste.
+- **"Vale a partir de"** deixou de ser um bloco separado: mora **dentro da modalidade** selecionada
+  (inclusive Gratuito), aparecendo só quando a troca de formato muda o que vale (edição).
+
+**Decisão que fica valendo:** o tamanho do pacote Completo vem do cadastro (`sessionsInPacket`); sem valor,
+cai no antigo 4×(vezes por semana). Testes do motor cobrindo tamanhoPacote (sequenciaPacote).
+
+---
+
 ## 2026-10-03 — Histórico de reajuste no formato do dono (2º backlog, doc 16)
 
 **Entregue:** o Histórico de reajuste (aba Financeiro do cadastro) passou a mostrar **uma linha por

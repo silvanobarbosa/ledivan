@@ -55,6 +55,7 @@ export default async function FechamentoPage({
       paymentDay: patients.paymentDay,
       paymentDay2: patients.paymentDay2,
       timesPerPeriod: patients.timesPerPeriod,
+      sessionsInPacket: patients.sessionsInPacket,
       sessionFee: patients.sessionFee,
       status: patients.patientStatus,
     })
@@ -159,6 +160,7 @@ export default async function FechamentoPage({
           diaPagamento: p.paymentDay,
           diaPagamento2: p.paymentDay2,
           vezesPorSemana: p.timesPerPeriod,
+          tamanhoPacote: p.sessionsInPacket,
           valorDaSessao: Number(p.sessionFee) || 0,
         },
         sessoes: sessoesPor.get(p.id) ?? [],
