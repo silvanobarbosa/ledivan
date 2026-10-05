@@ -986,8 +986,12 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], reajuste
               <label className="text-xs font-semibold text-foreground/60">Paciente</label>
               <select name="patientId" required value={newPatient} onChange={(e) => setNewPatient(e.target.value)} className="w-full px-4 py-2.5 rounded-xl bg-surface border border-border outline-none text-sm">
                 <option value="">Selecione…</option>
-                {patients.map((p) => (
-                  <option key={p.id} value={p.id}>{p.name}{p.status === "prospect" ? " (prospectado)" : ""}</option>
+                {/* Novo atendimento lista SÓ pacientes ATIVOS (doc 19/10): prospectado fica só na
+                    Prospecção e inativo não agenda; ao converter p/ Ativo, passa a aparecer. A lista
+                    completa (não-inativos) segue vindo do servidor para resolver o nome de sessões já
+                    marcadas — por isso o filtro é aqui, no seletor, não na consulta. */}
+                {patients.filter((p) => p.status === "ativo").map((p) => (
+                  <option key={p.id} value={p.id}>{p.name}</option>
                 ))}
               </select>
             </div>
