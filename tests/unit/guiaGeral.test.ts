@@ -92,6 +92,12 @@ describe("primeira e última sessão do pacote", () => {
   it("última: pagamento DEPOIS do pacote", () => {
     expect(resumo(geral("ultima_pacote", [terca(1), terca(8), terca(15), terca(22)]))).toEqual(["1/4", "2/4", "3/4", "4/4", "P 520"]);
   });
+
+  it("1ª sessão no FRAGMENTADO (doc 19/10): cobra na abertura, tamanho pelo mês", () => {
+    // Setembro com 3 sessões: o pagamento vem ANTES da 1/3 (abertura), valor = 3 × 130.
+    const s = [terca(1), terca(8), terca(15)];
+    expect(resumo(geral("primeira_pacote", s, { tamanhos: [3] }))).toEqual(["P 390", "1/3", "2/3", "3/3"]);
+  });
 });
 
 describe("sessões extras no meio do pacote", () => {

@@ -251,11 +251,14 @@ export function PatientFormFields({ p, save, tabInicial }: { p?: PatientFormData
 
   // O paymentFormat que de fato vai para o banco: no Mensal pacote completo, "quando cobrar" decide
   // se é mensal (vencimento), primeira_pacote ou ultima_pacote. O motor já entende os três.
-  const formatoEfetivo = format === "mensal" && pacote === "completo" ? quandoCobra : format;
+  // "Quando cobrar o pacote" vale para o Mensal tanto no Completo quanto no Fragmentado (doc 19/10).
+  // No Fragmentado só existem duas opções (No dia do vencimento, Na 1ª sessão) — "última" não se
+  // aplica —, então o valor é clampado: um estado "ultima_pacote" herdado vira "mensal" no fragmentado.
+  const quandoCobraEfetivo = pacote === "fragmentado" && quandoCobra === "ultima_pacote" ? "mensal" : quandoCobra;
+  const formatoEfetivo = format === "mensal" ? quandoCobraEfetivo : format;
 
-  // "Quando cobrar o pacote completo" — só no Mensal + Completo (prints 6.pdf, item 20). Os VALORES
-  // seguem iguais (mensal/primeira_pacote/ultima_pacote — o motor depende deles); só o texto mudou
-  // (doc 18), e a 1ª/última ganharam legenda de qual data vira o vencimento.
+  // Os VALORES seguem iguais (mensal/primeira_pacote/ultima_pacote — o motor depende deles); a 1ª/última
+  // ganharam legenda de qual data vira o vencimento.
   const legendaQuandoCobra: Record<string, string> = {
     primeira_pacote: "A data de vencimento será considerada a data da primeira sessão do pacote.",
     ultima_pacote: "A data de vencimento será considerada a data da última sessão do pacote.",
@@ -263,13 +266,14 @@ export function PatientFormFields({ p, save, tabInicial }: { p?: PatientFormData
   const blocoQuandoCobra = (
     <div>
       <label htmlFor="quandoCobra" className={labelCls}>Quando cobrar o pacote</label>
-      <select id="quandoCobra" value={quandoCobra} onChange={(e) => setQuandoCobra(e.target.value)} className={inputCls}>
+      <select id="quandoCobra" value={quandoCobraEfetivo} onChange={(e) => setQuandoCobra(e.target.value)} className={inputCls}>
         <option value="mensal">No dia do vencimento</option>
         <option value="primeira_pacote">Na 1ª sessão do pacote</option>
-        <option value="ultima_pacote">Na última sessão do pacote</option>
+        {/* "Na última sessão" só no Completo — não faz sentido no Fragmentado (doc 19/10). */}
+        {pacote !== "fragmentado" && <option value="ultima_pacote">Na última sessão do pacote</option>}
       </select>
-      {legendaQuandoCobra[quandoCobra] && (
-        <p className="text-[10px] text-foreground/50 mt-1">{legendaQuandoCobra[quandoCobra]}</p>
+      {legendaQuandoCobra[quandoCobraEfetivo] && (
+        <p className="text-[10px] text-foreground/50 mt-1">{legendaQuandoCobra[quandoCobraEfetivo]}</p>
       )}
     </div>
   );
@@ -338,10 +342,11 @@ export function PatientFormFields({ p, save, tabInicial }: { p?: PatientFormData
         </div>
         {blocoPacote}
         {/* "Quando cobrar o pacote" vem ANTES do "Dia do vencimento" (doc 18): é ele que decide se o
-            dia é perguntado — na 1ª/última sessão o vencimento é o da própria sessão. */}
-        {pacote === "completo" && blocoQuandoCobra}
+            dia é perguntado — na 1ª/última sessão o vencimento é o da própria sessão. Aparece no
+            Completo E no Fragmentado (doc 19/10; no Fragmentado só 2 opções). */}
+        {blocoQuandoCobra}
         {/* Dia do vencimento só quando a cobrança é no vencimento do mês. */}
-        {!(pacote === "completo" && quandoCobra !== "mensal") && (
+        {quandoCobraEfetivo === "mensal" && (
           <div className="sm:max-w-sm">
             <label className={labelCls}>Dia do vencimento</label>
             <input name="paymentDay" type="number" min={1} max={31} defaultValue={p?.paymentDay ?? ""} className={inputCls} placeholder="ex: 5" />
