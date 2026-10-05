@@ -7,6 +7,21 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-10-05 — Prospecção: Valor previsto R$ + lista colapsada (doc 19)
+
+**Entregue (#241):**
+- **"Valor previsto"** (criar e editar prospectado) ganhou **máscara de moeda** ao digitar. O
+  `MoneyInput` saiu de dentro do cadastro para um componente **compartilhado**
+  (`src/components/MoneyInput`, aceita `className`), reusado no cadastro de paciente e na prospecção.
+- **Lista de prospectados** passou a mostrar só **data do 1º contato + nome**; clicar na linha abre as
+  informações completas (a caixa editável + histórico de contatos que já existiam). Data do 1º contato
+  = a mais antiga entre a data do cadastro e os contatos registrados.
+
+**Decisão que fica valendo:** a lista é colapsada por padrão (data+nome), detalhe só ao clicar; o
+estado `verContatos` controla o histórico de contatos dentro do card aberto.
+
+---
+
 ## 2026-10-04 — Pacote: textos/ordem + histórico do 1º cadastro (doc 18)
 
 **Entregue:**
