@@ -2,7 +2,7 @@
 
 import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { UserPlus, ArrowRight, Trash2, Save, ChevronDown, ChevronRight, Plus } from "lucide-react";
+import { UserPlus, ArrowRight, Trash2, Save, ChevronDown, ChevronRight, Plus, MessageCircle } from "lucide-react";
 import { formatDate } from "@/lib/therapy";
 import { idadeEmAnos } from "@/lib/idade";
 import { numeroDoWhatsapp } from "@/lib/telefoneWhatsapp";
@@ -27,6 +27,12 @@ const lbl = "text-[11px] font-semibold uppercase tracking-wide text-foreground/4
 const idadeDe = (nasc: string | null): number | null => idadeEmAnos(nasc);
 /** YYYY-MM-DD para o input date. */
 const paraInput = (iso: string | null) => (iso ? new Date(iso).toISOString().slice(0, 10) : "");
+/** Horário HH:MM do contato (doc 20: o histórico mostra data E horário do envio). */
+const horaDe = (iso: string | null) => {
+  if (!iso) return "";
+  const d = new Date(iso);
+  return Number.isNaN(d.getTime()) ? "" : d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+};
 
 export function ListaProspects({ prospects, contatos }: { prospects: ProspectLinha[]; contatos: ContatoLinha[] }) {
   const [de, setDe] = useState("");
@@ -41,35 +47,28 @@ export function ListaProspects({ prospects, contatos }: { prospects: ProspectLin
   const [verContatos, setVerContatos] = useState<Set<string>>(new Set());
   const [erro, setErro] = useState<string | null>(null);
   const [pendente, iniciar] = useTransition();
-  // Envio de mensagens (doc 19/10): seleção por checkbox + mensagem única enviada aos marcados.
-  const [selecionados, setSelecionados] = useState<Set<string>>(new Set());
+  // Envio de mensagens (doc 20): a mensagem é definida UMA vez abaixo da lista; cada prospectado tem
+  // seu botão "Contatar" que envia SÓ para ele (pelo WhatsApp dele) e registra o contato só dele.
   const [mensagem, setMensagem] = useState("");
-  const [enviando, iniciarEnvio] = useTransition();
+  const [contatando, iniciarContato] = useTransition();
+  const [contatoId, setContatoId] = useState<string | null>(null);
   const [envioMsg, setEnvioMsg] = useState<string | null>(null);
   const router = useRouter();
 
-  const alternarSelecao = (id: string) =>
-    setSelecionados((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n; });
-
-  function enviarMensagens() {
-    const sel = prospects.filter((p) => selecionados.has(p.id));
-    if (!sel.length || !mensagem.trim()) return;
+  function contatar(p: ProspectLinha) {
+    if (!mensagem.trim()) { setEnvioMsg("Escreva a mensagem no campo abaixo da lista primeiro."); return; }
     setEnvioMsg(null);
-    // Resolve {nome} por prospectado e abre o WhatsApp de cada um (wa.me), como na área de
-    // Aniversariantes. O registro do contato é server-side e guarda o que foi enviado.
-    const textoDe = (nome: string) => mensagem.replace(/\{nome\}/g, nome.split(" ")[0]);
-    let semTel = 0;
-    for (const p of sel) {
-      const num = numeroDoWhatsapp(p.phone);
-      if (num) window.open(`https://wa.me/${num}?text=${encodeURIComponent(textoDe(p.name))}`, "_blank", "noopener");
-      else semTel++;
-    }
-    const envios = sel.map((p) => ({ id: p.id, mensagem: textoDe(p.name) }));
-    iniciarEnvio(async () => {
-      const r = await registrarEnvioMensagem({ envios });
+    // {nome} vira o primeiro nome. Abre o WhatsApp DESTE prospectado (wa.me) e registra só o contato
+    // dele; ninguém mais recebe.
+    const texto = mensagem.replace(/\{nome\}/g, p.name.split(" ")[0]);
+    const num = numeroDoWhatsapp(p.phone);
+    if (num) window.open(`https://wa.me/${num}?text=${encodeURIComponent(texto)}`, "_blank", "noopener");
+    setContatoId(p.id);
+    iniciarContato(async () => {
+      const r = await registrarEnvioMensagem({ envios: [{ id: p.id, mensagem: texto }] });
+      setContatoId(null);
       if (r.ok) {
-        setEnvioMsg(`Registrado em ${r.registrados} contato(s).${semTel ? ` ${semTel} sem telefone — WhatsApp não aberto.` : ""}`);
-        setSelecionados(new Set());
+        setEnvioMsg(`Mensagem registrada para ${p.name}${num ? "" : " (sem telefone — WhatsApp não aberto)"}.`);
         router.refresh();
       } else setEnvioMsg(r.erro ?? "Não deu para registrar.");
     });
@@ -199,8 +198,8 @@ export function ListaProspects({ prospects, contatos }: { prospects: ProspectLin
               // escorregava a cada prospect novo — o teste passava a clicar na linha do vizinho.
               <div key={p.id} data-prospect={p.id} className="glass-card rounded-[24px] p-4 sm:p-5">
                 {/* Doc 19: a lista mostra só a data do 1º contato e o nome; clicar abre as infos
-                    completas. O checkbox (doc 19/10) fica à DIREITA, para selecionar quem recebe a
-                    mensagem — fora do botão de abrir, para um não disparar o outro. */}
+                    completas. À DIREITA, o botão "Contatar" (doc 20) envia a mensagem definida abaixo
+                    SÓ para este prospectado — fora do botão de abrir, para um não disparar o outro. */}
                 <div className="flex items-center gap-3">
                   <button type="button" onClick={() => setAberto(expandido ? null : p.id)}
                     aria-expanded={expandido} className="flex-1 min-w-0 flex items-center gap-3 text-left">
@@ -208,8 +207,11 @@ export function ListaProspects({ prospects, contatos }: { prospects: ProspectLin
                     <span className="font-mono text-xs font-bold text-primary shrink-0 tabular-nums">{dataPrimeiro ? formatDate(dataPrimeiro) : "—"}</span>
                     <span className="flex-1 font-semibold text-sm truncate">{p.name}</span>
                   </button>
-                  <input type="checkbox" checked={selecionados.has(p.id)} onChange={() => alternarSelecao(p.id)}
-                    aria-label={`Selecionar ${p.name} para mensagem`} className="w-4 h-4 accent-primary shrink-0 cursor-pointer" />
+                  <button type="button" onClick={() => contatar(p)} disabled={contatando && contatoId === p.id}
+                    title="Enviar a mensagem definida abaixo para este prospectado (WhatsApp)"
+                    className="shrink-0 inline-flex items-center gap-1 text-[11px] font-semibold text-[#047857] border border-[#a7f3d0] bg-[#ecfdf5] rounded-full px-3 py-1 hover:bg-[#d1fae5] disabled:opacity-60 whitespace-nowrap">
+                    <MessageCircle className="w-3 h-3" aria-hidden /> {contatando && contatoId === p.id ? "..." : "Contatar"}
+                  </button>
                 </div>
 
                 {expandido && (
@@ -268,7 +270,7 @@ export function ListaProspects({ prospects, contatos }: { prospects: ProspectLin
                       <div className="space-y-1">
                         {lista.map((c) => (
                           <div key={c.id} className="flex items-start gap-2 rounded-xl bg-surface/60 px-3 py-2">
-                            <span className="font-mono text-xs font-bold text-primary shrink-0 pt-0.5">{formatDate(c.date)}</span>
+                            <span className="font-mono text-xs font-bold text-primary shrink-0 pt-0.5 whitespace-nowrap">{formatDate(c.date)}{horaDe(c.date) ? ` ${horaDe(c.date)}` : ""}</span>
                             <span className="flex-1 text-sm">{c.observacao || "—"}</span>
                             <form action={async () => { await deleteProspectContact(c.id, p.id); }}>
                               <button title="Excluir contato" aria-label="Excluir contato" className="text-red-600 hover:bg-red-50 rounded-lg p-1 transition"><Trash2 className="w-3.5 h-3.5" /></button>
@@ -287,29 +289,18 @@ export function ListaProspects({ prospects, contatos }: { prospects: ProspectLin
         </div>
       )}
 
-      {/* Envio de mensagens (doc 19/10) — layout no espírito dos Aniversariantes: marque os
-          prospectados na lista, escreva a mensagem e envie. Vai pelo WhatsApp de cada selecionado e
-          registra o contato (data + a mensagem) só dos marcados. */}
+      {/* Mensagem (doc 20): definida UMA vez aqui; o botão "Contatar" de cada prospectado na lista
+          envia só para ele. <code>{"{nome}"}</code> vira o primeiro nome. */}
       {prospects.length > 0 && (
         <div className="glass-card rounded-[24px] p-5 space-y-3">
-          <div className="flex items-center justify-between">
-            <h3 className="font-semibold text-sm text-primary">Enviar mensagem</h3>
-            <span className="text-xs text-foreground/40">{selecionados.size} selecionado(s)</span>
-          </div>
+          <h3 className="font-semibold text-sm text-primary">Mensagem</h3>
           <p className="text-[11px] text-foreground/50">
-            Marque os prospectados na lista acima. <code>{"{nome}"}</code> vira o primeiro nome. Abre o
-            WhatsApp de cada selecionado e registra a mensagem no histórico de contatos deles.
+            Escreva a mensagem e clique em <b>Contatar</b> ao lado do prospectado. Vai pelo WhatsApp dele
+            e fica registrada no histórico de contatos dele. <code>{"{nome}"}</code> vira o primeiro nome.
           </p>
           <textarea value={mensagem} onChange={(e) => { setMensagem(e.target.value); setEnvioMsg(null); }}
             rows={3} placeholder="Olá, {nome}! ..." className={`${inputCls} resize-none`} />
-          <div className="flex items-center gap-3 flex-wrap">
-            <button type="button" onClick={enviarMensagens}
-              disabled={enviando || selecionados.size === 0 || !mensagem.trim()}
-              className="bg-primary text-white px-6 py-2.5 rounded-xl font-bold disabled:opacity-50 disabled:cursor-not-allowed">
-              {enviando ? "Enviando…" : "Enviar"}
-            </button>
-            {envioMsg && <span className="text-xs text-foreground/60">{envioMsg}</span>}
-          </div>
+          {envioMsg && <span className="text-xs text-foreground/60">{envioMsg}</span>}
         </div>
       )}
     </div>
