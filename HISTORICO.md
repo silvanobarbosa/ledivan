@@ -7,6 +7,25 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-10-05 — Contatar individual + sequência pela qtd na agenda (doc 20)
+
+**Entregue (PRs #250, #251):**
+- **#250 — bug da sequência (1/4 com 6 cadastradas):** a numeração 1/N do pacote na **agenda** ignorava
+  a "Quantidade de sessões do pacote". A página chamava `rotulosDasSessoes` **sem `tamanhoPacote`** (nem
+  selecionava `sessionsInPacket`), então o Completo caía no padrão antigo `4×vezes`. Fix: a query da
+  agenda passou a trazer `sessionsInPacket` e a passá-lo como `tamanhoPacote`. Completo agora é 1/6..6/6
+  (ou 1/8..8/8), mesmo atravessando o mês; Fragmentado segue por mês. (#244 corrigira o SALVAR; este
+  corrige o USO na sequência.)
+- **#251 — Contatar individual:** na Prospecção, o checkbox de seleção saiu; cada prospectado tem um
+  botão **"Contatar"** que envia a mensagem (definida uma vez abaixo da lista) **só para ele** (WhatsApp
+  dele) e registra o contato só dele, com **data + horário** + conteúdo.
+
+**Decisão que fica valendo:** a quantidade do pacote vale em TODAS as telas que numeram a sequência
+(agenda incluída) — qualquer caller de `rotulosDasSessoes`/sequência precisa receber `tamanhoPacote`.
+O envio de mensagem na prospecção é 1-a-1 (Contatar), nunca em lote.
+
+---
+
 ## 2026-10-05 — Prospecção, agenda e financeiro (doc "1.pdf", 6 itens)
 
 **Entregue (PRs #244–#248):**
