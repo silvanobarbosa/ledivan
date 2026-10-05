@@ -138,6 +138,12 @@ describe("mensal — pacote completo", () => {
     expect(c.competencia?.getTime()).toBe(ss[3].date instanceof Date ? ss[3].date.getTime() : 0);
   });
 
+  it("completo com 6 sessões informadas vira 1/6..6/6, não 1/4 (doc 20)", () => {
+    const ss = [sessao(1), sessao(8), sessao(15), sessao(22), sessao(29), sessao(5, 9)];
+    const rot = rotulosDasSessoes({ ...cfg, tamanhoPacote: 6, sessoes: ss });
+    expect([...rot.values()]).toEqual(["1/6", "2/6", "3/6", "4/6", "5/6", "6/6"]);
+  });
+
   it("pacote ainda aberto aparece, mas não entra na Fechamento", () => {
     const [c] = cobrancasDoPaciente({ ...cfg, sessoes: [sessao(14), sessao(21)] });
     expect(c.valor).toBe(520);

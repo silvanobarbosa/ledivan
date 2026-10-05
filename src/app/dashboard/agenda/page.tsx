@@ -30,7 +30,7 @@ export default async function AgendaPage() {
     }),
     db.query.patients.findMany({
       where: and(eq(patients.userId, session.user.id), ne(patients.patientStatus, "inativo")),
-      columns: { id: true, name: true, patientStatus: true, attendanceMode: true, attendanceLocation: true, birthDate: true, priceReviewDate: true, paymentFormat: true, pacoteTipo: true, horasAntesPagamento: true, agendaId: true, registrationNumber: true, frequency: true, timesPerPeriod: true, sessionFee: true },
+      columns: { id: true, name: true, patientStatus: true, attendanceMode: true, attendanceLocation: true, birthDate: true, priceReviewDate: true, paymentFormat: true, pacoteTipo: true, horasAntesPagamento: true, agendaId: true, registrationNumber: true, frequency: true, timesPerPeriod: true, sessionsInPacket: true, sessionFee: true },
       orderBy: [patients.name],
     }),
     // Os horários tirados do ar que não são paciente: supervisão, curso, médico. Vêm de tabela
@@ -94,6 +94,9 @@ export default async function AgendaPage() {
         sessoes: todas.filter((x) => x.patientId === paciente.id).map((x) => ({ ...x, date: x.date as Date })),
         precos: [],
         tamanhos: tamanhosDasSequencias(contratos.filter((c) => c.patientId === paciente.id)),
+        // A quantidade informada no cadastro manda no tamanho do pacote Completo (doc 20): sem isto,
+        // a numeração da agenda caía no padrão antigo 4×vezes (1/4) mesmo com 6/8 cadastradas.
+        tamanhoPacote: paciente.sessionsInPacket,
         vezesPorSemana: paciente.timesPerPeriod,
       });
       for (const [id, codigo] of rotulos) codigos.set(id, codigo);
