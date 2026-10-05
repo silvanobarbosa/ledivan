@@ -7,6 +7,31 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-10-05 — Prospecção, agenda e financeiro (doc "1.pdf", 6 itens)
+
+**Entregue (PRs #244–#248):**
+- **#244 — bug qtd do pacote não salvava:** `updatePatient` só gravava `sessionsInPacket` quando
+  `isPacote` (= `newFormat === "pacote"`), mas os formatos reais são mensal/quinzenal/primeira/ultima
+  — nunca "pacote" — então o campo caía em `null` a cada save. Agora salva para qualquer formato de
+  pacote (`usaPacote(newFormat)`); preserva o existente se vier vazio.
+- **#245 — prospecção:** botão "Adicionar prospectado" trava no 1º clique (SubmitButton/useFormStatus,
+  sem duplicata); filtro por **telefone** (dígitos, trecho, ao vivo).
+- **#246 — Novo atendimento só pacientes ATIVOS:** o seletor da agenda não lista mais prospectado nem
+  inativo; filtro `status === "ativo"` no dropdown (a query segue trazendo não-inativos p/ resolver o
+  nome de sessões já marcadas).
+- **#247 — "Quando cobrar o pacote" também no Fragmentado:** aparece no Mensal no Completo E no
+  Fragmentado; no Fragmentado só "No dia do vencimento" e "Na 1ª sessão" ("última" clampada p/ mensal).
+  Motor já suporta primeira_pacote + fragmentado (teste novo no guiaGeral).
+- **#248 — envio de mensagens na prospecção:** checkbox à direita de cada prospectado + campo de
+  mensagem + Enviar; abre o WhatsApp (wa.me) de cada selecionado ({nome} resolvido) e registra o
+  contato (data + mensagem) só dos marcados. Action `registrarEnvioMensagem({ envios })` valida dono.
+
+**Decisão que fica valendo:** a quantidade do pacote vale para QUALQUER formato de pacote (não só o
+legado `contractType === "pacote"`); Novo atendimento é exclusivo de pacientes ativos; "última sessão"
+do pacote não existe no Fragmentado.
+
+---
+
 ## 2026-10-05 — Prospecção: Valor previsto R$ + lista colapsada (doc 19)
 
 **Entregue (#241):**
