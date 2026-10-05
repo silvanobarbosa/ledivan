@@ -53,16 +53,35 @@ export function vigenciasAGravar(opts: {
   /** Início do tratamento (ou criação do cadastro): de onde vale o formato antigo. */
   inicioDoPaciente: Date | null | undefined;
 }): LinhaDeVigencia[] {
-  if (!formatoMudou(opts.anterior, opts.novo)) return [];
-
   const hojeDia = new Date(opts.hoje.getFullYear(), opts.hoje.getMonth(), opts.hoje.getDate());
   const aPartirDe = diaDoFormulario(opts.desde) ?? hojeDia;
-  const linhas: LinhaDeVigencia[] = [];
-
-  if (!opts.jaTemHistorico) {
-    const antigo = normaliza(opts.anterior);
+  const diaDoInicio = () => {
     const i = opts.inicioDoPaciente;
-    const desdeAntigo = i ? new Date(i.getFullYear(), i.getMonth(), i.getDate()) : aPartirDe;
+    return i ? new Date(i.getFullYear(), i.getMonth(), i.getDate()) : aPartirDe;
+  };
+
+  /**
+   * PRIMEIRO cadastro financeiro (doc 18): não existe modalidade anterior REAL. "Não definido"
+   * (null/"") é o estado de quem salvou só os Dados — NÃO é "Avulso". Aqui o sistema gravava uma
+   * linha-base fictícia de Avulso antes da escolhida, e o histórico mostrava "Avulso → Gratuito"
+   * de uma troca que nunca aconteceu. Correto: gravar SÓ a modalidade escolhida, como ENTRADA.
+   */
+  const temPriorReal = !!(opts.anterior.formato && String(opts.anterior.formato).trim());
+  const novoReal = !!(opts.novo.formato && String(opts.novo.formato).trim());
+  if (!opts.jaTemHistorico && !temPriorReal) {
+    if (!novoReal) return []; // nada de financeiro definido ainda → nada a gravar
+    // A escolhida vale desde o início do paciente (cobre a história inteira). Uma linha só, sem
+    // "anterior → nova". Vale inclusive quando a escolhida é Avulso.
+    return [{ ...normaliza(opts.novo), dataEfetiva: diaDoInicio() }];
+  }
+
+  if (!formatoMudou(opts.anterior, opts.novo)) return [];
+
+  const linhas: LinhaDeVigencia[] = [];
+  if (!opts.jaTemHistorico) {
+    // Tem modalidade anterior REAL mas nenhuma linha ainda (legado): grava o antigo como base.
+    const antigo = normaliza(opts.anterior);
+    const desdeAntigo = diaDoInicio();
     // Formato antigo começando DEPOIS da troca não faz sentido: cola na véspera dela.
     linhas.push({ ...antigo, dataEfetiva: desdeAntigo.getTime() < aPartirDe.getTime() ? desdeAntigo : new Date(aPartirDe.getTime() - 86_400_000) });
   }

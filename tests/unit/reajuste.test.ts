@@ -84,6 +84,13 @@ describe("sessões no mês", () => {
     expect(sessoesNoMes({ pacote: "fragmentado", sessoesAgendadas: 0 })).toBe(0);
     expect(sessoesNoMes({ pacote: "fragmentado", sessoesAgendadas: null })).toBe(0);
   });
+
+  it("completo usa a quantidade informada, não o 4 fixo (doc 18)", () => {
+    expect(sessoesNoMes({ pacote: "completo", tamanhoPacote: 6 })).toBe(6);
+    expect(sessoesNoMes({ pacote: "completo", tamanhoPacote: 10, vezesPorSemana: 2 })).toBe(10);
+    // Quantidade vazia (legado) cai na rede antiga: 4 × vezes por semana.
+    expect(sessoesNoMes({ pacote: "completo", tamanhoPacote: null, vezesPorSemana: 2 })).toBe(8);
+  });
 });
 
 describe("valor do mês", () => {
