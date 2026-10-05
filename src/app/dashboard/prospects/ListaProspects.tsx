@@ -6,6 +6,7 @@ import { UserPlus, ArrowRight, Trash2, Save, ChevronDown, ChevronRight, Plus } f
 import { formatDate } from "@/lib/therapy";
 import { idadeEmAnos } from "@/lib/idade";
 import { MoneyInput } from "@/components/MoneyInput";
+import { SubmitButton } from "@/components/SubmitButton";
 import {
   createProspect, updateProspect, deleteProspect, convertProspect,
   addProspectContact, deleteProspectContact,
@@ -32,6 +33,7 @@ export function ListaProspects({ prospects, contatos }: { prospects: ProspectLin
   const [idadeMin, setIdadeMin] = useState("");
   const [idadeMax, setIdadeMax] = useState("");
   const [sexo, setSexo] = useState("");
+  const [telefone, setTelefone] = useState("");
   // `aberto` = o card expandido (doc 19: a lista mostra só data+nome e abre as infos completas ao
   // clicar). `verContatos` = dentro do card aberto, o histórico de contatos expandido.
   const [aberto, setAberto] = useState<string | null>(null);
@@ -60,8 +62,12 @@ export function ListaProspects({ prospects, contatos }: { prospects: ProspectLin
     if (idadeMin && (a === null || a < Number(idadeMin))) return false;
     if (idadeMax && (a === null || a > Number(idadeMax))) return false;
     if (sexo && (p.gender || "") !== sexo) return false;
+    // Busca por telefone (doc 19/10): compara só os dígitos, casando por trecho — o usuário pode
+    // digitar com ou sem DDD/pontuação e a lista filtra ao vivo.
+    const tel = telefone.replace(/\D/g, "");
+    if (tel && !(p.phone || "").replace(/\D/g, "").includes(tel)) return false;
     return true;
-  }), [prospects, de, ate, idadeMin, idadeMax, sexo]);
+  }), [prospects, de, ate, idadeMin, idadeMax, sexo, telefone]);
 
   function excluir(p: ProspectLinha) {
     if (!confirm(`Excluir o prospectado ${p.name}? O histórico de contatos dele vai junto.`)) return;
@@ -100,7 +106,11 @@ export function ListaProspects({ prospects, contatos }: { prospects: ProspectLin
           </div>
           <div><span className={lbl}>Observação do contato</span><input name="prospectObservacoes" placeholder="O que foi conversado" className={inputCls} /></div>
         </div>
-        <button className="w-full sm:w-auto bg-primary text-white px-6 py-2.5 rounded-xl font-bold">Adicionar prospectado</button>
+        {/* Trava no 1º clique (doc 19/10): SubmitButton desabilita enquanto a action roda — sem
+            cadastro duplicado por clique dobrado. */}
+        <SubmitButton pendingLabel="Adicionando…" className="w-full sm:w-auto bg-primary text-white px-6 py-2.5 rounded-xl font-bold inline-flex items-center justify-center gap-2">
+          Adicionar prospectado
+        </SubmitButton>
       </form>
 
       {/* Filtros — ficam logo abaixo do botão de adicionar, conforme pedido */}
@@ -122,6 +132,10 @@ export function ListaProspects({ prospects, contatos }: { prospects: ProspectLin
             <option value="masculino">Masculino</option>
             <option value="nao-binario">Não-binário</option>
           </select>
+        </div>
+        <div>
+          <span className={lbl}>Telefone</span>
+          <input inputMode="tel" value={telefone} onChange={(e) => setTelefone(e.target.value)} placeholder="buscar nº" className={`${inputCls} w-36`} />
         </div>
         <p className="text-sm text-foreground/50 ml-auto">{filtrados.length} de {prospects.length}</p>
       </div>
