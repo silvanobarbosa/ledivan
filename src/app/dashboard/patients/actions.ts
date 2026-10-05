@@ -341,7 +341,10 @@ export async function updatePatient(patientId: string, formData: FormData) {
       : existing.priceReviewDate,
     attendanceMode: (formData.get("attendanceMode") as string) || existing.attendanceMode,
     attendanceLocation: (formData.get("attendanceLocation") as string) ?? existing.attendanceLocation,
-    sessionsInPacket: isPacote
+    // A quantidade de sessões do pacote vale para QUALQUER formato de pacote (mensal, quinzenal,
+    // 1ª/última do pacote) — não só para o legado `contractType === "pacote"`. O `isPacote` (só
+    // "pacote") era falso para mensal/quinzenal e zerava o campo ao salvar o Financeiro (doc 19/10).
+    sessionsInPacket: usaPacote(newFormat)
       ? (formData.get("sessionsInPacket") ? parseInt(formData.get("sessionsInPacket") as string) : existing.sessionsInPacket)
       : null,
     reminderEnabled: formData.get("reminderEnabled") === "on",
