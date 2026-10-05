@@ -4,8 +4,8 @@ import { useMemo, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { UserPlus, ArrowRight, Trash2, Save, ChevronDown, ChevronRight, Plus } from "lucide-react";
 import { formatDate } from "@/lib/therapy";
-import { valorParaCampoBR } from "@/lib/dataForm";
 import { idadeEmAnos } from "@/lib/idade";
+import { MoneyInput } from "@/components/MoneyInput";
 import {
   createProspect, updateProspect, deleteProspect, convertProspect,
   addProspectContact, deleteProspectContact,
@@ -32,7 +32,10 @@ export function ListaProspects({ prospects, contatos }: { prospects: ProspectLin
   const [idadeMin, setIdadeMin] = useState("");
   const [idadeMax, setIdadeMax] = useState("");
   const [sexo, setSexo] = useState("");
+  // `aberto` = o card expandido (doc 19: a lista mostra só data+nome e abre as infos completas ao
+  // clicar). `verContatos` = dentro do card aberto, o histórico de contatos expandido.
   const [aberto, setAberto] = useState<string | null>(null);
+  const [verContatos, setVerContatos] = useState<Set<string>>(new Set());
   const [erro, setErro] = useState<string | null>(null);
   const [pendente, iniciar] = useTransition();
   const router = useRouter();
@@ -84,7 +87,7 @@ export function ListaProspects({ prospects, contatos }: { prospects: ProspectLin
           <div className="sm:col-span-2"><span className={lbl}>Nome *</span><input name="name" required placeholder="Nome completo" className={inputCls} /></div>
           <div><span className={lbl}>Telefone</span><input name="phone" className={inputCls} /></div>
           <div><span className={lbl}>E-mail</span><input name="email" type="email" className={inputCls} /></div>
-          <div><span className={lbl}>Valor previsto</span><input name="sessionFee" inputMode="decimal" placeholder="R$" className={inputCls} /></div>
+          <div><span className={lbl}>Valor previsto</span><MoneyInput name="sessionFee" placeholder="R$ 0,00" className={inputCls} /></div>
           <div><span className={lbl}>Data de nascimento</span><input name="birthDate" type="date" className={inputCls} /></div>
           <div>
             <span className={lbl}>Sexo</span>
@@ -134,12 +137,31 @@ export function ListaProspects({ prospects, contatos }: { prospects: ProspectLin
           {filtrados.map((p) => {
             const lista = porProspect.get(p.id) ?? [];
             const expandido = aberto === p.id;
+            const contatosAbertos = verContatos.has(p.id);
             const a = idadeDe(p.birthDate);
+            // Data do PRIMEIRO contato (doc 19): a mais antiga entre a data do cadastro e os contatos.
+            const datas = [p.prospectDate, ...lista.map((c) => c.date)].filter(Boolean) as string[];
+            const dataPrimeiro = datas.length
+              ? datas.reduce((a, b) => (new Date(a).getTime() <= new Date(b).getTime() ? a : b))
+              : null;
+            const alternarContatos = () =>
+              setVerContatos((s) => { const n = new Set(s); if (n.has(p.id)) n.delete(p.id); else n.add(p.id); return n; });
             return (
               // `data-prospect` dá um endereço estável para cada linha. Sem ele, o percurso de
               // escrita precisava contar posições para achar a pessoa certa, e a contagem
               // escorregava a cada prospect novo — o teste passava a clicar na linha do vizinho.
-              <div key={p.id} data-prospect={p.id} className="glass-card rounded-[24px] p-5 space-y-3">
+              <div key={p.id} data-prospect={p.id} className="glass-card rounded-[24px] p-4 sm:p-5">
+                {/* Doc 19: a lista mostra só a data do 1º contato e o nome; clicar abre as infos
+                    completas (a caixa editável que já existia). */}
+                <button type="button" onClick={() => setAberto(expandido ? null : p.id)}
+                  aria-expanded={expandido} className="w-full flex items-center gap-3 text-left">
+                  {expandido ? <ChevronDown className="w-4 h-4 text-primary shrink-0" /> : <ChevronRight className="w-4 h-4 text-primary shrink-0" />}
+                  <span className="font-mono text-xs font-bold text-primary shrink-0 tabular-nums">{dataPrimeiro ? formatDate(dataPrimeiro) : "—"}</span>
+                  <span className="flex-1 font-semibold text-sm">{p.name}</span>
+                </button>
+
+                {expandido && (
+                <div className="space-y-3 mt-3 border-t border-border pt-3">
                 {/* Uma caixa por pessoa: os campos são editáveis aqui mesmo e o botão atualiza. */}
                 <form action={updateProspect} className="space-y-3">
                   <input type="hidden" name="id" value={p.id} />
@@ -148,7 +170,7 @@ export function ListaProspects({ prospects, contatos }: { prospects: ProspectLin
                     <div className="sm:col-span-2"><span className={lbl}>Nome</span><input name="name" defaultValue={p.name} className={inputCls} /></div>
                     <div><span className={lbl}>Telefone</span><input name="phone" defaultValue={p.phone ?? ""} className={inputCls} /></div>
                     <div><span className={lbl}>E-mail</span><input name="email" type="email" defaultValue={p.email ?? ""} className={inputCls} /></div>
-                    <div><span className={lbl}>Valor previsto</span><input name="sessionFee" inputMode="decimal" defaultValue={valorParaCampoBR(p.sessionFee)} className={inputCls} /></div>
+                    <div><span className={lbl}>Valor previsto</span><MoneyInput name="sessionFee" defaultValue={p.sessionFee} placeholder="R$ 0,00" className={inputCls} /></div>
                     <div><span className={lbl}>Nascimento{a !== null ? ` · ${a} anos` : ""}</span><input name="birthDate" type="date" defaultValue={paraInput(p.birthDate)} className={inputCls} /></div>
                     <div>
                       <span className={lbl}>Sexo</span>
@@ -166,8 +188,8 @@ export function ListaProspects({ prospects, contatos }: { prospects: ProspectLin
                 </form>
 
                 <div className="flex gap-2 flex-wrap border-t border-border pt-3">
-                  <button type="button" onClick={() => setAberto(expandido ? null : p.id)} className="inline-flex items-center gap-1 text-xs font-bold text-primary hover:underline">
-                    {expandido ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
+                  <button type="button" onClick={alternarContatos} className="inline-flex items-center gap-1 text-xs font-bold text-primary hover:underline">
+                    {contatosAbertos ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
                     {lista.length} contato(s)
                   </button>
                   <div className="ml-auto flex gap-2">
@@ -180,7 +202,7 @@ export function ListaProspects({ prospects, contatos }: { prospects: ProspectLin
                   </div>
                 </div>
 
-                {expandido && (
+                {contatosAbertos && (
                   <div className="space-y-2 border-t border-border pt-3">
                     <form action={addProspectContact} className="flex gap-2 flex-wrap items-end">
                       <input type="hidden" name="patientId" value={p.id} />
@@ -204,6 +226,8 @@ export function ListaProspects({ prospects, contatos }: { prospects: ProspectLin
                       </div>
                     )}
                   </div>
+                )}
+                </div>
                 )}
               </div>
             );
