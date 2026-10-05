@@ -8,9 +8,10 @@
  *    para ativo. Contar do início original faria o reajuste vencer no dia em que a pessoa volta,
  *    depois de meses sem atendimento.
  *
- * 2. O pacote mensal padrão é de 4 sessões. Quando é fragmentado, quem diz o total é a AGENDA: o
- *    sistema conta as sessões que caem dentro do mês (ver lib/pacoteMes). O terapeuta não informa
- *    mais as semanas.
+ * 2. O total do pacote Completo é a QUANTIDADE informada no cadastro (doc 18) — acabou o número
+ *    fixo de 4 (fica só como rede para cadastro legado sem a quantidade). Quando é fragmentado,
+ *    quem diz o total é a AGENDA: o sistema conta as sessões que caem dentro do mês (ver
+ *    lib/pacoteMes).
  *
  * Tudo aqui é função pura: decide, não grava.
  */
@@ -78,16 +79,22 @@ export function diasParaReajuste(vencimento: Date | null, hoje: Date = new Date(
 /**
  * Sessões previstas no mês.
  *
- * Pacote completo: 4, sempre. Fragmentado: o que a agenda tiver marcado naquele mês — a contagem
- * vem de `sessoesDoMes` (lib/pacoteMes) e chega aqui pronta.
+ * Pacote completo: a QUANTIDADE informada pelo usuário no cadastro (doc 18) — acabou o número fixo
+ * de 4. Quando ela não vem (cadastro legado que nunca preencheu), cai na rede antiga: 4 × vezes por
+ * semana. Fragmentado: o que a agenda tiver marcado naquele mês — a contagem vem de `sessoesDoMes`
+ * (lib/pacoteMes) e chega aqui pronta.
  */
 export function sessoesNoMes(opts: {
   pacote: "completo" | "fragmentado" | null | undefined;
   sessoesAgendadas?: number | null;
-  /** 1 ou 2 por semana (cadastro): o pacote completo tem 4 ou 8 (documento de 17/09). */
+  /** Quantidade de sessões do pacote (cadastro, `sessions_in_packet`). Manda no Completo (doc 18). */
+  tamanhoPacote?: number | null;
+  /** 1 ou 2 por semana (cadastro): rede legado do Completo quando a quantidade não foi informada. */
   vezesPorSemana?: number | null;
 }): number {
   if (opts.pacote !== "fragmentado") {
+    const qtd = Number(opts.tamanhoPacote);
+    if (Number.isFinite(qtd) && qtd >= 1) return Math.floor(qtd);
     return SESSOES_PACOTE_COMPLETO * Math.max(1, Math.floor(opts.vezesPorSemana ?? 1));
   }
   return Math.max(0, Math.floor(opts.sessoesAgendadas ?? 0));
@@ -99,11 +106,12 @@ export function valorDoMes(opts: {
   valorSessao: number;
   pacote?: "completo" | "fragmentado" | null;
   sessoesAgendadas?: number | null;
+  tamanhoPacote?: number | null;
   vezesPorSemana?: number | null;
 }): number {
   if (!cobra(opts.formato)) return 0;
   if (opts.formato === "sessao") return opts.valorSessao;   // paga por atendimento, não por mês
-  const sessoes = sessoesNoMes({ pacote: opts.pacote, sessoesAgendadas: opts.sessoesAgendadas, vezesPorSemana: opts.vezesPorSemana });
+  const sessoes = sessoesNoMes({ pacote: opts.pacote, sessoesAgendadas: opts.sessoesAgendadas, tamanhoPacote: opts.tamanhoPacote, vezesPorSemana: opts.vezesPorSemana });
   return Number((sessoes * opts.valorSessao).toFixed(2));
 }
 
