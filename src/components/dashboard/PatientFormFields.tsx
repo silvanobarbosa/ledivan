@@ -227,14 +227,6 @@ export function PatientFormFields({ p, save, tabInicial }: { p?: PatientFormData
   // Hoje no fuso de quem preenche, no formato do <input type="date">.
   const hojeISO = (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; })();
   const [pacote, setPacote] = useState(p?.pacoteTipo || "completo");
-  /**
-   * Quantas vezes por semana o paciente vem. Manda no tamanho do pacote fechado: 4 ou 8.
-   *
-   * O campo `times_per_period` já existia no banco e a ação já entendia "2x_semana" — só que
-   * nenhuma tela o enviava, então quem vinha duas vezes por semana fechava dois pacotes de quatro
-   * e recebia dois pagamentos no mês (documento de 17/09).
-   */
-  const [vezes, setVezes] = useState(Number(p?.timesPerPeriod) === 2 ? 2 : 1);
   // A classificação saiu: a idade é CALCULADA da data de nascimento, e "casal" virou item próprio.
   const [casal, setCasal] = useState(!!p?.isCouple || p?.category === "casal");
   const dateVal = (d?: string | null) => (d ? new Date(d).toISOString().slice(0, 10) : "");
@@ -247,22 +239,22 @@ export function PatientFormFields({ p, save, tabInicial }: { p?: PatientFormData
    * no celular. A explicacao de cada opcao NAO se perde: ela vai junto no texto da opcao e, de novo,
    * abaixo da caixa, para quem ja escolheu continuar lendo o que escolheu.
    */
+  // Opção = só o nome; a explicação vai na legenda abaixo (doc 18). Acabou o "Completo — N sessões":
+  // a quantidade é a que o usuário informa no campo próprio, não um número fixo.
   const TIPOS_DE_PACOTE = [
-    { valor: "completo", nome: `Completo — ${vezes === 2 ? 8 : 4} sessões`, ajuda: "O padrão." },
-    // Nao se informa mais quantas semanas: quem diz e a agenda. Setembro com tres quartas cobra
-    // tres sessoes; outubro com quatro cobra quatro.
-    { valor: "fragmentado", nome: "Fragmentado", ajuda: "O sistema considera as sessões dentro do mês." },
+    { valor: "completo", nome: "Completo", ajuda: "O padrão: Considera a quantidade de sessões definida pelo usuário." },
+    { valor: "fragmentado", nome: "Fragmentado", ajuda: "Considera apenas as sessões realizadas dentro do mês." },
   ];
   const blocoPacote = (
     <div>
       <label htmlFor="pacoteTipo" className={labelCls}>Pacote</label>
       <select id="pacoteTipo" name="pacoteTipo" value={pacote} onChange={(e) => setPacote(e.target.value)} className={inputCls}>
         {TIPOS_DE_PACOTE.map((t) => (
-          <option key={t.valor} value={t.valor}>{t.nome} — {t.ajuda}</option>
+          <option key={t.valor} value={t.valor}>{t.nome}</option>
         ))}
       </select>
       <p className="text-[10px] text-foreground/50 mt-1">
-        {TIPOS_DE_PACOTE.find((t) => t.valor === pacote)?.ajuda}
+        {(() => { const t = TIPOS_DE_PACOTE.find((x) => x.valor === pacote); return t ? `${t.nome} — ${t.ajuda}` : null; })()}
       </p>
     </div>
   );
@@ -283,15 +275,24 @@ export function PatientFormFields({ p, save, tabInicial }: { p?: PatientFormData
   // se é mensal (vencimento), primeira_pacote ou ultima_pacote. O motor já entende os três.
   const formatoEfetivo = format === "mensal" && pacote === "completo" ? quandoCobra : format;
 
-  // "Quando cobrar o pacote completo" — só no Mensal + Completo (prints 6.pdf, item 20).
+  // "Quando cobrar o pacote completo" — só no Mensal + Completo (prints 6.pdf, item 20). Os VALORES
+  // seguem iguais (mensal/primeira_pacote/ultima_pacote — o motor depende deles); só o texto mudou
+  // (doc 18), e a 1ª/última ganharam legenda de qual data vira o vencimento.
+  const legendaQuandoCobra: Record<string, string> = {
+    primeira_pacote: "A data de vencimento será considerada a data da primeira sessão do pacote.",
+    ultima_pacote: "A data de vencimento será considerada a data da última sessão do pacote.",
+  };
   const blocoQuandoCobra = (
     <div>
       <label htmlFor="quandoCobra" className={labelCls}>Quando cobrar o pacote</label>
       <select id="quandoCobra" value={quandoCobra} onChange={(e) => setQuandoCobra(e.target.value)} className={inputCls}>
-        <option value="mensal">No dia de pagamento do mês</option>
-        <option value="primeira_pacote">Na 1ª sessão do pacote (pacote inteiro ao começar)</option>
-        <option value="ultima_pacote">Na última sessão do pacote (pacote inteiro ao terminar)</option>
+        <option value="mensal">No dia do vencimento</option>
+        <option value="primeira_pacote">Na 1ª sessão do pacote</option>
+        <option value="ultima_pacote">Na última sessão do pacote</option>
       </select>
+      {legendaQuandoCobra[quandoCobra] && (
+        <p className="text-[10px] text-foreground/50 mt-1">{legendaQuandoCobra[quandoCobra]}</p>
+      )}
     </div>
   );
 
@@ -315,7 +316,10 @@ export function PatientFormFields({ p, save, tabInicial }: { p?: PatientFormData
   const qtdSessoesPacote = (
     <div>
       <label htmlFor="sessionsInPacket" className={labelCls}>Quantidade de sessões do pacote</label>
-      <input id="sessionsInPacket" name="sessionsInPacket" type="number" min={1} max={60}
+      {/* Obrigatório (doc 18): o total do pacote vem daqui, não mais de um número fixo. onInvalid
+          pula p/ a aba Financeiro, senão um required escondido numa aba inativa aborta o submit calado. */}
+      <input id="sessionsInPacket" name="sessionsInPacket" type="number" min={1} max={60} required
+        onInvalid={() => setTab("financeiro")}
         defaultValue={p?.sessionsInPacket ?? ""} className={inputCls} placeholder="ex: 4" />
       <p className="text-[10px] text-foreground/50 mt-1">Quantas sessões compõem o pacote (usado no Completo).</p>
     </div>
@@ -355,15 +359,16 @@ export function PatientFormFields({ p, save, tabInicial }: { p?: PatientFormData
           {qtdSessoesPacote}
         </div>
         {blocoPacote}
-        {/* Dia de pagamento só quando a cobrança é no vencimento do mês. Se o pacote é cobrado na
-            1ª/última sessão, o dia é o da própria sessão — não se pergunta. */}
+        {/* "Quando cobrar o pacote" vem ANTES do "Dia do vencimento" (doc 18): é ele que decide se o
+            dia é perguntado — na 1ª/última sessão o vencimento é o da própria sessão. */}
+        {pacote === "completo" && blocoQuandoCobra}
+        {/* Dia do vencimento só quando a cobrança é no vencimento do mês. */}
         {!(pacote === "completo" && quandoCobra !== "mensal") && (
           <div className="sm:max-w-sm">
-            <label className={labelCls}>Dia de pagamento</label>
+            <label className={labelCls}>Dia do vencimento</label>
             <input name="paymentDay" type="number" min={1} max={31} defaultValue={p?.paymentDay ?? ""} className={inputCls} placeholder="ex: 5" />
           </div>
         )}
-        {pacote === "completo" && blocoQuandoCobra}
         {blocoValeAPartir}
         <div className="sm:max-w-sm">{proximoReajuste}</div>
       </div>
@@ -378,11 +383,11 @@ export function PatientFormFields({ p, save, tabInicial }: { p?: PatientFormData
         {blocoPacote}
         <div className="grid sm:grid-cols-2 gap-4">
           <div>
-            <label className={labelCls}>Dia de pagamento — 1ª quinzena</label>
+            <label className={labelCls}>Dia do vencimento — 1ª quinzena</label>
             <input name="paymentDay" type="number" min={1} max={31} defaultValue={p?.paymentDay ?? ""} className={inputCls} placeholder="ex: 5" />
           </div>
           <div>
-            <label className={labelCls}>Dia de pagamento — 2ª quinzena</label>
+            <label className={labelCls}>Dia do vencimento — 2ª quinzena</label>
             <input name="paymentDay2" type="number" min={1} max={31} defaultValue={p?.paymentDay2 ?? ""} className={inputCls} placeholder="ex: 20" />
           </div>
         </div>
