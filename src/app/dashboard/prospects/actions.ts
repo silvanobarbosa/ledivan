@@ -3,7 +3,7 @@
 import { db } from "@/db";
 import { patients, patientStatusHistory, prospectContacts } from "@/db/schema";
 import { auth } from "@/auth";
-import { and, eq, sql } from "drizzle-orm";
+import { and, eq, inArray, sql } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { moedaOuPadrao } from "@/lib/money";
@@ -157,6 +157,41 @@ export async function deleteProspectContact(contactId: string, patientId: string
   await db.delete(prospectContacts).where(and(eq(prospectContacts.id, contactId), eq(prospectContacts.patientId, patientId)));
   revalidatePath("/dashboard/prospects");
   voltarParaLista();
+}
+
+/**
+ * Envio de mensagem em massa aos prospectados SELECIONADOS (doc 19/10).
+ *
+ * Só REGISTRA o contato de cada selecionado (data + a mensagem enviada em Observação) — o disparo no
+ * WhatsApp é client-side (wa.me, um por prospectado), igual ao botão da área de Aniversariantes. A
+ * mensagem chega já resolvida por prospectado ({nome} → primeiro nome), para o histórico guardar
+ * exatamente o que foi enviado. Valida que cada id é prospectado DESTE profissional.
+ */
+export async function registrarEnvioMensagem(
+  entrada: { envios: { id: string; mensagem: string }[] },
+): Promise<{ ok: boolean; registrados?: number; erro?: string }> {
+  const session = await auth();
+  if (!session?.user?.id) return { ok: false, erro: "Não autorizado" };
+  const userId = session.user.id;
+
+  const envios = Array.isArray(entrada?.envios) ? entrada.envios : [];
+  const ids = [...new Set(envios.map((e) => String(e?.id ?? "")).filter(Boolean))];
+  if (!ids.length) return { ok: false, erro: "Nenhum prospectado selecionado." };
+
+  const meus = await db.select({ id: patients.id })
+    .from(patients)
+    .where(and(eq(patients.userId, userId), inArray(patients.id, ids)));
+  const validos = new Set(meus.map((m) => m.id));
+
+  const agora = new Date();
+  const linhas = envios
+    .filter((e) => validos.has(e.id) && String(e.mensagem ?? "").trim())
+    .map((e) => ({ patientId: e.id, date: agora, observacao: String(e.mensagem).trim().slice(0, 500) }));
+  if (!linhas.length) return { ok: false, erro: "Nada para registrar." };
+
+  await db.insert(prospectContacts).values(linhas);
+  revalidatePath("/dashboard/prospects");
+  return { ok: true, registrados: linhas.length };
 }
 
 // Converte prospect em paciente ativo
