@@ -7,7 +7,7 @@ import { MessageCircle } from "lucide-react";
 import { QUEIXAS } from "@/lib/queixas";
 import { idadeEmPalavras } from "@/lib/idade";
 import { historicoDeReajuste, usaPacote } from "@/lib/reajuste";
-import { parseMoedaBR } from "@/lib/money";
+import { MoneyInput as MoneyInputBase } from "@/components/MoneyInput";
 
 const inputCls = "w-full px-4 py-3 rounded-2xl bg-white/70 border border-border focus:ring-2 focus:ring-accent/20 focus:border-accent outline-none transition";
 const labelCls = "block text-sm font-semibold text-foreground/70 mb-1.5";
@@ -142,32 +142,10 @@ function NascimentoEIdade({ name, defaultValue }: { name: string; defaultValue?:
   );
 }
 
-/**
- * Campo de dinheiro que já mostra R$ enquanto se digita (dono, 16/09/2026). Trata os dígitos como
- * centavos e formata em pt-BR; envia o texto formatado, que o servidor parseia por `parseMoedaBR`.
- */
-function MoneyInput({ name, defaultValue, placeholder }: { name: string; defaultValue?: string | number | null; placeholder?: string }) {
-  const fmt = (centavos: number) => (centavos / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-  const inicial = (() => {
-    const canon = parseMoedaBR(defaultValue);
-    if (!canon) return "";
-    const centavos = Math.round(Number(canon) * 100);
-    return centavos > 0 ? fmt(centavos) : "";
-  })();
-  const [val, setVal] = useState(inicial);
-  return (
-    <input
-      name={name}
-      inputMode="numeric"
-      value={val}
-      onChange={(e) => {
-        const digitos = e.target.value.replace(/\D/g, "");
-        setVal(digitos ? fmt(parseInt(digitos, 10)) : "");
-      }}
-      className={inputCls}
-      placeholder={placeholder}
-    />
-  );
+// MoneyInput agora é compartilhado (cadastro + prospecção, doc 19) — ver src/components/MoneyInput.
+// Aqui ele herda o `inputCls` desta tela.
+function MoneyInput(props: { name: string; defaultValue?: string | number | null; placeholder?: string }) {
+  return <MoneyInputBase {...props} className={inputCls} />;
 }
 
 /** Campo numérico com uma palavra depois da caixa ("meses", "horas antes"). */
