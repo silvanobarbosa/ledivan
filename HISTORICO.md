@@ -7,6 +7,26 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-10-04 — Pacote: textos/ordem + histórico do 1º cadastro (doc 18)
+
+**Entregue:**
+- **#238 (textos/ordem):** a opção do campo Pacote mostra só **Completo**/**Fragmentado** (explicação
+  na legenda; acabou "Completo — N sessões"). **Quantidade de sessões do pacote** virou **obrigatória**.
+  **"Quando cobrar o pacote"** passou a vir **antes** do dia, com opções renomeadas ("No dia do
+  vencimento" / "Na 1ª sessão do pacote" / "Na última sessão do pacote") + legenda da data que vira
+  vencimento. **"Dia de pagamento" → "Dia do vencimento"**. Valores do select inalterados (motor intacto).
+- **#239 (bug + motor):** o **1º cadastro financeiro** não inventa mais um **"Avulso" fictício** antes
+  da modalidade escolhida — o histórico mostrava "Avulso → Gratuito" de uma troca que nunca houve.
+  Causa: `vigenciasAGravar` normalizava formato nulo→"sessao" e empilhava base. Agora, sem modalidade
+  anterior real, grava **só a escolhida** como entrada (inclui Avulso como 1ª escolha). `sessoesNoMes`/
+  `valorDoMes` passam a usar a **quantidade informada** no Completo (4×vezes vira só rede p/ legado).
+
+**Decisão que fica valendo:** "não definido" (null/"") **não é Avulso**; "anterior → nova" só vale após
+existir financeiro real. Total do pacote Completo = quantidade informada (campo obrigatório); o 4 fixo
+deixou de ser regra. O motor de cobrança real (`sequenciaPacote`) já usava a quantidade desde a Onda A.
+
+---
+
 ## 2026-10-04 — Pagamento: Valor editável + diferença na própria linha (2º backlog, doc 17)
 
 **Entregue (#235):** "Lançar pagamento" (guia Geral) ganhou campo **Valor editável**, pré-preenchido
