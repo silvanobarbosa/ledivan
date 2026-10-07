@@ -227,7 +227,10 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], reajuste
    */
   const jaTemSequencia = !!selectedPatient?.temAgendamento;
   // Série (semanal/quinzenal) é o próprio ritmo do pacote; a pergunta é para a sessão inserida.
-  const perguntaSequencia = !newRecorrente && perguntaSeEntraNaSequencia({ formato: formatoNaDataNova, sessionKind: newKind }, jaTemSequencia);
+  // A pergunta "entra na sequência do pacote?" vale também na RECORRÊNCIA (doc 9, item 4): é como a
+  // 2ª série do paciente escolhe ser Avulso/Gratuito, independente do pacote já existente. Antes só
+  // o agendamento único perguntava (`!newRecorrente`), e por isso a recorrência caía sempre no pacote.
+  const perguntaSequencia = perguntaSeEntraNaSequencia({ formato: formatoNaDataNova, sessionKind: newKind }, jaTemSequencia);
 
   const weekEnd = new Date(weekStart);
   weekEnd.setDate(weekEnd.getDate() + 7);
