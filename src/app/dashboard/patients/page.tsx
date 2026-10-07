@@ -82,6 +82,7 @@ export default async function PatientsPage({ searchParams }: { searchParams: Pro
           return {
             id: p.id,
             name: p.name,
+            registrationNumber: p.registrationNumber,
             phone: p.phone,
             email: p.email,
             agendaId: p.agendaId,
