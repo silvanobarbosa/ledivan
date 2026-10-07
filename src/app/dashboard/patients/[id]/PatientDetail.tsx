@@ -252,18 +252,13 @@ export function PatientDetail({
         </div>
       )}
 
-      {/* Cards: sessões agendadas · em aberto · em atraso (dono, 16/09/2026) */}
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+      {/* Cards: sessões agendadas · em atraso. A caixinha "Em aberto" saiu a pedido do dono (doc 9):
+          o número não comunicava o que media. Os outros indicadores ficam. */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
         <Link href="/dashboard/agenda" className="glass-card rounded-[20px] p-4 hover:shadow-md transition">
           <p className="text-2xl font-display font-bold text-primary">{sessionStats.agendadasFuturas}</p>
           <p className="text-xs text-foreground/50">Sessões agendadas</p>
         </Link>
-        <button onClick={() => setTab("Geral")} title="Cobranças ainda no prazo — já geradas, mas que ainda não venceram. Quando a data de vencimento passar sem pagamento, viram “em atraso”."
-          className={`rounded-[20px] p-4 text-left border transition hover:shadow-md ${finance.nAberto > 0 ? "bg-[#fffbeb] border-[#fde68a]" : "glass-card border-transparent"}`}>
-          <p className={`text-2xl font-display font-bold ${finance.nAberto > 0 ? "text-[#b45309]" : "text-primary"}`}>{finance.nAberto}</p>
-          <p className="text-xs text-foreground/50">Em aberto</p>
-          <p className="text-[10px] text-foreground/40">{finance.emAberto > 0 ? `${formatBRL(finance.emAberto.toFixed(2))} · no prazo` : "no prazo"}</p>
-        </button>
         <button onClick={() => setTab("Geral")} title="Cobranças vencidas e ainda não pagas — passou a data de vencimento sem o pagamento ser lançado."
           className={`rounded-[20px] p-4 text-left border transition hover:shadow-md ${finance.nAtraso > 0 ? "bg-[#fef2f2] border-[#fecaca]" : "glass-card border-transparent"}`}>
           <p className={`text-2xl font-display font-bold ${finance.nAtraso > 0 ? "text-[#b91c1c]" : "text-primary"}`}>{finance.nAtraso}</p>
