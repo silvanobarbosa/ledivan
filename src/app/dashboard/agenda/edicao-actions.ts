@@ -4,7 +4,7 @@ import { and, eq, gte, inArray } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { db } from "@/db";
 import { auth } from "@/auth";
-import { therapySessions } from "@/db/schema";
+import { therapySessions, sessoesPuladas } from "@/db/schema";
 import {
   deslocamento,
   horarioOcupado,
@@ -142,6 +142,22 @@ export async function excluirAgendamento(sessionId: string, alcance: string): Pr
   // O `userId` no WHERE de novo: os ids vieram de uma consulta já filtrada, mas a defesa não custa
   // nada e é a única coisa entre um id trocado e a agenda de outra pessoa.
   await db.delete(therapySessions).where(and(eq(therapySessions.userId, userId), inArray(therapySessions.id, alvos)));
+
+  // Excluir uma SÉRIE leva junto os marcadores de horário PULADO (Hor. Bloq.) dela: senão ficam
+  // órfãos na lista de sessões do paciente, em Dados (doc 9, item 3). O BLOQUEIO em si (blockedSlots)
+  // NÃO é tocado — o horário continua bloqueado; só o marcador que pendurava na série some. Numa
+  // exclusão de uma sessão só ("apenas_esta") não há série para limpar.
+  if (alcance !== "apenas_esta" && alvos.length) {
+    const alvosSet = new Set(alvos);
+    const datas = daqui.filter((s) => alvosSet.has(s.id)).map((s) => new Date(s.date).getTime());
+    if (datas.length) {
+      await db.delete(sessoesPuladas).where(and(
+        eq(sessoesPuladas.userId, userId),
+        eq(sessoesPuladas.patientId, atual.patientId),
+        gte(sessoesPuladas.date, new Date(Math.min(...datas))),
+      ));
+    }
+  }
 
   revalidatePath("/dashboard/agenda");
   revalidatePath(`/dashboard/patients/${atual.patientId}`);
