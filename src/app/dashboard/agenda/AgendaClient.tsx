@@ -520,17 +520,22 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], reajuste
 
       {/* Grade */}
       <div className="glass-card rounded-[24px] overflow-hidden">
-        <div className="overflow-x-auto">
+        {/* Scroller dos DOIS eixos: a coluna de hora já congela à esquerda por ser sticky dentro
+            deste wrapper; dar a ele uma altura máxima + overflow nos dois eixos faz a linha da data
+            congelar no topo pela mesma mecânica (doc 9, item 9). Antes era só overflow-x, e o
+            sticky-top ficava preso ao card (overflow-hidden) sem congelar na rolagem. */}
+        <div className="overflow-auto max-h-[75vh]">
           <div className="min-w-[900px]">
-            {/* Cabeçalho dos dias */}
-            <div className="flex border-b border-border bg-white/40">
+            {/* Cabeçalho dos dias — fixo no topo ao rolar (doc 9, item 9): a linha da data congela
+                como a coluna da hora já congela à esquerda. */}
+            <div className="flex border-b border-border bg-white/80 backdrop-blur-sm sticky top-0 z-30">
               <div className="w-14 shrink-0 sticky left-0 z-20 bg-white/80 backdrop-blur-sm" />
               {days.map((day) => {
                 const isToday = day.toDateString() === new Date().toDateString();
                 const hs = holidaysForDay(day);
                 const top = hs[0];
                 return (
-                  <div key={day.toISOString()} className="flex-1 text-center py-3 border-l border-border" style={top ? { background: HOLIDAY_STYLE[top.tipo].bg } : undefined}>
+                  <div key={day.toISOString()} className="flex-1 min-w-0 text-center py-3 border-l border-border" style={top ? { background: HOLIDAY_STYLE[top.tipo].bg } : undefined}>
                     <p className="text-[11px] font-bold uppercase tracking-widest text-foreground/40">{DAY_NAMES[day.getDay()]}</p>
                     <p
                       className={`text-sm font-display font-bold mt-0.5 inline-block px-2 py-0.5 rounded-full tabular-nums ${isToday ? "bg-primary text-white" : top ? "" : "text-primary"}`}
@@ -588,7 +593,7 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], reajuste
               {days.map((day) => {
                 const isToday = day.toDateString() === new Date().toDateString();
                 return (
-                  <div key={day.toISOString()} className={`flex-1 relative border-l border-border ${isToday ? "bg-accent/[0.04]" : ""}`}>
+                  <div key={day.toISOString()} className={`flex-1 min-w-0 relative border-l border-border ${isToday ? "bg-accent/[0.04]" : ""}`}>
                     {/* linhas de hora */}
                     {hours.map((h) => (
                       <div key={h} className="absolute w-full border-t border-border/60" style={{ top: (h - START_HOUR) * HOUR_PX }} />
