@@ -22,6 +22,7 @@ function Sel({ value, onChange, children }: { value: string; onChange: (v: strin
 type PatientCard = {
   id: string;
   name: string;
+  registrationNumber: number | null;
   phone: string | null;
   email: string | null;
   agendaId: string | null;
@@ -165,7 +166,12 @@ export function PatientsClient({ patients, initial }: { patients: PatientCard[];
                   <div className="flex items-center gap-2 flex-wrap">
                     {/* Nome em até 2 linhas (prints 6.pdf, item 13): cabe na tela sem rolar para o
                         lado; o nome completo também abre no cadastro. */}
-                    <p className="font-bold leading-tight line-clamp-2 break-words">{p.name}</p>
+                    {/* Doc 9, item 11: identificar pelo ID (nº de registro sequencial), não pelo nome.
+                        O nome segue na busca e na mensagem; aqui aparece o ID. Paciente antigo sem
+                        número (nulo) cai no nome até o backfill. */}
+                    <p className="font-bold leading-tight line-clamp-2 break-words" title={p.name}>
+                      {p.registrationNumber != null ? `#${String(p.registrationNumber).padStart(4, "0")}` : p.name}
+                    </p>
                     <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wide ${patientStatusColor(p.patientStatus)}`}>
                       {p.patientStatus === "inativo" ? "Inativo" : "Ativo"}
                     </span>
