@@ -4,7 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { Search, ChevronRight, ChevronDown } from "lucide-react";
 import { formatBRL, patientStatusColor } from "@/lib/therapy";
-import { rotuloFinanceiro, rotuloFrequencia, ROTULO_SITUACAO_LISTA, type SituacaoDaLista } from "@/lib/rotulosPaciente";
+import { rotuloFinanceiro, ROTULO_SITUACAO_LISTA, type SituacaoDaLista } from "@/lib/rotulosPaciente";
 import { MessagePatient } from "@/components/dashboard/MessagePatient";
 
 // Fora do componente DE PROPÓSITO: definido dentro do render, cada tecla digitada na busca
@@ -30,6 +30,7 @@ type PatientCard = {
   paymentStatus: string;
   sessionFee: string;
   frequency: string | null;
+  frequenciaLabel: string;
   paymentFormat: string | null;
   pacoteTipo: string | null;
   tags: string | null;
@@ -181,7 +182,7 @@ export function PatientsClient({ patients, initial }: { patients: PatientCard[];
                     {rotuloFinanceiro(p.paymentFormat, p.pacoteTipo)}
                     <span className="text-foreground/40"> · {formatBRL(p.sessionFee)}/sessão</span>
                   </p>
-                  <p className="text-xs text-foreground/45 truncate">🕐 {rotuloFrequencia(p.frequency, p.attendanceDay, p.attendanceTime)}</p>
+                  <p className="text-xs text-foreground/45 truncate">🕐 {p.frequenciaLabel}</p>
                   <div className="mt-1">
                     <span className={`inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full ${SITUACAO_CLS[p.situacao]}`}>
                       {p.situacao === "atrasado" && "⚠️ "}{ROTULO_SITUACAO_LISTA[p.situacao]}
