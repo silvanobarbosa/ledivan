@@ -56,19 +56,23 @@ export function ListaProspects({ prospects, contatos }: { prospects: ProspectLin
   const router = useRouter();
 
   function contatar(p: ProspectLinha) {
-    if (!mensagem.trim()) { setEnvioMsg("Escreva a mensagem no campo abaixo da lista primeiro."); return; }
     setEnvioMsg(null);
-    // {nome} vira o primeiro nome. Abre o WhatsApp DESTE prospectado (wa.me) e registra só o contato
-    // dele; ninguém mais recebe.
-    const texto = mensagem.replace(/\{nome\}/g, p.name.split(" ")[0]);
     const num = numeroDoWhatsapp(p.phone);
-    if (num) window.open(`https://wa.me/${num}?text=${encodeURIComponent(texto)}`, "_blank", "noopener");
+    // Campo VAZIO (doc 9, item 12): não manda nada automático — só abre a conversa (sem texto) para
+    // a pessoa digitar no próprio WhatsApp, e registra que o contato foi feito por fora do sistema.
+    // Campo preenchido: segue como antes — {nome} vira o primeiro nome, abre o wa.me com o texto.
+    const vazio = !mensagem.trim();
+    const texto = vazio ? "Contato feito externamente sem a utilização do sistema" : mensagem.replace(/\{nome\}/g, p.name.split(" ")[0]);
+    if (num) {
+      const url = vazio ? `https://wa.me/${num}` : `https://wa.me/${num}?text=${encodeURIComponent(texto)}`;
+      window.open(url, "_blank", "noopener");
+    }
     setContatoId(p.id);
     iniciarContato(async () => {
       const r = await registrarEnvioMensagem({ envios: [{ id: p.id, mensagem: texto }] });
       setContatoId(null);
       if (r.ok) {
-        setEnvioMsg(`Mensagem registrada para ${p.name}${num ? "" : " (sem telefone — WhatsApp não aberto)"}.`);
+        setEnvioMsg(`Contato registrado para ${p.name}${num ? "" : " (sem telefone — WhatsApp não aberto)"}.`);
         router.refresh();
       } else setEnvioMsg(r.erro ?? "Não deu para registrar.");
     });
