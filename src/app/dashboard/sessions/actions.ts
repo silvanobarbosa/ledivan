@@ -58,6 +58,23 @@ export async function createRecurring(formData: FormData): Promise<{ ok: boolean
 
   const freq = freqRaw === "quinzenal" ? "quinzenal" : "semanal";
 
+  // AVUL/GRAT também na recorrência (doc 9, item 4): a 2ª recorrência do mesmo paciente pode ser
+  // INDEPENDENTE do pacote. Escolhendo "não entra na sequência" + Avulso/Gratuito, a série nasce
+  // marcada com `extra` e fica fora da CONTAGEM do pacote — por isso coexiste com a sequência de
+  // pacote já existente, em vez de ser absorvida por ela. Sem a marca, soma ao pacote como antes.
+  const vigencias = await db
+    .select({ formato: patientPaymentFormatHistory.formato, pacoteTipo: patientPaymentFormatHistory.pacoteTipo, desde: patientPaymentFormatHistory.dataEfetiva, criadoEm: patientPaymentFormatHistory.dataCriacao })
+    .from(patientPaymentFormatHistory)
+    .where(eq(patientPaymentFormatHistory.patientId, patientId));
+  const extraSerie = extraParaGravar({
+    formato: formatoNaData(vigencias, first, { formato: patient.paymentFormat, pacoteTipo: patient.pacoteTipo }).formato,
+    sessionKind: formData.get("sessionKind") as string,
+    naSequencia: formData.get("naSequencia") as string | null,
+    cobrada: formData.get("cobrada") as string | null,
+    valor: formData.get("valorExtra") as string | null,
+  });
+  if (!extraSerie.ok) return { ok: false, error: extraSerie.error };
+
   /**
    * A serie PULA horario bloqueado (dona, 18/09).
    *
@@ -82,6 +99,8 @@ export async function createRecurring(formData: FormData): Promise<{ ok: boolean
     status: "agendada" as const, chargeable: true, isOnline, location,
     modality: extras.modality, confirmChannel: extras.confirmChannel, confirmLeadHours: extras.confirmLeadHours,
     pendingConfirmation: true, recurring: true, recurrenceFreq: freq, recurrenceUntil: until,
+    // Mesma marca de fora-do-pacote do agendamento único: a série inteira herda a escolha.
+    extra: extraSerie.extra, valorExtra: extraSerie.valorExtra,
   }));
   if (!rows.length) return { ok: false, error: "Nenhuma data gerada." };
   await db.insert(therapySessions).values(rows);
