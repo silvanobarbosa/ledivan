@@ -150,12 +150,6 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], reajuste
   const [newError, setNewError] = useState<string | null>(null);
   // Sessão inserida num paciente de pacote: soma à sequência ou fica fora (AVUL/GRAT).
   const [newNaSequencia, setNewNaSequencia] = useState("sim");
-  // Texto de hora de parede ("2026-09-23T09:00:00") -> "23/09". Sem passar por fuso: a data nasce
-  // sem timezone e lida como UTC recuaria um dia.
-  const diaBR = (t: string) => {
-    const [, m, d] = t.split("T")[0].split("-");
-    return `${d}/${m}`;
-  };
   const [newCobrada, setNewCobrada] = useState("");
 
   function pad(n: number) { return String(n).padStart(2, "0"); }
@@ -232,9 +226,6 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], reajuste
    * — então a pergunta não aparecia para ninguém — e a lista da tela começa 120 dias atrás.
    */
   const jaTemSequencia = !!selectedPatient?.temAgendamento;
-  const [newRepoe, setNewRepoe] = useState("");
-  // Repor só faz sentido para sessão que entra na sequência, e só se houver vaga esperando.
-  const podeRepor = !!selectedPatient?.desmarcadas?.length && newNaSequencia !== "nao";
   // Série (semanal/quinzenal) é o próprio ritmo do pacote; a pergunta é para a sessão inserida.
   const perguntaSequencia = !newRecorrente && perguntaSeEntraNaSequencia({ formato: formatoNaDataNova, sessionKind: newKind }, jaTemSequencia);
 
@@ -484,9 +475,13 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], reajuste
       </div>
 
       {/* Os SINAIS, explicados. Símbolo sem legenda é adivinhação — e adivinhar numa agenda cheia
-          é o começo de marcar em cima de alguém. */}
+          é o começo de marcar em cima de alguém. (Doc 9: a pedido do dono, saíram da LEGENDA os sinais
+          de reserva vencida / pediu remarcação / remarcada / pedido pelo link / confirmou presença — o
+          símbolo ainda aparece NO card quando o status ocorre; só não ocupa mais a legenda.) */}
       <div className="flex flex-wrap gap-x-3 gap-y-1 px-1 text-[11px] text-foreground/50">
-        {Object.entries(SIMBOLO).map(([chave, simbolo]) => (
+        {Object.entries(SIMBOLO)
+          .filter(([chave]) => !["pendente", "remarcar", "realocada", "pedido", "confirmou"].includes(chave))
+          .map(([chave, simbolo]) => (
           <span key={chave} className="inline-flex items-center gap-1">
             <span aria-hidden="true">{simbolo}</span>
             {LEGENDA_DO_SINAL[chave]}
@@ -1070,32 +1065,6 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], reajuste
                     <p className="text-[11px] text-[#92400e]/70">Fica fora do pacote: não muda a numeração, a contagem nem o valor da sequência.</p>
                   </>
                 )}
-              </div>
-            )}
-
-            {/*
-              REPOSIÇÃO (documento de 17/09). Só aparece quando há desmarcada esperando e a sessão
-              entra na sequência — uma sessão fora do pacote não repor nada é o contrário do que
-              "repor" quer dizer.
-
-              A diferença é de dinheiro: repondo, a sessão ocupa a vaga que ficou aberta e o mês segue
-              valendo o mesmo; sem repor, ela é um atendimento a mais e o mês passa a cobrar por ele.
-            */}
-            {podeRepor && (
-              <div className="rounded-xl bg-[#eff6ff] px-3 py-2.5 space-y-1.5" data-testid="pergunta-reposicao">
-                <label htmlFor="repoeSessaoId" className="text-xs font-semibold text-[#1e40af] block">
-                  Esta sessão repõe alguma desmarcada?
-                </label>
-                <select id="repoeSessaoId" name="repoeSessaoId" value={newRepoe} onChange={(e) => setNewRepoe(e.target.value)}
-                  className="w-full px-3 py-2 rounded-xl bg-white border border-[#bfdbfe] outline-none text-sm">
-                  <option value="">Não — é um atendimento a mais</option>
-                  {(selectedPatient?.desmarcadas ?? []).map((d) => (
-                    <option key={d.id} value={d.id}>Repõe a de {diaBR(d.data)}</option>
-                  ))}
-                </select>
-                <p className="text-[11px] text-[#1e40af]/70">
-                  Repondo, ela ocupa a vaga que ficou aberta e o mês continua valendo o mesmo.
-                </p>
               </div>
             )}
 
