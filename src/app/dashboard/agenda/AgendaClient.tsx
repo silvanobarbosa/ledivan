@@ -173,16 +173,17 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], reajuste
     setShowNew(true);
   }
   /**
-   * Outro PACIENTE já ocupa esse horário? (prints 6.pdf, item 21). Dois pacientes no mesmo horário só
-   * faz sentido ao bloquear — num agendamento/mudança costuma ser engano. Não barra: avisa, e o
-   * profissional decide. Status que pausam (desmarcou/atestado/prof. desm.) liberam o horário.
+   * Já existe algum agendamento nesse horário? (doc 9, item 15 — antes prints 6.pdf item 21.) O dono
+   * pediu o aviso para QUALQUER choque, não só de outro paciente: marcar duas vezes o mesmo horário
+   * costuma ser engano, mesmo sendo o mesmo paciente. Não barra: avisa, e o profissional decide.
+   * `exceptId` tira a própria sessão (ao mover/editar). Status que pausam (desmarcou/atestado/prof.
+   * desm.) liberam o horário.
    */
-  function colisaoDeHorario(iniMs: number, durMin: number, exceptId?: string, exceptPatientId?: string): AgendaSession | null {
+  function colisaoDeHorario(iniMs: number, durMin: number, exceptId?: string): AgendaSession | null {
     if (Number.isNaN(iniMs)) return null;
     const fim = iniMs + (durMin || 50) * 60000;
     return sessions.find((s) => {
       if (exceptId && s.id === exceptId) return false;
-      if (exceptPatientId && s.patientId && s.patientId === exceptPatientId) return false;
       if (STATUS_QUE_PAUSAM.has(s.status)) return false;
       const sIni = new Date(s.date).getTime();
       if (Number.isNaN(sIni)) return false;
@@ -193,15 +194,14 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], reajuste
 
   function avisaColisao(c: AgendaSession | null): boolean {
     if (!c) return true;
-    return window.confirm(
-      `Já há ${c.patientName} agendado nesse horário. Dois pacientes no mesmo horário costuma ser engano — agendar mesmo assim?`,
-    );
+    // OK = Sim (agenda mesmo assim); Cancelar = Não (volta para a configuração e troca o horário).
+    return window.confirm("Já existe um agendamento nesse horário, deseja continuar?");
   }
 
   function submitNew(formData: FormData) {
     setNewError(null);
     const ini = newDate ? new Date(newDate).getTime() : NaN;
-    if (!avisaColisao(colisaoDeHorario(ini, 50, undefined, newPatient))) return;
+    if (!avisaColisao(colisaoDeHorario(ini, 50))) return;
     startTransition(async () => {
       const res = newRecorrente ? await createRecurring(formData) : await createSessionFromAgenda(formData);
       if (res.ok) { setShowNew(false); setNewFreq("pontual"); router.refresh(); }
@@ -337,7 +337,7 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], reajuste
     if (campos.date) {
       const ini = new Date(campos.date).getTime();
       const dur = campos.duration ? Number(campos.duration) : selected.duration;
-      if (!avisaColisao(colisaoDeHorario(ini, dur, selected.id, selected.patientId))) return;
+      if (!avisaColisao(colisaoDeHorario(ini, dur, selected.id))) return;
     }
     setPerguntaAlcance(campos);
   }
