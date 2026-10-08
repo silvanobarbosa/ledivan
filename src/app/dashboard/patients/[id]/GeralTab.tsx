@@ -437,9 +437,12 @@ export function GeralTab({ patientId, linhas, responsavel, responsavelCpf, cobra
                             — e desde 17/09 a quinzena sem atendimento nao gera linha nenhuma. */}
                         <span className="font-bold text-[#92400e]">Pagamento{l.parte ? ` · ${l.parte === 2 ? "2ª" : "1ª"} quinzena` : ""}</span>
                         <span className="block text-[11px] text-foreground/50">{l.sessoes} {l.sessoes === 1 ? "sessão" : "sessões"}{venc ? ` · vence ${venc}` : ""}</span>
-                        {/* Doc 9, item 18: as datas das sessões que ESTE pagamento cobre — para a quinzena
-                            deixar claro quais atendimentos entram nele, não só o total. */}
-                        {l.datasSessoes.length > 0 && (
+                        {/* Doc 9, item 18: na QUINZENA, detalha quais sessões entram no pagamento (não só
+                            o total). Só na quinzena: ali os ids batem com as sessões cobradas. No pacote
+                            completo/mensal os ids incluem posições seguradas por desmarcadas (a sessão que
+                            atravessa), e listar todas daria "8 sessões · 10 datas" — confuso numa tabela
+                            de dinheiro. As sessões do pacote já aparecem como linhas logo abaixo. */}
+                        {l.parte && l.datasSessoes.length > 0 && (
                           <span className="block text-[11px] text-foreground/45 tabular-nums">{l.datasSessoes.map((d) => partes(d).data).join(", ")}</span>
                         )}
                       </td>
