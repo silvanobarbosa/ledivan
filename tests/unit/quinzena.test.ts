@@ -108,3 +108,28 @@ describe("o que não muda", () => {
     expect(c.every((x) => x.tipo === "quinzena" && x.posicao === "antes")).toBe(true);
   });
 });
+
+/**
+ * #8 (doc 9) — as DUAS datas de pagamento do quinzenal. Reportado como "o sistema considera o dia 10
+ * para todos". O motor já respeita `diaPagamento` e `diaPagamento2` (ver os casos acima, no
+ * fragmentado). Este caso fecha o COMPLETO: 4 sessões, 2 em cada quinzena, com dias 10 e 20 — cada
+ * cobrança vence no SEU dia, nunca as duas no mesmo. (Quando só um dia está cadastrado, ambas usam
+ * esse dia — é o esperado; a correção do relato é cadastrar a segunda data no paciente.)
+ */
+describe("#8 quinzenal completo respeita as duas datas de pagamento", () => {
+  const completo = (sessoes: SessaoDaCobranca[]) =>
+    cobrancasDoPaciente({
+      vigencias: [],
+      reserva: { formato: "quinzenal", pacoteTipo: "completo" },
+      precos,
+      valorDaSessao: FEE,
+      tamanhos: [],
+      diaPagamento: 10,
+      diaPagamento2: 20,
+      sessoes,
+    });
+  it("vence 10 e 20, não 10 para as duas", () => {
+    const mes = [sessao(2, 9), sessao(9, 9), sessao(16, 9), sessao(23, 9)];
+    expect(completo(mes).map((c) => c.vencimento?.getDate())).toEqual([10, 20]);
+  });
+});
