@@ -81,11 +81,10 @@ function startOfWeek(d: Date) {
 }
 
 type Birthday = { name: string; month: number; day: number };
-type Reajuste = { name: string; review: string };
 
 type BlocoBloqueado = { id: string; date: string; duration: number; note: string | null };
 
-export function AgendaClient({ sessions, patients = [], birthdays = [], reajustes = [], locations = [], holidays = {}, holidayCities = [], blocks = [] }: { sessions: AgendaSession[]; patients?: PatientLite[]; birthdays?: Birthday[]; reajustes?: Reajuste[]; locations?: LocationLite[]; holidays?: Record<string, Holiday[]>; holidayCities?: HolidayCity[]; blocks?: BlocoBloqueado[] }) {
+export function AgendaClient({ sessions, patients = [], birthdays = [], locations = [], holidays = {}, holidayCities = [], blocks = [] }: { sessions: AgendaSession[]; patients?: PatientLite[]; birthdays?: Birthday[]; locations?: LocationLite[]; holidays?: Record<string, Holiday[]>; holidayCities?: HolidayCity[]; blocks?: BlocoBloqueado[] }) {
   /** A identificação curta de um paciente, a mesma que a célula usa. */
   const identificaPaciente = (id: string | null | undefined, nome: string) => {
     const p = patients.find((x) => x.id === id);
@@ -291,20 +290,6 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], reajuste
   const dayKey = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
   const holidaysForDay = (d: Date): Holiday[] => holidays[dayKey(d)] ?? [];
   const birthdaysForDay = (d: Date): Birthday[] => birthdays.filter((b) => b.month === d.getMonth() + 1 && b.day === d.getDate());
-  // Lembrete de reajuste: aparece 30 dias ANTES da data de reajuste do paciente (prints 6.pdf, item 19).
-  const reajusteForDay = (d: Date): string[] => {
-    const alvo = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
-    return reajustes
-      .filter((r) => {
-        const [a, m, dd] = r.review.split("-").map(Number);
-        if (!a || !m || !dd) return false;
-        const lembrete = new Date(a, m - 1, dd);
-        lembrete.setDate(lembrete.getDate() - 30);
-        return new Date(lembrete.getFullYear(), lembrete.getMonth(), lembrete.getDate()).getTime() === alvo;
-      })
-      .map((r) => r.name);
-  };
-
   const shift = (delta: number) => {
     const next = new Date(weekStart);
     next.setDate(next.getDate() + delta * 7);
@@ -561,16 +546,6 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], reajuste
                         {birthdaysForDay(day).slice(0, 2).map((b, i) => (
                           <p key={i} className="text-[9px] leading-tight font-semibold truncate flex items-center gap-0.5 justify-center text-pink-600" title={`Aniversário: ${b.name}`}>
                             🎂 <span className="truncate">{b.name.split(" ")[0]}</span>
-                          </p>
-                        ))}
-                      </div>
-                    )}
-                    {/* Lembrete de reajuste — 30 dias antes da data prevista (prints 6.pdf, item 19). */}
-                    {reajusteForDay(day).length > 0 && (
-                      <div className="mt-1 px-1 space-y-0.5">
-                        {reajusteForDay(day).slice(0, 2).map((nome, i) => (
-                          <p key={i} className="text-[9px] leading-tight font-semibold truncate flex items-center gap-0.5 justify-center text-[#92400e]" title={`Reajuste em ~30 dias: ${nome}`}>
-                            ⏰ <span className="truncate">Reajuste {nome.split(" ")[0]}</span>
                           </p>
                         ))}
                       </div>

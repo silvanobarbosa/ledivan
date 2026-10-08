@@ -185,7 +185,6 @@ export default async function AgendaPage() {
         }))}
         patients={pats.map((p) => ({ id: p.id, name: p.name, status: p.patientStatus, attendanceMode: p.attendanceMode, attendanceLocation: p.attendanceLocation, frequency: p.frequency, agendaId: p.agendaId, registrationNumber: p.registrationNumber, paymentFormat: p.paymentFormat, pacoteTipo: p.pacoteTipo, sessionFee: p.sessionFee, temAgendamento: comAgendamento.has(p.id), desmarcadas: desmarcadasPorPaciente.get(p.id) ?? [], vigencias: vigenciasPorPaciente.get(p.id) ?? [] }))}
         birthdays={pats.filter((p) => p.birthDate).map((p) => { /* `horaDeParede` antes do `new Date`: a data nasce meia-noite e, lida como UTC, recuava um dia — o aniversario de 21 aparecia em 20. */ const b = new Date(horaDeParede(p.birthDate)); return { name: p.name, month: b.getMonth() + 1, day: b.getDate() }; })}
-        reajustes={pats.filter((p) => p.priceReviewDate).map((p) => { const d = new Date(horaDeParede(p.priceReviewDate)); return { name: p.name, review: `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}` }; })}
         locations={locations}
         holidays={holidays}
         blocks={bloqueios.map((b) => ({ id: b.id, date: horaDeParede(b.date), duration: b.duration, note: b.note }))}
