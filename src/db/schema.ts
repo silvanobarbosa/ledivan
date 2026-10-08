@@ -350,6 +350,9 @@ export const patients = pgTable("patients", {
   guardianRelationship: text("guardian_relationship"), // grau de parentesco do responsável
   // Devolutiva periódica: a cada quantos meses, contados da primeira sessão. Nulo = não combinada.
   devolutivaMeses: integer("devolutiva_meses"),
+  // Devolutiva deste ciclo "dispensada" no Dashboard (✓) — guarda a data da própria devolutiva, para
+  // ela sumir da lista agora e reaparecer só no ciclo seguinte (doc 9, item 2).
+  devolutivaDispensadaEm: timestamp("devolutiva_dispensada_em"),
   queixaPrincipal: text("queixa_principal"), // queixa/demanda principal (lista curada + "Outro:") — ver lib/queixas
   gender: text("gender"), // gênero (texto livre quando "outro")
   cpf: text("cpf"),
