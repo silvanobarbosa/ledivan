@@ -171,3 +171,113 @@ describe("o mês sem sobressalto continua como era", () => {
     ]);
   });
 });
+
+/**
+ * F17 — a falta COBRADA fica DENTRO do pacote, nunca vira avulso.
+ *
+ * O dono relatou a sessão faltada-mas-cobrada aparecendo "lançada como avulso". O enquadre do
+ * sistema já resolve isso, e a decisão fica REGISTRADA aqui para não se perder: no vocabulário
+ * da casa, uma falta que se cobra é "Faltou" (nao_realizada) — um dos dois únicos status que
+ * cobram (STATUS_QUE_PODEM_COBRAR, decisão do dono de 16/09). "Desmarcou" (cancelada) é o que
+ * NÃO se cobra, e por isso atravessa. São coisas diferentes com nomes diferentes.
+ *
+ * Consequência que este bloco tranca:
+ * - Faltou OCUPA a posição no mês (não encolhe nem atravessa) e é cobrada DENTRO da sequência do
+ *   pacote daquele mês — a mesma linha de cobrança das demais, nunca uma cobrança avulsa à parte.
+ * - Faltou NÃO conta como sessão realizada (é desfecho próprio), mas conta para o pacote.
+ *
+ * Marcar a falta cobrada como avulso é o erro de uso que produz o sintoma relatado: avulso é para
+ * sessão EXTRA, fora do pacote (F4). A falta cobrada pertence ao pacote.
+ */
+/**
+ * F6 — "abater do pacote": a sessão inserida que PREENCHE uma desmarcada repõe a posição aberta, de
+ * modo que nada atravessa para o mês seguinte e o total do pacote fica idêntico ao de um mês sem
+ * nenhuma desmarcação. É a reposição do documento de 17/09, agora escolhível na agenda (item 6).
+ *
+ * A prova é a comparação com a linha de base: os mesmos dois meses, um SEM intercorrência e outro
+ * COM a desmarcada preenchida, cobram exatamente igual.
+ */
+describe("F6 — abater do pacote: preencher a desmarcada mantém o total e cancela a travessia", () => {
+  const baseEntrada = (sessoes: Parameters<typeof cobrancasDoPaciente>[0]["sessoes"]) => ({
+    vigencias: [{ formato: "mensal" as const, pacoteTipo: "fragmentado" as const, desde: new Date(2026, 0, 1), criadoEm: new Date(2026, 0, 1) }],
+    reserva: { formato: "mensal" as const, pacoteTipo: "fragmentado" as const },
+    precos: [{ valor: 130, desde: new Date(2026, 0, 1) }],
+    sessoes,
+    hoje: new Date(2026, 10, 1, 12),
+  });
+
+  // Linha de base: setembro com três, outubro com quatro, nada desmarcado.
+  const semIntercorrencia = [
+    dia(5, 9), dia(12, 9), dia(19, 9),
+    dia(3, 10), dia(10, 10), dia(17, 10), dia(24, 10),
+  ];
+  // A de 05 foi desmarcada e uma inserida em 26/09 a PREENCHE (abater do pacote).
+  const comAbatimento = [
+    dia(5, 9, "cancelada"), dia(12, 9), dia(19, 9), dia(26, 9, "realizada", { repoeSessaoId: "9-5" }),
+    dia(3, 10), dia(10, 10), dia(17, 10), dia(24, 10),
+  ];
+
+  it("sem a reposição (F1), outubro perde uma sessão para setembro (a travessia)", () => {
+    const semRepor = [
+      dia(5, 9, "cancelada"), dia(12, 9), dia(19, 9),
+      dia(3, 10), dia(10, 10), dia(17, 10), dia(24, 10),
+    ];
+    expect(cobrancasDoPaciente(baseEntrada(semRepor)).map((c) => [c.sessoes, c.valor])).toEqual([
+      [3, 390], [3, 390], // outubro fica só com três: a quarta atravessou para setembro
+    ]);
+  });
+
+  it("preenchendo a desmarcada, as duas cobranças ficam idênticas à linha de base", () => {
+    const base = cobrancasDoPaciente(baseEntrada(semIntercorrencia)).map((c) => [c.sessoes, c.valor]);
+    const abatido = cobrancasDoPaciente(baseEntrada(comAbatimento)).map((c) => [c.sessoes, c.valor]);
+    expect(abatido).toEqual(base);
+    expect(abatido).toEqual([[3, 390], [4, 520]]);
+  });
+
+  it("a numeração de setembro fecha em /3 com a inserida, e outubro segue intacto em /4", () => {
+    expect(mapa(comAbatimento)).toEqual([
+      "9-5=1/3", "9-12=1/3", "9-19=2/3", "9-26=3/3",
+      "10-3=1/4", "10-10=2/4", "10-17=3/4", "10-24=4/4",
+    ]);
+  });
+});
+
+describe("F17 — Faltou (cobrada) ocupa a posição e é cobrada no pacote, sem avulso", () => {
+  // Setembro contratou três (05, 12, 19); a de 05 o paciente FALTOU (cobra). Outubro tem quatro.
+  const sessoes = [
+    dia(5, 9, "nao_realizada"), dia(12, 9), dia(19, 9),
+    dia(3, 10), dia(10, 10), dia(17, 10), dia(24, 10),
+  ];
+
+  it("a falta ocupa sua posição: setembro fecha em /3 sozinho, nada de outubro atravessa", () => {
+    expect(mapa(sessoes)).toEqual([
+      "9-5=1/3", "9-12=2/3", "9-19=3/3",
+      "10-3=1/4", "10-10=2/4", "10-17=3/4", "10-24=4/4",
+    ]);
+  });
+
+  it("cada mês é sua própria sequência: setembro #0 fechado, outubro #1 intacto", () => {
+    expect(sequencias(sessoes)).toEqual([
+      "9-5#0", "9-12#0", "9-19#0",
+      "10-3#1", "10-10#1", "10-17#1", "10-24#1",
+    ]);
+  });
+
+  it("setembro cobra as três (a falta inclusa) e outubro as quatro — duas cobranças, nenhuma avulsa", () => {
+    const cobrancas = cobrancasDoPaciente({
+      vigencias: [{ formato: "mensal", pacoteTipo: "fragmentado", desde: new Date(2026, 0, 1), criadoEm: new Date(2026, 0, 1) }],
+      reserva: { formato: "mensal", pacoteTipo: "fragmentado" },
+      precos: [{ valor: 130, desde: new Date(2026, 0, 1) }],
+      sessoes,
+      hoje: new Date(2026, 10, 1, 12),
+    });
+    // Exatamente duas cobranças de pacote. Uma terceira linha significaria um avulso vazado.
+    expect(cobrancas.map((c) => [c.sessoes, c.valor])).toEqual([
+      [3, 390],
+      [4, 520],
+    ]);
+    // A falta 9-5 entra na cobrança de setembro, não numa cobrança à parte.
+    const setembro = cobrancas.find((c) => (c.ids ?? []).includes("9-5"));
+    expect(setembro?.sessoes).toBe(3);
+  });
+});
