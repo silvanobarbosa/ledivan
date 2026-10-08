@@ -3,7 +3,7 @@
 import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronLeft, ChevronRight, X, Stethoscope, Repeat, Video, AlertTriangle, MapPin, Pencil, CalendarDays, Trash2 } from "lucide-react";
-import { SESSION_STATUS_LABELS, sessionStatusColor, sessionColorClasses, reservaVencida, RISK_LABELS, riskColor, LEGENDA_DA_AGENDA, corDaLegenda, STATUS_OFERECIDOS, STATUS_QUE_PAUSAM, type RiskLevel } from "@/lib/therapy";
+import { SESSION_STATUS_LABELS, sessionStatusColor, sessionColorClasses, reservaVencida, RISK_LABELS, riskColor, LEGENDA_DA_AGENDA, corDaLegenda, STATUS_OFERECIDOS, STATUS_QUE_PAUSAM, formatDate, type RiskLevel } from "@/lib/therapy";
 import { updateSessionStatus, confirmSession, createSessionFromAgenda, createRecurring } from "../sessions/actions";
 import { HolidaySetup } from "@/components/dashboard/HolidaySetup";
 import { HOLIDAY_STYLE, type Holiday, type HolidayCity } from "@/lib/holidays-style";
@@ -150,6 +150,10 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
   // Sessão inserida num paciente de pacote: soma à sequência ou fica fora (AVUL/GRAT).
   const [newNaSequencia, setNewNaSequencia] = useState("sim");
   const [newCobrada, setNewCobrada] = useState("");
+  // Doc 9, item 6 — "abater do pacote": a sessão inserida PREENCHE uma desmarcada do mês em vez de
+  // criar uma vaga nova. Ocupa a posição que ficou aberta, de modo que nada atravessa para o mês
+  // seguinte e o total do pacote não muda. "" = não preenche nenhuma (entra como sessão a mais).
+  const [newRepoe, setNewRepoe] = useState("");
 
   function pad(n: number) { return String(n).padStart(2, "0"); }
   function toLocalInput(d: Date) {
@@ -168,6 +172,7 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
     setNewFreq("pontual");
     setNewNaSequencia("sim");
     setNewCobrada("");
+    setNewRepoe("");
     setNewError(null);
     setShowNew(true);
   }
@@ -962,7 +967,7 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
 
             <div>
               <label className="text-xs font-semibold text-foreground/60">Paciente</label>
-              <select name="patientId" required value={newPatient} onChange={(e) => setNewPatient(e.target.value)} className="w-full px-4 py-2.5 rounded-xl bg-surface border border-border outline-none text-sm">
+              <select name="patientId" required value={newPatient} onChange={(e) => { setNewPatient(e.target.value); setNewRepoe(""); }} className="w-full px-4 py-2.5 rounded-xl bg-surface border border-border outline-none text-sm">
                 <option value="">Selecione…</option>
                 {/* Novo atendimento lista SÓ pacientes ATIVOS (doc 19/10): prospectado fica só na
                     Prospecção e inativo não agenda; ao converter p/ Ativo, passa a aparecer. A lista
@@ -1026,6 +1031,32 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
                   ))}
                 </div>
                 <input type="hidden" name="naSequencia" value={newNaSequencia} />
+                {/* Doc 9, item 6 — "abater do pacote". Quando o paciente tem desmarcadas esperando,
+                    esta sessão pode PREENCHER uma delas em vez de criar uma vaga nova: ocupa a posição
+                    que ficou aberta, nada atravessa para o mês seguinte e o total não muda. É a
+                    reposição do documento de 17/09, agora escolhível aqui. Só no agendamento único —
+                    uma série é o próprio ritmo, não uma reposição. */}
+                {newNaSequencia === "sim" && !newRecorrente && (selectedPatient?.desmarcadas?.length ?? 0) > 0 && (
+                  <div className="space-y-1.5 border-t border-[#fde68a] pt-2">
+                    <p className="text-xs font-semibold text-[#92400e]">Preenche uma sessão desmarcada? (abate do pacote)</p>
+                    <input type="hidden" name="repoeSessaoId" value={newRepoe} />
+                    <div className="grid grid-cols-1 gap-1.5">
+                      <button type="button" onClick={() => setNewRepoe("")}
+                        className={`py-2 px-2 rounded-xl text-xs font-bold transition text-left ${newRepoe === "" ? "bg-[#92400e] text-white" : "bg-white text-foreground/70 hover:bg-surface-container"}`}>
+                        Não — é uma sessão a mais no pacote
+                      </button>
+                      {selectedPatient!.desmarcadas!.map((d) => (
+                        <button key={d.id} type="button" onClick={() => setNewRepoe(d.id)}
+                          className={`py-2 px-2 rounded-xl text-xs font-bold transition text-left ${newRepoe === d.id ? "bg-[#92400e] text-white" : "bg-white text-foreground/70 hover:bg-surface-container"}`}>
+                          Preenche a desmarcada de {formatDate(d.data)}
+                        </button>
+                      ))}
+                    </div>
+                    {newRepoe !== "" && (
+                      <p className="text-[11px] text-[#92400e]/70">Ocupa a posição da desmarcada: nada atravessa para o mês seguinte e o total do pacote não muda.</p>
+                    )}
+                  </div>
+                )}
                 {newNaSequencia === "nao" && (
                   <>
                     <p className="text-xs font-semibold text-[#92400e]">Esta sessão será cobrada?</p>
