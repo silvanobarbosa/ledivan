@@ -121,3 +121,40 @@ describe("o vencimento é o próximo dia combinado a partir da primeira sessão 
     expect(venceEm({ diaPagamento: 5 }, ss)[0]).toBe("05/11");
   });
 });
+
+/**
+ * #18 — DUAS sessões na quinzena cobram pelas DUAS, não por uma.
+ *
+ * O dono relatou ver R$ 65 (uma sessão) onde deveria ver R$ 130 (duas) num quinzenal fragmentado
+ * de duas sessões por quinzena. A conta já é `preço da sessão × nº de sessões da quinzena` — nunca
+ * "metade do pacote" —, então o valor acompanha quantas sessões caíram ali. Este bloco TRANCA essa
+ * garantia; se a tela mostrar 65, a causa é o DADO (preço da sessão cadastrado como metade, ou as
+ * duas sessões caindo em quinzenas diferentes do calendário), não o motor.
+ */
+describe("#18 — duas sessões na mesma quinzena cobram as duas", () => {
+  const umMes = (pacoteTipo: "completo" | "fragmentado", feePorSessao: number) =>
+    cobrancasDoPaciente({
+      vigencias: [],
+      reserva: { formato: "quinzenal", pacoteTipo },
+      precos: [{ valor: feePorSessao, desde: new Date(2026, 0, 1) }],
+      valorDaSessao: feePorSessao,
+      tamanhos: [],
+      diaPagamento: 10,
+      diaPagamento2: 20,
+      // Semanal: duas sessões na 1ª quinzena (02 e 09) e duas na 2ª (16 e 23) de outubro.
+      sessoes: [sessao(2, 9), sessao(9, 9), sessao(16, 9), sessao(23, 9)],
+    });
+
+  it("fragmentado: cada quinzena com duas sessões a R$ 65 cobra R$ 130, não R$ 65", () => {
+    const cs = umMes("fragmentado", 65);
+    expect(cs.map((c) => [c.sessoes, c.valor])).toEqual([
+      [2, 130], // 02 e 09 (01–15)
+      [2, 130], // 16 e 23 (16–fim)
+    ]);
+  });
+
+  it("o valor é preço × nº de sessões: a R$ 100 as mesmas duas sessões dão R$ 200", () => {
+    const cs = umMes("fragmentado", 100);
+    expect(cs.map((c) => c.valor)).toEqual([200, 200]);
+  });
+});

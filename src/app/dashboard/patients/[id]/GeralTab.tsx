@@ -437,6 +437,11 @@ export function GeralTab({ patientId, linhas, responsavel, responsavelCpf, cobra
                             — e desde 17/09 a quinzena sem atendimento nao gera linha nenhuma. */}
                         <span className="font-bold text-[#92400e]">Pagamento{l.parte ? ` · ${l.parte === 2 ? "2ª" : "1ª"} quinzena` : ""}</span>
                         <span className="block text-[11px] text-foreground/50">{l.sessoes} {l.sessoes === 1 ? "sessão" : "sessões"}{venc ? ` · vence ${venc}` : ""}</span>
+                        {/* Doc 9, item 18: as datas das sessões que ESTE pagamento cobre — para a quinzena
+                            deixar claro quais atendimentos entram nele, não só o total. */}
+                        {l.datasSessoes.length > 0 && (
+                          <span className="block text-[11px] text-foreground/45 tabular-nums">{l.datasSessoes.map((d) => partes(d).data).join(", ")}</span>
+                        )}
                       </td>
                       <td className="px-3 py-2 text-right tabular-nums font-bold">{formatBRL(l.valor)}</td>
                       <ColunasDoPagamento patientId={patientId} c={l} onLancar={() => setAberta(l.chave)} cobrar={cobrar} />
