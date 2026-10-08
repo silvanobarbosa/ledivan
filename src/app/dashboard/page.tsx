@@ -7,7 +7,9 @@ import { Users as UsersIcon, CalendarCheck, Clock, ChevronRight, Video, MapPin, 
 import { AnaliticosCharts } from "@/components/dashboard/AnaliticosCharts";
 import { DashboardPanels } from "@/components/dashboard/DashboardPanels";
 import { ListaReajuste } from "@/components/dashboard/ListaReajuste";
+import { ListaDevolutivas } from "@/components/dashboard/ListaDevolutivas";
 import { diasParaReajuste } from "@/lib/reajuste";
+import { proximaDevolutiva, devolutivaNaLista, diasParaDevolutiva } from "@/lib/devolutiva";
 import { apareceHoje, mesQueVem, pacientesALembrar } from "@/lib/lembrarAgendamento";
 import { horaDeParede } from "@/lib/horaLocal";
 import { AnalyticsFilters } from "@/components/dashboard/AnalyticsFilters";
@@ -78,7 +80,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
       .from(patientPackages).innerJoin(patients, eq(patientPackages.patientId, patients.id))
       .where(and(eq(patientPackages.userId, userId), eq(patients.patientStatus, "ativo"), eq(patients.contractType, "pacote"))).groupBy(patientPackages.patientId),
     db.select({ isOnline: therapySessions.isOnline, location: therapySessions.location, status: therapySessions.status, date: therapySessions.date }).from(therapySessions).where(and(...anConds)),
-    db.select({ id: patients.id, name: patients.name, status: patients.patientStatus, prospectDate: patients.prospectDate, prospectFechou: patients.prospectFechou, paymentStatus: patients.paymentStatus, gender: patients.gender, birthDate: patients.birthDate, address: patients.address, phone: patients.phone, guardianPhone: patients.guardianPhone, email: patients.email, queixaPrincipal: patients.queixaPrincipal, startedAt: patients.startedAt, priceReviewDate: patients.priceReviewDate, devolutivaMeses: patients.devolutivaMeses }).from(patients).where(eq(patients.userId, userId)),
+    db.select({ id: patients.id, name: patients.name, status: patients.patientStatus, prospectDate: patients.prospectDate, prospectFechou: patients.prospectFechou, paymentStatus: patients.paymentStatus, gender: patients.gender, birthDate: patients.birthDate, address: patients.address, phone: patients.phone, guardianPhone: patients.guardianPhone, email: patients.email, queixaPrincipal: patients.queixaPrincipal, startedAt: patients.startedAt, priceReviewDate: patients.priceReviewDate, devolutivaMeses: patients.devolutivaMeses, devolutivaDispensadaEm: patients.devolutivaDispensadaEm }).from(patients).where(eq(patients.userId, userId)),
     // Consumo de pacote = fonte única DERIVADA: sessões realizadas+cobráveis por paciente.
     db.select({ pid: therapySessions.patientId, cnt: sql<number>`count(*)::int` })
       .from(therapySessions).where(and(eq(therapySessions.userId, userId), eq(therapySessions.status, "realizada"), eq(therapySessions.chargeable, true))).groupBy(therapySessions.patientId),
@@ -99,7 +101,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   // seguintes. Buscar só nos últimos dias do mês não adiantaria: a lista precisa das sessões do
   // mês QUE VEM para saber quem já resolveu.
   const proximo = mesQueVem();
-  const [marcadosNoMesQueVem, sessoesMensais] = await Promise.all([
+  const [marcadosNoMesQueVem, sessoesMensais, primeiraSessaoRows, ultimaDevolutivaRows] = await Promise.all([
     db
       .select({ patientId: therapySessions.patientId, date: therapySessions.date })
       .from(therapySessions)
@@ -108,7 +110,15 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
       .select({ patientId: therapySessions.patientId, date: therapySessions.date })
       .from(therapySessions)
       .where(and(eq(therapySessions.userId, userId), eq(therapySessions.recurrenceFreq, "mensal"))),
+    // Próximas devolutivas (doc 9, item 2): 1ª sessão de cada paciente e a ÚLTIMA sessão do tipo
+    // devolutiva (base para a próxima data).
+    db.select({ pid: therapySessions.patientId, data: sql<string>`min(${therapySessions.date})` })
+      .from(therapySessions).where(eq(therapySessions.userId, userId)).groupBy(therapySessions.patientId),
+    db.select({ pid: therapySessions.patientId, data: sql<string>`max(${therapySessions.date})` })
+      .from(therapySessions).where(and(eq(therapySessions.userId, userId), eq(therapySessions.sessionKind, "devolutiva"))).groupBy(therapySessions.patientId),
   ]);
+  const primeiraSessaoPorPaciente = new Map(primeiraSessaoRows.map((r) => [r.pid, new Date(r.data)]));
+  const ultimaDevolutivaPorPaciente = new Map(ultimaDevolutivaRows.map((r) => [r.pid, new Date(r.data)]));
 
   // A última sessão conhecida de cada mensal — é o que a lista mostra para dizer há quanto tempo
   // a pessoa está sem data.
@@ -138,6 +148,23 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
       return { id: p.id, name: p.name, phone: p.phone, guardianPhone: p.guardianPhone, review: `${review.getFullYear()}-${String(review.getMonth() + 1).padStart(2, "0")}-${String(review.getDate()).padStart(2, "0")}`, dias: dias ?? 9999 };
     })
     .filter((p) => p.dias <= 30)
+    .sort((a, b) => a.dias - b.dias);
+
+  // Próximas devolutivas (doc 9, item 2): paciente ativo com intervalo definido, cuja próxima
+  // devolutiva está a ≤ 7 dias e não foi dispensada neste ciclo.
+  const devolutivasLista = pats
+    .filter((p) => p.status === "ativo" && p.devolutivaMeses)
+    .map((p) => {
+      const proxima = proximaDevolutiva(primeiraSessaoPorPaciente.get(p.id) ?? null, ultimaDevolutivaPorPaciente.get(p.id) ?? null, p.devolutivaMeses);
+      return { p, proxima };
+    })
+    .filter(({ p, proxima }) => devolutivaNaLista(proxima, (p.devolutivaDispensadaEm as unknown as Date) ?? null, hojeRef))
+    .map(({ p, proxima }) => ({
+      id: p.id, name: p.name, phone: p.phone, guardianPhone: p.guardianPhone,
+      proxima: `${proxima!.getFullYear()}-${String(proxima!.getMonth() + 1).padStart(2, "0")}-${String(proxima!.getDate()).padStart(2, "0")}`,
+      proximaISO: proxima!.toISOString(),
+      dias: diasParaDevolutiva(proxima, hojeRef) ?? 9999,
+    }))
     .sort((a, b) => a.dias - b.dias);
 
   const panelPatients = pats.map((p) => ({
@@ -233,6 +260,9 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
           </div>
         )}
       </div>
+
+      {/* Próximas devolutivas (doc 9, item 2) — logo abaixo de "Sessões do dia". */}
+      <ListaDevolutivas devolutivas={devolutivasLista} />
 
       {/* ===== Analíticos de atendimento ===== */}
       <div className="space-y-6 pt-2">

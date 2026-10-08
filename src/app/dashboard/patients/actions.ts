@@ -783,3 +783,19 @@ export async function deletePatient(patientId: string) {
   revalidatePath("/dashboard/patients");
   redirect("/dashboard/patients");
 }
+
+/**
+ * Dispensa a devolutiva do ciclo atual (doc 9, item 2): o ✓ do Dashboard. Guarda a data da própria
+ * devolutiva prevista; ela some da lista agora e volta só quando a próxima avançar (ciclo seguinte).
+ */
+export async function dispensarDevolutiva(patientId: string, proximaISO: string): Promise<{ ok: boolean; error?: string }> {
+  const session = await auth();
+  if (!session?.user?.id) return { ok: false, error: "Não autorizado" };
+  const userId = session.user.id;
+  const proxima = new Date(proximaISO);
+  if (Number.isNaN(proxima.getTime())) return { ok: false, error: "Data inválida" };
+  await db.update(patients).set({ devolutivaDispensadaEm: proxima })
+    .where(and(eq(patients.id, patientId), eq(patients.userId, userId)));
+  revalidatePath("/dashboard");
+  return { ok: true };
+}
