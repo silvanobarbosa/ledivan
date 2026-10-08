@@ -6,6 +6,7 @@ import Link from "next/link";
 import { Plus } from "lucide-react";
 import { PatientsClient } from "./PatientsClient";
 import { situacoesDaLista } from "@/lib/situacoesLista";
+import { rotuloFrequenciaReal } from "@/lib/rotulosPaciente";
 
 export default async function PatientsPage({ searchParams }: { searchParams: Promise<{ status?: string; tipo?: string; dia?: string; tag?: string }> }) {
   const sp = await searchParams;
@@ -14,7 +15,7 @@ export default async function PatientsPage({ searchParams }: { searchParams: Pro
   const userId = session.user.id;
 
   // Saldo por paciente: pagamentos (pagos) − sessões realizadas cobráveis (em paralelo)
-  const [list, paysByPatient, debitByPatient, proximas] = await Promise.all([
+  const [list, paysByPatient, debitByPatient, proximas, recorrentes] = await Promise.all([
     db.query.patients.findMany({
       where: and(eq(patients.userId, userId), ne(patients.patientStatus, "prospect")),
       orderBy: [asc(patients.name)],
@@ -39,6 +40,17 @@ export default async function PatientsPage({ searchParams }: { searchParams: Pro
         ne(therapySessions.status, "cancelada"),
       ))
       .groupBy(therapySessions.patientId),
+    // Frequência REAL (doc 9, #14): vem da AGENDA, igual ao dia/hora acima, não do campo do cadastro
+    // (que ficava obsoleto e mostrava mensal como semanal). As sessões de recorrência futuras dizem a
+    // frequência e os dia/hora distintos (1 slot = 1x, 2 slots = 2x).
+    db.select({ pid: therapySessions.patientId, date: therapySessions.date, freq: therapySessions.recurrenceFreq })
+      .from(therapySessions)
+      .where(and(
+        eq(therapySessions.userId, userId),
+        eq(therapySessions.recurring, true),
+        sql`${therapySessions.date} >= now()`,
+        ne(therapySessions.status, "cancelada"),
+      )),
   ]);
 
   const DIAS = ["domingo", "segunda", "terca", "quarta", "quinta", "sexta", "sabado"];
@@ -48,6 +60,24 @@ export default async function PatientsPage({ searchParams }: { searchParams: Pro
       return [r.pid, { dia: DIAS[d.getDay()], hora: `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}` }];
     }),
   );
+  // Frequência REAL por paciente, derivada das sessões de recorrência futuras (doc 9, #14): a
+  // frequência (mensal/quinzenal/semanal) e os slots dia/hora DISTINTOS. 2 slots distintos = Semanal 2x.
+  const recPorPaciente = new Map<string, { freq: string | null; slots: { dia: string; hora: string }[] }>();
+  for (const r of recorrentes) {
+    const d = new Date(r.date);
+    const slot = { dia: DIAS[d.getDay()], hora: `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}` };
+    const atual = recPorPaciente.get(r.pid) ?? { freq: r.freq, slots: [] };
+    if (!atual.slots.some((s) => s.dia === slot.dia && s.hora === slot.hora)) atual.slots.push(slot);
+    recPorPaciente.set(r.pid, atual);
+  }
+  const DIA_ORDEM = (dia: string) => DIAS.indexOf(dia);
+  const labelFrequencia = (pid: string, fallbackFreq: string | null): string => {
+    const rec = recPorPaciente.get(pid);
+    if (!rec) return rotuloFrequenciaReal(null, []); // sem recorrência futura
+    const slots = rec.slots.slice().sort((a, b) => DIA_ORDEM(a.dia) - DIA_ORDEM(b.dia) || a.hora.localeCompare(b.hora));
+    return rotuloFrequenciaReal(rec.freq ?? fallbackFreq, slots);
+  };
+
   const paidMap = new Map(paysByPatient.map((r) => [r.pid, parseFloat(r.total || "0")]));
   const debitMap = new Map(debitByPatient.map((r) => [r.pid, parseFloat(r.total || "0")]));
 
@@ -90,6 +120,7 @@ export default async function PatientsPage({ searchParams }: { searchParams: Pro
             paymentStatus: p.paymentStatus,
             sessionFee: p.sessionFee,
             frequency: p.frequency,
+            frequenciaLabel: labelFrequencia(p.id, p.frequency),
             paymentFormat: p.paymentFormat,
             pacoteTipo: p.pacoteTipo,
             tags: p.tags,

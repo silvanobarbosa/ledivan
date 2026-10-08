@@ -67,3 +67,28 @@ describe("situação da lista", () => {
     expect(ROTULO_SITUACAO_LISTA.em_dia).toBe("Em dia");
   });
 });
+
+import { rotuloFrequenciaReal } from "@/lib/rotulosPaciente";
+
+describe("rotuloFrequenciaReal (frequência real da agenda — doc 9 #14)", () => {
+  it("mensal mostra Mensal (não semanal), mesmo com slot", () => {
+    expect(rotuloFrequenciaReal("mensal", [{ dia: "segunda", hora: "09:00" }])).toBe("Mensal");
+  });
+  it("sem recorrência futura → Agendamento não recorrente", () => {
+    expect(rotuloFrequenciaReal(null, [])).toBe("Agendamento não recorrente");
+    expect(rotuloFrequenciaReal("pontual", [])).toBe("Agendamento não recorrente");
+  });
+  it("semanal 1 slot → Semanal · dia hora", () => {
+    expect(rotuloFrequenciaReal("semanal", [{ dia: "quarta", hora: "15:00" }])).toBe("Semanal · Quarta 15:00");
+  });
+  it("semanal 2 slots → Semanal 2x com as duas datas/horários", () => {
+    expect(rotuloFrequenciaReal("semanal", [{ dia: "segunda", hora: "09:00" }, { dia: "quinta", hora: "14:00" }]))
+      .toBe("Semanal 2x · Segunda 09:00, Quinta 14:00");
+  });
+  it("quinzenal com repetição mostra Quinzenal · dia hora", () => {
+    expect(rotuloFrequenciaReal("quinzenal", [{ dia: "sexta", hora: "10:00" }])).toBe("Quinzenal · Sexta 10:00");
+  });
+  it("quinzenal sem slot → só Quinzenal", () => {
+    expect(rotuloFrequenciaReal("quinzenal", [])).toBe("Quinzenal");
+  });
+});

@@ -40,6 +40,29 @@ const SEM_RECORRENCIA = new Set(["", "nao_repetir", "pontual", "none", "avulso",
  * - quinzenal → "Quinzenal · " dia e hora
  * - mensal → "Mensal"
  */
+export type SlotRecorrente = { dia: string; hora: string };
+
+/**
+ * A frequência REAL, derivada da AGENDA — não do campo do cadastro, que fica obsoleto (doc 9, #14:
+ * paciente mensal aparecia como semanal porque `patients.frequency` guardava o valor antigo). Os
+ * `slots` são os dia/hora distintos das sessões de recorrência futuras daquele paciente.
+ *
+ * - sem recorrência → "Agendamento não recorrente"
+ * - mensal → "Mensal"
+ * - quinzenal → "Quinzenal"[ · dia hora]
+ * - semanal 1 slot → "Semanal"[ · dia hora]
+ * - semanal 2 slots → "Semanal 2x · d1 h1, d2 h2"
+ */
+export function rotuloFrequenciaReal(freq: string | null | undefined, slots: SlotRecorrente[]): string {
+  const f = (freq ?? "").toLowerCase();
+  if (SEM_RECORRENCIA.has(f) || !f) return "Agendamento não recorrente";
+  if (f === "mensal") return "Mensal";
+  const quando = slots.map((s) => `${diaBonito(s.dia)} ${s.hora}`.trim()).filter(Boolean).join(", ");
+  if (f === "quinzenal") return quando ? `Quinzenal · ${quando}` : "Quinzenal";
+  const base = slots.length >= 2 ? "Semanal 2x" : "Semanal";
+  return quando ? `${base} · ${quando}` : base;
+}
+
 export function rotuloFrequencia(frequency: string | null | undefined, dia?: string | null, hora?: string | null): string {
   const f = (frequency ?? "").toLowerCase();
   if (SEM_RECORRENCIA.has(f) || !f) return "Sem recorrência";
