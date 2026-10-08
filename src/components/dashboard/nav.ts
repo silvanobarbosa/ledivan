@@ -14,6 +14,7 @@ import {
   ClipboardList,
   Banknote,
   UserPlus,
+  FileText,
 } from "lucide-react";
 
 export type NavItem = { icon: typeof LayoutDashboard; label: string; href: string };
@@ -29,6 +30,7 @@ export const NAV_GROUPS: NavGroup[] = [
       { icon: Users, label: "Pacientes", href: "/dashboard/patients" },
       { icon: UserPlus, label: "Prospecção", href: "/dashboard/prospects" },
       { icon: ClipboardList, label: "Prontuário", href: "/dashboard/prontuario" },
+      { icon: FileText, label: "Contratos", href: "/dashboard/contratos" },
       { icon: MessageCircle, label: "Mensagens", href: "/dashboard/mensagens" },
     ],
   },
