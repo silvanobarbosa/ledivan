@@ -7,6 +7,48 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-10-07 — Doc 9: 16 itens + menu Contratos (#254–#265)
+
+**Entregue (PRs #254–#265):** 16 dos 18 itens do doc 9, em ondas, cada PR com testes + lint + build.
+- **Onda A (#254):** #5 tira "repõe desmarcada" do novo agendamento · #10 limpa a legenda da agenda
+  (símbolo segue no card) · #13 fonte menor nos cards de Analíticos · #16 remove a caixinha "Em aberto".
+- **Onda B (#255):** #7 `min-w-0` nas colunas do dia (feriado longo não desalinha) · #9 linha da data
+  fixa — o wrapper virou scroller dos 2 eixos (max-h); verificado no /demo (header `position:sticky`).
+- **Onda C (#256–#258):** #15 aviso de choque de horário para QUALQUER agendamento (antes só p/ outro
+  paciente) · #3 excluir série limpa os `sessoesPuladas` (Hor. Bloq.) órfãos, bloqueio PERMANECE · #4
+  recorrência Avulso/Gratuito independente do pacote (pergunta de sequência passou a valer no recorrente;
+  createRecurring grava `extra` por linha).
+- **Onda D (#259–#261):** #12 Contatar vazio abre o WhatsApp sem texto + registra "contato externo" ·
+  #11 lista de Pacientes identifica pelo ID (registrationNumber) em vez do nome · #14 frequência da lista
+  DERIVADA da agenda (mensal não aparece mais como semanal), nova `rotuloFrequenciaReal`.
+- **Onda E (#262–#263):** #1 Aviso de Reajuste no Dashboard + "Lembrar" (wa.me); saiu da Agenda · #2
+  Próximas devolutivas no Dashboard (Agendar wa.me + ✓ dispensa; coluna `devolutiva_dispensada_em`).
+- **#8 (#264):** investigado por TDD — o motor JÁ respeita as 2 datas de pagamento (fragmentado e
+  completo testados); SEM mudança de código, só regressão. O relato é cadastrar a 2ª data no paciente.
+- **Contratos / G (#265):** menu "Contratos" → `/dashboard/contratos` escolhe o paciente →
+  `/dashboard/patients/[id]/contrato` abre o modelo de psicanálise JÁ preenchido (analista dos Ajustes +
+  cadastro do paciente) e EDITÁVEL na tela para completar e imprimir (padrão recibo, sem logotipo, não
+  guarda no banco). `lib/contrato.ts` puro. Verificado no /demo.
+
+**Decisões que ficam valendo:**
+- Frequência e reajuste da lista/painel vêm da AGENDA, não dos campos cacheados do cadastro (que viram
+  mentira ao mudar na agenda) — mesma razão que já valia para dia/hora.
+- Reajuste e devolutiva concentram no Dashboard; a Agenda não indica mais reajuste.
+- O aviso de choque de horário vale para qualquer agendamento, não só de outro paciente.
+
+**Armadilhas:**
+- `db:push` é a fonte do schema (não há arquivo de migração): a coluna `devolutiva_dispensada_em` foi
+  aplicada ao PROD por ALTER aditivo ANTES do merge, para o deploy não dar 500 ao selecionar a coluna.
+- #9 (sticky): `glass-card` tem `overflow-hidden` e prendia o `sticky top-0`; a correção foi tornar o
+  wrapper interno o scroller dos dois eixos (`overflow-auto max-h`), como o sticky-left da hora já exigia.
+
+**Pendente (do dono):** **#6, #17, #18** — correções do FRAGMENTADO (billing). Mexem no coração do motor
+de pacote (sessão faltada-paga ocupar a posição sem contar como efetuada; "abater do pacote"; detalhamento
+quinzenal + compensar pago a mais/menos). Pelo padrão da casa, dinheiro se corrige com os NÚMEROS EXATOS
+do dono travados em teste ANTES do código — aguardam ele confirmar os valores esperados de 1–2 exemplos.
+
+---
+
 ## 2026-10-05 — Contatar individual + sequência pela qtd na agenda (doc 20)
 
 **Entregue (PRs #250, #251):**
