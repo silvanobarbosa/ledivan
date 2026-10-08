@@ -6,6 +6,8 @@ import { formatDateTime } from "@/lib/therapy";
 import { Users as UsersIcon, CalendarCheck, Clock, ChevronRight, Video, MapPin, AlertTriangle, Percent } from "lucide-react";
 import { AnaliticosCharts } from "@/components/dashboard/AnaliticosCharts";
 import { DashboardPanels } from "@/components/dashboard/DashboardPanels";
+import { ListaReajuste } from "@/components/dashboard/ListaReajuste";
+import { diasParaReajuste } from "@/lib/reajuste";
 import { apareceHoje, mesQueVem, pacientesALembrar } from "@/lib/lembrarAgendamento";
 import { horaDeParede } from "@/lib/horaLocal";
 import { AnalyticsFilters } from "@/components/dashboard/AnalyticsFilters";
@@ -76,7 +78,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
       .from(patientPackages).innerJoin(patients, eq(patientPackages.patientId, patients.id))
       .where(and(eq(patientPackages.userId, userId), eq(patients.patientStatus, "ativo"), eq(patients.contractType, "pacote"))).groupBy(patientPackages.patientId),
     db.select({ isOnline: therapySessions.isOnline, location: therapySessions.location, status: therapySessions.status, date: therapySessions.date }).from(therapySessions).where(and(...anConds)),
-    db.select({ id: patients.id, name: patients.name, status: patients.patientStatus, prospectDate: patients.prospectDate, prospectFechou: patients.prospectFechou, paymentStatus: patients.paymentStatus, gender: patients.gender, birthDate: patients.birthDate, address: patients.address, phone: patients.phone, email: patients.email, queixaPrincipal: patients.queixaPrincipal, startedAt: patients.startedAt }).from(patients).where(eq(patients.userId, userId)),
+    db.select({ id: patients.id, name: patients.name, status: patients.patientStatus, prospectDate: patients.prospectDate, prospectFechou: patients.prospectFechou, paymentStatus: patients.paymentStatus, gender: patients.gender, birthDate: patients.birthDate, address: patients.address, phone: patients.phone, guardianPhone: patients.guardianPhone, email: patients.email, queixaPrincipal: patients.queixaPrincipal, startedAt: patients.startedAt, priceReviewDate: patients.priceReviewDate, devolutivaMeses: patients.devolutivaMeses }).from(patients).where(eq(patients.userId, userId)),
     // Consumo de pacote = fonte única DERIVADA: sessões realizadas+cobráveis por paciente.
     db.select({ pid: therapySessions.patientId, cnt: sql<number>`count(*)::int` })
       .from(therapySessions).where(and(eq(therapySessions.userId, userId), eq(therapySessions.status, "realizada"), eq(therapySessions.chargeable, true))).groupBy(therapySessions.patientId),
@@ -125,6 +127,19 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
     return { ...x, phone: p?.phone ?? null, email: p?.email ?? null };
   });
 
+  // Reajustes a vencer (doc 9, item 1): paciente ativo com data de reajuste a ≤ 30 dias (1 mês antes),
+  // incluindo os já vencidos — ficam até o valor mudar no Financeiro, quando `priceReviewDate` recua.
+  const hojeRef = new Date();
+  const reajustesLista = pats
+    .filter((p) => p.status === "ativo" && p.priceReviewDate)
+    .map((p) => {
+      const review = new Date(horaDeParede(p.priceReviewDate as unknown as string));
+      const dias = diasParaReajuste(review, hojeRef);
+      return { id: p.id, name: p.name, phone: p.phone, guardianPhone: p.guardianPhone, review: `${review.getFullYear()}-${String(review.getMonth() + 1).padStart(2, "0")}-${String(review.getDate()).padStart(2, "0")}`, dias: dias ?? 9999 };
+    })
+    .filter((p) => p.dias <= 30)
+    .sort((a, b) => a.dias - b.dias);
+
   const panelPatients = pats.map((p) => ({
     id: p.id, name: p.name, status: p.status,
     gender: p.gender, birthDate: p.birthDate ? (p.birthDate as unknown as string) : null,
@@ -169,6 +184,9 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
       </section>
 
       <DashboardPanels patients={panelPatients} presence={panelPresence} mensagemAniversario={user.birthdayMessage ?? ""} aLembrar={aLembrar} mensagemAgendamento={user.agendamentoMessage ?? ""} mostrarLembrar={apareceHoje()} corteSemana={new Date(todayStart - 6 * 24 * 60 * 60 * 1000).toISOString()} hoje={`${diaInicio.getFullYear()}-${String(diaInicio.getMonth() + 1).padStart(2, "0")}-${String(diaInicio.getDate()).padStart(2, "0")}`} />
+
+      {/* Reajustes a vencer (doc 9, item 1) — logo abaixo da área de Pagamento. */}
+      <ListaReajuste reajustes={reajustesLista} />
 
       {/* "Pacientes ativos" saiu daqui: o painel "Ativos e inativos" acima abre a mesma lista, e
           ter os dois no mesmo scroll era a mesma informação duas vezes. */}
