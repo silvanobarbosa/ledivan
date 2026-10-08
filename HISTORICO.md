@@ -7,6 +7,50 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-10-07 — Doc 9: os 3 itens de cobrança (#6, #17, #18) (#267–#268)
+
+**Entregue (PRs #267–#268):** fecha o doc 9. O dono delegou a lógica ("adote a que faz mais sentido
+com o todo"); cada decisão foi trancada em teste para ele conferir contra a realidade.
+- **#6 — "abater do pacote" / preencher desmarcada (#267):** a sessão inserida num pacote fragmentado
+  pode PREENCHER uma desmarcada do mês em vez de criar vaga nova: ocupa a posição aberta, nada
+  atravessa para o mês seguinte, total idêntico a um mês sem intercorrência. O MOTOR já fazia isso
+  desde 17/09 (reposição, `repoeSessaoId`, caso F2); o refactor da onda A (#254, item #5) tirou o
+  SELETOR da agenda. Restaurado como "Preenche uma sessão desmarcada?" no Novo atendimento (só único,
+  com pacote e desmarcadas em aberto). Dados já vinham do servidor (`patients[].desmarcadas`), validação
+  server-side intacta. Testes F6 em `fragmentacao.test.ts`.
+- **#17 — falta cobrada fica no pacote, não vira avulso (#267):** no vocabulário da casa, uma falta que
+  se cobra é "Faltou" (`nao_realizada`) — um dos dois únicos status que cobram (`STATUS_QUE_PODEM_COBRAR`,
+  decisão do dono de 16/09). Ela JÁ ocupa a posição e é cobrada DENTRO da sequência do pacote, nunca como
+  avulso. SEM mudança de motor; só regressão F17 que tranca. Marcar a falta cobrada como avulso é o erro
+  de uso que produzia o sintoma — avulso é para sessão EXTRA, fora do pacote.
+- **#18 — quinzenal (#268):** (a) "2 sessões = 130, não 65": o motor cobra preço-da-sessão × nº-de-sessões,
+  nunca metade do pacote — regressão nova em `quinzenaDoPacote.test.ts` (2×65=130). Ver 65 na tela = DADO
+  (preço cadastrado pela metade, ou sessões em quinzenas diferentes do calendário 01–15/16–fim). (b)
+  "detalhar as sessões de cada pagamento": a linha de pagamento da quinzena agora LISTA as datas que cobre
+  (`16/10, 23/10`), não só a contagem — `datasSessoes` em `geralDoPaciente.ts`, puro display. (c) "compensar
+  pago a mais/menos": JÁ existe (menos → "Diferença em aberto"/perdoada; mais → "crédito no saldo"; o +30
+  que compensa o −30 é o saldo corrente). Mantido como está, não dupliquei numa coluna nova.
+
+**Decisões que ficam valendo:**
+- Falta cobrada ⇒ marcar **Faltou**, nunca criar avulso. Avulso é só para sessão EXTRA ao pacote.
+- Sessão que tapa um buraco do mês ⇒ **Preenche a desmarcada** (reposição), não "sessão a mais" (que
+  cresce o mês e ainda puxa a travessia do mês seguinte).
+- Valor da quinzena é **preço × nº de sessões da quinzena**, jamais "metade do pacote".
+- A compensação pago-a-mais/menos é o **saldo corrente** da Geral; não há coluna "valor real pago"
+  separada — se o dono pedir ao conferir, é adição pequena.
+
+**Armadilhas:**
+- `chargeable` tem default `true` no banco e a agenda NÃO o define ao pausar (decisão do dono 16/09: a
+  agenda não pergunta "será cobrada?"). Logo "ocupa se chargeable" quebraria o "atravessa" e os testes —
+  o sinal de ocupar é o STATUS (`Faltou`) ou a reposição, nunca `chargeable`.
+- `CobrancaNaTela` ganhou campo obrigatório `datasSessoes`; quem construir o tipo precisa preenchê-lo
+  (só `geralDoPaciente.ts` constrói hoje).
+
+**Pendente:** nada do doc 9 — os 18 itens + Contratos estão no ar. Se o dono, conferindo, quiser a coluna
+"valor real pago" explícita (#18c) ou outra forma do seletor de reposição (#6), são ajustes pequenos.
+
+---
+
 ## 2026-10-07 — Doc 9: 16 itens + menu Contratos (#254–#265)
 
 **Entregue (PRs #254–#265):** 16 dos 18 itens do doc 9, em ondas, cada PR com testes + lint + build.
