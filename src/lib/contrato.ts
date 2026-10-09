@@ -16,6 +16,7 @@ export type DadosDoContrato = {
   // Paciente (cadastro)
   pacienteNome: string | null;
   pacienteNascimento: Date | null;
+  pacienteCpf: string | null;
   // Responsável (cadastro)
   responsavelNome: string | null;
   responsavelCpf: string | null;
@@ -26,13 +27,18 @@ export type DadosDoContrato = {
 
 const ou = (v: string | null | undefined, placeholder: string) => (v && String(v).trim() ? String(v).trim() : `[${placeholder}]`);
 
-function idadeEm(nasc: Date | null): string {
-  if (!nasc) return "[idade]";
+function idadeNum(nasc: Date | null): number | null {
+  if (!nasc) return null;
   const hoje = new Date();
   let anos = hoje.getFullYear() - nasc.getFullYear();
   const m = hoje.getMonth() - nasc.getMonth();
   if (m < 0 || (m === 0 && hoje.getDate() < nasc.getDate())) anos--;
-  return String(anos);
+  return anos;
+}
+
+function idadeEm(nasc: Date | null): string {
+  const n = idadeNum(nasc);
+  return n == null ? "[idade]" : String(n);
 }
 
 const dataBR = (d: Date | null) => (d ? d.toLocaleDateString("pt-BR") : "[DD/MM/AAAA]");
@@ -47,8 +53,30 @@ function reaisBR(v: string | number | null): string {
 export function montarContrato(d: DadosDoContrato): string {
   const reajusteMes = d.reajusteMeses && d.reajusteMeses > 0 ? `a cada ${d.reajusteMeses} ${d.reajusteMeses === 1 ? "mês" : "meses"}` : "[periodicidade]";
 
+  /**
+   * Preenchimento automático dos responsáveis por IDADE (doc 23):
+   * - Maior de idade (≥ 18): o próprio paciente é o Responsável 1. Se há responsável no cadastro, ele
+   *   vai para o Responsável 1 e o paciente desce para o Responsável 2. Sem responsável, o 2 fica vazio.
+   * - Menor de 18 (ou idade desconhecida): o responsável do cadastro preenche o Responsável 1.
+   * Usa só o que já está no cadastro, sem duplicar nem alterar.
+   */
+  const idade = idadeNum(d.pacienteNascimento);
+  const temResponsavel = !!(d.responsavelNome && d.responsavelNome.trim());
+  let r1Nome: string | null, r1Cpf: string | null, r2Nome: string | null, r2Cpf: string | null;
+  if (idade != null && idade >= 18) {
+    if (temResponsavel) {
+      r1Nome = d.responsavelNome; r1Cpf = d.responsavelCpf;
+      r2Nome = d.pacienteNome; r2Cpf = d.pacienteCpf;
+    } else {
+      r1Nome = d.pacienteNome; r1Cpf = d.pacienteCpf;
+      r2Nome = null; r2Cpf = null;
+    }
+  } else {
+    r1Nome = d.responsavelNome; r1Cpf = d.responsavelCpf;
+    r2Nome = null; r2Cpf = null;
+  }
+
   return `CONTRATO DE PRESTAÇÃO DE SERVIÇOS DE PSICANÁLISE
-(Atendimento Infantil / Adolescente & Enquadre Clínico)
 
 1. DAS PARTES
 
@@ -59,13 +87,13 @@ Endereço do Consultório / Plataforma: [Endereço do Consultório ou Atendiment
 Telefone / E-mail: [Seu Contato Profissional]
 
 CONTRATANTE(S) (RESPONSÁVEIS LEGAIS):
-Nome do Responsável 1: ${ou(d.responsavelNome, "Nome Completo do Responsável")} — CPF: ${ou(d.responsavelCpf, "CPF")}
-Nome do Responsável 2: [Nome Completo do Responsável] — CPF: [CPF]
+Nome do Responsável 1: ${ou(r1Nome, "Nome Completo do Responsável")} — CPF: ${ou(r1Cpf, "CPF")}
+Nome do Responsável 2: ${ou(r2Nome, "Nome Completo do Responsável")} — CPF: ${ou(r2Cpf, "CPF")}
 Endereço: [Endereço Residencial Completo]
 Telefone / E-mail de Contato: [Telefone de Contato]
 
 PACIENTE (BENEFICIÁRIO):
-Nome da Criança / Adolescente: ${ou(d.pacienteNome, "Nome do Paciente")}
+Nome: ${ou(d.pacienteNome, "Nome do Paciente")}
 Data de Nascimento: ${dataBR(d.pacienteNascimento)} — Idade: ${idadeEm(d.pacienteNascimento)} anos
 
 2. DO OBJETO DO CONTRATO
@@ -114,9 +142,9 @@ ${ou(d.analistaNome, "NOME DA ANALISTA")} — Analista / Prestadora de Serviços
 
 
 _______________________________________
-${ou(d.responsavelNome, "NOME DO RESPONSÁVEL 1")} — Contratante / Responsável Legal
+${ou(r1Nome, "NOME DO RESPONSÁVEL 1")} — Contratante / Responsável Legal
 
 
 _______________________________________
-[NOME DO RESPONSÁVEL 2 (OPCIONAL)] — Contratante / Responsável Legal`;
+${ou(r2Nome, "NOME DO RESPONSÁVEL 2 (OPCIONAL)")} — Contratante / Responsável Legal`;
 }

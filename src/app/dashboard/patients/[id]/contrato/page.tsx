@@ -24,6 +24,7 @@ export default async function Contrato({ params }: { params: Promise<{ id: strin
     .select({
       name: patients.name,
       birthDate: patients.birthDate,
+      cpf: patients.cpf,
       guardianName: patients.guardianName,
       guardianCpf: patients.guardianCpf,
       sessionFee: patients.sessionFee,
@@ -42,6 +43,7 @@ export default async function Contrato({ params }: { params: Promise<{ id: strin
     descricaoAtendimento: prof?.descricaoAtendimento ?? null,
     pacienteNome: paciente.name,
     pacienteNascimento: paciente.birthDate ? new Date(horaDeParede(paciente.birthDate)) : null,
+    pacienteCpf: paciente.cpf,
     responsavelNome: paciente.guardianName,
     responsavelCpf: paciente.guardianCpf,
     valorSessao: paciente.sessionFee,

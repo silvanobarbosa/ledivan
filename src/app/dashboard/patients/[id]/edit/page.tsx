@@ -49,6 +49,7 @@ export default async function EditPatientPage({ params, searchParams }: { params
     descricaoAtendimento: prof?.descricaoAtendimento ?? null,
     pacienteNome: patient.name,
     pacienteNascimento: patient.birthDate ? new Date(horaDeParede(patient.birthDate)) : null,
+    pacienteCpf: patient.cpf,
     responsavelNome: patient.guardianName,
     responsavelCpf: patient.guardianCpf,
     valorSessao: patient.sessionFee,
