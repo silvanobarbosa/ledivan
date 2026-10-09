@@ -519,3 +519,40 @@ describe("pagamento parcial e quitar diferença (doc 17)", () => {
     expect(r.saldo).toBe(40);
   });
 });
+
+/**
+ * #34 (doc 21) — pagamento parcial: a cobrança acumula VÁRIOS lançamentos, cada um com seu valor e
+ * data, sem substituir o anterior; a diferença é recalculada a cada pagamento; quando a soma fecha o
+ * total, deixa de faltar. É o que a guia Geral mostra: "R$ 100,00 em 10/10", "+ R$ 150,00 em 15/10"…
+ */
+describe("#34 pagamento parcial — vários lançamentos na mesma cobrança", () => {
+  const sessoes = [terca(1), terca(8), terca(15), terca(22)]; // mensal completo = R$ 520
+  const linhaPg = (pagamentos: EntradaDaGeral["pagamentos"]) =>
+    geral("mensal", sessoes, { pagamentos }).find((l) => l.tipo === "pagamento") as Extract<LinhaDaGeral, { tipo: "pagamento" }>;
+  const chave = (linhaPg([]) as unknown as { chave: string }).chave;
+  const pg = (id: string, valor: number, dia: number) =>
+    ({ id, valor, data: new Date(2026, 8, dia), status: "paid", metodo: "pix", pagoPor: "Mãe", cobrancaChave: chave });
+
+  it("um pagamento parcial: valorPago = o pago, falta = o resto, não quita", () => {
+    const c = linhaPg([pg("p1", 100, 10)]);
+    expect(c.valorPago).toBe(100);
+    expect(c.falta).toBe(420);
+    expect(c.situacao).not.toBe("pago");
+    expect(c.pagamentos.map((p) => p.valor)).toEqual([100]);
+  });
+
+  it("vários lançamentos acumulam sem substituir; a diferença recalcula", () => {
+    const c = linhaPg([pg("p1", 100, 10), pg("p2", 150, 15)]);
+    expect(c.valorPago).toBe(250);
+    expect(c.falta).toBe(270);
+    expect(c.pagamentos.map((p) => [p.valor, p.data.getDate()])).toEqual([[100, 10], [150, 15]]);
+  });
+
+  it("quando a soma fecha o total, quita: falta = 0, pago, os três lançamentos ficam", () => {
+    const c = linhaPg([pg("p1", 100, 10), pg("p2", 150, 15), pg("p3", 270, 20)]);
+    expect(c.valorPago).toBe(520);
+    expect(c.falta).toBe(0);
+    expect(c.situacao).toBe("pago");
+    expect(c.pagamentos.map((p) => p.valor)).toEqual([100, 150, 270]);
+  });
+});
