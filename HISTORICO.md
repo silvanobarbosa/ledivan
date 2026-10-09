@@ -7,6 +7,29 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-10-09 — Doc 24: quinzenal respeita AS DUAS datas de vencimento (#288)
+
+**Entregue (PR #288):** no quinzenal com dois dias de pagamento configurados (ex.: dia 10 e dia
+20), cada quinzena passa a vencer na SUA data — a 1ª no 1º dia, a 2ª no 2º —, no mês da primeira
+sessão daquela quinzena. Antes o motor olhava só a primeira data e repetia nos dois grupos.
+
+**Por quê:** o dono viu os vencimentos caírem todos no mesmo dia; o cálculo ignorava a 2ª data.
+
+**Decisões que ficam valendo:**
+- Quinzena 1 → `diaPagamento`; quinzena 2 → `diaPagamento2` (cai no `diaPagamento` se o 2º não
+  estiver preenchido). Vencimento = esse dia no mês da 1ª sessão da quinzena, **mesmo que já tenha
+  passado** no mês (não pula para o mês seguinte).
+- Isto **SUBSTITUI** a regra de 18/09 ("não vencer antes da 1ª sessão"): o dono escolheu dia 10/dia
+  20 fixos mesmo que a 2ª quinzena venha a vencer alguns dias antes das sessões dela.
+
+**Armadilhas:** a regra de 18/09 estava codificada em 5 testes (quinzenaDoPacote, cobrancas, 2×
+primeiroVencimento) + na função `proximoDiaDePagamento` — todos reescritos/removidos. `diaDoMes`
+não pula mês.
+
+**Pendente:** nada do doc 24.
+
+---
+
 ## 2026-10-09 — Doc 23: ⓘ sem caixa-alta + contrato (título, responsáveis por idade, negrito) (#285–#286)
 
 **Entregue (PRs #285–#286):**
