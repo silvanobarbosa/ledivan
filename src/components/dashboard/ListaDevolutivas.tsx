@@ -60,7 +60,6 @@ export function ListaDevolutivas({ devolutivas }: { devolutivas: DevolutivaLinha
         <InfoTip text="Visualize os pacientes que precisam agendar a devolutiva nos próximos 7 dias. Ao clicar em Agendar, o sistema abrirá o WhatsApp para que você entre em contato com o paciente. Essa ação não realiza o agendamento automaticamente. Após combinar e registrar o agendamento manualmente na agenda, clique no ícone de confirmação (✓) para retirar o paciente desta lista." />
 
       </h3>
-      <p className="text-xs text-foreground/50">Aparece 7 dias antes. “Agendar” abre o WhatsApp (não marca na agenda); ✓ resolve este ciclo.</p>
 
       {vazio && (
         <p className="text-sm text-foreground/45 py-2">Nenhuma devolutiva prevista no momento.</p>

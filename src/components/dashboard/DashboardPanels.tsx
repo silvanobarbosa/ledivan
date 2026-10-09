@@ -305,7 +305,7 @@ function Aniversariantes({ patients, modeloSalvo, hoje }: { patients: PanelPatie
       {avisoAniv && <p className="text-xs font-semibold text-[#b45309]">{avisoAniv}</p>}
 
       <div className="space-y-1.5 border-t border-border pt-3">
-        <span className={`${lbl} inline-flex items-center`}>
+        <span className="text-sm font-semibold text-foreground/60 inline-flex items-center">
           Mensagem
           <InfoTip text="Digite a mensagem que será enviada para parabenizar o paciente e clique em Parabenizar. A mensagem vai pelo WhatsApp do paciente. Para personalizar com o nome, utilize {nome} — o sistema substitui pelo primeiro nome. Se estiver em branco, ao clicar em Parabenizar o WhatsApp abre com o campo vazio." />
         </span>

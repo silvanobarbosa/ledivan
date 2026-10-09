@@ -153,7 +153,7 @@ export function ListaProspects({ prospects, contatos }: { prospects: ProspectLin
 
       {/* Filtros — ficam logo abaixo do botão de adicionar, conforme pedido */}
       <div className="glass-card rounded-[24px] p-5 flex gap-3 flex-wrap items-end">
-        <div className="w-full inline-flex items-center text-xs font-bold text-foreground/50 uppercase tracking-wide">
+        <div className="w-full inline-flex items-center text-sm font-semibold text-foreground/60">
           Filtrar
           <InfoTip text="Filtre a lista abaixo por período de procura, idade, sexo ou telefone." />
         </div>
@@ -190,7 +190,7 @@ export function ListaProspects({ prospects, contatos }: { prospects: ProspectLin
         </p>
       ) : (
         <div className="space-y-3">
-          <div className="inline-flex items-center text-xs font-bold text-foreground/50 uppercase tracking-wide">
+          <div className="inline-flex items-center text-sm font-semibold text-foreground/60">
             Prospectados
             <InfoTip text="Clique no ícone › para ver os detalhes da prospecção e atualizar os contatos, ou em Contatar para enviar uma mensagem. Para enviar uma única mensagem a todos, use o campo Mensagem abaixo." />
           </div>
