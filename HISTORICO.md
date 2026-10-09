@@ -7,6 +7,30 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-10-09 — Doc 23: ⓘ sem caixa-alta + contrato (título, responsáveis por idade, negrito) (#285–#286)
+
+**Entregue (PRs #285–#286):**
+- **Onda 1 (#285):** labels ao lado dos ⓘ padronizados na fonte do "Novo prospectado"
+  (`text-sm font-semibold`), **sem caixa-alta** — "Mensagem" (reajuste e aniversariantes), "Filtrar" e
+  "Prospectados". Removido o subtítulo "Aparece 7 dias antes…" das devolutivas (o ⓘ já traz).
+- **Onda 2 (#286):** CONTRATO —
+  - Título só "CONTRATO DE PRESTAÇÃO DE SERVIÇOS DE PSICANÁLISE" (saiu a linha de infantil/adolescente).
+  - Bloco do paciente: "Nome:" (era "Nome da Criança / Adolescente:").
+  - **Responsáveis por IDADE** (preenchimento automático do cadastro, sem duplicar): ≥ 18 **sem**
+    responsável → o paciente é o Responsável 1, o 2 vazio; ≥ 18 **com** responsável → responsável no 1,
+    paciente no 2; < 18 (ou idade desconhecida) → responsável do cadastro no Responsável 1.
+  - **Campos manuais em negrito**: o que está `[entre colchetes]` sai em `<strong>` no ContratoImpresso
+    (contentEditable → digitar por cima herda o negrito).
+
+**Decisões que ficam valendo:**
+- Label ao lado de ⓘ = fonte do "Novo prospectado", nunca em caixa-alta.
+- Contrato: o paciente MAIOR de idade sem responsável é o próprio contratante (Responsável 1).
+- `DadosDoContrato` tem `pacienteCpf` (as 2 telas que montam o contrato passam `patients.cpf`).
+
+**Pendente:** nada do doc 23.
+
+---
+
 ## 2026-10-09 — #34(e): diferença do pacote encerrado rola para a próxima cobrança (#283)
 
 **Entregue (PR #283):** fecha o último item do doc 21 (pág 10-11), com o gatilho que o dono
