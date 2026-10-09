@@ -186,8 +186,11 @@ function Secao({ show, save, children }: { show: string; save?: SaveAction; chil
   );
 }
 
-export function PatientFormFields({ p, save, tabInicial }: { p?: PatientFormData; save?: SaveAction; tabInicial?: string }) {
+export function PatientFormFields({ p, save, tabInicial, contrato }: { p?: PatientFormData; save?: SaveAction; tabInicial?: string; contrato?: ReactNode }) {
   const [tab, setTab] = useState(tabInicial || "dados");
+  // Doc 22: no Editar paciente, uma aba "Contrato" ao lado de "Financeiro" mostra o mesmo contrato
+  // do menu Contratos (montado no servidor e passado pronto). Só aparece quando há contrato (edição).
+  const tabs = contrato ? [...TABS, { k: "contrato", label: "Contrato" }] : TABS;
   // Formato antigo "avulso" e o "a cada sessao" do dono; "pacote" virou mensal com pacote.
   // primeira/última do pacote deixaram de ser modalidades próprias (prints 6.pdf, item 20): viram
   // OPÇÕES de "quando cobrar" dentro do Mensal pacote completo. No radio elas aparecem como "mensal".
@@ -396,7 +399,7 @@ export function PatientFormFields({ p, save, tabInicial }: { p?: PatientFormData
     <div className="space-y-5">
       {/* Submenu horizontal */}
       <div className="flex gap-2 bg-white/50 p-1.5 rounded-2xl w-fit overflow-x-auto no-scrollbar">
-        {TABS.map((t) => (
+        {tabs.map((t) => (
           <button key={t.k} type="button" onClick={() => setTab(t.k)}
             className={`px-5 py-2.5 rounded-xl text-sm font-bold whitespace-nowrap transition ${tab === t.k ? "bg-primary text-white shadow" : "text-foreground/60 hover:bg-white"}`}>
             {t.label}
@@ -593,6 +596,10 @@ export function PatientFormFields({ p, save, tabInicial }: { p?: PatientFormData
         </Card>
         </div>
       </Secao>
+
+      {/* Doc 22: a aba Contrato — o contrato do paciente, igual ao do menu Contratos. Fica FORA de
+          <form>: é para ler/editar na tela e imprimir, não para enviar junto com o cadastro. */}
+      {contrato && <div className={show("contrato")}>{contrato}</div>}
 
     </div>
   );
