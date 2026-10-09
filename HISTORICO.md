@@ -7,6 +7,32 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-10-09 — #34(e): diferença do pacote encerrado rola para a próxima cobrança (#283)
+
+**Entregue (PR #283):** fecha o último item do doc 21 (pág 10-11), com o gatilho que o dono
+confirmou. Pacote ENCERRADO (última sessão já passou) e pago PARCIALMENTE → a diferença em aberto
+soma à próxima cobrança do pacote (400, pago 250 → próximo 400 + 150 = **550**).
+
+**Decisões que ficam valendo:**
+- Gatilho = **última sessão do pacote < hoje** (encerramento efetivo). Antes disso a diferença fica
+  na própria cobrança.
+- Só **pacote pago PARCIALMENTE** rola (recebeu algo, mas não o total). Pacote sem nenhum pagamento
+  continua em atraso na própria cobrança; avulso/a-cada-sessão não participam. ("Diferença", não
+  "cobrança inteira".)
+- O carry é **derivado** (recalculado em `casarPagamentos` a cada leitura) — não grava nada, então
+  nunca duplica ao atualizar telas. Campos novos em `CobrancaDaGeral`: `valorBase`, `arrastoRecebido`,
+  `transferido`; `valor` passa a ser o efetivo (base + arrasto).
+- **Saldo não duplica:** a cobrança que transferiu tem `valorDevido` reduzido pelo transferido; a que
+  recebeu, aumentado. Total igual (a dívida muda de linha). Financeiro e saldo usam o mesmo motor.
+
+**Armadilhas:**
+- Primeira tentativa rolava a cobrança INTEIRA de pacotes não pagos e até avulsos — quebrou 8 testes.
+  A trava é `ehPacote && receb > 0 && falta > 0` (pagamento PARCIAL de pacote).
+
+**Pendente:** nada do doc 21/22.
+
+---
+
 ## 2026-10-09 — Doc 22: ajustes do doc 21/doc 9 + aba Contrato (#277–#281)
 
 **Entregue (PRs #277–#281):** feedback de iteração do dono sobre o doc 21/doc 9 (ele testou e
@@ -36,7 +62,7 @@ mandou correções) + duas features novas. 5 ondas, cada PR com gate verde.
 - O PR do HISTORICO do doc 21 (#276) tinha ficado SEM mergear (a entrada vivia só na branch
   `doc21-historico`); recuperada por cherry-pick de `becb7c0`. Conferir que o PR do diário mergeou.
 
-**Pendente:** **#34(e)** do doc 21 segue aguardando o dono (gatilho do carry da diferença).
+**Pendente:** nada — o **#34(e)** foi entregue depois (#283), ver a entrada acima.
 
 ---
 
