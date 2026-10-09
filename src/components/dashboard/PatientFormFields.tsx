@@ -108,7 +108,7 @@ function QueixaSelect({ name, defaultValue }: { name: string; defaultValue?: str
   return (
     <>
       <div>
-        <label className={labelCls}>Queixa principal<InfoTip text="Demanda/queixa principal. Usada nos filtros do painel. Se não estiver na lista, escolha 'Outro'." /></label>
+        <label className={labelCls}>Queixa principal</label>
         <select value={q} onChange={(e) => setQ(e.target.value)} name={q === "Outro" ? undefined : name} className={inputCls}>
           <option value="">—</option>
           {QUEIXAS.map((x) => <option key={x} value={x}>{x}</option>)}
@@ -202,6 +202,11 @@ export function PatientFormFields({ p, save, tabInicial }: { p?: PatientFormData
   // Salvar Dados ≠ Salvar Financeiro (doc 17): no 1º cadastro, se o usuário não mexer no Financeiro,
   // nada financeiro é criado. Em paciente já existente (p) o financeiro já existe, então vale true.
   const [financeiroTocado, setFinanceiroTocado] = useState(!!p);
+  // Doc 21: "Vale a partir de" deve aparecer quando QUALQUER campo do Financeiro muda (valor da
+  // sessão, quantidade de sessões, pacote, vencimento, reajuste), não só quando o formato muda.
+  // Começa SEMPRE falso (diferente de `financeiroTocado`, que nasce true para paciente já salvo):
+  // aqui o que importa é se o usuário MEXEU em algo nesta edição.
+  const [financeiroAlterado, setFinanceiroAlterado] = useState(false);
   // Hoje no fuso de quem preenche, no formato do <input type="date">.
   const hojeISO = (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; })();
   const [pacote, setPacote] = useState(p?.pacoteTipo || "completo");
@@ -244,7 +249,7 @@ export function PatientFormFields({ p, save, tabInicial }: { p?: PatientFormData
   const proximoReajuste = (
     <NumeroCom
       name="validadePrecoMeses" label="Próximo reajuste em" unidade="meses" max={60}
-      dica="A cada quantos meses o valor deve ser revisto. A conta começa no início do tratamento — ou na data do RETORNO, se o paciente parou e voltou."
+      dica="Daqui a quantos meses deseja ser lembrado de realizar o reajuste? O sistema exibirá o lembrete no dashboard um mês antes da data prevista para o reajuste."
       defaultValue={p?.validadePrecoMeses} placeholder="ex: 12"
     />
   );
@@ -281,7 +286,7 @@ export function PatientFormFields({ p, save, tabInicial }: { p?: PatientFormData
   // "Vale a partir de" passou a morar DENTRO da modalidade (doc 16): aparece só quando a troca de
   // formato de um paciente já cadastrado muda o que vale (edição), em cada modalidade (incl. Gratuito).
   const formatoSalvoReal = ehTimingDePacote(p?.paymentFormat) ? p!.paymentFormat! : formatoInicial;
-  const mostraVigencia = !!p && formatoEfetivo !== formatoSalvoReal;
+  const mostraVigencia = !!p && (formatoEfetivo !== formatoSalvoReal || financeiroAlterado);
   const blocoValeAPartir = mostraVigencia ? (
     <div className="rounded-2xl border border-primary/30 bg-primary/5 px-4 py-3 space-y-2">
       <label className={labelCls} htmlFor="formatoDesde">Vale a partir de</label>
@@ -325,7 +330,7 @@ export function PatientFormFields({ p, save, tabInicial }: { p?: PatientFormData
           {valorDaSessao}
           <NumeroCom
             name="horasAntesPagamento" label="Pagar até" unidade="horas antes" max={168}
-            dica="Quantas horas ANTES do atendimento o pagamento deve estar feito. É o gatilho do aviso ao paciente."
+            dica="Informe com quantas horas de antecedência o pagamento deverá ser realizado para não ser considerado em atraso."
             defaultValue={p?.horasAntesPagamento} placeholder="ex: 24"
           />
         </div>
@@ -476,7 +481,7 @@ export function PatientFormFields({ p, save, tabInicial }: { p?: PatientFormData
         {!casal && (
           <>
             <Card title="Dados do responsável">
-              <p className="text-xs text-foreground/50 -mt-1">Para menores ou pacientes sob responsabilidade de terceiro.</p>
+              <p className="text-xs text-foreground/50 -mt-1">Para menores de idade, pacientes sob responsabilidade de terceiros ou como responsável financeiro.</p>
               <div className="grid sm:grid-cols-2 gap-4">
                 <div><label className={labelCls}>Nome do responsável</label><input name="guardianName" defaultValue={p?.guardianName ?? ""} className={inputCls} placeholder="Nome completo" /></div>
                 <div><label className={labelCls}>CPF do responsável</label><input name="guardianCpf" defaultValue={p?.guardianCpf ?? ""} className={inputCls} placeholder="000.000.000-00" /></div>
@@ -502,7 +507,7 @@ export function PatientFormFields({ p, save, tabInicial }: { p?: PatientFormData
           <div className="sm:max-w-sm">
             <NumeroCom
               name="devolutivaMeses" label="Devolutiva a cada" unidade="meses" max={24}
-              dica="A cada quantos meses fazer a devolutiva, contados da PRIMEIRA sessão. Em branco = não combinada."
+              dica="Defina a quantidade de meses para o lembrete da devolutiva. Se não preenchido, nenhum lembrete será gerado. O primeiro prazo será contado a partir do primeiro agendamento e, depois, a partir da data da última devolutiva."
               defaultValue={p?.devolutivaMeses} placeholder="ex: 6"
             />
           </div>
@@ -522,7 +527,7 @@ export function PatientFormFields({ p, save, tabInicial }: { p?: PatientFormData
       <Secao show={show("financeiro")} save={save}>
         {/* Qualquer mexida aqui marca o Financeiro como "tocado" (doc 17): no 1º cadastro, sem isso,
             nada financeiro é criado ao salvar só os Dados. */}
-        <div onChange={() => { if (!financeiroTocado) setFinanceiroTocado(true); }}>
+        <div onChange={() => { if (!financeiroTocado) setFinanceiroTocado(true); if (!financeiroAlterado) setFinanceiroAlterado(true); }}>
         <input type="hidden" name="financeiroTocado" value={financeiroTocado ? "1" : "0"} />
         <Card title="Financeiro">
           <div>
@@ -589,7 +594,6 @@ export function PatientFormFields({ p, save, tabInicial }: { p?: PatientFormData
         </div>
       </Secao>
 
-      <p className="text-xs text-foreground/50 px-1">💡 Etiquetas e observações ficam no <strong>Prontuário</strong> do paciente.</p>
     </div>
   );
 }
