@@ -56,17 +56,19 @@ const resumo = (cs: ReturnType<typeof cobrar>) =>
   });
 
 describe("pacote completo — o pacote de quatro vira 2 + 2", () => {
-  it("cada pagamento cobre duas sessões, no valor das duas", () => {
+  it("cada pagamento cobre duas sessões; 1ª quinzena no dia 10, 2ª no dia 20 do mês (doc 24)", () => {
     expect(resumo(cobrar("completo"))).toEqual([
-      "20/10 · 2 · 200", // 16/10 e 23/10
-      "10/11 · 2 · 200", // 30/10 e 06/11
-      "20/11 · 2 · 200", // 13/11 e 20/11
-      "10/12 · 2 · 200", // 27/11 e 04/12
+      "10/10 · 2 · 200", // 16/10 e 23/10 — 1ª quinzena do pacote → dia 10
+      "20/10 · 2 · 200", // 30/10 e 06/11 — 2ª quinzena → dia 20
+      "10/11 · 2 · 200", // 13/11 e 20/11 — 1ª quinzena do 2º pacote → dia 10
+      "20/11 · 2 · 200", // 27/11 e 04/12 — 2ª quinzena → dia 20
     ]);
   });
 
-  it("o primeiro vence em 20/10, não em 10/10 — a pessoa ainda não era paciente no dia 10", () => {
-    expect(resumo(cobrar("completo"))[0].startsWith("20/10")).toBe(true);
+  it("doc 24: as DUAS datas aparecem — 1ª quinzena no dia 10, 2ª no dia 20 (não só o dia 10)", () => {
+    const r = resumo(cobrar("completo"));
+    expect(r[0].startsWith("10/10")).toBe(true);
+    expect(r[1].startsWith("20/10")).toBe(true);
   });
 
   it("cada cobrança carrega as sessões dela, sem repetir nenhuma", () => {
@@ -93,7 +95,7 @@ describe("pacote fracionado — a quinzena do calendário, como em #192", () => 
   });
 });
 
-describe("o vencimento é o próximo dia combinado a partir da primeira sessão do grupo", () => {
+describe("cada quinzena vence na SUA data (dia 10 / dia 20), no mês da sessão (doc 24)", () => {
   const venceEm = (dias: { diaPagamento: number; diaPagamento2?: number }, sessoes: SessaoDaCobranca[]) =>
     cobrancasDoPaciente({
       vigencias: [],
@@ -105,20 +107,20 @@ describe("o vencimento é o próximo dia combinado a partir da primeira sessão 
       sessoes,
     }).map((c) => `${String(c.vencimento!.getDate()).padStart(2, "0")}/${String(c.vencimento!.getMonth() + 1).padStart(2, "0")}`);
 
-  it("sessão no dia do vencimento vence no MESMO dia", () => {
-    // Primeira sessão em 20/11: o dia 20 conta, não empurra para dezembro.
-    const ss = [sessao(20, 10), sessao(27, 10)];
-    expect(venceEm({ diaPagamento: 10, diaPagamento2: 20 }, ss)[0]).toBe("20/11");
+  it("1ª quinzena usa o dia 10; 2ª quinzena usa o dia 20 — no mês da primeira sessão de cada uma", () => {
+    const ss = [sessao(20, 10), sessao(27, 10)]; // 20/11 e 27/11, no mesmo pacote (2+2 → 1+1)
+    expect(venceEm({ diaPagamento: 10, diaPagamento2: 20 }, ss)).toEqual(["10/11", "20/11"]);
   });
 
-  it("passando dos dois dias, vai para o primeiro do mês seguinte", () => {
-    const ss = [sessao(27, 10), sessao(4, 11)];
-    expect(venceEm({ diaPagamento: 10, diaPagamento2: 20 }, ss)[0]).toBe("10/12");
+  it("a 2ª quinzena fica no dia 20 do mês dela mesmo que as sessões sejam depois do dia 20", () => {
+    // Foto do doc 24: 2ª quinzena começa em 24/10 (depois do dia 20) → vence 20/10, não 10/11.
+    const ss = [sessao(10, 9), sessao(17, 9), sessao(24, 9), sessao(31, 9)]; // out 10,17,24,31
+    expect(venceEm({ diaPagamento: 10, diaPagamento2: 20 }, ss)).toEqual(["10/10", "20/10"]);
   });
 
-  it("com um dia só combinado, é sempre ele", () => {
-    const ss = [sessao(16, 9), sessao(23, 9)];
-    expect(venceEm({ diaPagamento: 5 }, ss)[0]).toBe("05/11");
+  it("com um dia só combinado, as duas quinzenas caem nele (no mês de cada uma)", () => {
+    const ss = [sessao(16, 9), sessao(23, 9)]; // 16/10 e 23/10
+    expect(venceEm({ diaPagamento: 5 }, ss)).toEqual(["05/10", "05/10"]);
   });
 });
 

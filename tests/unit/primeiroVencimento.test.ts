@@ -70,20 +70,20 @@ describe("mensal", () => {
 
 describe("quinzenal", () => {
   /**
-   * No quinzenal a regra do primeiro vencimento virou um caso particular de outra, maior (dona,
-   * 18/09): cada pagamento vence no PROXIMO dia combinado a partir da primeira sessao dele. Como
-   * esse dia nunca e anterior a sessao, a cobranca nunca nasce em atraso — de graca.
+   * Doc 24 (dono, 09/10): cada quinzena vence na SUA data — 1ª quinzena no 1º dia combinado, 2ª no
+   * 2º —, no mês da primeira sessão da quinzena. As duas datas são respeitadas desde a geração. Isto
+   * SUBSTITUIU a regra de 18/09 (não vencer antes da sessão): o dono aceitou dia 10/dia 20 do mês
+   * mesmo que a 2ª quinzena venha a vencer alguns dias antes das sessões dela.
    */
-  it("nenhum pagamento vence antes da primeira sessão que ele cobre", () => {
+  it("1ª quinzena no dia 10, 2ª no dia 20, no mês de cada uma", () => {
     const c = cobrar("quinzenal", [sessao(18), sessao(25)], { diaPagamento: 10, diaPagamento2: 20 });
-    // 18/09 -> proximo dos dias {10,20} e 20/09;  25/09 -> 10/10.
-    expect(vencimentos(c)).toEqual(["20/09", "10/10"]);
+    expect(vencimentos(c)).toEqual(["10/09", "20/09"]);
   });
 
-  it("o dia combinado que ja passou nao e usado: vai para o proximo", () => {
-    // Comeca 12/09 e o dia 10 ja passou. [12,19] vence 20/09; [26] vence 10/10.
+  it("a data da quinzena vale mesmo que já tenha passado no mês — não pula para o dia seguinte", () => {
+    // [12,19] = 1ª quinzena -> dia 10 -> 10/09; [26] = 2ª quinzena -> dia 20 -> 20/09.
     const c = cobrar("quinzenal", [sessao(12), sessao(19), sessao(26)], { diaPagamento: 10, diaPagamento2: 20 });
-    expect(vencimentos(c)).toEqual(["20/09", "10/10"]);
+    expect(vencimentos(c)).toEqual(["10/09", "20/09"]);
   });
 });
 
