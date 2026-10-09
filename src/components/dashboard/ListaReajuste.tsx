@@ -29,7 +29,7 @@ export function ListaReajuste({ reajustes }: { reajustes: ReajusteLinha[] }) {
   const [mensagem, setMensagem] = useState("");
   const [aviso, setAviso] = useState<string | null>(null);
 
-  if (reajustes.length === 0) return null;
+  const vazio = reajustes.length === 0;
 
   function lembrar(r: ReajusteLinha) {
     const num = numeroDoWhatsapp(r.guardianPhone) ?? numeroDoWhatsapp(r.phone);
@@ -46,9 +46,12 @@ export function ListaReajuste({ reajustes }: { reajustes: ReajusteLinha[] }) {
     <section className="glass-card rounded-[24px] p-5 space-y-3">
       <h3 className="text-lg font-display font-bold text-primary flex items-center gap-2">
         <TrendingUp className="w-5 h-5" /> Reajustes a vencer
-        <InfoTip text="Visualize os pacientes que estão com reajuste previsto para os próximos 30 dias. Após atualizar o valor no cadastro do paciente, ele será removido automaticamente desta lista. Este recurso também funciona pelo celular." />
+        <InfoTip text="Visualize os pacientes que estão com reajuste previsto para os próximos 30 dias. Após atualizar o valor no cadastro do paciente, ele será removido automaticamente desta lista." />
       </h3>
 
+      {vazio && <p className="text-sm text-foreground/45 py-2">Nenhum reajuste previsto no momento.</p>}
+
+      {!vazio && (
       <ul className="divide-y divide-border">
         {reajustes.map((r) => (
           <li key={r.id} className="py-2 flex items-center gap-3 flex-wrap">
@@ -61,7 +64,9 @@ export function ListaReajuste({ reajustes }: { reajustes: ReajusteLinha[] }) {
           </li>
         ))}
       </ul>
+      )}
 
+      {!vazio && (
       <div className="space-y-1">
         <label className="text-xs font-bold text-foreground/50 uppercase tracking-wide inline-flex items-center">
           Mensagem
@@ -71,6 +76,7 @@ export function ListaReajuste({ reajustes }: { reajustes: ReajusteLinha[] }) {
           rows={3} placeholder="Olá! Passando para avisar sobre o reajuste… (use {nome} para o nome do paciente)"
           className="w-full px-3 py-2 rounded-xl bg-surface border border-border outline-none text-sm" />
       </div>
+      )}
 
       {aviso && <p className="text-xs font-semibold text-[#b45309]">{aviso}</p>}
     </section>

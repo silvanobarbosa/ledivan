@@ -124,7 +124,7 @@ export function ListaProspects({ prospects, contatos }: { prospects: ProspectLin
       <form action={createProspect} className="glass-card rounded-[24px] p-5 space-y-3">
         <div className="flex items-center gap-2 text-primary font-semibold text-sm">
           <UserPlus className="w-4 h-4" /> Novo prospectado
-          <InfoTip text="Aqui você cadastra as pessoas que entraram em contato com você. Este recurso também funciona pelo celular." />
+          <InfoTip text="Aqui você cadastra as pessoas que entraram em contato com você." />
         </div>
         <div className="grid sm:grid-cols-3 gap-3">
           <div><span className={lbl}>Data do contato</span><input name="prospectDate" type="date" className={inputCls} /></div>
@@ -155,7 +155,7 @@ export function ListaProspects({ prospects, contatos }: { prospects: ProspectLin
       <div className="glass-card rounded-[24px] p-5 flex gap-3 flex-wrap items-end">
         <div className="w-full inline-flex items-center text-xs font-bold text-foreground/50 uppercase tracking-wide">
           Filtrar
-          <InfoTip text="Filtre a lista abaixo por período de procura, idade, sexo ou telefone. Este recurso também funciona pelo celular." />
+          <InfoTip text="Filtre a lista abaixo por período de procura, idade, sexo ou telefone." />
         </div>
         <div><span className={lbl}>Contato de</span><input type="date" value={de} onChange={(e) => setDe(e.target.value)} className={inputCls} /></div>
         <div><span className={lbl}>até</span><input type="date" value={ate} onChange={(e) => setAte(e.target.value)} className={inputCls} /></div>
@@ -192,7 +192,7 @@ export function ListaProspects({ prospects, contatos }: { prospects: ProspectLin
         <div className="space-y-3">
           <div className="inline-flex items-center text-xs font-bold text-foreground/50 uppercase tracking-wide">
             Prospectados
-            <InfoTip text="Clique no ícone › para ver os detalhes da prospecção e atualizar os contatos, ou em Contatar para enviar uma mensagem. Para enviar uma única mensagem a todos, use o campo Mensagem abaixo. Este recurso também funciona pelo celular." />
+            <InfoTip text="Clique no ícone › para ver os detalhes da prospecção e atualizar os contatos, ou em Contatar para enviar uma mensagem. Para enviar uma única mensagem a todos, use o campo Mensagem abaixo." />
           </div>
           {filtrados.map((p) => {
             const lista = porProspect.get(p.id) ?? [];
@@ -260,7 +260,7 @@ export function ListaProspects({ prospects, contatos }: { prospects: ProspectLin
                     {contatosAbertos ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
                     {lista.length} contato(s)
                   </button>
-                  <InfoTip text="Clique em › Contato(s) para registrar novos contatos e em Converter para retirar o prospectado da lista e adicioná-lo à lista de pacientes. Este recurso também funciona pelo celular." />
+                  <InfoTip text="Clique em › Contato(s) para registrar novos contatos e em Converter para retirar o prospectado da lista e adicioná-lo à lista de pacientes." />
                   <div className="ml-auto flex gap-2">
                     <form action={async () => { await convertProspect(p.id); }}>
                       <button className="inline-flex items-center gap-1.5 bg-primary text-white text-sm px-4 py-2 rounded-xl font-semibold">Converter <ArrowRight className="w-4 h-4" /></button>
@@ -310,7 +310,7 @@ export function ListaProspects({ prospects, contatos }: { prospects: ProspectLin
         <div className="glass-card rounded-[24px] p-5 space-y-3">
           <h3 className="font-semibold text-sm text-primary inline-flex items-center">
             Mensagem
-            <InfoTip text="Digite a mensagem e clique em Contatar ao lado do prospectado. A mensagem vai pelo WhatsApp do prospectado e fica registrada no histórico de contatos. Para personalizar com o nome, utilize {nome} — o sistema substitui pelo primeiro nome. Se a mensagem estiver em branco, ao clicar em Contatar o WhatsApp abre com o campo vazio. Este recurso também funciona pelo celular." />
+            <InfoTip text="Digite a mensagem e clique em Contatar ao lado do prospectado. A mensagem vai pelo WhatsApp do prospectado e fica registrada no histórico de contatos. Para personalizar com o nome, utilize {nome} — o sistema substitui pelo primeiro nome. Se a mensagem estiver em branco, ao clicar em Contatar o WhatsApp abre com o campo vazio." />
           </h3>
           <p className="text-[11px] text-foreground/50">
             Digite a mensagem que será enviada ao clicar no botão <b>Contatar</b>. Use <code>{"{nome}"}</code> para
