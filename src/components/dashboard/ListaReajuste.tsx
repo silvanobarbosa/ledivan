@@ -8,6 +8,8 @@ import { InfoTip } from "@/components/InfoTip";
 export type ReajusteLinha = {
   id: string;
   name: string;
+  /** ID da agenda — é o que identifica o paciente na lista (doc 21), caindo no nome quando vazio. */
+  agendaId: string | null;
   phone: string | null;
   guardianPhone: string | null;
   /** Data prevista do reajuste (YYYY-MM-DD). */
@@ -50,7 +52,7 @@ export function ListaReajuste({ reajustes }: { reajustes: ReajusteLinha[] }) {
       <ul className="divide-y divide-border">
         {reajustes.map((r) => (
           <li key={r.id} className="py-2 flex items-center gap-3 flex-wrap">
-            <span className="font-semibold flex-1 min-w-[140px]">{r.name}</span>
+            <span className="font-semibold flex-1 min-w-[140px]" title={r.name}>{r.agendaId?.trim() ? r.agendaId : r.name}</span>
             <span className="text-xs text-foreground/50 tabular-nums">{r.review.split("-").reverse().join("/")} · {quando(r.dias)}</span>
             <button type="button" onClick={() => lembrar(r)}
               className="text-xs font-bold px-3 py-1.5 rounded-full bg-primary/10 text-primary hover:bg-primary/15 transition">

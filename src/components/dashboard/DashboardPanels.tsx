@@ -9,11 +9,12 @@ import { salvarMensagemAgendamento, salvarMensagemAniversario } from "@/app/dash
 import { mensagemPara, MODELO_PADRAO_DO_LEMBRETE } from "@/lib/lembrarAgendamento";
 import { horaDeParede } from "@/lib/horaLocal";
 import { InfoTip } from "@/components/InfoTip";
+import { numeroDoWhatsapp } from "@/lib/telefoneWhatsapp";
 
 export type PanelPatient = {
   id: string; name: string; status: string;
   gender: string | null; birthDate: string | null; address: string | null;
-  phone: string | null; email: string | null;
+  phone: string | null; guardianPhone: string | null; email: string | null;
   queixaPrincipal: string | null; paymentStatus: string | null;
   prospectDate: string | null; prospectFechou: string | null; startedAt: string | null;
 };
@@ -236,6 +237,17 @@ function Aniversariantes({ patients, modeloSalvo, hoje }: { patients: PanelPatie
   const [ate, setAte] = useState(`${hoje.slice(0, 8)}${String(ultimoDia).padStart(2, "0")}`);
   const [modelo, setModelo] = useState(modeloSalvo || MODELO_PADRAO);
   const [salvo, setSalvo] = useState<boolean | null>(null);
+  const [avisoAniv, setAvisoAniv] = useState<string | null>(null);
+
+  // Doc 21: Parabenizar ABRE o WhatsApp (como Lembrar/Contatar), não o envio interno. Vai no
+  // WhatsApp do paciente; sem telefone do paciente, cai no do responsável. {nome} = primeiro nome.
+  function parabenizar(p: PanelPatient) {
+    const num = numeroDoWhatsapp(p.phone) ?? numeroDoWhatsapp(p.guardianPhone);
+    if (!num) { setAvisoAniv(`${p.name} está sem telefone (paciente ou responsável) para o WhatsApp.`); return; }
+    setAvisoAniv(null);
+    const texto = modelo.replace(/\{nome\}/g, p.name.split(" ")[0]);
+    window.open(texto.trim() ? `https://wa.me/${num}?text=${encodeURIComponent(texto)}` : `https://wa.me/${num}`, "_blank", "noopener");
+  }
 
   const lista = useMemo(() => {
     const limites = (v: string) => {
@@ -282,16 +294,15 @@ function Aniversariantes({ patients, modeloSalvo, hoje }: { patients: PanelPatie
             <div key={p.id} className="flex items-center gap-2 rounded-xl bg-surface/60 px-3 py-2">
               <span className="font-mono text-xs font-bold text-primary shrink-0 w-12">{String(p.dia).padStart(2, "0")}/{String(p.mes).padStart(2, "0")}</span>
               <span className="flex-1 text-sm font-medium truncate">{p.name}</span>
-              <MessagePatient
-                patient={{ id: p.id, name: p.name, phone: p.phone, email: p.email }}
-                compact
-                rotulo="Parabenizar"
-                textoInicial={modelo.replace(/\{nome\}/g, p.name.split(" ")[0])}
-              />
+              <button type="button" onClick={() => parabenizar(p)}
+                className="shrink-0 text-xs font-bold px-3 py-1.5 rounded-full bg-primary/10 text-primary hover:bg-primary/15 transition">
+                Parabenizar
+              </button>
             </div>
           ))}
         </div>
       )}
+      {avisoAniv && <p className="text-xs font-semibold text-[#b45309]">{avisoAniv}</p>}
 
       <div className="space-y-1.5 border-t border-border pt-3">
         <span className={`${lbl} inline-flex items-center`}>
