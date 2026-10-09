@@ -33,10 +33,12 @@ export function hojeDeParede(agora = new Date()): Date {
   return new Date(Number(p.year), Number(p.month) - 1, Number(p.day), Number(p.hour) % 24, Number(p.minute));
 }
 
-export type CobrancaNaTela = Omit<CobrancaDaGeral, "vencimento" | "competencia" | "pagamento" | "envio" | "ids" | "posicao" | "tipo"> & {
+export type CobrancaNaTela = Omit<CobrancaDaGeral, "vencimento" | "competencia" | "pagamento" | "pagamentos" | "envio" | "ids" | "posicao" | "tipo"> & {
   tipoDeCobranca: CobrancaDaGeral["tipo"];
   vencimento: string | null;
   pagamento: { id: string; data: string; metodo: string | null; pagoPor: string | null; recibo: boolean; nota: boolean } | null;
+  /** Cada lançamento desta cobrança (doc 21): data (hora de parede), valor e quem pagou. */
+  pagamentos: { data: string; valor: number; pagoPor: string | null; metodo: string | null }[];
   /**
    * Os avisos daquela cobranca (`data` = hora de parede). `total` e `datas` trazem o historico
    * inteiro: cada clique em "Cobrar" e um aviso, e o documento de 17/09 pede que nenhum substitua
@@ -68,11 +70,13 @@ function cobrancaNaTela(
     valor: c.valor,
     falta: c.falta,
     valorDevido: c.valorDevido,
+    valorPago: c.valorPago,
     sessoes: c.sessoes,
     parte: c.parte,
     situacao: c.situacao,
     vencimento: texto(c.vencimento ?? c.competencia),
     pagamento: c.pagamento ? { ...c.pagamento, data: texto(c.pagamento.data) ?? "" } : null,
+    pagamentos: c.pagamentos.map((p) => ({ data: texto(p.data) ?? "", valor: p.valor, pagoPor: p.pagoPor, metodo: p.metodo })),
     envio: c.envio
       ? { data: texto(c.envio.data) ?? "", por: c.envio.por, total: c.envio.total, datas: c.envio.datas.map((d) => texto(d) ?? "") }
       : null,

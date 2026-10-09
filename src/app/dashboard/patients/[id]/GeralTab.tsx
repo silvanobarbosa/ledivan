@@ -225,6 +225,12 @@ function ColunasDoPagamento({ patientId, c, onLancar, cobrar }: { patientId: str
                 Recebido {formatBRL(c.valorDevido)} de {formatBRL(c.valor)} · diferença perdoada
               </span>
             )}
+            {/* Doc 21: cada lançamento aparece, sem substituir o anterior (quando houve mais de um). */}
+            {c.pagamentos.length >= 2 && (
+              <div className="text-[11px] text-foreground/55 tabular-nums space-y-0.5">
+                {c.pagamentos.map((p, i) => <div key={i}>{formatBRL(p.valor)} · {partes(p.data).data}</div>)}
+              </div>
+            )}
             <div className="flex items-center gap-2 flex-wrap">
               <Link href={`/dashboard/patients/${patientId}/recibo/${pg.id}`}
                 className="text-[11px] font-semibold text-primary border border-border rounded-full px-2 py-0.5 hover:bg-surface whitespace-nowrap">
@@ -257,6 +263,12 @@ function ColunasDoPagamento({ patientId, c, onLancar, cobrar }: { patientId: str
           {pg && c.falta > 0 && (
             <div className="text-[11px] font-semibold text-[#92400e]">
               Diferença em aberto: {formatBRL(c.falta)}
+            </div>
+          )}
+          {/* Doc 21: os lançamentos já feitos continuam na tela, um por linha (não se substituem). */}
+          {c.pagamentos.length >= 2 && (
+            <div className="text-[11px] text-foreground/55 tabular-nums space-y-0.5">
+              {c.pagamentos.map((p, i) => <div key={i}>{formatBRL(p.valor)} · {partes(p.data).data}</div>)}
             </div>
           )}
           <div className="flex items-center gap-2 flex-wrap">
@@ -446,7 +458,14 @@ export function GeralTab({ patientId, linhas, responsavel, responsavelCpf, cobra
                           <span className="block text-[11px] text-foreground/45 tabular-nums">{l.datasSessoes.map((d) => partes(d).data).join(", ")}</span>
                         )}
                       </td>
-                      <td className="px-3 py-2 text-right tabular-nums font-bold">{formatBRL(l.valor)}</td>
+                      {/* Doc 21: havendo pagamento, a coluna Valor mostra o que foi EFETIVAMENTE pago
+                          (e, abaixo, o previsto quando ainda falta). Sem pagamento, mostra o previsto. */}
+                      <td className="px-3 py-2 text-right tabular-nums font-bold">
+                        {formatBRL(l.pagamentos.length > 0 ? l.valorPago : l.valor)}
+                        {l.pagamentos.length > 0 && l.falta > 0 && (
+                          <span className="block text-[10px] font-normal text-foreground/45">de {formatBRL(l.valor)}</span>
+                        )}
+                      </td>
                       <ColunasDoPagamento patientId={patientId} c={l} onLancar={() => setAberta(l.chave)} cobrar={cobrar} />
                     </tr>
                     {aberta === l.chave && <FormularioDeLancamento patientId={patientId} c={l} responsavel={responsavel} responsavelCpf={responsavelCpf ?? ""} fechar={() => setAberta(null)} />}

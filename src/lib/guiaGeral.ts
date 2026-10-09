@@ -78,6 +78,8 @@ export type Situacao = "pago" | "em_aberto" | "em_atraso";
 export type PagamentoLancado = {
   id: string;
   data: Date;
+  /** O valor DESTE lançamento (doc 21): a guia lista cada pagamento da cobrança, não só o último. */
+  valor: number;
   metodo: string | null;
   pagoPor: string | null;
   /** Marcas de "pago — emitido recibo / emitido nota" que a tela pinta ao lado de Pago. */
@@ -106,6 +108,10 @@ export type CobrancaDaGeral = Cobranca & {
    */
   valorDevido: number;
   pagamento: PagamentoLancado | null;
+  /** O total já recebido nesta cobrança (soma dos lançamentos). Doc 21: vira a coluna "Valor". */
+  valorPago: number;
+  /** Todos os lançamentos desta cobrança, em ordem (doc 21), não só o último. */
+  pagamentos: PagamentoLancado[];
   /** Preenchido quando a cobrança já foi avisada ao paciente. */
   envio: EnvioLancado | null;
 };
@@ -181,10 +187,14 @@ function casarPagamentos(cobrancas: Cobranca[], pagamentos: PagamentoDaGeral[], 
   const chaves = new Set(cobrancas.map((c) => c.chave));
   const recebido = new Map<string, number>();
   const ultimo = new Map<string, PagamentoLancado>();
+  // Doc 21: a lista de TODOS os lançamentos de cada cobrança (não só o último), para a tela empilhar
+  // "R$ 100 em 10/10", "R$ 150 em 15/10"… na mesma linha.
+  const listaPorChave = new Map<string, PagamentoLancado[]>();
   const lancado = (p: (typeof pagos)[number]): PagamentoLancado => ({
-    id: p.id, data: p.data, metodo: p.metodo, pagoPor: p.pagoPor,
+    id: p.id, data: p.data, valor: p.valor, metodo: p.metodo, pagoPor: p.pagoPor,
     recibo: p.recibo === true, nota: p.nota === true,
   });
+  const empilhaPg = (chave: string, p: PagamentoLancado) => listaPorChave.set(chave, [...(listaPorChave.get(chave) ?? []), p]);
 
   // As cobranças que um pagamento mandou QUITAR mesmo sem o valor fechar (diferença perdoada).
   const quitadas = new Set<string>();
@@ -194,7 +204,9 @@ function casarPagamentos(cobrancas: Cobranca[], pagamentos: PagamentoDaGeral[], 
   for (const p of pagos) {
     if (p.cobrancaChave && chaves.has(p.cobrancaChave)) {
       recebido.set(p.cobrancaChave, (recebido.get(p.cobrancaChave) ?? 0) + p.valor);
-      ultimo.set(p.cobrancaChave, lancado(p));
+      const l = lancado(p);
+      ultimo.set(p.cobrancaChave, l);
+      empilhaPg(p.cobrancaChave, l);
       if (p.quita) quitadas.add(p.cobrancaChave);
     } else {
       semChave.push(p);
@@ -256,6 +268,8 @@ function casarPagamentos(cobrancas: Cobranca[], pagamentos: PagamentoDaGeral[], 
       // O que ja foi recebido NAO some quando falta o resto: quem pagou metade aparecia como quem
       // nao pagou nada, e a terapeuta perdia a data e o nome de quem pagou.
       pagamento: lancado,
+      valorPago: Math.round(receb * 100) / 100,
+      pagamentos: listaPorChave.get(c.chave) ?? [],
       envio: enviosPorChave.get(c.chave) ?? null,
     };
   });
