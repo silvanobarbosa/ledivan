@@ -29,7 +29,12 @@ export function ContratoImpresso({ texto, patientId }: { texto: string; patientI
         suppressContentEditableWarning
         className="bg-white border border-border rounded-2xl p-6 sm:p-10 outline-none focus:ring-2 focus:ring-primary/30 whitespace-pre-wrap font-sans text-[15px] leading-relaxed text-foreground print:border-0 print:rounded-none print:p-0"
       >
-        {texto}
+        {/* Doc 23: os campos que a pessoa ainda vai preencher à mão ([entre colchetes]) saem em
+            NEGRITO — para ela achar o que falta de relance. Como é contentEditable, ao digitar por
+            cima de um campo o texto herda o negrito do <strong>. */}
+        {texto.split(/(\[[^\]]+\])/).map((parte, i) =>
+          parte.startsWith("[") && parte.endsWith("]") ? <strong key={i}>{parte}</strong> : parte,
+        )}
       </article>
 
       <div className="no-print flex flex-wrap items-center gap-3">
