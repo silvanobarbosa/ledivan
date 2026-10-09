@@ -97,8 +97,16 @@ describe("de quando vale o preço novo — defeito achado no percurso real", () 
     expect(d.getTime()).toBe(new Date("2026-10-01").getTime());
   });
 
-  it("só o preço mudou (formato igual): vale de hoje, como antes", () => {
+  // Doc 22: o "Vale a partir de" tem que valer mesmo quando SÓ o valor muda (sem troca de formato).
+  // Antes a data escolhida era ignorada nesse caso e o preço nascia valendo de hoje — não coincidia
+  // com o que a pessoa escolheu, e o histórico financeiro gravava a data errada.
+  it("só o preço mudou mas com 'vale a partir de' escolhido: vale daquela data", () => {
     const d = dataDoPreco({ dataEfetiva: null, formatoMudou: false, formatoDesde: "2026-09-01", hoje });
+    expect(d.getTime()).toBe(new Date(2026, 8, 1).getTime());
+  });
+
+  it("sem data escolhida e sem troca: vale de hoje", () => {
+    const d = dataDoPreco({ dataEfetiva: null, formatoMudou: false, formatoDesde: null, hoje });
     expect(d.getTime()).toBe(hoje.getTime());
   });
 });
