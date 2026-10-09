@@ -183,14 +183,13 @@ describe("quinzenal", () => {
     ]);
   });
 
-  it("cada pagamento vence no próximo dia combinado a partir da primeira sessão dele", () => {
-    // Pacote completo de quatro (14, 21, 28/09 e 05/10) parte em 2 + 2, e cada metade vence no
-    // proximo dos dias combinados (5 e 20) a partir da PRIMEIRA sessao dela:
-    //   [14/09, 21/09] -> proximo apos 14/09 = 20/09
-    //   [28/09, 05/10] -> proximo apos 28/09 = 05/10
-    // Ate 17/09 este caso dava [5, 20] (os dias fixos do mes de inicio); em 18/09 dava [14, 20].
+  it("cada quinzena vence na SUA data (doc 24): 1ª quinzena no 1º dia, 2ª no 2º — no mês da sessão", () => {
+    // Pacote completo de quatro (14, 21, 28/09 e 05/10) parte em 2 + 2. Dias combinados 5 e 20:
+    //   [14/09, 21/09] = 1ª quinzena -> dia 5  -> 05/09
+    //   [28/09, 05/10] = 2ª quinzena -> dia 20 -> 20/09 (mês da 1ª sessão da quinzena, 28/09)
+    // Antes pegava "o próximo dia a partir da sessão" ([20, 5]); doc 24: cada quinzena na sua data.
     const c = cobrancasDoPaciente({ ...cfg, sessoes: [14, 21, 28].map((d) => sessao(d)).concat(sessao(5, 9)) });
-    expect(c.map((x) => x.vencimento?.getDate())).toEqual([20, 5]);
+    expect(c.map((x) => x.vencimento?.getDate())).toEqual([5, 20]);
   });
 
   it("fracionado: cada quinzena cobra o que caiu nela, não metade do mês", () => {
