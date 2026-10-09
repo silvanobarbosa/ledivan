@@ -37,20 +37,14 @@ export type CobrancaNaTela = Omit<CobrancaDaGeral, "vencimento" | "competencia" 
   tipoDeCobranca: CobrancaDaGeral["tipo"];
   vencimento: string | null;
   pagamento: { id: string; data: string; metodo: string | null; pagoPor: string | null; recibo: boolean; nota: boolean } | null;
-  /** Cada lançamento desta cobrança (doc 21): data (hora de parede), valor e quem pagou. */
-  pagamentos: { data: string; valor: number; pagoPor: string | null; metodo: string | null }[];
+  /** Cada lançamento desta cobrança (doc 21): id (para remover), data (hora de parede), valor e quem pagou. */
+  pagamentos: { id: string; data: string; valor: number; pagoPor: string | null; metodo: string | null }[];
   /**
    * Os avisos daquela cobranca (`data` = hora de parede). `total` e `datas` trazem o historico
    * inteiro: cada clique em "Cobrar" e um aviso, e o documento de 17/09 pede que nenhum substitua
    * o anterior.
    */
   envio: { data: string; por: string | null; total: number; datas: string[] } | null;
-  /**
-   * As DATAS das sessões que esta cobrança cobre (doc 9, item 18). Na quinzena, é o que detalha
-   * "quais sessões entram em cada pagamento" — a linha de pagamento deixa de dizer só "2 sessões"
-   * e passa a dizer quais. Texto de hora de parede, na ordem do calendário.
-   */
-  datasSessoes: string[];
 };
 
 export type LinhaNaTela =
@@ -61,7 +55,6 @@ export type LinhaNaTela =
 
 function cobrancaNaTela(
   c: Omit<CobrancaDaGeral, "tipo"> & { tipoDeCobranca: CobrancaDaGeral["tipo"] },
-  datasPorId: Map<string, string>,
 ): CobrancaNaTela {
   return {
     chave: c.chave,
@@ -76,16 +69,15 @@ function cobrancaNaTela(
     situacao: c.situacao,
     vencimento: texto(c.vencimento ?? c.competencia),
     pagamento: c.pagamento ? { ...c.pagamento, data: texto(c.pagamento.data) ?? "" } : null,
-    pagamentos: c.pagamentos.map((p) => ({ data: texto(p.data) ?? "", valor: p.valor, pagoPor: p.pagoPor, metodo: p.metodo })),
+    pagamentos: c.pagamentos.map((p) => ({ id: p.id, data: texto(p.data) ?? "", valor: p.valor, pagoPor: p.pagoPor, metodo: p.metodo })),
     envio: c.envio
       ? { data: texto(c.envio.data) ?? "", por: c.envio.por, total: c.envio.total, datas: c.envio.datas.map((d) => texto(d) ?? "") }
       : null,
-    datasSessoes: c.ids.map((id) => datasPorId.get(id)).filter((d): d is string => !!d),
   };
 }
 
-function naTela(l: LinhaDaGeral, datasPorId: Map<string, string>): LinhaNaTela {
-  if (l.tipo === "pagamento") return { tipo: "pagamento", ...cobrancaNaTela(l, datasPorId) };
+function naTela(l: LinhaDaGeral): LinhaNaTela {
+  if (l.tipo === "pagamento") return { tipo: "pagamento", ...cobrancaNaTela(l) };
   if (l.tipo === "bloqueio") return { tipo: "bloqueio", data: texto(l.data) ?? "" };
   return {
     tipo: "sessao",
@@ -95,7 +87,7 @@ function naTela(l: LinhaDaGeral, datasPorId: Map<string, string>): LinhaNaTela {
     status: l.status,
     rotulo: l.rotulo,
     valor: l.valor,
-    cobranca: l.cobranca ? cobrancaNaTela({ ...l.cobranca, tipoDeCobranca: l.cobranca.tipo }, datasPorId) : null,
+    cobranca: l.cobranca ? cobrancaNaTela({ ...l.cobranca, tipoDeCobranca: l.cobranca.tipo }) : null,
   };
 }
 
@@ -165,10 +157,8 @@ export async function geralDoPaciente(userId: string, patientId: string): Promis
     hoje: hojeDeParede(),
   };
   const resumo = resumoDaGeral(entrada);
-  // Doc 9, item 18: cada cobrança quer dizer QUAIS sessões cobre, não só quantas. O id leva à data.
-  const datasPorId = new Map(entrada.sessoes.map((s) => [s.id, texto(local(s.date)) ?? ""]));
   return {
-    linhas: linhasDaGeral(entrada).map((l) => naTela(l, datasPorId)),
+    linhas: linhasDaGeral(entrada).map(naTela),
     resumo: { ...resumo, extrato: resumo.extrato.map((m) => ({ ...m, data: texto(m.data) ?? "" })) },
   };
 }

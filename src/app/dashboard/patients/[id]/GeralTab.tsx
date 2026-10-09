@@ -3,7 +3,7 @@
 import { Fragment, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { MapPin, Video } from "lucide-react";
+import { MapPin, Video, X, Trash2 } from "lucide-react";
 import { Check, MessageCircle } from "lucide-react";
 import { formatBRL, PAYMENT_METHOD_LABELS, sessionColorClasses } from "@/lib/therapy";
 import type { CobrancaNaTela, LinhaNaTela } from "@/lib/geralDoPaciente";
@@ -178,29 +178,34 @@ function BotaoNotaFiscal({ patientId, pagamentoId }: { patientId: string; pagame
  *
  * Pede confirmacao porque apaga registro de dinheiro: some o pagamento E a transacao do caixa.
  */
-function BotaoRemoverPagamento({ patientId, pagamentoId }: { patientId: string; pagamentoId: string }) {
+/** Remover UM lançamento (doc 22): cada pagamento da cobrança, inclusive o primeiro, tem seu X. */
+function RemoverUmPagamento({ patientId, pagamentoId }: { patientId: string; pagamentoId: string }) {
   const router = useRouter();
   const [pending, start] = useTransition();
-  const [erro, setErro] = useState<string | null>(null);
-
   function acionar() {
-    if (!window.confirm("Remover este pagamento? A cobranca volta a ficar em aberto e a entrada sai do caixa.")) return;
-    setErro(null);
-    start(async () => {
-      const r = await removerPagamento({ pagamentoId, patientId });
-      if (r.ok) router.refresh();
-      else setErro(r.error ?? "Nao foi possivel remover.");
-    });
+    if (!window.confirm("Remover este pagamento? A cobrança volta a ficar em aberto e a entrada sai do caixa.")) return;
+    start(async () => { const r = await removerPagamento({ pagamentoId, patientId }); if (r.ok) router.refresh(); });
   }
-
   return (
-    <>
-      <button type="button" onClick={acionar} disabled={pending} title="Remover o pagamento lancado"
-        className="text-[11px] font-semibold text-[#b91c1c] border border-[#fecaca] rounded-full px-2 py-0.5 hover:bg-[#fef2f2] disabled:opacity-60 whitespace-nowrap">
-        {pending ? "..." : "Remover pagamento"}
-      </button>
-      {erro && <span className="text-[11px] text-[#b91c1c]">{erro}</span>}
-    </>
+    <button type="button" onClick={acionar} disabled={pending} title="Remover este pagamento" aria-label="Remover este pagamento"
+      className="text-[#b91c1c] hover:bg-[#fef2f2] rounded p-0.5 disabled:opacity-50">
+      <Trash2 className="w-3.5 h-3.5" />
+    </button>
+  );
+}
+
+/** Os lançamentos da cobrança, um por linha, cada um com seu botão remover (doc 22). */
+function ListaLancamentos({ patientId, pagamentos }: { patientId: string; pagamentos: CobrancaNaTela["pagamentos"] }) {
+  if (pagamentos.length === 0) return null;
+  return (
+    <div className="text-[11px] text-foreground/55 tabular-nums space-y-0.5">
+      {pagamentos.map((p) => (
+        <div key={p.id} className="flex items-center gap-1.5">
+          <span>{formatBRL(p.valor)} · {partes(p.data).data}</span>
+          <RemoverUmPagamento patientId={patientId} pagamentoId={p.id} />
+        </div>
+      ))}
+    </div>
   );
 }
 
@@ -225,19 +230,14 @@ function ColunasDoPagamento({ patientId, c, onLancar, cobrar }: { patientId: str
                 Recebido {formatBRL(c.valorDevido)} de {formatBRL(c.valor)} · diferença perdoada
               </span>
             )}
-            {/* Doc 21: cada lançamento aparece, sem substituir o anterior (quando houve mais de um). */}
-            {c.pagamentos.length >= 2 && (
-              <div className="text-[11px] text-foreground/55 tabular-nums space-y-0.5">
-                {c.pagamentos.map((p, i) => <div key={i}>{formatBRL(p.valor)} · {partes(p.data).data}</div>)}
-              </div>
-            )}
+            {/* Doc 21/22: cada lançamento aparece, sem substituir o anterior, cada um com seu remover. */}
+            <ListaLancamentos patientId={patientId} pagamentos={c.pagamentos} />
             <div className="flex items-center gap-2 flex-wrap">
               <Link href={`/dashboard/patients/${patientId}/recibo/${pg.id}`}
                 className="text-[11px] font-semibold text-primary border border-border rounded-full px-2 py-0.5 hover:bg-surface whitespace-nowrap">
                 Emitir recibo
               </Link>
               <BotaoNotaFiscal patientId={patientId} pagamentoId={pg.id} />
-              <BotaoRemoverPagamento patientId={patientId} pagamentoId={pg.id} />
             </div>
           </div>
         </td>
@@ -265,12 +265,8 @@ function ColunasDoPagamento({ patientId, c, onLancar, cobrar }: { patientId: str
               Diferença em aberto: {formatBRL(c.falta)}
             </div>
           )}
-          {/* Doc 21: os lançamentos já feitos continuam na tela, um por linha (não se substituem). */}
-          {c.pagamentos.length >= 2 && (
-            <div className="text-[11px] text-foreground/55 tabular-nums space-y-0.5">
-              {c.pagamentos.map((p, i) => <div key={i}>{formatBRL(p.valor)} · {partes(p.data).data}</div>)}
-            </div>
-          )}
+          {/* Doc 21/22: os lançamentos já feitos continuam na tela, um por linha, cada um com remover. */}
+          <ListaLancamentos patientId={patientId} pagamentos={c.pagamentos} />
           <div className="flex items-center gap-2 flex-wrap">
             <EnvioControle patientId={patientId} chave={c.chave} envio={c.envio} />
             {cobrar && <BotaoCobrar patientId={patientId} c={c} cobrar={cobrar} />}
@@ -334,10 +330,15 @@ function FormularioDeLancamento({ patientId, c, responsavel, responsavelCpf, fec
         <form action={enviar} className="rounded-xl bg-surface/70 border border-border p-3 grid gap-2 sm:grid-cols-[auto_auto_1fr_auto_auto_auto_auto] items-end" data-testid="lancar-pagamento">
           {/* O que ESTA cobrança cobre — para não confundir com "o valor do mês": cada cobrança é a
               sua sequência/sessões, e um mês pode ter mais de uma (ex.: pacote + sessões avulsas). */}
-          <p className="sm:col-span-7 text-[11px] text-foreground/60 -mb-1">
-            Lançando esta cobrança: <b>{c.sessoes} {c.sessoes === 1 ? "sessão" : "sessões"}</b>
-            {" · "}{formatBRL(c.valor)}
-            {c.falta !== c.valor ? <> <span className="text-foreground/45">(falta {formatBRL(c.falta)})</span></> : null}
+          {/* Doc 22: um X fecha, no canto superior ESQUERDO, ao lado do resumo (o "Cancelar" saiu). */}
+          <p className="sm:col-span-7 text-[11px] text-foreground/60 -mb-1 flex items-start gap-2">
+            <button type="button" onClick={fechar} aria-label="Fechar" title="Fechar"
+              className="text-foreground/50 hover:text-foreground shrink-0 -mt-0.5"><X className="w-4 h-4" /></button>
+            <span>
+              Lançando esta cobrança: <b>{c.sessoes} {c.sessoes === 1 ? "sessão" : "sessões"}</b>
+              {" · "}{formatBRL(c.valor)}
+              {c.falta !== c.valor ? <> <span className="text-foreground/45">(falta {formatBRL(c.falta)})</span></> : null}
+            </span>
           </p>
           <div>
             <label htmlFor="valor-pg" className="text-[11px] font-semibold text-foreground/60 block">Valor recebido</label>
@@ -372,7 +373,6 @@ function FormularioDeLancamento({ patientId, c, responsavel, responsavelCpf, fec
           <button disabled={pending} className="bg-primary text-white px-4 py-2 rounded-lg font-bold text-sm disabled:opacity-60">
             {pending ? "Salvando…" : `Confirmar ${formatBRL(valorNum)}`}
           </button>
-          <button type="button" onClick={fechar} className="text-foreground/50 text-sm px-2 py-2">Cancelar</button>
 
           {/* Recebeu MENOS: por padrão a diferença fica em aberto; a pessoa pode optar por perdoá-la
               (doc 17 — nunca "pago em parte"). Recebeu MAIS: a sobra vira crédito. */}
@@ -448,15 +448,9 @@ export function GeralTab({ patientId, linhas, responsavel, responsavelCpf, cobra
                         {/* A quinzena tem nome, nao numero: uma cobranca sozinha marcada "2/2" parece que perdeu a outra
                             — e desde 17/09 a quinzena sem atendimento nao gera linha nenhuma. */}
                         <span className="font-bold text-[#92400e]">Pagamento{l.parte ? ` · ${l.parte === 2 ? "2ª" : "1ª"} quinzena` : ""}</span>
+                        {/* Doc 22: a linha do pagamento mostra só o vencimento — NÃO as datas das sessões
+                            (o detalhe por data saiu; a quinzena exibe apenas a data de vencimento). */}
                         <span className="block text-[11px] text-foreground/50">{l.sessoes} {l.sessoes === 1 ? "sessão" : "sessões"}{venc ? ` · vence ${venc}` : ""}</span>
-                        {/* Doc 9, item 18: na QUINZENA, detalha quais sessões entram no pagamento (não só
-                            o total). Só na quinzena: ali os ids batem com as sessões cobradas. No pacote
-                            completo/mensal os ids incluem posições seguradas por desmarcadas (a sessão que
-                            atravessa), e listar todas daria "8 sessões · 10 datas" — confuso numa tabela
-                            de dinheiro. As sessões do pacote já aparecem como linhas logo abaixo. */}
-                        {l.parte && l.datasSessoes.length > 0 && (
-                          <span className="block text-[11px] text-foreground/45 tabular-nums">{l.datasSessoes.map((d) => partes(d).data).join(", ")}</span>
-                        )}
                       </td>
                       {/* Doc 21: havendo pagamento, a coluna Valor mostra o que foi EFETIVAMENTE pago
                           (e, abaixo, o previsto quando ainda falta). Sem pagamento, mostra o previsto. */}
