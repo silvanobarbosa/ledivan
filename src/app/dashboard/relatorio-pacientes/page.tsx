@@ -53,7 +53,7 @@ export default async function RelatorioPacientesPage() {
           <ClipboardList className="w-7 h-7" /> Relatório de pacientes
         </h1>
         <p className="text-foreground/50 mt-1 print:hidden">
-          Escolha o tipo, o período de início e as colunas que quer ver. O relatório monta na hora.
+          Escolha o tipo de relatório, defina o período e selecione as colunas que deseja visualizar ou imprimir.
         </p>
       </div>
 
