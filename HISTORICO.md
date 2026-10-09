@@ -7,6 +7,39 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-10-09 — Doc 22: ajustes do doc 21/doc 9 + aba Contrato (#277–#281)
+
+**Entregue (PRs #277–#281):** feedback de iteração do dono sobre o doc 21/doc 9 (ele testou e
+mandou correções) + duas features novas. 5 ondas, cada PR com gate verde.
+- **Onda 1 (#277):** retirado "Este recurso também funciona pelo celular." de TODOS os ⓘ (o dono
+  não quis a frase); ⓘ em "Próximas devolutivas"; "Reajustes a vencer" aparece mesmo sem paciente.
+- **Onda 2 (#278):** guia Geral — cada pagamento lançado (inclusive o primeiro) tem seu 🗑; o
+  formulário de lançamento fecha por um X no canto superior esquerdo (o "Cancelar" saiu); a quinzena
+  mostra só o VENCIMENTO — **as datas das sessões saíram** (REVERTE o doc 9 #18b, a pedido do dono).
+- **Onda 3 (#279):** ao adicionar à sequência do pacote a sessão SEMPRE preenche uma desmarcada — a
+  opção "é uma sessão a mais no pacote" saiu (a primeira desmarcada já vem marcada); "Recorrência"
+  virou "Repetir agendamento até".
+- **Onda 4 (#280):** BUG — "Vale a partir de" não era salvo quando só o VALOR mudava (o preço nascia
+  valendo de hoje e o histórico gravava a data errada). `dataDoPreco` deixou de depender de
+  `formatoMudou`: a data escolhida vale sempre que preenchida. 2 testes novos.
+- **Onda 5 (#281):** aba **"Contrato"** no Editar paciente (ao lado de Financeiro) — mostra o mesmo
+  contrato do menu Contratos, montado no servidor e passado pronto; fica fora do `<form>`.
+
+**Decisões que ficam valendo:**
+- A quinzena na guia Geral mostra só o vencimento (sem as datas das sessões). O doc 9 #18b foi
+  revertido — o dono não quis o detalhe por data.
+- "Adicionar à sequência do pacote" = sempre preencher uma desmarcada; nunca acrescentar sessão a
+  mais. Sem desmarcada, a sessão é avulsa.
+- "Vale a partir de" (formatoDesde) é a data efetiva do preço sempre que preenchida.
+
+**Armadilhas:**
+- O PR do HISTORICO do doc 21 (#276) tinha ficado SEM mergear (a entrada vivia só na branch
+  `doc21-historico`); recuperada por cherry-pick de `becb7c0`. Conferir que o PR do diário mergeou.
+
+**Pendente:** **#34(e)** do doc 21 segue aguardando o dono (gatilho do carry da diferença).
+
+---
+
 ## 2026-10-08 — Doc 21: tooltips, textos e comportamentos + financeiro parcial (#270–#275)
 
 **Entregue (PRs #270–#275):** o backlog "doc 21" (tooltips ⓘ, trocas de texto, comportamentos e o
