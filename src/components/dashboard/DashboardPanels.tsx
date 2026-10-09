@@ -100,7 +100,7 @@ function Prospeccao({ patients }: { patients: PanelPatient[] }) {
     <div className={card}>
       <h4 className="font-display font-bold text-primary inline-flex items-center">
         Prospecção
-        <InfoTip text="Aqui você acompanha a quantidade de pacientes prospectados. Para cadastrar novos prospectados, acesse Menu → Prospecção. Este recurso também funciona pelo celular." />
+        <InfoTip text="Aqui você acompanha a quantidade de pacientes prospectados. Para cadastrar novos prospectados, acesse Menu → Prospecção." />
       </h4>
       <div className="grid grid-cols-4 gap-2">
         <Stat n={base.length} label="Prospectados" />
@@ -129,7 +129,7 @@ function Relatorios({ patients, presence, corte }: { patients: PanelPatient[]; p
     <div className={card}>
       <h4 className="font-display font-bold text-primary inline-flex items-center">
         Relatórios
-        <InfoTip text="A opção Ver lista exibe a lista de pacientes deste determinado grupo. Clique em Montar relatório para visualizar ou imprimir os campos do relatório. Este recurso também funciona pelo celular." />
+        <InfoTip text="A opção Ver lista exibe a lista de pacientes deste determinado grupo. Clique em Montar relatório para visualizar ou imprimir os campos do relatório." />
       </h4>
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
         <Stat n={ativos.length + inativos.length} label="No cadastro" />
@@ -307,7 +307,7 @@ function Aniversariantes({ patients, modeloSalvo, hoje }: { patients: PanelPatie
       <div className="space-y-1.5 border-t border-border pt-3">
         <span className={`${lbl} inline-flex items-center`}>
           Mensagem
-          <InfoTip text="Digite a mensagem que será enviada para parabenizar o paciente e clique em Parabenizar. A mensagem vai pelo WhatsApp do paciente. Para personalizar com o nome, utilize {nome} — o sistema substitui pelo primeiro nome. Se estiver em branco, ao clicar em Parabenizar o WhatsApp abre com o campo vazio. Este recurso também funciona pelo celular." />
+          <InfoTip text="Digite a mensagem que será enviada para parabenizar o paciente e clique em Parabenizar. A mensagem vai pelo WhatsApp do paciente. Para personalizar com o nome, utilize {nome} — o sistema substitui pelo primeiro nome. Se estiver em branco, ao clicar em Parabenizar o WhatsApp abre com o campo vazio." />
         </span>
         <textarea value={modelo} onChange={(e) => { setModelo(e.target.value); setSalvo(null); }} rows={2} className={`${inp} w-full resize-none`} />
         <div className="flex items-center gap-2">
@@ -344,7 +344,7 @@ function QueixaBloco({ patients }: { patients: PanelPatient[] }) {
     <div className={card}>
       <h4 className="font-display font-bold text-primary inline-flex items-center">
         Queixa principal
-        <InfoTip text="Filtre pelas queixas cadastradas e clique em Abrir para visualizar os pacientes que se enquadram em cada queixa. Este recurso também funciona pelo celular." />
+        <InfoTip text="Filtre pelas queixas cadastradas e clique em Abrir para visualizar os pacientes que se enquadram em cada queixa." />
       </h4>
       <div className="flex gap-2 flex-wrap items-end">
         <div><span className={lbl}>De</span><input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className={inp} /></div>
