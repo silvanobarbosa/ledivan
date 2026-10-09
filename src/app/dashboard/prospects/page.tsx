@@ -31,7 +31,7 @@ export default async function ProspectsPage() {
         <h1 className="text-3xl lg:text-4xl font-display font-bold text-primary flex items-center gap-2">
           <UserPlus className="w-7 h-7" /> Prospecção
         </h1>
-        <p className="text-foreground/50 mt-1">Potenciais pacientes em prospecção, com o histórico de contatos de cada um.</p>
+        <p className="text-foreground/50 mt-1">Potenciais pacientes e histórico de contatos.</p>
       </div>
 
       <ListaProspects
