@@ -147,7 +147,9 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
       const dias = diasParaReajuste(review, hojeRef);
       return { id: p.id, name: p.name, agendaId: p.agendaId, phone: p.phone, guardianPhone: p.guardianPhone, review: `${review.getFullYear()}-${String(review.getMonth() + 1).padStart(2, "0")}-${String(review.getDate()).padStart(2, "0")}`, dias: dias ?? 9999 };
     })
-    .filter((p) => p.dias <= 30)
+    // Doc 21: "1 mês" tem que caber na janela. Contado em dias, um mês vai até 31 (ex.: 15/01→15/02),
+    // e o corte em 30 deixava o reajuste de 1 mês fora da lista. 31 cobre o mês inteiro.
+    .filter((p) => p.dias <= 31)
     .sort((a, b) => a.dias - b.dias);
 
   // Próximas devolutivas (doc 9, item 2): paciente ativo com intervalo definido, cuja próxima

@@ -416,6 +416,16 @@ export async function updatePatient(patientId: string, formData: FormData) {
       hoje: new Date(),
     });
     await db.insert(patientPriceHistory).values({ patientId, valor: newFee, dataEfetiva: efetiva });
+    // Doc 21: alterar o VALOR da sessão = reajuste feito → o paciente sai da lista de reajustes,
+    // independentemente da data em "Vale a partir de". O próximo lembrete conta da data efetiva do
+    // preço novo + a validade (sem validade, não há próximo lembrete). O update principal acima só
+    // recalcula o vencimento quando a periodicidade muda; aqui tratamos a mudança de valor.
+    const validadeAtual = formData.has("validadePrecoMeses")
+      ? (formData.get("validadePrecoMeses") ? parseInt(formData.get("validadePrecoMeses") as string) : null)
+      : existing.validadePrecoMeses;
+    await db.update(patients)
+      .set({ priceReviewDate: vencimentoDoPreco(efetiva, null, validadeAtual) })
+      .where(and(eq(patients.id, patientId), eq(patients.userId, session.user.id)));
   }
   // VIGÊNCIA DO FORMATO (dono, 15/09/2026): a troca vale a partir da data escolhida no formulário e
   // não mexe no que aconteceu antes. A regra de o que gravar mora em `trocaDeFormato.ts`.
