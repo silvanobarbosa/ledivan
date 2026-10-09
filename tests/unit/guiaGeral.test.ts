@@ -556,3 +556,77 @@ describe("#34 pagamento parcial — vários lançamentos na mesma cobrança", ()
     expect(c.pagamentos.map((p) => p.valor)).toEqual([100, 150, 270]);
   });
 });
+
+/**
+ * #34(e) (doc 22) — a diferença de um pacote JÁ ENCERRADO (última sessão passou) rola para a
+ * PRÓXIMA cobrança, somada ao valor dela. Só depois do encerramento; uma única vez (derivado);
+ * valor original e pagamentos ficam no histórico; o saldo não duplica a dívida.
+ */
+describe("#34(e) transferência da diferença ao encerrar o pacote", () => {
+  const FEE = 100;
+  const precos100 = [{ valor: FEE, desde: new Date(2026, 0, 1) }];
+  // Agosto (mês 7): 4 sessões, todas no passado. Setembro (mês 8): 4 sessões, ainda por vir.
+  const s = (dia: number, mes: number) => ({ id: `s${mes}-${dia}`, date: new Date(2026, mes, dia, 9), status: "realizada" });
+  const sessoes = [s(4, 7), s(11, 7), s(18, 7), s(25, 7), s(1, 8), s(8, 8), s(15, 8), s(22, 8)];
+  // 10/09: agosto encerrado (última 25/08 < hoje), setembro em curso (22/09 > hoje).
+  const hojeCarry = new Date(2026, 8, 10, 12);
+  const entrada = (pagamentos: EntradaDaGeral["pagamentos"]) => ({
+    vigencias: [{ formato: "mensal", pacoteTipo: "fragmentado" as const, desde: new Date(2026, 0, 1) }],
+    reserva: { formato: "mensal", pacoteTipo: "fragmentado" as const },
+    precos: precos100, sessoes, pagamentos, hoje: hojeCarry,
+  });
+  const pagsLinha = (pagamentos: EntradaDaGeral["pagamentos"]) =>
+    linhasDaGeral(entrada(pagamentos)).filter((l) => l.tipo === "pagamento") as Extract<LinhaDaGeral, { tipo: "pagamento" }>[];
+  const chaves = pagsLinha([]).map((l) => (l as unknown as { chave: string }).chave); // [agosto, setembro]
+  const pg = (id: string, valor: number, chave: string) =>
+    ({ id, valor, data: new Date(2026, 7, 20), status: "paid", metodo: "pix", pagoPor: "Mãe", cobrancaChave: chave });
+
+  it("agosto encerrado com diferença: transfere R$150 para setembro (400 → 550)", () => {
+    const [ago, set] = pagsLinha([pg("p1", 250, chaves[0])]);
+    // Agosto: valor original 400, pago 250, diferença 150 transferida; não cobra mais nela.
+    expect(ago.valorBase).toBe(400);
+    expect(ago.valorPago).toBe(250);
+    expect(ago.transferido).toBe(150);
+    expect(ago.falta).toBe(0);
+    expect(ago.valorDevido).toBe(250); // saldo: só o que pesou nela
+    // Setembro: 400 + 150 herdados = 550.
+    expect(set.valorBase).toBe(400);
+    expect(set.arrastoRecebido).toBe(150);
+    expect(set.valor).toBe(550);
+    expect(set.falta).toBe(550);
+  });
+
+  it("quitação integral em agosto: nada transfere; setembro continua 400", () => {
+    const [ago, set] = pagsLinha([pg("p1", 400, chaves[0])]);
+    expect(ago.transferido).toBe(0);
+    expect(ago.falta).toBe(0);
+    expect(ago.situacao).toBe("pago");
+    expect(set.arrastoRecebido).toBe(0);
+    expect(set.valor).toBe(400);
+  });
+
+  it("vários pagamentos parciais em agosto: o que sobra é o que transfere", () => {
+    const [ago, set] = pagsLinha([pg("p1", 100, chaves[0]), pg("p2", 150, chaves[0])]);
+    expect(ago.valorPago).toBe(250);
+    expect(ago.transferido).toBe(150);
+    expect(set.valor).toBe(550);
+  });
+
+  it("o saldo NÃO duplica a diferença: devido de agosto (250) + setembro (550) = 800, os dois pacotes", () => {
+    const comCarry = resumoDaGeral(entrada([pg("p1", 250, chaves[0])]));
+    // Pagou 250 de dois pacotes de 400 (= 800). A transferência muda a dívida de linha, não o total.
+    expect(comCarry.totalPago).toBe(250);
+    expect(comCarry.totalExigivel).toBe(800);
+    expect(comCarry.saldo).toBe(-550);
+    // Prova direta: agosto devido 250 (o que pesou nele) + setembro 550 (herdou os 150) = 800.
+    const [ago, set] = pagsLinha([pg("p1", 250, chaves[0])]);
+    expect(ago.valorDevido + set.valorDevido).toBe(800);
+  });
+
+  it("antes do encerramento nada transfere: com hoje em agosto, a diferença fica na própria cobrança", () => {
+    const emAgosto = { ...entrada([pg("p1", 250, chaves[0])]), hoje: new Date(2026, 7, 12, 12) };
+    const [ago] = linhasDaGeral(emAgosto).filter((l) => l.tipo === "pagamento") as Extract<LinhaDaGeral, { tipo: "pagamento" }>[];
+    expect(ago.transferido).toBe(0);
+    expect(ago.falta).toBe(150); // ainda em aberto na própria cobrança
+  });
+});

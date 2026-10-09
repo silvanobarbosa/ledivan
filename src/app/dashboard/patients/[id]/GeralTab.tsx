@@ -224,8 +224,10 @@ function ColunasDoPagamento({ patientId, c, onLancar, cobrar }: { patientId: str
               {pg.recibo && <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#ecfdf5] text-[#047857] whitespace-nowrap">recibo emitido</span>}
               {pg.nota && <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#eef2ff] text-[#4338ca] whitespace-nowrap">nota emitida</span>}
             </div>
-            {/* Quitada recebendo MENOS, com a diferença perdoada ("não haverá diferença de valor"). */}
-            {c.valorDevido < c.valor && (
+            {/* Quitada recebendo MENOS, com a diferença perdoada ("não haverá diferença de valor").
+                Não vale quando a diferença foi TRANSFERIDA (doc 22): aí a nota de transferência já
+                aparece na descrição, e não houve perdão. */}
+            {c.valorDevido < c.valor && c.transferido === 0 && (
               <span className="text-[11px] text-foreground/55">
                 Recebido {formatBRL(c.valorDevido)} de {formatBRL(c.valor)} · diferença perdoada
               </span>
@@ -451,6 +453,14 @@ export function GeralTab({ patientId, linhas, responsavel, responsavelCpf, cobra
                         {/* Doc 22: a linha do pagamento mostra só o vencimento — NÃO as datas das sessões
                             (o detalhe por data saiu; a quinzena exibe apenas a data de vencimento). */}
                         <span className="block text-[11px] text-foreground/50">{l.sessoes} {l.sessoes === 1 ? "sessão" : "sessões"}{venc ? ` · vence ${venc}` : ""}</span>
+                        {/* Doc 22: diferença de um pacote anterior que foi somada a este. */}
+                        {l.arrastoRecebido > 0 && (
+                          <span className="block text-[11px] text-[#92400e]/80">inclui {formatBRL(l.arrastoRecebido)} de diferença do pacote anterior ({formatBRL(l.valorBase)} + {formatBRL(l.arrastoRecebido)})</span>
+                        )}
+                        {/* Doc 22: pacote encerrado cuja diferença rolou para a próxima cobrança. */}
+                        {l.transferido > 0 && (
+                          <span className="block text-[11px] text-[#92400e]/80">{formatBRL(l.transferido)} transferido para a próxima cobrança do pacote</span>
+                        )}
                       </td>
                       {/* Doc 21: havendo pagamento, a coluna Valor mostra o que foi EFETIVAMENTE pago
                           (e, abaixo, o previsto quando ainda falta). Sem pagamento, mostra o previsto. */}
