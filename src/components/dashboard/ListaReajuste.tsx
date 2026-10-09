@@ -68,7 +68,7 @@ export function ListaReajuste({ reajustes }: { reajustes: ReajusteLinha[] }) {
 
       {!vazio && (
       <div className="space-y-1">
-        <label className="text-xs font-bold text-foreground/50 uppercase tracking-wide inline-flex items-center">
+        <label className="text-sm font-semibold text-foreground/60 inline-flex items-center">
           Mensagem
           <InfoTip text="Digite a mensagem que será enviada para lembrar sobre o reajuste de valor e clique em Lembrar. Para personalizar com o nome do paciente, utilize {nome} — o sistema substitui pelo primeiro nome. Se a mensagem estiver em branco, ao clicar em Lembrar o WhatsApp abre com o campo vazio para você digitar. A mensagem vai pelo WhatsApp do responsável e, não havendo responsável cadastrado, pelo do paciente." />
         </label>
