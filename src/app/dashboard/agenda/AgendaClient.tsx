@@ -235,6 +235,10 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
   // 2ª série do paciente escolhe ser Avulso/Gratuito, independente do pacote já existente. Antes só
   // o agendamento único perguntava (`!newRecorrente`), e por isso a recorrência caía sempre no pacote.
   const perguntaSequencia = perguntaSeEntraNaSequencia({ formato: formatoNaDataNova, sessionKind: newKind }, jaTemSequencia);
+  // Doc 22: ao ADICIONAR à sequência do pacote, a sessão SEMPRE preenche uma desmarcada — nunca
+  // acrescenta uma a mais. Então a escolha "é uma sessão a mais" saiu, e a primeira desmarcada já
+  // vem marcada por padrão (o profissional ainda pode escolher outra da lista).
+  const repoeEfetivo = newRepoe || (selectedPatient?.desmarcadas?.[0]?.id ?? "");
 
   const weekEnd = new Date(weekStart);
   weekEnd.setDate(weekEnd.getDate() + 7);
@@ -1038,23 +1042,17 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
                     uma série é o próprio ritmo, não uma reposição. */}
                 {newNaSequencia === "sim" && !newRecorrente && (selectedPatient?.desmarcadas?.length ?? 0) > 0 && (
                   <div className="space-y-1.5 border-t border-[#fde68a] pt-2">
-                    <p className="text-xs font-semibold text-[#92400e]">Preenche uma sessão desmarcada? (abate do pacote)</p>
-                    <input type="hidden" name="repoeSessaoId" value={newRepoe} />
+                    <p className="text-xs font-semibold text-[#92400e]">Qual sessão desmarcada esta preenche? (abate do pacote)</p>
+                    <input type="hidden" name="repoeSessaoId" value={repoeEfetivo} />
                     <div className="grid grid-cols-1 gap-1.5">
-                      <button type="button" onClick={() => setNewRepoe("")}
-                        className={`py-2 px-2 rounded-xl text-xs font-bold transition text-left ${newRepoe === "" ? "bg-[#92400e] text-white" : "bg-white text-foreground/70 hover:bg-surface-container"}`}>
-                        Não — é uma sessão a mais no pacote
-                      </button>
                       {selectedPatient!.desmarcadas!.map((d) => (
                         <button key={d.id} type="button" onClick={() => setNewRepoe(d.id)}
-                          className={`py-2 px-2 rounded-xl text-xs font-bold transition text-left ${newRepoe === d.id ? "bg-[#92400e] text-white" : "bg-white text-foreground/70 hover:bg-surface-container"}`}>
+                          className={`py-2 px-2 rounded-xl text-xs font-bold transition text-left ${repoeEfetivo === d.id ? "bg-[#92400e] text-white" : "bg-white text-foreground/70 hover:bg-surface-container"}`}>
                           Preenche a desmarcada de {formatDate(d.data)}
                         </button>
                       ))}
                     </div>
-                    {newRepoe !== "" && (
-                      <p className="text-[11px] text-[#92400e]/70">Ocupa a posição da desmarcada: nada atravessa para o mês seguinte e o total do pacote não muda.</p>
-                    )}
+                    <p className="text-[11px] text-[#92400e]/70">Ocupa a posição da desmarcada: nada atravessa para o mês seguinte e o total do pacote não muda.</p>
                   </div>
                 )}
                 {newNaSequencia === "nao" && (
@@ -1126,7 +1124,7 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
               </select>
               {newRecorrente && (
                 <div>
-                  <label className="text-[11px] font-semibold text-[#1e40af]/80">Recorrência</label>
+                  <label className="text-[11px] font-semibold text-[#1e40af]/80">Repetir agendamento até</label>
                   <input name="until" type="date" required className="w-full px-3 py-2 rounded-xl bg-white border border-[#bfdbfe] outline-none text-sm" />
                 </div>
               )}
