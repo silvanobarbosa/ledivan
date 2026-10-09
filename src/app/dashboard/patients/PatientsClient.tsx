@@ -167,11 +167,11 @@ export function PatientsClient({ patients, initial }: { patients: PatientCard[];
                   <div className="flex items-center gap-2 flex-wrap">
                     {/* Nome em até 2 linhas (prints 6.pdf, item 13): cabe na tela sem rolar para o
                         lado; o nome completo também abre no cadastro. */}
-                    {/* Doc 9, item 11: identificar pelo ID (nº de registro sequencial), não pelo nome.
-                        O nome segue na busca e na mensagem; aqui aparece o ID. Paciente antigo sem
-                        número (nulo) cai no nome até o backfill. */}
+                    {/* Doc 21: identificar pelo ID DA AGENDA (o código que a terapeuta usa na agenda),
+                        não pelo número do cadastro. Sem ID da agenda, cai no nº do cadastro e, por fim,
+                        no nome. O nome segue na busca e na mensagem. */}
                     <p className="font-bold leading-tight line-clamp-2 break-words" title={p.name}>
-                      {p.registrationNumber != null ? `#${String(p.registrationNumber).padStart(4, "0")}` : p.name}
+                      {p.agendaId?.trim() ? p.agendaId : p.registrationNumber != null ? `#${String(p.registrationNumber).padStart(4, "0")}` : p.name}
                     </p>
                     <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wide ${patientStatusColor(p.patientStatus)}`}>
                       {p.patientStatus === "inativo" ? "Inativo" : "Ativo"}
@@ -183,12 +183,15 @@ export function PatientsClient({ patients, initial }: { patients: PatientCard[];
                     <span className="text-foreground/40"> · {formatBRL(p.sessionFee)}/sessão</span>
                   </p>
                   <p className="text-xs text-foreground/45 truncate">🕐 {p.frequenciaLabel}</p>
-                  <div className="mt-1">
-                    <span className={`inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full ${SITUACAO_CLS[p.situacao]}`}>
-                      {p.situacao === "atrasado" && "⚠️ "}{ROTULO_SITUACAO_LISTA[p.situacao]}
-                      {p.situacao === "atrasado" && p.nAtraso > 0 ? ` · ${p.nAtraso}` : p.situacao === "em_aberto" && p.nAberto > 0 ? ` · ${p.nAberto}` : ""}
-                    </span>
-                  </div>
+                  {/* Doc 21: só "Em atraso" aparece no card. "Em aberto" (e "Em dia") não viram etiqueta
+                      — o que precisa de ação é o atraso; o resto polui a lista. */}
+                  {p.situacao === "atrasado" && (
+                    <div className="mt-1">
+                      <span className={`inline-flex items-center gap-1 text-[11px] font-bold px-2 py-0.5 rounded-full ${SITUACAO_CLS.atrasado}`}>
+                        ⚠️ {ROTULO_SITUACAO_LISTA.atrasado}{p.nAtraso > 0 ? ` · ${p.nAtraso}` : ""}
+                      </span>
+                    </div>
+                  )}
                   {parseTags(p.tags).length > 0 && (
                     <div className="flex gap-1 flex-wrap mt-1.5">
                       {parseTags(p.tags).map((t) => (

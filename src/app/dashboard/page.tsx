@@ -80,7 +80,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
       .from(patientPackages).innerJoin(patients, eq(patientPackages.patientId, patients.id))
       .where(and(eq(patientPackages.userId, userId), eq(patients.patientStatus, "ativo"), eq(patients.contractType, "pacote"))).groupBy(patientPackages.patientId),
     db.select({ isOnline: therapySessions.isOnline, location: therapySessions.location, status: therapySessions.status, date: therapySessions.date }).from(therapySessions).where(and(...anConds)),
-    db.select({ id: patients.id, name: patients.name, status: patients.patientStatus, prospectDate: patients.prospectDate, prospectFechou: patients.prospectFechou, paymentStatus: patients.paymentStatus, gender: patients.gender, birthDate: patients.birthDate, address: patients.address, phone: patients.phone, guardianPhone: patients.guardianPhone, email: patients.email, queixaPrincipal: patients.queixaPrincipal, startedAt: patients.startedAt, priceReviewDate: patients.priceReviewDate, devolutivaMeses: patients.devolutivaMeses, devolutivaDispensadaEm: patients.devolutivaDispensadaEm }).from(patients).where(eq(patients.userId, userId)),
+    db.select({ id: patients.id, name: patients.name, agendaId: patients.agendaId, status: patients.patientStatus, prospectDate: patients.prospectDate, prospectFechou: patients.prospectFechou, paymentStatus: patients.paymentStatus, gender: patients.gender, birthDate: patients.birthDate, address: patients.address, phone: patients.phone, guardianPhone: patients.guardianPhone, email: patients.email, queixaPrincipal: patients.queixaPrincipal, startedAt: patients.startedAt, priceReviewDate: patients.priceReviewDate, devolutivaMeses: patients.devolutivaMeses, devolutivaDispensadaEm: patients.devolutivaDispensadaEm }).from(patients).where(eq(patients.userId, userId)),
     // Consumo de pacote = fonte única DERIVADA: sessões realizadas+cobráveis por paciente.
     db.select({ pid: therapySessions.patientId, cnt: sql<number>`count(*)::int` })
       .from(therapySessions).where(and(eq(therapySessions.userId, userId), eq(therapySessions.status, "realizada"), eq(therapySessions.chargeable, true))).groupBy(therapySessions.patientId),
@@ -145,7 +145,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
     .map((p) => {
       const review = new Date(horaDeParede(p.priceReviewDate as unknown as string));
       const dias = diasParaReajuste(review, hojeRef);
-      return { id: p.id, name: p.name, phone: p.phone, guardianPhone: p.guardianPhone, review: `${review.getFullYear()}-${String(review.getMonth() + 1).padStart(2, "0")}-${String(review.getDate()).padStart(2, "0")}`, dias: dias ?? 9999 };
+      return { id: p.id, name: p.name, agendaId: p.agendaId, phone: p.phone, guardianPhone: p.guardianPhone, review: `${review.getFullYear()}-${String(review.getMonth() + 1).padStart(2, "0")}-${String(review.getDate()).padStart(2, "0")}`, dias: dias ?? 9999 };
     })
     .filter((p) => p.dias <= 30)
     .sort((a, b) => a.dias - b.dias);
@@ -170,7 +170,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   const panelPatients = pats.map((p) => ({
     id: p.id, name: p.name, status: p.status,
     gender: p.gender, birthDate: p.birthDate ? (p.birthDate as unknown as string) : null,
-    address: p.address, phone: p.phone, email: p.email,
+    address: p.address, phone: p.phone, guardianPhone: p.guardianPhone, email: p.email,
     queixaPrincipal: p.queixaPrincipal, paymentStatus: p.paymentStatus,
     prospectDate: p.prospectDate ? (p.prospectDate as unknown as string) : null, prospectFechou: p.prospectFechou,
     startedAt: p.startedAt ? (p.startedAt as unknown as string) : null,
