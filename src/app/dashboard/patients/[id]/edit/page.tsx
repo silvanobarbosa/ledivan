@@ -1,6 +1,6 @@
 import { db } from "@/db";
 import { auth } from "@/auth";
-import { patients, patientPriceHistory, patientPaymentFormatHistory } from "@/db/schema";
+import { patients, patientPriceHistory, patientPaymentFormatHistory, users } from "@/db/schema";
 import { and, eq } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import Link from "next/link";
@@ -8,6 +8,9 @@ import { ArrowLeft } from "lucide-react";
 import { updatePatient, deletePatient } from "../../actions";
 import { SubmitButton } from "@/components/SubmitButton";
 import { PatientFormFields } from "@/components/dashboard/PatientFormFields";
+import { montarContrato } from "@/lib/contrato";
+import { horaDeParede } from "@/lib/horaLocal";
+import { ContratoImpresso } from "@/components/ContratoImpresso";
 
 export default async function EditPatientPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams?: Promise<{ guia?: string }> }) {
   const { id } = await params;
@@ -37,6 +40,21 @@ export default async function EditPatientPage({ params, searchParams }: { params
   const remove = deletePatient.bind(null, id);
   const iso = (d: unknown) => (d ? (d as Date).toISOString() : null);
 
+  // Doc 22: a aba "Contrato" mostra o mesmo contrato do menu Contratos, montado aqui (servidor) com
+  // os dados da analista (Ajustes) e do paciente/responsável (cadastro). Igual a /contrato.
+  const prof = await db.query.users.findFirst({ where: eq(users.id, session.user.id) });
+  const contratoTexto = montarContrato({
+    analistaNome: prof?.name ?? null,
+    analistaCpf: prof?.therapistCpf ?? null,
+    descricaoAtendimento: prof?.descricaoAtendimento ?? null,
+    pacienteNome: patient.name,
+    pacienteNascimento: patient.birthDate ? new Date(horaDeParede(patient.birthDate)) : null,
+    responsavelNome: patient.guardianName,
+    responsavelCpf: patient.guardianCpf,
+    valorSessao: patient.sessionFee,
+    reajusteMeses: patient.validadePrecoMeses,
+  });
+
   return (
     <div className="max-w-2xl space-y-8">
       <Link href={`/dashboard/patients/${id}`} className="inline-flex items-center gap-2 text-foreground/50 hover:text-primary transition">
@@ -49,7 +67,7 @@ export default async function EditPatientPage({ params, searchParams }: { params
       </div>
 
       <div className="space-y-5">
-        <PatientFormFields save={save} tabInicial={guia === "financeiro" ? "financeiro" : undefined} p={{
+        <PatientFormFields save={save} tabInicial={guia === "financeiro" ? "financeiro" : guia === "contrato" ? "contrato" : undefined} contrato={<ContratoImpresso texto={contratoTexto} patientId={id} />} p={{
           registrationNumber: patient.registrationNumber, agendaId: patient.agendaId, dueDateType: patient.dueDateType, dueDate: iso(patient.dueDate), queixaPrincipal: patient.queixaPrincipal,
           name: patient.name, phone: patient.phone, email: patient.email, patientStatus: patient.patientStatus,
           startedAt: iso(patient.startedAt), birthDate: iso(patient.birthDate), category: patient.category, isCouple: patient.isCouple, guardianRelationship: patient.guardianRelationship,
