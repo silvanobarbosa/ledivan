@@ -107,6 +107,21 @@ export type CobrancaDaGeral = Cobranca & {
    * o saldo não carregar para sempre uma dívida que a terapeuta já abriu mão.
    */
   valorDevido: number;
+  /**
+   * O VALOR ORIGINAL da cobrança, sem a diferença herdada de um pacote anterior (doc 22). `valor` já
+   * inclui o arrasto (`valorBase + arrastoRecebido`); `valorBase` preserva o histórico do original.
+   */
+  valorBase: number;
+  /**
+   * A diferença herdada de um pacote ANTERIOR já encerrado que não foi quitado (doc 22). Somada a
+   * este pacote: o próximo cobra `valorBase + arrastoRecebido` (ex.: 400 + 150 = 550).
+   */
+  arrastoRecebido: number;
+  /**
+   * A diferença que ESTE pacote, já encerrado, passou adiante para a próxima cobrança (doc 22).
+   * Quando > 0, a cobrança está encerrada e não se cobra mais nela — a dívida rolou para a seguinte.
+   */
+  transferido: number;
   pagamento: PagamentoLancado | null;
   /** O total já recebido nesta cobrança (soma dos lançamentos). Doc 21: vira a coluna "Valor". */
   valorPago: number;
@@ -177,7 +192,7 @@ function limiteDaCobranca(c: Cobranca, horasAntes: number): Date | null {
   return new Date(venc.getFullYear(), venc.getMonth(), venc.getDate(), 23, 59, 59, 999);
 }
 
-function casarPagamentos(cobrancas: Cobranca[], pagamentos: PagamentoDaGeral[], hoje: Date, envios: EnvioDaGeral[] = [], horasAntes = 0): CobrancaDaGeral[] {
+function casarPagamentos(cobrancas: Cobranca[], pagamentos: PagamentoDaGeral[], hoje: Date, envios: EnvioDaGeral[] = [], horasAntes = 0, sessoes: { id: string; date: Date | string }[] = []): CobrancaDaGeral[] {
   const enviosPorChave = mapaDeEnvios(envios);
   const pagos = pagamentos
     .filter((p) => p.status === "paid")
@@ -234,37 +249,90 @@ function casarPagamentos(cobrancas: Cobranca[], pagamentos: PagamentoDaGeral[], 
     }
   }
 
+  /**
+   * CARRY DA DIFERENÇA (doc 22). A diferença de um pacote JÁ ENCERRADO — a última sessão dele já
+   * passou — que não foi quitado rola para a PRÓXIMA cobrança, somada ao valor dela (400 + 150 = 550).
+   *
+   * Regras do dono: só depois do encerramento efetivo; uma única vez (isto é DERIVADO, recalculado a
+   * cada leitura, então nunca grava nem duplica); o valor original e os pagamentos continuam no
+   * histórico (ficam em `valorBase`/`pagamentos`); a última cobrança da fila concentra o que sobrou.
+   */
+  const dataDaSessao = new Map(sessoes.map((s) => [s.id, emData(s.date)] as const));
+  const ultimaSessaoEm = (c: Cobranca): Date | null => {
+    let max: Date | null = null;
+    for (const id of c.ids) {
+      const d = dataDaSessao.get(id);
+      if (d && !Number.isNaN(d.getTime()) && (!max || d.getTime() > max.getTime())) max = d;
+    }
+    return max;
+  };
+  const arrastoRecebidoPorChave = new Map<string, number>();
+  const transferidoPorChave = new Map<string, number>();
+  {
+    let arrasto = 0;
+    for (let i = 0; i < cobrancas.length; i++) {
+      const c = cobrancas[i];
+      arrastoRecebidoPorChave.set(c.chave, arrasto);
+      const receb = recebido.get(c.chave) ?? 0;
+      const perdoada = quitadas.has(c.chave) && !!ultimo.get(c.chave);
+      const valorEfetivo = Math.round((c.valor + arrasto) * 100) / 100;
+      const faltaEfetiva = Math.round((valorEfetivo - receb) * 100) / 100;
+      const ult = ultimaSessaoEm(c);
+      const encerrada = !!ult && ult.getTime() < hoje.getTime();
+      const haProxima = i < cobrancas.length - 1;
+      // Só rola a DIFERENÇA de um PACOTE pago PARCIALMENTE (recebeu algo, mas não o total): é o
+      // "diferença em aberto" do doc. Pacote sem nenhum pagamento continua em atraso na própria
+      // cobrança (não vira arrasto); avulso/a-cada-sessão não participam do carry do pacote.
+      const ehPacote = c.tipo === "pacote" || c.tipo === "quinzena";
+      const parcial = receb > TOLERANCIA && faltaEfetiva > TOLERANCIA;
+      if (!perdoada && ehPacote && parcial && encerrada && haProxima) {
+        transferidoPorChave.set(c.chave, faltaEfetiva);
+        arrasto = faltaEfetiva; // rola para a próxima
+      } else {
+        arrasto = 0; // em dia, última da fila, perdoada, sem pagamento, ou avulso: não rola
+      }
+    }
+  }
+
   return cobrancas.map((c) => {
     /**
      * PAGO exige uma BAIXA LANCADA (dona, 18/09): *"o pagamento so podera ser considerado pago
      * quando existir uma data de pagamento efetivamente lancada. Apenas a existencia de um
      * vencimento, a passagem da data de vencimento ou qualquer outra informacao financeira nao deve
      * alterar o pagamento para 'pago'."*
-     *
-     * Antes bastava o saldo fechar. Uma cobranca que nascia valendo R$ 0,00 — o que acontece quando
-     * nao ha faixa de preco que alcance a data — aparecia verde, escrita "Pago", sem ninguem ter
-     * pago e sem data nenhuma. Na base de demonstracao sao 12 pacientes de 103 nessa situacao.
-     *
-     * As duas condicoes, entao: existe pagamento casado com esta cobranca E o saldo fechou.
      */
     const lancado = ultimo.get(c.chave) ?? null;
     const receb = recebido.get(c.chave) ?? 0;
-    const falta = Math.round((c.valor - receb) * 100) / 100;
-    // Quitada com diferença perdoada: fica "paga" mesmo faltando, e o DEVIDO cai para o que entrou —
-    // senão o saldo carregaria eternamente a diferença de que a terapeuta já abriu mão.
+    const valorBase = c.valor;
+    const arrastoRecebido = arrastoRecebidoPorChave.get(c.chave) ?? 0;
+    const transferido = transferidoPorChave.get(c.chave) ?? 0;
+    const valorEfetivo = Math.round((valorBase + arrastoRecebido) * 100) / 100;
+    const faltaEfetiva = Math.round((valorEfetivo - receb) * 100) / 100;
+    // Quitada com diferença perdoada: fica "paga" mesmo faltando, e o DEVIDO cai para o que entrou.
     const quitada = quitadas.has(c.chave) && !!lancado;
-    const pago = quitada || (!!lancado && falta <= TOLERANCIA);
-    const valorDevido = quitada ? Math.min(c.valor, Math.round(receb * 100) / 100) : c.valor;
+    // Transferida: encerrou e passou a diferença adiante — não se cobra mais nela (falta 0 aqui).
+    const falta = transferido > TOLERANCIA ? 0 : quitada || faltaEfetiva <= TOLERANCIA ? 0 : faltaEfetiva;
+    const pago = quitada || (!!lancado && faltaEfetiva <= TOLERANCIA);
+    // valorDevido (saldo): quitada perdoa a diferença; transferida tira o que rolou adiante — senão o
+    // saldo contaria a mesma dívida duas vezes (aqui e na cobrança que a recebeu).
+    const valorDevido = quitada
+      ? Math.min(valorEfetivo, Math.round(receb * 100) / 100)
+      : Math.round((valorEfetivo - transferido) * 100) / 100;
 
     const limite = limiteDaCobranca(c, horasAntes);
     const atrasada = limite ? hoje.getTime() > limite.getTime() : false;
-    const situacao: Situacao = pago ? "pago" : atrasada ? "em_atraso" : "em_aberto";
+    // Transferida conta como resolvida (a dívida rolou), nunca "em atraso".
+    const situacao: Situacao = pago || transferido > TOLERANCIA ? "pago" : atrasada ? "em_atraso" : "em_aberto";
 
     return {
       ...c,
+      valor: valorEfetivo, // já inclui o arrasto herdado (valorBase + arrastoRecebido)
       situacao,
-      falta: pago ? 0 : falta,
+      falta,
       valorDevido,
+      valorBase,
+      arrastoRecebido,
+      transferido,
       // O que ja foi recebido NAO some quando falta o resto: quem pagou metade aparecia como quem
       // nao pagou nada, e a terapeuta perdia a data e o nome de quem pagou.
       pagamento: lancado,
@@ -278,7 +346,7 @@ function casarPagamentos(cobrancas: Cobranca[], pagamentos: PagamentoDaGeral[], 
 const comoLinha = ({ tipo, ...c }: CobrancaDaGeral): LinhaDaGeral => ({ ...c, tipo: "pagamento", tipoDeCobranca: tipo });
 
 export function linhasDaGeral(e: EntradaDaGeral): LinhaDaGeral[] {
-  const cobrancas = casarPagamentos(cobrancasDoPaciente(e), e.pagamentos, e.hoje, e.envios ?? [], e.horasAntesPagamento ?? 0);
+  const cobrancas = casarPagamentos(cobrancasDoPaciente(e), e.pagamentos, e.hoje, e.envios ?? [], e.horasAntesPagamento ?? 0, e.sessoes);
   const rotulos = rotulosDasSessoes(e);
 
   const naSessao = new Map<string, CobrancaDaGeral>();
@@ -397,7 +465,7 @@ const DESCRICAO: Record<Cobranca["tipo"], (c: Cobranca) => string> = {
  * mas, se já foi paga adiantada, conta — senão o pagamento dela apareceria como crédito falso.
  */
 export function resumoDaGeral(e: EntradaDaGeral): ResumoDaGeral {
-  const cobrancas = casarPagamentos(cobrancasDoPaciente(e), e.pagamentos, e.hoje, e.envios ?? [], e.horasAntesPagamento ?? 0);
+  const cobrancas = casarPagamentos(cobrancasDoPaciente(e), e.pagamentos, e.hoje, e.envios ?? [], e.horasAntesPagamento ?? 0, e.sessoes);
   // Exigível = o que já se pode cobrar: pago ou em atraso. O que ainda está no prazo (em aberto) não
   // entra no saldo — senão uma cobrança futura já apareceria como dívida.
   const exigiveis = cobrancas.filter((c) => c.situacao !== "em_aberto");
