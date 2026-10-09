@@ -109,9 +109,10 @@ export function dataDoPreco(opts: {
 }): Date {
   const explicita = opts.dataEfetiva ? new Date(opts.dataEfetiva) : null;
   if (explicita && !Number.isNaN(explicita.getTime())) return explicita;
-  if (opts.formatoMudou) {
-    const d = diaDoFormulario(opts.formatoDesde);
-    if (d) return d;
-  }
+  // Doc 22: "Vale a partir de" (formatoDesde) manda sempre que preenchido — não só quando o formato
+  // muda. O campo passou a aparecer para QUALQUER alteração financeira (doc 21), e a data escolhida
+  // tem de ser a data efetiva do preço, inclusive no histórico. `formatoMudou` já não decide isto.
+  const d = diaDoFormulario(opts.formatoDesde);
+  if (d) return d;
   return opts.hoje;
 }
