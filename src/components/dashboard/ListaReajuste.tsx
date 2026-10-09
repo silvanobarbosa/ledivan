@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { TrendingUp } from "lucide-react";
 import { numeroDoWhatsapp } from "@/lib/telefoneWhatsapp";
+import { InfoTip } from "@/components/InfoTip";
 
 export type ReajusteLinha = {
   id: string;
@@ -43,8 +44,8 @@ export function ListaReajuste({ reajustes }: { reajustes: ReajusteLinha[] }) {
     <section className="glass-card rounded-[24px] p-5 space-y-3">
       <h3 className="text-lg font-display font-bold text-primary flex items-center gap-2">
         <TrendingUp className="w-5 h-5" /> Reajustes a vencer
+        <InfoTip text="Visualize os pacientes que estão com reajuste previsto para os próximos 30 dias. Após atualizar o valor no cadastro do paciente, ele será removido automaticamente desta lista. Este recurso também funciona pelo celular." />
       </h3>
-      <p className="text-xs text-foreground/50">A partir de 1 mês antes. Some quando o valor for alterado no Financeiro.</p>
 
       <ul className="divide-y divide-border">
         {reajustes.map((r) => (
@@ -60,11 +61,13 @@ export function ListaReajuste({ reajustes }: { reajustes: ReajusteLinha[] }) {
       </ul>
 
       <div className="space-y-1">
-        <label className="text-xs font-bold text-foreground/50 uppercase tracking-wide">Mensagem do lembrete</label>
+        <label className="text-xs font-bold text-foreground/50 uppercase tracking-wide inline-flex items-center">
+          Mensagem
+          <InfoTip text="Digite a mensagem que será enviada para lembrar sobre o reajuste de valor e clique em Lembrar. Para personalizar com o nome do paciente, utilize {nome} — o sistema substitui pelo primeiro nome. Se a mensagem estiver em branco, ao clicar em Lembrar o WhatsApp abre com o campo vazio para você digitar. A mensagem vai pelo WhatsApp do responsável e, não havendo responsável cadastrado, pelo do paciente." />
+        </label>
         <textarea value={mensagem} onChange={(e) => { setMensagem(e.target.value); setAviso(null); }}
           rows={3} placeholder="Olá! Passando para avisar sobre o reajuste… (use {nome} para o nome do paciente)"
           className="w-full px-3 py-2 rounded-xl bg-surface border border-border outline-none text-sm" />
-        <p className="text-[11px] text-foreground/40">Vai no WhatsApp do responsável (ou do paciente). Vazio: abre a conversa sem texto.</p>
       </div>
 
       {aviso && <p className="text-xs font-semibold text-[#b45309]">{aviso}</p>}

@@ -31,7 +31,7 @@ export function ListaDevolutivas({ devolutivas }: { devolutivas: DevolutivaLinha
   const [aviso, setAviso] = useState<string | null>(null);
   const [indo, comecar] = useTransition();
 
-  if (devolutivas.length === 0) return null;
+  const vazio = devolutivas.length === 0;
 
   function agendar(d: DevolutivaLinha) {
     const num = numeroDoWhatsapp(d.guardianPhone) ?? numeroDoWhatsapp(d.phone);
@@ -59,6 +59,11 @@ export function ListaDevolutivas({ devolutivas }: { devolutivas: DevolutivaLinha
       </h3>
       <p className="text-xs text-foreground/50">Aparece 7 dias antes. “Agendar” abre o WhatsApp (não marca na agenda); ✓ resolve este ciclo.</p>
 
+      {vazio && (
+        <p className="text-sm text-foreground/45 py-2">Nenhuma devolutiva prevista no momento.</p>
+      )}
+
+      {!vazio && (
       <ul className="divide-y divide-border">
         {devolutivas.map((d) => (
           <li key={d.id} className="py-2 flex items-center gap-3 flex-wrap">
@@ -75,7 +80,9 @@ export function ListaDevolutivas({ devolutivas }: { devolutivas: DevolutivaLinha
           </li>
         ))}
       </ul>
+      )}
 
+      {!vazio && (
       <div className="space-y-1">
         <label className="text-xs font-bold text-foreground/50 uppercase tracking-wide">Mensagem para agendar</label>
         <textarea value={mensagem} onChange={(e) => { setMensagem(e.target.value); setAviso(null); }}
@@ -83,6 +90,7 @@ export function ListaDevolutivas({ devolutivas }: { devolutivas: DevolutivaLinha
           className="w-full px-3 py-2 rounded-xl bg-surface border border-border outline-none text-sm" />
         <p className="text-[11px] text-foreground/40">Vai no WhatsApp do responsável (ou do paciente). Vazio: abre a conversa sem texto.</p>
       </div>
+      )}
 
       {aviso && <p className="text-xs font-semibold text-[#b45309]">{aviso}</p>}
     </section>

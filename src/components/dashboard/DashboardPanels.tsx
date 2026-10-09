@@ -8,6 +8,7 @@ import { ModalPacientes } from "./ModalPacientes";
 import { salvarMensagemAgendamento, salvarMensagemAniversario } from "@/app/dashboard/actions";
 import { mensagemPara, MODELO_PADRAO_DO_LEMBRETE } from "@/lib/lembrarAgendamento";
 import { horaDeParede } from "@/lib/horaLocal";
+import { InfoTip } from "@/components/InfoTip";
 
 export type PanelPatient = {
   id: string; name: string; status: string;
@@ -96,7 +97,10 @@ function Prospeccao({ patients }: { patients: PanelPatient[] }) {
   const taxa = base.length ? Math.round((fechados / base.length) * 100) : 0;
   return (
     <div className={card}>
-      <h4 className="font-display font-bold text-primary">Prospecção</h4>
+      <h4 className="font-display font-bold text-primary inline-flex items-center">
+        Prospecção
+        <InfoTip text="Aqui você acompanha a quantidade de pacientes prospectados. Para cadastrar novos prospectados, acesse Menu → Prospecção. Este recurso também funciona pelo celular." />
+      </h4>
       <div className="grid grid-cols-4 gap-2">
         <Stat n={base.length} label="Prospectados" />
         <Stat n={fechados} label="Fechados" tone="green" />
@@ -122,8 +126,10 @@ function Relatorios({ patients, presence, corte }: { patients: PanelPatient[]; p
   }, [ativos, presence, corte]);
   return (
     <div className={card}>
-      <h4 className="font-display font-bold text-primary">Relatórios</h4>
-      <p className="text-sm text-foreground/50">Recorte por tipo e por período de início, escolhendo as colunas: sexo, e-mail, endereço, escola, idade, telefone, avulso/pacote, vencimento, valor, data de início e data de reajuste.</p>
+      <h4 className="font-display font-bold text-primary inline-flex items-center">
+        Relatórios
+        <InfoTip text="A opção Ver lista exibe a lista de pacientes deste determinado grupo. Clique em Montar relatório para visualizar ou imprimir os campos do relatório. Este recurso também funciona pelo celular." />
+      </h4>
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
         <Stat n={ativos.length + inativos.length} label="No cadastro" />
         <Stat n={ativos.length} label="Ativos" tone="green" onAbrir={() => setLista({ titulo: "Pacientes ativos", itens: ativos })} />
@@ -288,7 +294,10 @@ function Aniversariantes({ patients, modeloSalvo, hoje }: { patients: PanelPatie
       )}
 
       <div className="space-y-1.5 border-t border-border pt-3">
-        <span className={lbl}>Mensagem automática · <code>{"{nome}"}</code> vira o primeiro nome</span>
+        <span className={`${lbl} inline-flex items-center`}>
+          Mensagem
+          <InfoTip text="Digite a mensagem que será enviada para parabenizar o paciente e clique em Parabenizar. A mensagem vai pelo WhatsApp do paciente. Para personalizar com o nome, utilize {nome} — o sistema substitui pelo primeiro nome. Se estiver em branco, ao clicar em Parabenizar o WhatsApp abre com o campo vazio. Este recurso também funciona pelo celular." />
+        </span>
         <textarea value={modelo} onChange={(e) => { setModelo(e.target.value); setSalvo(null); }} rows={2} className={`${inp} w-full resize-none`} />
         <div className="flex items-center gap-2">
           <button onClick={salvar} className="text-xs font-bold px-3 py-1.5 rounded-lg bg-primary text-white">Salvar modelo</button>
@@ -322,7 +331,10 @@ function QueixaBloco({ patients }: { patients: PanelPatient[] }) {
   const maior = Math.max(1, ...groups.map((x) => x[1].length));
   return (
     <div className={card}>
-      <h4 className="font-display font-bold text-primary">Queixa principal</h4>
+      <h4 className="font-display font-bold text-primary inline-flex items-center">
+        Queixa principal
+        <InfoTip text="Filtre pelas queixas cadastradas e clique em Abrir para visualizar os pacientes que se enquadram em cada queixa. Este recurso também funciona pelo celular." />
+      </h4>
       <div className="flex gap-2 flex-wrap items-end">
         <div><span className={lbl}>De</span><input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className={inp} /></div>
         <div><span className={lbl}>Até</span><input type="date" value={to} onChange={(e) => setTo(e.target.value)} className={inp} /></div>
