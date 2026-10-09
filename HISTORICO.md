@@ -7,6 +7,83 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-10-09 — Doc 22: ajustes do doc 21/doc 9 + aba Contrato (#277–#281)
+
+**Entregue (PRs #277–#281):** feedback de iteração do dono sobre o doc 21/doc 9 (ele testou e
+mandou correções) + duas features novas. 5 ondas, cada PR com gate verde.
+- **Onda 1 (#277):** retirado "Este recurso também funciona pelo celular." de TODOS os ⓘ (o dono
+  não quis a frase); ⓘ em "Próximas devolutivas"; "Reajustes a vencer" aparece mesmo sem paciente.
+- **Onda 2 (#278):** guia Geral — cada pagamento lançado (inclusive o primeiro) tem seu 🗑; o
+  formulário de lançamento fecha por um X no canto superior esquerdo (o "Cancelar" saiu); a quinzena
+  mostra só o VENCIMENTO — **as datas das sessões saíram** (REVERTE o doc 9 #18b, a pedido do dono).
+- **Onda 3 (#279):** ao adicionar à sequência do pacote a sessão SEMPRE preenche uma desmarcada — a
+  opção "é uma sessão a mais no pacote" saiu (a primeira desmarcada já vem marcada); "Recorrência"
+  virou "Repetir agendamento até".
+- **Onda 4 (#280):** BUG — "Vale a partir de" não era salvo quando só o VALOR mudava (o preço nascia
+  valendo de hoje e o histórico gravava a data errada). `dataDoPreco` deixou de depender de
+  `formatoMudou`: a data escolhida vale sempre que preenchida. 2 testes novos.
+- **Onda 5 (#281):** aba **"Contrato"** no Editar paciente (ao lado de Financeiro) — mostra o mesmo
+  contrato do menu Contratos, montado no servidor e passado pronto; fica fora do `<form>`.
+
+**Decisões que ficam valendo:**
+- A quinzena na guia Geral mostra só o vencimento (sem as datas das sessões). O doc 9 #18b foi
+  revertido — o dono não quis o detalhe por data.
+- "Adicionar à sequência do pacote" = sempre preencher uma desmarcada; nunca acrescentar sessão a
+  mais. Sem desmarcada, a sessão é avulsa.
+- "Vale a partir de" (formatoDesde) é a data efetiva do preço sempre que preenchida.
+
+**Armadilhas:**
+- O PR do HISTORICO do doc 21 (#276) tinha ficado SEM mergear (a entrada vivia só na branch
+  `doc21-historico`); recuperada por cherry-pick de `becb7c0`. Conferir que o PR do diário mergeou.
+
+**Pendente:** **#34(e)** do doc 21 segue aguardando o dono (gatilho do carry da diferença).
+
+---
+
+## 2026-10-08 — Doc 21: tooltips, textos e comportamentos + financeiro parcial (#270–#275)
+
+**Entregue (PRs #270–#275):** o backlog "doc 21" (tooltips ⓘ, trocas de texto, comportamentos e o
+início do financeiro de pagamento parcial), em 6 ondas, cada PR com gate verde.
+- **Onda 1 (#270):** `InfoTip` passou a abrir no TOQUE além do hover (botão, clica-fora/Esc fecha) —
+  o doc pede tudo funcionando no celular, e no toque não há hover. Vale para TODOS os ⓘ de uma vez.
+  Tooltips e textos dos painéis do dashboard (Prospecção, Relatórios, Queixa, Aniversariantes,
+  Reajustes); Devolutivas aparece mesmo vazia.
+- **Onda 2 (#271):** página de Prospecção — ⓘ em Novo prospectado/Filtrar/lista/Contato(s)-Converter/
+  Mensagem; subtítulo e helper trocados.
+- **Onda 3 (#272):** cadastro — novos textos dos ⓘ (Pagar até, Devolutiva, Próximo reajuste), ⓘ da
+  Queixa removido, "Para menores…" reescrito, rodapé "💡 Etiquetas…" removido; "Vale a partir de"
+  passou a aparecer quando QUALQUER campo do Financeiro muda na edição (não só o formato); subtítulo
+  do Relatório de pacientes.
+- **Onda 4 (#273):** Parabenizar abre o WhatsApp (como Lembrar/Contatar); lista de pacientes e lista
+  de reajustes identificam pelo **ID da agenda** (não o nº do cadastro — reverte o doc 9 #11); card do
+  paciente mostra só "Em atraso".
+- **Onda 5 (#274):** pagamento parcial (doc 21, pág 9) — a coluna Valor mostra o EFETIVAMENTE pago
+  quando há pagamento (e "de R$ X" com o previsto enquanto falta); vários pagamentos na mesma cobrança
+  não se substituem (empilham, cada um com valor/data). Motor: `PagamentoLancado` ganhou `valor`; a
+  cobrança expõe `valorPago` e `pagamentos` (o casamento já somava por chave). 3 testes novos.
+- **Onda 6 (#275):** lista de reajustes — aceita a janela de 1 mês (corte foi de 30 p/ 31 dias, senão
+  15/01→15/02 = 31 dias ficava de fora); alterar o VALOR da sessão avança o próximo reajuste e tira o
+  paciente da lista (independe de "Vale a partir de").
+
+**Decisões que ficam valendo:**
+- Tooltip ⓘ é tap-first (abre no toque); todo recurso novo "funciona no celular".
+- Identificação de paciente nas listas = **ID da agenda** (`agendaId`), caindo no nº do cadastro e
+  depois no nome. (Muda a decisão do doc 9 #11.)
+- Na guia Geral, havendo pagamento, a coluna Valor é o PAGO; o previsto vira legenda "de R$ X".
+
+**Armadilhas:**
+- `casarPagamentos` (guiaGeral) alimenta a guia Geral, o `resumoDaGeral` (saldo) E a `situacoesLista`
+  (badge "Em atraso" da lista de pacientes) — mexer nela toca DUAS telas, não só o financeiro.
+- `email-transport.test.ts` é flaky em suíte cheia (conexão SMTP real, ~5s); passa isolado.
+
+**Pendente (do dono — 1 item, mexe em dinheiro):** **#34(e)** — a diferença que sobra no FIM do pacote
+transferir para a próxima cobrança do mesmo paciente (pág 10-11). Precisa a palavra do dono sobre o
+GATILHO ("quando o pacote fecha"): minha proposta é rolar quando a cobrança está vencida (em atraso) e
+já existe uma cobrança posterior; a última concentra o saldo. Muda valores exibidos na guia Geral e na
+situação da lista — por isso não foi feito sem confirmar.
+
+---
+
 ## 2026-10-07 — Doc 9: os 3 itens de cobrança (#6, #17, #18) (#267–#268)
 
 **Entregue (PRs #267–#268):** fecha o doc 9. O dono delegou a lógica ("adote a que faz mais sentido
