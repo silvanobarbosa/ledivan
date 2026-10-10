@@ -34,7 +34,7 @@ export function InfoTip({ text, className = "" }: { text: string; className?: st
       </button>
       <span
         role="tooltip"
-        className={`pointer-events-none absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-60 rounded-xl bg-primary text-white text-xs leading-snug px-3 py-2 transition z-50 shadow-lg shadow-primary/30 group-hover/info:opacity-100 group-hover/info:visible ${aberto ? "opacity-100 visible" : "opacity-0 invisible"}`}
+        className={`pointer-events-none absolute left-1/2 -translate-x-1/2 bottom-full mb-2 w-60 max-w-[calc(100vw-2rem)] break-words text-left rounded-xl bg-primary text-white text-xs leading-snug px-3 py-2 transition z-50 shadow-lg shadow-primary/30 group-hover/info:opacity-100 group-hover/info:visible ${aberto ? "opacity-100 visible" : "opacity-0 invisible"}`}
       >
         {text}
         <span className="absolute left-1/2 -translate-x-1/2 top-full w-2 h-2 bg-primary rotate-45 -mt-1" />
