@@ -7,6 +7,38 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-10-10 — Doc 25: vigência (fuso), contrato, pagamento na guia Geral, ⓘ (#290–#293)
+
+**Entregue (4 frentes):**
+- **#290 — Vigência do reajuste salvava 1 dia a menos (fuso).** A data "Vale a partir de"
+  (AAAA-MM-DD) era lida com `new Date(string)` = UTC; em BRT caía no dia anterior ao salvar e exibir
+  (10/10 virava 09/10). `dataDoPreco` e a edição da data passam a ler via `diaDoFormulario`
+  (meia-noite LOCAL); a exibição do histórico formata pela PAREDE (UTC, `horaDeParede`) → corrige
+  inclusive linhas antigas.
+- **#291 — Contrato.** Responsável 2 sem nome → a linha inteira some (antes saía o placeholder).
+  Endereço do contratante = `patients.address`. Telefone/E-mail de contato = responsável
+  (`guardianPhone`) com fallback no paciente (`phone`). `DadosDoContrato` ganhou os 3 campos.
+- **#292 — Pagamento na guia Geral.** Saíram as colunas separadas "Pago em / Responsável / Forma";
+  tudo vive na célula PAGAMENTO, na linha de cada lançamento: `[valor ·] data · forma · responsável`
+  antes da 🗑. Valor por quantidade: pagamento ÚNICO que quita o total não mostra o valor; com MAIS
+  DE UM, cada linha mostra o seu. Campo "Valor recebido" com máscara monetária R$ (servidor segue
+  com `parseMoedaBR`).
+- **#293 — ⓘ.** Os ⓘ já usavam UM componente único (`InfoTip`) em todo o sistema — a padronização
+  pedida já era estrutural. Polimento sem mudar a cara: largura responsiva (`max-w` = tela − 2rem) +
+  `break-words`, pro balão nunca ultrapassar a tela no celular.
+
+**Decisões que ficam valendo:**
+- Data de DATA (sem hora, ex.: vigência): salvar meia-noite LOCAL (`diaDoFormulario`) e exibir por
+  PAREDE (`horaDeParede`, UTC). Não usar `new Date("AAAA-MM-DD")` (UTC → -1 dia em fuso negativo).
+- Toda dica de ⓘ passa pelo `InfoTip` — é o padrão visual único. Não criar balão ad-hoc.
+- Guia Geral: forma + responsável moram na linha do lançamento, não em colunas.
+
+**Armadilhas:** o campo "Valor recebido" é controlado (o botão mostra `Confirmar <valor>`); a máscara
+foi feita no próprio input (dígitos→R$), não dá pra trocar pelo `MoneyInput` (não-controlado) sem
+perder o `valorNum` ao vivo.
+
+**Pendente:** nada do doc 25.
+
 ## 2026-10-09 — Doc 24: quinzenal respeita AS DUAS datas de vencimento (#288)
 
 **Entregue (PR #288):** no quinzenal com dois dias de pagamento configurados (ex.: dia 10 e dia
