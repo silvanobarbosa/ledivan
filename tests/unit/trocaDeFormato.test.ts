@@ -94,7 +94,17 @@ describe("de quando vale o preço novo — defeito achado no percurso real", () 
 
   it("data explícita do preço manda", () => {
     const d = dataDoPreco({ dataEfetiva: "2026-10-01", formatoMudou: true, formatoDesde: "2026-09-01", hoje });
-    expect(d.getTime()).toBe(new Date("2026-10-01").getTime());
+    expect(d.getTime()).toBe(new Date(2026, 9, 1).getTime());
+  });
+
+  // Doc 25 (pág 2): a data escolhida era lida como UTC (`new Date("2026-10-10")` = meia-noite UTC),
+  // e em fuso negativo (BRT -3) virava o dia anterior ao salvar/exibir. Tem que ser meia-noite LOCAL
+  // do dia escolhido — o mesmo dia que a pessoa marcou. Ver [[licao-meia-noite-vira-dia-anterior]].
+  it("a data explícita é a meia-noite LOCAL do dia escolhido, não UTC (não cai para o dia anterior)", () => {
+    const d = dataDoPreco({ dataEfetiva: "2026-10-10", formatoMudou: false, formatoDesde: null, hoje });
+    expect(d.getFullYear()).toBe(2026);
+    expect(d.getMonth()).toBe(9); // outubro
+    expect(d.getDate()).toBe(10); // dia 10, não 9
   });
 
   // Doc 22: o "Vale a partir de" tem que valer mesmo quando SÓ o valor muda (sem troca de formato).

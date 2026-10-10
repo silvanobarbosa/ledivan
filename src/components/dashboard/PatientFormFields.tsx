@@ -7,6 +7,7 @@ import { MessageCircle } from "lucide-react";
 import { QUEIXAS } from "@/lib/queixas";
 import { idadeEmPalavras } from "@/lib/idade";
 import { historicoDeReajuste, usaPacote } from "@/lib/reajuste";
+import { horaDeParede } from "@/lib/horaLocal";
 import { MoneyInput as MoneyInputBase } from "@/components/MoneyInput";
 
 const inputCls = "w-full px-4 py-3 rounded-2xl bg-white/70 border border-border focus:ring-2 focus:ring-accent/20 focus:border-accent outline-none transition";
@@ -578,7 +579,9 @@ export function PatientFormFields({ p, save, tabInicial, contrato }: { p?: Patie
                       {/* Duas datas, e as duas importam (documento de 17/09): quando a mudança foi
                           PEDIDA, com hora, e a partir de quando ela VALE. */}
                       <span className="font-mono text-xs font-bold text-primary">
-                        vigência {e.data.toLocaleDateString("pt-BR")}
+                        {/* A vigência é uma DATA (sem hora): formata pela parede (UTC), senão o fuso
+                            negativo mostra o dia anterior — inclusive em linhas antigas (doc 25). */}
+                        vigência {horaDeParede(e.data).slice(0, 10).split("-").reverse().join("/")}
                       </span>
                       {e.solicitadoEm && (
                         <span className="font-mono text-[11px] text-foreground/40">

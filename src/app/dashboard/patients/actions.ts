@@ -7,7 +7,7 @@ import { and, eq, gt, inArray, sql } from "drizzle-orm";
 import { encerraAgenda, sessoesAEncerrar } from "@/lib/encerrarAgenda";
 import { revalidatePath } from "next/cache";
 import { usaPacote, vencimentoDoPreco } from "@/lib/reajuste";
-import { dataDoPreco, formatoMudou, vigenciasAGravar } from "@/lib/trocaDeFormato";
+import { dataDoPreco, diaDoFormulario, formatoMudou, vigenciasAGravar } from "@/lib/trocaDeFormato";
 import { redirect } from "next/navigation";
 import { put } from "@vercel/blob";
 import { sendWhatsappFromUser } from "@/lib/whatsappEvolution";
@@ -551,7 +551,9 @@ export async function editPriceHistory(historyId: string, formData: FormData) {
   if (!owner) return;
   const valor = num(formData.get("valor"), row.valor);
   const efetivaRaw = formData.get("dataEfetiva") as string;
-  await db.update(patientPriceHistory).set({ valor, ...(efetivaRaw ? { dataEfetiva: new Date(efetivaRaw) } : {}) }).where(and(eq(patientPriceHistory.id, historyId), eq(patientPriceHistory.patientId, owner.id)));
+  // Meia-noite LOCAL do dia escolhido (não `new Date(string)` UTC, que cai 1 dia em fuso negativo — doc 25).
+  const efetiva = diaDoFormulario(efetivaRaw);
+  await db.update(patientPriceHistory).set({ valor, ...(efetiva ? { dataEfetiva: efetiva } : {}) }).where(and(eq(patientPriceHistory.id, historyId), eq(patientPriceHistory.patientId, owner.id)));
   revalidatePath(`/dashboard/patients/${row.patientId}`);
 }
 
