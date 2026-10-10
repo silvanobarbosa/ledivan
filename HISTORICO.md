@@ -7,6 +7,37 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-10-10 — Doc 26: guia Geral (colunas/linha financeiro) + contrato dinâmico (#295–#296)
+
+**Entregue (2 frentes):**
+- **#295 — Guia Geral.** Colunas reordenadas: **Data/hora | Sessão | Status | Valor | Pagamento**
+  (Sessão e Status trocadas). Na linha financeiro (`tipo:"pagamento"`) a data saiu da coluna
+  Data/hora (já aparece nos dados do pagamento) e o descritor "Pagamento · X sessões · vence DD/MM"
+  mescla as colunas Sessão+Status (`colSpan=2`). O selo "Pago" ocupa a largura da coluna.
+- **#296 — Contrato dinâmico.** O contrato preenche do cadastro/agenda em vez de placeholders:
+  - **3.1 Duração** = "até X minutos", X = MAIOR `duration` das sessões do paciente.
+  - **3.1 Frequência** = pela recorrência da ÚLTIMA sessão agendada: Semanal (1x/2x por
+    `timesPerPeriod`), Mensal, Quinzenal; "não repetir" → Semanal.
+  - **3.2 Horário Fixo** = dia da semana + hora do último agendamento (parede).
+  - **4.2 Vencimento** por formato: mensal (dia X), quinzenal (dias X e X), primeira/última sessão do
+    pacote, avulso (X horas antes); **gratuito → a linha vira "Isento"**.
+  - **4.3 Reajuste** já era "a cada X meses" (sem mudança).
+  - Sem agendamento/dado → mantém os placeholders [ex: ...].
+
+**Decisões que ficam valendo:**
+- Guia Geral: ordem das colunas é Data/hora | Sessão | Status | Valor | Pagamento. A linha
+  financeiro não repete a data (ela vive nos dados do pagamento).
+- O enquadre do contrato (duração/frequência/horário) vem da AGENDA do paciente — a MAIOR duração e
+  a recorrência/horário da ÚLTIMA sessão agendada (`enquadreDaAgenda`, server-only em `src/lib`).
+- Formatos de pagamento canônicos: `sessao | mensal | quinzenal | primeira_pacote | ultima_pacote |
+  gratuito` (patients.paymentFormat). A cláusula 4.2 do contrato chaveia neles.
+
+**Armadilhas:** `montarContrato` é puro/testado — os campos de agenda/pagamento chegam já resolvidos
+pelos 2 callers (contrato/page tinha `columns:` filtrado → precisei add paymentFormat/paymentDay/
+paymentDay2/horasAntesPagamento/timesPerPeriod; edit/page traz o row cheio).
+
+**Pendente:** nada do doc 26.
+
 ## 2026-10-10 — Doc 25: vigência (fuso), contrato, pagamento na guia Geral, ⓘ (#290–#293)
 
 **Entregue (4 frentes):**
