@@ -17,9 +17,12 @@ export type DadosDoContrato = {
   pacienteNome: string | null;
   pacienteNascimento: Date | null;
   pacienteCpf: string | null;
+  pacienteEndereco: string | null; // endereço residencial do paciente (vai no bloco do contratante)
+  pacienteTelefone: string | null; // telefone do paciente (fallback do contato)
   // Responsável (cadastro)
   responsavelNome: string | null;
   responsavelCpf: string | null;
+  responsavelTelefone: string | null; // telefone do responsável (preferido no contato)
   // Honorários
   valorSessao: string | number | null;
   reajusteMeses: number | null;
@@ -87,10 +90,10 @@ Endereço do Consultório / Plataforma: [Endereço do Consultório ou Atendiment
 Telefone / E-mail: [Seu Contato Profissional]
 
 CONTRATANTE(S) (RESPONSÁVEIS LEGAIS):
-Nome do Responsável 1: ${ou(r1Nome, "Nome Completo do Responsável")} — CPF: ${ou(r1Cpf, "CPF")}
-Nome do Responsável 2: ${ou(r2Nome, "Nome Completo do Responsável")} — CPF: ${ou(r2Cpf, "CPF")}
-Endereço: [Endereço Residencial Completo]
-Telefone / E-mail de Contato: [Telefone de Contato]
+Nome do Responsável 1: ${ou(r1Nome, "Nome Completo do Responsável")} — CPF: ${ou(r1Cpf, "CPF")}${r2Nome && r2Nome.trim() ? `
+Nome do Responsável 2: ${ou(r2Nome, "Nome Completo do Responsável")} — CPF: ${ou(r2Cpf, "CPF")}` : ""}
+Endereço: ${ou(d.pacienteEndereco, "Endereço Residencial Completo")}
+Telefone / E-mail de Contato: ${ou(d.responsavelTelefone?.trim() ? d.responsavelTelefone : d.pacienteTelefone, "Telefone de Contato")}
 
 PACIENTE (BENEFICIÁRIO):
 Nome: ${ou(d.pacienteNome, "Nome do Paciente")}

@@ -27,6 +27,9 @@ export default async function Contrato({ params }: { params: Promise<{ id: strin
       cpf: patients.cpf,
       guardianName: patients.guardianName,
       guardianCpf: patients.guardianCpf,
+      address: patients.address,
+      phone: patients.phone,
+      guardianPhone: patients.guardianPhone,
       sessionFee: patients.sessionFee,
       validadePrecoMeses: patients.validadePrecoMeses,
     })
@@ -46,6 +49,9 @@ export default async function Contrato({ params }: { params: Promise<{ id: strin
     pacienteCpf: paciente.cpf,
     responsavelNome: paciente.guardianName,
     responsavelCpf: paciente.guardianCpf,
+    pacienteEndereco: paciente.address,
+    pacienteTelefone: paciente.phone,
+    responsavelTelefone: paciente.guardianPhone,
     valorSessao: paciente.sessionFee,
     reajusteMeses: paciente.validadePrecoMeses,
   });

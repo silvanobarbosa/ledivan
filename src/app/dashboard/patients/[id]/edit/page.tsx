@@ -52,6 +52,9 @@ export default async function EditPatientPage({ params, searchParams }: { params
     pacienteCpf: patient.cpf,
     responsavelNome: patient.guardianName,
     responsavelCpf: patient.guardianCpf,
+    pacienteEndereco: patient.address,
+    pacienteTelefone: patient.phone,
+    responsavelTelefone: patient.guardianPhone,
     valorSessao: patient.sessionFee,
     reajusteMeses: patient.validadePrecoMeses,
   });
