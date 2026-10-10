@@ -9,6 +9,7 @@ import { updatePatient, deletePatient } from "../../actions";
 import { SubmitButton } from "@/components/SubmitButton";
 import { PatientFormFields } from "@/components/dashboard/PatientFormFields";
 import { montarContrato } from "@/lib/contrato";
+import { enquadreDaAgenda } from "@/lib/enquadreContrato";
 import { horaDeParede } from "@/lib/horaLocal";
 import { ContratoImpresso } from "@/components/ContratoImpresso";
 
@@ -43,6 +44,7 @@ export default async function EditPatientPage({ params, searchParams }: { params
   // Doc 22: a aba "Contrato" mostra o mesmo contrato do menu Contratos, montado aqui (servidor) com
   // os dados da analista (Ajustes) e do paciente/responsável (cadastro). Igual a /contrato.
   const prof = await db.query.users.findFirst({ where: eq(users.id, session.user.id) });
+  const enq = await enquadreDaAgenda(session.user.id, id, patient.timesPerPeriod);
   const contratoTexto = montarContrato({
     analistaNome: prof?.name ?? null,
     analistaCpf: prof?.therapistCpf ?? null,
@@ -57,6 +59,13 @@ export default async function EditPatientPage({ params, searchParams }: { params
     responsavelTelefone: patient.guardianPhone,
     valorSessao: patient.sessionFee,
     reajusteMeses: patient.validadePrecoMeses,
+    duracaoMaxMin: enq.duracaoMaxMin,
+    recorrencia: enq.recorrencia,
+    horarioFixo: enq.horarioFixo,
+    formatoPagamento: patient.paymentFormat,
+    diaPagamento: patient.paymentDay,
+    diaPagamento2: patient.paymentDay2,
+    horasAntesPagamento: patient.horasAntesPagamento,
   });
 
   return (

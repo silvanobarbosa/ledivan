@@ -26,6 +26,15 @@ export type DadosDoContrato = {
   // Honorários
   valorSessao: string | number | null;
   reajusteMeses: number | null;
+  // Enquadre (doc 26) — vindo da agenda/cadastro; nulo cai no placeholder [ex: ...].
+  duracaoMaxMin: number | null; // maior duração (min) já cadastrada nas sessões
+  recorrencia: { freq: string | null; vezesPorSemana: number; repete: boolean } | null; // da última sessão agendada
+  horarioFixo: Date | null; // dia/hora do último agendamento (parede)
+  // Pagamento (doc 26) — para a cláusula de vencimento.
+  formatoPagamento: string | null; // sessao | mensal | quinzenal | primeira_pacote | ultima_pacote | gratuito
+  diaPagamento: number | null;
+  diaPagamento2: number | null;
+  horasAntesPagamento: number | null;
 };
 
 const ou = (v: string | null | undefined, placeholder: string) => (v && String(v).trim() ? String(v).trim() : `[${placeholder}]`);
@@ -53,8 +62,55 @@ function reaisBR(v: string | number | null): string {
   return n.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
+/** Frase de frequência da cláusula 3.1 (doc 26), vinda da recorrência da última sessão agendada. */
+function frequenciaDoContrato(r: DadosDoContrato["recorrencia"]): string {
+  if (!r) return "ocorrendo com a frequência de [ex: 1 ou 2] vez(es) por semana"; // sem agendamento: placeholder
+  if (!r.repete) return "ocorre com a frequência Semanal"; // "não repetir"
+  if (r.freq === "mensal") return "ocorre com a frequência Mensal";
+  if (r.freq === "quinzenal") return "ocorre com a frequência Quinzenal";
+  return `ocorre com a frequência Semanal (${r.vezesPorSemana >= 2 ? "2x" : "1x"} por semana)`;
+}
+
+const DIAS_SEMANA_CONTRATO = ["domingo", "segunda-feira", "terça-feira", "quarta-feira", "quinta-feira", "sexta-feira", "sábado"];
+
+/** "Toda terça-feira, às 15h00" a partir do último agendamento (doc 26). */
+function horarioFixoDoContrato(dt: Date | null): string {
+  if (!dt || Number.isNaN(dt.getTime())) return "[ex: Toda terça-feira, às 15h00]";
+  const dia = DIAS_SEMANA_CONTRATO[dt.getDay()];
+  const hh = String(dt.getHours()).padStart(2, "0");
+  const mm = String(dt.getMinutes()).padStart(2, "0");
+  return `Toda ${dia}, às ${hh}h${mm}`;
+}
+
+/** Texto do vencimento da cláusula 4.2 conforme o formato de pagamento (doc 26). */
+function vencimentoDoContrato(d: DadosDoContrato): string {
+  const dia = (v: number | null) => (v != null ? String(v) : "[x]");
+  switch (d.formatoPagamento) {
+    case "mensal":
+      return `O pagamento deverá ser efetuado até o dia ${dia(d.diaPagamento)} do mês vigente`;
+    case "primeira_pacote":
+      return "O pagamento deverá ser efetuado até a data da primeira sessão do pacote do mês vigente";
+    case "ultima_pacote":
+      return "O pagamento deverá ser efetuado até a data da última sessão do pacote do mês vigente";
+    case "quinzenal":
+      return `O pagamento deverá ser efetuado nos dias ${dia(d.diaPagamento)} e ${dia(d.diaPagamento2)} do mês vigente`;
+    case "sessao":
+      return `O pagamento deverá ser efetuado até ${d.horasAntesPagamento != null ? d.horasAntesPagamento : "[x]"} horas antes do atendimento`;
+    default:
+      return "O pagamento deverá ser efetuado até o dia [ex: 5º dia útil / ao final de cada sessão]";
+  }
+}
+
 export function montarContrato(d: DadosDoContrato): string {
   const reajusteMes = d.reajusteMeses && d.reajusteMeses > 0 ? `a cada ${d.reajusteMeses} ${d.reajusteMeses === 1 ? "mês" : "meses"}` : "[periodicidade]";
+  // Enquadre dinâmico (doc 26).
+  const duracaoTxt = d.duracaoMaxMin && d.duracaoMaxMin > 0 ? `até ${d.duracaoMaxMin} minutos` : "até [ex: 45 a 50 minutos]";
+  const frequenciaTxt = frequenciaDoContrato(d.recorrencia);
+  const horarioFixoTxt = horarioFixoDoContrato(d.horarioFixo);
+  // Gratuito: a cláusula 4.2 inteira vira "Isento"; senão, o vencimento conforme o formato.
+  const linha42 = d.formatoPagamento === "gratuito"
+    ? "4.2. Vencimento e Forma de Pagamento: Isento"
+    : `4.2. Vencimento e Forma de Pagamento: ${vencimentoDoContrato(d)}, via [PIX / Transferência / Cartão] na chave: [Sua Chave PIX].`;
 
   /**
    * Preenchimento automático dos responsáveis por IDADE (doc 23):
@@ -104,13 +160,13 @@ Data de Nascimento: ${dataBR(d.pacienteNascimento)} — Idade: ${idadeEm(d.pacie
 2.2. Por se tratar de um processo psicanalítico, a prestação de serviços é de meio, e não de fim, dependendo do engajamento do paciente e da sustentação do enquadre pelos seus responsáveis.
 
 3. DO ENQUADRE CLÍNICO (SETTING ANALÍTICO) E HORÁRIOS
-3.1. Frequência e Duração: As sessões terão a duração de [ex: 45 a 50 minutos], ocorrendo com a frequência de [ex: 1 ou 2] vez(es) por semana.
-3.2. Horário Fixo: Fica reservado ao paciente o seguinte horário semanal fixo: [ex: Toda terça-feira, às 15h00].
+3.1. Frequência e Duração: As sessões terão a duração de ${duracaoTxt}, ${frequenciaTxt}.
+3.2. Horário Fixo: Fica reservado ao paciente o seguinte horário semanal fixo: ${horarioFixoTxt}.
 3.3. Pontualidade: O horário reservado pertence exclusivamente ao paciente. Atrasos por parte do paciente/responsáveis não implicarão na prorrogação do tempo da sessão.
 
 4. DOS HONORÁRIOS, FORMA DE PAGAMENTO E REAJUSTE
 4.1. Valor por Sessão / Mensalidade: O valor acordado por cada sessão é de R$ ${reaisBR(d.valorSessao)}, totalizando o valor mensal variável conforme o número de semanas/sessões do mês.
-4.2. Vencimento e Forma de Pagamento: O pagamento deverá ser efetuado até o dia [ex: 5º dia útil / ao final de cada sessão], via [PIX / Transferência / Cartão] na chave: [Sua Chave PIX].
+${linha42}
 4.3. Reajuste: O valor dos honorários poderá ser reajustado ${reajusteMes}, mediante prévio aviso de 30 (trinta) dias aos responsáveis.
 
 5. DA POLÍTICA DE FALTAS, DESMARCAÇÕES E REAGENDAMENTOS
