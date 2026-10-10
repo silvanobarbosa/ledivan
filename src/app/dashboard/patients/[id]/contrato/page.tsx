@@ -4,6 +4,7 @@ import { db } from "@/db";
 import { patients, users } from "@/db/schema";
 import { auth } from "@/auth";
 import { montarContrato } from "@/lib/contrato";
+import { enquadreDaAgenda } from "@/lib/enquadreContrato";
 import { horaDeParede } from "@/lib/horaLocal";
 import { ContratoImpresso } from "@/components/ContratoImpresso";
 
@@ -32,6 +33,11 @@ export default async function Contrato({ params }: { params: Promise<{ id: strin
       guardianPhone: patients.guardianPhone,
       sessionFee: patients.sessionFee,
       validadePrecoMeses: patients.validadePrecoMeses,
+      paymentFormat: patients.paymentFormat,
+      paymentDay: patients.paymentDay,
+      paymentDay2: patients.paymentDay2,
+      horasAntesPagamento: patients.horasAntesPagamento,
+      timesPerPeriod: patients.timesPerPeriod,
     })
     .from(patients)
     .where(and(eq(patients.id, patientId), eq(patients.userId, userId)))
@@ -39,6 +45,7 @@ export default async function Contrato({ params }: { params: Promise<{ id: strin
   if (!paciente) notFound();
 
   const prof = await db.query.users.findFirst({ where: eq(users.id, userId) });
+  const enq = await enquadreDaAgenda(userId, patientId, paciente.timesPerPeriod);
 
   const texto = montarContrato({
     analistaNome: prof?.name ?? null,
@@ -54,6 +61,13 @@ export default async function Contrato({ params }: { params: Promise<{ id: strin
     responsavelTelefone: paciente.guardianPhone,
     valorSessao: paciente.sessionFee,
     reajusteMeses: paciente.validadePrecoMeses,
+    duracaoMaxMin: enq.duracaoMaxMin,
+    recorrencia: enq.recorrencia,
+    horarioFixo: enq.horarioFixo,
+    formatoPagamento: paciente.paymentFormat,
+    diaPagamento: paciente.paymentDay,
+    diaPagamento2: paciente.paymentDay2,
+    horasAntesPagamento: paciente.horasAntesPagamento,
   });
 
   return <ContratoImpresso texto={texto} patientId={patientId} />;
