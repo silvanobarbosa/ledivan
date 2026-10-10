@@ -107,8 +107,11 @@ export function dataDoPreco(opts: {
   formatoDesde: string | null | undefined;
   hoje: Date;
 }): Date {
-  const explicita = opts.dataEfetiva ? new Date(opts.dataEfetiva) : null;
-  if (explicita && !Number.isNaN(explicita.getTime())) return explicita;
+  // A data escolhida é AAAA-MM-DD do <input type="date"> — tem de ser lida como meia-noite LOCAL
+  // (via diaDoFormulario), não `new Date(string)`, que o JS trata como UTC e em fuso negativo joga
+  // para o dia anterior ao salvar/exibir (doc 25, pág 2). Ver [[licao-meia-noite-vira-dia-anterior]].
+  const explicita = diaDoFormulario(opts.dataEfetiva);
+  if (explicita) return explicita;
   // Doc 22: "Vale a partir de" (formatoDesde) manda sempre que preenchido — não só quando o formato
   // muda. O campo passou a aparecer para QUALQUER alteração financeira (doc 21), e a data escolhida
   // tem de ser a data efetiva do preço, inclusive no histórico. `formatoMudou` já não decide isto.
