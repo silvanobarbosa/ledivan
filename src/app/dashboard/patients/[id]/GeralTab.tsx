@@ -8,6 +8,7 @@ import { Check, MessageCircle } from "lucide-react";
 import { formatBRL, PAYMENT_METHOD_LABELS, sessionColorClasses } from "@/lib/therapy";
 import type { CobrancaNaTela, LinhaNaTela } from "@/lib/geralDoPaciente";
 import { montarMensagemCobranca } from "@/lib/mensagemCobranca";
+import { parseMoedaBR } from "@/lib/money";
 import { lancarPagamento, limparEnviosDaCobranca, registrarCobrancaEnviada, removerPagamento } from "./geral-actions";
 import { marcarEmissao } from "./recibo-actions";
 import { doAno } from "@/lib/filtroDeAno";
@@ -194,17 +195,34 @@ function RemoverUmPagamento({ patientId, pagamentoId }: { patientId: string; pag
   );
 }
 
-/** Os lançamentos da cobrança, um por linha, cada um com seu botão remover (doc 22). */
-function ListaLancamentos({ patientId, pagamentos }: { patientId: string; pagamentos: CobrancaNaTela["pagamentos"] }) {
+/**
+ * Os lançamentos da cobrança, um por linha (doc 22), agora com a FORMA e o RESPONSÁVEL na própria
+ * linha, antes da lixeira (doc 25) — as colunas separadas "Pago em / Responsável / Forma" saíram.
+ *
+ * Quanto ao VALOR (doc 25): um pagamento ÚNICO que quita o total não mostra o valor (ele é o total
+ * devido, já na coluna Valor); com MAIS DE UM pagamento, cada linha mostra o seu valor, para dar
+ * para identificar cada parcela.
+ */
+function ListaLancamentos({ patientId, pagamentos, total }: { patientId: string; pagamentos: CobrancaNaTela["pagamentos"]; total: number }) {
   if (pagamentos.length === 0) return null;
+  const unicoNoTotal = pagamentos.length === 1 && Math.abs(pagamentos[0].valor - total) < 0.005;
   return (
     <div className="text-[11px] text-foreground/55 tabular-nums space-y-0.5">
-      {pagamentos.map((p) => (
-        <div key={p.id} className="flex items-center gap-1.5">
-          <span>{formatBRL(p.valor)} · {partes(p.data).data}</span>
-          <RemoverUmPagamento patientId={patientId} pagamentoId={p.id} />
-        </div>
-      ))}
+      {pagamentos.map((p) => {
+        const forma = p.metodo ? PAYMENT_METHOD_LABELS[p.metodo] ?? p.metodo : null;
+        const partesDaLinha = [
+          unicoNoTotal ? null : formatBRL(p.valor),
+          partes(p.data).data,
+          forma,
+          p.pagoPor || null,
+        ].filter(Boolean);
+        return (
+          <div key={p.id} className="flex items-center gap-1.5">
+            <span>{partesDaLinha.join(" · ")}</span>
+            <RemoverUmPagamento patientId={patientId} pagamentoId={p.id} />
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -233,7 +251,7 @@ function ColunasDoPagamento({ patientId, c, onLancar, cobrar }: { patientId: str
               </span>
             )}
             {/* Doc 21/22: cada lançamento aparece, sem substituir o anterior, cada um com seu remover. */}
-            <ListaLancamentos patientId={patientId} pagamentos={c.pagamentos} />
+            <ListaLancamentos patientId={patientId} pagamentos={c.pagamentos} total={c.valor} />
             <div className="flex items-center gap-2 flex-wrap">
               <Link href={`/dashboard/patients/${patientId}/recibo/${pg.id}`}
                 className="text-[11px] font-semibold text-primary border border-border rounded-full px-2 py-0.5 hover:bg-surface whitespace-nowrap">
@@ -243,9 +261,6 @@ function ColunasDoPagamento({ patientId, c, onLancar, cobrar }: { patientId: str
             </div>
           </div>
         </td>
-        <td className="px-3 py-2 tabular-nums">{partes(pg.data).data}</td>
-        <td className="px-3 py-2">{pg.pagoPor || "—"}</td>
-        <td className="px-3 py-2">{pg.metodo ? PAYMENT_METHOD_LABELS[pg.metodo] ?? pg.metodo : "—"}</td>
       </>
     );
   }
@@ -268,18 +283,13 @@ function ColunasDoPagamento({ patientId, c, onLancar, cobrar }: { patientId: str
             </div>
           )}
           {/* Doc 21/22: os lançamentos já feitos continuam na tela, um por linha, cada um com remover. */}
-          <ListaLancamentos patientId={patientId} pagamentos={c.pagamentos} />
+          <ListaLancamentos patientId={patientId} pagamentos={c.pagamentos} total={c.valor} />
           <div className="flex items-center gap-2 flex-wrap">
             <EnvioControle patientId={patientId} chave={c.chave} envio={c.envio} />
             {cobrar && <BotaoCobrar patientId={patientId} c={c} cobrar={cobrar} />}
           </div>
         </div>
       </td>
-      {/* Pagamento parcial: o que JA entrou continua na tela. Antes a linha zerava tudo e quem
-          pagou metade aparecia como quem nao pagou nada. */}
-      <td className="px-3 py-2 tabular-nums">{pg ? partes(pg.data).data : <span className="text-foreground/30">—</span>}</td>
-      <td className="px-3 py-2">{pg?.pagoPor || <span className="text-foreground/30">—</span>}</td>
-      <td className="px-3 py-2">{pg?.metodo ? PAYMENT_METHOD_LABELS[pg.metodo] ?? pg.metodo : <span className="text-foreground/30">—</span>}</td>
     </>
   );
 }
@@ -301,9 +311,13 @@ function FormularioDeLancamento({ patientId, c, responsavel, responsavelCpf, fec
 
   // Valor editável (doc 17): pré-preenchido com o que FALTA, em pt-BR. A diferença e o aviso são
   // recalculados ao vivo a partir do que a pessoa digita.
-  const [valor, setValor] = useState(c.falta.toFixed(2).replace(".", ","));
+  // "Valor recebido" já no padrão monetário brasileiro enquanto digita (doc 25): os dígitos são
+  // tratados como centavos e formatados em R$. O servidor parseia por `parseMoedaBR`, igual aos
+  // outros campos de dinheiro (ver MoneyInput). `valorNum` é derivado para a prévia e o botão.
+  const reaisBRL = (n: number) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+  const [valor, setValor] = useState(c.falta > 0 ? reaisBRL(c.falta) : "");
   const [quitar, setQuitar] = useState(false);
-  const valorNum = Number(valor.replace(/\./g, "").replace(",", ".")) || 0;
+  const valorNum = Number(parseMoedaBR(valor) ?? 0) || 0;
   const diferenca = Math.round((c.falta - valorNum) * 100) / 100;
   const aMenos = diferenca > 0.005;
   const aMais = diferenca < -0.005;
@@ -328,7 +342,7 @@ function FormularioDeLancamento({ patientId, c, responsavel, responsavelCpf, fec
 
   return (
     <tr>
-      <td colSpan={8} className="px-3 pb-3">
+      <td colSpan={5} className="px-3 pb-3">
         <form action={enviar} className="rounded-xl bg-surface/70 border border-border p-3 grid gap-2 sm:grid-cols-[auto_auto_1fr_auto_auto_auto_auto] items-end" data-testid="lancar-pagamento">
           {/* O que ESTA cobrança cobre — para não confundir com "o valor do mês": cada cobrança é a
               sua sequência/sessões, e um mês pode ter mais de uma (ex.: pacote + sessões avulsas). */}
@@ -344,9 +358,9 @@ function FormularioDeLancamento({ patientId, c, responsavel, responsavelCpf, fec
           </p>
           <div>
             <label htmlFor="valor-pg" className="text-[11px] font-semibold text-foreground/60 block">Valor recebido</label>
-            <input id="valor-pg" name="valor" inputMode="decimal" required value={valor}
-              onChange={(e) => setValor(e.target.value)}
-              className="w-[110px] px-3 py-2 rounded-lg bg-white border border-border text-sm tabular-nums" />
+            <input id="valor-pg" name="valor" inputMode="numeric" required value={valor}
+              onChange={(e) => { const d = e.target.value.replace(/\D/g, ""); setValor(d ? reaisBRL(parseInt(d, 10) / 100) : ""); }}
+              className="w-[130px] px-3 py-2 rounded-lg bg-white border border-border text-sm tabular-nums" />
           </div>
           <div>
             <label className="text-[11px] font-semibold text-foreground/60 block">Data do pagamento</label>
@@ -432,9 +446,6 @@ export function GeralTab({ patientId, linhas, responsavel, responsavelCpf, cobra
               <th className="px-3 py-2 font-bold">Sessão</th>
               <th className="px-3 py-2 font-bold text-right">Valor</th>
               <th className="px-3 py-2 font-bold">Pagamento</th>
-              <th className="px-3 py-2 font-bold">Pago em</th>
-              <th className="px-3 py-2 font-bold">Responsável</th>
-              <th className="px-3 py-2 font-bold">Forma</th>
             </tr>
           </thead>
           <tbody>
@@ -492,7 +503,7 @@ export function GeralTab({ patientId, linhas, responsavel, responsavelCpf, cobra
                     </td>
                     <td className="px-3 py-2 text-foreground/30">—</td>
                     <td className="px-3 py-2 text-foreground/30">—</td>
-                    <td className="px-3 py-2 text-foreground/30" colSpan={4}>—</td>
+                    <td className="px-3 py-2 text-foreground/30">—</td>
                   </tr>
                 );
               }
@@ -511,7 +522,7 @@ export function GeralTab({ patientId, linhas, responsavel, responsavelCpf, cobra
                     <CelulaStatus status={l.status} />
                     <td className="px-3 py-2 font-semibold tabular-nums">{l.rotulo || "—"}</td>
                     <td className="px-3 py-2 text-right tabular-nums">{l.valor == null ? "" : formatBRL(l.valor)}</td>
-                    {c ? <ColunasDoPagamento patientId={patientId} c={c} onLancar={() => setAberta(c.chave)} cobrar={cobrar} /> : <td colSpan={4} />}
+                    {c ? <ColunasDoPagamento patientId={patientId} c={c} onLancar={() => setAberta(c.chave)} cobrar={cobrar} /> : <td />}
                   </tr>
                   {c && aberta === c.chave && <FormularioDeLancamento patientId={patientId} c={c} responsavel={responsavel} responsavelCpf={responsavelCpf ?? ""} fechar={() => setAberta(null)} />}
                 </Fragment>
