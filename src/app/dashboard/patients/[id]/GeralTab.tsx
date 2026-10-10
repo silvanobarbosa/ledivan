@@ -237,7 +237,8 @@ function ColunasDoPagamento({ patientId, c, onLancar, cobrar }: { patientId: str
         <td className="px-3 py-2">
           <div className="flex flex-col gap-1.5">
             <div className="flex items-center gap-1.5 flex-wrap">
-              <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${SITUACAO.pago.cls}`}>Pago</span>
+              {/* Doc 26: a informação "Pago" ocupa a largura da coluna (os carimbos recibo/nota descem para a linha de baixo). */}
+              <span className={`w-full text-center text-[11px] font-bold px-2 py-0.5 rounded-full ${SITUACAO.pago.cls}`}>Pago</span>
               {/* Dois carimbos independentes: quem emitiu a nota pode não ter passado recibo. */}
               {pg.recibo && <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#ecfdf5] text-[#047857] whitespace-nowrap">recibo emitido</span>}
               {pg.nota && <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#eef2ff] text-[#4338ca] whitespace-nowrap">nota emitida</span>}
@@ -442,8 +443,8 @@ export function GeralTab({ patientId, linhas, responsavel, responsavelCpf, cobra
           <thead>
             <tr className="text-left text-[11px] uppercase tracking-widest text-foreground/40">
               <th className="px-3 py-2 font-bold">Data / hora</th>
-              <th className="px-3 py-2 font-bold">Status</th>
               <th className="px-3 py-2 font-bold">Sessão</th>
+              <th className="px-3 py-2 font-bold">Status</th>
               <th className="px-3 py-2 font-bold text-right">Valor</th>
               <th className="px-3 py-2 font-bold">Pagamento</th>
             </tr>
@@ -455,9 +456,10 @@ export function GeralTab({ patientId, linhas, responsavel, responsavelCpf, cobra
                 return (
                   <Fragment key={l.chave}>
                     <tr className="border-t border-border bg-[#fef9ec]" data-chave={l.chave}>
-                      <td className="px-3 py-2 tabular-nums font-semibold">{l.pagamento ? partes(l.pagamento.data).data : "__/__/__"}</td>
+                      {/* Doc 26: a data de pagamento saiu da coluna Data/hora — ela já aparece nos dados do
+                          pagamento (célula Pagamento). E o descritor da cobrança ocupa as colunas Sessão+Status. */}
                       <td className="px-3 py-2" />
-                      <td className="px-3 py-2">
+                      <td className="px-3 py-2" colSpan={2}>
                         {/* A quinzena tem nome, nao numero: uma cobranca sozinha marcada "2/2" parece que perdeu a outra
                             — e desde 17/09 a quinzena sem atendimento nao gera linha nenhuma. */}
                         <span className="font-bold text-[#92400e]">Pagamento{l.parte ? ` · ${l.parte === 2 ? "2ª" : "1ª"} quinzena` : ""}</span>
@@ -498,10 +500,10 @@ export function GeralTab({ patientId, linhas, responsavel, responsavelCpf, cobra
                 return (
                   <tr key={`bloq-${l.data}`} className="border-t border-border bg-surface/40 text-foreground/50">
                     <td className="px-3 py-2 tabular-nums whitespace-nowrap">{b.data} {b.hora}</td>
+                    <td className="px-3 py-2 text-foreground/30">—</td>
                     <td className="px-3 py-2">
                       <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-[#fee2e2] text-[#991b1b] whitespace-nowrap">Hor. Bloq.</span>
                     </td>
-                    <td className="px-3 py-2 text-foreground/30">—</td>
                     <td className="px-3 py-2 text-foreground/30">—</td>
                     <td className="px-3 py-2 text-foreground/30">—</td>
                   </tr>
@@ -519,8 +521,8 @@ export function GeralTab({ patientId, linhas, responsavel, responsavelCpf, cobra
                         {l.online ? <Video className="w-3.5 h-3.5 text-primary" aria-label="online" /> : <MapPin className="w-3.5 h-3.5 text-foreground/30" aria-label="presencial" />}
                       </span>
                     </td>
-                    <CelulaStatus status={l.status} />
                     <td className="px-3 py-2 font-semibold tabular-nums">{l.rotulo || "—"}</td>
+                    <CelulaStatus status={l.status} />
                     <td className="px-3 py-2 text-right tabular-nums">{l.valor == null ? "" : formatBRL(l.valor)}</td>
                     {c ? <ColunasDoPagamento patientId={patientId} c={c} onLancar={() => setAberta(c.chave)} cobrar={cobrar} /> : <td />}
                   </tr>
