@@ -119,24 +119,27 @@ function reaisBR(v: string | number | null): string {
   return n.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 }
 
-/** Frase de frequência da cláusula 3.1 (doc 26), vinda da recorrência da última sessão agendada. */
+/**
+ * Frase de frequência da cláusula 3.1 (doc 26). A SEQUÊNCIA (Semanal 1x/2x, Mensal, Quinzenal) é
+ * campo preenchido pelo sistema → sai em negrito (doc 29).
+ */
 function frequenciaDoContrato(r: DadosDoContrato["recorrencia"]): string {
   if (!r) return "ocorrendo com a frequência de [ex: 1 ou 2] vez(es) por semana"; // sem agendamento: placeholder
-  if (!r.repete) return "ocorre com a frequência Semanal"; // "não repetir"
-  if (r.freq === "mensal") return "ocorre com a frequência Mensal";
-  if (r.freq === "quinzenal") return "ocorre com a frequência Quinzenal";
-  return `ocorre com a frequência Semanal (${r.vezesPorSemana >= 2 ? "2x" : "1x"} por semana)`;
+  if (!r.repete) return `ocorre com a frequência ${neg("Semanal")}`; // "não repetir"
+  if (r.freq === "mensal") return `ocorre com a frequência ${neg("Mensal")}`;
+  if (r.freq === "quinzenal") return `ocorre com a frequência ${neg("Quinzenal")}`;
+  return `ocorre com a frequência ${neg(`Semanal (${r.vezesPorSemana >= 2 ? "2x" : "1x"} por semana)`)}`;
 }
 
 const DIAS_SEMANA_CONTRATO = ["domingo", "segunda-feira", "terça-feira", "quarta-feira", "quinta-feira", "sexta-feira", "sábado"];
 
-/** "Toda terça-feira, às 15h00" a partir do último agendamento (doc 26). */
+/** "Toda terça-feira, às 15h00" a partir do último agendamento (doc 26). Dia+hora em negrito (doc 29). */
 function horarioFixoDoContrato(dt: Date | null): string {
   if (!dt || Number.isNaN(dt.getTime())) return "[ex: Toda terça-feira, às 15h00]";
   const dia = DIAS_SEMANA_CONTRATO[dt.getDay()];
   const hh = String(dt.getHours()).padStart(2, "0");
   const mm = String(dt.getMinutes()).padStart(2, "0");
-  return `Toda ${dia}, às ${hh}h${mm}`;
+  return neg(`Toda ${dia}, às ${hh}h${mm}`);
 }
 
 /** Texto do vencimento da cláusula 4.2 conforme o formato de pagamento (doc 26/28). */
@@ -146,9 +149,10 @@ function vencimentoDoContrato(d: DadosDoContrato): string {
     case "mensal":
       return `O pagamento deverá ser efetuado até o dia ${dia(d.diaPagamento)} do mês vigente`;
     case "primeira_pacote":
-      return "O pagamento deverá ser efetuado até a primeira sessão de cada pacote";
+      // Doc 29: a condição ("a primeira sessão de cada pacote") é campo do sistema → negrito.
+      return `O pagamento deverá ser efetuado até ${neg("a primeira sessão de cada pacote")}`;
     case "ultima_pacote":
-      return "O pagamento deverá ser efetuado até a última sessão de cada pacote";
+      return `O pagamento deverá ser efetuado até ${neg("a última sessão de cada pacote")}`;
     case "quinzenal":
       return `O pagamento deverá ser efetuado nos dias ${dia(d.diaPagamento)} e ${dia(d.diaPagamento2)} do mês vigente`;
     case "sessao":
@@ -169,10 +173,12 @@ export function montarContrato(d: DadosDoContrato): string {
   const frequenciaTxt = frequenciaDoContrato(d.recorrencia);
   const horarioFixoTxt = horarioFixoDoContrato(d.horarioFixo);
   // Gratuito (doc 28): a cláusula 4.2 inteira é a isenção por tempo indeterminado; senão, o
-  // vencimento conforme o formato.
+  // vencimento conforme o formato. Doc 29: no gratuito, a isenção toda sai em negrito.
   const linha42 = d.formatoPagamento === "gratuito"
-    ? "4.2. Vencimento e Forma de Pagamento: Isento de qualquer tipo de pagamento por tempo indeterminado. Não há data de vencimento nem obrigação de pagamento enquanto essa condição estiver vigente."
+    ? `4.2. Vencimento e Forma de Pagamento: ${neg("Isento de qualquer tipo de pagamento por tempo indeterminado. Não há data de vencimento nem obrigação de pagamento enquanto essa condição estiver vigente.")}`
     : `4.2. Vencimento e Forma de Pagamento: ${vencimentoDoContrato(d)}.`;
+  // 4.1 (doc 29): no gratuito, "O valor acordado por cada sessão é de R$ 0,00." em negrito, sem a
+  // cauda "totalizando…". Senão, o valor da sessão + a cauda, como no doc 28.
 
   // Doc 27/28 — cabeçalho (cada item em sua linha) e foro preenchidos do Perfil.
   const enderecoProf = ou(d.analistaEndereco, "Endereço");
@@ -260,7 +266,9 @@ Idade: ${idadeTxt} anos
 3.3. Pontualidade: O horário reservado pertence exclusivamente ao paciente. Atrasos por parte do paciente/responsáveis não implicarão na prorrogação do tempo da sessão.
 
 4. DOS HONORÁRIOS, FORMA DE PAGAMENTO E REAJUSTE
-4.1. Valor por Sessão / Mensalidade: O valor acordado por cada sessão é de ${valorSessaoTxt}, totalizando o valor mensal variável conforme o número de semanas/sessões do mês.
+${d.formatoPagamento === "gratuito"
+  ? `4.1. Valor por Sessão / Mensalidade: ${neg("O valor acordado por cada sessão é de R$ 0,00.")}`
+  : `4.1. Valor por Sessão / Mensalidade: O valor acordado por cada sessão é de ${valorSessaoTxt}, totalizando o valor mensal variável conforme o número de semanas/sessões do mês.`}
 ${linha42}
 4.3. Reajuste: O valor dos honorários poderá ser reajustado ${reajusteMes}, mediante prévio aviso de 30 (trinta) dias aos responsáveis.
 
