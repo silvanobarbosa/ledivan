@@ -1,9 +1,11 @@
 "use client";
 
-import { useState, type ReactNode } from "react";
+import { useState, useTransition, type ReactNode } from "react";
+import { useRouter } from "next/navigation";
 import { InfoTip } from "@/components/InfoTip";
 import { SubmitButton } from "@/components/SubmitButton";
-import { MessageCircle } from "lucide-react";
+import { MessageCircle, Trash2 } from "lucide-react";
+import { apagarReajuste } from "@/app/dashboard/patients/actions";
 import { QUEIXAS } from "@/lib/queixas";
 import { idadeEmPalavras } from "@/lib/idade";
 import { historicoDeReajuste, usaPacote } from "@/lib/reajuste";
@@ -35,6 +37,52 @@ export type PatientFormData = {
   statusReminderDays?: number | null;
   photo3x4?: string | null; photoExtra1?: string | null; photoExtra2?: string | null; photoExtra3?: string | null;
 };
+
+/**
+ * A lixeira de um reajuste (doc 27). Confirma na própria linha — nada de `confirm()` do navegador,
+ * que a conta demo (read-only) e o nosso padrão não usam. Só aparece em linha de reajuste, nunca na
+ * entrada (quem decide isso é `removivel`, em `historicoDeReajuste`).
+ */
+function LixeiraReajuste({ patientId, vigencia }: { patientId: string; vigencia: Date }) {
+  const router = useRouter();
+  const [confirmando, setConfirmando] = useState(false);
+  const [pending, start] = useTransition();
+  const [erro, setErro] = useState<string | null>(null);
+
+  function apagar() {
+    setErro(null);
+    start(async () => {
+      const r = await apagarReajuste(patientId, vigencia.toISOString());
+      if (r.ok) { setConfirmando(false); router.refresh(); }
+      else setErro(r.error ?? "Não foi possível apagar.");
+    });
+  }
+
+  if (!confirmando) {
+    return (
+      <button
+        type="button"
+        onClick={() => setConfirmando(true)}
+        aria-label="Apagar este reajuste"
+        title="Apagar este reajuste"
+        className="ml-auto shrink-0 text-foreground/30 hover:text-red-500 transition p-1 rounded-lg cursor-pointer"
+      >
+        <Trash2 className="w-4 h-4" />
+      </button>
+    );
+  }
+  return (
+    <span className="ml-auto shrink-0 flex items-center gap-2 text-xs">
+      {erro ? <span className="text-red-500">{erro}</span> : <span className="text-foreground/60">Apagar?</span>}
+      <button type="button" onClick={apagar} disabled={pending} className="font-bold text-red-500 disabled:opacity-50 cursor-pointer">
+        {pending ? "…" : "Sim"}
+      </button>
+      <button type="button" onClick={() => { setConfirmando(false); setErro(null); }} disabled={pending} className="text-foreground/50 cursor-pointer">
+        Não
+      </button>
+    </span>
+  );
+}
 
 function Card({ title, children }: { title: string; children: ReactNode }) {
   return (
@@ -187,7 +235,7 @@ function Secao({ show, save, children }: { show: string; save?: SaveAction; chil
   );
 }
 
-export function PatientFormFields({ p, save, tabInicial, contrato }: { p?: PatientFormData; save?: SaveAction; tabInicial?: string; contrato?: ReactNode }) {
+export function PatientFormFields({ p, save, tabInicial, contrato, patientId }: { p?: PatientFormData; save?: SaveAction; tabInicial?: string; contrato?: ReactNode; patientId?: string }) {
   const [tab, setTab] = useState(tabInicial || "dados");
   // Doc 22: no Editar paciente, uma aba "Contrato" ao lado de "Financeiro" mostra o mesmo contrato
   // do menu Contratos (montado no servidor e passado pronto). Só aparece quando há contrato (edição).
@@ -590,6 +638,8 @@ export function PatientFormFields({ p, save, tabInicial, contrato }: { p?: Patie
                         </span>
                       )}
                       <span className="text-foreground/70 font-medium">{e.texto}</span>
+                      {/* Lixeira só no reajuste, nunca na entrada (doc 27). Precisa saber qual paciente. */}
+                      {e.removivel && patientId && <LixeiraReajuste patientId={patientId} vigencia={e.data} />}
                     </li>
                   ))}
                 </ul>
