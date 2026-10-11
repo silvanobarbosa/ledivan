@@ -15,14 +15,12 @@ import { DESCRICOES, descricaoValida, montarRecibo, type DescricaoAtendimento } 
  */
 export function ReciboCard({ cpf, descricao, nome }: { cpf: string | null; descricao: string | null; nome: string | null }) {
   const router = useRouter();
-  const [valorCpf, setCpf] = useState(cpf ?? "");
   const [desc, setDesc] = useState<DescricaoAtendimento>(descricaoValida(descricao));
   const [pending, start] = useTransition();
   const [salvo, setSalvo] = useState(false);
 
   function salvar() {
     const fd = new FormData();
-    fd.set("therapistCpf", valorCpf);
     fd.set("descricaoAtendimento", desc);
     start(async () => { await saveDadosDoRecibo(fd); setSalvo(true); router.refresh(); setTimeout(() => setSalvo(false), 2000); });
   }
@@ -35,7 +33,7 @@ export function ReciboCard({ cpf, descricao, nome }: { cpf: string | null; descr
     valorTotal: 200,
     dataPagamento: new Date(2026, 8, 21, 12),
     terapeuta: nome || "seu nome",
-    terapeutaCpf: valorCpf,
+    terapeutaCpf: cpf ?? "",
     descricao: desc,
   });
 
@@ -46,29 +44,17 @@ export function ReciboCard({ cpf, descricao, nome }: { cpf: string | null; descr
         <p className="text-sm text-foreground/50">O que entra no recibo que você entrega ao paciente.</p>
       </div>
 
-      <div className="grid sm:grid-cols-2 gap-3">
-        <label className="block">
-          <span className="text-xs font-semibold text-foreground/60">Seu CPF</span>
-          <input
-            value={valorCpf}
-            onChange={(e) => setCpf(e.target.value)}
-            inputMode="numeric"
-            placeholder="000.000.000-00"
-            className="mt-1 w-full px-4 py-2.5 rounded-2xl bg-white/70 border border-border focus:ring-2 focus:ring-accent/20 focus:border-accent outline-none transition text-sm"
-          />
-        </label>
-
-        <label className="block">
-          <span className="text-xs font-semibold text-foreground/60">Descrição do atendimento</span>
-          <select
-            value={desc}
-            onChange={(e) => setDesc(e.target.value as DescricaoAtendimento)}
-            className="mt-1 w-full px-4 py-2.5 rounded-2xl bg-white/70 border border-border focus:ring-2 focus:ring-accent/20 focus:border-accent outline-none transition text-sm"
-          >
-            {DESCRICOES.map((d) => <option key={d.valor} value={d.valor}>{d.rotulo}</option>)}
-          </select>
-        </label>
-      </div>
+      <label className="block">
+        <span className="text-xs font-semibold text-foreground/60">Descrição do atendimento</span>
+        <select
+          value={desc}
+          onChange={(e) => setDesc(e.target.value as DescricaoAtendimento)}
+          className="mt-1 w-full px-4 py-2.5 rounded-2xl bg-white/70 border border-border focus:ring-2 focus:ring-accent/20 focus:border-accent outline-none transition text-sm"
+        >
+          {DESCRICOES.map((d) => <option key={d.valor} value={d.valor}>{d.rotulo}</option>)}
+        </select>
+      </label>
+      {!cpf && <p className="text-xs text-foreground/50">Defina seu CPF no <b>Perfil</b> acima — ele entra no recibo.</p>}
 
       <div>
         <p className="text-xs font-semibold text-foreground/40 uppercase tracking-widest mb-1">Como vai sair</p>

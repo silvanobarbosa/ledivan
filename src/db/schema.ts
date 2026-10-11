@@ -73,6 +73,16 @@ export const users = pgTable("user", {
   // Como o atendimento é descrito no recibo: "atendimentos terapêuticos", "psicanalíticos" ou
   // "psicológicos". A escolha é da terapeuta e vale para todos os recibos dela.
   descricaoAtendimento: text("descricao_atendimento"),
+  // Telefone profissional (vai no cabeçalho do contrato, linha de contato da analista). Doc 27.
+  therapistPhone: text("therapist_phone"),
+  // Nº do Conselho ou Associação (registro profissional no contrato). Doc 27.
+  conselho: text("conselho"),
+  // Dados que o CONTRATO precisa e só a analista sabe (doc 27). Preenchem os [campos] do modelo:
+  // endereço do consultório, cidade e estado (Foro + local da assinatura), plataforma do online.
+  enderecoContrato: text("endereco_contrato"),
+  cidade: text("cidade"),
+  estado: text("estado"),
+  plataformaOnline: text("plataforma_online"),
 
   preferences: text("preferences"), // JSON string
   role: text("role").default("user").notNull(), // user | admin (super admin)

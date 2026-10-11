@@ -101,13 +101,101 @@ export default async function SettingsPage() {
               </div>
 
               <div className="space-y-2">
+                <label className="text-xs font-bold text-foreground/30 uppercase tracking-widest">CPF</label>
+                <input
+                  name="therapistCpf"
+                  type="text"
+                  inputMode="numeric"
+                  placeholder="000.000.000-00"
+                  defaultValue={user.therapistCpf || ""}
+                  className="w-full p-4 bg-surface rounded-2xl border border-border focus:border-primary outline-none font-medium"
+                />
+                <p className="text-xs text-foreground/40">Usado no recibo e no contrato.</p>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-foreground/30 uppercase tracking-widest">Telefone</label>
+                <input
+                  name="therapistPhone"
+                  type="tel"
+                  placeholder="(00) 00000-0000"
+                  defaultValue={user.therapistPhone || ""}
+                  className="w-full p-4 bg-surface rounded-2xl border border-border focus:border-primary outline-none font-medium"
+                />
+              </div>
+
+              <div className="space-y-2">
                 <label className="text-xs font-bold text-foreground/30 uppercase tracking-widest">E-mail</label>
-                <input 
-                  type="email" 
-                  defaultValue={user.email} 
+                <input
+                  type="email"
+                  defaultValue={user.email}
                   disabled
                   className="w-full p-4 bg-surface rounded-2xl border border-border opacity-50 cursor-not-allowed font-medium"
                 />
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-foreground/30 uppercase tracking-widest">Nº do Conselho ou Associação</label>
+                <input
+                  name="conselho"
+                  type="text"
+                  placeholder="Ex: CRP 06/00000"
+                  defaultValue={user.conselho || ""}
+                  className="w-full p-4 bg-surface rounded-2xl border border-border focus:border-primary outline-none font-medium"
+                />
+              </div>
+
+              {/* Doc 27 — dados que só o contrato usa e que a analista precisa informar uma vez. */}
+              <div className="pt-6 border-t border-border space-y-6">
+                <div>
+                  <h4 className="text-sm font-bold text-foreground">Informações para o contrato</h4>
+                  <p className="text-xs text-foreground/40">Preenchem o cabeçalho e o foro do contrato impresso.</p>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-foreground/30 uppercase tracking-widest">Endereço do consultório</label>
+                  <input
+                    name="enderecoContrato"
+                    type="text"
+                    placeholder="Rua, número, bairro — cidade/UF"
+                    defaultValue={user.enderecoContrato || ""}
+                    className="w-full p-4 bg-surface rounded-2xl border border-border focus:border-primary outline-none font-medium"
+                  />
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-foreground/30 uppercase tracking-widest">Cidade</label>
+                    <input
+                      name="cidade"
+                      type="text"
+                      placeholder="Cidade"
+                      defaultValue={user.cidade || ""}
+                      className="w-full p-4 bg-surface rounded-2xl border border-border focus:border-primary outline-none font-medium"
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <label className="text-xs font-bold text-foreground/30 uppercase tracking-widest">Estado (UF)</label>
+                    <input
+                      name="estado"
+                      type="text"
+                      placeholder="UF"
+                      defaultValue={user.estado || ""}
+                      className="w-full p-4 bg-surface rounded-2xl border border-border focus:border-primary outline-none font-medium"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-foreground/30 uppercase tracking-widest">Plataforma do atendimento on-line</label>
+                  <input
+                    name="plataformaOnline"
+                    type="text"
+                    placeholder="Ex: Google Meet, Zoom"
+                    defaultValue={user.plataformaOnline || ""}
+                    className="w-full p-4 bg-surface rounded-2xl border border-border focus:border-primary outline-none font-medium"
+                  />
+                </div>
               </div>
 
               <div className="space-y-2">

@@ -24,18 +24,20 @@ export async function saveCobrancaMessage(formData: FormData) {
 }
 
 /**
- * Os dados que entram no RECIBO: CPF da terapeuta e como o atendimento e descrito.
+ * Como o atendimento é descrito no RECIBO.
  *
  * A descricao passa por `descricaoValida` e nao vai crua para o banco: um valor fora da lista
  * escreveria no recibo uma profissao que a pessoa nao tem — e recibo e documento.
+ *
+ * O CPF da terapeuta saiu daqui (doc 27): agora é campo do Perfil (`updateProfile`), fonte única,
+ * para não haver dois lugares salvando o mesmo dado e um sobrescrever o outro.
  */
 export async function saveDadosDoRecibo(formData: FormData) {
   const session = await auth();
   if (!session?.user?.id) throw new Error("Nao autorizado");
-  const cpf = ((formData.get("therapistCpf") as string) || "").trim().slice(0, 20);
   const descricao = descricaoValida((formData.get("descricaoAtendimento") as string) || null);
   await db.update(users)
-    .set({ therapistCpf: cpf || null, descricaoAtendimento: descricao })
+    .set({ descricaoAtendimento: descricao })
     .where(eq(users.id, session.user.id));
   revalidatePath("/dashboard/settings");
 }
@@ -208,9 +210,21 @@ export async function updateProfile(formData: FormData) {
 
   const name = formData.get("name") as string;
   const photo3x4 = (formData.get("photo3x4") as string) || null;
+  // Identidade profissional + dados do contrato (doc 27). Tudo opcional; vazio vira null.
+  const str = (k: string) => { const v = ((formData.get(k) as string) || "").trim(); return v || null; };
 
   await db.update(users)
-    .set({ name, ...(photo3x4 !== null ? { photo3x4 } : {}) })
+    .set({
+      name,
+      ...(photo3x4 !== null ? { photo3x4 } : {}),
+      therapistCpf: str("therapistCpf"),
+      therapistPhone: str("therapistPhone"),
+      conselho: str("conselho"),
+      enderecoContrato: str("enderecoContrato"),
+      cidade: str("cidade"),
+      estado: str("estado"),
+      plataformaOnline: str("plataformaOnline"),
+    })
     .where(eq(users.id, session.user.id));
 
   revalidatePath("/dashboard/settings");
