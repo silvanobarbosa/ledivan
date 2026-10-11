@@ -189,7 +189,7 @@ function RemoverUmPagamento({ patientId, pagamentoId }: { patientId: string; pag
   }
   return (
     <button type="button" onClick={acionar} disabled={pending} title="Remover este pagamento" aria-label="Remover este pagamento"
-      className="text-[#b91c1c] hover:bg-[#fef2f2] rounded p-0.5 disabled:opacity-50">
+      className="text-[#b91c1c] hover:bg-[#fef2f2] rounded p-0.5 disabled:opacity-50 print:hidden">
       <Trash2 className="w-3.5 h-3.5" />
     </button>
   );
@@ -230,8 +230,8 @@ function ListaLancamentos({ patientId, pagamentos, total }: { patientId: string;
                 {p.nota && <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#eef2ff] text-[#4338ca] whitespace-nowrap">nota emitida</span>}
               </div>
             )}
-            {/* Botões: Emitir recibo / Emitir nota */}
-            <div className="flex items-center gap-2 flex-wrap">
+            {/* Botões: Emitir recibo / Emitir nota (ações — fora do PDF, doc 30) */}
+            <div className="flex items-center gap-2 flex-wrap print:hidden">
               <Link href={`/dashboard/patients/${patientId}/recibo/${p.id}`}
                 className="text-[11px] font-semibold text-primary border border-border rounded-full px-2 py-0.5 hover:bg-surface whitespace-nowrap">
                 Emitir recibo
@@ -287,7 +287,7 @@ function ColunasDoPagamento({ patientId, c, onLancar, cobrar }: { patientId: str
       <td className="px-3 py-2">
         <div className="flex flex-col gap-1.5">
           <div className="flex items-center gap-2">
-            <button type="button" onClick={onLancar} className="text-xs font-bold text-white bg-primary px-3 py-1.5 rounded-lg hover:opacity-90 whitespace-nowrap">
+            <button type="button" onClick={onLancar} className="text-xs font-bold text-white bg-primary px-3 py-1.5 rounded-lg hover:opacity-90 whitespace-nowrap print:hidden">
               Lançar pagamento
             </button>
             <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full whitespace-nowrap ${s.cls}`}>{s.rotulo}</span>
@@ -301,7 +301,7 @@ function ColunasDoPagamento({ patientId, c, onLancar, cobrar }: { patientId: str
           )}
           {/* Doc 21/22: os lançamentos já feitos continuam na tela, um por linha, cada um com remover. */}
           <ListaLancamentos patientId={patientId} pagamentos={c.pagamentos} total={c.valor} />
-          <div className="flex items-center gap-2 flex-wrap">
+          <div className="flex items-center gap-2 flex-wrap print:hidden">
             <EnvioControle patientId={patientId} chave={c.chave} envio={c.envio} />
             {cobrar && <BotaoCobrar patientId={patientId} c={c} cobrar={cobrar} />}
           </div>
@@ -434,7 +434,7 @@ function FormularioDeLancamento({ patientId, c, responsavel, responsavelCpf, fec
   );
 }
 
-export function GeralTab({ patientId, linhas, responsavel, responsavelCpf, cobrar, ano }: { patientId: string; linhas: LinhaNaTela[]; responsavel: string; responsavelCpf?: string | null; cobrar?: CobrarInfo; ano: number }) {
+export function GeralTab({ patientId, linhas, responsavel, responsavelCpf, cobrar, ano }: { patientId: string; linhas: LinhaNaTela[]; responsavel: string; responsavelCpf?: string | null; cobrar?: CobrarInfo; ano: number | "TODOS" }) {
   const [aberta, setAberta] = useState<string | null>(null);
 
   // O filtro de ano é o MESMO da tabela de pagamentos (documento de 17/09): uma escolha só, e as
@@ -442,7 +442,8 @@ export function GeralTab({ patientId, linhas, responsavel, responsavelCpf, cobra
   // clique de distância.
   // A data que define o ano muda com o tipo da linha: a sessão tem a dela; o pagamento vale pelo
   // dia em que foi pago, e não pelo vencimento da cobrança que ele quitou.
-  const doAnoEscolhido = doAno(linhas, ano, (l) => (l.tipo === "sessao" || l.tipo === "bloqueio" ? l.data : l.pagamento?.data ?? l.vencimento));
+  // Doc 30: "TODOS" (ano = "TODOS") mostra todos os anos — passa `null` para o filtro (que devolve tudo).
+  const doAnoEscolhido = doAno(linhas, ano === "TODOS" ? null : ano, (l) => (l.tipo === "sessao" || l.tipo === "bloqueio" ? l.data : l.pagamento?.data ?? l.vencimento));
 
   if (!linhas.length) {
     return <div className="glass-card rounded-[24px] p-6 text-sm text-foreground/50">Nenhuma sessão registrada ainda.</div>;
