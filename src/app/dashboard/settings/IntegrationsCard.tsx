@@ -61,7 +61,7 @@ export function IntegrationsCard({ initial, calendarAuthorized = false }: { init
   const googleConnected = !!state.googleCalendar || !!state.gmail;
 
   return (
-    <div className="p-8 bg-white rounded-[48px] shadow-sm border border-border space-y-6">
+    <div className="glass-card rounded-[24px] p-6 space-y-6">
       <h3 className="text-xl font-bold flex items-center gap-2"><Plug className="w-5 h-5 text-primary" /> Integrações</h3>
 
       <div className="space-y-4">

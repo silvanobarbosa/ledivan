@@ -32,7 +32,7 @@ export function LocationsCard({ initial }: { initial: AttendanceLocation[] }) {
   }
 
   return (
-    <div id="locais" className="scroll-mt-24 p-8 bg-white rounded-[48px] shadow-sm border border-border space-y-4">
+    <div id="locais" className="scroll-mt-24 glass-card rounded-[24px] p-6 space-y-4">
       <h3 className="text-xl font-bold flex items-center gap-2">
         <MapPin className="w-5 h-5 text-primary" /> Endereços de atendimento presencial
       </h3>
