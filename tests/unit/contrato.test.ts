@@ -3,7 +3,7 @@ import { montarContrato } from "@/lib/contrato";
 
 describe("montarContrato", () => {
   // Paciente criança (nascido 2015 → < 18): regra de menor, responsável do cadastro no Responsável 1.
-  const base = { analistaNome: "Gisele Barbosa", analistaCpf: "123.456.789-00", descricaoAtendimento: "atendimentos psicanalíticos", pacienteNome: "João Silva", pacienteNascimento: new Date(2015, 5, 10), pacienteCpf: "111.222.333-44", responsavelNome: "Maria Silva", responsavelCpf: "987.654.321-00", valorSessao: 120, reajusteMeses: 6, pacienteEndereco: "Rua das Flores, 100 — Centro", responsavelTelefone: "(11) 99999-0000", pacienteTelefone: "(11) 88888-0000", duracaoMaxMin: 50, recorrencia: { freq: "semanal", vezesPorSemana: 1, repete: true }, horarioFixo: new Date(2026, 9, 6, 15, 0), formatoPagamento: "mensal", diaPagamento: 5, diaPagamento2: null, horasAntesPagamento: null };
+  const base = { analistaNome: "Gisele Barbosa", analistaCpf: "123.456.789-00", descricaoAtendimento: "atendimentos psicanalíticos", analistaConselho: null, analistaEndereco: null, analistaPlataforma: null, analistaTelefone: null, analistaEmail: null, cidade: null, estado: null, pacienteNome: "João Silva", pacienteNascimento: new Date(2015, 5, 10), pacienteCpf: "111.222.333-44", responsavelNome: "Maria Silva", responsavelCpf: "987.654.321-00", valorSessao: 120, reajusteMeses: 6, pacienteEndereco: "Rua das Flores, 100 — Centro", responsavelTelefone: "(11) 99999-0000", pacienteTelefone: "(11) 88888-0000", duracaoMaxMin: 50, recorrencia: { freq: "semanal", vezesPorSemana: 1, repete: true }, horarioFixo: new Date(2026, 9, 6, 15, 0), formatoPagamento: "mensal", diaPagamento: 5, diaPagamento2: null, horasAntesPagamento: null };
   it("preenche nome, CPF, valor e reajuste do que existe", () => {
     const t = montarContrato(base);
     expect(t).toContain("Nome: Gisele Barbosa");
@@ -111,5 +111,44 @@ describe("montarContrato", () => {
     const t = montarContrato({ ...base, formatoPagamento: "gratuito" });
     expect(t).toContain("4.2. Vencimento e Forma de Pagamento: Isento");
     expect(t).not.toContain("chave: [Sua Chave PIX]");
+  });
+
+  // Doc 27 — cabeçalho e foro preenchidos do Perfil; cláusula 4.2 sem a linha de PIX.
+  it("4.2 não mostra mais 'via [PIX...] na chave: [Sua Chave PIX]'", () => {
+    const t = montarContrato({ ...base, formatoPagamento: "mensal", diaPagamento: 5 });
+    expect(t).not.toContain("[Sua Chave PIX]");
+    expect(t).not.toContain("via [PIX");
+    expect(t).toContain("efetuado até o dia 5 do mês vigente.");
+  });
+  it("preenche conselho, endereço/plataforma e contato da analista quando há no Perfil", () => {
+    const t = montarContrato({ ...base, analistaConselho: "CRP 06/12345", analistaEndereco: "Av. Central, 10", analistaPlataforma: "Google Meet", analistaTelefone: "(11) 97777-0000", analistaEmail: "gi@exemplo.com" });
+    expect(t).toContain("Registro Profissional / Qualificação: CRP 06/12345 / CPF: 123.456.789-00");
+    expect(t).toContain("Endereço do Consultório / Plataforma: Av. Central, 10 / Google Meet");
+    expect(t).toContain("Telefone / E-mail: (11) 97777-0000 / gi@exemplo.com");
+  });
+  it("sem dados da analista, mantém os placeholders do cabeçalho", () => {
+    const t = montarContrato(base);
+    expect(t).toContain("[Nº do Conselho ou Associação]");
+    expect(t).toContain("[Endereço do Consultório ou Atendimento Online]");
+    expect(t).toContain("[Seu Contato Profissional]");
+  });
+  it("foro e local da assinatura usam cidade/estado do Perfil", () => {
+    const t = montarContrato({ ...base, cidade: "Campinas", estado: "SP" });
+    expect(t).toContain("Foro da Comarca de Campinas / SP");
+    expect(t).toContain("Campinas - SP, [Dia] de [Mês] de [Ano].");
+  });
+  it("sem cidade, mantém os placeholders de foro e local", () => {
+    const t = montarContrato(base);
+    expect(t).toContain("Foro da Comarca de [Sua Cidade / Estado]");
+    expect(t).toContain("[Cidade - UF], [Dia] de [Mês] de [Ano].");
+  });
+  it("assinatura: a linha do Responsável 2 só aparece quando há Responsável 2", () => {
+    // menor de 18 → só R1; a assinatura do R2 não deve aparecer.
+    const menor = montarContrato(base);
+    expect(menor).not.toContain("NOME DO RESPONSÁVEL 2");
+    expect((menor.match(/Contratante \/ Responsável Legal/g) || []).length).toBe(1);
+    // maior de 18 com responsável → R1 (responsável) e R2 (paciente): duas assinaturas.
+    const maior = montarContrato({ ...base, pacienteNascimento: new Date(1990, 0, 1) });
+    expect((maior.match(/Contratante \/ Responsável Legal/g) || []).length).toBe(2);
   });
 });

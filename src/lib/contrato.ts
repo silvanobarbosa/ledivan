@@ -13,6 +13,14 @@ export type DadosDoContrato = {
   analistaNome: string | null;
   analistaCpf: string | null;
   descricaoAtendimento: string | null; // "atendimentos terapêuticos" etc.
+  // Doc 27 — dados do Perfil que preenchem o cabeçalho e o foro (antes eram [placeholders] fixos).
+  analistaConselho: string | null; // Nº do Conselho ou Associação
+  analistaEndereco: string | null; // endereço do consultório
+  analistaPlataforma: string | null; // plataforma do atendimento on-line
+  analistaTelefone: string | null;
+  analistaEmail: string | null;
+  cidade: string | null; // comarca do foro + local da assinatura
+  estado: string | null; // UF
   // Paciente (cadastro)
   pacienteNome: string | null;
   pacienteNascimento: Date | null;
@@ -110,7 +118,16 @@ export function montarContrato(d: DadosDoContrato): string {
   // Gratuito: a cláusula 4.2 inteira vira "Isento"; senão, o vencimento conforme o formato.
   const linha42 = d.formatoPagamento === "gratuito"
     ? "4.2. Vencimento e Forma de Pagamento: Isento"
-    : `4.2. Vencimento e Forma de Pagamento: ${vencimentoDoContrato(d)}, via [PIX / Transferência / Cartão] na chave: [Sua Chave PIX].`;
+    : `4.2. Vencimento e Forma de Pagamento: ${vencimentoDoContrato(d)}.`;
+
+  // Doc 27 — cabeçalho e foro preenchidos do Perfil.
+  const limpo = (v: string | null) => (v && v.trim() ? v.trim() : null);
+  const enderecoPlataforma = [limpo(d.analistaEndereco), limpo(d.analistaPlataforma)].filter(Boolean).join(" / ") || "[Endereço do Consultório ou Atendimento Online]";
+  const contatoProf = [limpo(d.analistaTelefone), limpo(d.analistaEmail)].filter(Boolean).join(" / ") || "[Seu Contato Profissional]";
+  const cidade = limpo(d.cidade);
+  const estado = limpo(d.estado);
+  const foroCidadeUf = cidade ? `${cidade}${estado ? ` / ${estado}` : ""}` : "[Sua Cidade / Estado]";
+  const localAssinatura = cidade ? `${cidade}${estado ? ` - ${estado}` : ""}` : "[Cidade - UF]";
 
   /**
    * Preenchimento automático dos responsáveis por IDADE (doc 23):
@@ -141,9 +158,9 @@ export function montarContrato(d: DadosDoContrato): string {
 
 CONTRATADA (ANALISTA):
 Nome: ${ou(d.analistaNome, "Seu Nome Completo")}
-Registro Profissional / Qualificação: [Nº do Conselho ou Associação] / CPF: ${ou(d.analistaCpf, "CPF")}
-Endereço do Consultório / Plataforma: [Endereço do Consultório ou Atendimento Online]
-Telefone / E-mail: [Seu Contato Profissional]
+Registro Profissional / Qualificação: ${ou(d.analistaConselho, "Nº do Conselho ou Associação")} / CPF: ${ou(d.analistaCpf, "CPF")}
+Endereço do Consultório / Plataforma: ${enderecoPlataforma}
+Telefone / E-mail: ${contatoProf}
 
 CONTRATANTE(S) (RESPONSÁVEIS LEGAIS):
 Nome do Responsável 1: ${ou(r1Nome, "Nome Completo do Responsável")} — CPF: ${ou(r1Cpf, "CPF")}${r2Nome && r2Nome.trim() ? `
@@ -189,11 +206,11 @@ ${linha42}
 8.1. Processo de Encerramento: O desligamento exige um período de elaboração. Caso se decida interromper o tratamento, concorda-se com a realização de no mínimo [ex: 2 a 4] sessões de encerramento para o manejo da separação e fechamento do vínculo.
 
 9. DO FORO
-Para dirimir dúvidas oriundas deste contrato, as partes elegem o Foro da Comarca de [Sua Cidade / Estado], com renúncia a qualquer outro.
+Para dirimir dúvidas oriundas deste contrato, as partes elegem o Foro da Comarca de ${foroCidadeUf}, com renúncia a qualquer outro.
 
 Por estarem assim justos e contratados, assinam o presente instrumento em 2 (duas) vias de igual teor e forma.
 
-[Cidade - UF], [Dia] de [Mês] de [Ano].
+${localAssinatura}, [Dia] de [Mês] de [Ano].
 
 
 _______________________________________
@@ -201,9 +218,9 @@ ${ou(d.analistaNome, "NOME DA ANALISTA")} — Analista / Prestadora de Serviços
 
 
 _______________________________________
-${ou(r1Nome, "NOME DO RESPONSÁVEL 1")} — Contratante / Responsável Legal
+${ou(r1Nome, "NOME DO RESPONSÁVEL 1")} — Contratante / Responsável Legal${r2Nome && r2Nome.trim() ? `
 
 
 _______________________________________
-${ou(r2Nome, "NOME DO RESPONSÁVEL 2 (OPCIONAL)")} — Contratante / Responsável Legal`;
+${ou(r2Nome, "NOME DO RESPONSÁVEL 2")} — Contratante / Responsável Legal` : ""}`;
 }
