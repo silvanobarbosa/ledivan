@@ -7,6 +7,48 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-10-11 — Doc 28: contrato por modalidade, recibo por atendimento, card/perfil (#302–#307)
+
+**Entregue (6 frentes):**
+- **#302 — Contrato (texto + tela).** Título, objeto (2.1/2.2), reserva (5.1) e rótulo da assinatura
+  passam a seguir a **formação** escolhida nos Ajustes (terapia/psicanálise/psicologia). DAS PARTES
+  reescrito (rótulos sem "(Analista)/(Responsáveis)/(Beneficiário)", um item por linha); 3. sem
+  "SETTING ANALÍTICO"; 5.3/5.4 ANALISTA→PROFISSIONAL; 4.2 (gratuito = isenção indeterminada, 1ª/última
+  sessão sem "mês vigente"); data da assinatura = hoje. Na tela: campos auto-preenchidos + [colchetes]
+  em **negrito**, botão **Salvar** (`patients.contrato_texto`), imprime **2 vias**, justificado.
+- **#303 — Card + financeiro.** "Mensal/Quinzenal pacote" → "Pagamento mensal/quinzenal"; vencimento
+  quinzenal com 2 dias, 1ª/última sessão do pacote sem vencimento; lista com valor na 2ª linha
+  (mobile); menu sem Prontuário/Contratos/Mensagens; textos dos radios + contagem "(1/4, 2/4…)".
+- **#304 — Perfil/Ajustes.** Foto fora; "Endereço"; "Plataformas do atendimento online"; Telegram
+  vira card próprio abaixo do WhatsApp; âncoras removidas (coluna única); textos em bullets
+  (Consentimento/Pix/IA/Locais); toggle da transcrição com contraste.
+- **#305 — Motor do recibo** (`lib/reciboSequencia.ts`, puro). O recibo lista as **datas dos
+  atendimentos** (não a do pagamento): `valor ÷ valor da sessão` sessões, consumidas em **sequência**
+  sem repetir (determinístico pela ordem de lançamento), só **Presente** (`realizada`) e **Faltou**
+  (`nao_realizada`); nota **"Pagamento parcial do pacote que iniciou em DD/MM"** quando não fecha
+  sessão inteira.
+- **#306 — Recibo por lançamento.** Com >1 pagamento, cada lançamento tem Emitir recibo/nota + carimbo
+  ao lado da própria lixeira; com 1, o bloco único de cima.
+- **#307 — 2º ícone WhatsApp.** Ícone preto no card abre o histórico do que o sistema enviou por
+  WhatsApp (tabela `messages` out+whatsapp).
+
+**Decisões que ficam valendo:**
+- `users.descricaoAtendimento` guarda a FORMAÇÃO (`terapia|psicanalise|psicologia`), não a frase — é o
+  que chaveia título/objeto/assinatura do contrato.
+- Recibo: Presente=`realizada`, Faltou=`nao_realizada`; excluídos `cancelada`/`realocada`/
+  `prof_desmarcou`/`atestado`. A sequência é SEM estado guardado — recalculada da ordem dos pagamentos.
+- Contrato salvo (`contrato_texto`) tem prioridade sobre o gerado; a impressão usa o que está na tela,
+  salvo ou não.
+
+**Armadilhas:** `montarContrato` tem 2 callers (contrato/page e edit/page) — campo novo tem que ir nos
+dois. Campos auto saem com marcador `\u0001…\u0002`; teste usa `textoLimpo()`. Coluna aditiva em prod
+por `ALTER ... ADD COLUMN IF NOT EXISTS` (script tsx one-off, `sql.query` com placeholders).
+
+**Pendente:** nada do doc 28. Itens de layout vagos ("ocupe o espaço riscado") foram tratados alargando
+os blocos/removendo colunas estreitas — podem pedir um ajuste fino visual se o dono quiser.
+
+---
+
 ## 2026-10-10 — Doc 27: guia Geral (descritor/negrito) + Perfil↔contrato + lixeira de reajuste (#298–#300)
 
 **Entregue (4 frentes):**
