@@ -1,10 +1,11 @@
 import { notFound, redirect } from "next/navigation";
-import { and, asc, eq } from "drizzle-orm";
+import { and, eq, inArray } from "drizzle-orm";
 import { db } from "@/db";
 import { patients, sessionPayments, therapySessions, users } from "@/db/schema";
 import { auth } from "@/auth";
 import { descricaoValida, montarRecibo } from "@/lib/recibo";
 import { datasDoRecibo } from "@/lib/reciboSequencia";
+import { geralDoPaciente, type CobrancaNaTela } from "@/lib/geralDoPaciente";
 import { horaDeParede } from "@/lib/horaLocal";
 import { ReciboImpresso } from "./ReciboImpresso";
 
@@ -59,37 +60,51 @@ export default async function Recibo({ params }: { params: Promise<{ id: string;
     .limit(1);
 
   /**
-   * As datas dos ATENDIMENTOS que ESTE pagamento cobre (doc 28).
+   * As datas dos ATENDIMENTOS que ESTE pagamento cobre (doc 28/29).
    *
-   * Não é a data do pagamento: são as sessões Presente/Faltou que o valor paga, consumidas em
-   * sequência pela ordem de lançamento dos pagamentos (o 1º pega as primeiras datas, o 2º as
-   * próximas, sem repetir). A conta mora em `datasDoRecibo`, pura e testada.
+   * O recibo lista as sessões da COBRANÇA a que o pagamento pertence — nunca todas as sessões do
+   * paciente (era o bug do doc 28: cruzava a fronteira da cobrança e trazia data de outro pagamento,
+   * além de deixar vazar sessão gratuita). A cobrança já carrega o conjunto certo em `ids` (exclui
+   * gratuita, Desmarcou/Prof.desm/Atestado; inclui Presente/Faltou). Dentro da cobrança, as sessões
+   * são consumidas em sequência pela ordem dos pagamentos (`datasDoRecibo`, pura e testada).
    */
-  const [pagamentosDoPaciente, sessoesDoPaciente] = await Promise.all([
-    db.select({ id: sessionPayments.id, amount: sessionPayments.amount, date: sessionPayments.date })
-      .from(sessionPayments)
-      .where(and(eq(sessionPayments.patientId, patientId), eq(sessionPayments.userId, userId)))
-      .orderBy(asc(sessionPayments.date), asc(sessionPayments.id)),
-    db.select({ date: therapySessions.date, status: therapySessions.status })
-      .from(therapySessions)
-      .where(and(eq(therapySessions.patientId, patientId), eq(therapySessions.userId, userId))),
-  ]);
+  const geral = await geralDoPaciente(userId, patientId);
+  const cobrancas: CobrancaNaTela[] = [];
+  const vistas = new Set<string>();
+  for (const l of geral?.linhas ?? []) {
+    const c = l.tipo === "pagamento" ? l : (l.tipo === "sessao" ? l.cobranca : null);
+    if (c && !vistas.has(c.chave)) { vistas.add(c.chave); cobrancas.push(c); }
+  }
+  const cob = cobrancas.find((c) => c.pagamentos.some((p) => p.id === pagamento.id));
 
-  const seq = datasDoRecibo({
-    pagamentos: pagamentosDoPaciente.map((p) => ({ id: p.id, valor: Number(p.amount) || 0 })),
-    alvoId: pagamento.id,
-    sessoes: sessoesDoPaciente.map((s) => ({ data: new Date(horaDeParede(s.date)), status: s.status })),
-    valorSessao: Number(paciente.sessionFee) || 0,
-  });
+  let datasSeq: Date[] = [];
+  let parcialDe: Date | null = null;
+  if (cob) {
+    const sess = cob.ids.length
+      ? await db.select({ date: therapySessions.date, status: therapySessions.status })
+          .from(therapySessions)
+          .where(and(inArray(therapySessions.id, cob.ids), eq(therapySessions.userId, userId)))
+      : [];
+    // Preço da sessão nesta cobrança (não o do cadastro atual, que pode ter mudado).
+    const unit = cob.sessoes > 0 ? cob.valor / cob.sessoes : (Number(paciente.sessionFee) || 0);
+    const seq = datasDoRecibo({
+      pagamentos: cob.pagamentos.map((p) => ({ id: p.id, valor: p.valor })),
+      alvoId: pagamento.id,
+      sessoes: sess.map((s) => ({ data: new Date(horaDeParede(s.date)), status: s.status })),
+      valorSessao: unit,
+    });
+    datasSeq = seq.datas;
+    parcialDe = seq.parcial ? seq.inicioPacote : null;
+  }
 
-  // Sem datas de atendimento (ex.: pagamento preso a uma sessão, ou valor sem sessões): mantém o
-  // fallback antigo — a sessão vinculada, senão a data do pagamento — para o recibo nunca sair vazio.
+  // Sem datas de atendimento (ex.: pagamento solto, ou valor sem sessões): fallback — a sessão
+  // vinculada, senão a data do pagamento — para o recibo nunca sair vazio.
   const fallback = pagamento.sessionId
     ? (await db.select({ date: therapySessions.date }).from(therapySessions)
         .where(and(eq(therapySessions.id, pagamento.sessionId), eq(therapySessions.userId, userId))))
         .map((s) => new Date(horaDeParede(s.date)))
     : [];
-  const datas = seq.datas.length ? seq.datas : (fallback.length ? fallback : [new Date(horaDeParede(pagamento.date))]);
+  const datas = datasSeq.length ? datasSeq : (fallback.length ? fallback : [new Date(horaDeParede(pagamento.date))]);
 
   const texto = montarRecibo({
     responsavel: pagamento.pagoPor || paciente.guardianName || paciente.name,
@@ -101,7 +116,7 @@ export default async function Recibo({ params }: { params: Promise<{ id: string;
     terapeuta: terapeuta?.name || "",
     terapeutaCpf: terapeuta?.cpf,
     descricao: descricaoValida(terapeuta?.descricao),
-    parcialDe: seq.parcial ? seq.inicioPacote : null,
+    parcialDe,
   });
 
   const faltando = [
@@ -115,7 +130,7 @@ export default async function Recibo({ params }: { params: Promise<{ id: string;
       patientId={patientId}
       pagamentoId={pagamento.id}
       faltando={faltando}
-      semDatasDeSessao={seq.datas.length === 0 && fallback.length === 0}
+      semDatasDeSessao={datasSeq.length === 0 && fallback.length === 0}
     />
   );
 }

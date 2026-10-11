@@ -65,4 +65,22 @@ describe("datasDoRecibo (doc 28)", () => {
     const r = datasDoRecibo({ pagamentos: [{ id: "p1", valor: 100 }], alvoId: "zzz", sessoes, valorSessao: 50 });
     expect(r.datas).toEqual([]);
   });
+
+  // Doc 29 — a correção real foi ESCOPAR à cobrança (o recibo recebe só as sessões da cobrança do
+  // pagamento, já sem gratuita/Desmarcou/Prof.desm). Aqui o pool já vem escopado: 2 pagamentos de
+  // R$100 (sessão R$50) sobre as 4 sessões Presente da cobrança → 1º recibo as 2 primeiras, 2º as 2
+  // seguintes, sem repetir. (A 20/12 Prof.desm nem entra no pool, por isso não aparece.)
+  it("exemplo doc 29: dois R$100 numa cobrança de 4 → [1ª,2ª] e [3ª,4ª] datas, sem repetir", () => {
+    const poolDaCobranca = [
+      { data: d("2026-12-06"), status: "realizada" },
+      { data: d("2026-12-13"), status: "realizada" },
+      { data: d("2026-12-27"), status: "realizada" },
+      { data: d("2027-01-03"), status: "realizada" },
+    ];
+    const pagamentos = [{ id: "a", valor: 100 }, { id: "b", valor: 100 }];
+    const r1 = datasDoRecibo({ pagamentos, alvoId: "a", sessoes: poolDaCobranca, valorSessao: 50 });
+    const r2 = datasDoRecibo({ pagamentos, alvoId: "b", sessoes: poolDaCobranca, valorSessao: 50 });
+    expect(r1.datas.map(br)).toEqual(["06/12/2026", "13/12/2026"]);
+    expect(r2.datas.map(br)).toEqual(["27/12/2026", "03/01/2027"]);
+  });
 });
