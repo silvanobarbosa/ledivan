@@ -27,7 +27,7 @@ import {
   patientStatusColor,
   type RiskLevel,
 } from "@/lib/therapy";
-import { Phone, Plus, Pencil, Trash2, Mic, Loader2, FileText, Repeat, Download } from "lucide-react";
+import { Phone, Plus, Pencil, Trash2, Mic, Loader2, FileText, Repeat, Download, MessageSquare, X } from "lucide-react";
 import { anosDisponiveis } from "@/lib/filtroDeAno";
 
 type Patient = {
@@ -83,7 +83,7 @@ const inputCls = "w-full px-4 py-2.5 rounded-xl bg-white/70 border border-border
 const TABS = ["Geral", "Prontuário", "Atividades", "Materiais"] as const;
 
 export function PatientDetail({
-  patient, pagador, payments, statusHistory, records, transcriptionEnabled, risk: _risk, assignments, moodToken, moodLogs, scales, treatmentGoals, diaryEntries = [], ratings = [], consents = [], contractHistory: _contractHistory = [], finance, sessionStats, recurring, statusEnabled = false, dailyStatus = [], sharedWritings = [], geral = [], cobrancaMessage = null,
+  patient, pagador, payments, statusHistory, records, transcriptionEnabled, risk: _risk, assignments, moodToken, moodLogs, scales, treatmentGoals, diaryEntries = [], ratings = [], consents = [], contractHistory: _contractHistory = [], finance, sessionStats, recurring, statusEnabled = false, dailyStatus = [], sharedWritings = [], geral = [], cobrancaMessage = null, whatsappEnviadas = [],
 }: {
   patient: Patient; pagador: Pagador; sessions: Session[]; payments: Payment[];
   statusHistory: StatusEntry[]; priceHistory: PriceEntry[]; records: RecordEntry[];
@@ -111,6 +111,8 @@ export function PatientDetail({
   geral?: LinhaNaTela[];
   /** Modelo da mensagem de cobrança da terapeuta (para o botão "Cobrar" da guia Geral). */
   cobrancaMessage?: string | null;
+  /** Doc 28: mensagens que o sistema ENVIOU ao paciente por WhatsApp (2º ícone do card). */
+  whatsappEnviadas?: { text: string; createdAt: string }[];
 }) {
   const router = useRouter();
   // Os anos que o paciente tem: das linhas da Geral e dos pagamentos. O corrente entra sempre.
@@ -135,6 +137,8 @@ export function PatientDetail({
   const statusLabel = patient.patientStatus === "inativo" ? "Inativo" : "Ativo";
   const [showRecord, setShowRecord] = useState(false);
   const [showAnamnese, setShowAnamnese] = useState(false);
+  // Doc 28: modal do histórico de WhatsApp enviado pelo sistema (2º ícone).
+  const [showWhatsapp, setShowWhatsapp] = useState(false);
   // transcrição
   const [showTranscribe, setShowTranscribe] = useState(false);
   const [consent, setConsent] = useState(false);
@@ -170,6 +174,37 @@ export function PatientDetail({
 
   return (
     <div className="space-y-6">
+      {/* Doc 28: histórico de WhatsApp enviado pelo sistema (modal do 2º ícone). */}
+      {showWhatsapp && (
+        <div className="fixed inset-0 z-50 bg-black/40 flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={() => setShowWhatsapp(false)}>
+          <div className="bg-white w-full sm:max-w-lg sm:rounded-3xl rounded-t-3xl max-h-[85vh] flex flex-col shadow-xl" onClick={(e) => e.stopPropagation()}>
+            <div className="flex items-center justify-between p-5 border-b border-border">
+              <div>
+                <h3 className="font-display font-bold text-primary">Mensagens enviadas por WhatsApp</h3>
+                <p className="text-xs text-foreground/50">O que o sistema Le&rsquo;Divan enviou a {patient.name}.</p>
+              </div>
+              <button type="button" onClick={() => setShowWhatsapp(false)} aria-label="Fechar" className="p-2 rounded-xl hover:bg-surface cursor-pointer">
+                <X className="w-5 h-5 text-foreground/60" />
+              </button>
+            </div>
+            <div className="overflow-y-auto p-5 space-y-3">
+              {whatsappEnviadas.length === 0 ? (
+                <p className="text-sm text-foreground/50 text-center py-8">Nenhuma mensagem enviada por WhatsApp ainda.</p>
+              ) : (
+                whatsappEnviadas.map((m, i) => (
+                  <div key={i} className="rounded-2xl bg-surface border border-border p-3">
+                    <p className="text-sm text-foreground/80 whitespace-pre-wrap break-words">{m.text}</p>
+                    <p className="text-[11px] text-foreground/40 mt-1.5 tabular-nums">
+                      {new Date(m.createdAt).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+                    </p>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="glass-card rounded-[32px] p-6 lg:p-8 space-y-4">
         <div className="flex items-start gap-5">
@@ -221,6 +256,16 @@ export function PatientDetail({
             desçam de linha em vez de saírem pela borda. */}
         <div className="flex flex-wrap items-center gap-2">
           <MessagePatient patient={{ id: patient.id, name: patient.name, phone: patient.phone, email: patient.email }} />
+          {/* Doc 28: 2º ícone de mensagem (preenchido em preto) — histórico do que o sistema enviou por WhatsApp. */}
+          <button
+            type="button"
+            onClick={() => setShowWhatsapp(true)}
+            title="Mensagens enviadas pelo sistema via WhatsApp"
+            aria-label="Mensagens enviadas pelo sistema via WhatsApp"
+            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-foreground text-white font-semibold text-sm hover:opacity-90 transition cursor-pointer"
+          >
+            <MessageSquare className="w-4 h-4" fill="currentColor" /> Enviadas
+          </button>
           <a
             href={`/prontuario/${patient.id}`}
             target="_blank"
