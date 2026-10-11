@@ -210,16 +210,15 @@ function ListaLancamentos({ patientId, pagamentos, total }: { patientId: string;
     <div className="text-[11px] text-foreground/55 tabular-nums space-y-0.5">
       {pagamentos.map((p) => {
         const forma = p.metodo ? PAYMENT_METHOD_LABELS[p.metodo] ?? p.metodo : null;
-        const partesDaLinha = [
-          unicoNoTotal ? null : formatBRL(p.valor),
-          partes(p.data).data,
-          forma,
-          p.pagoPor || null,
-        ].filter(Boolean);
+        // Doc 27: [valor ·] data · forma em NEGRITO na 1ª linha; o responsável quebra para a linha de baixo.
+        const topo = [unicoNoTotal ? null : formatBRL(p.valor), partes(p.data).data, forma].filter(Boolean).join(" · ");
         return (
-          <div key={p.id} className="flex items-center gap-1.5">
-            <span>{partesDaLinha.join(" · ")}</span>
-            <RemoverUmPagamento patientId={patientId} pagamentoId={p.id} />
+          <div key={p.id}>
+            <div className="flex items-center gap-1.5">
+              <span className="font-bold text-foreground/70">{topo}</span>
+              <RemoverUmPagamento patientId={patientId} pagamentoId={p.id} />
+            </div>
+            {p.pagoPor ? <div className="text-foreground/55">{p.pagoPor}</div> : null}
           </div>
         );
       })}
@@ -456,10 +455,9 @@ export function GeralTab({ patientId, linhas, responsavel, responsavelCpf, cobra
                 return (
                   <Fragment key={l.chave}>
                     <tr className="border-t border-border bg-[#fef9ec]" data-chave={l.chave}>
-                      {/* Doc 26: a data de pagamento saiu da coluna Data/hora — ela já aparece nos dados do
-                          pagamento (célula Pagamento). E o descritor da cobrança ocupa as colunas Sessão+Status. */}
-                      <td className="px-3 py-2" />
-                      <td className="px-3 py-2" colSpan={2}>
+                      {/* Doc 27: o descritor "Pagamento · X sessões · vence" mescla as 3 primeiras colunas
+                          (Data/hora + Sessão + Status). A data de pagamento vive nos dados do pagamento. */}
+                      <td className="px-3 py-2" colSpan={3}>
                         {/* A quinzena tem nome, nao numero: uma cobranca sozinha marcada "2/2" parece que perdeu a outra
                             — e desde 17/09 a quinzena sem atendimento nao gera linha nenhuma. */}
                         <span className="font-bold text-[#92400e]">Pagamento{l.parte ? ` · ${l.parte === 2 ? "2ª" : "1ª"} quinzena` : ""}</span>
