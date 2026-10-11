@@ -43,9 +43,63 @@ export type DadosDoContrato = {
   diaPagamento: number | null;
   diaPagamento2: number | null;
   horasAntesPagamento: number | null;
+  // Data em que o contrato está sendo visto (doc 28) — preenche a linha da assinatura. O caller passa
+  // `new Date()`; fica como parâmetro para a função seguir pura/testável.
+  hoje: Date | null;
 };
 
-const ou = (v: string | null | undefined, placeholder: string) => (v && String(v).trim() ? String(v).trim() : `[${placeholder}]`);
+import { descricaoValida, type DescricaoAtendimento } from "./recibo";
+
+/**
+ * Marcadores de CAMPO PREENCHIDO PELO SISTEMA (doc 28): tudo que o app preenche sozinho sai entre
+ * \u0001…\u0002 para a tela destacar em negrito. Os campos que ainda faltam saem entre [colchetes]
+ * (também em negrito, para a analista achar o que completar). São dois caracteres de controle que
+ * não existem no texto do contrato — a impressão nunca os mostra; o `ContratoImpresso` os troca por
+ * <strong>. Em contexto sem formatação (teste), `textoLimpo` tira os marcadores.
+ */
+export const AUTO_L = "\u0001";
+export const AUTO_R = "\u0002";
+const neg = (v: string | number) => `${AUTO_L}${v}${AUTO_R}`;
+
+/** Remove os marcadores de negrito — para comparar/afirmar sobre o texto puro. */
+export function textoLimpo(s: string): string {
+  return s.split(AUTO_L).join("").split(AUTO_R).join("");
+}
+
+// Valor do sistema sai em negrito; o que falta sai como [placeholder].
+const ou = (v: string | null | undefined, placeholder: string) => (v && String(v).trim() ? neg(String(v).trim()) : `[${placeholder}]`);
+
+/** Texto fixo da cláusula/assinatura conforme a formação escolhida nos Ajustes (doc 28). */
+const PELA_MODALIDADE: Record<DescricaoAtendimento, { titulo: string; objeto: string; processo: string; reserva: string; assinatura: string }> = {
+  terapia: {
+    titulo: "TERAPIA",
+    objeto: "a prestação de serviços de Atendimento terapêutico voltados ao PACIENTE acima identificado",
+    processo: "terapêutico",
+    reserva: "Na terapia",
+    assinatura: "Terapeuta",
+  },
+  psicanalise: {
+    titulo: "PSICANÁLISE",
+    objeto: "a prestação de serviços de Atendimento e Análise Psicanalítica voltados ao desenvolvimento psíquico, escuta e elaboração do sofrimento do PACIENTE acima identificado",
+    processo: "psicanalítico",
+    reserva: "Na psicanálise",
+    assinatura: "Psicanalista",
+  },
+  psicologia: {
+    titulo: "PSICOLOGIA",
+    objeto: "a prestação de serviços de Atendimento Psicológico voltados ao desenvolvimento psíquico, escuta e elaboração do sofrimento do PACIENTE acima identificado",
+    processo: "psicológico",
+    reserva: "Na psicologia",
+    assinatura: "Psicólogo(a)",
+  },
+};
+
+const MESES_PT = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
+/** "11 de outubro de 2026" — a data em que o contrato está sendo visto (doc 28). */
+function dataPorExtenso(d: Date | null): string {
+  if (!d || Number.isNaN(d.getTime())) return "[Dia] de [Mês] de [Ano]";
+  return `${d.getDate()} de ${MESES_PT[d.getMonth()]} de ${d.getFullYear()}`;
+}
 
 function idadeNum(nasc: Date | null): number | null {
   if (!nasc) return null;
@@ -54,11 +108,6 @@ function idadeNum(nasc: Date | null): number | null {
   const m = hoje.getMonth() - nasc.getMonth();
   if (m < 0 || (m === 0 && hoje.getDate() < nasc.getDate())) anos--;
   return anos;
-}
-
-function idadeEm(nasc: Date | null): string {
-  const n = idadeNum(nasc);
-  return n == null ? "[idade]" : String(n);
 }
 
 const dataBR = (d: Date | null) => (d ? d.toLocaleDateString("pt-BR") : "[DD/MM/AAAA]");
@@ -90,44 +139,62 @@ function horarioFixoDoContrato(dt: Date | null): string {
   return `Toda ${dia}, às ${hh}h${mm}`;
 }
 
-/** Texto do vencimento da cláusula 4.2 conforme o formato de pagamento (doc 26). */
+/** Texto do vencimento da cláusula 4.2 conforme o formato de pagamento (doc 26/28). */
 function vencimentoDoContrato(d: DadosDoContrato): string {
-  const dia = (v: number | null) => (v != null ? String(v) : "[x]");
+  const dia = (v: number | null) => (v != null ? neg(v) : "[x]");
   switch (d.formatoPagamento) {
     case "mensal":
       return `O pagamento deverá ser efetuado até o dia ${dia(d.diaPagamento)} do mês vigente`;
     case "primeira_pacote":
-      return "O pagamento deverá ser efetuado até a data da primeira sessão do pacote do mês vigente";
+      return "O pagamento deverá ser efetuado até a primeira sessão de cada pacote";
     case "ultima_pacote":
-      return "O pagamento deverá ser efetuado até a data da última sessão do pacote do mês vigente";
+      return "O pagamento deverá ser efetuado até a última sessão de cada pacote";
     case "quinzenal":
       return `O pagamento deverá ser efetuado nos dias ${dia(d.diaPagamento)} e ${dia(d.diaPagamento2)} do mês vigente`;
     case "sessao":
-      return `O pagamento deverá ser efetuado até ${d.horasAntesPagamento != null ? d.horasAntesPagamento : "[x]"} horas antes do atendimento`;
+      return `O pagamento deverá ser efetuado até ${d.horasAntesPagamento != null ? neg(d.horasAntesPagamento) : "[x]"} horas antes da sessão`;
     default:
       return "O pagamento deverá ser efetuado até o dia [ex: 5º dia útil / ao final de cada sessão]";
   }
 }
 
 export function montarContrato(d: DadosDoContrato): string {
-  const reajusteMes = d.reajusteMeses && d.reajusteMeses > 0 ? `a cada ${d.reajusteMeses} ${d.reajusteMeses === 1 ? "mês" : "meses"}` : "[periodicidade]";
+  // Formação escolhida nos Ajustes decide título, objeto (2.1/2.2), reserva (5.1) e rótulo da
+  // assinatura (doc 28).
+  const m = PELA_MODALIDADE[descricaoValida(d.descricaoAtendimento)];
+
+  const reajusteMes = d.reajusteMeses && d.reajusteMeses > 0 ? neg(`a cada ${d.reajusteMeses} ${d.reajusteMeses === 1 ? "mês" : "meses"}`) : "[periodicidade]";
   // Enquadre dinâmico (doc 26).
-  const duracaoTxt = d.duracaoMaxMin && d.duracaoMaxMin > 0 ? `até ${d.duracaoMaxMin} minutos` : "até [ex: 45 a 50 minutos]";
+  const duracaoTxt = d.duracaoMaxMin && d.duracaoMaxMin > 0 ? `até ${neg(`${d.duracaoMaxMin} minutos`)}` : "até [ex: 45 a 50 minutos]";
   const frequenciaTxt = frequenciaDoContrato(d.recorrencia);
   const horarioFixoTxt = horarioFixoDoContrato(d.horarioFixo);
-  // Gratuito: a cláusula 4.2 inteira vira "Isento"; senão, o vencimento conforme o formato.
+  // Gratuito (doc 28): a cláusula 4.2 inteira é a isenção por tempo indeterminado; senão, o
+  // vencimento conforme o formato.
   const linha42 = d.formatoPagamento === "gratuito"
-    ? "4.2. Vencimento e Forma de Pagamento: Isento"
+    ? "4.2. Vencimento e Forma de Pagamento: Isento de qualquer tipo de pagamento por tempo indeterminado. Não há data de vencimento nem obrigação de pagamento enquanto essa condição estiver vigente."
     : `4.2. Vencimento e Forma de Pagamento: ${vencimentoDoContrato(d)}.`;
 
-  // Doc 27 — cabeçalho e foro preenchidos do Perfil.
+  // Doc 27/28 — cabeçalho (cada item em sua linha) e foro preenchidos do Perfil.
+  const enderecoProf = ou(d.analistaEndereco, "Endereço");
+  const plataformaProf = ou(d.analistaPlataforma, "Plataforma utilizada para atendimentos online");
+  const telefoneProf = ou(d.analistaTelefone, "Telefone");
+  const emailProf = ou(d.analistaEmail, "E-mail");
   const limpo = (v: string | null) => (v && v.trim() ? v.trim() : null);
-  const enderecoPlataforma = [limpo(d.analistaEndereco), limpo(d.analistaPlataforma)].filter(Boolean).join(" / ") || "[Endereço do Consultório ou Atendimento Online]";
-  const contatoProf = [limpo(d.analistaTelefone), limpo(d.analistaEmail)].filter(Boolean).join(" / ") || "[Seu Contato Profissional]";
   const cidade = limpo(d.cidade);
   const estado = limpo(d.estado);
-  const foroCidadeUf = cidade ? `${cidade}${estado ? ` / ${estado}` : ""}` : "[Sua Cidade / Estado]";
-  const localAssinatura = cidade ? `${cidade}${estado ? ` - ${estado}` : ""}` : "[Cidade - UF]";
+  const foroCidadeUf = cidade ? `${neg(`${cidade}${estado ? ` / ${estado}` : ""}`)}` : "[Sua Cidade / Estado]";
+  const localAssinatura = cidade ? `${neg(`${cidade}${estado ? ` - ${estado}` : ""}`)}` : "[Cidade - UF]";
+  const dataAssinatura = d.hoje && !Number.isNaN(d.hoje.getTime()) ? neg(dataPorExtenso(d.hoje)) : dataPorExtenso(null);
+
+  // Contato do CONTRATANTE: telefone do responsável, senão o do paciente (doc 25).
+  const telefoneContratante = ou(d.responsavelTelefone?.trim() ? d.responsavelTelefone : d.pacienteTelefone, "Telefone de Contato");
+  const enderecoContratante = ou(d.pacienteEndereco, "Endereço Residencial Completo");
+  // Valor por sessão, data de nascimento e idade em negrito quando preenchidos.
+  const valorRaw = reaisBR(d.valorSessao);
+  const valorSessaoTxt = valorRaw.startsWith("[") ? valorRaw : neg(`R$ ${valorRaw}`);
+  const nascimentoTxt = d.pacienteNascimento ? neg(dataBR(d.pacienteNascimento)) : "[DD/MM/AAAA]";
+  const idadeNumero = idadeNum(d.pacienteNascimento);
+  const idadeTxt = idadeNumero != null ? neg(String(idadeNumero)) : "[idade]";
 
   /**
    * Preenchimento automático dos responsáveis por IDADE (doc 23):
@@ -152,45 +219,56 @@ export function montarContrato(d: DadosDoContrato): string {
     r2Nome = null; r2Cpf = null;
   }
 
-  return `CONTRATO DE PRESTAÇÃO DE SERVIÇOS DE PSICANÁLISE
+  return `CONTRATO DE PRESTAÇÃO DE SERVIÇOS DE ${m.titulo}
 
 1. DAS PARTES
 
-CONTRATADA (ANALISTA):
+CONTRATADA:
 Nome: ${ou(d.analistaNome, "Seu Nome Completo")}
-Registro Profissional / Qualificação: ${ou(d.analistaConselho, "Nº do Conselho ou Associação")} / CPF: ${ou(d.analistaCpf, "CPF")}
-Endereço do Consultório / Plataforma: ${enderecoPlataforma}
-Telefone / E-mail: ${contatoProf}
+Registro Profissional: ${ou(d.analistaConselho, "Nº do Conselho ou Associação")}
+CPF: ${ou(d.analistaCpf, "CPF")}
+Endereço: ${enderecoProf}
+Plataforma utilizada para atendimentos online: ${plataformaProf}
+Telefone: ${telefoneProf}
+E-mail: ${emailProf}
 
-CONTRATANTE(S) (RESPONSÁVEIS LEGAIS):
-Nome do Responsável 1: ${ou(r1Nome, "Nome Completo do Responsável")} — CPF: ${ou(r1Cpf, "CPF")}${r2Nome && r2Nome.trim() ? `
-Nome do Responsável 2: ${ou(r2Nome, "Nome Completo do Responsável")} — CPF: ${ou(r2Cpf, "CPF")}` : ""}
-Endereço: ${ou(d.pacienteEndereco, "Endereço Residencial Completo")}
-Telefone / E-mail de Contato: ${ou(d.responsavelTelefone?.trim() ? d.responsavelTelefone : d.pacienteTelefone, "Telefone de Contato")}
+CONTRATANTE(S):
+Nome do Responsável: ${ou(r1Nome, "Nome Completo do Responsável")}
+CPF: ${ou(r1Cpf, "CPF")}
+Endereço: ${enderecoContratante}
+Telefone: ${telefoneContratante}
+E-mail: [E-mail de Contato]${r2Nome && r2Nome.trim() ? `
 
-PACIENTE (BENEFICIÁRIO):
+Nome do Responsável 2: ${ou(r2Nome, "Nome Completo do Responsável")}
+CPF: ${ou(r2Cpf, "CPF")}
+Endereço: ${enderecoContratante}
+Telefone: ${telefoneContratante}
+E-mail: [E-mail de Contato]` : ""}
+
+PACIENTE:
 Nome: ${ou(d.pacienteNome, "Nome do Paciente")}
-Data de Nascimento: ${dataBR(d.pacienteNascimento)} — Idade: ${idadeEm(d.pacienteNascimento)} anos
+Data de Nascimento: ${nascimentoTxt}
+Idade: ${idadeTxt} anos
 
 2. DO OBJETO DO CONTRATO
-2.1. O presente instrumento tem por objeto a prestação de serviços de Atendimento e Análise Psicanalítica voltados ao desenvolvimento psíquico, escuta e elaboração do sofrimento do PACIENTE acima identificado.
-2.2. Por se tratar de um processo psicanalítico, a prestação de serviços é de meio, e não de fim, dependendo do engajamento do paciente e da sustentação do enquadre pelos seus responsáveis.
+2.1. O presente instrumento tem por objeto ${m.objeto}.
+2.2. Por se tratar de um processo ${m.processo}, a prestação de serviços é de meio, e não de fim, dependendo do engajamento do paciente e da sustentação do enquadre pelos seus responsáveis.
 
-3. DO ENQUADRE CLÍNICO (SETTING ANALÍTICO) E HORÁRIOS
+3. DO ENQUADRE CLÍNICO E HORÁRIOS
 3.1. Frequência e Duração: As sessões terão a duração de ${duracaoTxt}, ${frequenciaTxt}.
 3.2. Horário Fixo: Fica reservado ao paciente o seguinte horário semanal fixo: ${horarioFixoTxt}.
 3.3. Pontualidade: O horário reservado pertence exclusivamente ao paciente. Atrasos por parte do paciente/responsáveis não implicarão na prorrogação do tempo da sessão.
 
 4. DOS HONORÁRIOS, FORMA DE PAGAMENTO E REAJUSTE
-4.1. Valor por Sessão / Mensalidade: O valor acordado por cada sessão é de R$ ${reaisBR(d.valorSessao)}, totalizando o valor mensal variável conforme o número de semanas/sessões do mês.
+4.1. Valor por Sessão / Mensalidade: O valor acordado por cada sessão é de ${valorSessaoTxt}, totalizando o valor mensal variável conforme o número de semanas/sessões do mês.
 ${linha42}
 4.3. Reajuste: O valor dos honorários poderá ser reajustado ${reajusteMes}, mediante prévio aviso de 30 (trinta) dias aos responsáveis.
 
 5. DA POLÍTICA DE FALTAS, DESMARCAÇÕES E REAGENDAMENTOS
-5.1. Reserva do Horário: Na psicanálise, o pagamento remunera a reserva exclusiva do tempo e do espaço clínico colocados à disposição do paciente.
+5.1. Reserva do Horário: ${m.reserva}, o pagamento remunera a reserva exclusiva do tempo e do espaço clínico colocados à disposição do paciente.
 5.2. Faltas do Paciente: As sessões desmarcadas pelos responsáveis ou pelo paciente serão cobradas normalmente, independentemente do motivo (saúde, viagens, imprevistos ou compromissos escolares).
-5.3. Reagendamento: Havendo disponibilidade de agenda por parte da ANALISTA, poderá ser oferecido um horário alternativo na mesma semana, sem que isso constitua obrigação contratual.
-5.4. Faltas da Analista: Caso a ANALISTA precise desmarcar por motivo de força maior, a sessão não será cobrada ou será obrigatoriamente reposta em horário mutuamente combinado.
+5.3. Reagendamento: Havendo disponibilidade de agenda por parte do PROFISSIONAL, poderá ser oferecido um horário alternativo na mesma semana, sem que isso constitua obrigação contratual.
+5.4. Faltas do Profissional: Caso o PROFISSIONAL precise desmarcar por motivo de força maior, a sessão não será cobrada ou será obrigatoriamente reposta em horário mutuamente combinado.
 5.5. Recessos e Feriados: Não haverá cobrança de sessões que coincidirem com recessos previstos e comunicados previamente (ex: Férias de Julho/Dezembro) ou feriados em que o consultório não funcione.
 
 6. DO SIGILO PROFISSIONAL E SESSÕES DE ORIENTAÇÃO DE PAIS
@@ -210,11 +288,11 @@ Para dirimir dúvidas oriundas deste contrato, as partes elegem o Foro da Comarc
 
 Por estarem assim justos e contratados, assinam o presente instrumento em 2 (duas) vias de igual teor e forma.
 
-${localAssinatura}, [Dia] de [Mês] de [Ano].
+${localAssinatura}, ${dataAssinatura}.
 
 
 _______________________________________
-${ou(d.analistaNome, "NOME DA ANALISTA")} — Analista / Prestadora de Serviços
+${ou(d.analistaNome, "NOME DA ANALISTA")} — ${m.assinatura}
 
 
 _______________________________________

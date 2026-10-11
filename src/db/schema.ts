@@ -425,6 +425,9 @@ export const patients = pgTable("patients", {
   // Quinzenal tem dois dias de pagamento; o primeiro reaproveita `paymentDay`.
   paymentDay2: integer("payment_day_2"),
   sessionsInPacket: integer("sessions_in_packet"), // tamanho do pacote (2/4/8)
+  // Contrato editado e SALVO para este paciente (doc 28): quando preenchido, a tela abre com este
+  // texto no lugar do contrato gerado. Null = usa o contrato montado dos dados atuais.
+  contratoTexto: text("contrato_texto"),
   packageCreditsUsed: integer("package_credits_used").default(0).notNull(), // créditos do pacote já consumidos
   deductPackageOnSession: boolean("deduct_package_on_session").default(true).notNull(), // sessão realizada abate do pacote (senão, abate no pagamento)
   // Lembrete de sessao (escolha do terapeuta por paciente)

@@ -813,6 +813,28 @@ export async function dispensarDevolutiva(patientId: string, proximaISO: string)
 }
 
 /**
+ * Salva o contrato editado deste paciente (doc 28).
+ *
+ * O contrato abre gerado dos dados; a analista edita na tela e pode salvar para a próxima visita já
+ * vir com o texto dela. A impressão usa o que está na tela — salvar ou não não muda isso; salvar só
+ * persiste. Texto vazio limpa o override (volta ao contrato gerado).
+ */
+export async function salvarContrato(patientId: string, texto: string): Promise<{ ok: boolean; error?: string }> {
+  const session = await auth();
+  if (!session?.user?.id) return { ok: false, error: "Não autorizado" };
+  const userId = session.user.id;
+  const limpo = (texto || "").slice(0, 20000).trim();
+  const r = await db.update(patients)
+    .set({ contratoTexto: limpo || null })
+    .where(and(eq(patients.id, patientId), eq(patients.userId, userId)));
+  // `and`/`eq` já garantem o dono — paciente de outro consultório não é tocado.
+  void r;
+  revalidatePath(`/dashboard/patients/${patientId}/edit`);
+  revalidatePath(`/dashboard/patients/${patientId}/contrato`);
+  return { ok: true };
+}
+
+/**
  * Apaga um REAJUSTE do histórico (doc 27, "lixeira").
  *
  * A lixeira só existe nos reajustes — nunca na ENTRADA (o primeiro preço e o primeiro formato), que

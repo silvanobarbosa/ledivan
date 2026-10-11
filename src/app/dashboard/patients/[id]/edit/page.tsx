@@ -45,7 +45,8 @@ export default async function EditPatientPage({ params, searchParams }: { params
   // os dados da analista (Ajustes) e do paciente/responsável (cadastro). Igual a /contrato.
   const prof = await db.query.users.findFirst({ where: eq(users.id, session.user.id) });
   const enq = await enquadreDaAgenda(session.user.id, id, patient.timesPerPeriod);
-  const contratoTexto = montarContrato({
+  // Doc 28: contrato salvo para este paciente tem prioridade sobre o gerado.
+  const contratoTexto = patient.contratoTexto ?? montarContrato({
     analistaNome: prof?.name ?? null,
     analistaCpf: prof?.therapistCpf ?? null,
     descricaoAtendimento: prof?.descricaoAtendimento ?? null,
@@ -73,6 +74,7 @@ export default async function EditPatientPage({ params, searchParams }: { params
     diaPagamento: patient.paymentDay,
     diaPagamento2: patient.paymentDay2,
     horasAntesPagamento: patient.horasAntesPagamento,
+    hoje: new Date(),
   });
 
   return (
