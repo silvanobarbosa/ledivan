@@ -36,7 +36,8 @@ export function FeaturesCard({ initial }: { initial: { modes: FeatureModes; time
         {FEATURES.map((f) => {
           const mode = modes[f.key] ?? "off";
           return (
-            <div key={f.key} className="flex items-start justify-between gap-3 border-b border-border/50 pb-3 last:border-0">
+            <div key={f.key} className="space-y-2 border-b border-border/50 pb-3 last:border-0">
+              {/* Doc 29: layout do Telegram — texto em cima, os botões (modo) numa linha própria abaixo. */}
               <div className="min-w-0">
                 <p className="font-semibold text-sm text-foreground">{f.label}</p>
                 <p className="text-xs text-foreground/40">{f.desc}</p>
@@ -47,10 +48,10 @@ export function FeaturesCard({ initial }: { initial: { modes: FeatureModes; time
                   </label>
                 )}
               </div>
-              <div className="flex gap-1 shrink-0">
+              <div className="flex gap-1.5">
                 {OPTS.map((o) => (
                   <button key={o.v} onClick={() => setMode(f.key, o.v)} disabled={pending}
-                    className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition ${mode === o.v ? "bg-primary text-white" : "bg-surface text-foreground/50 hover:bg-surface-container"}`}>
+                    className={`flex-1 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition ${mode === o.v ? "bg-primary text-white" : "bg-surface text-foreground/50 hover:bg-surface-container"}`}>
                     {o.l}
                   </button>
                 ))}
