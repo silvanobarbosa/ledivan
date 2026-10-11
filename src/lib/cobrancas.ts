@@ -95,6 +95,8 @@ export type EntradaDasCobrancas = {
   tamanhos?: number[];
   /** Quantidade de sessões do pacote COMPLETO informada no cadastro (doc 16). Vazio = padrão 4/8. */
   tamanhoPacote?: number | null;
+  /** Vigências do tamanho do pacote (doc 30): { desde, tamanho }. Vazio = tamanho único. */
+  tamanhosPorData?: { desde: Date | string; tamanho: number }[];
   /** 1 ou 2 sessões por semana (cadastro). Define o tamanho do pacote fechado: 4 ou 8. */
   vezesPorSemana?: number;
   diaPagamento?: number | null;
@@ -158,7 +160,7 @@ function cobrancasDoPeriodo(periodo: PeriodoDeVigencia, sessoes: Ordenada[], e: 
   }
 
   const tipoPacote = periodo.pacoteTipo === "fragmentado" ? "fragmentado" : "completo";
-  const opcoesDaSequencia = { pacoteTipo: tipoPacote, tamanhos: e.tamanhos, tamanhoPacote: e.tamanhoPacote, vezesPorSemana: e.vezesPorSemana };
+  const opcoesDaSequencia = { pacoteTipo: tipoPacote, tamanhos: e.tamanhos, tamanhoPacote: e.tamanhoPacote, tamanhosPorData: e.tamanhosPorData, vezesPorSemana: e.vezesPorSemana };
   const doPacote = sessoes.filter(entraNoPacote).map((s) => ({ id: s.id, date: s.data, status: s.status, repoeSessaoId: s.repoeSessaoId }));
   const out: Cobranca[] = [];
 
@@ -331,7 +333,7 @@ export function rotulosDasSessoes(e: EntradaDasCobrancas): Map<string, string> {
     const posicoes = usaPacote(formato)
       ? posicoesDaSequencia(
           grupo.sessoes.filter(entraNoPacote).map((s) => ({ id: s.id, date: s.data, status: s.status, repoeSessaoId: s.repoeSessaoId })),
-          { pacoteTipo: pacoteTipo === "fragmentado" ? "fragmentado" : "completo", tamanhos: e.tamanhos, tamanhoPacote: e.tamanhoPacote, vezesPorSemana: e.vezesPorSemana },
+          { pacoteTipo: pacoteTipo === "fragmentado" ? "fragmentado" : "completo", tamanhos: e.tamanhos, tamanhoPacote: e.tamanhoPacote, tamanhosPorData: e.tamanhosPorData, vezesPorSemana: e.vezesPorSemana },
         )
       : new Map();
 

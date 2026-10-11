@@ -76,6 +76,13 @@ export type OpcoesDaSequencia = {
    * onde o combinado é um.
    */
   vezesPorSemana?: number;
+  /**
+   * Vigências do TAMANHO do pacote completo (doc 30). Quando o tamanho muda com uma data em "Vale a
+   * partir de", a mudança vale só das sessões com data >= a vigência: o anterior fica intacto e a
+   * sequência REINICIA em 1/N na vigência. Cada item = { desde, tamanho }. Vazio = comportamento
+   * antigo (um tamanho só para tudo, via `tamanhoPacote`). Só vale para o COMPLETO.
+   */
+  tamanhosPorData?: { desde: Date | string; tamanho: number }[];
 };
 
 export type SequenciaFechada = {
@@ -142,13 +149,38 @@ export function posicoesDaSequencia(
   // contrato, ele manda — e aí a varredura é a mesma do completo, só que com tamanhos por sequência.
   if (opts.pacoteTipo === "fragmentado" && contratados(opts).length === 0) return posicoesFragmentado(sessoes);
 
+  // Doc 30: vigências do tamanho (completo). Ordenadas por data. Com elas, a sequência reinicia em
+  // 1/N a cada vigência alcançada; sem elas, o tamanho é um só (comportamento antigo).
+  const vigs = (opts.tamanhosPorData ?? [])
+    .map((v) => ({ desde: emData(v.desde), tamanho: Math.floor(v.tamanho) }))
+    .filter((v) => !Number.isNaN(v.desde.getTime()) && v.tamanho >= 1)
+    .sort((a, b) => a.desde.getTime() - b.desde.getTime());
+  const usaVigencia = vigs.length > 0;
+  const tamanhoNaData = (data: Date): number => {
+    let t = tamanhoDe(opts, 0);
+    for (const v of vigs) { if (v.desde.getTime() <= data.getTime()) t = v.tamanho; else break; }
+    return t;
+  };
+
   const mapa = new Map<string, PosicaoNaSequencia>();
 
   let sequencia = 0;
   let posicao = 1;
   let total = tamanhoDe(opts, 0);
+  let ultimaVig = -Infinity; // a vigência que iniciou a sequência atual (para reiniciar só uma vez)
 
   for (const s of emOrdem(sessoes)) {
+    // Alcançou uma vigência nova? Reinicia a sequência em 1/N a partir desta data (doc 30).
+    if (usaVigencia) {
+      const ativa = vigs.filter((v) => v.desde.getTime() <= s.data.getTime()).pop();
+      if (ativa && ativa.desde.getTime() > ultimaVig) {
+        if (!(sequencia === 0 && posicao === 1)) sequencia += 1; // não cria sequência vazia no começo
+        posicao = 1;
+        total = ativa.tamanho;
+        ultimaVig = ativa.desde.getTime();
+      }
+    }
+
     mapa.set(s.id, { sequencia, index: posicao, total });
 
     // Pausou: a posição fica de pé para a próxima sessão ocupar.
@@ -158,7 +190,7 @@ export function posicoesDaSequencia(
     if (posicao > total) {
       sequencia += 1;
       posicao = 1;
-      total = tamanhoDe(opts, sequencia);
+      total = usaVigencia ? tamanhoNaData(s.data) : tamanhoDe(opts, sequencia);
     }
   }
 

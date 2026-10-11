@@ -294,3 +294,37 @@ describe("pacote completo: a quantidade informada manda, não mais o padrão 4 (
     expect(posicoes(seis, { pacoteTipo: "completo", tamanhoPacote: null }).get(seis[0].id)!.total).toBe(4);
   });
 });
+
+// Doc 30 — vigência do tamanho do pacote ("Vale a partir de"): mudar o tamanho não renumera o
+// passado; reinicia 1/N na data de vigência.
+describe("vigência do tamanho do pacote (doc 30)", () => {
+  it("o exemplo do doc: 3 sessões até 30/10, depois 2 — o anterior fica intacto", () => {
+    const dias = ["2024-09-18", "2024-10-05", "2024-10-18", "2024-10-30", "2024-11-06"];
+    const p = posicoes(dias.map((d) => s(d)), {
+      pacoteTipo: "completo",
+      tamanhoPacote: 2, // o cadastro já está no valor novo…
+      tamanhosPorData: [
+        { desde: "2024-09-18", tamanho: 3 }, // …mas a vigência manda: 3 até 30/10
+        { desde: "2024-10-30", tamanho: 2 }, // 2 a partir de 30/10
+      ],
+    });
+    expect(dias.map((d) => rotulo(p, d))).toEqual(["1/3", "2/3", "3/3", "1/2", "2/2"]);
+  });
+
+  it("vigência no meio de uma sequência aberta reinicia em 1/N na data", () => {
+    // 3 por pacote; só 2 feitas, troca para 2 a partir de 20/10 → 20/10 é 1/2.
+    const dias = ["2024-10-01", "2024-10-08", "2024-10-20", "2024-10-27"];
+    const p = posicoes(dias.map((d) => s(d)), {
+      pacoteTipo: "completo",
+      tamanhoPacote: 2,
+      tamanhosPorData: [{ desde: "2024-10-01", tamanho: 3 }, { desde: "2024-10-20", tamanho: 2 }],
+    });
+    expect(dias.map((d) => rotulo(p, d))).toEqual(["1/3", "2/3", "1/2", "2/2"]);
+  });
+
+  it("sem tamanhosPorData, mantém o comportamento antigo (um tamanho só)", () => {
+    const dias = ["2024-09-18", "2024-10-05", "2024-10-18", "2024-10-30"];
+    const p = posicoes(dias.map((d) => s(d)), { pacoteTipo: "completo", tamanhoPacote: 2 });
+    expect(dias.map((d) => rotulo(p, d))).toEqual(["1/2", "2/2", "1/2", "2/2"]);
+  });
+});

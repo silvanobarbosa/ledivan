@@ -13,7 +13,7 @@ import "server-only";
 
 import { and, eq } from "drizzle-orm";
 import { db } from "@/db";
-import { blockedSlots, cobrancaEnvios, sessoesPuladas, patientPackages, patientPaymentFormatHistory, patientPriceHistory, patients, sessionPayments, therapySessions } from "@/db/schema";
+import { blockedSlots, cobrancaEnvios, sessoesPuladas, patientPackages, patientPackageHistory, patientPaymentFormatHistory, patientPriceHistory, patients, sessionPayments, therapySessions } from "@/db/schema";
 import { horaDeParede } from "./horaLocal";
 import { linhasDaGeral, resumoDaGeral, type CobrancaDaGeral, type EntradaDaGeral, type LinhaDaGeral } from "./guiaGeral";
 import { tamanhosDasSequencias } from "./sequenciaPacote";
@@ -120,7 +120,7 @@ export async function geralDoPaciente(userId: string, patientId: string): Promis
   });
   if (!paciente) return null;
 
-  const [sessoes, pagamentos, precos, pacotes, vigencias, envios, puladas] = await Promise.all([
+  const [sessoes, pagamentos, precos, pacotes, vigencias, envios, puladas, pacoteHist] = await Promise.all([
     db.select({ id: therapySessions.id, date: therapySessions.date, status: therapySessions.status, sessionKind: therapySessions.sessionKind, abaterDoPacote: therapySessions.abaterDoPacote, chargeable: therapySessions.chargeable, extra: therapySessions.extra, valorExtra: therapySessions.valorExtra, repoeSessaoId: therapySessions.repoeSessaoId, isOnline: therapySessions.isOnline })
       .from(therapySessions).where(and(eq(therapySessions.patientId, patientId), eq(therapySessions.userId, userId))),
     db.select({ id: sessionPayments.id, amount: sessionPayments.amount, date: sessionPayments.date, status: sessionPayments.status, method: sessionPayments.method, pagoPor: sessionPayments.pagoPor, cobrancaChave: sessionPayments.cobrancaChave, quita: sessionPayments.quitaDiferenca, kind: sessionPayments.kind, reciboEmitidoEm: sessionPayments.reciboEmitidoEm, notaEmitidaEm: sessionPayments.receiptIssuedAt })
@@ -144,6 +144,9 @@ export async function geralDoPaciente(userId: string, patientId: string): Promis
       .from(sessoesPuladas)
       .innerJoin(blockedSlots, and(eq(blockedSlots.userId, sessoesPuladas.userId), eq(blockedSlots.date, sessoesPuladas.date)))
       .where(and(eq(sessoesPuladas.patientId, patientId), eq(sessoesPuladas.userId, userId))),
+    // Doc 30: vigências do tamanho do pacote.
+    db.select({ tamanho: patientPackageHistory.tamanho, desde: patientPackageHistory.dataEfetiva })
+      .from(patientPackageHistory).where(eq(patientPackageHistory.patientId, patientId)),
   ]);
 
   const entrada: EntradaDaGeral = {
@@ -154,6 +157,7 @@ export async function geralDoPaciente(userId: string, patientId: string): Promis
     valorDaSessao: Number(paciente.sessionFee) || 0,
     tamanhos: tamanhosDasSequencias(pacotes),
     tamanhoPacote: paciente.sessionsInPacket,
+    tamanhosPorData: pacoteHist.map((h) => ({ desde: local(h.desde), tamanho: h.tamanho })),
     vezesPorSemana: paciente.timesPerPeriod,
     diaPagamento: paciente.paymentDay,
     diaPagamento2: paciente.paymentDay2,

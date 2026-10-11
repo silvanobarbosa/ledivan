@@ -1,6 +1,6 @@
 import { db } from "@/db";
 import { auth } from "@/auth";
-import { blockedSlots, patientPackages, patientPaymentFormatHistory, patients, sessionPayments, therapySessions, users } from "@/db/schema";
+import { blockedSlots, patientPackages, patientPackageHistory, patientPaymentFormatHistory, patients, sessionPayments, therapySessions, users } from "@/db/schema";
 import { and, eq, gte, inArray, isNotNull, ne } from "drizzle-orm";
 import { AgendaClient } from "./AgendaClient";
 import { riskFromSessions } from "@/lib/therapy";
@@ -71,7 +71,7 @@ export default async function AgendaPage() {
   const vigenciasPorPaciente = new Map<string, { formato: string; pacoteTipo: string | null; desde: string; criadoEm: string }[]>();
   if (pats.length) {
     const ids = pats.map((x) => x.id);
-    const [todas, contratos, vigencias] = await Promise.all([
+    const [todas, contratos, vigencias, pacoteHist] = await Promise.all([
       db.select({ id: therapySessions.id, patientId: therapySessions.patientId, date: therapySessions.date, status: therapySessions.status, sessionKind: therapySessions.sessionKind, abaterDoPacote: therapySessions.abaterDoPacote, chargeable: therapySessions.chargeable, extra: therapySessions.extra, repoeSessaoId: therapySessions.repoeSessaoId })
         .from(therapySessions)
         .where(and(eq(therapySessions.userId, session.user.id), inArray(therapySessions.patientId, ids))),
@@ -81,6 +81,10 @@ export default async function AgendaPage() {
       db.select({ patientId: patientPaymentFormatHistory.patientId, formato: patientPaymentFormatHistory.formato, pacoteTipo: patientPaymentFormatHistory.pacoteTipo, desde: patientPaymentFormatHistory.dataEfetiva, criadoEm: patientPaymentFormatHistory.dataCriacao })
         .from(patientPaymentFormatHistory)
         .where(inArray(patientPaymentFormatHistory.patientId, ids)),
+      // Doc 30: vigências do tamanho do pacote, por paciente.
+      db.select({ patientId: patientPackageHistory.patientId, tamanho: patientPackageHistory.tamanho, desde: patientPackageHistory.dataEfetiva })
+        .from(patientPackageHistory)
+        .where(inArray(patientPackageHistory.patientId, ids)),
     ]);
     comAgendamento = pacientesComAgendamento(todas);
     for (const paciente of pats) {
@@ -97,6 +101,7 @@ export default async function AgendaPage() {
         // A quantidade informada no cadastro manda no tamanho do pacote Completo (doc 20): sem isto,
         // a numeração da agenda caía no padrão antigo 4×vezes (1/4) mesmo com 6/8 cadastradas.
         tamanhoPacote: paciente.sessionsInPacket,
+        tamanhosPorData: pacoteHist.filter((h) => h.patientId === paciente.id).map((h) => ({ desde: horaDeParede(h.desde), tamanho: h.tamanho })),
         vezesPorSemana: paciente.timesPerPeriod,
       });
       for (const [id, codigo] of rotulos) codigos.set(id, codigo);

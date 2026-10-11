@@ -563,6 +563,20 @@ export const patientPaymentFormatHistory = pgTable("patient_payment_format_histo
   index("ppfh_patient_idx").on(t.patientId),
 ]);
 
+// VIGÊNCIA DO TAMANHO DO PACOTE (doc 30) — mesmo modelo do histórico de formato. Mudar a quantidade
+// de sessões do pacote com uma data em "Vale a partir de" vale só das sessões com data >= a vigência:
+// o anterior fica intacto e a sequência reinicia em 1/N. `patients.sessions_in_packet` segue como o
+// tamanho ATUAL; quem decide a numeração por data é esta tabela. Ver `sequenciaPacote.ts`.
+export const patientPackageHistory = pgTable("patient_package_history", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  patientId: uuid("patient_id").references(() => patients.id, { onDelete: "cascade" }).notNull(),
+  tamanho: integer("tamanho").notNull(), // quantidade de sessões do pacote a partir da vigência
+  dataEfetiva: timestamp("data_efetiva").notNull(),
+  dataCriacao: timestamp("data_criacao").defaultNow().notNull(),
+}, (t) => [
+  index("pph_patient_idx").on(t.patientId),
+]);
+
 export const patientContractHistory = pgTable("patient_contract_history", {
   id: uuid("id").primaryKey().defaultRandom(),
   patientId: uuid("patient_id").references(() => patients.id, { onDelete: "cascade" }).notNull(),
