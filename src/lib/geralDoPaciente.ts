@@ -33,7 +33,7 @@ export function hojeDeParede(agora = new Date()): Date {
   return new Date(Number(p.year), Number(p.month) - 1, Number(p.day), Number(p.hour) % 24, Number(p.minute));
 }
 
-export type CobrancaNaTela = Omit<CobrancaDaGeral, "vencimento" | "competencia" | "pagamento" | "pagamentos" | "envio" | "ids" | "posicao" | "tipo"> & {
+export type CobrancaNaTela = Omit<CobrancaDaGeral, "vencimento" | "competencia" | "pagamento" | "pagamentos" | "envio" | "posicao" | "tipo"> & {
   tipoDeCobranca: CobrancaDaGeral["tipo"];
   vencimento: string | null;
   pagamento: { id: string; data: string; metodo: string | null; pagoPor: string | null; recibo: boolean; nota: boolean } | null;
@@ -69,6 +69,10 @@ function cobrancaNaTela(
     transferido: c.transferido,
     valorPago: c.valorPago,
     sessoes: c.sessoes,
+    // Ids das sessões desta cobrança (doc 29): é o conjunto CERTO para o recibo — já exclui gratuita,
+    // Desmarcou/Prof.desm/Atestado e inclui Presente/Faltou. O recibo escopa por aqui, não por todas
+    // as sessões do paciente (bug do doc 28: cruzava a fronteira da cobrança e trazia data errada).
+    ids: c.ids,
     parte: c.parte,
     situacao: c.situacao,
     vencimento: texto(c.vencimento ?? c.competencia),
