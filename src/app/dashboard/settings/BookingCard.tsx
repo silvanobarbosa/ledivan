@@ -38,7 +38,7 @@ export function BookingCard({ initialSlug, initialAutoConfirm = false }: { initi
   }
 
   return (
-    <div className="p-8 bg-white rounded-[48px] shadow-sm border border-border space-y-5">
+    <div className="glass-card rounded-[24px] p-6 space-y-5">
       <h3 className="text-xl font-bold flex items-center gap-2">
         <CalendarCheck className="w-5 h-5 text-primary" /> Link de autoagendamento
       </h3>

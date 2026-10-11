@@ -31,7 +31,7 @@ export function SmtpCard({ configured, currentEmail, loginEmail }: { configured:
   const helpUrl = domain.includes("gmail") ? APP_PASS_HELP.gmail : (domain.includes("outlook") || domain.includes("hotmail") || domain.includes("live")) ? APP_PASS_HELP.outlook : null;
 
   return (
-    <div className="p-8 bg-white rounded-[48px] shadow-sm border border-border space-y-3">
+    <div className="glass-card rounded-[24px] p-6 space-y-3">
       {/* Doc 29: mesmo layout do card do Telegram — texto em cima, botão embaixo em largura cheia. */}
       <div className="flex items-start gap-4">
         <div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center shrink-0"><Mail className="w-6 h-6" /></div>

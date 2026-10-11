@@ -14,7 +14,7 @@ export function MeetingCard({ initial, hasGoogle }: { initial: "jitsi" | "meet";
   };
 
   return (
-    <div className="p-8 bg-white rounded-[48px] shadow-sm border border-border space-y-4">
+    <div className="glass-card rounded-[24px] p-6 space-y-4">
       <div className="flex items-start gap-4">
         <div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center shrink-0"><Video className="w-6 h-6" /></div>
         <div className="flex-1">
