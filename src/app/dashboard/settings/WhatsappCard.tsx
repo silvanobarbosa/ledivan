@@ -41,30 +41,28 @@ export function WhatsappCard({ connected }: { connected: boolean }) {
   }
 
   return (
-    <div className="p-8 bg-white rounded-[48px] shadow-sm border border-border space-y-4">
-      <div className="flex items-start gap-4">
-        <div className="w-12 h-12 rounded-2xl flex items-center justify-center text-white shrink-0" style={{ backgroundColor: "#25D366" }}>
-          <MessageCircle className="w-6 h-6" />
-        </div>
-        <div className="flex-1">
-          <h4 className="font-bold text-primary">WhatsApp do seu consultório</h4>
-          <p className="text-sm text-foreground/50 mt-1 leading-relaxed">
-            Conecte seu número para enviar lembretes e mensagens aos pacientes <strong>pelo seu próprio WhatsApp</strong>.
-          </p>
-          {isConnected && (
-            <span className="inline-flex items-center gap-1.5 mt-2 text-xs font-bold text-[#047857] bg-[#ecfdf5] px-3 py-1 rounded-full">
-              <Check className="w-3.5 h-3.5" /> Conectado
-            </span>
-          )}
-        </div>
-        {isConnected ? (
-          <button onClick={disconnect} className="text-sm font-semibold text-red-500/70 hover:text-red-600 shrink-0">Desconectar</button>
-        ) : (
-          <button onClick={connect} disabled={loading} className="bg-primary text-white px-5 py-2.5 rounded-xl font-bold text-sm shrink-0 disabled:opacity-50 inline-flex items-center gap-2">
-            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <MessageCircle className="w-4 h-4" />} Conectar
-          </button>
-        )}
+    // Doc 29: mesmo layout dos demais cards do Ajustes (Telegram) — texto em cima, botão embaixo em
+    // largura cheia. O botão do WhatsApp usa o verde do logo (#25D366). Ao conectar, vira "Conectado".
+    <div className="glass-card rounded-[24px] p-6 space-y-3">
+      <div>
+        <h3 className="font-display font-bold text-primary">WhatsApp do seu consultório</h3>
+        <p className="text-sm text-foreground/50 mt-1 leading-relaxed">
+          Conecte seu número para enviar lembretes e mensagens aos pacientes <strong>pelo seu próprio WhatsApp</strong>.
+        </p>
       </div>
+
+      {isConnected ? (
+        <div className="flex items-center justify-between gap-3">
+          <span className="inline-flex items-center gap-1.5 text-xs font-bold text-white px-4 py-2 rounded-xl" style={{ backgroundColor: "#25D366" }}>
+            <Check className="w-4 h-4" /> Conectado
+          </span>
+          <button onClick={disconnect} className="text-sm font-semibold text-red-500/70 hover:text-red-600 shrink-0">Desconectar</button>
+        </div>
+      ) : (
+        <button onClick={connect} disabled={loading} className="w-full text-white px-5 py-3 rounded-xl font-bold text-sm disabled:opacity-50 inline-flex items-center justify-center gap-2" style={{ backgroundColor: "#25D366" }}>
+          {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <MessageCircle className="w-4 h-4" />} {loading ? "Conectando…" : "Conectar"}
+        </button>
+      )}
 
       {error && <p className="text-sm text-red-600">{error}</p>}
 

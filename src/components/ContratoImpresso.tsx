@@ -54,11 +54,11 @@ export function ContratoImpresso({ texto, patientId }: { texto: string; patientI
         </Link>
       </nav>
 
-      <div className="no-print rounded-xl border border-border bg-surface px-4 py-3 text-sm text-foreground/60 space-y-2">
-        <p>O contrato será preenchido automaticamente com os dados cadastrados do paciente e as informações definidas em <Link href="/dashboard/settings" className="underline font-semibold">Ajustes</Link>. Clique no texto para preencher os campos entre colchetes. Após concluir as edições, basta imprimir o contrato.</p>
-        <p>Os dados fixos da analista devem ser cadastrados e atualizados em Ajustes.</p>
-        <p>Ao clicar em Imprimir, são impressas 2 vias do documento, uma para cada parte. Todas as alterações realizadas no contrato serão refletidas na impressão, independentemente de serem salvas ou não.</p>
-      </div>
+      <ul className="no-print rounded-xl border border-border bg-surface px-4 py-3 pl-7 text-sm text-foreground/60 space-y-2 list-disc">
+        <li>O contrato será preenchido automaticamente com os dados cadastrados do paciente e as informações do profissional definidas em <Link href="/dashboard/settings" className="underline font-semibold">Ajustes</Link>. Clique no texto para preencher os campos entre colchetes. Após concluir as edições, basta imprimir o contrato.</li>
+        <li>Ao clicar em Imprimir, são impressas 2 vias do documento, uma para cada parte. Todas as alterações realizadas no contrato serão refletidas na impressão, independentemente de serem salvas ou não.</li>
+        <li>O botão Salvar guarda apenas a alteração do contrato deste paciente, não a de todos.</li>
+      </ul>
 
       {/* O papel editável. Sem logotipo, como os outros documentos. Alinhamento justificado (doc 28). */}
       <article
