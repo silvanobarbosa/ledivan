@@ -27,7 +27,7 @@ import {
   patientStatusColor,
   type RiskLevel,
 } from "@/lib/therapy";
-import { Phone, Plus, Pencil, Trash2, Mic, Loader2, FileText, Repeat, Download, MessageSquareText, X } from "lucide-react";
+import { Phone, Plus, Pencil, Trash2, Mic, Loader2, FileText, Repeat, Download, MessageCircle, X } from "lucide-react";
 import { anosDisponiveis } from "@/lib/filtroDeAno";
 
 type Patient = {
@@ -267,16 +267,16 @@ export function PatientDetail({
             desçam de linha em vez de saírem pela borda. */}
         <div className="flex flex-wrap items-center gap-2">
           <MessagePatient patient={{ id: patient.id, name: patient.name, phone: patient.phone, email: patient.email }} />
-          {/* Doc 28/30: 2º ícone de mensagem — igual ao de mensagem, mas com o balão preenchido (risco
-              horizontal dentro). Abre o histórico do que o sistema enviou por WhatsApp. Só ícone. */}
+          {/* Doc 31: 2º ícone = MESMO desenho/botão do ícone de mensagem (à esquerda), só com o balão
+              preenchido em PRETO. Abre o histórico do que o sistema enviou por WhatsApp. Só muda a aparência. */}
           <button
             type="button"
             onClick={() => setShowWhatsapp(true)}
             title="Mensagens enviadas pelo sistema via WhatsApp"
             aria-label="Mensagens enviadas pelo sistema via WhatsApp"
-            className="shrink-0 p-2.5 rounded-2xl bg-foreground text-white border border-foreground hover:opacity-90 transition cursor-pointer"
+            className="shrink-0 p-2.5 rounded-2xl bg-white border border-border text-black hover:border-primary hover:bg-primary/5 transition cursor-pointer"
           >
-            <MessageSquareText className="w-5 h-5" />
+            <MessageCircle className="w-5 h-5" fill="currentColor" />
           </button>
           <a
             href={`/prontuario/${patient.id}`}

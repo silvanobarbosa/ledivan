@@ -90,7 +90,7 @@ export default async function EditPatientPage({ params, searchParams }: { params
       </div>
 
       <div className="space-y-5">
-        <PatientFormFields save={save} patientId={id} tabInicial={guia === "financeiro" ? "financeiro" : guia === "contrato" ? "contrato" : undefined} contrato={<ContratoImpresso texto={contratoTexto} textoPadrao={contratoPadrao} patientId={id} />} p={{
+        <PatientFormFields save={save} patientId={id} tabInicial={guia === "financeiro" ? "financeiro" : guia === "contrato" ? "contrato" : undefined} contrato={<ContratoImpresso texto={contratoTexto} textoPadrao={contratoPadrao} patientId={id} logoUrl={prof?.logoUrl ?? null} />} p={{
           registrationNumber: patient.registrationNumber, agendaId: patient.agendaId, dueDateType: patient.dueDateType, dueDate: iso(patient.dueDate), queixaPrincipal: patient.queixaPrincipal,
           name: patient.name, phone: patient.phone, email: patient.email, patientStatus: patient.patientStatus,
           startedAt: iso(patient.startedAt), birthDate: iso(patient.birthDate), category: patient.category, isCouple: patient.isCouple, guardianRelationship: patient.guardianRelationship,

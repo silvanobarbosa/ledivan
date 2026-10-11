@@ -82,5 +82,5 @@ export default async function Contrato({ params }: { params: Promise<{ id: strin
   });
   const texto = paciente.contratoTexto ?? textoPadrao;
 
-  return <ContratoImpresso texto={texto} textoPadrao={textoPadrao} patientId={patientId} />;
+  return <ContratoImpresso texto={texto} textoPadrao={textoPadrao} patientId={patientId} logoUrl={prof?.logoUrl ?? null} />;
 }

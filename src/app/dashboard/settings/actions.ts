@@ -224,6 +224,8 @@ export async function updateProfile(formData: FormData) {
       cidade: str("cidade"),
       estado: str("estado"),
       plataformaOnline: str("plataformaOnline"),
+      // Doc 31: logotipo (vazio = sem logo). O campo está sempre no form, então salva direto.
+      ...(formData.has("logoUrl") ? { logoUrl: (formData.get("logoUrl") as string) || null } : {}),
     })
     .where(eq(users.id, session.user.id));
 

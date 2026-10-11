@@ -5,6 +5,7 @@ import { eq } from "drizzle-orm";
 import { LogOut } from "lucide-react";
 import { updateProfile } from "./actions";
 import { SubmitButton } from "@/components/SubmitButton";
+import { SingleLogo } from "@/components/dashboard/PhotoSlots";
 import { LocationsCard } from "./LocationsCard";
 import { parseLocations } from "@/lib/locations";
 import { TelegramSync } from "./TelegramSync";
@@ -171,6 +172,13 @@ export default async function SettingsPage() {
                     defaultValue={user.plataformaOnline || ""}
                     className="w-full p-4 bg-surface rounded-2xl border border-border focus:border-primary outline-none font-medium"
                   />
+                </div>
+
+                {/* Doc 31: logotipo para o contrato e o recibo (quadro 3×3cm à direita do título nos documentos). */}
+                <div className="space-y-2">
+                  <label className="text-xs font-bold text-foreground/30 uppercase tracking-widest">Logotipo</label>
+                  <p className="text-xs text-foreground/40">Aparece no contrato e no recibo, à direita do título. Sem imagem, o espaço fica em branco.</p>
+                  <SingleLogo initial={user.logoUrl} />
                 </div>
               </div>
 
