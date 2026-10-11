@@ -50,7 +50,9 @@ export default async function DashboardLayout({
             <Link href="/dashboard" className="lg:hidden flex items-center shrink-0">
               <Image src={logoColor} alt="Ledivan" sizes="200px" priority className="h-9 w-auto object-contain" />
             </Link>
-            <HeaderUser name={user?.name} photoUrl={photoSrc(user?.photo3x4 ?? user?.image)} />
+            {/* Doc 29: a foto 3x4 do perfil saiu (doc 28); o cabeçalho não exibe mais a antiga —
+                usa só a imagem da conta (Google), senão a inicial do nome. */}
+            <HeaderUser name={user?.name} photoUrl={photoSrc(user?.image)} />
           </div>
 
           <div className="flex items-center gap-2 lg:gap-4 ml-4">

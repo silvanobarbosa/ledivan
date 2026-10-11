@@ -25,7 +25,10 @@ export function CobrancaMessageCard({ initial }: { initial: string | null }) {
     <div className="glass-card rounded-[24px] p-6 space-y-3">
       <div>
         <h3 className="font-display font-bold text-primary">Mensagem de cobrança</h3>
-        <p className="text-sm text-foreground/50">O texto que você usa para cobrar. Deixe em branco para o padrão do app.</p>
+        <ul className="text-sm text-foreground/50 list-disc pl-5 space-y-1 mt-1">
+          <li>Permite personalizar a mensagem enviada ao paciente ou responsável para solicitar o pagamento.</li>
+          <li>Se o campo ficar em branco, o Le&rsquo;Divan utilizará a mensagem padrão do aplicativo.</li>
+        </ul>
       </div>
       <textarea
         value={texto}
