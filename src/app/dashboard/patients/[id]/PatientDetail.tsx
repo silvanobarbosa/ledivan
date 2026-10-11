@@ -120,7 +120,7 @@ export function PatientDetail({
     ...geral.map((l) => (l.tipo === "sessao" || l.tipo === "bloqueio" ? l.data : l.pagamento?.data ?? l.vencimento)),
     ...payments.map((p) => p.date),
   ]);
-  const [ano, setAno] = useState(anosDoPaciente[0]);
+  const [ano, setAno] = useState<number | "TODOS">(anosDoPaciente[0]);
 
   const [tab, setTab] = useState<(typeof TABS)[number]>("Geral");
   // Vencimento no cabeçalho (doc 28): mensal = "vence dia X"; quinzenal = os dois dias; 1ª/última
@@ -174,6 +174,17 @@ export function PatientDetail({
 
   return (
     <div className="space-y-6">
+      {/* Doc 30: Imprimir gera o PDF só da área de Controle (tabelas), escondendo o resto e as ações. */}
+      <style>{`
+        @media print {
+          body * { visibility: hidden; }
+          #controle-print, #controle-print * { visibility: visible; }
+          #controle-print { position: absolute; top: 0; left: 0; width: 100%; }
+          .no-print { display: none !important; }
+          #controle-print table { width: 100%; }
+          #controle-print tr { break-inside: avoid; }
+        }
+      `}</style>
       {/* Doc 28: histórico de WhatsApp enviado pelo sistema (modal do 2º ícone). */}
       {showWhatsapp && (
         <div className="fixed inset-0 z-50 bg-black/40 flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={() => setShowWhatsapp(false)}>
@@ -364,7 +375,7 @@ export function PatientDetail({
 
       {/* Geral (Controle) */}
       {tab === "Geral" && (
-        <div className="space-y-4">
+        <div id="controle-print" className="space-y-4">
           {/* GER4: cabeçalho do Controle — valor da sessão + próximo reajuste */}
           <div className="glass-card rounded-[24px] p-5 flex flex-wrap items-center justify-between gap-3">
             <div>
@@ -380,16 +391,30 @@ export function PatientDetail({
               tabela de pagamentos, e dava para ler as sessões de um ano com os pagamentos de outro
               na mesma tela, sem nada avisar. Filtrar não altera nem apaga dado: só escolhe o que
               aparece. */}
-          <div className="flex items-center justify-end gap-2">
+          {/* Doc 30: opção "TODOS" no filtro + botão Imprimir (gera o PDF das tabelas pelo filtro). */}
+          <div className="flex items-center justify-end gap-2 no-print">
             <label htmlFor="ano-do-paciente" className="text-xs font-bold text-foreground/40 uppercase tracking-widest">Ano</label>
             <select
               id="ano-do-paciente"
               value={ano}
-              onChange={(e) => setAno(Number(e.target.value))}
+              onChange={(e) => setAno(e.target.value === "TODOS" ? "TODOS" : Number(e.target.value))}
               className="text-sm font-semibold rounded-lg bg-white border border-border px-2.5 py-1.5 outline-none"
             >
+              <option value="TODOS">TODOS</option>
               {anosDoPaciente.map((a) => <option key={a} value={a}>{a}</option>)}
             </select>
+            <button
+              type="button"
+              onClick={() => window.print()}
+              className="inline-flex items-center gap-1.5 text-sm font-semibold rounded-lg bg-primary text-white px-3 py-1.5 hover:opacity-90 cursor-pointer"
+            >
+              <FileText className="w-4 h-4" /> Imprimir
+            </button>
+          </div>
+          {/* Títulos para o PDF (doc 30): identificam as tabelas e o paciente/filtro na impressão. */}
+          <div className="hidden print:block mb-2">
+            <h2 className="text-lg font-bold">Controle Geral — {patient.name}</h2>
+            <p className="text-sm text-foreground/60">Ano: {ano === "TODOS" ? "Todos" : ano}</p>
           </div>
           <GeralTab patientId={patient.id} linhas={geral} ano={ano} responsavel={pagador.nome}
             responsavelCpf={pagador.cpf}

@@ -1,16 +1,29 @@
 "use client";
 
 import { formatBRL } from "@/lib/therapy";
-import { recebidosPorAno } from "@/lib/tabelaAnual";
+import { recebidosPorAno, anosComPagamento } from "@/lib/tabelaAnual";
+
+type Pagamento = { id: string; amount: string; date: string; status: string };
 
 /**
  * A tabela de valores recebidos por mês, DENTRO do paciente.
  *
  * O ano vem de FORA desde 17/09: o seletor é único e fica antes da tabela de Controle, valendo
- * para as duas ao mesmo tempo. Com um seletor próprio aqui, dava para estar lendo as sessões de
- * 2026 com os pagamentos de 2025 na tela, e nada avisava.
+ * para as duas ao mesmo tempo.
+ *
+ * Doc 30: com "TODOS" selecionado, uma tabela por ano (cada uma identificada pelo seu ano), em vez
+ * de uma só.
  */
-export function TabelaAnual({ payments, ano }: { payments: { id: string; amount: string; date: string; status: string }[]; ano: number }) {
+export function TabelaAnual({ payments, ano }: { payments: Pagamento[]; ano: number | "TODOS" }) {
+  if (ano === "TODOS") {
+    const anos = anosComPagamento(payments);
+    if (!anos.length) return <TabelaDoAno payments={payments} ano={new Date().getFullYear()} />;
+    return <div className="space-y-4">{anos.map((a) => <TabelaDoAno key={a} payments={payments} ano={a} />)}</div>;
+  }
+  return <TabelaDoAno payments={payments} ano={ano} />;
+}
+
+function TabelaDoAno({ payments, ano }: { payments: Pagamento[]; ano: number }) {
   const { meses, total } = recebidosPorAno(payments, ano);
 
   return (
