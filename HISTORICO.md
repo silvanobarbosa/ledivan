@@ -7,6 +7,40 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-10-10 — Doc 27: guia Geral (descritor/negrito) + Perfil↔contrato + lixeira de reajuste (#298–#300)
+
+**Entregue (4 frentes):**
+- **#298 — Guia Geral.** Na linha financeiro o descritor "Pagamento · X sessões · vence DD/MM"
+  mescla as 3 primeiras colunas (`colSpan=3`, a td vazia de Data/hora saiu). A linha do pagamento
+  (`[valor ·] data · forma`) ficou em **negrito** e o responsável (`pagoPor`) desce pra linha de baixo.
+- **#299 — Perfil ↔ contrato.** Ajustes > Perfil reorganizado na ordem **Nome · CPF · Telefone ·
+  E-mail · Nº do Conselho** + seção nova **"Informações para o contrato"** (endereço do consultório,
+  cidade, estado, plataforma on-line). **CPF saiu do cartão Recibo** → mora só no Perfil (fonte única).
+  O **contrato** passa a preencher do Perfil: cabeçalho da analista (conselho, endereço/plataforma,
+  telefone/e-mail), **Foro** e **local da assinatura** (cidade/estado). Cláusula **4.2 perdeu** a
+  linha "via [PIX...] na chave: [Sua Chave PIX]". Assinatura do **Responsável 2** só sai quando há R2.
+- **#300 — Lixeira de reajuste.** Cada linha de REAJUSTE do histórico ganha lixeira; a **entrada**
+  (preço/formato iniciais) não. Apagar remove preço+formato daquela vigência e **reconcilia** o
+  cadastro (valor/formato atuais voltam ao último restante; lembrete recalculado).
+
+**Decisões que ficam valendo:**
+- **CPF da terapeuta mora no Perfil** (`users.therapistCpf`, salvo por `updateProfile`). `saveDadosDoRecibo`
+  NÃO toca mais nele (só a descrição) — evita dois formulários sobrescreverem o mesmo dado.
+- 6 colunas novas em `user` (todas nullable): `therapist_phone`, `conselho`, `endereco_contrato`,
+  `cidade`, `estado`, `plataforma_online`. Aplicadas em prod por **ADD COLUMN IF NOT EXISTS** ANTES
+  do merge (o `findFirst` seleciona pelo schema; sem a coluna no banco = 500).
+- Lixeira: só reajuste é removível; a ENTRADA (registro mais antigo de cada tabela) nunca é apagada,
+  nem se a chamada pedir. `removivel` em `historicoDeReajuste` é a fonte da verdade da UI.
+
+**Armadilhas:** `montarContrato` ganhou 7 campos novos (analistaConselho/Endereco/Plataforma/Telefone/
+Email, cidade, estado) → os **dois** callers (contrato/page e edit/page) tiveram que passar todos,
+senão TS quebra. `db:push` é interativo (risco de hang) → apliquei o ALTER aditivo direto por script
+tsx one-off (neon serverless exige `sql.query(...)` com placeholders, não a forma de função).
+
+**Pendente:** nada do doc 27.
+
+---
+
 ## 2026-10-10 — Doc 26: guia Geral (colunas/linha financeiro) + contrato dinâmico (#295–#296)
 
 **Entregue (2 frentes):**
