@@ -38,6 +38,7 @@ export default async function Contrato({ params }: { params: Promise<{ id: strin
       paymentDay2: patients.paymentDay2,
       horasAntesPagamento: patients.horasAntesPagamento,
       timesPerPeriod: patients.timesPerPeriod,
+      contratoTexto: patients.contratoTexto,
     })
     .from(patients)
     .where(and(eq(patients.id, patientId), eq(patients.userId, userId)))
@@ -47,7 +48,8 @@ export default async function Contrato({ params }: { params: Promise<{ id: strin
   const prof = await db.query.users.findFirst({ where: eq(users.id, userId) });
   const enq = await enquadreDaAgenda(userId, patientId, paciente.timesPerPeriod);
 
-  const texto = montarContrato({
+  // Doc 28: se a analista salvou um contrato editado para este paciente, a tela abre com ele.
+  const texto = paciente.contratoTexto ?? montarContrato({
     analistaNome: prof?.name ?? null,
     analistaCpf: prof?.therapistCpf ?? null,
     descricaoAtendimento: prof?.descricaoAtendimento ?? null,
@@ -75,6 +77,7 @@ export default async function Contrato({ params }: { params: Promise<{ id: strin
     diaPagamento: paciente.paymentDay,
     diaPagamento2: paciente.paymentDay2,
     horasAntesPagamento: paciente.horasAntesPagamento,
+    hoje: new Date(),
   });
 
   return <ContratoImpresso texto={texto} patientId={patientId} />;

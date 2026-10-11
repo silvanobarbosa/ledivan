@@ -1,11 +1,16 @@
 import { describe, it, expect } from "vitest";
-import { montarContrato } from "@/lib/contrato";
+import { montarContrato, textoLimpo } from "@/lib/contrato";
+
+// Helper: o texto SEM os marcadores de negrito (\u0001…\u0002), para asserção sobre o conteúdo.
+const c = (x: Parameters<typeof montarContrato>[0]) => textoLimpo(montarContrato(x));
 
 describe("montarContrato", () => {
   // Paciente criança (nascido 2015 → < 18): regra de menor, responsável do cadastro no Responsável 1.
-  const base = { analistaNome: "Gisele Barbosa", analistaCpf: "123.456.789-00", descricaoAtendimento: "atendimentos psicanalíticos", analistaConselho: null, analistaEndereco: null, analistaPlataforma: null, analistaTelefone: null, analistaEmail: null, cidade: null, estado: null, pacienteNome: "João Silva", pacienteNascimento: new Date(2015, 5, 10), pacienteCpf: "111.222.333-44", responsavelNome: "Maria Silva", responsavelCpf: "987.654.321-00", valorSessao: 120, reajusteMeses: 6, pacienteEndereco: "Rua das Flores, 100 — Centro", responsavelTelefone: "(11) 99999-0000", pacienteTelefone: "(11) 88888-0000", duracaoMaxMin: 50, recorrencia: { freq: "semanal", vezesPorSemana: 1, repete: true }, horarioFixo: new Date(2026, 9, 6, 15, 0), formatoPagamento: "mensal", diaPagamento: 5, diaPagamento2: null, horasAntesPagamento: null };
+  // descricaoAtendimento guarda a FORMAÇÃO ("terapia"|"psicanalise"|"psicologia"), não a frase.
+  const base = { analistaNome: "Gisele Barbosa", analistaCpf: "123.456.789-00", descricaoAtendimento: "psicanalise", analistaConselho: null, analistaEndereco: null, analistaPlataforma: null, analistaTelefone: null, analistaEmail: null, cidade: null, estado: null, pacienteNome: "João Silva", pacienteNascimento: new Date(2015, 5, 10), pacienteCpf: "111.222.333-44", responsavelNome: "Maria Silva", responsavelCpf: "987.654.321-00", valorSessao: 120, reajusteMeses: 6, pacienteEndereco: "Rua das Flores, 100 — Centro", responsavelTelefone: "(11) 99999-0000", pacienteTelefone: "(11) 88888-0000", duracaoMaxMin: 50, recorrencia: { freq: "semanal", vezesPorSemana: 1, repete: true }, horarioFixo: new Date(2026, 9, 6, 15, 0), formatoPagamento: "mensal", diaPagamento: 5, diaPagamento2: null, horasAntesPagamento: null, hoje: new Date(2026, 9, 11) };
+
   it("preenche nome, CPF, valor e reajuste do que existe", () => {
-    const t = montarContrato(base);
+    const t = c(base);
     expect(t).toContain("Nome: Gisele Barbosa");
     expect(t).toContain("João Silva");
     expect(t).toContain("Maria Silva");
@@ -13,142 +18,159 @@ describe("montarContrato", () => {
     expect(t).toContain("a cada 6 meses");
   });
   it("deixa [campo] onde não há dado", () => {
-    const t = montarContrato({ ...base, analistaCpf: null, responsavelNome: null });
+    const t = c({ ...base, analistaCpf: null, responsavelNome: null });
     expect(t).toContain("[CPF]");
     expect(t).toContain("[Nome Completo do Responsável]");
   });
   it("calcula idade da data de nascimento", () => {
-    const t = montarContrato({ ...base, pacienteNascimento: new Date(2010, 0, 1) });
+    const t = c({ ...base, pacienteNascimento: new Date(2010, 0, 1) });
     expect(t).toMatch(/Idade: 1[0-9] anos/);
   });
 
-  // Doc 23 — título, bloco paciente, responsáveis por idade.
-  it("título é só 'CONTRATO DE PRESTAÇÃO DE SERVIÇOS DE PSICANÁLISE' (sem a linha de infantil/adolescente)", () => {
-    const t = montarContrato(base);
+  // Doc 28 — título, objeto (2.1/2.2), reserva (5.1) e assinatura pela FORMAÇÃO.
+  it("título, objeto, processo, reserva e assinatura — PSICANÁLISE", () => {
+    const t = c({ ...base, descricaoAtendimento: "psicanalise" });
     expect(t.startsWith("CONTRATO DE PRESTAÇÃO DE SERVIÇOS DE PSICANÁLISE\n")).toBe(true);
-    expect(t).not.toContain("Atendimento Infantil");
+    expect(t).toContain("Atendimento e Análise Psicanalítica voltados ao desenvolvimento psíquico");
+    expect(t).toContain("Por se tratar de um processo psicanalítico");
+    expect(t).toContain("5.1. Reserva do Horário: Na psicanálise,");
+    expect(t).toContain("— Psicanalista");
   });
-  it("bloco do paciente usa 'Nome:', não 'Nome da Criança / Adolescente:'", () => {
-    const t = montarContrato(base);
-    expect(t).toContain("PACIENTE (BENEFICIÁRIO):\nNome: João Silva");
-    expect(t).not.toContain("Nome da Criança");
+  it("título/objeto/reserva/assinatura — TERAPIA", () => {
+    const t = c({ ...base, descricaoAtendimento: "terapia" });
+    expect(t.startsWith("CONTRATO DE PRESTAÇÃO DE SERVIÇOS DE TERAPIA\n")).toBe(true);
+    expect(t).toContain("a prestação de serviços de Atendimento terapêutico voltados ao PACIENTE acima identificado.");
+    expect(t).toContain("Por se tratar de um processo terapêutico");
+    expect(t).toContain("5.1. Reserva do Horário: Na terapia,");
+    expect(t).toContain("— Terapeuta");
   });
-  // Doc 25: quando o Responsável 2 fica vazio, a LINHA dele não aparece no contrato (antes saía o placeholder).
-  it("menor de 18: responsável do cadastro vira Responsável 1; a linha do Responsável 2 NÃO aparece", () => {
-    const t = montarContrato(base); // João, 2015
-    expect(t).toContain("Nome do Responsável 1: Maria Silva — CPF: 987.654.321-00");
-    expect(t).not.toContain("Nome do Responsável 2");
-  });
-  it("maior de 18 SEM responsável: o próprio paciente é o Responsável 1; a linha do Responsável 2 NÃO aparece", () => {
-    const t = montarContrato({ ...base, pacienteNascimento: new Date(1990, 0, 1), responsavelNome: null, responsavelCpf: null });
-    expect(t).toContain("Nome do Responsável 1: João Silva — CPF: 111.222.333-44");
-    expect(t).not.toContain("Nome do Responsável 2");
-  });
-  it("maior de 18 COM responsável: responsável no 1, paciente no 2 (a linha aparece)", () => {
-    const t = montarContrato({ ...base, pacienteNascimento: new Date(1990, 0, 1) });
-    expect(t).toContain("Nome do Responsável 1: Maria Silva — CPF: 987.654.321-00");
-    expect(t).toContain("Nome do Responsável 2: João Silva — CPF: 111.222.333-44");
+  it("título/objeto/reserva/assinatura — PSICOLOGIA", () => {
+    const t = c({ ...base, descricaoAtendimento: "psicologia" });
+    expect(t.startsWith("CONTRATO DE PRESTAÇÃO DE SERVIÇOS DE PSICOLOGIA\n")).toBe(true);
+    expect(t).toContain("a prestação de serviços de Atendimento Psicológico voltados ao desenvolvimento psíquico");
+    expect(t).toContain("Por se tratar de um processo psicológico");
+    expect(t).toContain("5.1. Reserva do Horário: Na psicologia,");
+    expect(t).toContain("— Psicólogo(a)");
   });
 
-  // Doc 25 — endereço e telefone do CONTRATANTE preenchidos do cadastro.
-  it("endereço do contratante é o endereço do paciente", () => {
-    const t = montarContrato(base);
-    expect(t).toContain("Endereço: Rua das Flores, 100 — Centro");
+  // Doc 28 — rótulos de seção sem os textos entre parênteses; 3. sem "(SETTING ANALÍTICO)".
+  it("rótulos das partes sem (Analista)/(Responsáveis Legais)/(Beneficiário)", () => {
+    const t = c(base);
+    expect(t).toContain("CONTRATADA:\n");
+    expect(t).not.toContain("CONTRATADA (ANALISTA)");
+    expect(t).toContain("CONTRATANTE(S):\n");
+    expect(t).not.toContain("RESPONSÁVEIS LEGAIS");
+    expect(t).toContain("PACIENTE:\nNome: João Silva");
+    expect(t).not.toContain("BENEFICIÁRIO");
+    expect(t).toContain("3. DO ENQUADRE CLÍNICO E HORÁRIOS");
+    expect(t).not.toContain("SETTING ANALÍTICO");
   });
-  it("telefone de contato é o do responsável", () => {
-    const t = montarContrato(base);
-    expect(t).toContain("Telefone / E-mail de Contato: (11) 99999-0000");
+  it("5.3/5.4 falam em PROFISSIONAL, não ANALISTA", () => {
+    const t = c(base);
+    expect(t).toContain("por parte do PROFISSIONAL");
+    expect(t).toContain("5.4. Faltas do Profissional: Caso o PROFISSIONAL precise desmarcar");
+    expect(t).not.toContain("por parte da ANALISTA");
+  });
+
+  // Doc 23/25 — responsáveis por idade; a linha do Responsável 2 só quando há R2.
+  it("menor de 18: responsável do cadastro vira Responsável (sem número); R2 não aparece", () => {
+    const t = c(base); // João, 2015
+    expect(t).toContain("Nome do Responsável: Maria Silva");
+    expect(t).toContain("CPF: 987.654.321-00");
+    expect(t).not.toContain("Nome do Responsável 2");
+  });
+  it("maior de 18 SEM responsável: o próprio paciente é o Responsável; R2 não aparece", () => {
+    const t = c({ ...base, pacienteNascimento: new Date(1990, 0, 1), responsavelNome: null, responsavelCpf: null });
+    expect(t).toContain("Nome do Responsável: João Silva");
+    expect(t).not.toContain("Nome do Responsável 2");
+  });
+  it("maior de 18 COM responsável: responsável no 1, paciente no 2", () => {
+    const t = c({ ...base, pacienteNascimento: new Date(1990, 0, 1) });
+    expect(t).toContain("Nome do Responsável: Maria Silva");
+    expect(t).toContain("Nome do Responsável 2: João Silva");
+  });
+
+  // Doc 25/28 — endereço e telefone do CONTRATANTE preenchidos do cadastro, em linhas próprias.
+  it("endereço do contratante é o endereço do paciente", () => {
+    expect(c(base)).toContain("Endereço: Rua das Flores, 100 — Centro");
+  });
+  it("telefone do contratante é o do responsável", () => {
+    expect(c(base)).toContain("Telefone: (11) 99999-0000");
   });
   it("sem telefone do responsável, usa o do paciente", () => {
-    const t = montarContrato({ ...base, responsavelTelefone: null });
-    expect(t).toContain("Telefone / E-mail de Contato: (11) 88888-0000");
-  });
-  it("sem endereço cadastrado, mantém o placeholder", () => {
-    const t = montarContrato({ ...base, pacienteEndereco: null });
-    expect(t).toContain("Endereço: [Endereço Residencial Completo]");
+    expect(c({ ...base, responsavelTelefone: null })).toContain("Telefone: (11) 88888-0000");
   });
 
-  // Doc 26 — enquadre dinâmico (duração, frequência, horário fixo).
+  // Doc 26 — enquadre dinâmico.
   it("3.1 duração usa 'até X minutos' do maior tempo cadastrado", () => {
-    expect(montarContrato({ ...base, duracaoMaxMin: 60 })).toContain("terão a duração de até 60 minutos");
-  });
-  it("3.1 sem duração cadastrada mantém o placeholder", () => {
-    expect(montarContrato({ ...base, duracaoMaxMin: null })).toContain("até [ex: 45 a 50 minutos]");
+    expect(c({ ...base, duracaoMaxMin: 60 })).toContain("terão a duração de até 60 minutos");
   });
   it("3.1 frequência: semanal 1x / 2x / mensal / quinzenal / não repetir", () => {
-    expect(montarContrato({ ...base, recorrencia: { freq: "semanal", vezesPorSemana: 1, repete: true } })).toContain("ocorre com a frequência Semanal (1x por semana)");
-    expect(montarContrato({ ...base, recorrencia: { freq: "semanal", vezesPorSemana: 2, repete: true } })).toContain("ocorre com a frequência Semanal (2x por semana)");
-    expect(montarContrato({ ...base, recorrencia: { freq: "mensal", vezesPorSemana: 1, repete: true } })).toContain("ocorre com a frequência Mensal");
-    expect(montarContrato({ ...base, recorrencia: { freq: "quinzenal", vezesPorSemana: 1, repete: true } })).toContain("ocorre com a frequência Quinzenal");
-    expect(montarContrato({ ...base, recorrencia: { freq: "semanal", vezesPorSemana: 1, repete: false } })).toContain("ocorre com a frequência Semanal.");
+    expect(c({ ...base, recorrencia: { freq: "semanal", vezesPorSemana: 1, repete: true } })).toContain("ocorre com a frequência Semanal (1x por semana)");
+    expect(c({ ...base, recorrencia: { freq: "semanal", vezesPorSemana: 2, repete: true } })).toContain("ocorre com a frequência Semanal (2x por semana)");
+    expect(c({ ...base, recorrencia: { freq: "mensal", vezesPorSemana: 1, repete: true } })).toContain("ocorre com a frequência Mensal");
+    expect(c({ ...base, recorrencia: { freq: "quinzenal", vezesPorSemana: 1, repete: true } })).toContain("ocorre com a frequência Quinzenal");
   });
-  it("3.1 sem agendamento mantém o placeholder de frequência", () => {
-    expect(montarContrato({ ...base, recorrencia: null })).toContain("[ex: 1 ou 2] vez(es) por semana");
-  });
-  it("3.2 horário fixo vem do último agendamento (dia da semana + hora)", () => {
-    // 06/10/2026 é terça-feira, 15h00.
-    expect(montarContrato(base)).toContain("Toda terça-feira, às 15h00");
-  });
-  it("3.2 sem agendamento mantém o placeholder", () => {
-    expect(montarContrato({ ...base, horarioFixo: null })).toContain("[ex: Toda terça-feira, às 15h00]");
+  it("3.2 horário fixo vem do último agendamento", () => {
+    expect(c(base)).toContain("Toda terça-feira, às 15h00");
   });
 
-  // Doc 26 — vencimento por formato (4.2).
+  // Doc 28 — vencimento (4.2) por formato.
   it("4.2 mensal: até o dia X do mês vigente", () => {
-    expect(montarContrato({ ...base, formatoPagamento: "mensal", diaPagamento: 10 })).toContain("efetuado até o dia 10 do mês vigente");
+    expect(c({ ...base, formatoPagamento: "mensal", diaPagamento: 10 })).toContain("efetuado até o dia 10 do mês vigente");
   });
   it("4.2 quinzenal: nos dias X e X", () => {
-    expect(montarContrato({ ...base, formatoPagamento: "quinzenal", diaPagamento: 10, diaPagamento2: 20 })).toContain("nos dias 10 e 20 do mês vigente");
+    expect(c({ ...base, formatoPagamento: "quinzenal", diaPagamento: 10, diaPagamento2: 20 })).toContain("nos dias 10 e 20 do mês vigente");
   });
-  it("4.2 primeira/última sessão do pacote", () => {
-    expect(montarContrato({ ...base, formatoPagamento: "primeira_pacote" })).toContain("até a data da primeira sessão do pacote do mês vigente");
-    expect(montarContrato({ ...base, formatoPagamento: "ultima_pacote" })).toContain("até a data da última sessão do pacote do mês vigente");
+  it("4.2 primeira/última sessão do pacote (sem 'do mês vigente')", () => {
+    expect(c({ ...base, formatoPagamento: "primeira_pacote" })).toContain("efetuado até a primeira sessão de cada pacote.");
+    expect(c({ ...base, formatoPagamento: "ultima_pacote" })).toContain("efetuado até a última sessão de cada pacote.");
   });
-  it("4.2 avulso: X horas antes do atendimento", () => {
-    expect(montarContrato({ ...base, formatoPagamento: "sessao", horasAntesPagamento: 24 })).toContain("efetuado até 24 horas antes do atendimento");
+  it("4.2 avulso: X horas antes da sessão", () => {
+    expect(c({ ...base, formatoPagamento: "sessao", horasAntesPagamento: 24 })).toContain("efetuado até 24 horas antes da sessão.");
   });
-  it("4.2 gratuito: a linha vira 'Isento'", () => {
-    const t = montarContrato({ ...base, formatoPagamento: "gratuito" });
-    expect(t).toContain("4.2. Vencimento e Forma de Pagamento: Isento");
-    expect(t).not.toContain("chave: [Sua Chave PIX]");
+  it("4.2 gratuito: isenção por tempo indeterminado", () => {
+    const t = c({ ...base, formatoPagamento: "gratuito" });
+    expect(t).toContain("4.2. Vencimento e Forma de Pagamento: Isento de qualquer tipo de pagamento por tempo indeterminado. Não há data de vencimento nem obrigação de pagamento enquanto essa condição estiver vigente.");
+    expect(t).not.toContain("[Sua Chave PIX]");
+  });
+  it("nenhum formato mostra mais a linha de PIX", () => {
+    expect(c({ ...base, formatoPagamento: "mensal", diaPagamento: 5 })).not.toContain("via [PIX");
   });
 
-  // Doc 27 — cabeçalho e foro preenchidos do Perfil; cláusula 4.2 sem a linha de PIX.
-  it("4.2 não mostra mais 'via [PIX...] na chave: [Sua Chave PIX]'", () => {
-    const t = montarContrato({ ...base, formatoPagamento: "mensal", diaPagamento: 5 });
-    expect(t).not.toContain("[Sua Chave PIX]");
-    expect(t).not.toContain("via [PIX");
-    expect(t).toContain("efetuado até o dia 5 do mês vigente.");
-  });
-  it("preenche conselho, endereço/plataforma e contato da analista quando há no Perfil", () => {
-    const t = montarContrato({ ...base, analistaConselho: "CRP 06/12345", analistaEndereco: "Av. Central, 10", analistaPlataforma: "Google Meet", analistaTelefone: "(11) 97777-0000", analistaEmail: "gi@exemplo.com" });
-    expect(t).toContain("Registro Profissional / Qualificação: CRP 06/12345 / CPF: 123.456.789-00");
-    expect(t).toContain("Endereço do Consultório / Plataforma: Av. Central, 10 / Google Meet");
-    expect(t).toContain("Telefone / E-mail: (11) 97777-0000 / gi@exemplo.com");
+  // Doc 27 — cabeçalho da analista em linhas próprias; doc 28 confirma.
+  it("preenche conselho, endereço, plataforma, telefone e e-mail da analista em linhas", () => {
+    const t = c({ ...base, analistaConselho: "CRP 06/12345", analistaEndereco: "Av. Central, 10", analistaPlataforma: "Google Meet", analistaTelefone: "(11) 97777-0000", analistaEmail: "gi@exemplo.com" });
+    expect(t).toContain("Registro Profissional: CRP 06/12345");
+    expect(t).toContain("Endereço: Av. Central, 10");
+    expect(t).toContain("Plataforma utilizada para atendimentos online: Google Meet");
+    expect(t).toContain("Telefone: (11) 97777-0000");
+    expect(t).toContain("E-mail: gi@exemplo.com");
   });
   it("sem dados da analista, mantém os placeholders do cabeçalho", () => {
-    const t = montarContrato(base);
-    expect(t).toContain("[Nº do Conselho ou Associação]");
-    expect(t).toContain("[Endereço do Consultório ou Atendimento Online]");
-    expect(t).toContain("[Seu Contato Profissional]");
+    const t = c(base);
+    expect(t).toContain("Registro Profissional: [Nº do Conselho ou Associação]");
+    expect(t).toContain("Endereço: [Endereço]");
+    expect(t).toContain("Plataforma utilizada para atendimentos online: [Plataforma utilizada para atendimentos online]");
   });
-  it("foro e local da assinatura usam cidade/estado do Perfil", () => {
-    const t = montarContrato({ ...base, cidade: "Campinas", estado: "SP" });
+
+  // Doc 27/28 — foro + data da assinatura (data = hoje).
+  it("foro e local usam cidade/estado; data da assinatura é a de hoje por extenso", () => {
+    const t = c({ ...base, cidade: "Campinas", estado: "SP" });
     expect(t).toContain("Foro da Comarca de Campinas / SP");
-    expect(t).toContain("Campinas - SP, [Dia] de [Mês] de [Ano].");
+    expect(t).toContain("Campinas - SP, 11 de outubro de 2026.");
   });
-  it("sem cidade, mantém os placeholders de foro e local", () => {
-    const t = montarContrato(base);
+  it("sem cidade, mantém o placeholder do local; data continua a de hoje", () => {
+    const t = c(base);
     expect(t).toContain("Foro da Comarca de [Sua Cidade / Estado]");
-    expect(t).toContain("[Cidade - UF], [Dia] de [Mês] de [Ano].");
+    expect(t).toContain("[Cidade - UF], 11 de outubro de 2026.");
   });
-  it("assinatura: a linha do Responsável 2 só aparece quando há Responsável 2", () => {
-    // menor de 18 → só R1; a assinatura do R2 não deve aparecer.
-    const menor = montarContrato(base);
-    expect(menor).not.toContain("NOME DO RESPONSÁVEL 2");
-    expect((menor.match(/Contratante \/ Responsável Legal/g) || []).length).toBe(1);
-    // maior de 18 com responsável → R1 (responsável) e R2 (paciente): duas assinaturas.
-    const maior = montarContrato({ ...base, pacienteNascimento: new Date(1990, 0, 1) });
-    expect((maior.match(/Contratante \/ Responsável Legal/g) || []).length).toBe(2);
+
+  // Doc 28 — campos preenchidos pelo sistema saem com marcador de negrito.
+  it("os valores preenchidos pelo sistema vêm marcados para negrito", () => {
+    const bruto = montarContrato({ ...base, cidade: "Campinas", estado: "SP" });
+    expect(bruto).toContain("\u0001Gisele Barbosa\u0002");
+    expect(bruto).toContain("\u0001R$ 120,00\u0002");
+    expect(bruto).toContain("\u000111 de outubro de 2026\u0002");
   });
 });
