@@ -69,17 +69,20 @@ export function IntegrationsCard({ initial, calendarAuthorized = false }: { init
           const connected = !!state[it.key];
           return (
             <div key={it.key} className="space-y-3">
-              <div className="flex items-center gap-4 p-4 rounded-2xl bg-surface/50 border border-border">
-                <div className="w-11 h-11 rounded-2xl flex items-center justify-center text-white shrink-0" style={{ backgroundColor: it.color }}>
-                  <it.icon className="w-5 h-5" />
-                </div>
-                <div className="flex-1 min-w-0">
-                  <p className="font-bold text-primary">{it.name}</p>
-                  <p className="text-sm text-foreground/50 leading-snug">{it.desc}</p>
+              {/* Doc 29: layout do Telegram — texto em cima, botão embaixo em largura cheia. */}
+              <div className="p-4 rounded-2xl bg-surface/50 border border-border space-y-3">
+                <div className="flex items-center gap-4">
+                  <div className="w-11 h-11 rounded-2xl flex items-center justify-center text-white shrink-0" style={{ backgroundColor: it.color }}>
+                    <it.icon className="w-5 h-5" />
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-bold text-primary">{it.name}</p>
+                    <p className="text-sm text-foreground/50 leading-snug">{it.desc}</p>
+                  </div>
                 </div>
                 <button onClick={() => toggle(it.key)} disabled={pending}
-                  className={`shrink-0 px-4 py-2 rounded-xl text-sm font-bold transition ${connected ? "bg-[#ecfdf5] text-[#047857]" : "bg-primary text-white hover:scale-[1.02]"}`}>
-                  {connected ? <span className="flex items-center gap-1.5"><Check className="w-4 h-4" /> Conectado</span> : "Conectar"}
+                  className={`w-full px-4 py-2.5 rounded-xl text-sm font-bold transition ${connected ? "bg-[#ecfdf5] text-[#047857]" : "bg-primary text-white hover:opacity-90"}`}>
+                  {connected ? <span className="flex items-center justify-center gap-1.5"><Check className="w-4 h-4" /> Conectado</span> : "Conectar"}
                 </button>
               </div>
 

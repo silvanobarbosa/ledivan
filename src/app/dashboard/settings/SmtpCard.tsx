@@ -31,7 +31,8 @@ export function SmtpCard({ configured, currentEmail, loginEmail }: { configured:
   const helpUrl = domain.includes("gmail") ? APP_PASS_HELP.gmail : (domain.includes("outlook") || domain.includes("hotmail") || domain.includes("live")) ? APP_PASS_HELP.outlook : null;
 
   return (
-    <div className="p-8 bg-white rounded-[48px] shadow-sm border border-border space-y-4">
+    <div className="p-8 bg-white rounded-[48px] shadow-sm border border-border space-y-3">
+      {/* Doc 29: mesmo layout do card do Telegram — texto em cima, botão embaixo em largura cheia. */}
       <div className="flex items-start gap-4">
         <div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center shrink-0"><Mail className="w-6 h-6" /></div>
         <div className="flex-1">
@@ -45,10 +46,10 @@ export function SmtpCard({ configured, currentEmail, loginEmail }: { configured:
             </span>
           )}
         </div>
-        <button onClick={() => setOpen((o) => !o)} className="text-sm font-semibold text-primary hover:underline shrink-0">
-          {open ? "Fechar" : configured ? "Alterar" : "Configurar"}
-        </button>
       </div>
+      <button onClick={() => setOpen((o) => !o)} className="w-full text-sm font-bold text-white bg-primary rounded-xl px-5 py-2.5 hover:opacity-90">
+        {open ? "Fechar" : configured ? "Alterar" : "Configurar"}
+      </button>
 
       {open && (
         <form action={onSubmit} className="space-y-3 border-t border-border pt-4">

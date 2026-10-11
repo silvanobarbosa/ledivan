@@ -15,26 +15,32 @@ export function TranscriptionToggle({ initial }: { initial: boolean }) {
   };
 
   return (
-    <div className="p-8 bg-white rounded-[48px] shadow-sm border border-border flex items-start gap-5">
-      <div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
-        <Mic className="w-6 h-6" />
+    // Doc 29: layout do Telegram — texto em cima, controle (liga/desliga) numa linha própria abaixo.
+    <div className="p-8 bg-white rounded-[48px] shadow-sm border border-border space-y-3">
+      <div className="flex items-start gap-5">
+        <div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
+          <Mic className="w-6 h-6" />
+        </div>
+        <div className="flex-1">
+          <h4 className="font-bold text-primary">Transcrição de sessão por IA</h4>
+          <p className="text-sm text-foreground/50 mt-1 leading-relaxed">
+            Quando ativo, você pode enviar o áudio da sessão para gerar um rascunho de evolução no prontuário.
+            O uso é opcional e exige o <strong>consentimento do paciente</strong>, confirmado em tela a cada uso.
+          </p>
+        </div>
       </div>
-      <div className="flex-1">
-        <h4 className="font-bold text-primary">Transcrição de sessão por IA</h4>
-        <p className="text-sm text-foreground/50 mt-1 leading-relaxed">
-          Quando ativo, você pode enviar o áudio da sessão para gerar um rascunho de evolução no prontuário.
-          O uso é opcional e exige o <strong>consentimento do paciente</strong>, confirmado em tela a cada uso.
-        </p>
+      <div className="flex items-center justify-between">
+        <span className="text-sm font-semibold text-foreground/60">{enabled ? "Ativado" : "Desativado"}</span>
+        <button
+          onClick={toggle}
+          disabled={pending}
+          aria-pressed={enabled}
+          className={`relative w-14 h-8 rounded-full transition-colors shrink-0 ${enabled ? "bg-primary" : "bg-foreground/40"}`}
+        >
+          {/* Doc 28: o círculo não aparecia no estado desligado (branco sobre claro) — borda para destacar. */}
+          <span className={`absolute top-1 w-6 h-6 bg-white rounded-full shadow border border-foreground/20 transition-transform ${enabled ? "translate-x-7" : "translate-x-1"}`} />
+        </button>
       </div>
-      <button
-        onClick={toggle}
-        disabled={pending}
-        aria-pressed={enabled}
-        className={`relative w-14 h-8 rounded-full transition-colors shrink-0 ${enabled ? "bg-primary" : "bg-foreground/40"}`}
-      >
-        {/* Doc 28: o círculo não aparecia no estado desligado (branco sobre claro) — borda para destacar. */}
-        <span className={`absolute top-1 w-6 h-6 bg-white rounded-full shadow border border-foreground/20 transition-transform ${enabled ? "translate-x-7" : "translate-x-1"}`} />
-      </button>
     </div>
   );
 }
