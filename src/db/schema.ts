@@ -83,6 +83,9 @@ export const users = pgTable("user", {
   cidade: text("cidade"),
   estado: text("estado"),
   plataformaOnline: text("plataforma_online"),
+  // Logotipo (doc 31): imagem usada no cabeçalho do contrato e do recibo (quadro 3×3cm, à direita do
+  // título). Sem imagem, o espaço fica em branco. Cadastrada uma vez em Ajustes, vale nos dois docs.
+  logoUrl: text("logo_url"),
 
   preferences: text("preferences"), // JSON string
   role: text("role").default("user").notNull(), // user | admin (super admin)

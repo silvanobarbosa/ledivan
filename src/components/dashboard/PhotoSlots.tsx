@@ -5,7 +5,7 @@ import { Camera, Loader2, X } from "lucide-react";
 import { uploadPhoto } from "@/app/dashboard/patients/actions";
 import { photoSrc } from "@/lib/photo";
 
-type SlotName = "photo3x4" | "photoExtra1" | "photoExtra2" | "photoExtra3";
+type SlotName = "photo3x4" | "photoExtra1" | "photoExtra2" | "photoExtra3" | "logoUrl";
 type Initial = Partial<Record<SlotName, string | null>>;
 
 const EXTRAS: SlotName[] = ["photoExtra1", "photoExtra2", "photoExtra3"];
@@ -79,6 +79,15 @@ function Slot({
         </button>
       )}
       {err && <p className="text-[11px] text-red-600">{err}</p>}
+    </div>
+  );
+}
+
+// Logotipo (doc 31): quadro quadrado para o logo usado no contrato e no recibo.
+export function SingleLogo({ initial }: { initial?: string | null }) {
+  return (
+    <div className="w-[120px]">
+      <Slot name="logoUrl" label="Logotipo (contrato e recibo)" initial={initial} ratio="aspect-square" />
     </div>
   );
 }

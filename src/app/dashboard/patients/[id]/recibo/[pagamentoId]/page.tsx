@@ -54,7 +54,7 @@ export default async function Recibo({ params }: { params: Promise<{ id: string;
   if (!paciente) notFound();
 
   const [terapeuta] = await db
-    .select({ name: users.name, cpf: users.therapistCpf, descricao: users.descricaoAtendimento })
+    .select({ name: users.name, cpf: users.therapistCpf, descricao: users.descricaoAtendimento, logoUrl: users.logoUrl })
     .from(users)
     .where(eq(users.id, userId))
     .limit(1);
@@ -131,6 +131,7 @@ export default async function Recibo({ params }: { params: Promise<{ id: string;
       pagamentoId={pagamento.id}
       faltando={faltando}
       semDatasDeSessao={datasSeq.length === 0 && fallback.length === 0}
+      logoUrl={terapeuta?.logoUrl ?? null}
     />
   );
 }
