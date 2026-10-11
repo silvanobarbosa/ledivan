@@ -30,9 +30,10 @@ export function TranscriptionToggle({ initial }: { initial: boolean }) {
         onClick={toggle}
         disabled={pending}
         aria-pressed={enabled}
-        className={`relative w-14 h-8 rounded-full transition-colors shrink-0 ${enabled ? "bg-primary" : "bg-foreground/20"}`}
+        className={`relative w-14 h-8 rounded-full transition-colors shrink-0 ${enabled ? "bg-primary" : "bg-foreground/40"}`}
       >
-        <span className={`absolute top-1 w-6 h-6 bg-white rounded-full shadow transition-transform ${enabled ? "translate-x-7" : "translate-x-1"}`} />
+        {/* Doc 28: o círculo não aparecia no estado desligado (branco sobre claro) — borda para destacar. */}
+        <span className={`absolute top-1 w-6 h-6 bg-white rounded-full shadow border border-foreground/20 transition-transform ${enabled ? "translate-x-7" : "translate-x-1"}`} />
       </button>
     </div>
   );

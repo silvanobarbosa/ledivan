@@ -28,10 +28,12 @@ export function AiKeyCard({ configured, provider }: { configured: boolean; provi
         {saved && <span className="text-xs text-green-600 font-semibold">salvo ✓</span>}
       </div>
 
-      <p className="text-sm text-foreground/50">
-        A transcrição da sessão usa <b>a sua própria conta de IA</b>. O áudio vai direto para o provedor que você escolher,
-        com a sua chave — o Ledivan não usa chave própria nem guarda o áudio. Sua chave fica <b>criptografada</b>.
-      </p>
+      <ul className="text-sm text-foreground/50 list-disc pl-5 space-y-1">
+        <li>A transcrição das sessões utiliza sua própria conta de IA.</li>
+        <li>O áudio é enviado diretamente ao provedor de IA escolhido por você, utilizando sua própria chave de API.</li>
+        <li>O Le&rsquo;Divan não utiliza uma chave própria nem armazena o áudio das sessões.</li>
+        <li>Sua chave de API é armazenada de forma criptografada.</li>
+      </ul>
 
       {configured ? (
         <div className="flex items-center justify-between gap-3 rounded-2xl bg-[#ecfdf5] border border-[#a7f3d0] px-4 py-3">
