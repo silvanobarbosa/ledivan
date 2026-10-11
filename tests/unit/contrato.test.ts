@@ -173,4 +173,21 @@ describe("montarContrato", () => {
     expect(bruto).toContain("\u0001R$ 120,00\u0002");
     expect(bruto).toContain("\u000111 de outubro de 2026\u0002");
   });
+
+  // Doc 29 — sequência (3.1), horário fixo (3.2), 4.1 gratuito e 4.2 (gratuito/1ª/última) em negrito.
+  it("3.1 sequência e 3.2 horário fixo saem em negrito", () => {
+    const bruto = montarContrato(base);
+    expect(bruto).toContain("\u0001Semanal (1x por semana)\u0002");
+    expect(bruto).toContain("\u0001Toda terça-feira, às 15h00\u0002");
+  });
+  it("gratuito: 4.1 'R$ 0,00' e 4.2 isenção em negrito (sem 'totalizando')", () => {
+    const bruto = montarContrato({ ...base, formatoPagamento: "gratuito" });
+    expect(bruto).toContain("\u0001O valor acordado por cada sessão é de R$ 0,00.\u0002");
+    expect(textoLimpo(bruto)).not.toContain("totalizando o valor mensal");
+    expect(bruto).toContain("\u0001Isento de qualquer tipo de pagamento por tempo indeterminado.");
+  });
+  it("4.2 primeira/última sessão do pacote: a condição em negrito", () => {
+    expect(montarContrato({ ...base, formatoPagamento: "primeira_pacote" })).toContain("\u0001a primeira sessão de cada pacote\u0002");
+    expect(montarContrato({ ...base, formatoPagamento: "ultima_pacote" })).toContain("\u0001a última sessão de cada pacote\u0002");
+  });
 });

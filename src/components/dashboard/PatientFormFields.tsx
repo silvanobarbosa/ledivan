@@ -441,7 +441,7 @@ export function PatientFormFields({ p, save, tabInicial, contrato, patientId }: 
     { v: "gratuito", t: "Gratuito", d: "Sem cobrança (na agenda aparece como GRAT)." },
     { v: "sessao", t: "Avulso", d: "Pagamento realizado a cada atendimento (na agenda aparece como AVUL)." },
     { v: "mensal", t: "Mensal", d: "Pagamento realizado uma vez por mês, referente a uma quantidade determinada de sessões." },
-    { v: "quinzenal", t: "Quinzenal", d: "Pagamento realizado duas vezes por mês, referente a uma quantidade determinada de sessões." },
+    { v: "quinzenal", t: "Quinzenal", d: "Pagamento realizado quinzenalmente, referente a uma quantidade determinada de sessões." },
   ];
 
   return (
