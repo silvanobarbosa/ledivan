@@ -252,6 +252,13 @@ function ColunasDoPagamento({ patientId, c, onLancar, cobrar }: { patientId: str
   // Doc 29: a ordem (data/forma/lixeira · responsável · carimbos · botões) é toda por lançamento,
   // dentro de ListaLancamentos — aqui fica só o status "Pago" e o aviso de diferença perdoada.
   if (pg && c.situacao === "pago") {
+    // Doc 30: no pagamento TOTAL a lista de lançamentos às vezes vem vazia (o pagamento existe só
+    // como representante `c.pagamento`). Sem fallback, a linha some inteira — data/forma/lixeira/
+    // botões não aparecem. Então, se não há lista, sintetizamos um lançamento a partir do
+    // representante, com o valor da cobrança (que o ListaLancamentos oculta por ser o total).
+    const lancamentos = c.pagamentos.length
+      ? c.pagamentos
+      : [{ id: pg.id, data: pg.data, valor: c.valor, pagoPor: pg.pagoPor, metodo: pg.metodo, recibo: pg.recibo, nota: pg.nota }];
     return (
       <>
         <td className="px-3 py-2">
@@ -267,8 +274,8 @@ function ColunasDoPagamento({ patientId, c, onLancar, cobrar }: { patientId: str
               </span>
             )}
             {/* Cada lançamento, na ordem do doc 29 (valor[parcial]·data·forma·lixeira / responsável /
-                carimbos / botões). */}
-            <ListaLancamentos patientId={patientId} pagamentos={c.pagamentos} total={c.valor} />
+                carimbos / botões). Com fallback do representante no total (doc 30). */}
+            <ListaLancamentos patientId={patientId} pagamentos={lancamentos} total={c.valor} />
           </div>
         </td>
       </>
@@ -531,7 +538,8 @@ export function GeralTab({ patientId, linhas, responsavel, responsavelCpf, cobra
                     </td>
                     <td className="px-3 py-2 font-semibold tabular-nums">{l.rotulo || "—"}</td>
                     <CelulaStatus status={l.status} />
-                    <td className="px-3 py-2 text-right tabular-nums">{l.valor == null ? "" : formatBRL(l.valor)}</td>
+                    {/* Doc 30: o valor da sessão AVULSA (formato "sessao") sai em negrito na tabela de Controle. */}
+                    <td className={`px-3 py-2 text-right tabular-nums ${c?.formato === "sessao" ? "font-bold" : ""}`}>{l.valor == null ? "" : formatBRL(l.valor)}</td>
                     {c ? <ColunasDoPagamento patientId={patientId} c={c} onLancar={() => setAberta(c.chave)} cobrar={cobrar} /> : <td />}
                   </tr>
                   {c && aberta === c.chave && <FormularioDeLancamento patientId={patientId} c={c} responsavel={responsavel} responsavelCpf={responsavelCpf ?? ""} fechar={() => setAberta(null)} />}
