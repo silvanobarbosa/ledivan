@@ -7,6 +7,25 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-10-11 — Doc 29 frente G: casca única nos cards de Ajustes (#324)
+
+**Entregue:** os 6 cards de Ajustes que ainda usavam a casca antiga (`p-8 bg-white rounded-[48px]
+shadow-sm border`) — Booking, Integrações, Locais, Reunião (vídeo), SMTP e Transcrição por IA —
+foram para `glass-card rounded-[24px] p-6`, a casca do resto da página (referência: card do Telegram,
+citada no doc 29). Fecha a padronização que o #319 começou pelo conteúdo.
+
+**Por quê:** o dono deixou a frente G aberta "aguardando o padrão"; ao retomar, delegou a decisão
+("faça da forma mais adequada"). O padrão da casa já era o `glass-card` (Telegram, WhatsApp e todos
+os cards novos); os 6 eram o resíduo legado.
+
+**Decisões que ficam valendo:** só a casca muda — o conteúdo (texto em cima, controle embaixo em
+largura cheia) já estava padronizado. O formulário de **Perfil** fica distinto de propósito: é o bloco
+de identidade da página, não um card de ajuste.
+
+**Pendente:** nada. Docs 29, 30 e 31 sem pendência.
+
+---
+
 ## 2026-10-11 — Doc 31: ícone balão + logo nos documentos + pagamento cross-year + editar vencimento (#320–#322)
 
 **Entregue:**
@@ -43,8 +62,7 @@ cobrança.
 repo (node_modules); neon-http solta "Assertion failed … async.c" no exit — ruído benigno, a DDL já
 rodou.
 
-**Pendente:** nada do doc 31. Segue aberta a frente G do doc 29 (layout dos cards do Ajustes),
-aguardando o dono confirmar o padrão.
+**Pendente:** nada do doc 31. (A frente G do doc 29, que seguia aberta, foi fechada no #324.)
 
 ---
 
