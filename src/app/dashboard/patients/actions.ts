@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@/db";
-import { patients, patientStatusHistory, patientPriceHistory, patientContractHistory, patientPaymentFormatHistory, patientRecords, assignments, scaleApplications, treatmentGoals, patientPackages, therapySessions } from "@/db/schema";
+import { patients, patientStatusHistory, patientPriceHistory, patientContractHistory, patientPaymentFormatHistory, patientPackageHistory, patientRecords, assignments, scaleApplications, treatmentGoals, patientPackages, therapySessions } from "@/db/schema";
 import { auth } from "@/auth";
 import { and, eq, gt, inArray, sql } from "drizzle-orm";
 import { encerraAgenda, sessoesAEncerrar } from "@/lib/encerrarAgenda";
@@ -445,6 +445,26 @@ export async function updatePatient(patientId: string, formData: FormData) {
     });
     if (linhas.length) {
       await db.insert(patientPaymentFormatHistory).values(linhas.map((l) => ({ patientId, ...l })));
+    }
+  }
+  // VIGÊNCIA DO TAMANHO DO PACOTE (doc 30): mudar a quantidade de sessões vale só da data em "Vale a
+  // partir de"; o passado fica intacto e a sequência reinicia em 1/N. Sem histórico ainda, registra
+  // primeiro a BASE (tamanho antigo desde o início) para não renumerar o que já existia.
+  {
+    const novoTamanho = usaPacote(newFormat) && formData.get("sessionsInPacket")
+      ? parseInt(formData.get("sessionsInPacket") as string)
+      : existing.sessionsInPacket;
+    const antigoTamanho = existing.sessionsInPacket;
+    if (usaPacote(newFormat) && novoTamanho && novoTamanho >= 1 && novoTamanho !== antigoTamanho) {
+      const desde = diaDoFormulario(formData.get("formatoDesde") as string | null) ?? new Date();
+      const [temHist] = await db.select({ id: patientPackageHistory.id }).from(patientPackageHistory)
+        .where(eq(patientPackageHistory.patientId, patientId)).limit(1);
+      const rows: { patientId: string; tamanho: number; dataEfetiva: Date }[] = [];
+      if (!temHist && antigoTamanho && antigoTamanho >= 1) {
+        rows.push({ patientId, tamanho: antigoTamanho, dataEfetiva: existing.startedAt ?? existing.createdAt });
+      }
+      rows.push({ patientId, tamanho: novoTamanho, dataEfetiva: desde });
+      await db.insert(patientPackageHistory).values(rows);
     }
   }
   if ((existing.paymentFormat || "avulso") !== (newFormat || "avulso") || (existing.frequency || "") !== (newFreq || "")) {
