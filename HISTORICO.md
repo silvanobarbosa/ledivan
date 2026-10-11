@@ -7,6 +7,36 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-10-11 — Doc 30: vigência do tamanho do pacote (crítico) + bugs/ajustes + Ano TODOS/PDF (#315–#317)
+
+**Entregue:**
+- **#315 (bugs):** pagamento **TOTAL** voltou a aparecer na guia Geral — `ColunasDoPagamento`
+  sintetiza um lançamento do representante (`c.pagamento`) quando a cobrança vem sem lista de
+  lançamentos (senão a linha sumia inteira). Botão **"Restaurar contrato"** ao lado do Salvar (volta
+  ao modelo padrão + limpa o override; páginas passam `textoPadrao`). 2º ícone de mensagem virou
+  **ícone** (`MessageSquareText`, só ícone) do histórico de WhatsApp. Valor de sessão **avulsa** em
+  **negrito** no Controle.
+- **#316 (crítico) — vigência do tamanho do pacote.** Mudar a quantidade de sessões com "Vale a partir
+  de" aplicava RETROATIVO (renumerava o passado). Agora vale só das sessões com data >= a vigência; a
+  sequência **reinicia em 1/N** na data e o anterior fica intacto. Nova tabela `patient_package_history`
+  (aditiva), `posicoesDaSequencia` ganhou `tamanhosPorData` (varredura data-aware), a edição grava a
+  base + a vigência, e guia/agenda/cobranças/fechamento passam o histórico. Exemplo do doc confere.
+- **#317 (A) — Ano "TODOS" + Imprimir PDF.** Filtro com "TODOS" (Controle sem filtro; Valor Recebido
+  uma tabela por ano). Botão Imprimir = `window.print()` isolando `#controle-print`, ações escondidas
+  por `print:hidden`, títulos no PDF.
+
+**Decisões que ficam valendo:**
+- Tamanho do pacote por **data** (`patient_package_history` + `tamanhosPorData` em `posicoesDaSequencia`);
+  `sessions_in_packet` segue como o tamanho ATUAL. A sequência reinicia em 1/N na vigência.
+- Pagamento total na guia: sem `pagamentos` na cobrança, usa o representante `c.pagamento` (valor = total).
+
+**Armadilhas:** a numeração do pacote é REFEITA do zero sempre (nunca guardada) — a vigência entra no
+motor (`sequenciaPacote`), não em contador. Criar a branch ANTES de commitar (quase commitei no main).
+
+**Pendente:** frente G do doc 29 (layout dos cards do Ajustes) segue aguardando o dono confirmar o padrão.
+
+---
+
 ## 2026-10-11 — Doc 29: FIX crítico das datas do recibo + ajustes do doc 28 (#309–#313)
 
 **Entregue:**
