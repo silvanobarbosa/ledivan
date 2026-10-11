@@ -209,7 +209,14 @@ function casarPagamentos(cobrancas: Cobranca[], pagamentos: PagamentoDaGeral[], 
     id: p.id, data: p.data, valor: p.valor, metodo: p.metodo, pagoPor: p.pagoPor,
     recibo: p.recibo === true, nota: p.nota === true,
   });
-  const empilhaPg = (chave: string, p: PagamentoLancado) => listaPorChave.set(chave, [...(listaPorChave.get(chave) ?? []), p]);
+  const empilhadoEm = new Map<string, Set<string>>();
+  const empilhaPg = (chave: string, p: PagamentoLancado) => {
+    const vistos = empilhadoEm.get(chave) ?? new Set<string>();
+    if (vistos.has(p.id)) return; // um pagamento aparece uma vez por cobrança, nunca duplicado
+    vistos.add(p.id);
+    empilhadoEm.set(chave, vistos);
+    listaPorChave.set(chave, [...(listaPorChave.get(chave) ?? []), p]);
+  };
 
   // As cobranças que um pagamento mandou QUITAR mesmo sem o valor fechar (diferença perdoada).
   const quitadas = new Set<string>();
@@ -245,7 +252,14 @@ function casarPagamentos(cobrancas: Cobranca[], pagamentos: PagamentoDaGeral[], 
       sobra -= usa;
       falta -= usa;
       recebido.set(c.chave, (recebido.get(c.chave) ?? 0) + usa);
-      if (fonte) ultimo.set(c.chave, fonte);
+      if (fonte) {
+        ultimo.set(c.chave, fonte);
+        // Doc 31: o pagamento distribuído por vencimento também entra na LISTA da cobrança, não só
+        // como "recebido". Sem isto o pacote aparecia "Pago" sem nenhum lançamento à vista — e o
+        // recibo, que acha a cobrança por `pagamentos`, não achava as datas das sessões (caía na
+        // data do pagamento). Vale mesmo quando o pagamento cruza o ano do pacote.
+        empilhaPg(c.chave, fonte);
+      }
     }
   }
 
