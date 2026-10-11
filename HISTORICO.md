@@ -7,6 +7,47 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-10-11 — Doc 31: ícone balão + logo nos documentos + pagamento cross-year + editar vencimento (#320–#322)
+
+**Entregue:**
+- **#320 (B+C):** 2º ícone do WhatsApp virou **balão preenchido** igual ao de mensagem
+  (`MessageCircle fill`, botão branco). **Logotipo** opcional para contrato e recibo: quadro fixo
+  3×3 cm no canto superior direito do papel; sem imagem fica em branco. Campo `logoUrl` em `user`
+  (Ajustes → `SingleLogo`); `ContratoImpresso`/`ReciboImpresso` desenham `LogoBox` e o print CSS
+  libera `.doc-logo`.
+- **#321 (D) — crítico, pagamento cruzando o ano.** Pacote 23/12 + 08/01 pago em 10/01 do ano
+  seguinte: o pagamento aparecia "Pago" sem lançamento à vista e o recibo perdia as datas das
+  sessões. Causa: quando o pagamento não casa pela `chave` (defasada ou antiga sem chave), ele cai
+  no passo 2 de `casarPagamentos` (distribuição por vencimento), que marcava `recebido` mas NÃO
+  empilhava o lançamento na lista `pagamentos` da cobrança. Agora empilha (com guarda de
+  duplicidade). O recibo acha a cobrança por essa lista e volta a listar as sessões certas.
+- **#322 (E) — editar vencimento à mão.** Lápis ao lado de "· vence dd/mm" na guia Geral, só
+  enquanto a cobrança não tem pagamento lançado; clica → campo de data → salva sem mexer no valor
+  nem nas outras cobranças; editado, aparece o ↩ "desfazer" (volta à data calculada). Nova tabela
+  aditiva `cobranca_vencimentos` (override por chave, único por usuário+paciente+chave).
+
+**Por quê:** o dono conferiu os docs anteriores e apontou (1) o 2º ícone ainda fora do padrão e a
+falta do logotipo nos documentos; (2) um pagamento de pacote que cruzava o ano não correspondia às
+sessões no recibo; (3) a necessidade de corrigir o dia de um vencimento sem ter de refazer a
+cobrança.
+
+**Decisões que ficam valendo:**
+- Passo 2 de `casarPagamentos` empilha o pagamento na lista da cobrança — `pagamentos` é exibição +
+  vínculo do recibo; a conta de dinheiro continua em `recebido`/`ultimo` (nenhum valor muda).
+- Vencimento editável é um **override por chave** (tabela `cobranca_vencimentos`), aplicado pelo
+  motor por cima do calculado ANTES de ordenar. Desfazer = apagar a linha; o motor recalcula o
+  original. Não se guarda a data original.
+
+**Armadilhas:** a chave do pacote é `pacote:inicio:0` quando o período é aberto (`chaveDoDia` devolve
+`"inicio"`), não uma data. Script tsx que usa `@neondatabase/serverless` tem de rodar de DENTRO do
+repo (node_modules); neon-http solta "Assertion failed … async.c" no exit — ruído benigno, a DDL já
+rodou.
+
+**Pendente:** nada do doc 31. Segue aberta a frente G do doc 29 (layout dos cards do Ajustes),
+aguardando o dono confirmar o padrão.
+
+---
+
 ## 2026-10-11 — Doc 30: vigência do tamanho do pacote (crítico) + bugs/ajustes + Ano TODOS/PDF (#315–#317)
 
 **Entregue:**
