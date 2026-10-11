@@ -12,13 +12,12 @@ import { rotuloDoFormato } from "./reajuste";
  * O financeiro por extenso. Mensal e quinzenal ganham " pacote" ou " fragmentado" (é o que distingue
  * como a sequência é contada); os demais já se explicam sozinhos.
  */
-export function rotuloFinanceiro(formato: string | null | undefined, pacoteTipo: string | null | undefined): string {
-  const base = rotuloDoFormato(formato);
+export function rotuloFinanceiro(formato: string | null | undefined, _pacoteTipo?: string | null | undefined): string {
   const f = formato === "avulso" ? "sessao" : formato === "pacote" ? "mensal" : formato;
-  if (f === "mensal" || f === "quinzenal") {
-    return `${base} ${pacoteTipo === "fragmentado" ? "fragmentado" : "pacote"}`;
-  }
-  return base;
+  // Doc 28: "Pagamento mensal" / "Pagamento quinzenal" (sem o sufixo pacote/fragmentado).
+  if (f === "mensal") return "Pagamento mensal";
+  if (f === "quinzenal") return "Pagamento quinzenal";
+  return rotuloDoFormato(formato);
 }
 
 const DIA_BONITO: Record<string, string> = {

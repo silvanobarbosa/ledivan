@@ -2,7 +2,7 @@
 
 import { idadeEmPalavras } from "@/lib/idade";
 import { rotuloFinanceiro } from "@/lib/rotulosPaciente";
-import { cobra, usaPacote } from "@/lib/reajuste";
+import { cobra } from "@/lib/reajuste";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
@@ -36,7 +36,7 @@ type Patient = {
   patientStatus: string; paymentStatus: string; startedAt: string | null; address: string | null;
   schoolName: string | null; schoolContact: string | null;
   emergencyName: string | null; emergencyPhone: string | null; emergencyRelationship: string | null;
-  contractType: string | null; paymentDay: number | null;
+  contractType: string | null; paymentDay: number | null; paymentDay2?: number | null;
   attendanceMode: string | null; attendanceLocation: string | null; attendanceDay: string | null; attendanceTime: string | null;
   category: string | null; isCouple?: boolean | null; birthDate?: string | Date | null;
   queixaPrincipal: string | null; spouseName: string | null;
@@ -121,12 +121,17 @@ export function PatientDetail({
   const [ano, setAno] = useState(anosDoPaciente[0]);
 
   const [tab, setTab] = useState<(typeof TABS)[number]>("Geral");
-  // Vencimento a mostrar no cabeçalho: dia do mês (mensal/quinzenal) ou horas antes (avulso).
-  const vencimentoTexto = usaPacote(patient.paymentFormat)
-    ? (patient.paymentDay ? `vence dia ${patient.paymentDay}` : "")
-    : patient.paymentFormat === "sessao" && patient.horasAntesPagamento
-      ? `pagar até ${patient.horasAntesPagamento}h antes`
-      : "";
+  // Vencimento no cabeçalho (doc 28): mensal = "vence dia X"; quinzenal = os dois dias; 1ª/última
+  // sessão do pacote NÃO mostram vencimento (o dia é o da sessão); avulso = horas antes.
+  const diasQuinzena = [patient.paymentDay, patient.paymentDay2].filter((d) => d != null);
+  const vencimentoTexto =
+    patient.paymentFormat === "mensal"
+      ? (patient.paymentDay ? `vence dia ${patient.paymentDay}` : "")
+      : patient.paymentFormat === "quinzenal"
+        ? (diasQuinzena.length ? `vence dia ${diasQuinzena.join(" e ")}` : "")
+        : patient.paymentFormat === "sessao" && patient.horasAntesPagamento
+          ? `pagar até ${patient.horasAntesPagamento}h antes`
+          : "";
   const statusLabel = patient.patientStatus === "inativo" ? "Inativo" : "Ativo";
   const [showRecord, setShowRecord] = useState(false);
   const [showAnamnese, setShowAnamnese] = useState(false);
