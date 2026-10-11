@@ -46,15 +46,18 @@ export function BookingCard({ initialSlug, initialAutoConfirm = false }: { initi
         Compartilhe um link público para o paciente solicitar horário. Cada pedido entra na sua agenda e cria um prospectado.
       </p>
 
-      <div className="flex items-center gap-2">
-        <span className="text-sm text-foreground/40 shrink-0">/agendar/</span>
-        <input
-          value={slug}
-          onChange={(e) => setSlug(e.target.value)}
-          placeholder="seu-nome"
-          className="flex-1 px-4 py-2.5 rounded-xl bg-surface border border-border focus:ring-2 focus:ring-accent/20 focus:border-accent outline-none transition text-sm"
-        />
-        <button onClick={save} disabled={pending} className="bg-primary text-white px-5 py-2.5 rounded-xl font-bold text-sm disabled:opacity-60">
+      {/* Doc 29: o botão Salvar desce para a própria linha — ao lado do campo ele saía da tela no celular. */}
+      <div className="space-y-3">
+        <div className="flex items-center gap-2">
+          <span className="text-sm text-foreground/40 shrink-0">/agendar/</span>
+          <input
+            value={slug}
+            onChange={(e) => setSlug(e.target.value)}
+            placeholder="seu-nome"
+            className="flex-1 min-w-0 px-4 py-2.5 rounded-xl bg-surface border border-border focus:ring-2 focus:ring-accent/20 focus:border-accent outline-none transition text-sm"
+          />
+        </div>
+        <button onClick={save} disabled={pending} className="w-full bg-primary text-white px-5 py-2.5 rounded-xl font-bold text-sm disabled:opacity-60">
           {pending ? "..." : "Salvar"}
         </button>
       </div>
