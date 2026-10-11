@@ -48,8 +48,9 @@ export default async function Contrato({ params }: { params: Promise<{ id: strin
   const prof = await db.query.users.findFirst({ where: eq(users.id, userId) });
   const enq = await enquadreDaAgenda(userId, patientId, paciente.timesPerPeriod);
 
-  // Doc 28: se a analista salvou um contrato editado para este paciente, a tela abre com ele.
-  const texto = paciente.contratoTexto ?? montarContrato({
+  // Doc 28/30: o modelo PADRÃO é sempre gerado dos dados (para o botão Restaurar); se a analista
+  // salvou um contrato editado, a tela abre com ele.
+  const textoPadrao = montarContrato({
     analistaNome: prof?.name ?? null,
     analistaCpf: prof?.therapistCpf ?? null,
     descricaoAtendimento: prof?.descricaoAtendimento ?? null,
@@ -79,6 +80,7 @@ export default async function Contrato({ params }: { params: Promise<{ id: strin
     horasAntesPagamento: paciente.horasAntesPagamento,
     hoje: new Date(),
   });
+  const texto = paciente.contratoTexto ?? textoPadrao;
 
-  return <ContratoImpresso texto={texto} patientId={patientId} />;
+  return <ContratoImpresso texto={texto} textoPadrao={textoPadrao} patientId={patientId} />;
 }

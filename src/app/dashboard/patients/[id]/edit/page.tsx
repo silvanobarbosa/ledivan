@@ -45,8 +45,8 @@ export default async function EditPatientPage({ params, searchParams }: { params
   // os dados da analista (Ajustes) e do paciente/responsável (cadastro). Igual a /contrato.
   const prof = await db.query.users.findFirst({ where: eq(users.id, session.user.id) });
   const enq = await enquadreDaAgenda(session.user.id, id, patient.timesPerPeriod);
-  // Doc 28: contrato salvo para este paciente tem prioridade sobre o gerado.
-  const contratoTexto = patient.contratoTexto ?? montarContrato({
+  // Doc 28/30: o modelo padrão é sempre gerado (p/ Restaurar); o contrato salvo tem prioridade.
+  const contratoPadrao = montarContrato({
     analistaNome: prof?.name ?? null,
     analistaCpf: prof?.therapistCpf ?? null,
     descricaoAtendimento: prof?.descricaoAtendimento ?? null,
@@ -76,6 +76,7 @@ export default async function EditPatientPage({ params, searchParams }: { params
     horasAntesPagamento: patient.horasAntesPagamento,
     hoje: new Date(),
   });
+  const contratoTexto = patient.contratoTexto ?? contratoPadrao;
 
   return (
     <div className="max-w-2xl space-y-8">
@@ -89,7 +90,7 @@ export default async function EditPatientPage({ params, searchParams }: { params
       </div>
 
       <div className="space-y-5">
-        <PatientFormFields save={save} patientId={id} tabInicial={guia === "financeiro" ? "financeiro" : guia === "contrato" ? "contrato" : undefined} contrato={<ContratoImpresso texto={contratoTexto} patientId={id} />} p={{
+        <PatientFormFields save={save} patientId={id} tabInicial={guia === "financeiro" ? "financeiro" : guia === "contrato" ? "contrato" : undefined} contrato={<ContratoImpresso texto={contratoTexto} textoPadrao={contratoPadrao} patientId={id} />} p={{
           registrationNumber: patient.registrationNumber, agendaId: patient.agendaId, dueDateType: patient.dueDateType, dueDate: iso(patient.dueDate), queixaPrincipal: patient.queixaPrincipal,
           name: patient.name, phone: patient.phone, email: patient.email, patientStatus: patient.patientStatus,
           startedAt: iso(patient.startedAt), birthDate: iso(patient.birthDate), category: patient.category, isCouple: patient.isCouple, guardianRelationship: patient.guardianRelationship,
