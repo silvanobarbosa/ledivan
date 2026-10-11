@@ -4,7 +4,7 @@ import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { db } from "@/db";
 import { auth } from "@/auth";
-import { cobrancaEnvios, financialAccounts, patients, sessionPayments, transactions } from "@/db/schema";
+import { cobrancaEnvios, cobrancaVencimentos, financialAccounts, patients, sessionPayments, transactions } from "@/db/schema";
 import { ensureSessionCategory } from "@/lib/categoriaSessoes";
 import { geralDoPaciente, hojeDeParede } from "@/lib/geralDoPaciente";
 import { diaDoFormulario } from "@/lib/trocaDeFormato";
@@ -218,6 +218,59 @@ export async function limparEnviosDaCobranca(entrada: { patientId: string; cobra
 
   await db.delete(cobrancaEnvios).where(
     and(eq(cobrancaEnvios.userId, ctx.userId), eq(cobrancaEnvios.patientId, patientId), eq(cobrancaEnvios.cobrancaChave, chave)),
+  );
+
+  revalidatePath(`/dashboard/patients/${patientId}`);
+  return { ok: true };
+}
+
+/**
+ * EDITA o vencimento de UMA cobrança (doc 31). A terapeuta troca o dia mostrado na guia Geral, sem
+ * mexer no valor nem nas outras cobranças. Guarda um override por chave; o motor passa a usar a data
+ * nova. Editar de novo substitui a mesma linha (índice único).
+ *
+ * SÓ enquanto o pagamento NÃO foi lançado — depois de pago não faz sentido remarcar o vencimento, e
+ * o documento restringe a edição a esse caso.
+ */
+export async function editarVencimento(entrada: { patientId: string; cobrancaChave: string; data: string }): Promise<{ ok: boolean; error?: string }> {
+  const patientId = String(entrada?.patientId ?? "");
+  const chave = String(entrada?.cobrancaChave ?? "").slice(0, 200);
+  const ctx = await contexto(patientId, chave);
+  if ("error" in ctx) return { ok: false, error: ctx.error };
+
+  const dia = diaDoFormulario(entrada?.data);
+  if (!dia) return { ok: false, error: "Informe a nova data de vencimento." };
+
+  // A cobrança não pode ter pagamento lançado (regra do doc). Refaz a conta pelo mesmo motor da tela.
+  const geral = await geralDoPaciente(ctx.userId, patientId);
+  const cobranca = geral?.linhas
+    .flatMap((l) => (l.tipo === "pagamento" ? [l] : l.tipo === "sessao" && l.cobranca ? [l.cobranca] : []))
+    .find((c) => c.chave === chave);
+  if (!cobranca) return { ok: false, error: "Cobrança não encontrada." };
+  if (cobranca.pagamentos.length > 0) return { ok: false, error: "Esta cobrança já tem pagamento lançado — o vencimento não pode ser editado." };
+
+  // Meio-dia hora de parede: não escorrega de dia em fuso nenhum do caminho (igual ao pagamento).
+  const vencimento = new Date(`${entrada.data}T12:00:00`);
+  await db.insert(cobrancaVencimentos)
+    .values({ userId: ctx.userId, patientId, cobrancaChave: chave, vencimento })
+    .onConflictDoUpdate({
+      target: [cobrancaVencimentos.userId, cobrancaVencimentos.patientId, cobrancaVencimentos.cobrancaChave],
+      set: { vencimento, updatedAt: new Date() },
+    });
+
+  revalidatePath(`/dashboard/patients/${patientId}`);
+  return { ok: true };
+}
+
+/** DESFAZ a edição do vencimento: apaga o override, e o motor volta a calcular a data original (doc 31). */
+export async function desfazerVencimento(entrada: { patientId: string; cobrancaChave: string }): Promise<{ ok: boolean; error?: string }> {
+  const patientId = String(entrada?.patientId ?? "");
+  const chave = String(entrada?.cobrancaChave ?? "").slice(0, 200);
+  const ctx = await contexto(patientId, chave);
+  if ("error" in ctx) return { ok: false, error: ctx.error };
+
+  await db.delete(cobrancaVencimentos).where(
+    and(eq(cobrancaVencimentos.userId, ctx.userId), eq(cobrancaVencimentos.patientId, patientId), eq(cobrancaVencimentos.cobrancaChave, chave)),
   );
 
   revalidatePath(`/dashboard/patients/${patientId}`);

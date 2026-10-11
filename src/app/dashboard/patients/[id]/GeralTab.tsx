@@ -3,13 +3,13 @@
 import { Fragment, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { MapPin, Video, X, Trash2 } from "lucide-react";
+import { MapPin, Video, X, Trash2, Pencil, Undo2 } from "lucide-react";
 import { Check, MessageCircle } from "lucide-react";
 import { formatBRL, PAYMENT_METHOD_LABELS, sessionColorClasses } from "@/lib/therapy";
 import type { CobrancaNaTela, LinhaNaTela } from "@/lib/geralDoPaciente";
 import { montarMensagemCobranca } from "@/lib/mensagemCobranca";
 import { parseMoedaBR } from "@/lib/money";
-import { lancarPagamento, limparEnviosDaCobranca, registrarCobrancaEnviada, removerPagamento } from "./geral-actions";
+import { desfazerVencimento, editarVencimento, lancarPagamento, limparEnviosDaCobranca, registrarCobrancaEnviada, removerPagamento } from "./geral-actions";
 import { marcarEmissao } from "./recibo-actions";
 import { doAno } from "@/lib/filtroDeAno";
 import { numeroDoWhatsapp } from "@/lib/telefoneWhatsapp";
@@ -80,6 +80,81 @@ const partes = (t: string) => {
   const [a, m, dia] = d.split("-");
   return { data: `${dia}/${m}/${a.slice(2)}`, hora: h.slice(0, 5) };
 };
+
+/**
+ * Doc 31: o vencimento de uma cobrança é EDITÁVEL à mão ENQUANTO o pagamento não foi lançado. Mostra
+ * "· vence dd/mm" com um lápis ao lado; clicar abre um campo de data; salvar grava o override (não
+ * mexe no valor nem nas outras cobranças). Editado, aparece o "desfazer", que volta à data calculada.
+ */
+function VencimentoEditavel({ patientId, c }: { patientId: string; c: CobrancaNaTela }) {
+  const router = useRouter();
+  const [pending, start] = useTransition();
+  const [editando, setEditando] = useState(false);
+  const [valor, setValor] = useState(c.vencimento ? c.vencimento.slice(0, 10) : "");
+  const [erro, setErro] = useState<string | null>(null);
+  const venc = c.vencimento ? partes(c.vencimento).data : null;
+  const podeEditar = c.pagamentos.length === 0;
+
+  if (!venc) return null;
+
+  const salvar = () => {
+    if (!valor) { setErro("Escolha a data."); return; }
+    start(async () => {
+      const r = await editarVencimento({ patientId, cobrancaChave: c.chave, data: valor });
+      if (r.ok) { setEditando(false); setErro(null); router.refresh(); }
+      else setErro(r.error ?? "Não deu para salvar.");
+    });
+  };
+  const desfazer = () =>
+    start(async () => {
+      const r = await desfazerVencimento({ patientId, cobrancaChave: c.chave });
+      if (r.ok) router.refresh();
+    });
+
+  if (editando) {
+    return (
+      <span className="inline-flex items-center gap-1 ml-1 align-middle">
+        <input
+          type="date"
+          value={valor}
+          onChange={(e) => setValor(e.target.value)}
+          className="rounded border border-border px-1 py-0.5 text-[11px] bg-white"
+          autoFocus
+        />
+        <button type="button" onClick={salvar} disabled={pending} aria-label="Salvar vencimento" className="text-[#166534] disabled:opacity-50 cursor-pointer">
+          <Check className="w-3.5 h-3.5" />
+        </button>
+        <button
+          type="button"
+          onClick={() => { setEditando(false); setErro(null); setValor(c.vencimento ? c.vencimento.slice(0, 10) : ""); }}
+          aria-label="Cancelar"
+          className="text-foreground/40 cursor-pointer"
+        >
+          <X className="w-3.5 h-3.5" />
+        </button>
+        {erro && <span className="text-[10px] text-[#991b1b]">{erro}</span>}
+      </span>
+    );
+  }
+
+  return (
+    <span className="inline-flex items-center gap-1 align-middle">
+      {` · vence ${venc}`}
+      {podeEditar && (
+        <>
+          <button type="button" onClick={() => setEditando(true)} aria-label="Editar vencimento" title="Editar vencimento" className="text-foreground/40 hover:text-foreground cursor-pointer">
+            <Pencil className="w-3 h-3" />
+          </button>
+          {c.vencimentoEditado && (
+            <button type="button" onClick={desfazer} disabled={pending} aria-label="Desfazer edição do vencimento" title="Voltar à data calculada" className="text-foreground/40 hover:text-foreground disabled:opacity-50 cursor-pointer">
+              <Undo2 className="w-3 h-3" />
+            </button>
+          )}
+        </>
+      )}
+    </span>
+  );
+}
 
 const SITUACAO: Record<CobrancaNaTela["situacao"], { rotulo: string; cls: string }> = {
   pago: { rotulo: "Pago", cls: "bg-[#dcfce7] text-[#166534]" },
@@ -469,7 +544,6 @@ export function GeralTab({ patientId, linhas, responsavel, responsavelCpf, cobra
           <tbody>
             {doAnoEscolhido.map((l) => {
               if (l.tipo === "pagamento") {
-                const venc = l.vencimento ? partes(l.vencimento).data : null;
                 return (
                   <Fragment key={l.chave}>
                     <tr className="border-t border-border bg-[#fef9ec]" data-chave={l.chave}>
@@ -481,7 +555,7 @@ export function GeralTab({ patientId, linhas, responsavel, responsavelCpf, cobra
                         <span className="font-bold text-[#92400e]">Pagamento{l.parte ? ` · ${l.parte === 2 ? "2ª" : "1ª"} quinzena` : ""}</span>
                         {/* Doc 22: a linha do pagamento mostra só o vencimento — NÃO as datas das sessões
                             (o detalhe por data saiu; a quinzena exibe apenas a data de vencimento). */}
-                        <span className="block text-[11px] text-foreground/50">{l.sessoes} {l.sessoes === 1 ? "sessão" : "sessões"}{venc ? ` · vence ${venc}` : ""}</span>
+                        <span className="block text-[11px] text-foreground/50">{l.sessoes} {l.sessoes === 1 ? "sessão" : "sessões"}<VencimentoEditavel patientId={patientId} c={l} /></span>
                         {/* Doc 22: diferença de um pacote anterior que foi somada a este. */}
                         {l.arrastoRecebido > 0 && (
                           <span className="block text-[11px] text-[#92400e]/80">inclui {formatBRL(l.arrastoRecebido)} de diferença do pacote anterior ({formatBRL(l.valorBase)} + {formatBRL(l.arrastoRecebido)})</span>
