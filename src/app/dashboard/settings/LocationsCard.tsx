@@ -36,9 +36,11 @@ export function LocationsCard({ initial }: { initial: AttendanceLocation[] }) {
       <h3 className="text-xl font-bold flex items-center gap-2">
         <MapPin className="w-5 h-5 text-primary" /> Endereços de atendimento presencial
       </h3>
-      <p className="text-sm text-foreground/50 leading-relaxed">
-        Cadastre até 3 locais. No cadastro do paciente (presencial/misto) você escolhe um deles, e ele aparece como sugestão ao confirmar a sessão.
-      </p>
+      <ul className="text-sm text-foreground/50 leading-relaxed list-disc pl-5 space-y-1">
+        <li>Cadastre até 3 locais de atendimento.</li>
+        <li>No agendamento do paciente, ao selecionar atendimento presencial ou misto, escolha um dos locais cadastrados.</li>
+        <li>Ao confirmar o agendamento da sessão, o local escolhido será exibido automaticamente como sugestão.</li>
+      </ul>
 
       <div className="space-y-3">
         {locs.map((l, i) => (

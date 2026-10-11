@@ -2,10 +2,9 @@ import { db } from "@/db";
 import { users } from "@/db/schema";
 import { auth } from "@/auth";
 import { eq } from "drizzle-orm";
-import { User, Video, MessageCircle, Mail, LogOut } from "lucide-react";
+import { LogOut } from "lucide-react";
 import { updateProfile } from "./actions";
 import { SubmitButton } from "@/components/SubmitButton";
-import { SinglePhoto } from "@/components/dashboard/PhotoSlots";
 import { LocationsCard } from "./LocationsCard";
 import { parseLocations } from "@/lib/locations";
 import { TelegramSync } from "./TelegramSync";
@@ -50,46 +49,23 @@ export default async function SettingsPage() {
         <p className="text-lg text-foreground/40 font-medium">Gerencie sua conta e preferências do Ledivan.</p>
       </section>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-12">
-        {/* Navigation (âncoras para as seções da página) */}
-        <aside className="space-y-2 md:sticky md:top-24 self-start">
-          {[
-            { icon: User, label: "Perfil", href: "#perfil" },
-            { icon: Video, label: "Reunião", href: "#reuniao" },
-            { icon: MessageCircle, label: "WhatsApp", href: "#whatsapp" },
-            { icon: Mail, label: "E-mail", href: "#email" },
-          ].map((item) => (
-            <a
-              key={item.label}
-              href={item.href}
-              className="w-full flex items-center gap-3 px-6 py-4 rounded-2xl font-bold text-foreground/50 hover:bg-white hover:text-primary transition-all active:scale-[0.98]"
-            >
-              <item.icon className="w-5 h-5" />
-              <span>{item.label}</span>
-            </a>
-          ))}
-
+      {/* Doc 28: as âncoras (Perfil/Reunião/WhatsApp/E-mail) saíram — a pessoa rola a página. */}
+      <div className="max-w-2xl mx-auto">
+        {/* Content */}
+        <div className="space-y-8 scroll-smooth">
           {/* Logout por LINK GET (/auth/logout) — NÃO server action. Server action é POST, e o
               proxy recusa POST na conta demo (read-only) → o botão de sair morria e a pessoa
               ficava presa. GET /auth/logout é liberado pelo proxy (/auth/*) e deleta o cookie. */}
           {/* eslint-disable-next-line @next/next/no-html-link-for-pages -- <a> é PROPOSITAL: precisa ser navegação de documento (GET) para o route handler apagar o cookie. Trocar por <Link> volta ao bug do logout que não deslogava na conta demo. */}
-          <a href="/auth/logout" className="w-full flex items-center gap-3 px-6 py-4 rounded-2xl font-bold text-red-500 hover:bg-red-50 transition-all mt-8">
+          <a href="/auth/logout" className="inline-flex items-center gap-3 px-6 py-3 rounded-2xl font-bold text-red-500 hover:bg-red-50 transition-all">
             <LogOut className="w-5 h-5" />
             <span>Sair da Conta</span>
           </a>
-        </aside>
-
-        {/* Content */}
-        <div className="md:col-span-2 space-y-8 scroll-smooth">
           <div id="perfil" className="scroll-mt-24 p-10 bg-white rounded-[48px] shadow-sm border border-border space-y-8">
             <h3 className="text-xl font-bold">Informações do Perfil</h3>
             
+            {/* Doc 28: a foto 3x4 saiu do perfil. */}
             <form action={updateProfile} className="space-y-6">
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-foreground/30 uppercase tracking-widest">Sua foto 3x4</label>
-                <SinglePhoto initial={user.photo3x4} label="Aparece no cabeçalho" />
-              </div>
-
               <div className="space-y-2">
                 <label className="text-xs font-bold text-foreground/30 uppercase tracking-widest">Nome Completo</label>
                 <input
@@ -153,7 +129,7 @@ export default async function SettingsPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-xs font-bold text-foreground/30 uppercase tracking-widest">Endereço do consultório</label>
+                  <label className="text-xs font-bold text-foreground/30 uppercase tracking-widest">Endereço</label>
                   <input
                     name="enderecoContrato"
                     type="text"
@@ -187,7 +163,7 @@ export default async function SettingsPage() {
                 </div>
 
                 <div className="space-y-2">
-                  <label className="text-xs font-bold text-foreground/30 uppercase tracking-widest">Plataforma do atendimento on-line</label>
+                  <label className="text-xs font-bold text-foreground/30 uppercase tracking-widest">Plataformas do atendimento online</label>
                   <input
                     name="plataformaOnline"
                     type="text"
@@ -198,11 +174,7 @@ export default async function SettingsPage() {
                 </div>
               </div>
 
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-foreground/30 uppercase tracking-widest">Integração Telegram</label>
-                <TelegramSync currentId={user.telegramId} />
-              </div>
-
+              {/* Doc 28: o Telegram saiu do formulário do perfil e virou um card próprio, abaixo do WhatsApp. */}
               <div className="pt-6 border-t border-border">
                 <SubmitButton pendingLabel="Salvando…" className="inline-flex items-center gap-2 bg-primary text-white px-10 py-4 rounded-2xl font-bold shadow-lg shadow-primary/20 hover:scale-[1.02] transition-all">
                   Salvar Alterações
@@ -213,17 +185,20 @@ export default async function SettingsPage() {
 
           <PasswordCard hasPassword={!!user.passwordHash} />
 
-          <div id="reuniao" className="scroll-mt-24">
-            <MeetingCard initial={(prefs.meetingProvider as "jitsi" | "meet") ?? "jitsi"} hasGoogle={googleConnected} />
+          <MeetingCard initial={(prefs.meetingProvider as "jitsi" | "meet") ?? "jitsi"} hasGoogle={googleConnected} />
+
+          <WhatsappCard connected={user.whatsappConnected} />
+
+          {/* Doc 28: Telegram como card próprio, no mesmo espírito do WhatsApp, logo abaixo dele. */}
+          <div className="glass-card rounded-[24px] p-6 space-y-3">
+            <div>
+              <h3 className="font-display font-bold text-primary">Telegram do seu consultório</h3>
+              <p className="text-sm text-foreground/50">Conecte seu Telegram para enviar lembretes e mensagens aos pacientes por ele.</p>
+            </div>
+            <TelegramSync currentId={user.telegramId} />
           </div>
 
-          <div id="whatsapp" className="scroll-mt-24">
-            <WhatsappCard connected={user.whatsappConnected} />
-          </div>
-
-          <div id="email" className="scroll-mt-24">
-            <SmtpCard configured={user.emailConfigured} currentEmail={user.smtpUser} loginEmail={user.email} />
-          </div>
+          <SmtpCard configured={user.emailConfigured} currentEmail={user.smtpUser} loginEmail={user.email} />
 
           <LocationsCard initial={parseLocations(user.attendanceLocations)} />
 

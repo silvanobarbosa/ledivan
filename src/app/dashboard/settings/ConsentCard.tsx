@@ -20,7 +20,11 @@ export function ConsentCard({ initial }: { initial: { title: string; body: strin
         <h3 className="text-xl font-display font-bold text-primary">Termo de consentimento</h3>
         {saved && <span className="text-xs text-green-600 font-semibold">salvo ✓</span>}
       </div>
-      <p className="text-sm text-foreground/50">Ative o recurso <b>Consentimento</b> acima. O paciente vê este termo no app e assina digitalmente (nome + carimbo de data/hora). Ao editar o texto, quem já assinou precisa reassinar a nova versão.</p>
+      <ul className="text-sm text-foreground/50 list-disc pl-5 space-y-1">
+        <li>Ative o recurso <b>Consentimento</b> acima.</li>
+        <li>O paciente visualizará o termo no aplicativo e poderá assiná-lo digitalmente, com registro do nome e do carimbo de data e hora da assinatura.</li>
+        <li>Sempre que o texto do termo for editado, os pacientes que já assinaram deverão assinar novamente a nova versão.</li>
+      </ul>
 
       <input
         value={title}

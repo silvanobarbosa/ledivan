@@ -23,7 +23,11 @@ export function PixCard({ initial }: { initial: PixConfig | null }) {
         <h3 className="text-xl font-display font-bold text-primary">Pix (pagamento no app)</h3>
         {saved && <span className="text-xs text-green-600 font-semibold">salvo ✓</span>}
       </div>
-      <p className="text-sm text-foreground/50">Ative <b>Pagamento Pix</b> acima. O paciente gera o Pix copia-e-cola com o valor da sessão dele e paga direto na sua chave — sem gateway, sem taxa. Você confirma o recebimento pelo seu banco.</p>
+      <ul className="text-sm text-foreground/50 list-disc pl-5 space-y-1">
+        <li>Ative o recurso <b>Pagamento via Pix</b> acima.</li>
+        <li>O paciente poderá gerar um código Pix copia e cola com o valor da sessão e realizar o pagamento diretamente para a sua chave Pix, sem intermediários ou taxas de gateway.</li>
+        <li>A confirmação do recebimento deverá ser feita manualmente por você, diretamente no seu banco.</li>
+      </ul>
 
       <div className="space-y-3">
         <input value={key} onChange={(e) => setKey(e.target.value)} placeholder="Chave Pix (e-mail, telefone, CPF/CNPJ ou aleatória)" maxLength={77} className={field} />
