@@ -120,4 +120,11 @@ describe("o recibo inteiro", () => {
     const ordem = ["14/09/2026", "21/09/2026", "28/09/2026", "05/10/2026"].map((d) => texto.indexOf(d));
     expect(ordem).toEqual([...ordem].sort((a, b) => a - b));
   });
+
+  // Doc 28 — pagamento parcial do pacote: linha com a data da 1ª sessão do pacote.
+  it("pagamento parcial acrescenta a linha do pacote; sem parcial, não acrescenta", () => {
+    const parcial = montarRecibo({ ...base, parcialDe: new Date(2026, 9, 5, 12) });
+    expect(parcial).toContain("Pagamento parcial do pacote que iniciou em 05/10/2026.");
+    expect(montarRecibo(base)).not.toContain("Pagamento parcial do pacote");
+  });
 });

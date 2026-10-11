@@ -40,6 +40,8 @@ export type DadosDoRecibo = {
   terapeuta: string;
   terapeutaCpf?: string | null;
   descricao: DescricaoAtendimento;
+  /** Doc 28: pagamento parcial do pacote — a data em que o pacote começou (1ª sessão). */
+  parcialDe?: Date | null;
 };
 
 const dois = (n: number) => String(n).padStart(2, "0");
@@ -135,16 +137,16 @@ export function montarRecibo(d: DadosDoRecibo): string {
   const datas = d.datas.map((x) => `- ${dataBR(x)}`).join("\n");
   const cpfTerapeuta = cpfBR(d.terapeutaCpf) ? `\nCPF: ${cpfBR(d.terapeutaCpf)}` : "";
 
-  return [
+  const linhas = [
     "RECIBO DE PAGAMENTO",
     "",
     `Recebi de ${d.responsavel}${cpfResp}, o valor de ${valorBR(d.valorTotal)} (${porExtenso(d.valorTotal)}), ` +
       `referente aos ${COMO_SE_ESCREVE[d.descricao]} realizados para ${d.paciente}, nas seguintes datas:`,
     "",
     datas,
-    "",
-    `Data do pagamento: ${dataBR(d.dataPagamento)}.`,
-    "",
-    `Terapeuta: ${d.terapeuta}${cpfTerapeuta}`,
-  ].join("\n");
+  ];
+  // Doc 28: pagamento parcial do pacote — linha extra com a data em que o pacote começou.
+  if (d.parcialDe) linhas.push("", `Pagamento parcial do pacote que iniciou em ${dataBR(d.parcialDe)}.`);
+  linhas.push("", `Data do pagamento: ${dataBR(d.dataPagamento)}.`, "", `Terapeuta: ${d.terapeuta}${cpfTerapeuta}`);
+  return linhas.join("\n");
 }
