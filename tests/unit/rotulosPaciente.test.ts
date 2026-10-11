@@ -7,12 +7,13 @@ describe("rótulo financeiro da lista", () => {
     expect(rotuloFinanceiro("sessao", null)).toBe("Avulso");
   });
 
-  it("mensal e quinzenal dizem pacote ou fragmentado", () => {
-    expect(rotuloFinanceiro("mensal", "completo")).toBe("Mensal pacote");
-    expect(rotuloFinanceiro("mensal", "fragmentado")).toBe("Mensal fragmentado");
-    expect(rotuloFinanceiro("quinzenal", "completo")).toBe("Quinzenal pacote");
-    expect(rotuloFinanceiro("quinzenal", "fragmentado")).toBe("Quinzenal fragmentado");
-    expect(rotuloFinanceiro("mensal", null)).toBe("Mensal pacote"); // sem tipo = pacote (o padrão)
+  // Doc 28: mensal/quinzenal viram "Pagamento mensal"/"Pagamento quinzenal" (sem pacote/fragmentado).
+  it("mensal e quinzenal: 'Pagamento mensal' / 'Pagamento quinzenal'", () => {
+    expect(rotuloFinanceiro("mensal", "completo")).toBe("Pagamento mensal");
+    expect(rotuloFinanceiro("mensal", "fragmentado")).toBe("Pagamento mensal");
+    expect(rotuloFinanceiro("quinzenal", "completo")).toBe("Pagamento quinzenal");
+    expect(rotuloFinanceiro("quinzenal", "fragmentado")).toBe("Pagamento quinzenal");
+    expect(rotuloFinanceiro("mensal", null)).toBe("Pagamento mensal");
   });
 
   it("primeira e última do pacote", () => {
@@ -22,7 +23,7 @@ describe("rótulo financeiro da lista", () => {
 
   it("valores legados avulso/pacote", () => {
     expect(rotuloFinanceiro("avulso", null)).toBe("Avulso");
-    expect(rotuloFinanceiro("pacote", "completo")).toBe("Mensal pacote");
+    expect(rotuloFinanceiro("pacote", "completo")).toBe("Pagamento mensal");
   });
 });
 

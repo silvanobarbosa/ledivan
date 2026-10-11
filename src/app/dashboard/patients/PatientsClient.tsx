@@ -177,10 +177,11 @@ export function PatientsClient({ patients, initial }: { patients: PatientCard[];
                       {p.patientStatus === "inativo" ? "Inativo" : "Ativo"}
                     </span>
                   </div>
-                  {/* Financeiro por extenso · frequência (dia e hora quando se repete) */}
-                  <p className="text-sm text-foreground/60 truncate">
-                    {rotuloFinanceiro(p.paymentFormat, p.pacoteTipo)}
-                    <span className="text-foreground/40"> · {formatBRL(p.sessionFee)}/sessão</span>
+                  {/* Financeiro por extenso + valor. Doc 28: o valor desce para a 2ª linha, para não
+                      cortar nem forçar rolagem lateral no celular. */}
+                  <p className="text-sm text-foreground/60">
+                    <span className="block truncate">{rotuloFinanceiro(p.paymentFormat, p.pacoteTipo)}</span>
+                    <span className="block truncate text-foreground/40">{formatBRL(p.sessionFee)}/sessão</span>
                   </p>
                   <p className="text-xs text-foreground/45 truncate">🕐 {p.frequenciaLabel}</p>
                   {/* Doc 21: só "Em atraso" aparece no card. "Em aberto" (e "Em dia") não viram etiqueta

@@ -438,10 +438,10 @@ export function PatientFormFields({ p, save, tabInicial, contrato, patientId }: 
   };
 
   const FORMATOS = [
-    { v: "gratuito", t: "Gratuito", d: "Sem cobrança." },
-    { v: "sessao", t: "Avulso", d: "Paga a cada atendimento (aparece como AVUL na agenda)." },
-    { v: "mensal", t: "Mensal", d: "Um pagamento por mês. No pacote completo dá para cobrar na 1ª ou na última sessão." },
-    { v: "quinzenal", t: "Quinzenal", d: "Dois pagamentos por mês." },
+    { v: "gratuito", t: "Gratuito", d: "Sem cobrança (na agenda aparece como GRAT)." },
+    { v: "sessao", t: "Avulso", d: "Pagamento realizado a cada atendimento (na agenda aparece como AVUL)." },
+    { v: "mensal", t: "Mensal", d: "Pagamento realizado uma vez por mês, referente a uma quantidade determinada de sessões." },
+    { v: "quinzenal", t: "Quinzenal", d: "Pagamento realizado duas vezes por mês, referente a uma quantidade determinada de sessões." },
   ];
 
   return (
@@ -609,8 +609,7 @@ export function PatientFormFields({ p, save, tabInicial, contrato, patientId }: 
 
           {usaPacote(format) && (
             <p className="text-[10px] text-foreground/50">
-              A contagem das sessões do pacote (1/3, 2/3…) aparece na agenda: no pacote completo é a
-              quantidade informada acima; no fragmentado, quantas caírem dentro do mês.
+              A contagem das sessões do pacote (1/4, 2/4…) será exibida na agenda.
             </p>
           )}
 

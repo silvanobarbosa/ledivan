@@ -8,13 +8,10 @@ import {
   BarChart3,
   Scale,
   HelpCircle,
-  MessageCircle,
   Receipt,
   TrendingUp,
-  ClipboardList,
   Banknote,
   UserPlus,
-  FileText,
 } from "lucide-react";
 
 export type NavItem = { icon: typeof LayoutDashboard; label: string; href: string };
@@ -29,9 +26,9 @@ export const NAV_GROUPS: NavGroup[] = [
       { icon: CalendarDays, label: "Agenda", href: "/dashboard/agenda" },
       { icon: Users, label: "Pacientes", href: "/dashboard/patients" },
       { icon: UserPlus, label: "Prospecção", href: "/dashboard/prospects" },
-      { icon: ClipboardList, label: "Prontuário", href: "/dashboard/prontuario" },
-      { icon: FileText, label: "Contratos", href: "/dashboard/contratos" },
-      { icon: MessageCircle, label: "Mensagens", href: "/dashboard/mensagens" },
+      // Doc 28: Prontuário, Contratos e Mensagens saíram do menu. Contrato vive na guia Contrato do
+      // editar paciente; prontuário e mensagens continuam acessíveis pelo paciente. As rotas seguem
+      // existindo (links diretos), só não aparecem mais na navegação.
     ],
   },
   {
