@@ -749,6 +749,26 @@ export const cobrancaEnvios = pgTable("cobranca_envios", {
   index("cob_envio_patient_idx").on(t.patientId),
 ]);
 
+// Vencimento EDITADO à mão de uma cobrança (doc 31). A cobrança não é guardada — o motor a
+// recalcula e a identifica pela `chave`. Aqui fica só a data que a terapeuta escolheu no lugar da
+// calculada. Uma linha por chave (único): editar de novo substitui; DESFAZER é apagar a linha, e o
+// motor volta a calcular o vencimento original. Só muda esta cobrança, nunca as outras.
+export const cobrancaVencimentos = pgTable("cobranca_vencimentos", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: text("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
+  patientId: uuid("patient_id").references(() => patients.id, { onDelete: "cascade" }).notNull(),
+  // A `chave` de `cobrancasDoPaciente` — a mesma do envio e do vínculo do pagamento.
+  cobrancaChave: text("cobranca_chave").notNull(),
+  // Hora de parede (ver horaLocal.ts): o dia escolhido, guardado ao meio-dia para não escorregar de
+  // fuso. O motor usa o dia; a hora é só âncora.
+  vencimento: timestamp("vencimento").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (t) => [
+  uniqueIndex("cob_venc_chave_uq").on(t.userId, t.patientId, t.cobrancaChave),
+  index("cob_venc_patient_idx").on(t.patientId),
+]);
+
 // Pacotes do paciente (P1, P2, ...). Cada um tem N sessões; consumidas uma a uma
 // nas sessões realizadas+cobráveis. Pagamentos podem ser vinculados a um pacote.
 export const patientPackages = pgTable("patient_packages", {

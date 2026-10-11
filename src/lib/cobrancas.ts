@@ -101,6 +101,12 @@ export type EntradaDasCobrancas = {
   vezesPorSemana?: number;
   diaPagamento?: number | null;
   diaPagamento2?: number | null;
+  /**
+   * Vencimentos EDITADOS à mão (doc 31): a terapeuta trocou o dia de uma cobrança específica. Uma
+   * entrada por `chave`. Sem entrada, o motor usa o vencimento que ele mesmo calcula. Apagar a
+   * entrada (voltar ao padrão) é o "desfazer" — o motor recalcula o original.
+   */
+  vencimentos?: { chave: string; vencimento: Date | string }[];
 };
 
 const emData = (d: Date | string): Date => (d instanceof Date ? d : new Date(d));
@@ -311,6 +317,16 @@ export function cobrancasDoPaciente(e: EntradaDasCobrancas): Cobranca[] {
 
   for (const grupo of separarPorVigencia(ordenadas, periodos)) {
     out.push(...cobrancasDoPeriodo(grupo.periodo, grupo.sessoes, e));
+  }
+
+  // Doc 31: aplica o vencimento editado à mão por cima do calculado. Antes de ordenar, para que a
+  // cobrança seja posicionada na guia pela data nova (é o que a terapeuta espera ao mudar o dia).
+  if (e.vencimentos?.length) {
+    const override = new Map(e.vencimentos.map((v) => [v.chave, emData(v.vencimento)] as const));
+    for (const c of out) {
+      const novo = override.get(c.chave);
+      if (novo && !Number.isNaN(novo.getTime())) c.vencimento = novo;
+    }
   }
 
   const quando = (c: Cobranca) => (c.vencimento ?? c.competencia)?.getTime() ?? 0;

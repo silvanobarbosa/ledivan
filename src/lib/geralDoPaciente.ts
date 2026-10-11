@@ -13,7 +13,7 @@ import "server-only";
 
 import { and, eq } from "drizzle-orm";
 import { db } from "@/db";
-import { blockedSlots, cobrancaEnvios, sessoesPuladas, patientPackages, patientPackageHistory, patientPaymentFormatHistory, patientPriceHistory, patients, sessionPayments, therapySessions } from "@/db/schema";
+import { blockedSlots, cobrancaEnvios, cobrancaVencimentos, sessoesPuladas, patientPackages, patientPackageHistory, patientPaymentFormatHistory, patientPriceHistory, patients, sessionPayments, therapySessions } from "@/db/schema";
 import { horaDeParede } from "./horaLocal";
 import { linhasDaGeral, resumoDaGeral, type CobrancaDaGeral, type EntradaDaGeral, type LinhaDaGeral } from "./guiaGeral";
 import { tamanhosDasSequencias } from "./sequenciaPacote";
@@ -36,6 +36,8 @@ export function hojeDeParede(agora = new Date()): Date {
 export type CobrancaNaTela = Omit<CobrancaDaGeral, "vencimento" | "competencia" | "pagamento" | "pagamentos" | "envio" | "posicao" | "tipo"> & {
   tipoDeCobranca: CobrancaDaGeral["tipo"];
   vencimento: string | null;
+  /** Doc 31: o vencimento desta cobrança foi EDITADO à mão (há override). A tela mostra o "desfazer". */
+  vencimentoEditado: boolean;
   pagamento: { id: string; data: string; metodo: string | null; pagoPor: string | null; recibo: boolean; nota: boolean } | null;
   /** Cada lançamento desta cobrança (doc 21/28): id (remover), data (hora de parede), valor, quem
    *  pagou, método e se já teve recibo/nota emitidos (p/ os controles por lançamento). */
@@ -56,6 +58,7 @@ export type LinhaNaTela =
 
 function cobrancaNaTela(
   c: Omit<CobrancaDaGeral, "tipo"> & { tipoDeCobranca: CobrancaDaGeral["tipo"] },
+  editados: Set<string>,
 ): CobrancaNaTela {
   return {
     chave: c.chave,
@@ -69,6 +72,7 @@ function cobrancaNaTela(
     transferido: c.transferido,
     valorPago: c.valorPago,
     sessoes: c.sessoes,
+    vencimentoEditado: editados.has(c.chave),
     // Ids das sessões desta cobrança (doc 29): é o conjunto CERTO para o recibo — já exclui gratuita,
     // Desmarcou/Prof.desm/Atestado e inclui Presente/Faltou. O recibo escopa por aqui, não por todas
     // as sessões do paciente (bug do doc 28: cruzava a fronteira da cobrança e trazia data errada).
@@ -84,8 +88,8 @@ function cobrancaNaTela(
   };
 }
 
-function naTela(l: LinhaDaGeral): LinhaNaTela {
-  if (l.tipo === "pagamento") return { tipo: "pagamento", ...cobrancaNaTela(l) };
+function naTela(l: LinhaDaGeral, editados: Set<string>): LinhaNaTela {
+  if (l.tipo === "pagamento") return { tipo: "pagamento", ...cobrancaNaTela(l, editados) };
   if (l.tipo === "bloqueio") return { tipo: "bloqueio", data: texto(l.data) ?? "" };
   return {
     tipo: "sessao",
@@ -95,7 +99,7 @@ function naTela(l: LinhaDaGeral): LinhaNaTela {
     status: l.status,
     rotulo: l.rotulo,
     valor: l.valor,
-    cobranca: l.cobranca ? cobrancaNaTela({ ...l.cobranca, tipoDeCobranca: l.cobranca.tipo }) : null,
+    cobranca: l.cobranca ? cobrancaNaTela({ ...l.cobranca, tipoDeCobranca: l.cobranca.tipo }, editados) : null,
   };
 }
 
@@ -120,7 +124,7 @@ export async function geralDoPaciente(userId: string, patientId: string): Promis
   });
   if (!paciente) return null;
 
-  const [sessoes, pagamentos, precos, pacotes, vigencias, envios, puladas, pacoteHist] = await Promise.all([
+  const [sessoes, pagamentos, precos, pacotes, vigencias, envios, puladas, pacoteHist, vencEditados] = await Promise.all([
     db.select({ id: therapySessions.id, date: therapySessions.date, status: therapySessions.status, sessionKind: therapySessions.sessionKind, abaterDoPacote: therapySessions.abaterDoPacote, chargeable: therapySessions.chargeable, extra: therapySessions.extra, valorExtra: therapySessions.valorExtra, repoeSessaoId: therapySessions.repoeSessaoId, isOnline: therapySessions.isOnline })
       .from(therapySessions).where(and(eq(therapySessions.patientId, patientId), eq(therapySessions.userId, userId))),
     db.select({ id: sessionPayments.id, amount: sessionPayments.amount, date: sessionPayments.date, status: sessionPayments.status, method: sessionPayments.method, pagoPor: sessionPayments.pagoPor, cobrancaChave: sessionPayments.cobrancaChave, quita: sessionPayments.quitaDiferenca, kind: sessionPayments.kind, reciboEmitidoEm: sessionPayments.reciboEmitidoEm, notaEmitidaEm: sessionPayments.receiptIssuedAt })
@@ -147,7 +151,12 @@ export async function geralDoPaciente(userId: string, patientId: string): Promis
     // Doc 30: vigências do tamanho do pacote.
     db.select({ tamanho: patientPackageHistory.tamanho, desde: patientPackageHistory.dataEfetiva })
       .from(patientPackageHistory).where(eq(patientPackageHistory.patientId, patientId)),
+    // Doc 31: vencimentos editados à mão (override por chave de cobrança).
+    db.select({ cobrancaChave: cobrancaVencimentos.cobrancaChave, vencimento: cobrancaVencimentos.vencimento })
+      .from(cobrancaVencimentos).where(and(eq(cobrancaVencimentos.patientId, patientId), eq(cobrancaVencimentos.userId, userId))),
   ]);
+
+  const editados = new Set(vencEditados.map((v) => v.cobrancaChave));
 
   const entrada: EntradaDaGeral = {
     vigencias: vigencias.map((v) => ({ ...v, desde: local(v.desde), criadoEm: local(v.criadoEm) })),
@@ -164,13 +173,14 @@ export async function geralDoPaciente(userId: string, patientId: string): Promis
     horasAntesPagamento: paciente.horasAntesPagamento,
     pagamentos: pagamentos.map((p) => ({ id: p.id, valor: p.amount, data: local(p.date), status: p.status, metodo: p.method, pagoPor: p.pagoPor, cobrancaChave: p.cobrancaChave, quita: p.quita, kind: p.kind, recibo: !!p.reciboEmitidoEm, nota: !!p.notaEmitidaEm })),
     envios: envios.map((e) => ({ cobrancaChave: e.cobrancaChave, enviadaEm: local(e.enviadaEm), enviadaPor: e.enviadaPor })),
+    vencimentos: vencEditados.map((v) => ({ chave: v.cobrancaChave, vencimento: local(v.vencimento) })),
     // As datas que a serie pulou por horario bloqueado: viram a linha "Hor. Bloq.", nunca sessao.
     bloqueios: puladas.map((b) => ({ data: local(b.date) })),
     hoje: hojeDeParede(),
   };
   const resumo = resumoDaGeral(entrada);
   return {
-    linhas: linhasDaGeral(entrada).map(naTela),
+    linhas: linhasDaGeral(entrada).map((l) => naTela(l, editados)),
     resumo: { ...resumo, extrato: resumo.extrato.map((m) => ({ ...m, data: texto(m.data) ?? "" })) },
   };
 }
