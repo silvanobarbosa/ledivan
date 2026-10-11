@@ -259,3 +259,25 @@ describe("historicoDeReajuste — formato do dono (doc 16)", () => {
     )).toEqual(["Mensal → R$ 150,00", "Mensal → R$ 150,00 → R$ 180,00"]);
   });
 });
+
+describe("historicoDeReajuste — lixeira: só reajuste é removível, entrada não (doc 27)", () => {
+  const rem = (precos: Parameters<typeof historicoDeReajuste>[0], formatos: Parameters<typeof historicoDeReajuste>[1]) =>
+    historicoDeReajuste(precos, formatos).map((l) => l.removivel);
+
+  it("entrada (preço inicial, sem histórico de formato) não é removível", () => {
+    expect(rem([{ valor: 130, dataEfetiva: "2026-01-01" }], [])).toEqual([false]);
+  });
+  it("entrada com modalidade não é removível; reajustes de valor seguintes são", () => {
+    // R$130 (entrada) → R$150 → R$170, mesma modalidade Mensal.
+    expect(rem(
+      [{ valor: 130, dataEfetiva: "2026-01-01" }, { valor: 150, dataEfetiva: "2026-03-01" }, { valor: 170, dataEfetiva: "2026-06-01" }],
+      [{ formato: "mensal", dataEfetiva: "2026-01-01" }],
+    )).toEqual([false, true, true]);
+  });
+  it("troca de modalidade é removível; a modalidade de entrada não", () => {
+    expect(rem(
+      [{ valor: 0, dataEfetiva: "2026-01-01" }, { valor: 150, dataEfetiva: "2026-02-01" }],
+      [{ formato: "gratuito", dataEfetiva: "2026-01-01" }, { formato: "mensal", dataEfetiva: "2026-02-01" }],
+    )).toEqual([false, true]);
+  });
+});

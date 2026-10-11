@@ -218,7 +218,10 @@ export function eventosDeReajuste(
  *  - Só valor (mesma modalidade) → "Mensal → R$ 150,00 → R$ 180,00" (modalidade, anterior, novo).
  * Função pura.
  */
-export type LinhaDeHistorico = { data: Date; solicitadoEm: Date | null; texto: string };
+// `removivel` (doc 27): a linha ganha lixeira quando é um REAJUSTE (troca de valor/modalidade). A
+// linha de ENTRADA (preço/formato inicial do cadastro) não é removível — é a base do financeiro do
+// paciente, não um reajuste que possa ter sido lançado errado.
+export type LinhaDeHistorico = { data: Date; solicitadoEm: Date | null; texto: string; removivel: boolean };
 
 export function historicoDeReajuste(
   precos: { valor: string | number; dataEfetiva: Date | string; dataCriacao?: Date | string | null }[],
@@ -276,18 +279,20 @@ export function historicoDeReajuste(
       const de = rotuloDoFormato(fDedup[i - 1].formato);
       texto = pago && v != null ? `${de} → ${rot} → ${brl(v)}` : `${de} → ${rot}`;
     }
-    out.push({ data: f.data, solicitadoEm: pedidoDe(f.data), texto });
+    // i === 0 é a modalidade de ENTRADA do cadastro: sem lixeira.
+    out.push({ data: f.data, solicitadoEm: pedidoDe(f.data), texto, removivel: i > 0 });
   }
 
   for (const l of linhasDeReajuste(precos)) {
     if (l.anterior === null) {
-      if (fDedup.length === 0 && l.novo > 0) out.push({ data: l.data, solicitadoEm: pedidoDe(l.data), texto: `Preço inicial → ${brl(l.novo)}` });
+      // Preço de ENTRADA (sem modalidade no histórico): sem lixeira.
+      if (fDedup.length === 0 && l.novo > 0) out.push({ data: l.data, solicitadoEm: pedidoDe(l.data), texto: `Preço inicial → ${brl(l.novo)}`, removivel: false });
       continue;
     }
     if (fDatas.has(l.data.getTime())) continue;
     const m = modNaData(l.data);
     const prefixo = m ? `${rotuloDoFormato(m)} → ` : "";
-    out.push({ data: l.data, solicitadoEm: pedidoDe(l.data), texto: `${prefixo}${brl(l.anterior)} → ${brl(l.novo)}` });
+    out.push({ data: l.data, solicitadoEm: pedidoDe(l.data), texto: `${prefixo}${brl(l.anterior)} → ${brl(l.novo)}`, removivel: true });
   }
 
   return out.sort((a, b) => a.data.getTime() - b.data.getTime());

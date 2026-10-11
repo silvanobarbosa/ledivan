@@ -811,3 +811,77 @@ export async function dispensarDevolutiva(patientId: string, proximaISO: string)
   revalidatePath("/dashboard");
   return { ok: true };
 }
+
+/**
+ * Apaga um REAJUSTE do histórico (doc 27, "lixeira").
+ *
+ * A lixeira só existe nos reajustes — nunca na ENTRADA (o primeiro preço e o primeiro formato), que
+ * é a base do cadastro financeiro. Por isso, mesmo que a chamada peça, o registro mais antigo de
+ * cada tabela (preço/formato) jamais é removido.
+ *
+ * Um reajuste pode ter mexido no valor, na modalidade, ou nos dois na mesma vigência (uma linha só
+ * na tela). Apagar remove os registros das DUAS tabelas naquela vigência exata. Em seguida o cadastro
+ * é reconciliado com o que sobrou: valor/formato atuais voltam a ser os do último registro restante,
+ * e o próximo lembrete de reajuste é recalculado. É isso que torna o apagar útil — o reajuste errado
+ * some e o paciente volta ao preço de antes.
+ */
+export async function apagarReajuste(patientId: string, vigenciaISO: string): Promise<{ ok: boolean; error?: string }> {
+  const session = await auth();
+  if (!session?.user?.id) return { ok: false, error: "Não autorizado" };
+  const userId = session.user.id;
+  const alvo = new Date(vigenciaISO);
+  if (Number.isNaN(alvo.getTime())) return { ok: false, error: "Data inválida" };
+
+  // O paciente tem que ser do próprio usuário — a lixeira mexe em dinheiro, o escopo é obrigatório.
+  const paciente = await db.query.patients.findFirst({
+    where: and(eq(patients.id, patientId), eq(patients.userId, userId)),
+  });
+  if (!paciente) return { ok: false, error: "Paciente não encontrado" };
+
+  const precos = await db.select({ id: patientPriceHistory.id, valor: patientPriceHistory.valor, dataEfetiva: patientPriceHistory.dataEfetiva })
+    .from(patientPriceHistory).where(eq(patientPriceHistory.patientId, patientId));
+  const formatos = await db.select({ id: patientPaymentFormatHistory.id, formato: patientPaymentFormatHistory.formato, pacoteTipo: patientPaymentFormatHistory.pacoteTipo, dataEfetiva: patientPaymentFormatHistory.dataEfetiva })
+    .from(patientPaymentFormatHistory).where(eq(patientPaymentFormatHistory.patientId, patientId));
+
+  const t = alvo.getTime();
+  // O registro mais antigo de cada tabela é a ENTRADA: nunca entra na seleção para apagar.
+  const minPreco = precos.length ? Math.min(...precos.map((p) => p.dataEfetiva.getTime())) : Infinity;
+  const minFormato = formatos.length ? Math.min(...formatos.map((f) => f.dataEfetiva.getTime())) : Infinity;
+  const precoIds = precos.filter((p) => p.dataEfetiva.getTime() === t && p.dataEfetiva.getTime() !== minPreco).map((p) => p.id);
+  const formatoIds = formatos.filter((f) => f.dataEfetiva.getTime() === t && f.dataEfetiva.getTime() !== minFormato).map((f) => f.id);
+
+  if (!precoIds.length && !formatoIds.length) {
+    // Nada removível nessa vigência (ou é a entrada): não apaga, e não finge que apagou.
+    return { ok: false, error: "Esse registro não pode ser removido." };
+  }
+
+  if (precoIds.length) await db.delete(patientPriceHistory).where(and(eq(patientPriceHistory.patientId, patientId), inArray(patientPriceHistory.id, precoIds)));
+  if (formatoIds.length) await db.delete(patientPaymentFormatHistory).where(and(eq(patientPaymentFormatHistory.patientId, patientId), inArray(patientPaymentFormatHistory.id, formatoIds)));
+
+  // Reconcilia o cadastro com o que sobrou: valor e formato atuais = último registro restante.
+  const patch: Record<string, unknown> = {};
+  if (precoIds.length) {
+    const sobra = precos.filter((p) => !precoIds.includes(p.id)).sort((a, b) => a.dataEfetiva.getTime() - b.dataEfetiva.getTime());
+    const ultimo = sobra[sobra.length - 1];
+    if (ultimo) {
+      patch.sessionFee = ultimo.valor;
+      patch.priceReviewDate = vencimentoDoPreco(ultimo.dataEfetiva, null, paciente.validadePrecoMeses);
+    }
+  }
+  if (formatoIds.length) {
+    const sobra = formatos.filter((f) => !formatoIds.includes(f.id)).sort((a, b) => a.dataEfetiva.getTime() - b.dataEfetiva.getTime());
+    const ultimo = sobra[sobra.length - 1];
+    if (ultimo) {
+      patch.paymentFormat = ultimo.formato;
+      patch.pacoteTipo = ultimo.pacoteTipo;
+    }
+  }
+  if (Object.keys(patch).length) {
+    await db.update(patients).set(patch).where(and(eq(patients.id, patientId), eq(patients.userId, userId)));
+  }
+
+  revalidatePath(`/dashboard/patients/${patientId}`);
+  revalidatePath(`/dashboard/patients/${patientId}/edit`);
+  revalidatePath("/dashboard");
+  return { ok: true };
+}
