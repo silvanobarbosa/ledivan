@@ -205,34 +205,39 @@ function RemoverUmPagamento({ patientId, pagamentoId }: { patientId: string; pag
  */
 function ListaLancamentos({ patientId, pagamentos, total }: { patientId: string; pagamentos: CobrancaNaTela["pagamentos"]; total: number }) {
   if (pagamentos.length === 0) return null;
-  // Doc 28: com VÁRIOS lançamentos, cada um ganha, ao lado da lixeira, "Emitir recibo"/"Emitir nota"
-  // e o carimbo de "recibo/nota emitida" do PRÓPRIO lançamento. Com um só, o layout de cima manda.
-  const multi = pagamentos.length > 1;
-  const unicoNoTotal = pagamentos.length === 1 && Math.abs(pagamentos[0].valor - total) < 0.005;
+  // Doc 29 — ordem de CADA lançamento (igual no total e no parcial):
+  //  1) [valor ·] data · forma · lixeira   2) responsável   3) carimbos recibo/nota   4) botões.
+  // A única diferença: o pagamento que cobre o pacote inteiro NÃO mostra o valor; o parcial mostra.
   return (
-    <div className="text-[11px] text-foreground/55 tabular-nums space-y-1">
+    <div className="text-[11px] text-foreground/55 tabular-nums space-y-2">
       {pagamentos.map((p) => {
         const forma = p.metodo ? PAYMENT_METHOD_LABELS[p.metodo] ?? p.metodo : null;
-        // Doc 27: [valor ·] data · forma em NEGRITO na 1ª linha; o responsável quebra para a linha de baixo.
-        const topo = [unicoNoTotal ? null : formatBRL(p.valor), partes(p.data).data, forma].filter(Boolean).join(" · ");
+        const ehTotal = Math.abs(p.valor - total) < 0.005; // paga o pacote inteiro → oculta o valor
+        const linha1 = [ehTotal ? null : formatBRL(p.valor), partes(p.data).data, forma].filter(Boolean).join(" · ");
         return (
-          <div key={p.id}>
+          <div key={p.id} className="space-y-0.5">
+            {/* 1ª linha: [valor ·] data · forma · lixeira (em negrito — campos do sistema) */}
             <div className="flex items-center gap-1.5 flex-wrap">
-              <span className="font-bold text-foreground/70">{topo}</span>
+              <span className="font-bold text-foreground/70">{linha1}</span>
               <RemoverUmPagamento patientId={patientId} pagamentoId={p.id} />
-              {multi && p.recibo && <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#ecfdf5] text-[#047857] whitespace-nowrap">recibo emitido</span>}
-              {multi && p.nota && <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#eef2ff] text-[#4338ca] whitespace-nowrap">nota emitida</span>}
             </div>
+            {/* 2ª linha: responsável pelo pagamento */}
             {p.pagoPor ? <div className="text-foreground/55">{p.pagoPor}</div> : null}
-            {multi && (
-              <div className="flex items-center gap-2 flex-wrap mt-0.5">
-                <Link href={`/dashboard/patients/${patientId}/recibo/${p.id}`}
-                  className="text-[11px] font-semibold text-primary border border-border rounded-full px-2 py-0.5 hover:bg-surface whitespace-nowrap">
-                  Emitir recibo
-                </Link>
-                <BotaoNotaFiscal patientId={patientId} pagamentoId={p.id} />
+            {/* Carimbos (depois do responsável): recibo emitido / nota emitida, quando houver */}
+            {(p.recibo || p.nota) && (
+              <div className="flex items-center gap-1.5 flex-wrap">
+                {p.recibo && <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#ecfdf5] text-[#047857] whitespace-nowrap">recibo emitido</span>}
+                {p.nota && <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#eef2ff] text-[#4338ca] whitespace-nowrap">nota emitida</span>}
               </div>
             )}
+            {/* Botões: Emitir recibo / Emitir nota */}
+            <div className="flex items-center gap-2 flex-wrap">
+              <Link href={`/dashboard/patients/${patientId}/recibo/${p.id}`}
+                className="text-[11px] font-semibold text-primary border border-border rounded-full px-2 py-0.5 hover:bg-surface whitespace-nowrap">
+                Emitir recibo
+              </Link>
+              <BotaoNotaFiscal patientId={patientId} pagamentoId={p.id} />
+            </div>
           </div>
         );
       })}
@@ -244,21 +249,15 @@ function ColunasDoPagamento({ patientId, c, onLancar, cobrar }: { patientId: str
   const pg = c.pagamento;
   // Quem decide a coluna e a SITUACAO, nao a existencia de um pagamento. Desde 18/09 a cobranca
   // carrega o que ja foi recebido mesmo sem estar quitada — e meia entrada nao e "Pago".
-  // Doc 28: com vários lançamentos, os carimbos e os botões de emissão vão PARA CADA lançamento
-  // (dentro de ListaLancamentos); o bloco único de cima só vale quando há um único pagamento.
-  const multi = c.pagamentos.length > 1;
+  // Doc 29: a ordem (data/forma/lixeira · responsável · carimbos · botões) é toda por lançamento,
+  // dentro de ListaLancamentos — aqui fica só o status "Pago" e o aviso de diferença perdoada.
   if (pg && c.situacao === "pago") {
     return (
       <>
         <td className="px-3 py-2">
           <div className="flex flex-col gap-1.5">
-            <div className="flex items-center gap-1.5 flex-wrap">
-              {/* Doc 26: a informação "Pago" ocupa a largura da coluna (os carimbos recibo/nota descem para a linha de baixo). */}
-              <span className={`w-full text-center text-[11px] font-bold px-2 py-0.5 rounded-full ${SITUACAO.pago.cls}`}>Pago</span>
-              {/* Dois carimbos independentes: quem emitiu a nota pode não ter passado recibo. */}
-              {!multi && pg.recibo && <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#ecfdf5] text-[#047857] whitespace-nowrap">recibo emitido</span>}
-              {!multi && pg.nota && <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#eef2ff] text-[#4338ca] whitespace-nowrap">nota emitida</span>}
-            </div>
+            {/* Status "Pago" ocupa a largura da coluna. */}
+            <span className={`w-full text-center text-[11px] font-bold px-2 py-0.5 rounded-full ${SITUACAO.pago.cls}`}>Pago</span>
             {/* Quitada recebendo MENOS, com a diferença perdoada ("não haverá diferença de valor").
                 Não vale quando a diferença foi TRANSFERIDA (doc 22): aí a nota de transferência já
                 aparece na descrição, e não houve perdão. */}
@@ -267,18 +266,9 @@ function ColunasDoPagamento({ patientId, c, onLancar, cobrar }: { patientId: str
                 Recebido {formatBRL(c.valorDevido)} de {formatBRL(c.valor)} · diferença perdoada
               </span>
             )}
-            {/* Doc 21/22: cada lançamento aparece, sem substituir o anterior, cada um com seu remover. */}
+            {/* Cada lançamento, na ordem do doc 29 (valor[parcial]·data·forma·lixeira / responsável /
+                carimbos / botões). */}
             <ListaLancamentos patientId={patientId} pagamentos={c.pagamentos} total={c.valor} />
-            {/* Com um único pagamento, os botões de emissão ficam aqui; com vários, vão por lançamento. */}
-            {!multi && (
-              <div className="flex items-center gap-2 flex-wrap">
-                <Link href={`/dashboard/patients/${patientId}/recibo/${pg.id}`}
-                  className="text-[11px] font-semibold text-primary border border-border rounded-full px-2 py-0.5 hover:bg-surface whitespace-nowrap">
-                  Emitir recibo
-                </Link>
-                <BotaoNotaFiscal patientId={patientId} pagamentoId={pg.id} />
-              </div>
-            )}
           </div>
         </td>
       </>
