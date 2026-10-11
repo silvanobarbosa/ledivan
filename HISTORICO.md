@@ -7,6 +7,39 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-10-11 — Doc 29: FIX crítico das datas do recibo + ajustes do doc 28 (#309–#313)
+
+**Entregue:**
+- **#309 (crítico) — datas do recibo escopadas à COBRANÇA.** O recibo do doc 28 pegava TODAS as
+  sessões Presente/Faltou do paciente em ordem cronológica — cruzava a fronteira da cobrança (datas de
+  outro pagamento), deixava vazar **sessão gratuita** e às vezes caía no fallback (só a data do
+  pagamento). Agora usa as sessões da **cobrança** do pagamento: `cobranca.ids` já é o conjunto certo
+  (exclui gratuita, Desmarcou/Prof.desm/Atestado; inclui Presente/Faltou). `CobrancaNaTela` voltou a
+  expor `ids`; o motor `datasDoRecibo` ficou igual, mudou só a entrada (preço = valor da cobrança ÷ nº
+  de sessões). Confere com os exemplos do documento.
+- **#310 — ordem dos lançamentos (guia Geral).** Total e parcial com a mesma ordem, por lançamento:
+  `[valor·]data·forma·🗑` → responsável → carimbos recibo/nota → botões. Total oculta o valor; parcial
+  mostra. `ColunasDoPagamento` ficou só com "Pago" + aviso de diferença.
+- **#311 — contrato (negrito) + financeiro.** 3.1 sequência e 3.2 horário fixo em negrito; 4.1 gratuito
+  "R$ 0,00" em negrito sem "totalizando…"; 4.2 gratuito/1ª/última do pacote em negrito. Radio Quinzenal
+  → "Pagamento realizado quinzenalmente…".
+- **#312 — ajustes.** Texto de ajuda do contrato em lista (+ bullet: Salvar guarda só o contrato DESTE
+  paciente); mensagem de cobrança em bullets; **foto antiga fora do cabeçalho** (usa `user.image`, não
+  mais `photo3x4`); **WhatsappCard** no layout dos demais (botão embaixo, largura cheia), verde #25D366,
+  "Conectado" ao conectar.
+- **#313 — Salvar do autoagendamento** desce para a própria linha (saía da tela no celular).
+
+**Decisões que ficam valendo:**
+- Recibo = datas das sessões da **cobrança** do pagamento (consumidas em sequência pela ordem dos
+  pagamentos da cobrança) — NUNCA todas as sessões do paciente. `cobranca.ids` é a fonte do conjunto, e
+  `CobrancaNaTela` passou a expô-lo.
+
+**Pendente:** frente G (layout puro) — padronizar SMTP / Integrações / Transcrição por IA / Recursos do
+paciente no mesmo layout do card do Telegram (texto em cima, botão embaixo). São ajustes visuais,
+aguardando o dono confirmar o padrão.
+
+---
+
 ## 2026-10-11 — Doc 28: contrato por modalidade, recibo por atendimento, card/perfil (#302–#307)
 
 **Entregue (6 frentes):**
