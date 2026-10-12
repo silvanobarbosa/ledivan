@@ -61,3 +61,18 @@ export function horaDeParedeOuNulo(d: Date | string | null | undefined): string 
   const t = horaDeParede(d);
   return t || null;
 }
+
+/**
+ * AGORA como HORA DE PAREDE para GRAVAR (doc 34): um `Date` cujos componentes UTC são o relógio de
+ * São Paulo agora. Como `formatDateTime`/`horaDeParede` lêem os componentes UTC do timestamp, gravar
+ * isto faz a data/hora sair certa na tela — independentemente do fuso do servidor (na Vercel o
+ * processo roda em UTC, e `new Date()` guardaria 3h a mais). Precisão de segundos.
+ */
+export function agoraParede(agora: Date = new Date()): Date {
+  const p = Object.fromEntries(
+    new Intl.DateTimeFormat("en-CA", { timeZone: "America/Sao_Paulo", year: "numeric", month: "2-digit", day: "2-digit", hour: "2-digit", minute: "2-digit", second: "2-digit", hour12: false })
+      .formatToParts(agora)
+      .map((x) => [x.type, x.value]),
+  );
+  return new Date(Date.UTC(Number(p.year), Number(p.month) - 1, Number(p.day), Number(p.hour) % 24, Number(p.minute), Number(p.second)));
+}
