@@ -264,17 +264,22 @@ function NumeroCom({ name, label, dica, unidade, defaultValue, placeholder, min 
 
 type SaveAction = (formData: FormData) => void | Promise<void>;
 
+/** Cada guia (Dados/Financeiro) é só um contêiner que a aba mostra/esconde (`show`). */
+function Secao({ show, children }: { show: string; children: ReactNode }) {
+  return <div className={show}>{children}</div>;
+}
+
 /**
- * Cada guia (Dados/Financeiro) num CONTÊINER próprio. Na EDIÇÃO (`save` presente) o contêiner é um
- * `<form>` INDEPENDENTE com seu próprio botão "Salvar alterações": como o form só envia os campos
- * que estão DENTRO dele, salvar uma guia não persiste o que ficou pendente na outra, e o
- * `updatePatient` mantém as colunas ausentes no valor atual (campo ausente → `existing`). No CADASTRO
- * (`save` ausente) vira `<div>` e o form único do pai envolve tudo, com um botão só.
+ * Doc 35 (A2): um SÓ formulário para Dados + Financeiro, com UM botão "Salvar alterações" — como o
+ * cadastro. Antes cada guia era um `<form>` próprio com seu botão: ao editar campos em Dados E
+ * Financeiro e clicar num Salvar, só a guia daquele form ia pro servidor e a outra "voltava atrás".
+ * Agora um clique envia tudo. A guia Contrato fica FORA deste form (não entra no cadastro). No
+ * CADASTRO (`save` ausente) o form único é o da página-pai, então aqui vira passthrough.
  */
-function Secao({ show, save, children }: { show: string; save?: SaveAction; children: ReactNode }) {
-  if (!save) return <div className={show}>{children}</div>;
+function Formulario({ save, children }: { save?: SaveAction; children: ReactNode }) {
+  if (!save) return <>{children}</>;
   return (
-    <form action={save} className={show}>
+    <form action={save} className="space-y-5">
       {children}
       <div className="pt-1">
         <SubmitButton pendingLabel="Salvando…" className="inline-flex items-center justify-center gap-2 bg-primary text-white py-3 px-6 rounded-2xl font-bold shadow-lg shadow-primary/20 hover:scale-[1.01] transition">
@@ -507,8 +512,10 @@ export function PatientFormFields({ p, save, tabInicial, contrato, patientId }: 
         ))}
       </div>
 
+      {/* Doc 35 (A2): Dados + Financeiro num form só, UM Salvar envia tudo. Contrato fica fora. */}
+      <Formulario save={save}>
       {/* DADOS: pessoais → cônjuge → responsável/emergência → devolutiva → escola */}
-      <Secao show={show("dados")} save={save}>
+      <Secao show={show("dados")}>
         <Card title="Dados pessoais">
           <div className="grid sm:grid-cols-2 gap-4">
             <div>
@@ -629,7 +636,7 @@ export function PatientFormFields({ p, save, tabInicial, contrato, patientId }: 
       {/* FINANCEIRO — o formato vem primeiro, e é ele que decide o que se pergunta depois. Os
           campos abrem LOGO ABAIXO do formato escolhido, e não no fim da lista: assim se lê o que
           foi marcado junto com o que ele pede. */}
-      <Secao show={show("financeiro")} save={save}>
+      <Secao show={show("financeiro")}>
         {/* Qualquer mexida aqui marca o Financeiro como "tocado" (doc 17): no 1º cadastro, sem isso,
             nada financeiro é criado ao salvar só os Dados. */}
         <div onChange={() => { if (!financeiroTocado) setFinanceiroTocado(true); if (!financeiroAlterado) setFinanceiroAlterado(true); }}>
@@ -713,6 +720,7 @@ export function PatientFormFields({ p, save, tabInicial, contrato, patientId }: 
         </Card>
         </div>
       </Secao>
+      </Formulario>
 
       {/* Doc 22: a aba Contrato — o contrato do paciente, igual ao do menu Contratos. Fica FORA de
           <form>: é para ler/editar na tela e imprimir, não para enviar junto com o cadastro. */}
