@@ -11,7 +11,7 @@ import { montarMensagemCobranca } from "@/lib/mensagemCobranca";
 import { parseMoedaBR } from "@/lib/money";
 import { desfazerVencimento, editarVencimento, lancarPagamento, limparEnviosDaCobranca, registrarCobrancaEnviada, removerPagamento } from "./geral-actions";
 import { marcarEmissao } from "./recibo-actions";
-import { doAno } from "@/lib/filtroDeAno";
+import { doAno, dataDoAnoControle } from "@/lib/filtroDeAno";
 import { numeroDoWhatsapp } from "@/lib/telefoneWhatsapp";
 
 /** Dados para o botão "Cobrar" compor a mensagem da terapeuta. */
@@ -515,10 +515,11 @@ export function GeralTab({ patientId, linhas, responsavel, responsavelCpf, cobra
   // O filtro de ano é o MESMO da tabela de pagamentos (documento de 17/09): uma escolha só, e as
   // duas tabelas respondem juntas. Filtrar aqui não apaga nada — o ano de trás continua a um
   // clique de distância.
-  // A data que define o ano muda com o tipo da linha: a sessão tem a dela; o pagamento vale pelo
-  // dia em que foi pago, e não pelo vencimento da cobrança que ele quitou.
+  // A data que define o ano muda com o tipo da linha (doc 32): a sessão tem a dela; o CABEÇALHO do
+  // pagamento vale pelo VENCIMENTO — para o pacote que cruza o ano aparecer com as sessões do ano em
+  // que começou, e as do ano seguinte caírem no ano seguinte (ver `dataDoAnoControle`).
   // Doc 30: "TODOS" (ano = "TODOS") mostra todos os anos — passa `null` para o filtro (que devolve tudo).
-  const doAnoEscolhido = doAno(linhas, ano === "TODOS" ? null : ano, (l) => (l.tipo === "sessao" || l.tipo === "bloqueio" ? l.data : l.pagamento?.data ?? l.vencimento));
+  const doAnoEscolhido = doAno(linhas, ano === "TODOS" ? null : ano, dataDoAnoControle);
 
   if (!linhas.length) {
     return <div className="glass-card rounded-[24px] p-6 text-sm text-foreground/50">Nenhuma sessão registrada ainda.</div>;

@@ -38,3 +38,29 @@ export function doAno<T>(itens: T[], ano: number | null, dataDe: (i: T) => strin
   if (ano == null) return itens;
   return itens.filter((i) => anoDe(dataDe(i)) === ano);
 }
+
+type LinhaComAno = {
+  tipo: string;
+  data?: string | Date | null;
+  vencimento?: string | Date | null;
+  pagamento?: { data: string | Date } | null;
+};
+
+/**
+ * A data que define EM QUE ANO a linha aparece na tabela de **Controle** (doc 32).
+ *
+ * - **Sessão / bloqueio:** o próprio dia dela.
+ * - **Cabeçalho de pagamento (pacote/quinzena):** o **VENCIMENTO** — NÃO o dia em que foi pago.
+ *
+ * Isto é o que o dono pediu para o pacote que cruza o ano: o cabeçalho aparece junto das sessões do
+ * ano em que o pacote começou (ex.: vence 10/12/2024 → o pacote e a sessão 23/12/2024 ficam em 2024),
+ * e as sessões do ano seguinte caem no ano seguinte (04/01, 08/01, 15/01 → 2025). Antes o cabeçalho
+ * seguia a data do pagamento (10/01/2025) e descolava da sessão 23/12, que sobrava solta em 2024.
+ *
+ * O VALOR pago continua contado no ano do pagamento (tabela de Valores Recebidos), que usa a data do
+ * pagamento, não esta função.
+ */
+export function dataDoAnoControle(l: LinhaComAno): string | Date | null {
+  if (l.tipo === "sessao" || l.tipo === "bloqueio") return l.data ?? null;
+  return l.vencimento ?? l.pagamento?.data ?? null;
+}
