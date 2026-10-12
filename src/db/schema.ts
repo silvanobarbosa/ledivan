@@ -720,6 +720,21 @@ export const patientActivities = pgTable("patient_activities", {
   index("activities_patient_idx").on(t.patientId),
 ]);
 
+// Documentos individuais do paciente (doc 33): texto livre elaborado pelo profissional, com
+// cabeçalho padronizado na impressão. Numerados por paciente (`number`, fixo na criação, sem
+// renumerar quando outro é editado/excluído). `updatedAt` = último salvamento/alteração.
+export const patientDocuments = pgTable("patient_documents", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: text("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
+  patientId: uuid("patient_id").references(() => patients.id, { onDelete: "cascade" }).notNull(),
+  number: integer("number").notNull(),
+  content: text("content").default("").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (t) => [
+  index("documents_patient_idx").on(t.patientId),
+]);
+
 export const sessionPayments = pgTable("session_payments", {
   id: uuid("id").primaryKey().defaultRandom(),
   userId: text("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),

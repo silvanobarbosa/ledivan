@@ -11,6 +11,7 @@ import { RegistroItem } from "./RegistroItem";
 import { useFormStatus } from "react-dom";
 import { numeroDoWhatsapp } from "@/lib/telefoneWhatsapp";
 import { AssignmentsTab } from "./AssignmentsTab";
+import { DocumentosTab, type CabecalhoDoc, type DocumentoSalvo } from "./DocumentosTab";
 import { AnexosProntuario } from "./AnexosProntuario";
 import { PatientFeatures } from "./PatientFeatures";
 import { GeralTab } from "./GeralTab";
@@ -78,15 +79,17 @@ const inputCls = "w-full px-4 py-2.5 rounded-xl bg-white/70 border border-border
 // aba Dados virou o histórico de status abaixo do cabeçalho; o financeiro está na guia Geral.
 // Doc 33: "Prontuário" renomeado para "Registros".
 // Doc 33: "Anamnese" é guia própria; "Materiais" foi absorvida pela guia Atividades (+Material).
-const TABS = ["Geral", "Registros", "Anamnese", "Atividades"] as const;
+const TABS = ["Geral", "Registros", "Anamnese", "Atividades", "Documentos"] as const;
 
 export function PatientDetail({
-  patient, pagador, payments, statusHistory, records, transcriptionEnabled, risk: _risk, assignments, moodToken, moodLogs, scales, diaryEntries = [], ratings = [], consents = [], contractHistory: _contractHistory = [], finance, sessionStats, recurring, statusEnabled = false, dailyStatus = [], sharedWritings = [], geral = [], cobrancaMessage = null, anamnese = [], activities = [],
+  patient, pagador, payments, statusHistory, records, transcriptionEnabled, risk: _risk, assignments, moodToken, moodLogs, scales, diaryEntries = [], ratings = [], consents = [], contractHistory: _contractHistory = [], finance, sessionStats, recurring, statusEnabled = false, dailyStatus = [], sharedWritings = [], geral = [], cobrancaMessage = null, anamnese = [], activities = [], documentos = [], docCabecalho,
 }: {
   patient: Patient; pagador: Pagador; sessions: Session[]; payments: Payment[];
   statusHistory: StatusEntry[]; priceHistory: PriceEntry[]; records: RecordEntry[];
   anamnese?: { id: string; title: string; content: string; custom: boolean; updatedAt: string | null }[];
   activities?: { id: string; title: string; description: string; updatedAt: string }[];
+  documentos?: DocumentoSalvo[];
+  docCabecalho?: CabecalhoDoc;
   contractHistory?: ContractEntry[];
   finance: Finance;
   ledger?: LedgerEntry[];
@@ -520,6 +523,8 @@ export function PatientDetail({
         </>
       )}
 
+      {/* Documentos (doc 33): elaboração/impressão/edição de documentos individuais do paciente. */}
+      {tab === "Documentos" && docCabecalho && <DocumentosTab patientId={patient.id} cabecalho={docCabecalho} documentos={documentos} />}
 
     </div>
   );

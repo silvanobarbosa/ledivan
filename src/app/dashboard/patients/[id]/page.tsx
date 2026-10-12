@@ -8,7 +8,7 @@
    achados de verdade — eles passam a valer. */
 import { db } from "@/db";
 import { auth } from "@/auth";
-import { users, patients, therapySessions, sessionPayments, patientStatusHistory, patientPriceHistory, patientContractHistory, patientRecords, assignments, moodLogs, scaleApplications, patientPackages, patientDiary, sessionRatings, patientConsents, patientWriting, patientDailyStatus, patientAnamnese, patientActivities } from "@/db/schema";
+import { users, patients, therapySessions, sessionPayments, patientStatusHistory, patientPriceHistory, patientContractHistory, patientRecords, assignments, moodLogs, scaleApplications, patientPackages, patientDiary, sessionRatings, patientConsents, patientWriting, patientDailyStatus, patientAnamnese, patientActivities, patientDocuments } from "@/db/schema";
 import { and, eq, desc, asc } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import Link from "next/link";
@@ -20,6 +20,7 @@ import { derivePackageLabels } from "@/lib/packages";
 import { resolveFeature, parseOverrides } from "@/lib/features";
 import { horaDeParede } from "@/lib/horaLocal";
 import { geralDoPaciente } from "@/lib/geralDoPaciente";
+import { descricaoValida } from "@/lib/recibo";
 
 export default async function PatientPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -164,6 +165,40 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
     orderBy: [desc(patientActivities.createdAt)],
   });
 
+  // Doc 33: documentos do paciente (mais recente primeiro) + cabeçalho padronizado automático.
+  const documentRows = await db.query.patientDocuments.findMany({
+    where: eq(patientDocuments.patientId, id),
+    orderBy: [desc(patientDocuments.number)],
+  });
+  const dois = (n: number) => String(n).padStart(2, "0");
+  const nasc = patient.birthDate ? new Date(horaDeParede(patient.birthDate)) : null;
+  const nascimento = nasc ? `${dois(nasc.getDate())}/${dois(nasc.getMonth() + 1)}/${nasc.getFullYear()}` : null;
+  const idade = (() => {
+    if (!nasc) return null;
+    const hoje = new Date();
+    let a = hoje.getFullYear() - nasc.getFullYear();
+    const m = hoje.getMonth() - nasc.getMonth();
+    if (m < 0 || (m === 0 && hoje.getDate() < nasc.getDate())) a--;
+    return a >= 0 ? `${a} ${a === 1 ? "ano" : "anos"}` : null;
+  })();
+  const descricao = descricaoValida(me?.descricaoAtendimento);
+  const docCabecalho = {
+    profissional: {
+      nome: me?.name ?? "",
+      registro: me?.conselho ?? null,
+      registroLabel: descricao === "psicologia" ? "CRP nº" : "Registro",
+      telefone: me?.therapistPhone ?? null,
+      email: me?.email ?? null,
+      logoUrl: me?.logoUrl ?? null,
+    },
+    paciente: {
+      nome: patient.name,
+      nascimento,
+      idade,
+      sessoesPresente: sessionsList.filter((s) => s.status === "realizada").length,
+    },
+  };
+
   return (
     <div className="max-w-4xl space-y-6">
       <Link href="/dashboard/patients" className="inline-flex items-center gap-2 text-foreground/50 hover:text-primary transition">
@@ -203,6 +238,8 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
         sharedWritings={JSON.parse(JSON.stringify(sharedWritings))}
         anamnese={anamneseRows.map((a) => ({ id: a.id, title: a.title, content: a.content, custom: a.custom, updatedAt: a.updatedAt ? new Date(a.updatedAt).toISOString() : null }))}
         activities={activityRows.map((a) => ({ id: a.id, title: a.title, description: a.description, updatedAt: new Date(a.updatedAt).toISOString() }))}
+        documentos={documentRows.map((d) => ({ id: d.id, number: d.number, content: d.content, updatedAt: new Date(d.updatedAt).toISOString() }))}
+        docCabecalho={docCabecalho}
         geral={geral.linhas}
       />
     </div>
