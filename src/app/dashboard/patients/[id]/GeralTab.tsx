@@ -95,7 +95,8 @@ function VencimentoEditavel({ patientId, c }: { patientId: string; c: CobrancaNa
   const venc = c.vencimento ? partes(c.vencimento).data : null;
   const podeEditar = c.pagamentos.length === 0;
 
-  if (!venc) return null;
+  // Doc 33: pago o valor TOTAL, o "· vence dd/mm" some — não faz mais sentido mostrar prazo de algo quitado.
+  if (!venc || c.situacao === "pago") return null;
 
   const salvar = () => {
     if (!valor) { setErro("Escolha a data."); return; }
@@ -176,9 +177,10 @@ const STATUS_GERAL: Record<string, string> = {
 function CelulaStatus({ status }: { status?: string | null }) {
   const rotulo = status ? STATUS_GERAL[status] : undefined;
   if (!rotulo || !status) return <td className="px-3 py-2" />;
+  // Doc 33: conteúdo centralizado e a cor de fundo do status ocupa a largura toda da coluna.
   return (
     <td className="px-3 py-2">
-      <span className={`inline-block text-[11px] font-bold px-2 py-0.5 rounded-full border ${sessionColorClasses(status)}`}>{rotulo}</span>
+      <span className={`block w-full text-center text-[11px] font-bold px-2 py-0.5 rounded-md border ${sessionColorClasses(status)}`}>{rotulo}</span>
     </td>
   );
 }
@@ -536,8 +538,8 @@ export function GeralTab({ patientId, linhas, responsavel, responsavelCpf, cobra
           <thead>
             <tr className="text-left text-[11px] uppercase tracking-widest text-foreground/40">
               <th className="px-3 py-2 font-bold">Data / hora</th>
-              <th className="px-3 py-2 font-bold">Sessão</th>
-              <th className="px-3 py-2 font-bold">Status</th>
+              <th className="px-3 py-2 font-bold text-center">Sessão</th>
+              <th className="px-3 py-2 font-bold text-center">Status</th>
               <th className="px-3 py-2 font-bold text-right">Valor</th>
               <th className="px-3 py-2 font-bold">Pagamento</th>
             </tr>
@@ -561,9 +563,10 @@ export function GeralTab({ patientId, linhas, responsavel, responsavelCpf, cobra
                         {l.arrastoRecebido > 0 && (
                           <span className="block text-[11px] text-[#92400e]/80">inclui {formatBRL(l.arrastoRecebido)} de diferença do pacote anterior ({formatBRL(l.valorBase)} + {formatBRL(l.arrastoRecebido)})</span>
                         )}
-                        {/* Doc 22: pacote encerrado cuja diferença rolou para a próxima cobrança. */}
+                        {/* Doc 22: pacote encerrado cuja diferença rolou para a próxima cobrança.
+                            Doc 33: mostra também a conta — (valor da cobrança − valor transferido). */}
                         {l.transferido > 0 && (
-                          <span className="block text-[11px] text-[#92400e]/80">{formatBRL(l.transferido)} transferido para a próxima cobrança do pacote</span>
+                          <span className="block text-[11px] text-[#92400e]/80">{formatBRL(l.transferido)} transferido para a próxima cobrança do pacote ({formatBRL(l.valor)} − {formatBRL(l.transferido)})</span>
                         )}
                       </td>
                       {/* Doc 21: havendo pagamento, a coluna Valor mostra o que foi EFETIVAMENTE pago
@@ -591,9 +594,9 @@ export function GeralTab({ patientId, linhas, responsavel, responsavelCpf, cobra
                 return (
                   <tr key={`bloq-${l.data}`} className="border-t border-border bg-surface/40 text-foreground/50">
                     <td className="px-3 py-2 tabular-nums whitespace-nowrap">{b.data} {b.hora}</td>
-                    <td className="px-3 py-2 text-foreground/30">—</td>
+                    <td className="px-3 py-2 text-foreground/30 text-center">—</td>
                     <td className="px-3 py-2">
-                      <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-[#fee2e2] text-[#991b1b] whitespace-nowrap">Hor. Bloq.</span>
+                      <span className="block w-full text-center text-[11px] font-bold px-2 py-0.5 rounded-md bg-[#fee2e2] text-[#991b1b]">Hor. Bloq.</span>
                     </td>
                     <td className="px-3 py-2 text-foreground/30">—</td>
                     <td className="px-3 py-2 text-foreground/30">—</td>
@@ -612,7 +615,7 @@ export function GeralTab({ patientId, linhas, responsavel, responsavelCpf, cobra
                         {l.online ? <Video className="w-3.5 h-3.5 text-primary" aria-label="online" /> : <MapPin className="w-3.5 h-3.5 text-foreground/30" aria-label="presencial" />}
                       </span>
                     </td>
-                    <td className="px-3 py-2 font-semibold tabular-nums">{l.rotulo || "—"}</td>
+                    <td className="px-3 py-2 font-semibold tabular-nums text-center">{l.rotulo || "—"}</td>
                     <CelulaStatus status={l.status} />
                     {/* Doc 30: o valor da sessão AVULSA (formato "sessao") sai em negrito na tabela de Controle. */}
                     <td className={`px-3 py-2 text-right tabular-nums ${c?.formato === "sessao" ? "font-bold" : ""}`}>{l.valor == null ? "" : formatBRL(l.valor)}</td>
