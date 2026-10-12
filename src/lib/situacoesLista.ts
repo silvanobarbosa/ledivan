@@ -12,7 +12,7 @@ import "server-only";
 
 import { and, eq, inArray } from "drizzle-orm";
 import { db } from "@/db";
-import { patientPackages, patientPaymentFormatHistory, patientPriceHistory, sessionPayments, therapySessions } from "@/db/schema";
+import { cobrancaVencimentos, patientPackages, patientPackageHistory, patientPaymentFormatHistory, patientPriceHistory, sessionPayments, therapySessions } from "@/db/schema";
 import { horaDeParede } from "./horaLocal";
 import { resumoDaGeral, type EntradaDaGeral } from "./guiaGeral";
 import { hojeDeParede } from "./geralDoPaciente";
@@ -30,6 +30,7 @@ export type PacienteParaSituacao = {
   paymentDay2: number | null;
   timesPerPeriod: number | null;
   horasAntesPagamento: number | null;
+  sessionsInPacket: number | null;
 };
 
 export type SituacaoResumo = { situacao: SituacaoDaLista; nAberto: number; nAtraso: number };
@@ -49,10 +50,10 @@ export async function situacoesDaLista(userId: string, pacientes: PacienteParaSi
   const saida = new Map<string, SituacaoResumo>();
   if (!ids.length) return saida;
 
-  const [sessoes, pagamentos, precos, vigencias, pacotes] = await Promise.all([
+  const [sessoes, pagamentos, precos, vigencias, pacotes, pacoteHist, vencEditados] = await Promise.all([
     db.select({ id: therapySessions.id, patientId: therapySessions.patientId, date: therapySessions.date, status: therapySessions.status, sessionKind: therapySessions.sessionKind, abaterDoPacote: therapySessions.abaterDoPacote, chargeable: therapySessions.chargeable, extra: therapySessions.extra, valorExtra: therapySessions.valorExtra, repoeSessaoId: therapySessions.repoeSessaoId, isOnline: therapySessions.isOnline })
       .from(therapySessions).where(eq(therapySessions.userId, userId)),
-    db.select({ id: sessionPayments.id, patientId: sessionPayments.patientId, amount: sessionPayments.amount, date: sessionPayments.date, status: sessionPayments.status, method: sessionPayments.method, pagoPor: sessionPayments.pagoPor, cobrancaChave: sessionPayments.cobrancaChave, kind: sessionPayments.kind })
+    db.select({ id: sessionPayments.id, patientId: sessionPayments.patientId, amount: sessionPayments.amount, date: sessionPayments.date, status: sessionPayments.status, method: sessionPayments.method, pagoPor: sessionPayments.pagoPor, cobrancaChave: sessionPayments.cobrancaChave, kind: sessionPayments.kind, quita: sessionPayments.quitaDiferenca })
       .from(sessionPayments).where(eq(sessionPayments.userId, userId)),
     db.select({ patientId: patientPriceHistory.patientId, valor: patientPriceHistory.valor, dataEfetiva: patientPriceHistory.dataEfetiva })
       .from(patientPriceHistory).where(inArray(patientPriceHistory.patientId, ids)),
@@ -60,6 +61,14 @@ export async function situacoesDaLista(userId: string, pacientes: PacienteParaSi
       .from(patientPaymentFormatHistory).where(inArray(patientPaymentFormatHistory.patientId, ids)),
     db.select({ patientId: patientPackages.patientId, seq: patientPackages.seq, sessions: patientPackages.sessions })
       .from(patientPackages).where(and(eq(patientPackages.userId, userId), inArray(patientPackages.patientId, ids))),
+    // Doc 30: vigências do tamanho do pacote. Doc 33 (F17): a lista PRECISA destes fatos, senão a
+    // situação de atraso diverge da tela do paciente (motor único, fontes diferentes = conta diferente).
+    db.select({ patientId: patientPackageHistory.patientId, tamanho: patientPackageHistory.tamanho, desde: patientPackageHistory.dataEfetiva })
+      .from(patientPackageHistory).where(inArray(patientPackageHistory.patientId, ids)),
+    // Doc 31 (E): vencimentos editados à mão — sem isto a lista usa a data calculada e marca "atraso"
+    // onde o dono já empurrou o vencimento para a frente.
+    db.select({ patientId: cobrancaVencimentos.patientId, cobrancaChave: cobrancaVencimentos.cobrancaChave, vencimento: cobrancaVencimentos.vencimento })
+      .from(cobrancaVencimentos).where(and(eq(cobrancaVencimentos.userId, userId), inArray(cobrancaVencimentos.patientId, ids))),
   ]);
 
   const porPaciente = {
@@ -68,6 +77,8 @@ export async function situacoesDaLista(userId: string, pacientes: PacienteParaSi
     precos: agrupar(precos, (p) => p.patientId),
     vigencias: agrupar(vigencias, (v) => v.patientId),
     pacotes: agrupar(pacotes, (p) => p.patientId),
+    pacoteHist: agrupar(pacoteHist, (h) => h.patientId),
+    vencEditados: agrupar(vencEditados, (v) => v.patientId),
   };
   const hoje = hojeDeParede();
 
@@ -79,11 +90,14 @@ export async function situacoesDaLista(userId: string, pacientes: PacienteParaSi
       precos: (porPaciente.precos.get(p.id) ?? []).map((x) => ({ valor: Number(x.valor) || 0, desde: local(x.dataEfetiva) })),
       valorDaSessao: Number(p.sessionFee) || 0,
       tamanhos: tamanhosDasSequencias(porPaciente.pacotes.get(p.id) ?? []),
+      tamanhoPacote: p.sessionsInPacket,
+      tamanhosPorData: (porPaciente.pacoteHist.get(p.id) ?? []).map((h) => ({ desde: local(h.desde), tamanho: h.tamanho })),
       vezesPorSemana: p.timesPerPeriod ?? 1,
       diaPagamento: p.paymentDay,
       diaPagamento2: p.paymentDay2,
       horasAntesPagamento: p.horasAntesPagamento,
-      pagamentos: (porPaciente.pagamentos.get(p.id) ?? []).map((x) => ({ id: x.id, valor: x.amount, data: local(x.date), status: x.status, metodo: x.method, pagoPor: x.pagoPor, cobrancaChave: x.cobrancaChave, kind: x.kind })),
+      pagamentos: (porPaciente.pagamentos.get(p.id) ?? []).map((x) => ({ id: x.id, valor: x.amount, data: local(x.date), status: x.status, metodo: x.method, pagoPor: x.pagoPor, cobrancaChave: x.cobrancaChave, quita: x.quita, kind: x.kind })),
+      vencimentos: (porPaciente.vencEditados.get(p.id) ?? []).map((v) => ({ chave: v.cobrancaChave, vencimento: local(v.vencimento) })),
       hoje,
     };
     const r = resumoDaGeral(entrada);

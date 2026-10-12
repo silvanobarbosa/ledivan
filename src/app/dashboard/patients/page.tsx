@@ -85,6 +85,7 @@ export default async function PatientsPage({ searchParams }: { searchParams: Pro
   const situacoes = await situacoesDaLista(userId, list.map((p) => ({
     id: p.id, paymentFormat: p.paymentFormat, pacoteTipo: p.pacoteTipo, sessionFee: p.sessionFee,
     paymentDay: p.paymentDay, paymentDay2: p.paymentDay2, timesPerPeriod: p.timesPerPeriod, horasAntesPagamento: p.horasAntesPagamento,
+    sessionsInPacket: p.sessionsInPacket,
   })));
 
   return (
