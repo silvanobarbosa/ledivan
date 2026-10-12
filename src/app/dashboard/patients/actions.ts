@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@/db";
-import { patients, patientStatusHistory, patientPriceHistory, patientContractHistory, patientPaymentFormatHistory, patientPackageHistory, patientRecords, patientAnamnese, assignments, scaleApplications, treatmentGoals, patientPackages, therapySessions } from "@/db/schema";
+import { patients, patientStatusHistory, patientPriceHistory, patientContractHistory, patientPaymentFormatHistory, patientPackageHistory, patientRecords, patientAnamnese, patientActivities, assignments, scaleApplications, treatmentGoals, patientPackages, therapySessions } from "@/db/schema";
 import { auth } from "@/auth";
 import { and, eq, gt, inArray, sql } from "drizzle-orm";
 import { encerraAgenda, sessoesAEncerrar } from "@/lib/encerrarAgenda";
@@ -829,7 +829,40 @@ export async function ensureMoodToken(patientId: string) {
   revalidatePath(`/dashboard/patients/${patientId}`);
 }
 
-// --- Espaço do Paciente: tarefas (lição de casa) ---
+/**
+ * Doc 33 — "Desfazer" do diário de humor: reverte a ativação (geração do link), voltando ao estado
+ * de antes. Os humores já registrados NÃO são apagados — só o token sai; reativar gera um novo.
+ */
+export async function clearMoodToken(patientId: string): Promise<{ ok: boolean; error?: string }> {
+  const session = await auth();
+  if (!session?.user?.id) return { ok: false, error: "Não autorizado" };
+  const userId = session.user.id;
+  const patient = await db.query.patients.findFirst({ where: and(eq(patients.id, patientId), eq(patients.userId, userId)), columns: { id: true } });
+  if (!patient) return { ok: false, error: "Paciente não encontrado." };
+  await db.update(patients).set({ moodToken: null }).where(and(eq(patients.id, patientId), eq(patients.userId, userId)));
+  revalidatePath(`/dashboard/patients/${patientId}`);
+  return { ok: true };
+}
+
+/**
+ * Doc 33 — "Desfazer" da escala de desfecho: desfaz a última geração de link, removendo a escala
+ * PENDENTE criada mais recentemente (a que ainda não foi respondida). As escalas já respondidas ficam.
+ */
+export async function undoLastScale(patientId: string): Promise<{ ok: boolean; error?: string }> {
+  const session = await auth();
+  if (!session?.user?.id) return { ok: false, error: "Não autorizado" };
+  const userId = session.user.id;
+  const pendentes = await db.select({ id: scaleApplications.id, createdAt: scaleApplications.createdAt })
+    .from(scaleApplications)
+    .where(and(eq(scaleApplications.patientId, patientId), eq(scaleApplications.userId, userId), eq(scaleApplications.status, "pendente")));
+  if (!pendentes.length) return { ok: false, error: "Nenhum link de escala pendente para desfazer." };
+  const ultima = pendentes.reduce((m, s) => (m.createdAt && s.createdAt && s.createdAt > m.createdAt ? s : m));
+  await db.delete(scaleApplications).where(and(eq(scaleApplications.id, ultima.id), eq(scaleApplications.userId, userId)));
+  revalidatePath(`/dashboard/patients/${patientId}`);
+  return { ok: true };
+}
+
+// --- Espaço do Paciente: exercícios (ex-tarefas; doc 33) ---
 
 export async function createAssignment(patientId: string, formData: FormData) {
   const session = await auth();
@@ -885,6 +918,64 @@ export async function commentAssignment(assignmentId: string, comment: string) {
   if (!a) return;
   await db.update(assignments).set({ therapistComment: comment }).where(and(eq(assignments.id, assignmentId), eq(assignments.userId, userId)));
   revalidatePath(`/dashboard/patients/${a.patientId}`);
+}
+
+/** Doc 33: edita título e instruções de um exercício (ex-tarefa). */
+export async function editAssignment(assignmentId: string, formData: FormData): Promise<{ ok: boolean; error?: string }> {
+  const session = await auth();
+  if (!session?.user?.id) return { ok: false, error: "Não autorizado" };
+  const userId = session.user.id;
+  const a = await db.query.assignments.findFirst({ where: and(eq(assignments.id, assignmentId), eq(assignments.userId, userId)) });
+  if (!a) return { ok: false, error: "Exercício não encontrado." };
+  const title = (formData.get("title") as string)?.trim();
+  if (!title) return { ok: false, error: "Título obrigatório." };
+  await db.update(assignments)
+    .set({ title, instructions: (formData.get("instructions") as string)?.trim() || null })
+    .where(and(eq(assignments.id, assignmentId), eq(assignments.userId, userId)));
+  revalidatePath(`/dashboard/patients/${a.patientId}`);
+  return { ok: true };
+}
+
+// --- Atividades realizadas com o paciente (doc 33) ---
+
+export async function createActivity(patientId: string, title: string, description: string): Promise<{ ok: boolean; error?: string }> {
+  const session = await auth();
+  if (!session?.user?.id) return { ok: false, error: "Não autorizado" };
+  const userId = session.user.id;
+  const t = (title || "").trim();
+  if (!t) return { ok: false, error: "Informe o título da atividade." };
+  const dono = await db.query.patients.findFirst({ where: and(eq(patients.id, patientId), eq(patients.userId, userId)), columns: { id: true } });
+  if (!dono) return { ok: false, error: "Paciente não encontrado." };
+  await db.insert(patientActivities).values({ userId, patientId, title: t, description: (description || "").trim() });
+  revalidatePath(`/dashboard/patients/${patientId}`);
+  return { ok: true };
+}
+
+/** Edita título e descrição; a data/hora passa a ser o momento da alteração. */
+export async function editActivity(id: string, title: string, description: string): Promise<{ ok: boolean; error?: string }> {
+  const session = await auth();
+  if (!session?.user?.id) return { ok: false, error: "Não autorizado" };
+  const userId = session.user.id;
+  const at = await db.query.patientActivities.findFirst({ where: and(eq(patientActivities.id, id), eq(patientActivities.userId, userId)) });
+  if (!at) return { ok: false, error: "Atividade não encontrada." };
+  const t = (title || "").trim();
+  if (!t) return { ok: false, error: "Informe o título da atividade." };
+  await db.update(patientActivities)
+    .set({ title: t, description: (description || "").trim(), updatedAt: new Date() })
+    .where(and(eq(patientActivities.id, id), eq(patientActivities.userId, userId)));
+  revalidatePath(`/dashboard/patients/${at.patientId}`);
+  return { ok: true };
+}
+
+export async function deleteActivity(id: string): Promise<{ ok: boolean; error?: string }> {
+  const session = await auth();
+  if (!session?.user?.id) return { ok: false, error: "Não autorizado" };
+  const userId = session.user.id;
+  const at = await db.query.patientActivities.findFirst({ where: and(eq(patientActivities.id, id), eq(patientActivities.userId, userId)) });
+  if (!at) return { ok: false, error: "Atividade não encontrada." };
+  await db.delete(patientActivities).where(and(eq(patientActivities.id, id), eq(patientActivities.userId, userId)));
+  revalidatePath(`/dashboard/patients/${at.patientId}`);
+  return { ok: true };
 }
 
 export async function deletePatient(patientId: string) {

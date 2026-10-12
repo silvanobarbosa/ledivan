@@ -11,7 +11,6 @@ import { RegistroItem } from "./RegistroItem";
 import { useFormStatus } from "react-dom";
 import { numeroDoWhatsapp } from "@/lib/telefoneWhatsapp";
 import { AssignmentsTab } from "./AssignmentsTab";
-import { MaterialsTab } from "./MaterialsTab";
 import { AnexosProntuario } from "./AnexosProntuario";
 import { PatientFeatures } from "./PatientFeatures";
 import { GeralTab } from "./GeralTab";
@@ -78,15 +77,16 @@ const inputCls = "w-full px-4 py-2.5 rounded-xl bg-white/70 border border-border
 // Guias enxutas (dono, 16/09/2026): saíram Dados, Sessões, Financeiro e Linha do tempo. O que era a
 // aba Dados virou o histórico de status abaixo do cabeçalho; o financeiro está na guia Geral.
 // Doc 33: "Prontuário" renomeado para "Registros".
-// Doc 33: "Anamnese" é uma guia própria, à direita de Registros.
-const TABS = ["Geral", "Registros", "Anamnese", "Atividades", "Materiais"] as const;
+// Doc 33: "Anamnese" é guia própria; "Materiais" foi absorvida pela guia Atividades (+Material).
+const TABS = ["Geral", "Registros", "Anamnese", "Atividades"] as const;
 
 export function PatientDetail({
-  patient, pagador, payments, statusHistory, records, transcriptionEnabled, risk: _risk, assignments, moodToken, moodLogs, scales, diaryEntries = [], ratings = [], consents = [], contractHistory: _contractHistory = [], finance, sessionStats, recurring, statusEnabled = false, dailyStatus = [], sharedWritings = [], geral = [], cobrancaMessage = null, anamnese = [],
+  patient, pagador, payments, statusHistory, records, transcriptionEnabled, risk: _risk, assignments, moodToken, moodLogs, scales, diaryEntries = [], ratings = [], consents = [], contractHistory: _contractHistory = [], finance, sessionStats, recurring, statusEnabled = false, dailyStatus = [], sharedWritings = [], geral = [], cobrancaMessage = null, anamnese = [], activities = [],
 }: {
   patient: Patient; pagador: Pagador; sessions: Session[]; payments: Payment[];
   statusHistory: StatusEntry[]; priceHistory: PriceEntry[]; records: RecordEntry[];
   anamnese?: { id: string; title: string; content: string; custom: boolean; updatedAt: string | null }[];
+  activities?: { id: string; title: string; description: string; updatedAt: string }[];
   contractHistory?: ContractEntry[];
   finance: Finance;
   ledger?: LedgerEntry[];
@@ -466,7 +466,7 @@ export function PatientDetail({
       {/* Espaço do Paciente: humor + tarefas */}
       {tab === "Atividades" && (
         <>
-          <AssignmentsTab patientId={patient.id} assignments={assignments} moodToken={moodToken} moodLogs={moodLogs} scales={scales} />
+          <AssignmentsTab patientId={patient.id} assignments={assignments} moodToken={moodToken} moodLogs={moodLogs} scales={scales} activities={activities} />
           {consents.length > 0 && (
             <div className="mt-6">
               <h3 className="text-sm font-semibold text-gray-700 mb-2">✍️ Consentimento assinado</h3>
@@ -520,7 +520,6 @@ export function PatientDetail({
         </>
       )}
 
-      {tab === "Materiais" && <MaterialsTab patientId={patient.id} />}
 
     </div>
   );

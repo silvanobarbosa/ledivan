@@ -706,6 +706,20 @@ export const patientAnamnese = pgTable("patient_anamnese", {
   index("anamnese_patient_idx").on(t.patientId),
 ]);
 
+// Atividades e ferramentas realizadas COM o paciente (doc 33): registro interno do profissional
+// (não é tarefa enviada ao paciente). Título + descrição; editar atualiza `updatedAt`.
+export const patientActivities = pgTable("patient_activities", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: text("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
+  patientId: uuid("patient_id").references(() => patients.id, { onDelete: "cascade" }).notNull(),
+  title: text("title").notNull(),
+  description: text("description").default("").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (t) => [
+  index("activities_patient_idx").on(t.patientId),
+]);
+
 export const sessionPayments = pgTable("session_payments", {
   id: uuid("id").primaryKey().defaultRandom(),
   userId: text("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
