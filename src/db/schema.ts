@@ -728,6 +728,8 @@ export const patientDocuments = pgTable("patient_documents", {
   userId: text("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
   patientId: uuid("patient_id").references(() => patients.id, { onDelete: "cascade" }).notNull(),
   number: integer("number").notNull(),
+  // Doc 34: nome do documento (dado ao salvar); é o rótulo na lista. Null = usa "Documento N".
+  name: text("name"),
   content: text("content").default("").notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
