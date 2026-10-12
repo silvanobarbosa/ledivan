@@ -238,7 +238,7 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
         sharedWritings={JSON.parse(JSON.stringify(sharedWritings))}
         anamnese={anamneseRows.map((a) => ({ id: a.id, title: a.title, content: a.content, custom: a.custom, updatedAt: a.updatedAt ? new Date(a.updatedAt).toISOString() : null }))}
         activities={activityRows.map((a) => ({ id: a.id, title: a.title, description: a.description, updatedAt: new Date(a.updatedAt).toISOString() }))}
-        documentos={documentRows.map((d) => ({ id: d.id, number: d.number, content: d.content, updatedAt: new Date(d.updatedAt).toISOString() }))}
+        documentos={documentRows.map((d) => ({ id: d.id, number: d.number, name: d.name, content: d.content, updatedAt: new Date(d.updatedAt).toISOString() }))}
         docCabecalho={docCabecalho}
         geral={geral.linhas}
       />

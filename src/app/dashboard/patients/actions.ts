@@ -1013,12 +1013,14 @@ export async function deleteActivity(id: string): Promise<{ ok: boolean; error?:
  * Cria um documento. O número é sequencial POR PACIENTE e fixo: max(number)+1, nunca renumerado
  * quando outro documento é editado ou excluído.
  */
-export async function createDocument(patientId: string, content: string): Promise<{ ok: boolean; error?: string; number?: number }> {
+export async function createDocument(patientId: string, content: string, name: string): Promise<{ ok: boolean; error?: string; number?: number }> {
   const session = await auth();
   if (!session?.user?.id) return { ok: false, error: "Não autorizado" };
   const userId = session.user.id;
   const c = (content || "").trim();
   if (!c) return { ok: false, error: "Escreva o conteúdo do documento." };
+  const nome = (name || "").trim();
+  if (!nome) return { ok: false, error: "Dê um nome ao documento." };
   const dono = await db.query.patients.findFirst({ where: and(eq(patients.id, patientId), eq(patients.userId, userId)), columns: { id: true } });
   if (!dono) return { ok: false, error: "Paciente não encontrado." };
 
@@ -1026,21 +1028,23 @@ export async function createDocument(patientId: string, content: string): Promis
     .where(and(eq(patientDocuments.patientId, patientId), eq(patientDocuments.userId, userId)));
   const number = existentes.reduce((m, r) => Math.max(m, r.number), 0) + 1;
 
-  await db.insert(patientDocuments).values({ userId, patientId, number, content: c, createdAt: agoraParede(), updatedAt: agoraParede() });
+  await db.insert(patientDocuments).values({ userId, patientId, number, name: nome, content: c, createdAt: agoraParede(), updatedAt: agoraParede() });
   revalidatePath(`/dashboard/patients/${patientId}`);
   return { ok: true, number };
 }
 
-/** Edita o conteúdo; a data/hora passa a ser o momento da alteração; o número NÃO muda. */
-export async function updateDocument(id: string, content: string): Promise<{ ok: boolean; error?: string }> {
+/** Edita o nome e o conteúdo; a data/hora passa a ser o momento da alteração; o número NÃO muda. */
+export async function updateDocument(id: string, content: string, name: string): Promise<{ ok: boolean; error?: string }> {
   const session = await auth();
   if (!session?.user?.id) return { ok: false, error: "Não autorizado" };
   const userId = session.user.id;
   const c = (content || "").trim();
   if (!c) return { ok: false, error: "Escreva o conteúdo do documento." };
+  const nome = (name || "").trim();
+  if (!nome) return { ok: false, error: "Dê um nome ao documento." };
   const doc = await db.query.patientDocuments.findFirst({ where: and(eq(patientDocuments.id, id), eq(patientDocuments.userId, userId)) });
   if (!doc) return { ok: false, error: "Documento não encontrado." };
-  await db.update(patientDocuments).set({ content: c, updatedAt: agoraParede() })
+  await db.update(patientDocuments).set({ name: nome, content: c, updatedAt: agoraParede() })
     .where(and(eq(patientDocuments.id, id), eq(patientDocuments.userId, userId)));
   revalidatePath(`/dashboard/patients/${doc.patientId}`);
   return { ok: true };
