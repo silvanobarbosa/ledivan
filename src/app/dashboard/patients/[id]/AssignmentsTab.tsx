@@ -151,7 +151,7 @@ export function AssignmentsTab({
                     </button>
                   )}
                   <form action={deleteScale.bind(null, s.id)}>
-                    <button className="opacity-0 group-hover:opacity-100 text-foreground/30 hover:text-red-600 transition"><Trash2 className="w-3.5 h-3.5" /></button>
+                    <button className="text-foreground/30 hover:text-red-600 transition"><Trash2 className="w-3.5 h-3.5" /></button>
                   </form>
                 </div>
               );
@@ -168,7 +168,7 @@ export function AssignmentsTab({
         <p className="text-xs text-foreground/50 -mt-1">Envie exercícios para o paciente.</p>
 
         {showNew && (
-          <form action={createAssignment.bind(null, patientId)} className="glass-card rounded-[24px] p-5 space-y-3">
+          <form action={async (fd: FormData) => { await createAssignment(patientId, fd); setShowNew(false); setTTitle(""); setTInstr(""); setTType("livre"); }} className="glass-card rounded-[24px] p-5 space-y-3">
             <div>
               <p className="text-xs font-semibold text-foreground/60 mb-2">Modelos TCC (clique para preencher)</p>
               <div className="flex flex-wrap gap-2">
@@ -224,9 +224,9 @@ export function AssignmentsTab({
                   </div>
                   {editId !== a.id && (
                     <div className="flex items-center gap-2">
-                      <button type="button" onClick={() => { setEditId(a.id); setEErro(null); }} className="opacity-0 group-hover:opacity-100 text-foreground/30 hover:text-primary transition cursor-pointer" title="Editar"><Pencil className="w-4 h-4" /></button>
+                      <button type="button" onClick={() => { setEditId(a.id); setEErro(null); }} className="text-foreground/30 hover:text-primary transition cursor-pointer" title="Editar"><Pencil className="w-4 h-4" /></button>
                       <form action={deleteAssignment.bind(null, a.id)}>
-                        <button className="opacity-0 group-hover:opacity-100 text-foreground/30 hover:text-red-600 transition" title="Excluir"><Trash2 className="w-4 h-4" /></button>
+                        <button className="text-foreground/30 hover:text-red-600 transition" title="Excluir"><Trash2 className="w-4 h-4" /></button>
                       </form>
                     </div>
                   )}
@@ -284,7 +284,7 @@ export function AssignmentsTab({
 
       {/* 5. + Material (conteúdo da antiga guia Materiais + compartilhar) */}
       <div className="space-y-2">
-        <p className="font-semibold text-primary flex items-center gap-2"><Plus className="w-4 h-4" /> Material</p>
+        <p className="flex items-center gap-2 text-primary font-semibold text-sm"><Plus className="w-4 h-4" /> Material</p>
         <p className="text-xs text-foreground/50 -mt-1">Materiais e orientações que o paciente vê no app.</p>
         <MaterialsTab patientId={patientId} />
       </div>
