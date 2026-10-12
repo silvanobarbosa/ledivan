@@ -8,7 +8,7 @@
    achados de verdade — eles passam a valer. */
 import { db } from "@/db";
 import { auth } from "@/auth";
-import { users, patients, therapySessions, sessionPayments, patientStatusHistory, patientPriceHistory, patientContractHistory, patientRecords, assignments, moodLogs, scaleApplications, treatmentGoals, patientPackages, patientDiary, sessionRatings, patientConsents, patientWriting, patientDailyStatus, messages } from "@/db/schema";
+import { users, patients, therapySessions, sessionPayments, patientStatusHistory, patientPriceHistory, patientContractHistory, patientRecords, assignments, moodLogs, scaleApplications, treatmentGoals, patientPackages, patientDiary, sessionRatings, patientConsents, patientWriting, patientDailyStatus } from "@/db/schema";
 import { and, eq, desc } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import Link from "next/link";
@@ -153,14 +153,6 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
     emAtraso: geral.resumo.emAtraso,
   };
 
-  // Doc 28: histórico das mensagens que o sistema ENVIOU ao paciente por WhatsApp (2º ícone do card).
-  // `messages` guarda o texto de cada envio (direction "out"); filtramos o canal WhatsApp deste paciente.
-  const whatsappEnviadas = (await db.query.messages.findMany({
-    where: and(eq(messages.userId, userId), eq(messages.patientId, id), eq(messages.direction, "out"), eq(messages.channel, "whatsapp")),
-    orderBy: [desc(messages.createdAt)],
-    limit: 200,
-  })).map((m) => ({ text: m.text, createdAt: (m.createdAt as Date).toISOString() }));
-
   return (
     <div className="max-w-4xl space-y-6">
       <Link href="/dashboard/patients" className="inline-flex items-center gap-2 text-foreground/50 hover:text-primary transition">
@@ -200,7 +192,6 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
         dailyStatus={JSON.parse(JSON.stringify(dailyStatus))}
         sharedWritings={JSON.parse(JSON.stringify(sharedWritings))}
         geral={geral.linhas}
-        whatsappEnviadas={whatsappEnviadas}
       />
     </div>
   );
