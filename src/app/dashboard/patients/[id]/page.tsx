@@ -8,7 +8,7 @@
    achados de verdade — eles passam a valer. */
 import { db } from "@/db";
 import { auth } from "@/auth";
-import { users, patients, therapySessions, sessionPayments, patientStatusHistory, patientPriceHistory, patientContractHistory, patientRecords, assignments, moodLogs, scaleApplications, patientPackages, patientDiary, sessionRatings, patientConsents, patientWriting, patientDailyStatus, patientAnamnese } from "@/db/schema";
+import { users, patients, therapySessions, sessionPayments, patientStatusHistory, patientPriceHistory, patientContractHistory, patientRecords, assignments, moodLogs, scaleApplications, patientPackages, patientDiary, sessionRatings, patientConsents, patientWriting, patientDailyStatus, patientAnamnese, patientActivities } from "@/db/schema";
 import { and, eq, desc, asc } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import Link from "next/link";
@@ -158,6 +158,12 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
     orderBy: [asc(patientAnamnese.position)],
   });
 
+  // Doc 33: atividades realizadas com o paciente (mais recente primeiro).
+  const activityRows = await db.query.patientActivities.findMany({
+    where: eq(patientActivities.patientId, id),
+    orderBy: [desc(patientActivities.createdAt)],
+  });
+
   return (
     <div className="max-w-4xl space-y-6">
       <Link href="/dashboard/patients" className="inline-flex items-center gap-2 text-foreground/50 hover:text-primary transition">
@@ -196,6 +202,7 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
         dailyStatus={JSON.parse(JSON.stringify(dailyStatus))}
         sharedWritings={JSON.parse(JSON.stringify(sharedWritings))}
         anamnese={anamneseRows.map((a) => ({ id: a.id, title: a.title, content: a.content, custom: a.custom, updatedAt: a.updatedAt ? new Date(a.updatedAt).toISOString() : null }))}
+        activities={activityRows.map((a) => ({ id: a.id, title: a.title, description: a.description, updatedAt: new Date(a.updatedAt).toISOString() }))}
         geral={geral.linhas}
       />
     </div>
