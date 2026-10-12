@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@/db";
-import { patients, patientStatusHistory, patientPriceHistory, patientContractHistory, patientPaymentFormatHistory, patientPackageHistory, patientRecords, assignments, scaleApplications, treatmentGoals, patientPackages, therapySessions } from "@/db/schema";
+import { patients, patientStatusHistory, patientPriceHistory, patientContractHistory, patientPaymentFormatHistory, patientPackageHistory, patientRecords, patientAnamnese, assignments, scaleApplications, treatmentGoals, patientPackages, therapySessions } from "@/db/schema";
 import { auth } from "@/auth";
 import { and, eq, gt, inArray, sql } from "drizzle-orm";
 import { encerraAgenda, sessoesAEncerrar } from "@/lib/encerrarAgenda";
@@ -679,6 +679,59 @@ export async function deleteRecord(recordId: string) {
   if (!rec) return;
   await db.delete(patientRecords).where(and(eq(patientRecords.id, recordId), eq(patientRecords.userId, userId)));
   revalidatePath(`/dashboard/patients/${rec.patientId}`);
+}
+
+// --- Anamnese (doc 33): cada campo é uma linha, com Salvar/Editar próprios. ---
+
+/** Cria um campo da anamnese (padrão preenchido pela 1ª vez, ou personalizado via "+Adicionar campo"). */
+export async function createAnamnese(patientId: string, title: string, content: string, custom = false): Promise<{ ok: boolean; error?: string }> {
+  const session = await auth();
+  if (!session?.user?.id) return { ok: false, error: "Não autorizado" };
+  const userId = session.user.id;
+  const t = (title || "").trim();
+  if (!t) return { ok: false, error: "Informe o título do campo." };
+
+  const dono = await db.query.patients.findFirst({ where: and(eq(patients.id, patientId), eq(patients.userId, userId)), columns: { id: true } });
+  if (!dono) return { ok: false, error: "Paciente não encontrado." };
+
+  // `position` no fim da lista.
+  const existentes = await db.select({ position: patientAnamnese.position }).from(patientAnamnese)
+    .where(and(eq(patientAnamnese.patientId, patientId), eq(patientAnamnese.userId, userId)));
+  const pos = existentes.reduce((m, r) => Math.max(m, r.position), -1) + 1;
+
+  await db.insert(patientAnamnese).values({ userId, patientId, title: t, content: (content || "").trim(), custom, position: pos });
+  revalidatePath(`/dashboard/patients/${patientId}`);
+  return { ok: true };
+}
+
+/** Edita o conteúdo de um campo; a data/hora passa a ser o momento da alteração. */
+export async function updateAnamnese(id: string, content: string): Promise<{ ok: boolean; error?: string }> {
+  const session = await auth();
+  if (!session?.user?.id) return { ok: false, error: "Não autorizado" };
+  const userId = session.user.id;
+
+  const campo = await db.query.patientAnamnese.findFirst({ where: and(eq(patientAnamnese.id, id), eq(patientAnamnese.userId, userId)) });
+  if (!campo) return { ok: false, error: "Campo não encontrado." };
+
+  await db.update(patientAnamnese).set({ content: (content || "").trim(), updatedAt: new Date() })
+    .where(and(eq(patientAnamnese.id, id), eq(patientAnamnese.userId, userId)));
+  revalidatePath(`/dashboard/patients/${campo.patientId}`);
+  return { ok: true };
+}
+
+/** Remove um campo PERSONALIZADO da anamnese (os campos padrão não são removíveis). */
+export async function deleteAnamnese(id: string): Promise<{ ok: boolean; error?: string }> {
+  const session = await auth();
+  if (!session?.user?.id) return { ok: false, error: "Não autorizado" };
+  const userId = session.user.id;
+
+  const campo = await db.query.patientAnamnese.findFirst({ where: and(eq(patientAnamnese.id, id), eq(patientAnamnese.userId, userId)) });
+  if (!campo) return { ok: false, error: "Campo não encontrado." };
+  if (!campo.custom) return { ok: false, error: "Campo padrão não pode ser removido." };
+
+  await db.delete(patientAnamnese).where(and(eq(patientAnamnese.id, id), eq(patientAnamnese.userId, userId)));
+  revalidatePath(`/dashboard/patients/${campo.patientId}`);
+  return { ok: true };
 }
 
 // --- Plano terapêutico (objetivos) ---

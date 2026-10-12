@@ -686,6 +686,26 @@ export const patientRecords = pgTable("patient_records", {
   index("pr_patient_idx").on(t.patientId),
 ]);
 
+// Anamnese do paciente (doc 33): cada CAMPO é uma linha, com Salvar/Editar próprios. Os campos
+// padrão (identificação, queixa, etc.) e os campos personalizados ("+Adicionar campo") convivem na
+// mesma tabela; `position` ordena. `updatedAt` registra o momento da última alteração (o dono pede
+// que editar atualize a data/hora). Substitui a anamnese-como-registro-único (patientRecords type
+// "anamnese").
+export const patientAnamnese = pgTable("patient_anamnese", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: text("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
+  patientId: uuid("patient_id").references(() => patients.id, { onDelete: "cascade" }).notNull(),
+  title: text("title").notNull(),
+  content: text("content").default("").notNull(),
+  // Campo do modelo padrão (não removível) vs. personalizado ("+Adicionar campo", removível).
+  custom: boolean("custom").default(false).notNull(),
+  position: integer("position").default(0).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (t) => [
+  index("anamnese_patient_idx").on(t.patientId),
+]);
+
 export const sessionPayments = pgTable("session_payments", {
   id: uuid("id").primaryKey().defaultRandom(),
   userId: text("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),

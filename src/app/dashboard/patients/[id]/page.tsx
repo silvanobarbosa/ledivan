@@ -8,8 +8,8 @@
    achados de verdade — eles passam a valer. */
 import { db } from "@/db";
 import { auth } from "@/auth";
-import { users, patients, therapySessions, sessionPayments, patientStatusHistory, patientPriceHistory, patientContractHistory, patientRecords, assignments, moodLogs, scaleApplications, patientPackages, patientDiary, sessionRatings, patientConsents, patientWriting, patientDailyStatus } from "@/db/schema";
-import { and, eq, desc } from "drizzle-orm";
+import { users, patients, therapySessions, sessionPayments, patientStatusHistory, patientPriceHistory, patientContractHistory, patientRecords, assignments, moodLogs, scaleApplications, patientPackages, patientDiary, sessionRatings, patientConsents, patientWriting, patientDailyStatus, patientAnamnese } from "@/db/schema";
+import { and, eq, desc, asc } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
@@ -152,6 +152,12 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
     emAtraso: geral.resumo.emAtraso,
   };
 
+  // Doc 33: campos da anamnese (cada um com Salvar/Editar próprios).
+  const anamneseRows = await db.query.patientAnamnese.findMany({
+    where: eq(patientAnamnese.patientId, id),
+    orderBy: [asc(patientAnamnese.position)],
+  });
+
   return (
     <div className="max-w-4xl space-y-6">
       <Link href="/dashboard/patients" className="inline-flex items-center gap-2 text-foreground/50 hover:text-primary transition">
@@ -189,6 +195,7 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
         statusEnabled={statusEnabled}
         dailyStatus={JSON.parse(JSON.stringify(dailyStatus))}
         sharedWritings={JSON.parse(JSON.stringify(sharedWritings))}
+        anamnese={anamneseRows.map((a) => ({ id: a.id, title: a.title, content: a.content, custom: a.custom, updatedAt: a.updatedAt ? new Date(a.updatedAt).toISOString() : null }))}
         geral={geral.linhas}
       />
     </div>
