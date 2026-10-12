@@ -19,6 +19,17 @@ const COMO_SE_ESCREVE: Record<DescricaoAtendimento, string> = {
   psicologia: "atendimentos psicológicos",
 };
 
+/**
+ * Doc 33: o rótulo da ASSINATURA muda com a formação (descrição do atendimento em Ajustes). É o
+ * mesmo princípio de `COMO_SE_ESCREVE`: num documento, "Psicólogo(a)" de quem não é psicóloga é
+ * declaração errada.
+ */
+const COMO_ASSINA: Record<DescricaoAtendimento, string> = {
+  terapia: "Terapeuta",
+  psicanalise: "Psicanalista",
+  psicologia: "Psicólogo(a)",
+};
+
 export const DESCRICOES: { valor: DescricaoAtendimento; rotulo: string }[] = [
   { valor: "terapia", rotulo: "Terapia" },
   { valor: "psicanalise", rotulo: "Psicanálise" },
@@ -137,16 +148,22 @@ export function montarRecibo(d: DadosDoRecibo): string {
   const datas = d.datas.map((x) => `- ${dataBR(x)}`).join("\n");
   const cpfTerapeuta = cpfBR(d.terapeutaCpf) ? `\nCPF: ${cpfBR(d.terapeutaCpf)}` : "";
 
+  // Doc 33: quando quem pagou é o PRÓPRIO paciente, não se escreve "realizados para <paciente>" —
+  // seria repetir o nome. Comparação por nome normalizado (sem caixa nem espaços nas pontas).
+  const norm = (s: string) => s.trim().toLowerCase();
+  const alvo = norm(d.responsavel) === norm(d.paciente) ? "" : ` para ${d.paciente}`;
+
   const linhas = [
     "RECIBO DE PAGAMENTO",
     "",
     `Recebi de ${d.responsavel}${cpfResp}, o valor de ${valorBR(d.valorTotal)} (${porExtenso(d.valorTotal)}), ` +
-      `referente aos ${COMO_SE_ESCREVE[d.descricao]} realizados para ${d.paciente}, nas seguintes datas:`,
+      `referente aos ${COMO_SE_ESCREVE[d.descricao]} realizados${alvo}, nas seguintes datas:`,
     "",
     datas,
   ];
   // Doc 28: pagamento parcial do pacote — linha extra com a data em que o pacote começou.
   if (d.parcialDe) linhas.push("", `Pagamento parcial do pacote que iniciou em ${dataBR(d.parcialDe)}.`);
-  linhas.push("", `Data do pagamento: ${dataBR(d.dataPagamento)}.`, "", `Terapeuta: ${d.terapeuta}${cpfTerapeuta}`);
+  // Doc 33: a assinatura leva o rótulo da formação (Terapeuta / Psicanalista / Psicólogo(a)).
+  linhas.push("", `Data do pagamento: ${dataBR(d.dataPagamento)}.`, "", `${COMO_ASSINA[d.descricao]}: ${d.terapeuta}${cpfTerapeuta}`);
   return linhas.join("\n");
 }

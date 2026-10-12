@@ -99,7 +99,8 @@ describe("o recibo inteiro", () => {
     expect(texto).toContain("- 14/09/2026");
     expect(texto).toContain("- 05/10/2026");
     expect(texto).toContain("Data do pagamento: 05/10/2026.");
-    expect(texto).toContain("Terapeuta: Ledivan de Souza");
+    // Doc 33: base é psicanálise → assinatura "Psicanalista:".
+    expect(texto).toContain("Psicanalista: Ledivan de Souza");
     expect(texto).toContain("CPF: 555.666.777-88");
   });
 
@@ -112,7 +113,25 @@ describe("o recibo inteiro", () => {
 
   it("sem CPF do terapeuta, a linha do CPF não fica vazia na folha", () => {
     const texto = montarRecibo(base);
-    expect(texto.trimEnd().endsWith("Terapeuta: Ledivan de Souza")).toBe(true);
+    expect(texto.trimEnd().endsWith("Psicanalista: Ledivan de Souza")).toBe(true);
+  });
+
+  // Doc 33
+  it("responsável igual ao paciente: não escreve 'realizados para <paciente>'", () => {
+    const texto = montarRecibo({ ...base, responsavel: "Teste Completo 04", paciente: "Teste Completo 04" });
+    expect(texto).toContain("atendimentos psicanalíticos realizados, nas seguintes datas:");
+    expect(texto).not.toContain("realizados para Teste Completo 04");
+  });
+
+  it("responsável diferente do paciente: mantém 'realizados para <paciente>'", () => {
+    const texto = montarRecibo(base);
+    expect(texto).toContain("realizados para Teste Completo 04, nas seguintes datas:");
+  });
+
+  it("a assinatura leva o rótulo da formação", () => {
+    expect(montarRecibo({ ...base, descricao: "terapia" }).trimEnd().endsWith("Terapeuta: Ledivan de Souza")).toBe(true);
+    expect(montarRecibo({ ...base, descricao: "psicanalise" }).trimEnd().endsWith("Psicanalista: Ledivan de Souza")).toBe(true);
+    expect(montarRecibo({ ...base, descricao: "psicologia" }).trimEnd().endsWith("Psicólogo(a): Ledivan de Souza")).toBe(true);
   });
 
   it("todas as datas do pagamento aparecem, na ordem", () => {
