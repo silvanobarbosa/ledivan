@@ -6,8 +6,8 @@ import { notFound } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { updatePatient, deletePatient } from "../../actions";
-import { SubmitButton } from "@/components/SubmitButton";
 import { PatientFormFields } from "@/components/dashboard/PatientFormFields";
+import { ExcluirPaciente } from "./ExcluirPaciente";
 import { montarContrato } from "@/lib/contrato";
 import { enquadreDaAgenda } from "@/lib/enquadreContrato";
 import { horaDeParede } from "@/lib/horaLocal";
@@ -121,11 +121,7 @@ export default async function EditPatientPage({ params, searchParams }: { params
         </div>
       </div>
 
-      <form action={remove} className="flex justify-end">
-        <SubmitButton pendingLabel="Excluindo…" className="inline-flex items-center gap-2 text-sm font-semibold text-red-500/70 hover:text-red-600 transition px-4 py-2">
-          Excluir paciente
-        </SubmitButton>
-      </form>
+      <ExcluirPaciente remove={remove} />
     </div>
   );
 }
