@@ -8,7 +8,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createRecord, deleteRecord } from "../actions";
 import { useFormStatus } from "react-dom";
-import { MessagePatient } from "@/components/dashboard/MessagePatient";
+import { numeroDoWhatsapp } from "@/lib/telefoneWhatsapp";
 import { AssignmentsTab } from "./AssignmentsTab";
 import { MaterialsTab } from "./MaterialsTab";
 import { AnexosProntuario } from "./AnexosProntuario";
@@ -266,7 +266,23 @@ export function PatientDetail({
         {/* Os quatro botões, numa faixa própria. `flex-wrap` para que numa tela estreita eles
             desçam de linha em vez de saírem pela borda. */}
         <div className="flex flex-wrap items-center gap-2">
-          <MessagePatient patient={{ id: patient.id, name: patient.name, phone: patient.phone, email: patient.email }} />
+          {/* Doc 32: "enviar mensagem" abre o WhatsApp DIRETO (igual ao botão ao lado do telefone no
+              cadastro) — não o compositor interno. Usa o telefone do paciente, ou o do responsável. */}
+          {(() => {
+            const waNum = numeroDoWhatsapp(patient.phone) ?? numeroDoWhatsapp(patient.guardianPhone);
+            return (
+              <button
+                type="button"
+                onClick={() => waNum && window.open(`https://wa.me/${waNum}`, "_blank", "noopener")}
+                disabled={!waNum}
+                title={waNum ? "Enviar mensagem no WhatsApp" : "Paciente sem telefone"}
+                aria-label="Enviar mensagem no WhatsApp"
+                className="shrink-0 p-2.5 rounded-2xl bg-[#25D366]/10 text-[#128C7E] border border-[#25D366]/20 hover:bg-[#25D366]/20 transition cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+              >
+                <MessageCircle className="w-5 h-5" />
+              </button>
+            );
+          })()}
           {/* Doc 31: 2º ícone = MESMO desenho/botão do ícone de mensagem (à esquerda), só com o balão
               preenchido em PRETO. Abre o histórico do que o sistema enviou por WhatsApp. Só muda a aparência. */}
           <button

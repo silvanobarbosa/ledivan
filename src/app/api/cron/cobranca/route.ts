@@ -6,6 +6,7 @@ import { getPreferences } from "@/lib/preferences";
 import { monthlyReport, type PgSession, type PgPayment } from "@/lib/pagamentos";
 import { cobrancaTexto } from "@/lib/cobranca";
 import { sendWhatsappFromUser } from "@/lib/whatsappEvolution";
+import { recordOutbound } from "@/lib/messaging/inbox";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -48,8 +49,14 @@ export async function GET(req: NextRequest) {
       const phone = phoneById.get(d.patientId);
       if (!phone) continue;
       const nome = pats.find((p) => p.id === d.patientId)?.name || "Paciente";
-      const ok = await sendWhatsappFromUser(u.id, phone, cobrancaTexto(nome, d.aberto, monthIdx, u.name || "Seu terapeuta"));
-      if (ok) sent++;
+      const texto = cobrancaTexto(nome, d.aberto, monthIdx, u.name || "Seu terapeuta");
+      const ok = await sendWhatsappFromUser(u.id, phone, texto);
+      if (ok) {
+        sent++;
+        // Doc 32: registra no histórico de mensagens do paciente (2º ícone do card). Sem isto, o
+        // aviso saía mas a lista do histórico ficava vazia.
+        await recordOutbound(u.id, d.patientId, "whatsapp", texto, phone).catch(() => {});
+      }
     }
   }
 

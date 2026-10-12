@@ -11,6 +11,7 @@ import { dataDoPreco, diaDoFormulario, formatoMudou, vigenciasAGravar } from "@/
 import { redirect } from "next/navigation";
 import { put } from "@vercel/blob";
 import { sendWhatsappFromUser } from "@/lib/whatsappEvolution";
+import { recordOutbound } from "@/lib/messaging/inbox";
 import { sendProEmail } from "@/lib/email";
 import { escapeHtml } from "@/lib/html";
 import { moedaOuPadrao } from "@/lib/money";
@@ -33,11 +34,14 @@ export async function sendPatientMessage(patientId: string, channel: string, tex
   if (channel === "whatsapp") {
     if (!patient.phone) return { ok: false, error: "Paciente sem telefone cadastrado." };
     const ok = await sendWhatsappFromUser(userId, patient.phone, msg);
+    // Doc 32: mensagem manual também entra no histórico do paciente (2º ícone do card).
+    if (ok) await recordOutbound(userId, patientId, "whatsapp", msg, patient.phone).catch(() => {});
     return ok ? { ok: true } : { ok: false, error: "Conecte seu WhatsApp em Ajustes (e confira o número do paciente)." };
   }
   if (channel === "email") {
     if (!patient.email) return { ok: false, error: "Paciente sem e-mail cadastrado." };
     const r = await sendProEmail(userId, patient.email, "Mensagem do seu terapeuta", escapeHtml(msg).replace(/\n/g, "<br>"));
+    if (r.ok) await recordOutbound(userId, patientId, "email", msg, patient.email).catch(() => {});
     return r.ok ? { ok: true } : { ok: false, error: "Configure seu e-mail em Ajustes para enviar." };
   }
   if (channel === "telegram") {
