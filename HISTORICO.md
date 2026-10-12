@@ -7,6 +7,36 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-10-12 — Doc 33 (parte 1): cards, contrato, guia geral, recibo, escola, registros (#330–#335)
+
+Doc 33 é um backlog grande (~17 frentes). Esta leva entregou 11; faltam 6 (ver Pendente).
+
+**Entregue:**
+- **#330** card da lista de pacientes abre WhatsApp direto; card da área do paciente perdeu o 2º
+  ícone (histórico de WhatsApp) e o "Prontuário PDF"; guia "Prontuário" virou "Registros"; abas do
+  paciente rolam no celular (nomes não cortam mais).
+- **#331** contrato em **via única** (a 2ª via automática saiu; cópias na caixa de impressão) e sem o
+  vão vazio no topo do contrato impresso.
+- **#332** pago o total, o "· vence" some; coluna Status centralizada com a cor de fundo na largura
+  toda, coluna Sessão centralizada; o carry mostra a conta — "(valor − transferido)".
+- **#333** recibo: não repete o nome quando quem paga é o próprio paciente; a assinatura leva o
+  rótulo da formação (Terapeuta / Psicanalista / Psicólogo(a)).
+- **#334** botão de WhatsApp no campo "Contato da escola".
+- **#335** registros: lápis edita título+descrição (data/hora vira o momento da edição); "Anexar
+  arquivo" abre direto o seletor; texto de confidencialidade novo; "Histórico terapêutico" saiu da
+  guia Registros.
+
+**Decisões que ficam valendo:**
+- Contrato = via única (impressão decide cópias). Recibo: assinatura por formação (`COMO_ASSINA`).
+- `editRecord` atualiza o `createdAt` para o momento da edição (regra do dono para registros).
+
+**Pendente (parte 2 do doc 33):** F7 guia **Anamnese** (nova), F9 reforma da guia **Atividades**,
+F10 guia **Documentos** (nova) — três features grandes, cada uma com PR próprio; F15 histórico de
+reajuste completo (nº sessão, vencimento, pacote, pagar até, intervalo); F16 bug avulso→mensal não
+registra no histórico; F17 bug "Atrasado · 1" falso no card.
+
+---
+
 ## 2026-10-11 — Doc 32: histórico WhatsApp + botão direto + logo centralizado + split por ano (#326–#328)
 
 **Entregue:**
