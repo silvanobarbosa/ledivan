@@ -7,9 +7,9 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
-## 2026-10-12 — Doc 33 (parte 1): cards, contrato, guia geral, recibo, escola, registros (#330–#335)
+## 2026-10-12 — Doc 33 (parte 1): cards, contrato, guia geral, recibo, escola, registros, atraso falso (#330–#337)
 
-Doc 33 é um backlog grande (~17 frentes). Esta leva entregou 11; faltam 6 (ver Pendente).
+Doc 33 é um backlog grande (~17 frentes). Esta leva entregou 12; faltam 5 (ver Pendente).
 
 **Entregue:**
 - **#330** card da lista de pacientes abre WhatsApp direto; card da área do paciente perdeu o 2º
@@ -25,6 +25,9 @@ Doc 33 é um backlog grande (~17 frentes). Esta leva entregou 11; faltam 6 (ver 
 - **#335** registros: lápis edita título+descrição (data/hora vira o momento da edição); "Anexar
   arquivo" abre direto o seletor; texto de confidencialidade novo; "Histórico terapêutico" saiu da
   guia Registros.
+- **#337** bug "Atrasado · 1" falso no card: `situacoesDaLista` montava a conta com menos fatos que
+  a tela do paciente (faltavam `quita`, `vencimentos` editados, tamanho do pacote vigente). Agora a
+  lista passa os mesmos fatos → as duas contas coincidem.
 
 **Decisões que ficam valendo:**
 - Contrato = via única (impressão decide cópias). Recibo: assinatura por formação (`COMO_ASSINA`).
@@ -33,7 +36,8 @@ Doc 33 é um backlog grande (~17 frentes). Esta leva entregou 11; faltam 6 (ver 
 **Pendente (parte 2 do doc 33):** F7 guia **Anamnese** (nova), F9 reforma da guia **Atividades**,
 F10 guia **Documentos** (nova) — três features grandes, cada uma com PR próprio; F15 histórico de
 reajuste completo (nº sessão, vencimento, pacote, pagar até, intervalo); F16 bug avulso→mensal não
-registra no histórico; F17 bug "Atrasado · 1" falso no card.
+registra no histórico (investigado; sintomas = paymentFormat salvo como "sessao" em vez de "mensal",
+precisa reproduzir o fluxo exato).
 
 ---
 
