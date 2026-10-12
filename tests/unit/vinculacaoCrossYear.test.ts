@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { linhasDaGeral, type EntradaDaGeral } from "@/lib/guiaGeral";
+import { anoDe, dataDoAnoControle } from "@/lib/filtroDeAno";
 
 // Doc 31 — cenário: pacote de 2 (R$50/sessão), com GRAT (devolutiva) no meio, cruzando o ano.
 // Sessões: 23/12/2024 (1/2), 04/01/2025 GRAT, 08/01/2025 (2/2), 15/01/2025 GRAT.
@@ -47,5 +48,24 @@ describe("vinculação cross-year (doc 31)", () => {
     // sessões. Antes caía no "recebido" sem entrar em `pagamentos`, e o recibo perdia as sessões.
     expect(pacote!.pagamentos.map((p) => p.id)).toContain("pg100");
     expect(pacote!.situacao).toBe("pago");
+  });
+
+  it("split por ano (doc 32): cabeçalho+23/12 em 2024; jan/2025 em 2025; pago pela data é 2025", () => {
+    // O CABEÇALHO do pacote (linha de pagamento) vai pelo vencimento → 2024, não pela data do
+    // pagamento (10/01/2025). A sessão 23/12 → 2024; as de janeiro → 2025.
+    const pacoteLinha = linhas.find((l) => l.tipo === "pagamento" && l.sessoes === 2)!;
+    expect(anoDe(dataDoAnoControle(pacoteLinha))).toBe(2024);
+
+    const anoDaSessao = (id: string) => {
+      const l = linhas.find((x) => x.tipo === "sessao" && x.id === id)!;
+      return anoDe(dataDoAnoControle(l));
+    };
+    expect(anoDaSessao("2024-12-23")).toBe(2024);
+    expect(anoDaSessao("2025-1-8")).toBe(2025);
+    expect(anoDaSessao("2025-1-4")).toBe(2025); // GRAT
+    expect(anoDaSessao("2025-1-15")).toBe(2025); // GRAT
+
+    // O valor pago é contado pela DATA do pagamento (10/01/2025) → 2025, em outra tabela.
+    expect(pacoteLinha.tipo === "pagamento" && anoDe(pacoteLinha.pagamento?.data)).toBe(2025);
   });
 });
