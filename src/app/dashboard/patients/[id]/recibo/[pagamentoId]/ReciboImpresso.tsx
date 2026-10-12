@@ -61,14 +61,14 @@ export function ReciboImpresso({
         </p>
       )}
 
-      {/* O papel. Doc 31: logotipo (quadro 3×3cm) à direita do título; vazio = espaço em branco. */}
-      <article id="recibo-papel" className="relative bg-white border border-border rounded-2xl p-6 sm:p-10 print:border-0 print:rounded-none print:p-0">
-        <div className="doc-logo absolute top-6 right-6 sm:top-10 sm:right-10 w-[3cm] h-[3cm] overflow-hidden pointer-events-none">
-          {logoUrl
-            // eslint-disable-next-line @next/next/no-img-element -- logo em blob URL; não passa pelo otimizador e precisa sair na impressão.
-            ? <img src={photoSrc(logoUrl) ?? undefined} alt="" className="w-full h-full object-contain" />
-            : null}
-        </div>
+      {/* O papel. Doc 32: logotipo CENTRALIZADO acima do título; sem imagem, não ocupa linha. */}
+      <article id="recibo-papel" className="bg-white border border-border rounded-2xl p-6 sm:p-10 print:border-0 print:rounded-none print:p-0">
+        {logoUrl && (
+          <div className="doc-logo flex justify-center mb-12">
+            {/* eslint-disable-next-line @next/next/no-img-element -- logo em blob URL; não passa pelo otimizador e precisa sair na impressão. */}
+            <img src={photoSrc(logoUrl) ?? undefined} alt="" className="h-[3cm] w-auto max-w-[8cm] object-contain" />
+          </div>
+        )}
         <pre className="whitespace-pre-wrap font-sans text-[15px] leading-relaxed text-foreground">{texto}</pre>
       </article>
 
