@@ -10,16 +10,16 @@ const AUTO_L = "\u0001";
 const AUTO_R = "\u0002";
 
 /**
- * Logotipo do documento (doc 31): quadro FIXO de 3×3 cm no canto superior direito do papel, ao lado
- * do título. Sem imagem, o espaço de 3×3 cm fica em branco — nada de ícone ou texto no lugar.
+ * Logotipo do documento (doc 32): a imagem anexada em Ajustes, CENTRALIZADA e ACIMA do título, no
+ * fluxo do papel (não mais no canto). Abaixo dela, duas quebras de linha antes do título — é o espaço
+ * do `mb`. Sem imagem, não ocupa linha nenhuma.
  */
-function LogoBox({ logoUrl }: { logoUrl?: string | null }) {
+function LogoCentral({ logoUrl }: { logoUrl?: string | null }) {
+  if (!logoUrl) return null;
   return (
-    <div className="doc-logo absolute top-6 right-6 sm:top-10 sm:right-10 w-[3cm] h-[3cm] overflow-hidden z-10 pointer-events-none">
-      {logoUrl
-        // eslint-disable-next-line @next/next/no-img-element -- logo em blob URL; não passa pelo otimizador e precisa sair na impressão.
-        ? <img src={photoSrc(logoUrl) ?? undefined} alt="" className="w-full h-full object-contain" />
-        : null}
+    <div className="doc-logo flex justify-center mb-12">
+      {/* eslint-disable-next-line @next/next/no-img-element -- logo em blob URL; não passa pelo otimizador e precisa sair na impressão. */}
+      <img src={photoSrc(logoUrl) ?? undefined} alt="" className="h-[3cm] w-auto max-w-[8cm] object-contain" />
     </div>
   );
 }
@@ -88,24 +88,24 @@ export function ContratoImpresso({ texto, textoPadrao, patientId, logoUrl }: { t
         <li>O botão Salvar guarda apenas a alteração do contrato deste paciente, não a de todos.</li>
       </ul>
 
-      {/* O papel editável. Logotipo (doc 31) fixo no canto superior direito. Justificado (doc 28). */}
-      <div className="relative">
-        <LogoBox logoUrl={logoUrl} />
+      {/* O papel editável. Logotipo (doc 32) centralizado ACIMA do título. Justificado (doc 28). */}
+      <div className="bg-white border border-border rounded-2xl p-6 sm:p-10 print:border-0 print:rounded-none print:p-0">
+        <LogoCentral logoUrl={logoUrl} />
         <article
           key={versao}
           id="contrato-papel"
           ref={ref}
           contentEditable
           suppressContentEditableWarning
-          className="bg-white border border-border rounded-2xl p-6 sm:p-10 outline-none focus:ring-2 focus:ring-primary/30 whitespace-pre-wrap text-justify font-sans text-[15px] leading-relaxed text-foreground print:border-0 print:rounded-none print:p-0"
+          className="outline-none focus:ring-2 focus:ring-primary/30 rounded-lg whitespace-pre-wrap text-justify font-sans text-[15px] leading-relaxed text-foreground"
         >
           {renderContrato(conteudo)}
         </article>
       </div>
 
       {/* 2ª via (só impressão): preenchida a partir da 1ª no momento de imprimir. */}
-      <div className="hidden print:block relative" style={{ breakBefore: "page" }}>
-        <LogoBox logoUrl={logoUrl} />
+      <div id="contrato-copia-wrap" className="hidden print:block" style={{ breakBefore: "page" }}>
+        <LogoCentral logoUrl={logoUrl} />
         <article id="contrato-copia" aria-hidden className="whitespace-pre-wrap text-justify font-sans text-[15px] leading-relaxed text-foreground" />
       </div>
 
