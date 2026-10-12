@@ -7,6 +7,40 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-10-11 — Doc 32: histórico WhatsApp + botão direto + logo centralizado + split por ano (#326–#328)
+
+**Entregue:**
+- **#327 (A) — WhatsApp.** O histórico de mensagens (2º ícone do card) aparecia vazio: os envios do
+  sistema (crons de cobrança e aviso de pagamento) saíam mas não gravavam em `messages` (direction
+  `out`), a fonte do histórico. Agora os dois crons — e a mensagem manual (`sendPatientMessage`) —
+  registram via `recordOutbound` (data/hora + conteúdo). O código de login por WhatsApp (OTP) NÃO é
+  registrado. O botão "enviar mensagem" do card passou a abrir o **WhatsApp direto** (`wa.me`), igual
+  ao botão ao lado do telefone no cadastro, em vez do compositor interno.
+- **#328 (B) — logotipo.** Logo do contrato e do recibo saiu do quadro no canto superior direito
+  (doc 31) e virou **centralizado, acima do título**, com ~2 quebras de linha antes do título; sem
+  imagem, não ocupa linha. Margens de impressão já eram 2 cm (`@page margin 20mm`).
+- **#326 (C) — split por ano do pacote cross-year.** Continuação do doc 31 D. O cabeçalho do
+  pagamento (pacote/quinzena) na tabela de Controle passou a ser posicionado pelo **vencimento** e não
+  pela data do pagamento. Assim o pacote que cruza o ano aparece certo: 2024 = cabeçalho + sessão
+  23/12; 2025 = sessões de janeiro. O valor pago continua contado no ano do pagamento.
+
+**Por quê:** correções do dono sobre o que os docs 28/31 deixaram: histórico de WhatsApp sem registro,
+botão de mensagem que não abria o WhatsApp direto, logo no lugar errado, e o split por ano do pacote
+que cruza o ano ainda bagunçado.
+
+**Decisões que ficam valendo:**
+- Envio de WhatsApp AO PACIENTE grava em `messages` (`recordOutbound`) — é o histórico. `messageLog`
+  (evento+status, sem texto) é outra coisa. OTP de login não entra no histórico.
+- O ano em que a linha aparece no Controle: sessão pelo próprio dia; cabeçalho de pagamento pelo
+  VENCIMENTO (`dataDoAnoControle`). O valor pago, nas Valores Recebidos, segue pela data do pagamento.
+
+**Armadilhas:** `recordOutbound` já existia; só o engine e o dashboard de mensagens o chamavam — os
+crons o ignoravam, por isso o histórico ficava vazio.
+
+**Pendente:** nada do doc 32.
+
+---
+
 ## 2026-10-11 — Doc 29 frente G: casca única nos cards de Ajustes (#324)
 
 **Entregue:** os 6 cards de Ajustes que ainda usavam a casca antiga (`p-8 bg-white rounded-[48px]
