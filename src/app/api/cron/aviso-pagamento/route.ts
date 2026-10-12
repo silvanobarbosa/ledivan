@@ -4,6 +4,7 @@ import { therapySessions, sessionPayments, users } from "@/db/schema";
 import { and, eq, gte, lt, isNull, sql } from "drizzle-orm";
 import { avisoPagamentoTexto, deveAvisar, prazoDoPagamento } from "@/lib/pagamentoSessao";
 import { sendWhatsappFromUser } from "@/lib/whatsappEvolution";
+import { recordOutbound } from "@/lib/messaging/inbox";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -73,15 +74,14 @@ export async function GET(req: NextRequest) {
     const prazo = prazoDoPagamento(s.date as Date, p.horasAntesPagamento)!;
     const valor = Number(s.fee) || Number(p.sessionFee) || 0;
     if (simulacao) { enviados++; continue; }
-    const ok = await sendWhatsappFromUser(
-      s.userId,
-      p.phone,
-      avisoPagamentoTexto(p.name, valor, s.date as Date, prazo, nomeDoTerapeuta.get(s.userId)!),
-    );
+    const texto = avisoPagamentoTexto(p.name, valor, s.date as Date, prazo, nomeDoTerapeuta.get(s.userId)!);
+    const ok = await sendWhatsappFromUser(s.userId, p.phone, texto);
 
     if (ok) {
       await db.update(therapySessions).set({ avisoPagamentoAt: sql`now()` }).where(eq(therapySessions.id, s.id));
       enviados++;
+      // Doc 32: entra no histórico de mensagens do paciente (2º ícone do card).
+      await recordOutbound(s.userId, s.patientId, "whatsapp", texto, p.phone).catch(() => {});
     } else {
       pulados++;
     }
