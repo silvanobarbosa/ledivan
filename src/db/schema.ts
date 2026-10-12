@@ -735,6 +735,22 @@ export const patientDocuments = pgTable("patient_documents", {
   index("documents_patient_idx").on(t.patientId),
 ]);
 
+// Mudanças de configuração que entram no "Histórico de reajuste" (doc 33 F15) além de formato/preço:
+// nº de sessões do pacote, dia de vencimento, "pagar até", intervalo de reajuste, pacote
+// completo/fragmentado. Uma linha por mudança (campo, de, para, quando). Puramente para EXIBIÇÃO —
+// o motor continua lendo vigências/preço/tamanho das tabelas próprias.
+export const patientReajusteChanges = pgTable("patient_reajuste_changes", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: text("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
+  patientId: uuid("patient_id").references(() => patients.id, { onDelete: "cascade" }).notNull(),
+  campo: text("campo").notNull(), // sessoes | vencimento | vencimento2 | pagarAte | reajuste | pacote
+  de: text("de"),
+  para: text("para"),
+  at: timestamp("at").defaultNow().notNull(),
+}, (t) => [
+  index("reajuste_changes_patient_idx").on(t.patientId),
+]);
+
 export const sessionPayments = pgTable("session_payments", {
   id: uuid("id").primaryKey().defaultRandom(),
   userId: text("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),

@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@/db";
-import { patients, patientStatusHistory, patientPriceHistory, patientContractHistory, patientPaymentFormatHistory, patientPackageHistory, patientRecords, patientAnamnese, patientActivities, patientDocuments, assignments, scaleApplications, treatmentGoals, patientPackages, therapySessions } from "@/db/schema";
+import { patients, patientStatusHistory, patientPriceHistory, patientContractHistory, patientPaymentFormatHistory, patientPackageHistory, patientRecords, patientAnamnese, patientActivities, patientDocuments, patientReajusteChanges, assignments, scaleApplications, treatmentGoals, patientPackages, therapySessions } from "@/db/schema";
 import { auth } from "@/auth";
 import { and, eq, gt, inArray, sql } from "drizzle-orm";
 import { encerraAgenda, sessoesAEncerrar } from "@/lib/encerrarAgenda";
@@ -486,6 +486,33 @@ export async function updatePatient(patientId: string, formData: FormData) {
     });
   }
 
+  // Doc 33 (F15): registra no HISTÓRICO DE REAJUSTE as mudanças de configuração além de formato/preço
+  // — nº de sessões, dia de vencimento (e o 2º), "pagar até", intervalo de reajuste, pacote
+  // completo/fragmentado. Compara o que de fato gravou (re-leitura) com o snapshot anterior, sem
+  // duplicar a lógica de cada campo.
+  {
+    const [novo] = await db.select({
+      sessionsInPacket: patients.sessionsInPacket, paymentDay: patients.paymentDay, paymentDay2: patients.paymentDay2,
+      horasAntesPagamento: patients.horasAntesPagamento, validadePrecoMeses: patients.validadePrecoMeses, pacoteTipo: patients.pacoteTipo,
+    }).from(patients).where(and(eq(patients.id, patientId), eq(patients.userId, session.user.id)));
+    const str = (v: unknown) => (v == null || v === "" ? null : String(v));
+    const mudancas: { campo: string; de: string | null; para: string | null }[] = [];
+    const cmp = (campo: string, deV: unknown, paraV: unknown) => {
+      const d = str(deV), p = str(paraV);
+      if (d !== p) mudancas.push({ campo, de: d, para: p });
+    };
+    if (novo) {
+      cmp("sessoes", existing.sessionsInPacket, novo.sessionsInPacket);
+      cmp("vencimento", existing.paymentDay, novo.paymentDay);
+      cmp("vencimento2", existing.paymentDay2, novo.paymentDay2);
+      cmp("pagarAte", existing.horasAntesPagamento, novo.horasAntesPagamento);
+      cmp("reajuste", existing.validadePrecoMeses, novo.validadePrecoMeses);
+      cmp("pacote", existing.pacoteTipo, novo.pacoteTipo);
+    }
+    if (mudancas.length) {
+      await db.insert(patientReajusteChanges).values(mudancas.map((m) => ({ userId: session.user.id, patientId, ...m })));
+    }
+  }
 
   revalidatePath(`/dashboard/patients/${patientId}`);
   // A própria tela de EDIÇÃO precisa ser revalidada: sem isto, o RSC dela fica em cache com o formato
@@ -1089,6 +1116,19 @@ export async function salvarContrato(patientId: string, texto: string): Promise<
  * e o próximo lembrete de reajuste é recalculado. É isso que torna o apagar útil — o reajuste errado
  * some e o paciente volta ao preço de antes.
  */
+/** Doc 33 (F15): apaga uma linha do histórico de reajuste que veio do change-log (só exibição). */
+export async function apagarReajusteChange(id: string): Promise<{ ok: boolean; error?: string }> {
+  const session = await auth();
+  if (!session?.user?.id) return { ok: false, error: "Não autorizado" };
+  const userId = session.user.id;
+  const linha = await db.query.patientReajusteChanges.findFirst({ where: and(eq(patientReajusteChanges.id, id), eq(patientReajusteChanges.userId, userId)) });
+  if (!linha) return { ok: false, error: "Registro não encontrado." };
+  await db.delete(patientReajusteChanges).where(and(eq(patientReajusteChanges.id, id), eq(patientReajusteChanges.userId, userId)));
+  revalidatePath(`/dashboard/patients/${linha.patientId}`);
+  revalidatePath(`/dashboard/patients/${linha.patientId}/edit`);
+  return { ok: true };
+}
+
 export async function apagarReajuste(patientId: string, vigenciaISO: string): Promise<{ ok: boolean; error?: string }> {
   const session = await auth();
   if (!session?.user?.id) return { ok: false, error: "Não autorizado" };

@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import { InfoTip } from "@/components/InfoTip";
 import { SubmitButton } from "@/components/SubmitButton";
 import { MessageCircle, Trash2 } from "lucide-react";
-import { apagarReajuste } from "@/app/dashboard/patients/actions";
+import { apagarReajuste, apagarReajusteChange } from "@/app/dashboard/patients/actions";
 import { QUEIXAS } from "@/lib/queixas";
 import { idadeEmPalavras } from "@/lib/idade";
 import { historicoDeReajuste, usaPacote } from "@/lib/reajuste";
@@ -33,6 +33,7 @@ export type PatientFormData = {
   horasAntesPagamento?: number | null; validadePrecoMeses?: number | null; pacoteTipo?: string | null; semanasNoMes?: number | null; paymentDay2?: number | null;
   priceHistory?: { valor: string; dataEfetiva: string }[];
   formatHistory?: { formato: string; dataEfetiva: string }[];
+  reajusteChanges?: { id: string; campo: string; de: string | null; para: string | null; at: string }[];
   reminderEnabled?: boolean; reminderChannel?: string | null; reminderLeadMinutes?: number | null;
   statusReminderDays?: number | null;
   photo3x4?: string | null; photoExtra1?: string | null; photoExtra2?: string | null; photoExtra3?: string | null;
@@ -80,6 +81,53 @@ function LixeiraReajuste({ patientId, vigencia }: { patientId: string; vigencia:
       <button type="button" onClick={() => { setConfirmando(false); setErro(null); }} disabled={pending} className="text-foreground/50 cursor-pointer">
         Não
       </button>
+    </span>
+  );
+}
+
+/** Doc 33 (F15): texto de uma mudança de configuração no histórico de reajuste. */
+function rotuloMudanca(campo: string, de: string | null, para: string | null): string {
+  const v = (x: string | null) => x ?? "—";
+  const pct = (x: string | null) => (x === "fragmentado" ? "Fragmentado" : x === "completo" ? "Completo" : v(x));
+  switch (campo) {
+    case "sessoes": return `Sessões do pacote: ${v(de)} → ${v(para)}`;
+    case "vencimento": return `Vencimento: dia ${v(de)} → dia ${v(para)}`;
+    case "vencimento2": return `2º vencimento: dia ${v(de)} → dia ${v(para)}`;
+    case "pagarAte": return `Pagar até: ${de ? de + "h" : "—"} → ${para ? para + "h" : "—"}`;
+    case "reajuste": return `Reajuste: ${de ? de + " meses" : "sem"} → ${para ? para + " meses" : "sem"}`;
+    case "pacote": return `Pacote: ${pct(de)} → ${pct(para)}`;
+    default: return `${campo}: ${v(de)} → ${v(para)}`;
+  }
+}
+
+/** Lixeira de uma linha de change-log do histórico de reajuste (doc 33 F15). */
+function LixeiraReajusteChange({ id }: { id: string }) {
+  const router = useRouter();
+  const [confirmando, setConfirmando] = useState(false);
+  const [pending, start] = useTransition();
+  const [erro, setErro] = useState<string | null>(null);
+
+  function apagar() {
+    setErro(null);
+    start(async () => {
+      const r = await apagarReajusteChange(id);
+      if (r.ok) { setConfirmando(false); router.refresh(); }
+      else setErro(r.error ?? "Não foi possível apagar.");
+    });
+  }
+
+  if (!confirmando) {
+    return (
+      <button type="button" onClick={() => setConfirmando(true)} aria-label="Apagar esta mudança" title="Apagar esta mudança" className="ml-auto shrink-0 text-foreground/30 hover:text-red-500 transition p-1 rounded-lg cursor-pointer">
+        <Trash2 className="w-4 h-4" />
+      </button>
+    );
+  }
+  return (
+    <span className="ml-auto shrink-0 flex items-center gap-2 text-xs">
+      {erro ? <span className="text-red-500">{erro}</span> : <span className="text-foreground/60">Apagar?</span>}
+      <button type="button" onClick={apagar} disabled={pending} className="font-bold text-red-500 disabled:opacity-50 cursor-pointer">{pending ? "…" : "Sim"}</button>
+      <button type="button" onClick={() => { setConfirmando(false); setErro(null); }} disabled={pending} className="text-foreground/50 cursor-pointer">Não</button>
     </span>
   );
 }
@@ -620,11 +668,23 @@ export function PatientFormFields({ p, save, tabInicial, contrato, patientId }: 
           {(() => {
             // Histórico no formato do dono (doc 16): uma linha por mudança, combinando modalidade e valor.
             const linhas = historicoDeReajuste(p?.priceHistory ?? [], p?.formatHistory ?? []);
-            if (!linhas.length) return null;
+            // Doc 33 (F15): mudanças de configuração além de formato/preço (nº sessões, vencimento,
+            // pagar até, intervalo de reajuste, pacote completo/fragmentado), da mais recente à mais antiga.
+            const mudancas = (p?.reajusteChanges ?? []).slice().sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime());
+            if (!linhas.length && !mudancas.length) return null;
             return (
               <div className="pt-2 border-t border-border">
                 <p className="text-xs font-bold text-foreground/40 uppercase tracking-widest mb-2 mt-3">Histórico de reajuste</p>
                 <ul className="space-y-1">
+                  {mudancas.map((m) => (
+                    <li key={m.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm rounded-xl bg-surface/60 px-3 py-2">
+                      <span className="font-mono text-[11px] text-foreground/40">
+                        {new Date(m.at).toLocaleDateString("pt-BR")} às {new Date(m.at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+                      </span>
+                      <span className="text-foreground/70 font-medium">{rotuloMudanca(m.campo, m.de, m.para)}</span>
+                      {patientId && <LixeiraReajusteChange id={m.id} />}
+                    </li>
+                  ))}
                   {linhas.slice().reverse().map((e, i) => (
                     <li key={i} className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm rounded-xl bg-surface/60 px-3 py-2">
                       {/* Duas datas, e as duas importam (documento de 17/09): quando a mudança foi
