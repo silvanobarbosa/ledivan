@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@/db";
-import { patients, patientStatusHistory, patientPriceHistory, patientContractHistory, patientPaymentFormatHistory, patientPackageHistory, patientRecords, patientAnamnese, patientActivities, assignments, scaleApplications, treatmentGoals, patientPackages, therapySessions } from "@/db/schema";
+import { patients, patientStatusHistory, patientPriceHistory, patientContractHistory, patientPaymentFormatHistory, patientPackageHistory, patientRecords, patientAnamnese, patientActivities, patientDocuments, assignments, scaleApplications, treatmentGoals, patientPackages, therapySessions } from "@/db/schema";
 import { auth } from "@/auth";
 import { and, eq, gt, inArray, sql } from "drizzle-orm";
 import { encerraAgenda, sessoesAEncerrar } from "@/lib/encerrarAgenda";
@@ -975,6 +975,56 @@ export async function deleteActivity(id: string): Promise<{ ok: boolean; error?:
   if (!at) return { ok: false, error: "Atividade não encontrada." };
   await db.delete(patientActivities).where(and(eq(patientActivities.id, id), eq(patientActivities.userId, userId)));
   revalidatePath(`/dashboard/patients/${at.patientId}`);
+  return { ok: true };
+}
+
+// --- Documentos individuais do paciente (doc 33) ---
+
+/**
+ * Cria um documento. O número é sequencial POR PACIENTE e fixo: max(number)+1, nunca renumerado
+ * quando outro documento é editado ou excluído.
+ */
+export async function createDocument(patientId: string, content: string): Promise<{ ok: boolean; error?: string; number?: number }> {
+  const session = await auth();
+  if (!session?.user?.id) return { ok: false, error: "Não autorizado" };
+  const userId = session.user.id;
+  const c = (content || "").trim();
+  if (!c) return { ok: false, error: "Escreva o conteúdo do documento." };
+  const dono = await db.query.patients.findFirst({ where: and(eq(patients.id, patientId), eq(patients.userId, userId)), columns: { id: true } });
+  if (!dono) return { ok: false, error: "Paciente não encontrado." };
+
+  const existentes = await db.select({ number: patientDocuments.number }).from(patientDocuments)
+    .where(and(eq(patientDocuments.patientId, patientId), eq(patientDocuments.userId, userId)));
+  const number = existentes.reduce((m, r) => Math.max(m, r.number), 0) + 1;
+
+  await db.insert(patientDocuments).values({ userId, patientId, number, content: c });
+  revalidatePath(`/dashboard/patients/${patientId}`);
+  return { ok: true, number };
+}
+
+/** Edita o conteúdo; a data/hora passa a ser o momento da alteração; o número NÃO muda. */
+export async function updateDocument(id: string, content: string): Promise<{ ok: boolean; error?: string }> {
+  const session = await auth();
+  if (!session?.user?.id) return { ok: false, error: "Não autorizado" };
+  const userId = session.user.id;
+  const c = (content || "").trim();
+  if (!c) return { ok: false, error: "Escreva o conteúdo do documento." };
+  const doc = await db.query.patientDocuments.findFirst({ where: and(eq(patientDocuments.id, id), eq(patientDocuments.userId, userId)) });
+  if (!doc) return { ok: false, error: "Documento não encontrado." };
+  await db.update(patientDocuments).set({ content: c, updatedAt: new Date() })
+    .where(and(eq(patientDocuments.id, id), eq(patientDocuments.userId, userId)));
+  revalidatePath(`/dashboard/patients/${doc.patientId}`);
+  return { ok: true };
+}
+
+export async function deleteDocument(id: string): Promise<{ ok: boolean; error?: string }> {
+  const session = await auth();
+  if (!session?.user?.id) return { ok: false, error: "Não autorizado" };
+  const userId = session.user.id;
+  const doc = await db.query.patientDocuments.findFirst({ where: and(eq(patientDocuments.id, id), eq(patientDocuments.userId, userId)) });
+  if (!doc) return { ok: false, error: "Documento não encontrado." };
+  await db.delete(patientDocuments).where(and(eq(patientDocuments.id, id), eq(patientDocuments.userId, userId)));
+  revalidatePath(`/dashboard/patients/${doc.patientId}`);
   return { ok: true };
 }
 
