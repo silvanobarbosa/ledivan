@@ -53,9 +53,7 @@ export function ContratoImpresso({ texto, textoPadrao, patientId, logoUrl }: { t
   const padrao = textoPadrao ?? texto;
 
   function imprimir() {
-    // Doc 28: 2 vias (uma de cada parte). A cópia espelha o que está editado na tela na hora de imprimir.
-    const copia = document.getElementById("contrato-copia");
-    if (copia && ref.current) copia.innerHTML = ref.current.innerHTML;
+    // Doc 33: via ÚNICA. Quantas cópias sair é escolha do usuário na própria caixa de impressão.
     window.print();
   }
 
@@ -75,7 +73,7 @@ export function ContratoImpresso({ texto, textoPadrao, patientId, logoUrl }: { t
   }
 
   return (
-    <main className="max-w-3xl mx-auto p-4 sm:p-6 space-y-4">
+    <main id="contrato-root" className="max-w-3xl mx-auto p-4 sm:p-6 space-y-4">
       <nav className="no-print">
         <Link href={`/dashboard/patients/${patientId}`} className="text-sm text-foreground/60 hover:text-foreground">
           ← voltar para o paciente
@@ -84,12 +82,13 @@ export function ContratoImpresso({ texto, textoPadrao, patientId, logoUrl }: { t
 
       <ul className="no-print rounded-xl border border-border bg-surface px-4 py-3 pl-7 text-sm text-foreground/60 space-y-2 list-disc">
         <li>O contrato será preenchido automaticamente com os dados cadastrados do paciente e as informações do profissional definidas em <Link href="/dashboard/settings" className="underline font-semibold">Ajustes</Link>. Clique no texto para preencher os campos entre colchetes. Após concluir as edições, basta imprimir o contrato.</li>
-        <li>Ao clicar em Imprimir, são impressas 2 vias do documento, uma para cada parte. Todas as alterações realizadas no contrato serão refletidas na impressão, independentemente de serem salvas ou não.</li>
+        <li>Ao clicar em Imprimir, sai uma via do documento. Se quiser mais de uma cópia, defina a quantidade na própria caixa de impressão. Todas as alterações feitas no contrato saem na impressão, salvas ou não.</li>
         <li>O botão Salvar guarda apenas a alteração do contrato deste paciente, não a de todos.</li>
       </ul>
 
-      {/* O papel editável. Logotipo (doc 32) centralizado ACIMA do título. Justificado (doc 28). */}
-      <div className="bg-white border border-border rounded-2xl p-6 sm:p-10 print:border-0 print:rounded-none print:p-0">
+      {/* O papel editável. Logotipo (doc 32) centralizado ACIMA do título. Justificado (doc 28).
+          Doc 33: via única — a 2ª via saiu. */}
+      <div id="contrato-wrap" className="bg-white border border-border rounded-2xl p-6 sm:p-10 print:border-0 print:rounded-none print:p-0">
         <LogoCentral logoUrl={logoUrl} />
         <article
           key={versao}
@@ -101,12 +100,6 @@ export function ContratoImpresso({ texto, textoPadrao, patientId, logoUrl }: { t
         >
           {renderContrato(conteudo)}
         </article>
-      </div>
-
-      {/* 2ª via (só impressão): preenchida a partir da 1ª no momento de imprimir. */}
-      <div id="contrato-copia-wrap" className="hidden print:block" style={{ breakBefore: "page" }}>
-        <LogoCentral logoUrl={logoUrl} />
-        <article id="contrato-copia" aria-hidden className="whitespace-pre-wrap text-justify font-sans text-[15px] leading-relaxed text-foreground" />
       </div>
 
       <div className="no-print flex flex-wrap items-center gap-3">
@@ -128,10 +121,12 @@ export function ContratoImpresso({ texto, textoPadrao, patientId, logoUrl }: { t
         @media print {
           .no-print { display: none !important; }
           body * { visibility: hidden; }
-          #contrato-papel, #contrato-papel *, #contrato-copia, #contrato-copia *, .doc-logo, .doc-logo * { visibility: visible; }
-          /* As duas vias no fluxo, a 2ª começando em nova página. (body * escondido deixa só estas.) */
+          #contrato-papel, #contrato-papel *, .doc-logo, .doc-logo * { visibility: visible; }
           #contrato-papel { width: 100%; }
-          #contrato-copia { display: block !important; width: 100%; break-before: page; }
+          /* Doc 33: sem recuo herdado no topo — o papel (com o logo) começa colado à margem da
+             página, sem o vão que o padding/space-y da tela deixava. */
+          #contrato-root { padding: 0 !important; }
+          #contrato-wrap { margin-top: 0 !important; }
         }
       `}</style>
     </main>
