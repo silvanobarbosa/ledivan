@@ -2,10 +2,10 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { Search, ChevronRight, ChevronDown } from "lucide-react";
+import { Search, ChevronRight, ChevronDown, MessageCircle } from "lucide-react";
+import { numeroDoWhatsapp } from "@/lib/telefoneWhatsapp";
 import { formatBRL, patientStatusColor } from "@/lib/therapy";
 import { rotuloFinanceiro, ROTULO_SITUACAO_LISTA, type SituacaoDaLista } from "@/lib/rotulosPaciente";
-import { MessagePatient } from "@/components/dashboard/MessagePatient";
 
 // Fora do componente DE PROPÓSITO: definido dentro do render, cada tecla digitada na busca
 // criava um tipo novo e o React REMONTAVA os cinco selects (perdendo foco e dropdown aberto).
@@ -202,7 +202,22 @@ export function PatientsClient({ patients, initial }: { patients: PatientCard[];
                   )}
                 </div>
               </Link>
-              <MessagePatient patient={{ id: p.id, name: p.name, phone: p.phone, email: p.email }} />
+              {/* Doc 33: botão de mensagem abre o WhatsApp DIRETO (igual ao da área do paciente). */}
+              {(() => {
+                const waNum = numeroDoWhatsapp(p.phone);
+                return (
+                  <button
+                    type="button"
+                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); if (waNum) window.open(`https://wa.me/${waNum}`, "_blank", "noopener"); }}
+                    disabled={!waNum}
+                    title={waNum ? "Enviar mensagem no WhatsApp" : "Paciente sem telefone"}
+                    aria-label="Enviar mensagem no WhatsApp"
+                    className="shrink-0 p-2.5 rounded-2xl bg-[#25D366]/10 text-[#128C7E] border border-[#25D366]/20 hover:bg-[#25D366]/20 transition cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                  >
+                    <MessageCircle className="w-5 h-5" />
+                  </button>
+                );
+              })()}
               <Link href={`/dashboard/patients/${p.id}`} className="hidden sm:block">
                 <ChevronRight className="w-5 h-5 text-foreground/30 group-hover:text-primary group-hover:translate-x-1 transition" />
               </Link>

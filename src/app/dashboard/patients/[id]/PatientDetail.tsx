@@ -27,7 +27,7 @@ import {
   patientStatusColor,
   type RiskLevel,
 } from "@/lib/therapy";
-import { Phone, Plus, Pencil, Trash2, Mic, Loader2, FileText, Repeat, Download, MessageCircle, X } from "lucide-react";
+import { Phone, Plus, Pencil, Trash2, Mic, Loader2, FileText, Repeat, Download, MessageCircle } from "lucide-react";
 import { anosDisponiveis } from "@/lib/filtroDeAno";
 
 type Patient = {
@@ -80,10 +80,11 @@ const inputCls = "w-full px-4 py-2.5 rounded-xl bg-white/70 border border-border
 
 // Guias enxutas (dono, 16/09/2026): saíram Dados, Sessões, Financeiro e Linha do tempo. O que era a
 // aba Dados virou o histórico de status abaixo do cabeçalho; o financeiro está na guia Geral.
-const TABS = ["Geral", "Prontuário", "Atividades", "Materiais"] as const;
+// Doc 33: "Prontuário" renomeado para "Registros".
+const TABS = ["Geral", "Registros", "Atividades", "Materiais"] as const;
 
 export function PatientDetail({
-  patient, pagador, payments, statusHistory, records, transcriptionEnabled, risk: _risk, assignments, moodToken, moodLogs, scales, treatmentGoals, diaryEntries = [], ratings = [], consents = [], contractHistory: _contractHistory = [], finance, sessionStats, recurring, statusEnabled = false, dailyStatus = [], sharedWritings = [], geral = [], cobrancaMessage = null, whatsappEnviadas = [],
+  patient, pagador, payments, statusHistory, records, transcriptionEnabled, risk: _risk, assignments, moodToken, moodLogs, scales, treatmentGoals, diaryEntries = [], ratings = [], consents = [], contractHistory: _contractHistory = [], finance, sessionStats, recurring, statusEnabled = false, dailyStatus = [], sharedWritings = [], geral = [], cobrancaMessage = null,
 }: {
   patient: Patient; pagador: Pagador; sessions: Session[]; payments: Payment[];
   statusHistory: StatusEntry[]; priceHistory: PriceEntry[]; records: RecordEntry[];
@@ -112,7 +113,6 @@ export function PatientDetail({
   /** Modelo da mensagem de cobrança da terapeuta (para o botão "Cobrar" da guia Geral). */
   cobrancaMessage?: string | null;
   /** Doc 28: mensagens que o sistema ENVIOU ao paciente por WhatsApp (2º ícone do card). */
-  whatsappEnviadas?: { text: string; createdAt: string }[];
 }) {
   const router = useRouter();
   // Os anos que o paciente tem: das linhas da Geral e dos pagamentos. O corrente entra sempre.
@@ -138,7 +138,6 @@ export function PatientDetail({
   const [showRecord, setShowRecord] = useState(false);
   const [showAnamnese, setShowAnamnese] = useState(false);
   // Doc 28: modal do histórico de WhatsApp enviado pelo sistema (2º ícone).
-  const [showWhatsapp, setShowWhatsapp] = useState(false);
   // transcrição
   const [showTranscribe, setShowTranscribe] = useState(false);
   const [consent, setConsent] = useState(false);
@@ -185,36 +184,6 @@ export function PatientDetail({
           #controle-print tr { break-inside: avoid; }
         }
       `}</style>
-      {/* Doc 28: histórico de WhatsApp enviado pelo sistema (modal do 2º ícone). */}
-      {showWhatsapp && (
-        <div className="fixed inset-0 z-50 bg-black/40 flex items-end sm:items-center justify-center p-0 sm:p-4" onClick={() => setShowWhatsapp(false)}>
-          <div className="bg-white w-full sm:max-w-lg sm:rounded-3xl rounded-t-3xl max-h-[85vh] flex flex-col shadow-xl" onClick={(e) => e.stopPropagation()}>
-            <div className="flex items-center justify-between p-5 border-b border-border">
-              <div>
-                <h3 className="font-display font-bold text-primary">Mensagens enviadas por WhatsApp</h3>
-                <p className="text-xs text-foreground/50">O que o sistema Le&rsquo;Divan enviou a {patient.name}.</p>
-              </div>
-              <button type="button" onClick={() => setShowWhatsapp(false)} aria-label="Fechar" className="p-2 rounded-xl hover:bg-surface cursor-pointer">
-                <X className="w-5 h-5 text-foreground/60" />
-              </button>
-            </div>
-            <div className="overflow-y-auto p-5 space-y-3">
-              {whatsappEnviadas.length === 0 ? (
-                <p className="text-sm text-foreground/50 text-center py-8">Nenhuma mensagem enviada por WhatsApp ainda.</p>
-              ) : (
-                whatsappEnviadas.map((m, i) => (
-                  <div key={i} className="rounded-2xl bg-surface border border-border p-3">
-                    <p className="text-sm text-foreground/80 whitespace-pre-wrap break-words">{m.text}</p>
-                    <p className="text-[11px] text-foreground/40 mt-1.5 tabular-nums">
-                      {new Date(m.createdAt).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })}
-                    </p>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Header */}
       <div className="glass-card rounded-[32px] p-6 lg:p-8 space-y-4">
@@ -283,25 +252,7 @@ export function PatientDetail({
               </button>
             );
           })()}
-          {/* Doc 31: 2º ícone = MESMO desenho/botão do ícone de mensagem (à esquerda), só com o balão
-              preenchido em PRETO. Abre o histórico do que o sistema enviou por WhatsApp. Só muda a aparência. */}
-          <button
-            type="button"
-            onClick={() => setShowWhatsapp(true)}
-            title="Mensagens enviadas pelo sistema via WhatsApp"
-            aria-label="Mensagens enviadas pelo sistema via WhatsApp"
-            className="shrink-0 p-2.5 rounded-2xl bg-white border border-border text-black hover:border-primary hover:bg-primary/5 transition cursor-pointer"
-          >
-            <MessageCircle className="w-5 h-5" fill="currentColor" />
-          </button>
-          <a
-            href={`/prontuario/${patient.id}`}
-            target="_blank"
-            rel="noreferrer"
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/60 text-primary font-semibold text-sm hover:bg-white transition"
-          >
-            <FileText className="w-4 h-4" /> Prontuário PDF
-          </a>
+          {/* Doc 33: o 2º ícone (histórico de WhatsApp) e o "Prontuário PDF" foram retirados do card. */}
           <a
             href={`/api/patients/${patient.id}/export`}
             title="Baixar todos os dados deste paciente (LGPD — portabilidade)"
@@ -374,13 +325,14 @@ export function PatientDetail({
 
       <PatientFeatures patientId={patient.id} />
 
-      {/* Tabs */}
-      <div className="flex gap-2 bg-white/50 p-1.5 rounded-2xl w-fit">
+      {/* Tabs — Doc 33: no celular os nomes eram cortados; agora a faixa rola na horizontal e cada
+          aba não encolhe nem quebra o texto. */}
+      <div className="flex gap-2 bg-white/50 p-1.5 rounded-2xl w-fit max-w-full overflow-x-auto">
         {TABS.map((t) => (
           <button
             key={t}
             onClick={() => setTab(t)}
-            className={`px-4 py-2 rounded-xl text-sm font-semibold transition ${
+            className={`shrink-0 whitespace-nowrap px-4 py-2 rounded-xl text-sm font-semibold transition ${
               tab === t ? "bg-primary text-white" : "text-foreground/60 hover:bg-white"
             }`}
           >
@@ -441,8 +393,8 @@ export function PatientDetail({
       )}
 
       {/* Dados */}
-      {/* Prontuário */}
-      {tab === "Prontuário" && (
+      {/* Registros (ex-Prontuário) */}
+      {tab === "Registros" && (
         <div className="space-y-4">
           {/* Cabeçalho do prontuário (etiquetas + observações + histórico) removido a pedido do dono
               (prints 6.pdf, itens 1 e 2): o prontuário fica só com o histórico terapêutico e os
