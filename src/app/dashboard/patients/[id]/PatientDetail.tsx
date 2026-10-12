@@ -17,7 +17,7 @@ import { PatientFeatures } from "./PatientFeatures";
 import { GeralTab } from "./GeralTab";
 import { TabelaAnual } from "./TabelaAnual";
 import type { LinhaNaTela } from "@/lib/geralDoPaciente";
-import { AnamneseForm } from "./AnamneseForm";
+import { AnamneseTab } from "./AnamneseTab";
 import { DailyStatusPanel } from "./DailyStatusPanel";
 import {
   formatBRL,
@@ -78,13 +78,15 @@ const inputCls = "w-full px-4 py-2.5 rounded-xl bg-white/70 border border-border
 // Guias enxutas (dono, 16/09/2026): saíram Dados, Sessões, Financeiro e Linha do tempo. O que era a
 // aba Dados virou o histórico de status abaixo do cabeçalho; o financeiro está na guia Geral.
 // Doc 33: "Prontuário" renomeado para "Registros".
-const TABS = ["Geral", "Registros", "Atividades", "Materiais"] as const;
+// Doc 33: "Anamnese" é uma guia própria, à direita de Registros.
+const TABS = ["Geral", "Registros", "Anamnese", "Atividades", "Materiais"] as const;
 
 export function PatientDetail({
-  patient, pagador, payments, statusHistory, records, transcriptionEnabled, risk: _risk, assignments, moodToken, moodLogs, scales, diaryEntries = [], ratings = [], consents = [], contractHistory: _contractHistory = [], finance, sessionStats, recurring, statusEnabled = false, dailyStatus = [], sharedWritings = [], geral = [], cobrancaMessage = null,
+  patient, pagador, payments, statusHistory, records, transcriptionEnabled, risk: _risk, assignments, moodToken, moodLogs, scales, diaryEntries = [], ratings = [], consents = [], contractHistory: _contractHistory = [], finance, sessionStats, recurring, statusEnabled = false, dailyStatus = [], sharedWritings = [], geral = [], cobrancaMessage = null, anamnese = [],
 }: {
   patient: Patient; pagador: Pagador; sessions: Session[]; payments: Payment[];
   statusHistory: StatusEntry[]; priceHistory: PriceEntry[]; records: RecordEntry[];
+  anamnese?: { id: string; title: string; content: string; custom: boolean; updatedAt: string | null }[];
   contractHistory?: ContractEntry[];
   finance: Finance;
   ledger?: LedgerEntry[];
@@ -132,7 +134,6 @@ export function PatientDetail({
           : "";
   const statusLabel = patient.patientStatus === "inativo" ? "Inativo" : "Ativo";
   const [showRecord, setShowRecord] = useState(false);
-  const [showAnamnese, setShowAnamnese] = useState(false);
   // Doc 28: modal do histórico de WhatsApp enviado pelo sistema (2º ícone).
   // transcrição
   const [showTranscribe, setShowTranscribe] = useState(false);
@@ -402,9 +403,7 @@ export function PatientDetail({
             <button onClick={() => setShowRecord((s) => !s)} className="flex items-center gap-2 text-primary font-semibold text-sm hover:underline">
               <Plus className="w-4 h-4" /> Novo registro
             </button>
-            <button onClick={() => setShowAnamnese((s) => !s)} className="flex items-center gap-2 text-primary font-semibold text-sm hover:underline">
-              <Plus className="w-4 h-4" /> Anamnese estruturada
-            </button>
+            {/* Doc 33: "+ Anamnese estruturada" saiu — a anamnese agora é uma guia própria. */}
             {transcriptionEnabled && (
               <button onClick={() => setShowTranscribe((s) => !s)} className="flex items-center gap-2 text-primary font-semibold text-sm hover:underline">
                 <Mic className="w-4 h-4" /> Transcrever sessão (IA)
@@ -412,7 +411,6 @@ export function PatientDetail({
             )}
           </div>
 
-          {showAnamnese && <AnamneseForm patientId={patient.id} onDone={() => setShowAnamnese(false)} />}
 
           {transcriptionEnabled && showTranscribe && (
             <div className="glass-card rounded-[24px] p-5 space-y-3">
@@ -461,6 +459,9 @@ export function PatientDetail({
           )}
         </div>
       )}
+
+      {/* Anamnese (doc 33): guia própria, campos com Salvar/Editar individuais + campos custom. */}
+      {tab === "Anamnese" && <AnamneseTab patientId={patient.id} campos={anamnese} />}
 
       {/* Espaço do Paciente: humor + tarefas */}
       {tab === "Atividades" && (
