@@ -7,6 +7,30 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-10-12 — Doc 33 (parte 3): histórico de reajuste completo (#343) + F16 investigado
+
+**Entregue:**
+- **#343 (F15) — histórico de reajuste completo.** Além de formato/preço, o "Histórico de reajuste"
+  passa a mostrar mudanças de: nº de sessões do pacote, dia de vencimento (e o 2º), "pagar até",
+  intervalo de reajuste, pacote completo↔fragmentado. Ao salvar a edição, o `updatePatient` compara o
+  que gravou (re-leitura) com o estado anterior e grava uma linha por mudança em
+  `patient_reajuste_changes` — só exibição; o motor segue nas tabelas próprias. Cada linha tem lixeira.
+
+**F16 (bug avulso→mensal) — investigado, NÃO reproduzido.** Verifiquei AO VIVO (demo, Playwright) que
+o cliente produz `paymentFormat="mensal"` corretamente ao clicar Mensal vindo de Avulso, e que o form
+do Financeiro (o que tem o hidden `paymentFormat`) é o que salva — ou seja, a submissão envia "mensal".
+A revisão do `updatePatient` mostra que ele aplica o valor e grava a vigência. Já existe um
+`revalidatePath(.../edit)` que corrige o sintoma "o rádio volta para Avulso" (cache do RSC da edição).
+Conclusão provável: resolvido pelas mudanças recentes. Pendente: re-teste do dono no ar; se persistir,
+abrir o DevTools→Network e conferir o valor de `paymentFormat` enviado (diagnóstico definitivo).
+
+**Decisões que ficam valendo:**
+- Histórico de reajuste = vigências (formato) + preço + `patient_reajuste_changes` (demais campos).
+
+**Pendente:** F16 aguarda re-teste do dono (as outras 16 frentes do doc 33 estão no ar).
+
+---
+
 ## 2026-10-12 — Doc 33 (parte 2): as 3 features grandes — Anamnese, Atividades, Documentos (#339–#341)
 
 **Entregue:**
