@@ -17,7 +17,7 @@ export function AreaTint({ children }: { children: React.ReactNode }) {
   const isFinance = FINANCE_PREFIXES.some((p) => pathname.startsWith(p));
   return (
     <div
-      className={`app-texture relative min-h-full p-6 lg:p-12 space-y-12 pb-32 lg:pb-12 transition-colors ${isFinance ? "bg-[#e9f4f0]" : "bg-surface"}`}
+      className={`app-texture relative min-h-full p-6 lg:p-12 space-y-12 pb-32 lg:pb-12 transition-colors print:p-0 print:space-y-0 ${isFinance ? "bg-[#e9f4f0]" : "bg-surface"}`}
       style={{
         backgroundImage: `radial-gradient(680px 380px at 100% -8%, ${isFinance ? "rgba(45,212,191,0.10)" : "rgba(196,181,253,0.16)"}, transparent 60%), radial-gradient(circle at 1px 1px, rgba(43,24,48,0.035) 1px, transparent 1.7px)`,
         backgroundSize: "auto, 26px 26px",
