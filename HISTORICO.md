@@ -7,6 +7,38 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-10-12 — Doc 33 (parte 2): as 3 features grandes — Anamnese, Atividades, Documentos (#339–#341)
+
+**Entregue:**
+- **#339 — guia Anamnese (nova).** À direita de Registros. Cada campo com Salvar/Editar próprios
+  (editar grava a data/hora); 8 campos do modelo padrão + "Adicionar campo" (personalizados,
+  removíveis). Nova tabela `patient_anamnese`. Saíram o botão "+ Anamnese estruturada" e o formulário
+  único antigo.
+- **#340 — reforma da guia Atividades.** Nova ordem: **+Atividades** (nova seção — atividades
+  realizadas com o paciente, editar/excluir; tabela `patient_activities`) → **Diário de humor** com
+  **Desfazer** (reverte a ativação sem apagar os humores) → **Escala de desfecho** com **Desfazer**
+  (remove o último link pendente) → **+Exercícios** (ex-+Tarefas, agora com editar) → **+Material**
+  (trouxe o conteúdo da guia Materiais com Compartilhar; a guia **Materiais foi removida**).
+- **#341 — guia Documentos (nova).** Cabeçalho automático (logo centralizado + profissional, com
+  "CRP nº" quando a descrição é Psicologia, + paciente com nascimento/idade e nº de sessões Presente),
+  área de texto, Salvar/Imprimir. Documentos numerados por paciente (número fixo), lista com
+  Editar/Imprimir/excluir (confirmação). Impressão via portal no body (multi-página, margem 2cm).
+  Nova tabela `patient_documents`.
+
+**Decisões que ficam valendo:**
+- Anamnese e Atividades e Documentos: cada item/campo/doc é uma linha com Salvar/Editar próprios;
+  editar atualiza o `updatedAt`. Documentos: número por paciente é fixo (não renumera).
+- A guia "Materiais" deixou de existir — o conteúdo vive em "+Material" dentro de Atividades.
+- "Desfazer" (humor/escala) reverte a geração do link sem apagar dados anteriores.
+
+**Armadilhas:** quando a frente toca os MESMOS arquivos da anterior (PatientDetail/actions/schema/page),
+só ramificar depois que o PR anterior mergeou — senão a branch nasce sem a frente anterior.
+
+**Pendente:** F15 (histórico de reajuste completo — exige versionar campos hoje sem histórico: dia de
+vencimento, pagar-até, intervalo de reajuste); F16 (bug avulso→mensal — aguarda reprodução do fluxo).
+
+---
+
 ## 2026-10-12 — Doc 33 (parte 1): cards, contrato, guia geral, recibo, escola, registros, atraso falso (#330–#337)
 
 Doc 33 é um backlog grande (~17 frentes). Esta leva entregou 12; faltam 5 (ver Pendente).
