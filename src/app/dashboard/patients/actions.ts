@@ -8,6 +8,7 @@ import { encerraAgenda, sessoesAEncerrar } from "@/lib/encerrarAgenda";
 import { revalidatePath } from "next/cache";
 import { usaPacote, vencimentoDoPreco } from "@/lib/reajuste";
 import { dataDoPreco, diaDoFormulario, formatoMudou, vigenciasAGravar } from "@/lib/trocaDeFormato";
+import { agoraParede } from "@/lib/horaLocal";
 import { redirect } from "next/navigation";
 import { put } from "@vercel/blob";
 import { sendWhatsappFromUser } from "@/lib/whatsappEvolution";
@@ -666,6 +667,7 @@ export async function createRecord(patientId: string, formData: FormData) {
     type: (formData.get("type") as string) || "evolucao",
     title: (formData.get("title") as string) || null,
     content,
+    createdAt: agoraParede(),
   });
 
   revalidatePath(`/dashboard/patients/${patientId}`);
@@ -689,7 +691,7 @@ export async function editRecord(recordId: string, formData: FormData) {
   if (!content) throw new Error("Conteúdo obrigatório");
 
   await db.update(patientRecords)
-    .set({ title: (formData.get("title") as string)?.trim() || null, content, createdAt: new Date() })
+    .set({ title: (formData.get("title") as string)?.trim() || null, content, createdAt: agoraParede() })
     .where(and(eq(patientRecords.id, recordId), eq(patientRecords.userId, userId)));
 
   revalidatePath(`/dashboard/patients/${rec.patientId}`);
@@ -726,7 +728,7 @@ export async function createAnamnese(patientId: string, title: string, content: 
     .where(and(eq(patientAnamnese.patientId, patientId), eq(patientAnamnese.userId, userId)));
   const pos = existentes.reduce((m, r) => Math.max(m, r.position), -1) + 1;
 
-  await db.insert(patientAnamnese).values({ userId, patientId, title: t, content: (content || "").trim(), custom, position: pos });
+  await db.insert(patientAnamnese).values({ userId, patientId, title: t, content: (content || "").trim(), custom, position: pos, createdAt: agoraParede(), updatedAt: agoraParede() });
   revalidatePath(`/dashboard/patients/${patientId}`);
   return { ok: true };
 }
@@ -740,7 +742,7 @@ export async function updateAnamnese(id: string, content: string): Promise<{ ok:
   const campo = await db.query.patientAnamnese.findFirst({ where: and(eq(patientAnamnese.id, id), eq(patientAnamnese.userId, userId)) });
   if (!campo) return { ok: false, error: "Campo não encontrado." };
 
-  await db.update(patientAnamnese).set({ content: (content || "").trim(), updatedAt: new Date() })
+  await db.update(patientAnamnese).set({ content: (content || "").trim(), updatedAt: agoraParede() })
     .where(and(eq(patientAnamnese.id, id), eq(patientAnamnese.userId, userId)));
   revalidatePath(`/dashboard/patients/${campo.patientId}`);
   return { ok: true };
@@ -973,7 +975,7 @@ export async function createActivity(patientId: string, title: string, descripti
   if (!t) return { ok: false, error: "Informe o título da atividade." };
   const dono = await db.query.patients.findFirst({ where: and(eq(patients.id, patientId), eq(patients.userId, userId)), columns: { id: true } });
   if (!dono) return { ok: false, error: "Paciente não encontrado." };
-  await db.insert(patientActivities).values({ userId, patientId, title: t, description: (description || "").trim() });
+  await db.insert(patientActivities).values({ userId, patientId, title: t, description: (description || "").trim(), createdAt: agoraParede(), updatedAt: agoraParede() });
   revalidatePath(`/dashboard/patients/${patientId}`);
   return { ok: true };
 }
@@ -988,7 +990,7 @@ export async function editActivity(id: string, title: string, description: strin
   const t = (title || "").trim();
   if (!t) return { ok: false, error: "Informe o título da atividade." };
   await db.update(patientActivities)
-    .set({ title: t, description: (description || "").trim(), updatedAt: new Date() })
+    .set({ title: t, description: (description || "").trim(), updatedAt: agoraParede() })
     .where(and(eq(patientActivities.id, id), eq(patientActivities.userId, userId)));
   revalidatePath(`/dashboard/patients/${at.patientId}`);
   return { ok: true };
@@ -1024,7 +1026,7 @@ export async function createDocument(patientId: string, content: string): Promis
     .where(and(eq(patientDocuments.patientId, patientId), eq(patientDocuments.userId, userId)));
   const number = existentes.reduce((m, r) => Math.max(m, r.number), 0) + 1;
 
-  await db.insert(patientDocuments).values({ userId, patientId, number, content: c });
+  await db.insert(patientDocuments).values({ userId, patientId, number, content: c, createdAt: agoraParede(), updatedAt: agoraParede() });
   revalidatePath(`/dashboard/patients/${patientId}`);
   return { ok: true, number };
 }
@@ -1038,7 +1040,7 @@ export async function updateDocument(id: string, content: string): Promise<{ ok:
   if (!c) return { ok: false, error: "Escreva o conteúdo do documento." };
   const doc = await db.query.patientDocuments.findFirst({ where: and(eq(patientDocuments.id, id), eq(patientDocuments.userId, userId)) });
   if (!doc) return { ok: false, error: "Documento não encontrado." };
-  await db.update(patientDocuments).set({ content: c, updatedAt: new Date() })
+  await db.update(patientDocuments).set({ content: c, updatedAt: agoraParede() })
     .where(and(eq(patientDocuments.id, id), eq(patientDocuments.userId, userId)));
   revalidatePath(`/dashboard/patients/${doc.patientId}`);
   return { ok: true };
