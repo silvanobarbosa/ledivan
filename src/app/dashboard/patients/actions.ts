@@ -644,6 +644,30 @@ export async function createRecord(patientId: string, formData: FormData) {
   revalidatePath(`/dashboard/patients/${patientId}`);
 }
 
+/**
+ * Doc 33: edita o título e o conteúdo de um registro. Ao salvar, a data/hora do registro passa a
+ * ser o momento da edição (o dono pediu que a alteração "atualize automaticamente a data e a hora").
+ */
+export async function editRecord(recordId: string, formData: FormData) {
+  const session = await auth();
+  if (!session?.user?.id) throw new Error("Não autorizado");
+  const userId = session.user.id;
+
+  const rec = await db.query.patientRecords.findFirst({
+    where: and(eq(patientRecords.id, recordId), eq(patientRecords.userId, userId)),
+  });
+  if (!rec) throw new Error("Registro não encontrado");
+
+  const content = (formData.get("content") as string)?.trim();
+  if (!content) throw new Error("Conteúdo obrigatório");
+
+  await db.update(patientRecords)
+    .set({ title: (formData.get("title") as string)?.trim() || null, content, createdAt: new Date() })
+    .where(and(eq(patientRecords.id, recordId), eq(patientRecords.userId, userId)));
+
+  revalidatePath(`/dashboard/patients/${rec.patientId}`);
+}
+
 export async function deleteRecord(recordId: string) {
   const session = await auth();
   if (!session?.user?.id) throw new Error("Não autorizado");

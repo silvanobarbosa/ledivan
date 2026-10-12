@@ -6,15 +6,14 @@ import { cobra } from "@/lib/reajuste";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { createRecord, deleteRecord } from "../actions";
+import { createRecord } from "../actions";
+import { RegistroItem } from "./RegistroItem";
 import { useFormStatus } from "react-dom";
 import { numeroDoWhatsapp } from "@/lib/telefoneWhatsapp";
 import { AssignmentsTab } from "./AssignmentsTab";
 import { MaterialsTab } from "./MaterialsTab";
 import { AnexosProntuario } from "./AnexosProntuario";
-import { AnexosDoRegistro } from "./AnexosDoRegistro";
 import { PatientFeatures } from "./PatientFeatures";
-import { TreatmentPlan } from "./TreatmentPlan";
 import { GeralTab } from "./GeralTab";
 import { TabelaAnual } from "./TabelaAnual";
 import type { LinhaNaTela } from "@/lib/geralDoPaciente";
@@ -23,11 +22,10 @@ import { DailyStatusPanel } from "./DailyStatusPanel";
 import {
   formatBRL,
   formatDate,
-  formatDateTime,
   patientStatusColor,
   type RiskLevel,
 } from "@/lib/therapy";
-import { Phone, Plus, Pencil, Trash2, Mic, Loader2, FileText, Repeat, Download, MessageCircle } from "lucide-react";
+import { Phone, Plus, Pencil, Mic, Loader2, FileText, Repeat, Download, MessageCircle } from "lucide-react";
 import { anosDisponiveis } from "@/lib/filtroDeAno";
 
 type Patient = {
@@ -62,7 +60,6 @@ type AssignmentEntry = {
   responseFileType: string | null; respondedAt: string | null; therapistComment: string | null;
 };
 
-const RECORD_TYPE_LABELS: Record<string, string> = { evolucao: "Evolução", anamnese: "Anamnese", nota: "Nota", registro: "Registro" };
 
 /** Botão de salvar que se desabilita enquanto o envio está em curso: evita o registro duplicado
  *  do clique-duplo (prints 6.pdf, item 8). Precisa viver DENTRO do <form action>. */
@@ -84,7 +81,7 @@ const inputCls = "w-full px-4 py-2.5 rounded-xl bg-white/70 border border-border
 const TABS = ["Geral", "Registros", "Atividades", "Materiais"] as const;
 
 export function PatientDetail({
-  patient, pagador, payments, statusHistory, records, transcriptionEnabled, risk: _risk, assignments, moodToken, moodLogs, scales, treatmentGoals, diaryEntries = [], ratings = [], consents = [], contractHistory: _contractHistory = [], finance, sessionStats, recurring, statusEnabled = false, dailyStatus = [], sharedWritings = [], geral = [], cobrancaMessage = null,
+  patient, pagador, payments, statusHistory, records, transcriptionEnabled, risk: _risk, assignments, moodToken, moodLogs, scales, diaryEntries = [], ratings = [], consents = [], contractHistory: _contractHistory = [], finance, sessionStats, recurring, statusEnabled = false, dailyStatus = [], sharedWritings = [], geral = [], cobrancaMessage = null,
 }: {
   patient: Patient; pagador: Pagador; sessions: Session[]; payments: Payment[];
   statusHistory: StatusEntry[]; priceHistory: PriceEntry[]; records: RecordEntry[];
@@ -99,7 +96,6 @@ export function PatientDetail({
   moodToken: string | null;
   moodLogs: { id: string; mood: number; note: string | null; loggedAt: string }[];
   scales: { id: string; token: string; scaleType: string; status: string; score: number | null; severity: string | null; appliedAt: string | null }[];
-  treatmentGoals: { id: string; title: string; description: string | null; status: string; progress: number; targetDate: string | null }[];
   diaryEntries?: { id: string; content: string; mood: number | null; createdAt: string }[];
   ratings?: { id: string; score: number; comment: string | null; createdAt: string }[];
   consents?: { id: string; title: string; acceptedName: string; acceptedAt: string; formUpdatedAt: string }[];
@@ -401,7 +397,7 @@ export function PatientDetail({
               registros livres. */}
           <AnexosProntuario patientId={patient.id} />
 
-          <TreatmentPlan patientId={patient.id} goals={treatmentGoals} />
+          {/* Doc 33: "Histórico terapêutico" (TreatmentPlan) retirado dos Registros. */}
           <div className="flex flex-wrap gap-4">
             <button onClick={() => setShowRecord((s) => !s)} className="flex items-center gap-2 text-primary font-semibold text-sm hover:underline">
               <Plus className="w-4 h-4" /> Novo registro
@@ -457,25 +453,9 @@ export function PatientDetail({
           )}
           {records.length === 0 ? <Empty text="Nenhum registro no prontuário." /> : (
             <div className="space-y-2">
+              {/* Doc 33: cada registro tem ícones de editar (título+descrição) e excluir — ver RegistroItem. */}
               {records.map((r) => (
-                <div key={r.id} className="glass-card rounded-2xl p-5 group">
-                  <div className="flex items-center justify-between gap-3 mb-2">
-                    <div className="flex items-center gap-2">
-                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full uppercase bg-[#f3e8ff] text-primary">{RECORD_TYPE_LABELS[r.type] || r.type}</span>
-                      {r.title && <span className="text-sm font-semibold">{r.title}</span>}
-                    </div>
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs text-foreground/40">{formatDateTime(r.createdAt)}</span>
-                      <form action={deleteRecord.bind(null, r.id)}>
-                        <button className="opacity-0 group-hover:opacity-100 text-foreground/30 hover:text-red-600 transition" title="Excluir registro">
-                          <Trash2 className="w-4 h-4" />
-                        </button>
-                      </form>
-                    </div>
-                  </div>
-                  <p className="text-sm text-foreground/80 whitespace-pre-wrap leading-relaxed">{r.content}</p>
-                  <AnexosDoRegistro patientId={patient.id} recordId={r.id} />
-                </div>
+                <RegistroItem key={r.id} patientId={patient.id} r={r} />
               ))}
             </div>
           )}
