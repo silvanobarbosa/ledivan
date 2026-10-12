@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState, useTransition } from "react";
+import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { Paperclip, Download, Trash2, Plus } from "lucide-react";
 import { deleteMaterial, listAnexosProntuario, uploadAnexoProntuario } from "./materials-actions";
 
@@ -19,11 +19,9 @@ type Anexo = { id: string; title: string; kind: string; content: string; at: str
 export function AnexosProntuario({ patientId }: { patientId: string }) {
   const [itens, setItens] = useState<Anexo[]>([]);
   const [carregando, setCarregando] = useState(true);
-  const [abrir, setAbrir] = useState(false);
-  const [titulo, setTitulo] = useState("");
-  const [arquivo, setArquivo] = useState<File | null>(null);
   const [erro, setErro] = useState<string | null>(null);
   const [pendente, iniciar] = useTransition();
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const carregar = useCallback(async () => {
     setItens(await listAnexosProntuario(patientId));
@@ -36,17 +34,19 @@ export function AnexosProntuario({ patientId }: { patientId: string }) {
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { void carregar(); }, [carregar]);
 
-  function enviar() {
-    if (!arquivo) { setErro("Escolha um arquivo."); return; }
+  // Doc 33: "Anexar arquivo" abre DIRETO o seletor; o nome do arquivo vira o título do anexo.
+  function aoEscolher(e: React.ChangeEvent<HTMLInputElement>) {
+    const arquivo = e.target.files?.[0] ?? null;
+    e.target.value = "";
+    if (!arquivo) return;
     setErro(null);
     const fd = new FormData();
     fd.set("patientId", patientId);
-    fd.set("title", titulo);
+    fd.set("title", arquivo.name.replace(/\.[^.]+$/, ""));
     fd.set("file", arquivo);
     iniciar(async () => {
       const r = await uploadAnexoProntuario(fd);
       if (!r.ok) { setErro(r.error ?? "Não deu para anexar."); return; }
-      setTitulo(""); setArquivo(null); setAbrir(false);
       await carregar();
     });
   }
@@ -69,36 +69,21 @@ export function AnexosProntuario({ patientId }: { patientId: string }) {
         <p className="text-xs font-bold text-foreground/40 uppercase tracking-widest flex items-center gap-1.5">
           <Paperclip className="w-4 h-4" /> Anexos
         </p>
-        <button type="button" onClick={() => setAbrir((v) => !v)} className="inline-flex items-center gap-1.5 bg-surface border border-border text-primary text-sm px-3 py-2 rounded-xl font-semibold">
-          <Plus className="w-4 h-4" /> Anexar arquivo
+        <input
+          ref={inputRef}
+          type="file"
+          accept="application/pdf,image/jpeg,image/png,image/webp,image/gif"
+          onChange={aoEscolher}
+          className="hidden"
+        />
+        <button type="button" onClick={() => inputRef.current?.click()} disabled={pendente} className="inline-flex items-center gap-1.5 bg-surface border border-border text-primary text-sm px-3 py-2 rounded-xl font-semibold disabled:opacity-60 cursor-pointer">
+          <Plus className="w-4 h-4" /> {pendente ? "Anexando…" : "Anexar arquivo"}
         </button>
       </div>
       <p className="text-xs text-foreground/50 -mt-1">
-        Laudo, relatório da escola, encaminhamento, exame. Fica só com você: o paciente não vê
-        estes arquivos no aplicativo dele.
+        Laudos, relatórios escolares, encaminhamentos e exames ficam disponíveis apenas para você.
+        Esses arquivos são confidenciais e não ficam visíveis para o paciente no aplicativo dele.
       </p>
-
-      {abrir && (
-        <div className="rounded-2xl bg-surface/70 border border-border p-4 space-y-3">
-          <div>
-            <label className="text-xs font-semibold text-foreground/60">Nome do anexo</label>
-            <input value={titulo} onChange={(e) => setTitulo(e.target.value)} placeholder="ex: Laudo neuropsicológico" className="w-full px-4 py-2.5 rounded-xl bg-white border border-border outline-none text-sm" />
-          </div>
-          <div>
-            <label className="text-xs font-semibold text-foreground/60">Arquivo</label>
-            <input
-              type="file"
-              accept="application/pdf,image/jpeg,image/png,image/webp,image/gif"
-              onChange={(e) => setArquivo(e.target.files?.[0] ?? null)}
-              className="w-full text-sm"
-            />
-            <p className="text-[11px] text-foreground/40 mt-1">PDF ou imagem, até 15 MB.</p>
-          </div>
-          <button type="button" onClick={enviar} disabled={pendente} className="bg-primary text-white px-5 py-2.5 rounded-xl font-bold text-sm disabled:opacity-60">
-            {pendente ? "Anexando…" : "Anexar"}
-          </button>
-        </div>
-      )}
 
       {erro && <p className="text-sm text-red-600">{erro}</p>}
 

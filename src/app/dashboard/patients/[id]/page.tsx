@@ -8,7 +8,7 @@
    achados de verdade — eles passam a valer. */
 import { db } from "@/db";
 import { auth } from "@/auth";
-import { users, patients, therapySessions, sessionPayments, patientStatusHistory, patientPriceHistory, patientContractHistory, patientRecords, assignments, moodLogs, scaleApplications, treatmentGoals, patientPackages, patientDiary, sessionRatings, patientConsents, patientWriting, patientDailyStatus } from "@/db/schema";
+import { users, patients, therapySessions, sessionPayments, patientStatusHistory, patientPriceHistory, patientContractHistory, patientRecords, assignments, moodLogs, scaleApplications, patientPackages, patientDiary, sessionRatings, patientConsents, patientWriting, patientDailyStatus } from "@/db/schema";
 import { and, eq, desc } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import Link from "next/link";
@@ -34,7 +34,7 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
   if (!patient) notFound();
 
   // Todas as consultas do paciente em paralelo (evita waterfall de round-trips no Neon)
-  const [sessionsList, paymentsList, statusHist, priceHist, recordsList, assignmentsList, moodList, scaleList, goalsList, contractHist, me, packagesList, diaryList, ratingsList, consentsList] = await Promise.all([
+  const [sessionsList, paymentsList, statusHist, priceHist, recordsList, assignmentsList, moodList, scaleList, contractHist, me, packagesList, diaryList, ratingsList, consentsList] = await Promise.all([
     db.query.therapySessions.findMany({ where: eq(therapySessions.patientId, id), orderBy: [desc(therapySessions.date)] }),
     db.query.sessionPayments.findMany({ where: eq(sessionPayments.patientId, id), orderBy: [desc(sessionPayments.date)] }),
     db.query.patientStatusHistory.findMany({ where: eq(patientStatusHistory.patientId, id), orderBy: [desc(patientStatusHistory.date)] }),
@@ -43,7 +43,6 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
     db.query.assignments.findMany({ where: eq(assignments.patientId, id), orderBy: [desc(assignments.createdAt)] }),
     db.query.moodLogs.findMany({ where: eq(moodLogs.patientId, id), orderBy: [desc(moodLogs.loggedAt)], limit: 60 }),
     db.query.scaleApplications.findMany({ where: eq(scaleApplications.patientId, id), orderBy: [desc(scaleApplications.createdAt)] }),
-    db.query.treatmentGoals.findMany({ where: eq(treatmentGoals.patientId, id), orderBy: [desc(treatmentGoals.createdAt)] }),
     db.query.patientContractHistory.findMany({ where: eq(patientContractHistory.patientId, id), orderBy: [desc(patientContractHistory.date)] }),
     db.query.users.findFirst({ where: eq(users.id, userId) }),
     db.query.patientPackages.findMany({ where: eq(patientPackages.patientId, id), orderBy: [patientPackages.seq] }),
@@ -177,7 +176,6 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
         moodToken={patient.moodToken}
         moodLogs={JSON.parse(JSON.stringify(moodList))}
         scales={JSON.parse(JSON.stringify(scaleList))}
-        treatmentGoals={JSON.parse(JSON.stringify(goalsList))}
         diaryEntries={JSON.parse(JSON.stringify(diaryList))}
         ratings={JSON.parse(JSON.stringify(ratingsList))}
         consents={JSON.parse(JSON.stringify(consentsList))}

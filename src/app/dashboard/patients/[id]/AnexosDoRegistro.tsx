@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState, useTransition } from "react";
+import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { Paperclip, Download, Trash2 } from "lucide-react";
 import { deleteMaterial, listAnexosDoRegistro, uploadAnexoDoRegistro } from "./materials-actions";
 
@@ -13,10 +13,9 @@ type Anexo = { id: string; title: string; kind: string; content: string; at: str
  */
 export function AnexosDoRegistro({ patientId, recordId }: { patientId: string; recordId: string }) {
   const [itens, setItens] = useState<Anexo[]>([]);
-  const [abrir, setAbrir] = useState(false);
-  const [arquivo, setArquivo] = useState<File | null>(null);
   const [erro, setErro] = useState<string | null>(null);
   const [pendente, iniciar] = useTransition();
+  const inputRef = useRef<HTMLInputElement>(null);
 
   const carregar = useCallback(async () => {
     setItens(await listAnexosDoRegistro(recordId));
@@ -25,8 +24,12 @@ export function AnexosDoRegistro({ patientId, recordId }: { patientId: string; r
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { void carregar(); }, [carregar]);
 
-  function enviar() {
-    if (!arquivo) { setErro("Escolha um arquivo."); return; }
+  // Doc 33: "Anexar arquivo" abre DIRETO o seletor de arquivos do dispositivo; escolhido o arquivo,
+  // o upload começa na hora — sem passo intermediário.
+  function aoEscolher(e: React.ChangeEvent<HTMLInputElement>) {
+    const arquivo = e.target.files?.[0] ?? null;
+    e.target.value = ""; // permite escolher o mesmo arquivo de novo depois
+    if (!arquivo) return;
     setErro(null);
     const fd = new FormData();
     fd.set("patientId", patientId);
@@ -35,7 +38,6 @@ export function AnexosDoRegistro({ patientId, recordId }: { patientId: string; r
     iniciar(async () => {
       const r = await uploadAnexoDoRegistro(fd);
       if (!r.ok) { setErro(r.error ?? "Não deu para anexar."); return; }
-      setArquivo(null); setAbrir(false);
       await carregar();
     });
   }
@@ -67,24 +69,16 @@ export function AnexosDoRegistro({ patientId, recordId }: { patientId: string; r
         </div>
       ))}
 
-      {abrir ? (
-        <div className="flex flex-wrap items-center gap-2">
-          <input
-            type="file"
-            accept="application/pdf,image/jpeg,image/png,image/webp,image/gif"
-            onChange={(e) => setArquivo(e.target.files?.[0] ?? null)}
-            className="text-xs"
-          />
-          <button type="button" onClick={enviar} disabled={pendente} className="bg-primary text-white px-3 py-1.5 rounded-lg font-bold text-xs disabled:opacity-60">
-            {pendente ? "Anexando…" : "Anexar"}
-          </button>
-          <button type="button" onClick={() => { setAbrir(false); setArquivo(null); setErro(null); }} className="text-foreground/50 text-xs px-1">Cancelar</button>
-        </div>
-      ) : (
-        <button type="button" onClick={() => setAbrir(true)} className="inline-flex items-center gap-1 text-primary text-xs font-semibold hover:underline">
-          <Paperclip className="w-3.5 h-3.5" /> Anexar arquivo
-        </button>
-      )}
+      <input
+        ref={inputRef}
+        type="file"
+        accept="application/pdf,image/jpeg,image/png,image/webp,image/gif"
+        onChange={aoEscolher}
+        className="hidden"
+      />
+      <button type="button" onClick={() => inputRef.current?.click()} disabled={pendente} className="inline-flex items-center gap-1 text-primary text-xs font-semibold hover:underline disabled:opacity-60 cursor-pointer">
+        <Paperclip className="w-3.5 h-3.5" /> {pendente ? "Anexando…" : "Anexar arquivo"}
+      </button>
       {erro && <p className="text-xs text-red-600">{erro}</p>}
     </div>
   );
