@@ -54,7 +54,7 @@ export function AnamneseTab({ patientId, campos }: { patientId: string; campos: 
   return (
     <div className="space-y-3">
       <p className="font-semibold text-primary flex items-center gap-2"><ClipboardList className="w-4 h-4" /> Anamnese</p>
-      <p className="text-xs text-foreground/50 -mt-1">Cada campo é salvo e editado por conta própria. Use &ldquo;Adicionar campo&rdquo; para incluir itens à medida do paciente.</p>
+      <p className="text-xs text-foreground/50 -mt-1">Utilize o botão &ldquo;Adicionar campo&rdquo; para incluir novos campos conforme as necessidades de cada paciente.</p>
 
       {padrao.map((c) => <AnamneseItem key={`p:${c.title}`} patientId={patientId} campo={c} />)}
       {personalizados.map((c) => <AnamneseItem key={`c:${c.id}`} patientId={patientId} campo={c} />)}

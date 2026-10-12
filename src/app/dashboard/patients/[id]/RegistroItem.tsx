@@ -41,12 +41,12 @@ export function RegistroItem({ patientId, r }: { patientId: string; r: Registro 
         <div className="flex items-center gap-2">
           <span className="text-xs text-foreground/40">{formatDateTime(r.createdAt)}</span>
           {!editando && (
-            <button type="button" onClick={() => setEditando(true)} title="Editar registro" aria-label="Editar registro" className="opacity-0 group-hover:opacity-100 text-foreground/30 hover:text-primary transition cursor-pointer">
+            <button type="button" onClick={() => setEditando(true)} title="Editar registro" aria-label="Editar registro" className="text-foreground/30 hover:text-primary transition cursor-pointer">
               <Pencil className="w-4 h-4" />
             </button>
           )}
           <form action={deleteRecord.bind(null, r.id)}>
-            <button className="opacity-0 group-hover:opacity-100 text-foreground/30 hover:text-red-600 transition cursor-pointer" title="Excluir registro" aria-label="Excluir registro">
+            <button className="text-foreground/30 hover:text-red-600 transition cursor-pointer" title="Excluir registro" aria-label="Excluir registro">
               <Trash2 className="w-4 h-4" />
             </button>
           </form>

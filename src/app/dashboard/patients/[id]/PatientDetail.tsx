@@ -327,7 +327,7 @@ export function PatientDetail({
 
       {/* Tabs — Doc 33: no celular os nomes eram cortados; agora a faixa rola na horizontal e cada
           aba não encolhe nem quebra o texto. */}
-      <div className="flex gap-2 bg-white/50 p-1.5 rounded-2xl w-fit max-w-full overflow-x-auto">
+      <div className="flex flex-wrap gap-2 bg-white/50 p-1.5 rounded-2xl">
         {TABS.map((t) => (
           <button
             key={t}
