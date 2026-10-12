@@ -93,8 +93,10 @@ function Card({ title, children }: { title: string; children: ReactNode }) {
   );
 }
 
-// Campo de telefone com botão de WhatsApp (abre wa.me com o número digitado).
-function PhoneInput({ name, defaultValue, label = "Telefone" }: { name: string; defaultValue?: string | null; label?: string }) {
+// Campo com botão de WhatsApp (abre wa.me com os dígitos digitados). Serve ao telefone do paciente
+// e (doc 33) ao contato da escola — quando o contato é um telefone, o botão manda mensagem pelo
+// WhatsApp; quando não há dígitos (e-mail, texto), o botão não faz nada.
+function PhoneInput({ name, defaultValue, label = "Telefone", placeholder = "(00) 00000-0000" }: { name: string; defaultValue?: string | null; label?: string; placeholder?: string }) {
   const [val, setVal] = useState(defaultValue ?? "");
   const open = () => {
     let d = val.replace(/\D/g, "");
@@ -106,8 +108,8 @@ function PhoneInput({ name, defaultValue, label = "Telefone" }: { name: string; 
     <div>
       <label className={labelCls}>{label}</label>
       <div className="flex gap-2">
-        <input name={name} value={val} onChange={(e) => setVal(e.target.value)} className={inputCls} placeholder="(00) 00000-0000" />
-        <button type="button" onClick={open} title="Enviar mensagem no WhatsApp" className="shrink-0 px-3 rounded-2xl bg-[#25D366]/10 text-[#128C7E] hover:bg-[#25D366]/20 transition">
+        <input name={name} value={val} onChange={(e) => setVal(e.target.value)} className={inputCls} placeholder={placeholder} />
+        <button type="button" onClick={open} title="Enviar mensagem no WhatsApp" className="shrink-0 px-3 rounded-2xl bg-[#25D366]/10 text-[#128C7E] hover:bg-[#25D366]/20 transition cursor-pointer">
           <MessageCircle className="w-5 h-5" />
         </button>
       </div>
@@ -568,7 +570,9 @@ export function PatientFormFields({ p, save, tabInicial, contrato, patientId }: 
         <Card title="Escola">
           <div className="grid sm:grid-cols-2 gap-4">
             <div><label className={labelCls}>Escola</label><input name="schoolName" defaultValue={p?.schoolName ?? ""} className={inputCls} placeholder="Nome da escola" /></div>
-            <div><label className={labelCls}>Contato da escola</label><input name="schoolContact" defaultValue={p?.schoolContact ?? ""} className={inputCls} placeholder="Telefone, e-mail ou coordenação" /></div>
+            {/* Doc 33: botão de WhatsApp ao lado (igual ao telefone do paciente) — se o contato for
+                telefone, manda mensagem pelo WhatsApp. */}
+            <PhoneInput name="schoolContact" defaultValue={p?.schoolContact} label="Contato da escola" placeholder="Telefone, e-mail ou coordenação" />
           </div>
         </Card>
       </Secao>
