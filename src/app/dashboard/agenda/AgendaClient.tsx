@@ -977,8 +977,10 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
                     Prospecção e inativo não agenda; ao converter p/ Ativo, passa a aparecer. A lista
                     completa (não-inativos) segue vindo do servidor para resolver o nome de sessões já
                     marcadas — por isso o filtro é aqui, no seletor, não na consulta. */}
+                {/* Doc 34: a lista exibe o paciente pela IDENTIFICAÇÃO NA AGENDA (id da agenda), como
+                    nas células da agenda — agendaId, senão o nº de registro, senão o 1º nome. */}
                 {patients.filter((p) => p.status === "ativo").map((p) => (
-                  <option key={p.id} value={p.id}>{p.name}</option>
+                  <option key={p.id} value={p.id}>{identificacao({ agendaId: p.agendaId, registro: p.registrationNumber, nome: p.name })}</option>
                 ))}
               </select>
             </div>
