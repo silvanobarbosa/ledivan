@@ -11,9 +11,9 @@ import "server-only";
  * tela dão o mesmo resultado na Vercel (UTC) e na máquina de quem desenvolve (UTC−3).
  */
 
-import { and, eq } from "drizzle-orm";
+import { and, eq, isNull } from "drizzle-orm";
 import { db } from "@/db";
-import { blockedSlots, cobrancaEnvios, cobrancaVencimentos, sessoesPuladas, patientPackages, patientPackageHistory, patientPaymentFormatHistory, patientPriceHistory, patients, sessionPayments, therapySessions } from "@/db/schema";
+import { blockedSlots, cobrancaEnvios, cobrancaVencimentos, sessoesPuladas, patientCredits, patientPackages, patientPackageHistory, patientPaymentFormatHistory, patientPriceHistory, patients, sessionPayments, therapySessions } from "@/db/schema";
 import { horaDeParede } from "./horaLocal";
 import { linhasDaGeral, resumoDaGeral, type CobrancaDaGeral, type EntradaDaGeral, type LinhaDaGeral } from "./guiaGeral";
 import { tamanhosDasSequencias } from "./sequenciaPacote";
@@ -38,10 +38,10 @@ export type CobrancaNaTela = Omit<CobrancaDaGeral, "vencimento" | "competencia" 
   vencimento: string | null;
   /** Doc 31: o vencimento desta cobrança foi EDITADO à mão (há override). A tela mostra o "desfazer". */
   vencimentoEditado: boolean;
-  pagamento: { id: string; data: string; metodo: string | null; pagoPor: string | null; recibo: boolean; nota: boolean } | null;
+  pagamento: { id: string; data: string; metodo: string | null; pagoPor: string | null; recibo: boolean; nota: boolean; credito: boolean } | null;
   /** Cada lançamento desta cobrança (doc 21/28): id (remover), data (hora de parede), valor, quem
    *  pagou, método e se já teve recibo/nota emitidos (p/ os controles por lançamento). */
-  pagamentos: { id: string; data: string; valor: number; pagoPor: string | null; metodo: string | null; recibo: boolean; nota: boolean }[];
+  pagamentos: { id: string; data: string; valor: number; pagoPor: string | null; metodo: string | null; recibo: boolean; nota: boolean; credito: boolean }[];
   /**
    * Os avisos daquela cobranca (`data` = hora de parede). `total` e `datas` trazem o historico
    * inteiro: cada clique em "Cobrar" e um aviso, e o documento de 17/09 pede que nenhum substitua
@@ -80,8 +80,8 @@ function cobrancaNaTela(
     parte: c.parte,
     situacao: c.situacao,
     vencimento: texto(c.vencimento ?? c.competencia),
-    pagamento: c.pagamento ? { ...c.pagamento, data: texto(c.pagamento.data) ?? "" } : null,
-    pagamentos: c.pagamentos.map((p) => ({ id: p.id, data: texto(p.data) ?? "", valor: p.valor, pagoPor: p.pagoPor, metodo: p.metodo, recibo: p.recibo === true, nota: p.nota === true })),
+    pagamento: c.pagamento ? { ...c.pagamento, data: texto(c.pagamento.data) ?? "", credito: c.pagamento.credito === true } : null,
+    pagamentos: c.pagamentos.map((p) => ({ id: p.id, data: texto(p.data) ?? "", valor: p.valor, pagoPor: p.pagoPor, metodo: p.metodo, recibo: p.recibo === true, nota: p.nota === true, credito: p.credito === true })),
     envio: c.envio
       ? { data: texto(c.envio.data) ?? "", por: c.envio.por, total: c.envio.total, datas: c.envio.datas.map((d) => texto(d) ?? "") }
       : null,
@@ -183,4 +183,11 @@ export async function geralDoPaciente(userId: string, patientId: string): Promis
     linhas: linhasDaGeral(entrada).map((l) => naTela(l, editados)),
     resumo: { ...resumo, extrato: resumo.extrato.map((m) => ({ ...m, data: texto(m.data) ?? "" })) },
   };
+}
+
+/** Soma dos créditos ainda não consumidos de um paciente (o "saldo" do doc 36). */
+export async function creditoDisponivel(userId: string, patientId: string): Promise<number> {
+  const rows = await db.select({ valor: patientCredits.valor }).from(patientCredits)
+    .where(and(eq(patientCredits.userId, userId), eq(patientCredits.patientId, patientId), isNull(patientCredits.consumidoEm)));
+  return Math.round(rows.reduce((s, r) => s + (Number(r.valor) || 0), 0) * 100) / 100;
 }

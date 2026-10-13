@@ -82,7 +82,7 @@ const inputCls = "w-full px-4 py-2.5 rounded-xl bg-white/70 border border-border
 const TABS = ["Geral", "Registros", "Anamnese", "Atividades", "Documentos"] as const;
 
 export function PatientDetail({
-  patient, pagador, payments, statusHistory, records, transcriptionEnabled, risk: _risk, assignments, moodToken, moodLogs, scales, diaryEntries = [], ratings = [], consents = [], contractHistory: _contractHistory = [], finance, sessionStats, recurring, statusEnabled = false, dailyStatus = [], sharedWritings = [], geral = [], cobrancaMessage = null, anamnese = [], activities = [], documentos = [], docCabecalho,
+  patient, pagador, payments, statusHistory, records, transcriptionEnabled, risk: _risk, assignments, moodToken, moodLogs, scales, diaryEntries = [], ratings = [], consents = [], contractHistory: _contractHistory = [], finance, sessionStats, recurring, statusEnabled = false, dailyStatus = [], sharedWritings = [], geral = [], cobrancaMessage = null, anamnese = [], activities = [], documentos = [], docCabecalho, creditoDisponivel = 0,
 }: {
   patient: Patient; pagador: Pagador; sessions: Session[]; payments: Payment[];
   statusHistory: StatusEntry[]; priceHistory: PriceEntry[]; records: RecordEntry[];
@@ -90,6 +90,7 @@ export function PatientDetail({
   activities?: { id: string; title: string; description: string; updatedAt: string }[];
   documentos?: DocumentoSalvo[];
   docCabecalho?: CabecalhoDoc;
+  creditoDisponivel?: number;
   contractHistory?: ContractEntry[];
   finance: Finance;
   ledger?: LedgerEntry[];
@@ -390,7 +391,7 @@ export function PatientDetail({
             <p className="text-sm text-foreground/60">Ano: {ano === "TODOS" ? "Todos" : ano}</p>
           </div>
           <GeralTab patientId={patient.id} linhas={geral} ano={ano} responsavel={pagador.nome}
-            responsavelCpf={pagador.cpf}
+            responsavelCpf={pagador.cpf} creditoDisponivel={creditoDisponivel}
             cobrar={{ telefone: patient.guardianPhone || patient.phone, nome: patient.guardianName || patient.name, modelo: cobrancaMessage }} />
           {/* GER6: valores recebidos por mês, no MESMO ano escolhido acima */}
           <TabelaAnual payments={payments} ano={ano} />

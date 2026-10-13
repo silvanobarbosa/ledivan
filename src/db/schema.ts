@@ -756,6 +756,23 @@ export const patientReajusteChanges = pgTable("patient_reajuste_changes", {
   index("reajuste_changes_patient_idx").on(t.patientId),
 ]);
 
+// Crédito no saldo do paciente (doc 36): quando paga a mais e o usuário escolhe guardar a sobra.
+// Um crédito é consumido no próximo pagamento (abate automático). `consumidoEm` null = disponível.
+export const patientCredits = pgTable("patient_credits", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: text("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
+  patientId: uuid("patient_id").references(() => patients.id, { onDelete: "cascade" }).notNull(),
+  valor: numeric("valor", { precision: 10, scale: 2 }).notNull(),
+  // O pagamento (sobra) que GEROU este crédito — para reverter se aquele pagamento for removido.
+  origemPagamentoId: uuid("origem_pagamento_id"),
+  // O pagamento kind="credito" que CONSUMIU este crédito — para reverter se aquele for removido.
+  consumidoPagamentoId: uuid("consumido_pagamento_id"),
+  consumidoEm: timestamp("consumido_em"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (t) => [
+  index("patient_credits_patient_idx").on(t.patientId),
+]);
+
 export const sessionPayments = pgTable("session_payments", {
   id: uuid("id").primaryKey().defaultRandom(),
   userId: text("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),

@@ -9,6 +9,7 @@ import { formatBRL, PAYMENT_METHOD_LABELS, sessionColorClasses } from "@/lib/the
 import type { CobrancaNaTela, LinhaNaTela } from "@/lib/geralDoPaciente";
 import { montarMensagemCobranca } from "@/lib/mensagemCobranca";
 import { parseMoedaBR } from "@/lib/money";
+import { aplicarCreditoNoLancamento } from "@/lib/credito";
 import { desfazerVencimento, editarVencimento, lancarPagamento, limparEnviosDaCobranca, registrarCobrancaEnviada, removerPagamento } from "./geral-actions";
 import { marcarEmissao } from "./recibo-actions";
 import { doAno, dataDoAnoControle } from "@/lib/filtroDeAno";
@@ -292,7 +293,7 @@ function ListaLancamentos({ patientId, pagamentos, total }: { patientId: string;
   return (
     <div className="text-[11px] text-foreground/55 tabular-nums space-y-2">
       {pagamentos.map((p) => {
-        const forma = p.metodo ? PAYMENT_METHOD_LABELS[p.metodo] ?? p.metodo : null;
+        const forma = p.credito ? "Crédito do saldo" : p.metodo ? PAYMENT_METHOD_LABELS[p.metodo] ?? p.metodo : null;
         const ehTotal = Math.abs(p.valor - total) < 0.005; // paga o pacote inteiro → oculta o valor
         const linha1 = [ehTotal ? null : formatBRL(p.valor), partes(p.data).data, forma].filter(Boolean).join(" · ");
         return (
@@ -339,7 +340,7 @@ function ColunasDoPagamento({ patientId, c, onLancar, cobrar }: { patientId: str
     // representante, com o valor da cobrança (que o ListaLancamentos oculta por ser o total).
     const lancamentos = c.pagamentos.length
       ? c.pagamentos
-      : [{ id: pg.id, data: pg.data, valor: c.valor, pagoPor: pg.pagoPor, metodo: pg.metodo, recibo: pg.recibo, nota: pg.nota }];
+      : [{ id: pg.id, data: pg.data, valor: c.valor, pagoPor: pg.pagoPor, metodo: pg.metodo, recibo: pg.recibo, nota: pg.nota, credito: pg.credito }];
     return (
       <>
         <td className="px-3 py-2">
@@ -392,7 +393,7 @@ function ColunasDoPagamento({ patientId, c, onLancar, cobrar }: { patientId: str
   );
 }
 
-function FormularioDeLancamento({ patientId, c, responsavel, responsavelCpf, fechar }: { patientId: string; c: CobrancaNaTela; responsavel: string; responsavelCpf: string; fechar: () => void }) {
+function FormularioDeLancamento({ patientId, c, responsavel, responsavelCpf, fechar, creditoDisponivel = 0 }: { patientId: string; c: CobrancaNaTela; responsavel: string; responsavelCpf: string; fechar: () => void; creditoDisponivel?: number }) {
   const router = useRouter();
   const [pending, start] = useTransition();
   const [erro, setErro] = useState<string | null>(null);
@@ -413,12 +414,23 @@ function FormularioDeLancamento({ patientId, c, responsavel, responsavelCpf, fec
   // tratados como centavos e formatados em R$. O servidor parseia por `parseMoedaBR`, igual aos
   // outros campos de dinheiro (ver MoneyInput). `valorNum` é derivado para a prévia e o botão.
   const reaisBRL = (n: number) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
-  const [valor, setValor] = useState(c.falta > 0 ? reaisBRL(c.falta) : "");
+  // Doc 36: havendo crédito no saldo, ele já abate — o campo pré-preenche com o DINHEIRO que falta
+  // depois do crédito, e a sobra (pagar a mais) pode virar crédito novo (o usuário decide).
+  const [valor, setValor] = useState(() => {
+    const faltaAposCredito = Math.max(0, Math.round((c.falta - Math.min(creditoDisponivel, c.falta)) * 100) / 100);
+    return faltaAposCredito > 0 ? reaisBRL(faltaAposCredito) : "";
+  });
   const [quitar, setQuitar] = useState(false);
+  const [creditarSobra, setCreditarSobra] = useState(true);
   const valorNum = Number(parseMoedaBR(valor) ?? 0) || 0;
-  const diferenca = Math.round((c.falta - valorNum) * 100) / 100;
-  const aMenos = diferenca > 0.005;
-  const aMais = diferenca < -0.005;
+  const { creditoAplicado, fecha } = aplicarCreditoNoLancamento({
+    falta: c.falta, cashRecebido: valorNum, creditoDisponivel, creditarExcedente: creditarSobra,
+  });
+  // Ainda falta DEPOIS do dinheiro + crédito aplicado? Então é pagamento parcial (recebeu menos).
+  const diferenca = Math.round((c.falta - valorNum - creditoAplicado) * 100) / 100;
+  const aMenos = !fecha && diferenca > 0.005;
+  const sobraCash = Math.round((valorNum - c.falta) * 100) / 100;
+  const aMais = sobraCash > 0.005;
 
   function enviar(fd: FormData) {
     setErro(null);
@@ -432,6 +444,7 @@ function FormularioDeLancamento({ patientId, c, responsavel, responsavelCpf, fec
         metodo: String(fd.get("metodo") ?? ""),
         valor: String(fd.get("valor") ?? ""),
         quitarDiferenca: aMenos && quitar,
+        creditarExcedente: aMais && creditarSobra,
       });
       if (r.ok) { fechar(); router.refresh(); }
       else setErro(r.error ?? "Não foi possível lançar.");
@@ -488,8 +501,16 @@ function FormularioDeLancamento({ patientId, c, responsavel, responsavelCpf, fec
             {pending ? "Salvando…" : `Confirmar ${formatBRL(valorNum)}`}
           </button>
 
+          {/* Doc 36: crédito do saldo disponível — abatido automaticamente nesta cobrança. */}
+          {creditoDisponivel > 0.005 && (
+            <p className="sm:col-span-7 text-[11px] text-[#047857]">
+              Crédito no saldo: <b>{formatBRL(creditoDisponivel)}</b>
+              {creditoAplicado > 0.005 ? <> — <b>{formatBRL(creditoAplicado)}</b> será aplicado nesta cobrança.</> : " (não necessário aqui)."}
+            </p>
+          )}
+
           {/* Recebeu MENOS: por padrão a diferença fica em aberto; a pessoa pode optar por perdoá-la
-              (doc 17 — nunca "pago em parte"). Recebeu MAIS: a sobra vira crédito. */}
+              (doc 17 — nunca "pago em parte"). */}
           {aMenos && (
             <div className="sm:col-span-7 text-[11px] flex flex-wrap items-center gap-x-3 gap-y-1">
               {quitar ? (
@@ -503,10 +524,14 @@ function FormularioDeLancamento({ patientId, c, responsavel, responsavelCpf, fec
               </label>
             </div>
           )}
+          {/* Recebeu MAIS (doc 36): o usuário DECIDE se a sobra vira crédito no saldo (Sim/Não). */}
           {aMais && (
-            <p className="sm:col-span-7 text-[11px] text-foreground/60">
-              {formatBRL(-diferenca)} a mais entram como crédito no saldo.
-            </p>
+            <label className="sm:col-span-7 text-[11px] inline-flex items-center gap-1.5 cursor-pointer">
+              <input type="checkbox" checked={creditarSobra} onChange={(e) => setCreditarSobra(e.target.checked)} />
+              <span className={creditarSobra ? "text-[#047857] font-semibold" : "text-foreground/60"}>
+                {formatBRL(sobraCash)} a mais {creditarSobra ? "entram" : "NÃO entram"} como crédito no saldo?
+              </span>
+            </label>
           )}
           {erro && <p className="sm:col-span-7 text-xs text-[#b91c1c]">{erro}</p>}
         </form>
@@ -515,7 +540,7 @@ function FormularioDeLancamento({ patientId, c, responsavel, responsavelCpf, fec
   );
 }
 
-export function GeralTab({ patientId, linhas, responsavel, responsavelCpf, cobrar, ano }: { patientId: string; linhas: LinhaNaTela[]; responsavel: string; responsavelCpf?: string | null; cobrar?: CobrarInfo; ano: number | "TODOS" }) {
+export function GeralTab({ patientId, linhas, responsavel, responsavelCpf, cobrar, ano, creditoDisponivel = 0 }: { patientId: string; linhas: LinhaNaTela[]; responsavel: string; responsavelCpf?: string | null; cobrar?: CobrarInfo; ano: number | "TODOS"; creditoDisponivel?: number }) {
   const [aberta, setAberta] = useState<string | null>(null);
 
   // O filtro de ano é o MESMO da tabela de pagamentos (documento de 17/09): uma escolha só, e as
@@ -583,7 +608,7 @@ export function GeralTab({ patientId, linhas, responsavel, responsavelCpf, cobra
                       </td>
                       <ColunasDoPagamento patientId={patientId} c={l} onLancar={() => setAberta(l.chave)} cobrar={cobrar} />
                     </tr>
-                    {aberta === l.chave && <FormularioDeLancamento patientId={patientId} c={l} responsavel={responsavel} responsavelCpf={responsavelCpf ?? ""} fechar={() => setAberta(null)} />}
+                    {aberta === l.chave && <FormularioDeLancamento patientId={patientId} c={l} responsavel={responsavel} responsavelCpf={responsavelCpf ?? ""} fechar={() => setAberta(null)} creditoDisponivel={creditoDisponivel} />}
                   </Fragment>
                 );
               }
@@ -625,7 +650,7 @@ export function GeralTab({ patientId, linhas, responsavel, responsavelCpf, cobra
                     <td className={`px-3 py-2 text-right tabular-nums ${c?.formato === "sessao" ? "font-bold" : ""}`}>{l.valor == null ? "" : formatBRL(l.valor)}</td>
                     {c ? <ColunasDoPagamento patientId={patientId} c={c} onLancar={() => setAberta(c.chave)} cobrar={cobrar} /> : <td />}
                   </tr>
-                  {c && aberta === c.chave && <FormularioDeLancamento patientId={patientId} c={c} responsavel={responsavel} responsavelCpf={responsavelCpf ?? ""} fechar={() => setAberta(null)} />}
+                  {c && aberta === c.chave && <FormularioDeLancamento patientId={patientId} c={c} responsavel={responsavel} responsavelCpf={responsavelCpf ?? ""} fechar={() => setAberta(null)} creditoDisponivel={creditoDisponivel} />}
                 </Fragment>
               );
             })}

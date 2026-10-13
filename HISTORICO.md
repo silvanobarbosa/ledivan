@@ -7,9 +7,9 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
-## 2026-10-13 — Doc 36: miudezas, impressão, agenda e mobile (#354–#357)
+## 2026-10-13 — Doc 36: miudezas, impressão, agenda, mobile, anexo e crédito (#354–#359)
 
-Lote de 12 frentes do doc 36. 9 entregues; 3 maiores em andamento (ver Pendente).
+Lote de 12 frentes do doc 36. 11 entregues; só a #9 (quinzenal) ficou para depois (plano primeiro).
 
 **Entregue:**
 - **#354 (miudezas):** fragmentado agora ESCONDE o campo "Quantidade de sessões do pacote" (antes
@@ -28,8 +28,15 @@ Lote de 12 frentes do doc 36. 9 entregues; 3 maiores em andamento (ver Pendente)
   (sobreposição), com "Fechar" e "Imprimir" — antes abria em aba nova. Imprimir abre o arquivo numa
   janela própria e manda imprimir (o arquivo mora no cofre/domínio externo, então imprimir o iframe
   daqui esbarraria em CORS).
+- **#8 (crédito no saldo):** ao pagar a MAIS, o usuário decide (Sim/Não) se a sobra vira crédito no
+  saldo do paciente; no próximo pagamento o crédito é abatido automaticamente. Tabela
+  `patient_credits` (já em produção); regra pura `aplicarCreditoNoLancamento`. O crédito aplicado
+  entra como pagamento `kind="credito"` SEM transação (fecha a cobrança sem duplicar o caixa — o
+  dinheiro já entrou na sobra). Antes a tela só EXIBIA "entram como crédito" sem gravar nada.
 
-**Decisões que ficam valendo:** impressão de documento/contrato depende de reverter o
+**Decisões que ficam valendo:** pagamento a mais vira crédito SÓ por escolha do usuário (nunca
+automático); crédito abate o PRÓXIMO pagamento automaticamente; crédito no caixa = `kind="credito"`
+sem transação. impressão de documento/contrato depende de reverter o
 `visibility:hidden` global da tela do paciente OU tirar o papel do fluxo (position:absolute) —
 não basta zerar padding. Fragmentado: o campo de nº de sessões não existe nesse formato.
 
@@ -38,9 +45,8 @@ não basta zerar padding. Fragmentado: o campo de nº de sessões não existe ne
 parede, não de getDay local (fuso negativo erraria).
 
 **Pendente (doc 36):**
-- **#8 pagamento excedente** → criar crédito real + Sim/Não; auto-abater na próxima cobrança
-  (decisão do dono). Hoje a UI só EXIBE "entram como crédito" sem gravar nada.
-- **#9 quinzenal "APENAS ESTE"** → dono pediu PLANO antes de implementar (frente mais arriscada).
+- **#9 quinzenal "APENAS ESTE"** → dono pediu PLANO antes de implementar (frente mais arriscada:
+  mexe no espelho quinzenal da AgendaClient/`espelhosDoDia`). Plano enviado; aguarda validação.
 
 ---
 
