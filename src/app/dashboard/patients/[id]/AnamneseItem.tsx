@@ -71,7 +71,10 @@ export function AnamneseItem({ patientId, campo }: { patientId: string; campo: C
 
       {editando ? (
         <div className="space-y-2">
-          <textarea rows={3} value={valor} onChange={(e) => setValor(e.target.value)} className={inputCls} placeholder="Escreva aqui…" autoFocus />
+          {/* Sem autoFocus (doc 36): os campos padrão não salvos já abrem editáveis, então vários
+              textareas disputavam o foco e o navegador rolava até o ÚLTIMO ao abrir a guia Anamnese
+              ("jogada pro último campo"). Quem clica no lápis já está olhando o campo certo. */}
+          <textarea rows={3} value={valor} onChange={(e) => setValor(e.target.value)} className={inputCls} placeholder="Escreva aqui…" />
           {erro && <p className="text-sm text-red-600">{erro}</p>}
           <div className="flex items-center gap-2">
             <button type="button" onClick={salvar} disabled={pending} className="inline-flex items-center gap-1 bg-primary text-white px-4 py-2 rounded-xl font-bold text-sm disabled:opacity-60 cursor-pointer">

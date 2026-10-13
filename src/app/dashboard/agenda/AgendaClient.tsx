@@ -692,8 +692,9 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
                             {celula(s).identificacao}
                             {celula(s).repeticao && <span className="opacity-60"> ({celula(s).repeticao})</span>}
                           </p>
-                          <p className="text-[10px] font-bold uppercase tracking-wide truncate opacity-80 flex items-center gap-1">
-                            {celula(s).repeteSemLetra && <Repeat className="w-2.5 h-2.5 shrink-0 opacity-50" aria-label="Agendamento recorrente" />}
+                          {/* doc 36: o símbolo ⇄ de recorrência saiu dos agendamentos — poluía a célula
+                              e o ritmo já se lê pelo rótulo/posição. */}
+                          <p className="text-[10px] font-bold uppercase tracking-wide truncate opacity-80">
                             <span className="truncate">{celula(s).codigo}</span>
                           </p>
 

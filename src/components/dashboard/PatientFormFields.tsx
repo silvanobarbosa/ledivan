@@ -405,18 +405,18 @@ export function PatientFormFields({ p, save, tabInicial, contrato, patientId }: 
     </div>
   ) : null;
 
-  // Quantidade de sessões do pacote (doc 16): acabou o padrão 4/8, o usuário define. Vale para o
-  // Completo; no Fracionado quem diz é a agenda (o mês).
-  const qtdSessoesPacote = (
+  // Quantidade de sessões do pacote (doc 16): acabou o padrão 4/8, o usuário define. Vale só para o
+  // Completo. No FRAGMENTADO quem diz é a agenda (as sessões do mês), então o campo SOME de vez
+  // (doc 36) — não aparece opcional, simplesmente não existe nesse formato. Quando aparece (Completo)
+  // é obrigatório; onInvalid pula p/ a aba Financeiro, senão um required escondido numa aba inativa
+  // aborta o submit calado.
+  const qtdSessoesPacote = pacote === "fragmentado" ? null : (
     <div>
       <label htmlFor="sessionsInPacket" className={labelCls}>Quantidade de sessões do pacote</label>
-      {/* Obrigatório só no COMPLETO (doc 18). No FRAGMENTADO o total vem da agenda (as sessões do
-          mês), então o campo não é exigido (doc 35). onInvalid pula p/ a aba Financeiro, senão um
-          required escondido numa aba inativa aborta o submit calado. */}
-      <input id="sessionsInPacket" name="sessionsInPacket" type="number" min={1} max={60} required={pacote !== "fragmentado"}
+      <input id="sessionsInPacket" name="sessionsInPacket" type="number" min={1} max={60} required
         onInvalid={() => setTab("financeiro")}
-        defaultValue={p?.sessionsInPacket ?? ""} className={inputCls} placeholder={pacote === "fragmentado" ? "calculado pela agenda" : "ex: 4"} />
-      <p className="text-[10px] text-foreground/50 mt-1">{pacote === "fragmentado" ? "No fragmentado, a quantidade é calculada pelas sessões do mês." : "Quantas sessões compõem o pacote (usado no Completo)."}</p>
+        defaultValue={p?.sessionsInPacket ?? ""} className={inputCls} placeholder="ex: 4" />
+      <p className="text-[10px] text-foreground/50 mt-1">Quantas sessões compõem o pacote (usado no Completo).</p>
     </div>
   );
 
