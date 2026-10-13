@@ -3,7 +3,7 @@
 import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronLeft, ChevronRight, X, Stethoscope, Repeat, Video, AlertTriangle, MapPin, Pencil, CalendarDays, Trash2 } from "lucide-react";
-import { SESSION_STATUS_LABELS, sessionStatusColor, sessionColorClasses, reservaVencida, RISK_LABELS, riskColor, LEGENDA_DA_AGENDA, corDaLegenda, STATUS_OFERECIDOS, STATUS_QUE_PAUSAM, formatDate, type RiskLevel } from "@/lib/therapy";
+import { SESSION_STATUS_LABELS, sessionStatusColor, sessionColorClasses, reservaVencida, RISK_LABELS, riskColor, LEGENDA_DA_AGENDA, corDaLegenda, STATUS_OFERECIDOS, STATUS_QUE_PAUSAM, type RiskLevel } from "@/lib/therapy";
 import { updateSessionStatus, confirmSession, createSessionFromAgenda, createRecurring } from "../sessions/actions";
 import { HolidaySetup } from "@/components/dashboard/HolidaySetup";
 import { HOLIDAY_STYLE, type Holiday, type HolidayCity } from "@/lib/holidays-style";
@@ -153,7 +153,6 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
   // Doc 9, item 6 — "abater do pacote": a sessão inserida PREENCHE uma desmarcada do mês em vez de
   // criar uma vaga nova. Ocupa a posição que ficou aberta, de modo que nada atravessa para o mês
   // seguinte e o total do pacote não muda. "" = não preenche nenhuma (entra como sessão a mais).
-  const [newRepoe, setNewRepoe] = useState("");
 
   function pad(n: number) { return String(n).padStart(2, "0"); }
   function toLocalInput(d: Date) {
@@ -172,7 +171,6 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
     setNewFreq("pontual");
     setNewNaSequencia("sim");
     setNewCobrada("");
-    setNewRepoe("");
     setNewError(null);
     setShowNew(true);
   }
@@ -238,7 +236,10 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
   // Doc 22: ao ADICIONAR à sequência do pacote, a sessão SEMPRE preenche uma desmarcada — nunca
   // acrescenta uma a mais. Então a escolha "é uma sessão a mais" saiu, e a primeira desmarcada já
   // vem marcada por padrão (o profissional ainda pode escolher outra da lista).
-  const repoeEfetivo = newRepoe || (selectedPatient?.desmarcadas?.[0]?.id ?? "");
+  // Doc 36: "Adicionar à sequência do pacote" não pergunta mais QUAL desmarcada preenche — a
+  // sessão específica não importa, só que ela participa da sequência. Preenche sempre a primeira
+  // desmarcada em aberto (ocupa a posição; nada atravessa para o mês seguinte, total não muda).
+  const repoeEfetivo = selectedPatient?.desmarcadas?.[0]?.id ?? "";
 
   const weekEnd = new Date(weekStart);
   weekEnd.setDate(weekEnd.getDate() + 7);
@@ -972,7 +973,7 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
 
             <div>
               <label className="text-xs font-semibold text-foreground/60">Paciente</label>
-              <select name="patientId" required value={newPatient} onChange={(e) => { setNewPatient(e.target.value); setNewRepoe(""); }} className="w-full px-4 py-2.5 rounded-xl bg-surface border border-border outline-none text-sm">
+              <select name="patientId" required value={newPatient} onChange={(e) => setNewPatient(e.target.value)} className="w-full px-4 py-2.5 rounded-xl bg-surface border border-border outline-none text-sm">
                 <option value="">Selecione…</option>
                 {/* Novo atendimento lista SÓ pacientes ATIVOS (doc 19/10): prospectado fica só na
                     Prospecção e inativo não agenda; ao converter p/ Ativo, passa a aparecer. A lista
@@ -1038,25 +1039,13 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
                   ))}
                 </div>
                 <input type="hidden" name="naSequencia" value={newNaSequencia} />
-                {/* Doc 9, item 6 — "abater do pacote". Quando o paciente tem desmarcadas esperando,
-                    esta sessão pode PREENCHER uma delas em vez de criar uma vaga nova: ocupa a posição
-                    que ficou aberta, nada atravessa para o mês seguinte e o total não muda. É a
-                    reposição do documento de 17/09, agora escolhível aqui. Só no agendamento único —
-                    uma série é o próprio ritmo, não uma reposição. */}
+                {/* Doc 36: "abater do pacote" segue acontecendo (a sessão preenche uma desmarcada
+                    em aberto, ocupando a posição — nada atravessa para o mês seguinte e o total não
+                    muda), MAS não se pergunta mais QUAL desmarcada: a sessão específica não importa,
+                    só que ela participa da sequência. Preenche a primeira em aberto, sem UI. Só no
+                    agendamento único — uma série é o próprio ritmo, não uma reposição. */}
                 {newNaSequencia === "sim" && !newRecorrente && (selectedPatient?.desmarcadas?.length ?? 0) > 0 && (
-                  <div className="space-y-1.5 border-t border-[#fde68a] pt-2">
-                    <p className="text-xs font-semibold text-[#92400e]">Qual sessão desmarcada esta preenche? (abate do pacote)</p>
-                    <input type="hidden" name="repoeSessaoId" value={repoeEfetivo} />
-                    <div className="grid grid-cols-1 gap-1.5">
-                      {selectedPatient!.desmarcadas!.map((d) => (
-                        <button key={d.id} type="button" onClick={() => setNewRepoe(d.id)}
-                          className={`py-2 px-2 rounded-xl text-xs font-bold transition text-left ${repoeEfetivo === d.id ? "bg-[#92400e] text-white" : "bg-white text-foreground/70 hover:bg-surface-container"}`}>
-                          Preenche a desmarcada de {formatDate(d.data)}
-                        </button>
-                      ))}
-                    </div>
-                    <p className="text-[11px] text-[#92400e]/70">Ocupa a posição da desmarcada: nada atravessa para o mês seguinte e o total do pacote não muda.</p>
-                  </div>
+                  <input type="hidden" name="repoeSessaoId" value={repoeEfetivo} />
                 )}
                 {newNaSequencia === "nao" && (
                   <>
