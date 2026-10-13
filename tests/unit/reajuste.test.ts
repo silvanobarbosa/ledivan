@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
-  cobra, diasParaReajuste, eventosDeReajuste, historicoDeReajuste, linhasDeReajuste, referenciaDoPreco, rotuloDoFormato,
+  agruparPorVigencia, cobra, diasParaReajuste, eventosDeReajuste, historicoDeReajuste, linhasDeReajuste, referenciaDoPreco, rotuloDoFormato,
   sessoesNoMes, valorDoMes, vencimentoDoPreco,
 } from "@/lib/reajuste";
 
@@ -279,5 +279,46 @@ describe("historicoDeReajuste — lixeira: só reajuste é removível, entrada n
       [{ valor: 0, dataEfetiva: "2026-01-01" }, { valor: 150, dataEfetiva: "2026-02-01" }],
       [{ formato: "gratuito", dataEfetiva: "2026-01-01" }, { formato: "mensal", dataEfetiva: "2026-02-01" }],
     )).toEqual([false, true]);
+  });
+});
+
+describe("acordeão do histórico por data de vigência (doc 35 A1)", () => {
+  // chave do dia determinística (UTC), o mesmo papel que `horaDeParede` faz na tela.
+  const chaveDia = (d: Date) => d.toISOString().slice(0, 10);
+
+  it("agrupa itens da mesma vigência num grupo só", () => {
+    const itens = [
+      { vigencia: dia(1, 11, 2026), solicitadoEm: dia(10, 10, 2026), tag: "a" },
+      { vigencia: dia(1, 11, 2026), solicitadoEm: dia(11, 10, 2026), tag: "b" },
+      { vigencia: dia(1, 12, 2026), solicitadoEm: dia(12, 10, 2026), tag: "c" },
+    ];
+    const grupos = agruparPorVigencia(itens, chaveDia);
+    expect(grupos.length).toBe(2);
+    expect(grupos[0].chave).toBe("2026-12-01"); // mais recente primeiro
+    expect(grupos[1].itens.map((i) => i.tag).sort()).toEqual(["a", "b"]);
+  });
+
+  it("ordena grupos da vigência mais recente para a mais antiga", () => {
+    const itens = [
+      { vigencia: dia(1, 1, 2026), solicitadoEm: null },
+      { vigencia: dia(1, 6, 2026), solicitadoEm: null },
+      { vigencia: dia(1, 3, 2026), solicitadoEm: null },
+    ];
+    expect(agruparPorVigencia(itens, chaveDia).map((g) => g.chave)).toEqual([
+      "2026-06-01", "2026-03-01", "2026-01-01",
+    ]);
+  });
+
+  it("dentro do grupo, o solicitado mais recente vem primeiro", () => {
+    const itens = [
+      { vigencia: dia(1, 11, 2026), solicitadoEm: dia(5, 10, 2026), tag: "velho" },
+      { vigencia: dia(1, 11, 2026), solicitadoEm: dia(9, 10, 2026), tag: "novo" },
+    ];
+    const [grupo] = agruparPorVigencia(itens, chaveDia);
+    expect(grupo.itens.map((i) => i.tag)).toEqual(["novo", "velho"]);
+  });
+
+  it("lista vazia → nenhum grupo", () => {
+    expect(agruparPorVigencia([] as { vigencia: Date; solicitadoEm: Date | null }[], chaveDia)).toEqual([]);
   });
 });

@@ -4,11 +4,11 @@ import { useState, useTransition, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { InfoTip } from "@/components/InfoTip";
 import { SubmitButton } from "@/components/SubmitButton";
-import { MessageCircle, Trash2 } from "lucide-react";
+import { ChevronRight, MessageCircle, Trash2 } from "lucide-react";
 import { apagarReajuste, apagarReajusteChange } from "@/app/dashboard/patients/actions";
 import { QUEIXAS } from "@/lib/queixas";
 import { idadeEmPalavras } from "@/lib/idade";
-import { historicoDeReajuste, usaPacote } from "@/lib/reajuste";
+import { agruparPorVigencia, historicoDeReajuste, usaPacote } from "@/lib/reajuste";
 import { horaDeParede } from "@/lib/horaLocal";
 import { MoneyInput as MoneyInputBase } from "@/components/MoneyInput";
 
@@ -33,7 +33,7 @@ export type PatientFormData = {
   horasAntesPagamento?: number | null; validadePrecoMeses?: number | null; pacoteTipo?: string | null; semanasNoMes?: number | null; paymentDay2?: number | null;
   priceHistory?: { valor: string; dataEfetiva: string }[];
   formatHistory?: { formato: string; dataEfetiva: string }[];
-  reajusteChanges?: { id: string; campo: string; de: string | null; para: string | null; at: string }[];
+  reajusteChanges?: { id: string; campo: string; de: string | null; para: string | null; at: string; vigencia?: string | null }[];
   reminderEnabled?: boolean; reminderChannel?: string | null; reminderLeadMinutes?: number | null;
   statusReminderDays?: number | null;
   photo3x4?: string | null; photoExtra1?: string | null; photoExtra2?: string | null; photoExtra3?: string | null;
@@ -674,46 +674,69 @@ export function PatientFormFields({ p, save, tabInicial, contrato, patientId }: 
           )}
 
           {(() => {
-            // Histórico no formato do dono (doc 16): uma linha por mudança, combinando modalidade e valor.
+            // Doc 35 (A1): histórico de reajuste em ACORDEÃO por data de vigência — a lista mostra só
+            // as datas de vigência (recolhidas, mais recente → mais antiga); clicar numa data expande
+            // todas as alterações daquela vigência (data do pedido, descrição e lixeira individual).
+            //
+            // Juntam-se duas fontes num item só, com a sua VIGÊNCIA:
+            //  - valor/modalidade (historicoDeReajuste), cuja vigência é a `data` da linha;
+            //  - mudanças de configuração (doc 33 F15), cuja vigência veio gravada (doc 35) — ou, nos
+            //    registros antigos sem ela, cai na data do pedido (`at`).
+            type ItemReajuste = {
+              vigencia: Date; solicitadoEm: Date | null; descricao: string;
+              lixeira: null | { tipo: "vigencia"; vigencia: Date } | { tipo: "mudanca"; id: string };
+            };
             const linhas = historicoDeReajuste(p?.priceHistory ?? [], p?.formatHistory ?? []);
-            // Doc 33 (F15): mudanças de configuração além de formato/preço (nº sessões, vencimento,
-            // pagar até, intervalo de reajuste, pacote completo/fragmentado), da mais recente à mais antiga.
-            const mudancas = (p?.reajusteChanges ?? []).slice().sort((a, b) => new Date(b.at).getTime() - new Date(a.at).getTime());
-            if (!linhas.length && !mudancas.length) return null;
+            const itens: ItemReajuste[] = [
+              ...linhas.map((l) => ({
+                vigencia: l.data, solicitadoEm: l.solicitadoEm, descricao: l.texto,
+                lixeira: l.removivel ? { tipo: "vigencia" as const, vigencia: l.data } : null,
+              })),
+              ...(p?.reajusteChanges ?? []).map((m) => ({
+                vigencia: m.vigencia ? new Date(m.vigencia) : new Date(m.at),
+                solicitadoEm: new Date(m.at),
+                descricao: rotuloMudanca(m.campo, m.de, m.para),
+                lixeira: { tipo: "mudanca" as const, id: m.id },
+              })),
+            ];
+            if (!itens.length) return null;
+            // A chave do dia pela hora de parede (UTC), senão o fuso negativo joga a vigência p/ o dia
+            // anterior; "YYYY-MM-DD" já ordena cronologicamente (mais recente primeiro no helper).
+            const grupos = agruparPorVigencia(itens, (d) => horaDeParede(d).slice(0, 10));
             return (
               <div className="pt-2 border-t border-border">
                 <p className="text-xs font-bold text-foreground/40 uppercase tracking-widest mb-2 mt-3">Histórico de reajuste</p>
-                <ul className="space-y-1">
-                  {mudancas.map((m) => (
-                    <li key={m.id} className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm rounded-xl bg-surface/60 px-3 py-2">
-                      <span className="font-mono text-[11px] text-foreground/40">
-                        {new Date(m.at).toLocaleDateString("pt-BR")} às {new Date(m.at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
-                      </span>
-                      <span className="text-foreground/70 font-medium">{rotuloMudanca(m.campo, m.de, m.para)}</span>
-                      {patientId && <LixeiraReajusteChange id={m.id} />}
-                    </li>
-                  ))}
-                  {linhas.slice().reverse().map((e, i) => (
-                    <li key={i} className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm rounded-xl bg-surface/60 px-3 py-2">
-                      {/* Duas datas, e as duas importam (documento de 17/09): quando a mudança foi
-                          PEDIDA, com hora, e a partir de quando ela VALE. */}
-                      <span className="font-mono text-xs font-bold text-primary">
-                        {/* A vigência é uma DATA (sem hora): formata pela parede (UTC), senão o fuso
-                            negativo mostra o dia anterior — inclusive em linhas antigas (doc 25). */}
-                        vigência {horaDeParede(e.data).slice(0, 10).split("-").reverse().join("/")}
-                      </span>
-                      {e.solicitadoEm && (
-                        <span className="font-mono text-[11px] text-foreground/40">
-                          pedido em {e.solicitadoEm.toLocaleDateString("pt-BR")} às{" "}
-                          {e.solicitadoEm.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+                <div className="space-y-1">
+                  {grupos.map((g) => (
+                    <details key={g.chave} className="group rounded-xl bg-surface/60 overflow-hidden">
+                      <summary className="flex items-center gap-2 px-3 py-2 cursor-pointer list-none select-none">
+                        <ChevronRight className="w-4 h-4 shrink-0 text-foreground/40 transition group-open:rotate-90" />
+                        <span className="font-mono text-xs font-bold text-primary">
+                          vigência {g.chave.split("-").reverse().join("/")}
                         </span>
-                      )}
-                      <span className="text-foreground/70 font-medium">{e.texto}</span>
-                      {/* Lixeira só no reajuste, nunca na entrada (doc 27). Precisa saber qual paciente. */}
-                      {e.removivel && patientId && <LixeiraReajuste patientId={patientId} vigencia={e.data} />}
-                    </li>
+                        <span className="text-[11px] text-foreground/40">
+                          {g.itens.length} {g.itens.length === 1 ? "alteração" : "alterações"}
+                        </span>
+                      </summary>
+                      <ul className="px-3 pb-2 space-y-1">
+                        {g.itens.map((it, i) => (
+                          <li key={i} className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm rounded-xl bg-white/40 px-3 py-2">
+                            {it.solicitadoEm && (
+                              <span className="font-mono text-[11px] text-foreground/40">
+                                pedido em {it.solicitadoEm.toLocaleDateString("pt-BR")} às{" "}
+                                {it.solicitadoEm.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}
+                              </span>
+                            )}
+                            <span className="text-foreground/70 font-medium">{it.descricao}</span>
+                            {/* Lixeira individual (doc 35): não afeta os demais registros da vigência. */}
+                            {patientId && it.lixeira?.tipo === "vigencia" && <LixeiraReajuste patientId={patientId} vigencia={it.lixeira.vigencia} />}
+                            {patientId && it.lixeira?.tipo === "mudanca" && <LixeiraReajusteChange id={it.lixeira.id} />}
+                          </li>
+                        ))}
+                      </ul>
+                    </details>
                   ))}
-                </ul>
+                </div>
               </div>
             );
           })()}

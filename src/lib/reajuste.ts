@@ -297,3 +297,31 @@ export function historicoDeReajuste(
 
   return out.sort((a, b) => a.data.getTime() - b.data.getTime());
 }
+
+/**
+ * Doc 35 (A1): agrupa itens do histórico de reajuste por DATA DE VIGÊNCIA, da mais recente para a
+ * mais antiga, para a tela mostrar um acordeão (só as datas de vigência; expande numa data → todas
+ * as alterações daquela vigência). A chave do dia vem de fora (`chaveDoDia`) para respeitar a hora
+ * de parede (o fuso negativo, se usasse UTC cru, jogaria a vigência para o dia anterior). Dentro de
+ * cada grupo, o que foi SOLICITADO mais recentemente vem primeiro. Função pura.
+ */
+export function agruparPorVigencia<T extends { vigencia: Date; solicitadoEm: Date | null }>(
+  itens: T[],
+  chaveDoDia: (d: Date) => string,
+): { chave: string; vigencia: Date; itens: T[] }[] {
+  const mapa = new Map<string, { vigencia: Date; itens: T[] }>();
+  for (const it of itens) {
+    const k = chaveDoDia(it.vigencia);
+    const g = mapa.get(k);
+    if (g) g.itens.push(it);
+    else mapa.set(k, { vigencia: it.vigencia, itens: [it] });
+  }
+  const ts = (d: Date | null) => (d ? d.getTime() : 0);
+  return [...mapa.entries()]
+    .map(([chave, g]) => ({
+      chave,
+      vigencia: g.vigencia,
+      itens: g.itens.slice().sort((a, b) => ts(b.solicitadoEm) - ts(a.solicitadoEm)),
+    }))
+    .sort((a, b) => (a.chave < b.chave ? 1 : a.chave > b.chave ? -1 : 0));
+}

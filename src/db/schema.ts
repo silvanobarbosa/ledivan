@@ -749,6 +749,9 @@ export const patientReajusteChanges = pgTable("patient_reajuste_changes", {
   de: text("de"),
   para: text("para"),
   at: timestamp("at").defaultNow().notNull(),
+  // Doc 35 (A1): a data de VIGÊNCIA da mudança ("Vale a partir de"), para agrupar o histórico por
+  // vigência (acordeão). Nula nos registros antigos — a tela cai na data do pedido (`at`) nesses.
+  vigencia: timestamp("vigencia"),
 }, (t) => [
   index("reajuste_changes_patient_idx").on(t.patientId),
 ]);

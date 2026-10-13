@@ -38,7 +38,7 @@ export default async function EditPatientPage({ params, searchParams }: { params
     .where(eq(patientPaymentFormatHistory.patientId, id));
 
   // Doc 33 (F15): mudanças de configuração (nº sessões, vencimento, pagar até, intervalo, pacote).
-  const reajusteChanges = await db.select({ id: patientReajusteChanges.id, campo: patientReajusteChanges.campo, de: patientReajusteChanges.de, para: patientReajusteChanges.para, at: patientReajusteChanges.at })
+  const reajusteChanges = await db.select({ id: patientReajusteChanges.id, campo: patientReajusteChanges.campo, de: patientReajusteChanges.de, para: patientReajusteChanges.para, at: patientReajusteChanges.at, vigencia: patientReajusteChanges.vigencia })
     .from(patientReajusteChanges)
     .where(eq(patientReajusteChanges.patientId, id));
 
@@ -110,7 +110,7 @@ export default async function EditPatientPage({ params, searchParams }: { params
           pacoteTipo: patient.pacoteTipo, semanasNoMes: patient.semanasNoMes, paymentDay2: patient.paymentDay2,
           priceHistory: priceHistory.map((h) => ({ valor: h.valor, dataEfetiva: (h.dataEfetiva as Date).toISOString(), dataCriacao: (h.dataCriacao as Date | null)?.toISOString() ?? null })),
           formatHistory: formatHistory.map((h) => ({ formato: h.formato, dataEfetiva: (h.dataEfetiva as Date).toISOString(), dataCriacao: (h.dataCriacao as Date | null)?.toISOString() ?? null })),
-          reajusteChanges: reajusteChanges.map((c) => ({ id: c.id, campo: c.campo, de: c.de, para: c.para, at: (c.at as Date).toISOString() })),
+          reajusteChanges: reajusteChanges.map((c) => ({ id: c.id, campo: c.campo, de: c.de, para: c.para, at: (c.at as Date).toISOString(), vigencia: (c.vigencia as Date | null)?.toISOString() ?? null })),
           reminderEnabled: patient.reminderEnabled, reminderChannel: patient.reminderChannel, reminderLeadMinutes: patient.reminderLeadMinutes,
           photo3x4: patient.photo3x4, photoExtra1: patient.photoExtra1, photoExtra2: patient.photoExtra2, photoExtra3: patient.photoExtra3,
         }} />
