@@ -122,9 +122,12 @@ export function ContratoImpresso({ texto, textoPadrao, patientId, logoUrl }: { t
           .no-print { display: none !important; }
           body * { visibility: hidden; }
           #contrato-papel, #contrato-papel *, .doc-logo, .doc-logo * { visibility: visible; }
-          #contrato-papel { width: 100%; }
-          /* Doc 33: sem recuo herdado no topo — o papel (com o logo) começa colado à margem da
-             página, sem o vão que o padding/space-y da tela deixava. */
+          /* Doc 36: o vao no topo persistia porque os ancestrais com visibility hidden continuam
+             ocupando espaco no fluxo e empurravam o papel para baixo — zerar padding/margin nao
+             tira esse espaco reservado. Tirando o papel do fluxo (position absolute, colado no topo
+             da area imprimivel), o logo comeca a 2cm da margem. Mesmo recurso que ja funciona no
+             controle-print (impressao do Controle). */
+          #contrato-papel { position: absolute; top: 0; left: 0; width: 100%; }
           #contrato-root { padding: 0 !important; }
           #contrato-wrap { margin-top: 0 !important; }
         }

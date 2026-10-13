@@ -154,6 +154,10 @@ export function DocumentosTab({ patientId, cabecalho, documentos }: { patientId:
               @page { margin: 20mm; }
               body > *:not(#doc-print-root) { display: none !important; }
               #doc-print-root { display: block !important; }
+              /* Doc 36: a tela do paciente injeta um "body * { visibility: hidden }" para imprimir SÓ
+                 o Controle. Esse estilo vale em QUALQUER aba, então, sem reverter aqui, o documento
+                 saía em branco (display:block, mas visibility:hidden). Tornamos o doc visível de novo. */
+              #doc-print-root, #doc-print-root * { visibility: visible !important; }
             }
           `}</style>
           <div className="font-sans text-[15px] leading-relaxed text-black">
