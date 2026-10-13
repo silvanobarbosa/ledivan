@@ -7,6 +7,40 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-10-12 — Doc 35: salvamento, exclusão, fragmentado e acordeão de reajuste (#351–#353)
+
+Correções na área de reajuste e no salvamento do cadastro. Todas no ar.
+
+**Entregue:**
+- **#351 (excluir + fragmentado):** "Excluir paciente" agora pede confirmação inline antes de apagar
+  ("Tem certeza que deseja excluir? Não será possível reverter essa exclusão."). E no pacote mensal
+  **fragmentado** o campo "Quantidade de sessões do pacote" deixou de ser obrigatório (o fragmentado
+  é contado pelas sessões do mês).
+- **#352 (salvamento — CRÍTICO):** alterar campos nas guias **Dados** e **Financeiro** e clicar em
+  Salvar aparentava salvar, mas o campo voltava ao valor antigo (não persistia). Causa: cada guia era
+  um `<form>` próprio com seu botão; um clique só enviava a guia daquele form. Agora Dados+Financeiro
+  são **um só formulário com um Salvar** (como o cadastro) — um clique envia tudo. Contrato segue fora
+  do form. Era também a causa do "valor não registrado no histórico".
+- **#353 (acordeão de reajuste):** histórico agora é um acordeão por **data de vigência** — a lista
+  mostra só as datas (recolhidas, recente→antiga); clicar expande as alterações daquela vigência, cada
+  uma com data do pedido, descrição e lixeira individual. Mudanças de configuração (doc 33 F15) passam
+  a gravar a vigência (coluna aditiva `patient_reajuste_changes.vigencia`, já em produção).
+
+**Por quê:** o dono reportou que o cadastro "não salvava de verdade" (perda de trabalho real) e que a
+lista de reajustes ocupava a tela toda.
+
+**Decisões que ficam valendo:** na EDIÇÃO, Dados+Financeiro são um form único (um Salvar salva os
+dois); a guia Contrato NUNCA entra nesse form. O servidor continua preservando campo ausente
+(`existing`), então salvar não regride dados.
+
+**Armadilhas:** o "item 3" do doc (erro ao entrar vigência do preço, "depois de várias tentativas") era
+o mesmo salvamento que não ia — resolvido pelo #352, não é frente separada. O acordeão agrupa pela
+hora de PAREDE (UTC), senão o fuso negativo joga a vigência p/ o dia anterior.
+
+**Pendente:** nada do doc 35.
+
+---
+
 ## 2026-10-12 — Doc 34: correções do doc 33 — mobile, fuso, contrato, Documentos, agenda (#345–#349)
 
 Correções/ajustes das entregas do doc 33. Todas no ar.

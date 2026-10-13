@@ -511,7 +511,10 @@ export async function updatePatient(patientId: string, formData: FormData) {
       cmp("pacote", existing.pacoteTipo, novo.pacoteTipo);
     }
     if (mudancas.length) {
-      await db.insert(patientReajusteChanges).values(mudancas.map((m) => ({ userId: session.user.id, patientId, ...m })));
+      // Doc 35 (A1): grava a VIGÊNCIA ("Vale a partir de") para o acordeão agrupar por data de
+      // vigência. Sem data no formulário, vale de hoje — mesma base das outras vigências.
+      const vigencia = diaDoFormulario(formData.get("formatoDesde") as string | null) ?? new Date();
+      await db.insert(patientReajusteChanges).values(mudancas.map((m) => ({ userId: session.user.id, patientId, vigencia, ...m })));
     }
   }
 
