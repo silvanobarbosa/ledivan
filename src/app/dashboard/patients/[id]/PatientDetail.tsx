@@ -253,19 +253,24 @@ export function PatientDetail({
             );
           })()}
           {/* Doc 33: o 2º ícone (histórico de WhatsApp) e o "Prontuário PDF" foram retirados do card. */}
-          <a
-            href={`/api/patients/${patient.id}/export`}
-            title="Baixar todos os dados deste paciente (LGPD — portabilidade)"
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/60 text-primary font-semibold text-sm hover:bg-white transition"
-          >
-            <Download className="w-4 h-4" /> Exportar dados
-          </a>
-          <Link
-            href={`/dashboard/patients/${patient.id}/edit`}
-            className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/60 text-primary font-semibold text-sm hover:bg-white transition"
-          >
-            <Pencil className="w-4 h-4" /> Editar
-          </Link>
+          {/* Doc 36: no celular, "Editar" ficava EMBAIXO de "Exportar dados" (o flex-wrap do pai
+              quebrava entre os dois). Agrupados num flex próprio, ficam SEMPRE lado a lado — o pai
+              pode descer o grupo inteiro de linha, mas nunca separar um do outro. */}
+          <div className="flex items-center gap-2">
+            <a
+              href={`/api/patients/${patient.id}/export`}
+              title="Baixar todos os dados deste paciente (LGPD — portabilidade)"
+              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/60 text-primary font-semibold text-sm hover:bg-white transition"
+            >
+              <Download className="w-4 h-4" /> Exportar dados
+            </a>
+            <Link
+              href={`/dashboard/patients/${patient.id}/edit`}
+              className="flex items-center gap-2 px-4 py-2 rounded-xl bg-white/60 text-primary font-semibold text-sm hover:bg-white transition"
+            >
+              <Pencil className="w-4 h-4" /> Editar
+            </Link>
+          </div>
         </div>
       </div>
 
