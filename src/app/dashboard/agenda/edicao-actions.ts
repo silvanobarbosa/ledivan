@@ -88,6 +88,12 @@ export async function salvarEdicao(opts: {
     mudancas.confirmChannel = canalParaGravar(opts.confirmChannel);
     mudancas.confirmLeadHours = horasAntesParaGravar(opts.confirmChannel, opts.confirmLeadHours);
   }
+  // Doc 36: editar "APENAS ESTE" movendo data/horário tira ESTA sessão do compasso da série — ela
+  // continua na sequência (numeração/pacote/financeiro intactos), mas o espelho dela passa a valer
+  // só na semana ANTERIOR. Só quando a data muda de fato; o alcance "apenas_esta" afeta uma sessão só.
+  if (opts.alcance === "apenas_esta" && novaData && novaData.getTime() !== atual.date.getTime()) {
+    mudancas.espelhoSoAnterior = true;
+  }
 
   // Mudou a data: confere o destino ANTES de escrever qualquer coisa. Recusar depois de já ter
   // movido metade do bloco deixaria a agenda pela metade.

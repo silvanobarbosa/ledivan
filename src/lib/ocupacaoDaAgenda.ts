@@ -46,6 +46,12 @@ export type SessaoParaEspelho = {
   pacienteId: string;
   /** Quando a própria sessão sabe que é quinzenal. */
   recorrenciaQuinzenal?: boolean;
+  /**
+   * Doc 36: a sessão foi editada individualmente ("APENAS ESTE") e saiu do compasso da série. Ela
+   * continua na sequência (numeração, pacote, financeiro intactos) — isto muda SÓ o espelho: passa
+   * a projetar a semana ANTERIOR a ela, nunca a posterior (ela não tem continuação do outro lado).
+   */
+  soEspelhoAnterior?: boolean;
 };
 
 export type Espelho = {
@@ -88,7 +94,11 @@ export function espelhosDoDia(opts: {
     const d = emData(s.data);
     if (Number.isNaN(d.getTime())) continue;
     if (!(s.recorrenciaQuinzenal || opts.quinzenal(s.pacienteId))) continue;
-    if (Math.abs(Math.round((meioDia(d) - alvo) / 86400000)) !== 7) continue;
+    // Quantas semanas o alvo está DEPOIS da sessão: +7 = o alvo é a semana anterior à sessão;
+    // -7 = a semana posterior. Normal espelha as duas; "APENAS ESTE" (doc 36) só a anterior (+7).
+    const delta = Math.round((meioDia(d) - alvo) / 86400000);
+    const casa = s.soEspelhoAnterior ? delta === 7 : Math.abs(delta) === 7;
+    if (!casa) continue;
 
     const chave = `${s.pacienteId}-${d.getHours()}:${d.getMinutes()}`;
     if (vistos.has(chave)) continue;
