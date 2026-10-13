@@ -75,10 +75,14 @@ function BotaoCobrar({ patientId, c, cobrar }: { patientId: string; c: CobrancaN
  */
 
 // Texto de hora de parede ("2026-09-01T09:00:00") → partes, sem passar por fuso.
+// Doc 36: o dia da semana (SEG…DOM) vai à ESQUERDA da data na guia Geral. Vem dos COMPONENTES UTC
+// da data de parede — getDay local jogaria o dia num fuso negativo (ver lição meia-noite).
+const DIAS_SEMANA = ["DOM", "SEG", "TER", "QUA", "QUI", "SEX", "SAB"];
 const partes = (t: string) => {
   const [d, h = ""] = t.split("T");
   const [a, m, dia] = d.split("-");
-  return { data: `${dia}/${m}/${a.slice(2)}`, hora: h.slice(0, 5) };
+  const dow = DIAS_SEMANA[new Date(Date.UTC(+a, +m - 1, +dia)).getUTCDay()] ?? "";
+  return { data: `${dia}/${m}/${a.slice(2)}`, hora: h.slice(0, 5), dia: dow };
 };
 
 /**
@@ -593,7 +597,7 @@ export function GeralTab({ patientId, linhas, responsavel, responsavelCpf, cobra
                 const b = partes(l.data);
                 return (
                   <tr key={`bloq-${l.data}`} className="border-t border-border bg-surface/40 text-foreground/50">
-                    <td className="px-3 py-2 tabular-nums whitespace-nowrap">{b.data} {b.hora}</td>
+                    <td className="px-3 py-2 tabular-nums whitespace-nowrap">{b.dia} {b.data} {b.hora}</td>
                     <td className="px-3 py-2 text-foreground/30 text-center">—</td>
                     <td className="px-3 py-2">
                       <span className="block w-full text-center text-[11px] font-bold px-2 py-0.5 rounded-md bg-[#fee2e2] text-[#991b1b]">Hor. Bloq.</span>
@@ -611,7 +615,7 @@ export function GeralTab({ patientId, linhas, responsavel, responsavelCpf, cobra
                   <tr className="border-t border-border" data-sessao={l.id}>
                     <td className="px-3 py-2 tabular-nums whitespace-nowrap">
                       <span className="inline-flex items-center gap-1.5">
-                        {p.data} {p.hora}
+                        {p.dia} {p.data} {p.hora}
                         {l.online ? <Video className="w-3.5 h-3.5 text-primary" aria-label="online" /> : <MapPin className="w-3.5 h-3.5 text-foreground/30" aria-label="presencial" />}
                       </span>
                     </td>
