@@ -636,6 +636,9 @@ export const therapySessions = pgTable("therapy_sessions", {
   recurring: boolean("recurring").default(false).notNull(), // reserva recorrente
   recurrenceFreq: text("recurrence_freq"), // semanal | quinzenal | mensal (base p/ "Vago Quinzenal" na agenda)
   recurrenceUntil: timestamp("recurrence_until"), // data limite da recorrência
+  // Doc 36: sessão de quinzenal editada "APENAS ESTE" (saiu do compasso da série). NÃO mexe na
+  // sequência/numeração/pacote — só faz o espelho projetar a semana ANTERIOR, nunca a posterior.
+  espelhoSoAnterior: boolean("espelho_so_anterior").default(false).notNull(),
   googleEventId: text("google_event_id"), // vínculo com evento no Google Calendar (sync)
   meetingUrl: text("meeting_url"), // link Google Meet (se gerado); senão usa Jitsi derivado do id
   reminderSentAt: timestamp("reminder_sent_at"), // evita lembrete duplicado

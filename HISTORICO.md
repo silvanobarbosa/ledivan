@@ -44,9 +44,13 @@ não basta zerar padding. Fragmentado: o campo de nº de sessões não existe ne
 → erro de parse (aconteceu no contrato). Dia da semana/weekday vem dos componentes UTC da data de
 parede, não de getDay local (fuso negativo erraria).
 
-**Pendente (doc 36):**
-- **#9 quinzenal "APENAS ESTE"** → dono pediu PLANO antes de implementar (frente mais arriscada:
-  mexe no espelho quinzenal da AgendaClient/`espelhosDoDia`). Plano enviado; aguarda validação.
+**#9 quinzenal "APENAS ESTE" — itens 1+2 (espelho):** ao editar um agendamento quinzenal com
+"APENAS ESTE" MOVENDO a data/horário, a sessão ganha a marca `espelhoSoAnterior` — ela **continua
+na sequência** (numeração, ordem, pacote e financeiro INTACTOS; a marca afeta SÓ o espelho). O
+espelho dela passa a projetar só a semana **anterior**, nunca a posterior (corrige o Q que aparecia
+dos dois lados). Lógica pura em `espelhosDoDia` (delta +7 = anterior) + 3 testes; coluna aditiva
+`therapy_sessions.espelho_so_anterior` (já em produção). Item 3 (repetição semanal no slot anterior,
+pulando a semana ocupada) fica para um 2º PR — o dono quer validar 1+2 primeiro.
 
 ---
 

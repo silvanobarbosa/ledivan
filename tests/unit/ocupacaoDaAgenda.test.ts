@@ -120,6 +120,34 @@ describe("o espelho da semana alternada", () => {
     });
     expect(e).toHaveLength(1);
   });
+
+  // Doc 36: sessão editada "APENAS ESTE" (soEspelhoAnterior) só espelha a semana ANTERIOR a ela.
+  it("sessão 'apenas este' ESPELHA a semana anterior a ela", () => {
+    // Sessão no dia 9; a semana anterior é o dia 2.
+    const e = espelhosDoDia({
+      dia: qua(2),
+      sessoes: [{ ...sessao("a", 9), soEspelhoAnterior: true }],
+      quinzenal: sempreQuinzenal,
+    });
+    expect(e).toHaveLength(1);
+  });
+
+  it("sessão 'apenas este' NÃO espelha a semana posterior a ela", () => {
+    // Sessão no dia 9; a semana posterior é o dia 16 — não deve aparecer.
+    const e = espelhosDoDia({
+      dia: qua(16),
+      sessoes: [{ ...sessao("a", 9), soEspelhoAnterior: true }],
+      quinzenal: sempreQuinzenal,
+    });
+    expect(e).toHaveLength(0);
+  });
+
+  it("sem o flag, segue espelhando os dois lados (controle)", () => {
+    const anterior = espelhosDoDia({ dia: qua(2), sessoes: [sessao("a", 9)], quinzenal: sempreQuinzenal });
+    const posterior = espelhosDoDia({ dia: qua(16), sessoes: [sessao("a", 9)], quinzenal: sempreQuinzenal });
+    expect(anterior).toHaveLength(1);
+    expect(posterior).toHaveLength(1);
+  });
 });
 
 describe("os sinais da célula", () => {
