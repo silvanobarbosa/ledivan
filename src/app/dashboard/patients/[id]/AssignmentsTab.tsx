@@ -4,7 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Plus, Copy, Check, Trash2, Paperclip, MessageCircle, Smile, Pencil, Undo2, X } from "lucide-react";
 import { createAssignment, deleteAssignment, commentAssignment, editAssignment, ensureMoodToken, createScale, deleteScale, clearMoodToken, undoLastScale } from "../actions";
-import { formatDate } from "@/lib/therapy";
+import { formatDate, formatDateTime } from "@/lib/therapy";
 import { MoodChart } from "./MoodChart";
 import { ScaleHistory } from "./ScaleHistory";
 import { ActivitiesSection, type Atividade } from "./ActivitiesSection";
@@ -19,7 +19,7 @@ type Assignment = {
   id: string; token: string; title: string; instructions: string | null;
   responseType: string; status: string; dueDate: string | null;
   responseText: string | null; responseFileUrl: string | null; responseFileType: string | null;
-  respondedAt: string | null; therapistComment: string | null;
+  respondedAt: string | null; therapistComment: string | null; createdAt: string;
 };
 
 const inputCls = "w-full px-4 py-2.5 rounded-xl bg-white/70 border border-border focus:ring-2 focus:ring-accent/20 focus:border-accent outline-none transition text-sm";
@@ -244,6 +244,8 @@ export function AssignmentsTab({
                   </form>
                 ) : (
                   <>
+                    {/* Doc 36: data e hora em que o exercício foi criado, ao lado do que já havia. */}
+                    <p className="text-[11px] text-foreground/40">{formatDateTime(a.createdAt)}</p>
                     {a.instructions && <p className="text-sm text-foreground/60">{a.instructions}</p>}
                     {a.dueDate && <p className="text-xs text-foreground/40">Prazo: {formatDate(a.dueDate)}</p>}
 

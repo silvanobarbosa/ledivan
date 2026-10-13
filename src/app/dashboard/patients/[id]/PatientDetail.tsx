@@ -57,7 +57,7 @@ type RecordEntry = { id: string; type: string; title: string | null; content: st
 type AssignmentEntry = {
   id: string; token: string; title: string; instructions: string | null; responseType: string;
   status: string; dueDate: string | null; responseText: string | null; responseFileUrl: string | null;
-  responseFileType: string | null; respondedAt: string | null; therapistComment: string | null;
+  responseFileType: string | null; respondedAt: string | null; therapistComment: string | null; createdAt: string;
 };
 
 
