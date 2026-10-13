@@ -85,6 +85,8 @@ export type PagamentoLancado = {
   /** Marcas de "pago — emitido recibo / emitido nota" que a tela pinta ao lado de Pago. */
   recibo: boolean;
   nota: boolean;
+  /** Doc 36: este lançamento é crédito do saldo (kind="credito"), não dinheiro novo. */
+  credito?: boolean;
 };
 
 /** Marca de "avisada ao paciente" que a tela pinta ao lado da cobrança. */
@@ -207,7 +209,7 @@ function casarPagamentos(cobrancas: Cobranca[], pagamentos: PagamentoDaGeral[], 
   const listaPorChave = new Map<string, PagamentoLancado[]>();
   const lancado = (p: (typeof pagos)[number]): PagamentoLancado => ({
     id: p.id, data: p.data, valor: p.valor, metodo: p.metodo, pagoPor: p.pagoPor,
-    recibo: p.recibo === true, nota: p.nota === true,
+    recibo: p.recibo === true, nota: p.nota === true, credito: p.kind === "credito",
   });
   const empilhadoEm = new Map<string, Set<string>>();
   const empilhaPg = (chave: string, p: PagamentoLancado) => {

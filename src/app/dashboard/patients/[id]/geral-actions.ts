@@ -1,15 +1,16 @@
 "use server";
 
-import { and, eq } from "drizzle-orm";
+import { and, asc, eq, isNull } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { db } from "@/db";
 import { auth } from "@/auth";
-import { cobrancaEnvios, cobrancaVencimentos, financialAccounts, patients, sessionPayments, transactions } from "@/db/schema";
+import { cobrancaEnvios, cobrancaVencimentos, financialAccounts, patientCredits, patients, sessionPayments, transactions } from "@/db/schema";
 import { ensureSessionCategory } from "@/lib/categoriaSessoes";
-import { geralDoPaciente, hojeDeParede } from "@/lib/geralDoPaciente";
+import { creditoDisponivel, geralDoPaciente, hojeDeParede } from "@/lib/geralDoPaciente";
 import { diaDoFormulario } from "@/lib/trocaDeFormato";
 import { apenasCpf } from "@/lib/recibo";
 import { parseMoedaBR } from "@/lib/money";
+import { aplicarCreditoNoLancamento } from "@/lib/credito";
 
 /**
  * "Lançar pagamento" da guia Geral: data, responsável, forma e VALOR.
@@ -38,6 +39,8 @@ export async function lancarPagamento(entrada: {
   metodo: string;
   valor?: string | null;
   quitarDiferenca?: boolean;
+  /** Doc 36: o usuário pediu para guardar a sobra (pagou a mais) como crédito no saldo? */
+  creditarExcedente?: boolean;
 }): Promise<{ ok: boolean; error?: string }> {
   const session = await auth();
   if (!session?.user?.id) return { ok: false, error: "Sessão inválida." };
@@ -74,9 +77,17 @@ export async function lancarPagamento(entrada: {
   const valorNum = valorInformado != null ? Number(valorInformado) : cobranca.falta;
   if (!(valorNum > 0)) return { ok: false, error: "Informe um valor maior que zero." };
   const amount = valorNum.toFixed(2);
-  // Quitar a diferença só faz sentido quando se recebeu MENOS que o devido. Pagou o total (ou mais)?
-  // A cobrança já fecha sozinha — não marca nada.
-  const quita = entrada?.quitarDiferenca === true && valorNum < cobranca.falta - 0.005;
+
+  // Doc 36: crédito do saldo. O disponível abate automaticamente o que o dinheiro não cobrir; a
+  // sobra de dinheiro vira crédito novo SE o usuário pediu. Regra pura em `aplicarCreditoNoLancamento`.
+  const disponivel = await creditoDisponivel(userId, patientId);
+  const { creditoAplicado, creditoNovo } = aplicarCreditoNoLancamento({
+    falta: cobranca.falta, cashRecebido: valorNum, creditoDisponivel: disponivel,
+    creditarExcedente: entrada?.creditarExcedente === true,
+  });
+
+  // Quitar a diferença só faz sentido quando AINDA falta depois do dinheiro + crédito aplicado.
+  const quita = entrada?.quitarDiferenca === true && valorNum + creditoAplicado < cobranca.falta - 0.005;
   // Meio-dia: a coluna é hora de parede, e meio-dia não troca de dia em fuso nenhum do caminho.
   const date = new Date(`${entrada.data}T12:00:00`);
 
@@ -94,7 +105,7 @@ export async function lancarPagamento(entrada: {
     source: "session_payment",
   }).returning();
 
-  await db.insert(sessionPayments).values({
+  const [pgCash] = await db.insert(sessionPayments).values({
     userId,
     patientId,
     // Cobrança de UMA sessão: preenche o vínculo que a agenda usa para tirar o "pagamento atrasado".
@@ -108,7 +119,42 @@ export async function lancarPagamento(entrada: {
     cobrancaChave: chave,
     quitaDiferenca: quita,
     linkedTransactionId: tx.id,
-  });
+  }).returning();
+
+  // CRÉDITO APLICADO: entra como um pagamento `kind="credito"` SEM transação (o dinheiro já entrou
+  // quando houve a sobra; não é receita nova). Fecha a cobrança junto com o dinheiro. Depois marca
+  // os créditos consumidos (FIFO, partindo a última linha se sobrar saldo nela).
+  if (creditoAplicado > 0.005) {
+    const [pgCredito] = await db.insert(sessionPayments).values({
+      userId, patientId,
+      sessionId: /^(sessao|extra):[0-9a-f-]{36}$/i.test(chave) ? chave.split(":")[1] : null,
+      amount: creditoAplicado.toFixed(2), date, method: "cash", status: "paid",
+      pagoPor, pagoPorCpf, cobrancaChave: chave, kind: "credito", linkedTransactionId: null,
+    }).returning();
+
+    let restante = creditoAplicado;
+    const abertos = await db.select().from(patientCredits)
+      .where(and(eq(patientCredits.userId, userId), eq(patientCredits.patientId, patientId), isNull(patientCredits.consumidoEm)))
+      .orderBy(asc(patientCredits.createdAt));
+    for (const c of abertos) {
+      if (restante <= 0.005) break;
+      const v = Number(c.valor) || 0;
+      if (v <= restante + 0.005) {
+        await db.update(patientCredits).set({ consumidoEm: date, consumidoPagamentoId: pgCredito.id }).where(eq(patientCredits.id, c.id));
+        restante = Math.round((restante - v) * 100) / 100;
+      } else {
+        // Consome só uma PARTE desta linha: marca o pedaço consumido e devolve o resto ao saldo.
+        await db.update(patientCredits).set({ valor: restante.toFixed(2), consumidoEm: date, consumidoPagamentoId: pgCredito.id }).where(eq(patientCredits.id, c.id));
+        await db.insert(patientCredits).values({ userId, patientId, valor: (Math.round((v - restante) * 100) / 100).toFixed(2), origemPagamentoId: c.origemPagamentoId });
+        restante = 0;
+      }
+    }
+  }
+
+  // CRÉDITO NOVO: a sobra de dinheiro que o usuário pediu para guardar.
+  if (creditoNovo > 0.005) {
+    await db.insert(patientCredits).values({ userId, patientId, valor: creditoNovo.toFixed(2), origemPagamentoId: pgCash.id });
+  }
 
   revalidatePath(`/dashboard/patients/${patientId}`);
   revalidatePath("/dashboard/fechamento");
@@ -153,6 +199,14 @@ export async function removerPagamento(
   }
   await db.delete(sessionPayments)
     .where(and(eq(sessionPayments.id, pagamentoId), eq(sessionPayments.userId, userId)));
+
+  // Doc 36: desfaz o efeito no saldo de crédito. (1) Crédito GERADO por este pagamento (sobra) e
+  // ainda não usado some junto. (2) Crédito CONSUMIDO por este pagamento (quando se apaga o
+  // lançamento de crédito) volta a ficar disponível.
+  await db.delete(patientCredits)
+    .where(and(eq(patientCredits.userId, userId), eq(patientCredits.origemPagamentoId, pagamentoId), isNull(patientCredits.consumidoEm)));
+  await db.update(patientCredits).set({ consumidoEm: null, consumidoPagamentoId: null })
+    .where(and(eq(patientCredits.userId, userId), eq(patientCredits.consumidoPagamentoId, pagamentoId)));
 
   revalidatePath(`/dashboard/patients/${patientId}`);
   revalidatePath("/dashboard/fechamento");
