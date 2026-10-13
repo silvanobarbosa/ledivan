@@ -7,6 +7,43 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-10-13 — Doc 36: miudezas, impressão, agenda e mobile (#354–#357)
+
+Lote de 12 frentes do doc 36. 9 entregues; 3 maiores em andamento (ver Pendente).
+
+**Entregue:**
+- **#354 (miudezas):** fragmentado agora ESCONDE o campo "Quantidade de sessões do pacote" (antes
+  só opcional); guia Geral mostra o dia da semana (SEG…DOM) à esquerda da data; guia Anamnese não
+  "pula" mais pro último campo ao abrir (os campos padrão abriam editáveis com autoFocus, o último
+  vencia); símbolo ⇄ de recorrência saiu das células da agenda.
+- **#355 (impressão):** documento não sai mais em BRANCO (a tela do paciente injeta
+  `body *{visibility:hidden}` p/ imprimir o Controle; o portal do documento reverte a visibilidade do
+  próprio conteúdo); contrato com o logo a 2cm da margem (papel sai do fluxo com `position:absolute`,
+  o vão vinha do espaço reservado pelos ancestrais hidden); exercícios mostram data e hora.
+- **#356 (sequência):** "Adicionar à sequência do pacote" não pergunta mais QUAL desmarcada preenche
+  — abate a primeira em aberto automaticamente.
+- **#357 (mobile):** "Editar" fica ao lado de "Exportar dados" (agrupados num flex próprio; o
+  flex-wrap do pai quebrava entre os dois no celular).
+- **#2 (visualizar anexo):** o anexo (laudo, encaminhamento) abre num visualizador DENTRO do app
+  (sobreposição), com "Fechar" e "Imprimir" — antes abria em aba nova. Imprimir abre o arquivo numa
+  janela própria e manda imprimir (o arquivo mora no cofre/domínio externo, então imprimir o iframe
+  daqui esbarraria em CORS).
+
+**Decisões que ficam valendo:** impressão de documento/contrato depende de reverter o
+`visibility:hidden` global da tela do paciente OU tirar o papel do fluxo (position:absolute) —
+não basta zerar padding. Fragmentado: o campo de nº de sessões não existe nesse formato.
+
+**Armadilhas:** backtick dentro de comentário CSS num `<style>{`…`}</style>` FECHA o template literal
+→ erro de parse (aconteceu no contrato). Dia da semana/weekday vem dos componentes UTC da data de
+parede, não de getDay local (fuso negativo erraria).
+
+**Pendente (doc 36):**
+- **#8 pagamento excedente** → criar crédito real + Sim/Não; auto-abater na próxima cobrança
+  (decisão do dono). Hoje a UI só EXIBE "entram como crédito" sem gravar nada.
+- **#9 quinzenal "APENAS ESTE"** → dono pediu PLANO antes de implementar (frente mais arriscada).
+
+---
+
 ## 2026-10-12 — Doc 35: salvamento, exclusão, fragmentado e acordeão de reajuste (#351–#353)
 
 Correções na área de reajuste e no salvamento do cadastro. Todas no ar.
