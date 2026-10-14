@@ -8,7 +8,6 @@ import { idadeEmAnos } from "@/lib/idade";
 import { numeroDoWhatsapp } from "@/lib/telefoneWhatsapp";
 import { MoneyInput } from "@/components/MoneyInput";
 import { SubmitButton } from "@/components/SubmitButton";
-import { InfoTip } from "@/components/InfoTip";
 import {
   createProspect, updateProspect, deleteProspect, convertProspect,
   addProspectContact, deleteProspectContact, registrarEnvioMensagem,
@@ -38,8 +37,6 @@ const horaDe = (iso: string | null) => {
 export function ListaProspects({ prospects, contatos }: { prospects: ProspectLinha[]; contatos: ContatoLinha[] }) {
   const [de, setDe] = useState("");
   const [ate, setAte] = useState("");
-  const [idadeMin, setIdadeMin] = useState("");
-  const [idadeMax, setIdadeMax] = useState("");
   const [sexo, setSexo] = useState("");
   const [telefone, setTelefone] = useState("");
   // `aberto` = o card expandido (doc 19: a lista mostra só data+nome e abre as infos completas ao
@@ -95,16 +92,13 @@ export function ListaProspects({ prospects, contatos }: { prospects: ProspectLin
       if (de && t < new Date(de + "T00:00:00").getTime()) return false;
       if (ate && t > new Date(ate + "T23:59:59").getTime()) return false;
     }
-    const a = idadeDe(p.birthDate);
-    if (idadeMin && (a === null || a < Number(idadeMin))) return false;
-    if (idadeMax && (a === null || a > Number(idadeMax))) return false;
     if (sexo && (p.gender || "") !== sexo) return false;
     // Busca por telefone (doc 19/10): compara só os dígitos, casando por trecho — o usuário pode
     // digitar com ou sem DDD/pontuação e a lista filtra ao vivo.
     const tel = telefone.replace(/\D/g, "");
     if (tel && !(p.phone || "").replace(/\D/g, "").includes(tel)) return false;
     return true;
-  }), [prospects, de, ate, idadeMin, idadeMax, sexo, telefone]);
+  }), [prospects, de, ate, sexo, telefone]);
 
   function excluir(p: ProspectLinha) {
     if (!confirm(`Excluir o prospectado ${p.name}? O histórico de contatos dele vai junto.`)) return;
@@ -124,8 +118,10 @@ export function ListaProspects({ prospects, contatos }: { prospects: ProspectLin
       <form action={createProspect} className="glass-card rounded-[24px] p-5 space-y-3">
         <div className="flex items-center gap-2 text-primary font-semibold text-sm">
           <UserPlus className="w-4 h-4" /> Novo prospectado
-          <InfoTip text="Aqui você cadastra as pessoas que entraram em contato com você." />
         </div>
+        <p className="text-xs text-foreground/60 text-justify">
+          <strong>Cadastre</strong> quem entrou em contato demonstrando interesse nos seus serviços.
+        </p>
         <div className="grid sm:grid-cols-3 gap-3">
           <div><span className={lbl}>Data do contato</span><input name="prospectDate" type="date" className={inputCls} /></div>
           <div className="sm:col-span-2"><span className={lbl}>Nome *</span><input name="name" required placeholder="Nome completo" className={inputCls} /></div>
@@ -155,17 +151,10 @@ export function ListaProspects({ prospects, contatos }: { prospects: ProspectLin
       <div className="glass-card rounded-[24px] p-5 flex gap-3 flex-wrap items-end">
         <div className="w-full inline-flex items-center text-sm font-semibold text-foreground/60">
           Filtrar
-          <InfoTip text="Filtre a lista abaixo por período de procura, idade, sexo ou telefone." />
         </div>
         <div><span className={lbl}>Contato de</span><input type="date" value={de} onChange={(e) => setDe(e.target.value)} className={inputCls} /></div>
         <div><span className={lbl}>até</span><input type="date" value={ate} onChange={(e) => setAte(e.target.value)} className={inputCls} /></div>
-        <div>
-          <span className={lbl}>Idade</span>
-          <div className="flex gap-1">
-            <input type="number" min={0} placeholder="mín" value={idadeMin} onChange={(e) => setIdadeMin(e.target.value)} className={`${inputCls} w-20`} />
-            <input type="number" min={0} placeholder="máx" value={idadeMax} onChange={(e) => setIdadeMax(e.target.value)} className={`${inputCls} w-20`} />
-          </div>
-        </div>
+        {/* Doc 40: filtro de idade (mín/máx) removido da prospecção. */}
         <div>
           <span className={lbl}>Sexo</span>
           <select value={sexo} onChange={(e) => setSexo(e.target.value)} className={inputCls}>
@@ -190,10 +179,16 @@ export function ListaProspects({ prospects, contatos }: { prospects: ProspectLin
         </p>
       ) : (
         <div className="space-y-3">
-          <div className="inline-flex items-center text-sm font-semibold text-foreground/60">
-            Prospectados
-            <InfoTip text="Clique no ícone › para ver os detalhes da prospecção e atualizar os contatos, ou em Contatar para enviar uma mensagem. Para enviar uma única mensagem a todos, use o campo Mensagem abaixo." />
-          </div>
+          <div className="text-sm font-semibold text-foreground/60">Prospectados</div>
+          <p className="text-xs text-foreground/60 text-justify space-y-1">
+            Você pode expandir a lista de Prospectados, para <strong>consultar</strong> ou <strong>editar</strong> dados
+            pessoais e <strong>visualizar</strong> ou <strong>cadastrar contatos</strong>.<br />
+            O botão <strong>Contatar</strong> abre o WhatsApp do prospectado para enviar mensagens <strong>individuais</strong>.
+            Para enviar uma mensagem padrão a vários prospectados, digite o texto na caixa <strong>Mensagem</strong> e
+            clique em <strong>Contatar para cada prospectado desejado</strong>.<br />
+            Quando o prospectado decidir iniciar o atendimento, clique em <strong>Converter</strong> para transformá-lo
+            em paciente e retirá-lo da lista de prospecção.
+          </p>
           {filtrados.map((p) => {
             const lista = porProspect.get(p.id) ?? [];
             const expandido = aberto === p.id;
@@ -260,7 +255,6 @@ export function ListaProspects({ prospects, contatos }: { prospects: ProspectLin
                     {contatosAbertos ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
                     {lista.length} contato(s)
                   </button>
-                  <InfoTip text="Clique em › Contato(s) para registrar novos contatos e em Converter para retirar o prospectado da lista e adicioná-lo à lista de pacientes." />
                   <div className="ml-auto flex gap-2">
                     <form action={async () => { await convertProspect(p.id); }}>
                       <button className="inline-flex items-center gap-1.5 bg-primary text-white text-sm px-4 py-2 rounded-xl font-semibold">Converter <ArrowRight className="w-4 h-4" /></button>
@@ -308,13 +302,12 @@ export function ListaProspects({ prospects, contatos }: { prospects: ProspectLin
           envia só para ele. <code>{"{nome}"}</code> vira o primeiro nome. */}
       {prospects.length > 0 && (
         <div className="glass-card rounded-[24px] p-5 space-y-3">
-          <h3 className="font-semibold text-sm text-primary inline-flex items-center">
-            Mensagem
-            <InfoTip text="Digite a mensagem e clique em Contatar ao lado do prospectado. A mensagem vai pelo WhatsApp do prospectado e fica registrada no histórico de contatos. Para personalizar com o nome, utilize {nome} — o sistema substitui pelo primeiro nome. Se a mensagem estiver em branco, ao clicar em Contatar o WhatsApp abre com o campo vazio." />
-          </h3>
-          <p className="text-[11px] text-foreground/50">
-            Digite a mensagem que será enviada ao clicar no botão <b>Contatar</b>. Use <code>{"{nome}"}</code> para
-            inserir automaticamente o primeiro nome do prospectado.
+          <h3 className="font-semibold text-sm text-primary">Mensagem</h3>
+          <p className="text-[11px] text-foreground/60 text-justify">
+            Digite o texto no campo <strong>Mensagem</strong> e, em seguida, clique em <strong>Contatar</strong> em cada
+            prospectado que deverá receber essa mensagem.<br />
+            Se desejar <strong>personalizar o texto</strong>, utilize &ldquo;{"{nome}"}&rdquo;. O sistema substituirá
+            esse marcador pelo nome correspondente ao prospectado.
           </p>
           <textarea value={mensagem} onChange={(e) => { setMensagem(e.target.value); setEnvioMsg(null); }}
             rows={3} placeholder="Olá, {nome}! ..." className={`${inputCls} resize-none`} />
