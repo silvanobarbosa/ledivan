@@ -6,6 +6,7 @@ import { queixaGroup } from "@/lib/queixas";
 import { MessagePatient } from "./MessagePatient";
 import { ModalPacientes } from "./ModalPacientes";
 import { salvarMensagemAgendamento, salvarMensagemAniversario } from "@/app/dashboard/actions";
+import { InfoTip } from "@/components/InfoTip";
 import { mensagemPara, MODELO_PADRAO_DO_LEMBRETE } from "@/lib/lembrarAgendamento";
 import { horaDeParede } from "@/lib/horaLocal";
 import { numeroDoWhatsapp } from "@/lib/telefoneWhatsapp";
@@ -97,11 +98,13 @@ function Prospeccao({ patients }: { patients: PanelPatient[] }) {
   const taxa = base.length ? Math.round((fechados / base.length) * 100) : 0;
   return (
     <div className={card}>
-      <h4 className="font-display font-bold text-primary">Prospecção</h4>
+      <h4 className="font-display font-bold text-primary inline-flex items-center">
+        Prospecção
+        <InfoTip text="Para adicionar uma pessoa à lista de prospectados, acesse o menu Prospecção." />
+      </h4>
       <p className="text-xs text-foreground/60 text-justify">
         <strong>Acompanhe</strong> a quantidade de pessoas que entraram em contato demonstrando interesse nos seus
-        serviços.<br />
-        Para <strong>adicionar</strong> uma pessoa à lista de prospectados, acesse o <strong>menu Prospecção</strong>.
+        serviços.
       </p>
       <div className="grid grid-cols-4 gap-2">
         <Stat n={base.length} label="Prospectados" />
@@ -130,10 +133,7 @@ function Relatorios({ patients, presence, corte }: { patients: PanelPatient[]; p
     <div className={card}>
       <h4 className="font-display font-bold text-primary">Relatórios</h4>
       <p className="text-xs text-foreground/60 text-justify">
-        Ao clicar no botão <strong>Montar relatório</strong>, você pode criar relatórios personalizados, selecionando
-        as opções disponíveis no sistema de acordo com as informações que deseja consultar.<br />
-        Nessa mesma tela, também é possível <strong>aplicar filtros</strong> para refinar os resultados e
-        <strong> imprimir os relatórios</strong>.
+        <strong>Monte relatórios personalizados</strong> com as informações desejadas e <strong>imprima</strong> quando precisar.
       </p>
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
         <Stat n={ativos.length + inativos.length} label="No cadastro" />
@@ -282,15 +282,15 @@ function Aniversariantes({ patients, modeloSalvo, hoje }: { patients: PanelPatie
   return (
     <div className={card}>
       <div className="flex items-center justify-between">
-        <h4 className="font-display font-bold text-primary">Aniversariantes</h4>
+        <h4 className="font-display font-bold text-primary inline-flex items-center">
+          Aniversariantes
+          <InfoTip text="O botão Parabenizar abre o WhatsApp do paciente para enviar mensagens individuais. Para enviar uma mensagem padrão a vários pacientes, digite o texto na caixa Mensagem e clique em Parabenizar para cada paciente desejado." />
+        </h4>
         <span className="text-xs text-foreground/40">{lista.length} no período</span>
       </div>
       <p className="text-xs text-foreground/60 text-justify">
         Visualize os pacientes que fazem aniversário no mês atual ou utilize os filtros para consultar os
-        aniversariantes de um período específico.<br />
-        O botão <strong>Parabenizar</strong> abre o WhatsApp do paciente para enviar mensagens <strong>individuais</strong>.
-        Para enviar uma mensagem padrão a vários pacientes, digite o texto na caixa <strong>Mensagem</strong> e clique
-        em <strong>Parabenizar para cada paciente desejado.</strong>
+        aniversariantes de um período específico.
       </p>
       <div className="flex gap-2 flex-wrap items-end">
         <div><span className={lbl}>Data de</span><input type="date" value={de} onChange={(e) => setDe(e.target.value)} className={inp} /></div>
@@ -356,11 +356,12 @@ function QueixaBloco({ patients }: { patients: PanelPatient[] }) {
   const maior = Math.max(1, ...groups.map((x) => x[1].length));
   return (
     <div className={card}>
-      <h4 className="font-display font-bold text-primary">Queixa principal</h4>
+      <h4 className="font-display font-bold text-primary inline-flex items-center">
+        Queixa principal
+        <InfoTip text="Clique no Abrir de uma das queixas listadas, e visualize os pacientes que foram cadastrados naquela categoria." />
+      </h4>
       <p className="text-xs text-foreground/60 text-justify">
-        Visualize as <strong>queixas registradas</strong> nos cadastros dos pacientes.<br />
-        Clique no <strong>Abrir</strong> de uma das queixas listadas, e visualize os pacientes que foram cadastrados
-        naquela categoria.
+        Visualize as <strong>queixas registradas</strong> nos cadastros dos pacientes.
       </p>
       <div className="flex gap-2 flex-wrap items-end">
         <div><span className={lbl}>De</span><input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className={inp} /></div>

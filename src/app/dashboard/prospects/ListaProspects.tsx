@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { UserPlus, ArrowRight, Trash2, Save, ChevronDown, ChevronRight, Plus, MessageCircle } from "lucide-react";
 import { formatDate } from "@/lib/therapy";
 import { idadeEmAnos } from "@/lib/idade";
+import { InfoTip } from "@/components/InfoTip";
 import { numeroDoWhatsapp } from "@/lib/telefoneWhatsapp";
 import { MoneyInput } from "@/components/MoneyInput";
 import { SubmitButton } from "@/components/SubmitButton";
@@ -182,13 +183,13 @@ export function ListaProspects({ prospects, contatos }: { prospects: ProspectLin
         </p>
       ) : (
         <div className="space-y-3">
-          <div className="text-sm font-semibold text-foreground/60">Prospectados</div>
-          <p className="text-xs text-foreground/60 text-justify space-y-1">
-            Você pode expandir a lista de Prospectados, para <strong>consultar</strong> ou <strong>editar</strong> dados
-            pessoais e <strong>visualizar</strong> ou <strong>cadastrar contatos</strong>.<br />
-            O botão <strong>Contatar</strong> abre o WhatsApp do prospectado para enviar mensagens <strong>individuais</strong>.
-            Para enviar uma mensagem padrão a vários prospectados, digite o texto na caixa <strong>Mensagem</strong> e
-            clique em <strong>Contatar para cada prospectado desejado</strong>.<br />
+          <div className="text-sm font-semibold text-foreground/60 inline-flex items-center">
+            Prospectados
+            <InfoTip text="O botão Contatar abre o WhatsApp do prospectado para enviar mensagens individuais. Para enviar uma mensagem padrão a vários prospectados, digite o texto na caixa Mensagem e clique em Contatar para cada prospectado desejado." />
+          </div>
+          <p className="text-xs text-foreground/60 text-justify">
+            <strong>Expanda</strong> a lista de Prospectados para <strong>consultar e editar dados pessoais</strong>,
+            <strong> visualizar informações</strong> ou <strong>cadastrar novos contatos realizados</strong>.<br />
             Quando o prospectado decidir iniciar o atendimento, clique em <strong>Converter</strong> para transformá-lo
             em paciente e retirá-lo da lista de prospecção.
           </p>
