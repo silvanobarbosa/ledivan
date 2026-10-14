@@ -92,14 +92,14 @@ export default async function PatientsPage({ searchParams }: { searchParams: Pro
     <div className="space-y-8 max-w-5xl">
       <div className="flex items-end justify-between gap-4">
         <div>
-          <h1 className="text-3xl lg:text-4xl font-display font-bold text-primary">Pacientes</h1>
-          <p className="text-foreground/50 mt-1">{list.length} paciente(s) no consultório</p>
+          <h1 className="text-3xl lg:text-4xl font-display font-bold text-primary">Cadastros</h1>
+          <p className="text-foreground/50 mt-1">{list.length} cadastro(s) no consultório</p>
         </div>
         <Link
           href="/dashboard/patients/new"
           className="flex items-center gap-2 bg-primary text-white px-5 py-3 rounded-2xl font-bold shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all"
         >
-          <Plus className="w-5 h-5" /> <span>Novo paciente</span>
+          <Plus className="w-5 h-5" /> <span>Novo cadastro</span>
         </Link>
       </div>
 

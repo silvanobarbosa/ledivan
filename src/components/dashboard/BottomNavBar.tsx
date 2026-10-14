@@ -15,7 +15,7 @@ export function BottomNavBar() {
   const pathname = usePathname();
 
   const navItems = [
-    { icon: Users, label: "Pacientes", href: "/dashboard/patients" },
+    { icon: Users, label: "Cadastros", href: "/dashboard/patients" },
     { icon: CalendarDays, label: "Agenda", href: "/dashboard/agenda" },
     { icon: LayoutDashboard, label: "Dashboard", href: "/dashboard" },
     { icon: ArrowLeftRight, label: "Caixa", href: "/dashboard/transactions" },
