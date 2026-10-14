@@ -7,7 +7,7 @@ import { SubmitButton } from "@/components/SubmitButton";
 import { ChevronRight, MessageCircle, Trash2 } from "lucide-react";
 import { apagarReajuste, apagarReajusteChange } from "@/app/dashboard/patients/actions";
 import { QUEIXAS } from "@/lib/queixas";
-import { idadeEmPalavras } from "@/lib/idade";
+import { idadeEmAnos, idadeEmPalavras } from "@/lib/idade";
 import { agruparPorVigencia, historicoDeReajuste, usaPacote } from "@/lib/reajuste";
 import { horaDeParede } from "@/lib/horaLocal";
 import { MoneyInput as MoneyInputBase } from "@/components/MoneyInput";
@@ -224,9 +224,13 @@ function QueixaSelect({ name, defaultValue }: { name: string; defaultValue?: str
   );
 }
 
-/** Data de nascimento + a idade que sai dela. A idade é calculada: digitada, fica velha amanhã. */
-function NascimentoEIdade({ name, defaultValue }: { name: string; defaultValue?: string | null }) {
-  const [data, setData] = useState(defaultValue ? new Date(defaultValue).toISOString().slice(0, 10) : "");
+/** Data de nascimento + a idade que sai dela. A idade é calculada: digitada, fica velha amanhã.
+ *  Pode ser controlado de fora (value/onChange) — o cadastro do paciente levanta o estado para
+ *  decidir, pela idade, se mostra o campo "Devolutiva a cada" (doc 40, só < 18 anos). */
+function NascimentoEIdade({ name, defaultValue, value, onChange }: { name: string; defaultValue?: string | null; value?: string; onChange?: (v: string) => void }) {
+  const [interno, setInterno] = useState(defaultValue ? new Date(defaultValue).toISOString().slice(0, 10) : "");
+  const data = value ?? interno;
+  const setData = (v: string) => { if (onChange) onChange(v); else setInterno(v); };
   return (
     <>
       <div>
@@ -329,6 +333,12 @@ export function PatientFormFields({ p, save, tabInicial, contrato, patientId }: 
   // Hoje no fuso de quem preenche, no formato do <input type="date">.
   const hojeISO = (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; })();
   const [pacote, setPacote] = useState(p?.pacoteTipo || "completo");
+  // Doc 40: a data de nascimento sobe de nível para decidir, pela idade, se o campo "Devolutiva a
+  // cada" aparece (só para menores de 18). Idade desconhecida (sem data ainda) → mostra, para não
+  // esconder num cadastro em andamento; vira oculto assim que uma data de 18+ é informada.
+  const [nascimento, setNascimento] = useState(p?.birthDate ? new Date(p.birthDate).toISOString().slice(0, 10) : "");
+  const idadePaciente = idadeEmAnos(nascimento || null);
+  const menorDeIdade = idadePaciente == null || idadePaciente < 18;
   // A classificação saiu: a idade é CALCULADA da data de nascimento, e "casal" virou item próprio.
   const [casal, setCasal] = useState(!!p?.isCouple || p?.category === "casal");
   const dateVal = (d?: string | null) => (d ? new Date(d).toISOString().slice(0, 10) : "");
@@ -567,7 +577,7 @@ export function PatientFormFields({ p, save, tabInicial, contrato, patientId }: 
           <div className="grid sm:grid-cols-2 gap-4">
             <PhoneInput name="phone" defaultValue={p?.phone} />
             <div><label className={labelCls}>E-mail</label><input name="email" type="email" defaultValue={p?.email ?? ""} className={inputCls} placeholder="email@exemplo.com" /></div>
-            <NascimentoEIdade name="birthDate" defaultValue={p?.birthDate} />
+            <NascimentoEIdade name="birthDate" value={nascimento} onChange={setNascimento} />
             <QueixaSelect name="queixaPrincipal" defaultValue={p?.queixaPrincipal} />
             <GenderSelect name="gender" defaultValue={p?.gender} />
             <div><label className={labelCls}>CPF</label><input name="cpf" defaultValue={p?.cpf ?? ""} className={inputCls} placeholder="000.000.000-00" /></div>
@@ -626,16 +636,20 @@ export function PatientFormFields({ p, save, tabInicial, contrato, patientId }: 
           </>
         )}
 
-        {/* Era o único campo que sobrava da aba Atendimento. Virou área própria. */}
-        <Card title="Devolutiva">
-          <div className="sm:max-w-sm">
-            <NumeroCom
-              name="devolutivaMeses" label="Devolutiva a cada" unidade="meses" max={24}
-              dica="Defina a quantidade de meses para o lembrete da devolutiva. Se não preenchido, nenhum lembrete será gerado. O primeiro prazo será contado a partir do primeiro agendamento e, depois, a partir da data da última devolutiva."
-              defaultValue={p?.devolutivaMeses} placeholder="ex: 6"
-            />
-          </div>
-        </Card>
+        {/* Era o único campo que sobrava da aba Atendimento. Virou área própria.
+            Doc 40: só aparece para pacientes menores de 18 (a devolutiva é para os responsáveis dos
+            menores). Para 18+ fica oculto — o valor gravado é preservado (o campo não é enviado). */}
+        {menorDeIdade && (
+          <Card title="Devolutiva">
+            <div className="sm:max-w-sm">
+              <NumeroCom
+                name="devolutivaMeses" label="Devolutiva a cada" unidade="meses" max={24}
+                dica="Defina a quantidade de meses para o lembrete da devolutiva. Se não preenchido, nenhum lembrete será gerado. O primeiro prazo será contado a partir do primeiro agendamento e, depois, a partir da data da última devolutiva."
+                defaultValue={p?.devolutivaMeses} placeholder="ex: 6"
+              />
+            </div>
+          </Card>
+        )}
 
         <Card title="Escola">
           <div className="grid sm:grid-cols-2 gap-4">
