@@ -35,8 +35,10 @@ export function diasParaDevolutiva(proxima: Date | null, hoje: Date = new Date()
 }
 
 /**
- * Entra na lista? Só quando falta ≤ 7 dias (inclui vencida) E não foi dispensada NESTE ciclo. A
- * dispensa guarda a data da própria devolutiva; se a próxima avançou (ciclo novo), ela reaparece.
+ * Entra na lista? Doc 41: aparece com UM MÊS de antecedência (≤ 31 dias, inclui vencida) —
+ * substitui a regra antiga de 7 dias. Mesmo corte (31) do "reajuste a vencer", que cobre o mês
+ * inteiro. O tick de dispensa saiu (doc 41); o paciente sai sozinho ao agendar uma DEVOLUTIVA
+ * (a referência avança e a próxima pula para longe). `dispensadaEm` fica por retro-compat.
  */
 export function devolutivaNaLista(
   proxima: Date | null,
@@ -45,7 +47,7 @@ export function devolutivaNaLista(
 ): boolean {
   if (!proxima) return false;
   const dias = diasParaDevolutiva(proxima, hoje);
-  if (dias == null || dias > 7) return false;
+  if (dias == null || dias > 31) return false;
   if (dispensadaEm && dispensadaEm.getTime() >= proxima.getTime()) return false;
   return true;
 }
