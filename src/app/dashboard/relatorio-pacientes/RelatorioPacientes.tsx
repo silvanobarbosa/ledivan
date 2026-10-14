@@ -27,6 +27,7 @@ export type LinhaRelatorio = {
   dueDate: string | null;
   sessionFee: string;
   queixaPrincipal: string | null;
+  qtdeAtendida: number;
 };
 
 // A conta da idade e uma so, em lib/idade: copiada aqui, ela errava o dia por causa do fuso.
@@ -64,8 +65,8 @@ const COLUNAS: { chave: string; rotulo: string; valor: (p: LinhaRelatorio) => st
   { chave: "email", rotulo: "E-mail", valor: (p) => p.email || "—" },
   { chave: "phone", rotulo: "Telefone", valor: (p) => p.phone || "—" },
   { chave: "address", rotulo: "Endereço", valor: (p) => p.address || "—" },
-  { chave: "school", rotulo: "Escola", valor: (p) => p.schoolName || "—" },
   { chave: "idade", rotulo: "Idade", valor: (p) => { const a = idade(p.birthDate); return a === null ? "—" : String(a); } },
+  { chave: "qtdeAtendida", rotulo: "Qtde Atendida", valor: (p) => String(p.qtdeAtendida) },
   { chave: "contrato", rotulo: "Avulso / Pacote", valor: contratoDe },
   { chave: "vencimento", rotulo: "Vencim.", valor: vencimentoDe },
   { chave: "valor", rotulo: "Valor", valor: (p) => formatBRL(p.sessionFee) },
@@ -100,13 +101,6 @@ export function RelatorioPacientes({ linhas }: { linhas: LinhaRelatorio[] }) {
       .filter((p) => dentro(p.startedAt))
       .sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
   }, [linhas, tipo, de, ate]);
-
-  // Três queixas mais frequentes no recorte atual — o resumo que o dono pediu antes da tabela.
-  const topQueixas = useMemo(() => {
-    const m = new Map<string, number>();
-    for (const p of filtradas) { const g = queixaGroup(p.queixaPrincipal); if (g === "—") continue; m.set(g, (m.get(g) ?? 0) + 1); }
-    return [...m.entries()].sort((a, b) => b[1] - a[1]).slice(0, 3);
-  }, [filtradas]);
 
   function alternar(chave: string) {
     setColunas((atual) => {
@@ -150,20 +144,6 @@ export function RelatorioPacientes({ linhas }: { linhas: LinhaRelatorio[] }) {
           </div>
         </div>
       </div>
-
-      {topQueixas.length > 0 && (
-        <div className="glass-card rounded-[24px] p-5 space-y-2">
-          <h2 className="font-display font-bold text-primary">Queixas principais no recorte</h2>
-          <div className="grid sm:grid-cols-3 gap-3">
-            {topQueixas.map(([nome, n]) => (
-              <div key={nome} className="rounded-2xl bg-surface/60 border border-border px-4 py-3">
-                <p className="text-2xl font-display font-bold text-primary">{n}</p>
-                <p className="text-xs text-foreground/50">{nome}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
 
       <p className="text-sm text-foreground/50">{filtradas.length} paciente(s) no recorte.</p>
 
