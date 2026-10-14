@@ -1,7 +1,7 @@
 import { db } from "@/db";
 import { auth } from "@/auth";
-import { patients } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { patients, therapySessions } from "@/db/schema";
+import { and, count, eq } from "drizzle-orm";
 import { ClipboardList } from "lucide-react";
 import { RelatorioPacientes } from "./RelatorioPacientes";
 
@@ -44,6 +44,14 @@ export default async function RelatorioPacientesPage() {
     .from(patients)
     .where(eq(patients.userId, session.user.id));
 
+  // Doc 41: coluna "Qtde Atendida" = nº de sessões com status Presente (realizada) por paciente.
+  const atendidasRows = await db
+    .select({ pid: therapySessions.patientId, n: count() })
+    .from(therapySessions)
+    .where(and(eq(therapySessions.userId, session.user.id), eq(therapySessions.status, "realizada")))
+    .groupBy(therapySessions.patientId);
+  const atendidasPorPaciente = new Map(atendidasRows.map((r) => [r.pid, Number(r.n)]));
+
   const iso = (d: Date | null) => (d ? (d as unknown as string) : null);
 
   return (
@@ -52,8 +60,8 @@ export default async function RelatorioPacientesPage() {
         <h1 className="text-3xl lg:text-4xl font-display font-bold text-primary flex items-center gap-2">
           <ClipboardList className="w-7 h-7" /> Relatório de pacientes
         </h1>
-        <p className="text-foreground/50 mt-1 print:hidden">
-          Escolha o tipo de relatório, defina o período e selecione as colunas que deseja visualizar ou imprimir.
+        <p className="text-foreground/50 mt-1 print:hidden text-justify">
+          <strong>Monte</strong> o seu relatório conforme a sua necessidade.
         </p>
       </div>
 
@@ -64,6 +72,7 @@ export default async function RelatorioPacientesPage() {
           startedAt: iso(p.startedAt),
           priceReviewDate: iso(p.priceReviewDate),
           dueDate: iso(p.dueDate),
+          qtdeAtendida: atendidasPorPaciente.get(p.id) ?? 0,
         }))}
       />
     </div>
