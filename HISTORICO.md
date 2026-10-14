@@ -7,6 +7,22 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-10-14 — Doc 36 item 3: repetição semanal no slot do quinzenal + Dependabot
+
+**Entregue:**
+- **Quinzenal "APENAS ESTE" — item 3:** no horário intercalado (semana anterior de um quinzenal)
+  agora dá para escolher "Repetir semanalmente (1x)". A série pula sozinha a semana que o quinzenal
+  já ocupa (predicado `ocupado` em `datasEPuladas` — pula em silêncio, ≠ "Hor. Bloq."), sem duplicar
+  e sem contar a semana pulada. `createRecurring` passou a nunca agendar duas sessões no mesmo
+  instante (previne double-booking). Mensagem explicativa na janela de Novo atendimento.
+- **Dependabot:** #253 (anchore/sbom-action 0.24.3) mergeado. #214 (dotenv 18) em CI. #243 (18 deps
+  minor+patch) fechou numa corrida de merge — dependabot recria no próximo ciclo.
+
+**Decisões que ficam valendo:** `datasEPuladas` distingue BLOQUEADO (vira "Hor. Bloq.") de OCUPADO
+(já tem sessão → pula silencioso). Com isto, o item 3 do quinzenal está completo (1+2 no #360).
+
+---
+
 ## 2026-10-14 — Doc 38: logo do contrato, linha do documento, crédito Sim/Não, agenda id+altura (#363–#365)
 
 **Entregue:**
