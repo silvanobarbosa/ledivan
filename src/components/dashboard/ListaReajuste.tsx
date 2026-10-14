@@ -11,6 +11,7 @@ export type ReajusteLinha = {
   /** ID da agenda — é o que identifica o paciente na lista (doc 21), caindo no nome quando vazio. */
   agendaId: string | null;
   phone: string | null;
+  guardianName: string | null;
   guardianPhone: string | null;
   /** Data prevista do reajuste (YYYY-MM-DD). */
   review: string;
@@ -31,11 +32,13 @@ export function ListaReajuste({ reajustes }: { reajustes: ReajusteLinha[] }) {
 
   const vazio = reajustes.length === 0;
 
+  // Doc 41: {nome} e o WhatsApp são do RESPONSÁVEL financeiro; sem responsável, caem no paciente.
   function lembrar(r: ReajusteLinha) {
     const num = numeroDoWhatsapp(r.guardianPhone) ?? numeroDoWhatsapp(r.phone);
     if (!num) { setAviso(`${r.name} está sem telefone (responsável ou paciente) para o WhatsApp.`); return; }
     setAviso(null);
-    const texto = mensagem.replace(/\{nome\}/g, r.name.split(" ")[0]);
+    const alvo = (r.guardianName?.trim() || r.name).split(" ")[0];
+    const texto = mensagem.replace(/\{nome\}/g, alvo);
     const url = texto.trim() ? `https://wa.me/${num}?text=${encodeURIComponent(texto)}` : `https://wa.me/${num}`;
     window.open(url, "_blank", "noopener");
   }
@@ -46,8 +49,12 @@ export function ListaReajuste({ reajustes }: { reajustes: ReajusteLinha[] }) {
     <section className="glass-card rounded-[24px] p-5 space-y-3">
       <h3 className="text-lg font-display font-bold text-primary flex items-center gap-2">
         <TrendingUp className="w-5 h-5" /> Reajustes a vencer
-        <InfoTip text="Visualize os pacientes que estão com reajuste previsto para os próximos 30 dias. Após atualizar o valor no cadastro do paciente, ele será removido automaticamente desta lista." />
+        <InfoTip text="O botão Lembrar abre o WhatsApp do cadastro para enviar mensagens individuais. Para enviar uma mensagem padrão a vários, digite o texto na caixa Mensagem e clique em Lembrar para cada paciente desejado. Esta mensagem será enviada para ao responsável financeiro do paciente ou, se não houver, ao paciente." />
       </h3>
+      <p className="text-xs text-foreground/60 text-justify">
+        Visualize os pacientes que estão com reajuste <strong>previsto para os próximos 30 dias.</strong><br />
+        Ao <strong>atualizar</strong> o valor do cadastro, o paciente será <strong>removido automaticamente desta lista</strong>.
+      </p>
 
       {vazio && <p className="text-sm text-foreground/45 py-2">Nenhum reajuste previsto no momento.</p>}
 
@@ -68,12 +75,15 @@ export function ListaReajuste({ reajustes }: { reajustes: ReajusteLinha[] }) {
 
       {!vazio && (
       <div className="space-y-1">
-        <label className="text-sm font-semibold text-foreground/60 inline-flex items-center">
-          Mensagem
-          <InfoTip text="Digite a mensagem que será enviada para lembrar sobre o reajuste de valor e clique em Lembrar. Para personalizar com o nome do paciente, utilize {nome} — o sistema substitui pelo primeiro nome. Se a mensagem estiver em branco, ao clicar em Lembrar o WhatsApp abre com o campo vazio para você digitar. A mensagem vai pelo WhatsApp do responsável e, não havendo responsável cadastrado, pelo do paciente." />
-        </label>
+        <label className="text-sm font-semibold text-foreground/60">Mensagem</label>
+        <p className="text-[11px] text-foreground/60 text-justify">
+          Digite o texto de lembrete de reajuste no campo Mensagem e, em seguida, clique em <strong>Lembrar</strong>
+          em cada paciente que deverá receber essa mensagem.<br />
+          Se desejar <strong>personalizar o texto</strong>, utilize &ldquo;{"{nome}"}&rdquo;. O sistema substituirá esse
+          marcador pelo nome do <strong>responsável financeiro</strong> ou, se não houver, pelo nome do paciente.
+        </p>
         <textarea value={mensagem} onChange={(e) => { setMensagem(e.target.value); setAviso(null); }}
-          rows={3} placeholder="Olá! Passando para avisar sobre o reajuste… (use {nome} para o nome do paciente)"
+          rows={3} placeholder="Olá, {nome}! Passando para avisar sobre o reajuste…"
           className="w-full px-3 py-2 rounded-xl bg-surface border border-border outline-none text-sm" />
       </div>
       )}

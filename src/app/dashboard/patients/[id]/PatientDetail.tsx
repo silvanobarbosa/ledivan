@@ -357,7 +357,10 @@ export function PatientDetail({
               <p className="text-xs text-foreground/50">Valor da sessão</p>
             </div>
             {patient.priceReviewDate && (
-              <p className="text-sm font-semibold text-[#92400e] flex items-center gap-1.5">⏰ Reajuste previsto para {formatDate(patient.priceReviewDate)}</p>
+              /* Doc 41: inativo mostra "estava previsto" (no passado), ativo "previsto". */
+              <p className="text-sm font-semibold text-[#92400e] flex items-center gap-1.5">
+                ⏰ Reajuste {patient.patientStatus === "inativo" ? "estava previsto" : "previsto"} para {formatDate(patient.priceReviewDate)}
+              </p>
             )}
           </div>
           {/* O seletor de ano é ÚNICO e vem ANTES da tabela de Controle (documento de 17/09): uma
