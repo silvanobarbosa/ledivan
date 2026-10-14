@@ -7,6 +7,25 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-10-14 — Doc 38: logo do contrato, linha do documento, crédito Sim/Não, agenda id+altura (#363–#365)
+
+**Entregue:**
+- **#363 (contrato + documento):** o logo do contrato voltou a ficar **centralizado acima do título**
+  (o doc 36 #1 tinha pinado só `#contrato-papel` com position:absolute, que cobria o logo; agora o
+  bloco posicionado é o `#contrato-wrap` inteiro — logo + papel). Removida a linha horizontal (`<hr>`)
+  abaixo do cabeçalho do documento.
+- **#364 (crédito):** a pergunta "sobra vira crédito no saldo?" trocou o checkbox confuso por botões
+  **Sim/Não** explícitos.
+- **#365 (agenda):** a célula mostra o **agendaId completo** (ex. "Kelly Port") — vinha da lista
+  `patients` que exclui inativo, então sessão de inativo caía no 1º nome; agora agendaId/registro vêm
+  do paciente da própria sessão (join). E as **linhas ficaram mais baixas** (HOUR_PX 64→48) — cabe
+  mais agendamento na tela.
+
+**Decisões que ficam valendo:** o bloco de impressão do contrato é o WRAP inteiro (logo junto). A
+identificação da célula da agenda sai da sessão (join), não da lista de pacientes ativos.
+
+---
+
 ## 2026-10-13 — Doc 37: reajuste conta de "Vale a partir de" + esconder o campo após salvar
 
 **Entregue:**
