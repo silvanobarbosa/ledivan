@@ -89,7 +89,17 @@ export async function createRecurring(formData: FormData): Promise<{ ok: boolean
   const ocupados = new Set(bloqueios.map((b) => new Date(b.date).getTime()));
   const bloqueado = (quando: Date) => ocupados.has(quando.getTime());
 
-  const { datas, puladas } = datasEPuladas({ primeira: first, limite: until, freq: freqRaw, segundoDia, segundoHorario, bloqueado });
+  // Doc 36 (item 3): a série semanal PULA as semanas que já têm uma sessão naquele horário exato —
+  // ex.: a ocorrência do quinzenal na semana seguinte. Não vira "Hor. Bloq." e não duplica: a sessão
+  // existente fica onde está. Vale para qualquer série (nunca agendar duas no mesmo instante).
+  const existentes = await db
+    .select({ date: therapySessions.date })
+    .from(therapySessions)
+    .where(and(eq(therapySessions.userId, userId), gte(therapySessions.date, first), lte(therapySessions.date, until)));
+  const comSessao = new Set(existentes.map((s) => new Date(s.date).getTime()));
+  const ocupadoPorSessao = (quando: Date) => comSessao.has(quando.getTime());
+
+  const { datas, puladas } = datasEPuladas({ primeira: first, limite: until, freq: freqRaw, segundoDia, segundoHorario, bloqueado, ocupado: ocupadoPorSessao });
   if (!datas.length) {
     return { ok: false, error: "Todas as datas dessa repetiç\u00e3o caem em horário bloqueado." };
   }

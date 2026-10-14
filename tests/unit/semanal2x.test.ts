@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { datasDaRepeticao, geraRepeticoes, repeticoesDe, segundoDiaValido } from "@/lib/agendamentoNovo";
+import { datasDaRepeticao, datasEPuladas, geraRepeticoes, repeticoesDe, segundoDiaValido } from "@/lib/agendamentoNovo";
 
 /**
  * SEMANAL (2x NA SEMANA) — documento de 18/09.
@@ -132,5 +132,24 @@ describe("as datas geradas", () => {
   it("quinzenal continua de duas em duas semanas", () => {
     const datas = datasDaRepeticao({ primeira, limite: new Date(2026, 9, 15, 23, 59), freq: "quinzenal" });
     expect(datas.map(iso)).toEqual(["14/09 14h", "28/09 14h", "12/10 14h"]);
+  });
+});
+
+describe("série semanal pula a semana que já tem sessão (doc 36 item 3)", () => {
+  const primeira = new Date(2026, 8, 14, 14, 0); // 14/09 14h
+  const limite = new Date(2026, 9, 12, 23, 59); // até 12/10
+  // A ocorrência do quinzenal cai em 28/09 14h (semana ocupada).
+  const ocupado = (d: Date) => d.getTime() === new Date(2026, 8, 28, 14, 0).getTime();
+
+  it("a semana ocupada NÃO vira sessão e NÃO vira 'Hor. Bloq.'", () => {
+    const { datas, puladas } = datasEPuladas({ primeira, limite, freq: "semanal", ocupado });
+    expect(datas.map(iso)).toEqual(["14/09 14h", "21/09 14h", "05/10 14h", "12/10 14h"]);
+    expect(datas.map(iso)).not.toContain("28/09 14h");
+    expect(puladas).toHaveLength(0); // ocupado ≠ bloqueado
+  });
+
+  it("sem o flag ocupado, a semana entra normalmente", () => {
+    const { datas } = datasEPuladas({ primeira, limite, freq: "semanal" });
+    expect(datas.map(iso)).toContain("28/09 14h");
   });
 });
