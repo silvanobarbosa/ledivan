@@ -7,6 +7,48 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-10-14 — Docs 40+41: relatório, cadastro/supervisionado, contrato, sessões realizadas (#377–#381)
+
+**Entregue:**
+- **Relatório de pacientes (#377):** nova coluna **Qtde Atendida** (nº de sessões com status Presente),
+  saiu a coluna **Escola**, saiu o bloco "Queixas principais no recorte". Intro vira "Monte o seu
+  relatório conforme a sua necessidade".
+- **Paciente → Cadastro (#378):** menu, lista (título/contador/botão), tela nova, edição e link de
+  volta passam a falar "Cadastro(s)".
+- **Tipo de cadastro Paciente/Supervisionado (#379):** coluna aditiva `patients.cadastro_kind`
+  (default `paciente`, ALTER idempotente já aplicado em prod, 138 linhas → paciente). Seletor acima do
+  "Número do cadastro". **Supervisionado = só dados pessoais** (somem financeiro, contrato, responsável,
+  emergência, cônjuge, devolutiva, escola e queixa). `normalizeCadastroKind()` fail-safe, com testes.
+- **Contrato (#380):** campo vazio da guia dados some do contrato e volta ao ser cadastrado
+  (CONTRATANTE/PACIENTE; CONTRATADA e enquadre seguem com `[placeholder]`); e-mail do contratante vem
+  do cadastro; cláusula **4.3** some sem periodicidade de reajuste; **novo texto da 5.2** (com ressalva
+  de atestado); **terapia** troca "analítico/analítica" por "terapêutico/terapêutica" (6.1 e seção 8).
+- **Sessões Realizadas (#381):** card na ficha do paciente, abaixo de "Sessões agendadas", com o total
+  de presenças e um **detalhe** que abre mês/ano e mostra a contagem do período (mapa YYYY-MM do servidor).
+- **Limpeza de dado (doc 41):** devolutiva de pacientes 18+ zerada no banco (1 registro: Caroline).
+
+**Por quê:** o consultório recebe também supervisionandos (cadastro ≠ só paciente); o relatório e o
+contrato precisavam refletir o uso real; e faltava enxergar presença por período na ficha.
+
+**Decisões que ficam valendo:**
+- `cadastro_kind` é ortogonal ao `patient_status` (um supervisionado também é ativo/inativo).
+- Contrato: só os campos vindos da **guia dados** somem quando vazios; Perfil e agenda mantêm placeholder.
+- "analítico→terapêutico" vale **só** para a formação terapia; psicanálise/psicologia mantêm "analítico".
+
+**Armadilhas:** `git checkout main` entre PRs reverte a árvore ao estado remoto — não rebranchar antes de
+mergear o PR anterior (squash-merge deixa o rebase sujo; resolvi com `reset --hard main` + reaplicar).
+
+**Pendente (decisão do dono):**
+- **Editar recorrência na agenda (doc 40, frente 7):** NÃO implementado — depende de decisão. O próprio
+  dono pergunta no doc se mudar a recorrência no "Editar agendamento" afeta parâmetros já estabelecidos
+  (contrato/enquadre, sequência de cobrança, contagem de pacote). Enviei plano + os efeitos colaterais a
+  avaliar; aguarda o "pode ir".
+- **Prazo da lista de devolutivas (contradição do doc 41):** página 8 manda a lista aparecer **1 mês**
+  antes ("substituindo os 7 dias") — foi o que ficou no código (`devolutivaNaLista` ≤ 31 dias). Já as
+  páginas 9–10 (exemplos + "regras importantes", 2x) dizem **7 dias**. Deixei em 31; o dono confirma qual vale.
+
+---
+
 ## 2026-10-14 — Doc 36 item 3: repetição semanal no slot do quinzenal + Dependabot
 
 **Entregue:**
