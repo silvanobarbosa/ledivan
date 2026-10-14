@@ -18,6 +18,7 @@ import { escapeHtml } from "@/lib/html";
 import { moedaOuPadrao } from "@/lib/money";
 import { occurrencesByCount, weekdayIndex, type LockFreq } from "@/lib/recurrence";
 import { pushToPatient } from "@/lib/push";
+import { normalizeCadastroKind } from "@/lib/cadastro";
 
 // Envia mensagem ao paciente pelo canal escolhido (WhatsApp do Ledivan, Telegram ou e-mail).
 export async function sendPatientMessage(patientId: string, channel: string, text: string): Promise<{ ok: boolean; error?: string }> {
@@ -144,6 +145,7 @@ export async function createPatient(formData: FormData) {
     timesPerPeriod: rec.timesPerPeriod,
     notes: (formData.get("notes") as string) || null,
     patientStatus: (formData.get("patientStatus") as string) || "ativo",
+    cadastroKind: normalizeCadastroKind(formData.get("cadastroKind")),
     prospectDate: (formData.get("patientStatus") as string) === "prospect" ? new Date() : null,
     startedAt: startedAtRaw ? new Date(startedAtRaw) : new Date(),
     birthDate: formData.get("birthDate") ? new Date(formData.get("birthDate") as string) : null,
@@ -276,6 +278,8 @@ export async function updatePatient(patientId: string, formData: FormData) {
     timesPerPeriod: rec.timesPerPeriod,
     notes: existing.notes, // editado no Prontuário
     patientStatus: newStatus,
+    // Doc 41: tipo do cadastro (paciente/supervisionado). O select sempre vem no form; na dúvida, paciente.
+    cadastroKind: formData.has("cadastroKind") ? normalizeCadastroKind(formData.get("cadastroKind")) : existing.cadastroKind,
     birthDate: formData.get("birthDate") ? new Date(formData.get("birthDate") as string) : existing.birthDate,
     // "Início" (startedAt): o form envia o campo, mas ele NÃO estava no .set() — editar a data
     // de início não salvava (sem erro). Agora persiste.

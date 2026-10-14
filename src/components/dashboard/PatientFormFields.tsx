@@ -20,7 +20,7 @@ const ROTULO_STATUS: Record<string, string> = { prospect: "Prospectado", pausado
 
 export type PatientFormData = {
   registrationNumber?: number | null; agendaId?: string | null; dueDateType?: string | null; dueDate?: string | null; queixaPrincipal?: string | null;
-  name?: string; phone?: string | null; email?: string | null; patientStatus?: string;
+  name?: string; phone?: string | null; email?: string | null; patientStatus?: string; cadastroKind?: string | null;
   startedAt?: string | null; birthDate?: string | null; category?: string | null; isCouple?: boolean | null;
   guardianRelationship?: string | null; devolutivaMeses?: number | null; gender?: string | null; cpf?: string | null; address?: string | null;
   schoolName?: string | null; schoolContact?: string | null;
@@ -295,10 +295,16 @@ function Formulario({ save, children }: { save?: SaveAction; children: ReactNode
 }
 
 export function PatientFormFields({ p, save, tabInicial, contrato, patientId }: { p?: PatientFormData; save?: SaveAction; tabInicial?: string; contrato?: ReactNode; patientId?: string }) {
-  const [tab, setTab] = useState(tabInicial || "dados");
+  // Doc 41: tipo do cadastro. Supervisionado só tem dados pessoais, então nasce (e fica) na aba Dados.
+  const [tipo, setTipo] = useState(p?.cadastroKind || "paciente");
+  const supervisionado = tipo === "supervisionado";
+  const [tab, setTab] = useState(p?.cadastroKind === "supervisionado" ? "dados" : (tabInicial || "dados"));
   // Doc 22: no Editar paciente, uma aba "Contrato" ao lado de "Financeiro" mostra o mesmo contrato
   // do menu Contratos (montado no servidor e passado pronto). Só aparece quando há contrato (edição).
-  const tabs = contrato ? [...TABS, { k: "contrato", label: "Contrato" }] : TABS;
+  // Doc 41: o supervisionado não tem financeiro nem contrato — só a aba Dados.
+  const tabs = supervisionado
+    ? TABS.filter((t) => t.k === "dados")
+    : (contrato ? [...TABS, { k: "contrato", label: "Contrato" }] : TABS);
   // Formato antigo "avulso" e o "a cada sessao" do dono; "pacote" virou mensal com pacote.
   // primeira/última do pacote deixaram de ser modalidades próprias (prints 6.pdf, item 20): viram
   // OPÇÕES de "quando cobrar" dentro do Mensal pacote completo. No radio elas aparecem como "mensal".
@@ -541,6 +547,22 @@ export function PatientFormFields({ p, save, tabInicial, contrato, patientId }: 
       {/* DADOS: pessoais → cônjuge → responsável/emergência → devolutiva → escola */}
       <Secao show={show("dados")}>
         <Card title="Dados pessoais">
+          {/* Doc 41: tipo do cadastro vem ANTES do número — é ele que decide o que mais o formulário
+              pede. Supervisionado = só dados pessoais (sem financeiro, contrato, responsável etc.). */}
+          <div className="sm:max-w-xs">
+            <label className={labelCls}>Tipo de cadastro</label>
+            <select
+              name="cadastroKind" value={tipo}
+              onChange={(e) => { setTipo(e.target.value); if (e.target.value === "supervisionado") setTab("dados"); }}
+              className={inputCls}
+            >
+              <option value="paciente">Paciente</option>
+              <option value="supervisionado">Supervisionado</option>
+            </select>
+            <p className="text-xs text-foreground/50 mt-1">
+              {supervisionado ? "Registra apenas os dados pessoais." : "Paciente em atendimento, com financeiro e contrato."}
+            </p>
+          </div>
           <div className="grid sm:grid-cols-2 gap-4">
             <div>
               <label className={labelCls}>Número do cadastro</label>
@@ -578,7 +600,7 @@ export function PatientFormFields({ p, save, tabInicial, contrato, patientId }: 
             <PhoneInput name="phone" defaultValue={p?.phone} />
             <div><label className={labelCls}>E-mail</label><input name="email" type="email" defaultValue={p?.email ?? ""} className={inputCls} placeholder="email@exemplo.com" /></div>
             <NascimentoEIdade name="birthDate" value={nascimento} onChange={setNascimento} />
-            <QueixaSelect name="queixaPrincipal" defaultValue={p?.queixaPrincipal} />
+            {!supervisionado && <QueixaSelect name="queixaPrincipal" defaultValue={p?.queixaPrincipal} />}
             <GenderSelect name="gender" defaultValue={p?.gender} />
             <div><label className={labelCls}>CPF</label><input name="cpf" defaultValue={p?.cpf ?? ""} className={inputCls} placeholder="000.000.000-00" /></div>
             <div><label className={labelCls}>Início</label><input name="startedAt" type="date" defaultValue={dateVal(p?.startedAt)} className={inputCls} /></div>
@@ -586,6 +608,7 @@ export function PatientFormFields({ p, save, tabInicial, contrato, patientId }: 
           <div><label className={labelCls}>Endereço</label><input name="address" defaultValue={p?.address ?? ""} className={inputCls} placeholder="Endereço residencial" /></div>
           {/* O casal fica logo abaixo do endereço, a pedido do dono: é a última coisa que ele
               decide sobre a pessoa antes de abrir a ficha do cônjuge. */}
+          {!supervisionado && (
           <div>
             <label className="flex items-center gap-2 text-sm font-medium cursor-pointer">
               <input type="checkbox" name="isCouple" value="1" checked={casal} onChange={(e) => setCasal(e.target.checked)} className="accent-primary w-4 h-4" />
@@ -593,9 +616,10 @@ export function PatientFormFields({ p, save, tabInicial, contrato, patientId }: 
             </label>
             <p className="text-xs text-foreground/50 mt-1">Abre os dados do cônjuge, logo abaixo.</p>
           </div>
+          )}
         </Card>
 
-        {casal && (
+        {!supervisionado && casal && (
           <Card title="Dados do cônjuge">
             <div className="grid sm:grid-cols-2 gap-4">
               <div><label className={labelCls}>Nome do cônjuge</label><input name="spouseName" defaultValue={p?.spouseName ?? ""} className={inputCls} placeholder="Nome completo" /></div>
@@ -612,7 +636,7 @@ export function PatientFormFields({ p, save, tabInicial, contrato, patientId }: 
 
         {/* No atendimento de casal os dois são adultos que se respondem: responsável e contato de
             emergência não fazem sentido, e o dono pediu que sumam da tela. */}
-        {!casal && (
+        {!supervisionado && !casal && (
           <>
             <Card title="Dados do responsável">
               <p className="text-xs text-foreground/50 -mt-1">Para menores de idade, pacientes sob responsabilidade de terceiros ou como responsável financeiro.</p>
@@ -639,7 +663,7 @@ export function PatientFormFields({ p, save, tabInicial, contrato, patientId }: 
         {/* Era o único campo que sobrava da aba Atendimento. Virou área própria.
             Doc 40: só aparece para pacientes menores de 18 (a devolutiva é para os responsáveis dos
             menores). Para 18+ fica oculto — o valor gravado é preservado (o campo não é enviado). */}
-        {menorDeIdade && (
+        {!supervisionado && menorDeIdade && (
           <Card title="Devolutiva">
             <div className="sm:max-w-sm">
               <NumeroCom
@@ -651,6 +675,7 @@ export function PatientFormFields({ p, save, tabInicial, contrato, patientId }: 
           </Card>
         )}
 
+        {!supervisionado && (
         <Card title="Escola">
           <div className="grid sm:grid-cols-2 gap-4">
             <div><label className={labelCls}>Escola</label><input name="schoolName" defaultValue={p?.schoolName ?? ""} className={inputCls} placeholder="Nome da escola" /></div>
@@ -659,6 +684,7 @@ export function PatientFormFields({ p, save, tabInicial, contrato, patientId }: 
             <PhoneInput name="schoolContact" defaultValue={p?.schoolContact} label="Contato da escola" placeholder="Telefone, e-mail ou coordenação" />
           </div>
         </Card>
+        )}
       </Secao>
 
       {/* FINANCEIRO — o formato vem primeiro, e é ele que decide o que se pergunta depois. Os

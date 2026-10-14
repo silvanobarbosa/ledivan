@@ -346,6 +346,10 @@ export const patients = pgTable("patients", {
   notes: text("notes"),
   paymentStatus: paymentStatusEnum("payment_status").default("pending").notNull(),
   patientStatus: text("patient_status").default("ativo").notNull(), // ativo | inativo | prospect | pausado
+  // Doc 41: um cadastro pode ser um PACIENTE (padrão) ou um SUPERVISIONADO (supervisionando sob
+  // acompanhamento). O supervisionado registra só os dados pessoais — sem financeiro, contrato,
+  // responsável, devolutiva nem escola. É uma classificação do cadastro, ortogonal ao status.
+  cadastroKind: text("cadastro_kind").default("paciente").notNull(), // paciente | supervisionado
   lastReactivationAt: timestamp("last_reactivation_at"), // última mensagem de reativação (throttle da campanha)
   // Quando o paciente VOLTOU a ser atendido, saindo de inativo/pausado para ativo. É a referência
   // do reajuste: contar a validade do preço do início original faria o reajuste vencer no dia em
