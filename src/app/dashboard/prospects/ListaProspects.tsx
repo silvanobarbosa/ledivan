@@ -43,6 +43,9 @@ export function ListaProspects({ prospects, contatos }: { prospects: ProspectLin
   // clicar). `verContatos` = dentro do card aberto, o histórico de contatos expandido.
   const [aberto, setAberto] = useState<string | null>(null);
   const [verContatos, setVerContatos] = useState<Set<string>>(new Set());
+  // Doc 40: ao abrir o card, em vez do formulário direto, mostram-se as opções "Atualizar dados" e
+  // "Contatos" (acordeões). `verForm` controla o acordeão do formulário de edição.
+  const [verForm, setVerForm] = useState<Set<string>>(new Set());
   const [erro, setErro] = useState<string | null>(null);
   const [pendente, iniciar] = useTransition();
   // Envio de mensagens (doc 20): a mensagem é definida UMA vez abaixo da lista; cada prospectado tem
@@ -201,6 +204,11 @@ export function ListaProspects({ prospects, contatos }: { prospects: ProspectLin
               : null;
             const alternarContatos = () =>
               setVerContatos((s) => { const n = new Set(s); if (n.has(p.id)) n.delete(p.id); else n.add(p.id); return n; });
+            const formAberto = verForm.has(p.id);
+            const alternarForm = () =>
+              setVerForm((s) => { const n = new Set(s); if (n.has(p.id)) n.delete(p.id); else n.add(p.id); return n; });
+            // Doc 40: "Atualizar" grava e RECOLHE a área do formulário.
+            const atualizarEFechar = async (fd: FormData) => { await updateProspect(fd); setVerForm((s) => { const n = new Set(s); n.delete(p.id); return n; }); };
             return (
               // `data-prospect` dá um endereço estável para cada linha. Sem ele, o percurso de
               // escrita precisava contar posições para achar a pessoa certa, e a contagem
@@ -210,6 +218,10 @@ export function ListaProspects({ prospects, contatos }: { prospects: ProspectLin
                     completas. À DIREITA, o botão "Contatar" (doc 20) envia a mensagem definida abaixo
                     SÓ para este prospectado — fora do botão de abrir, para um não disparar o outro. */}
                 <div className="flex items-center gap-3">
+                  {/* Doc 40: a lixeira fica à ESQUERDA do nome (saiu de baixo, do lado de Converter). */}
+                  <button type="button" onClick={() => excluir(p)} disabled={pendente} title="Excluir prospectado" aria-label={`Excluir prospectado ${p.name}`} className="shrink-0 text-red-600 hover:bg-red-50 rounded-lg p-1.5 transition disabled:opacity-50">
+                    <Trash2 className="w-4 h-4" />
+                  </button>
                   <button type="button" onClick={() => setAberto(expandido ? null : p.id)}
                     aria-expanded={expandido} className="flex-1 min-w-0 flex items-center gap-3 text-left">
                     {expandido ? <ChevronDown className="w-4 h-4 text-primary shrink-0" /> : <ChevronRight className="w-4 h-4 text-primary shrink-0" />}
@@ -224,9 +236,14 @@ export function ListaProspects({ prospects, contatos }: { prospects: ProspectLin
                 </div>
 
                 {expandido && (
-                <div className="space-y-3 mt-3 border-t border-border pt-3">
-                {/* Uma caixa por pessoa: os campos são editáveis aqui mesmo e o botão atualiza. */}
-                <form action={updateProspect} className="space-y-3">
+                <div className="space-y-2 mt-3 border-t border-border pt-3">
+                {/* Doc 40: ao abrir, aparecem as OPÇÕES (Atualizar dados / Contatos), não o form direto. */}
+                <button type="button" onClick={alternarForm} className="inline-flex items-center gap-1 text-xs font-bold text-primary hover:underline">
+                  {formAberto ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
+                  Atualizar dados
+                </button>
+                {formAberto && (
+                <form action={atualizarEFechar} className="space-y-3">
                   <input type="hidden" name="id" value={p.id} />
                   <div className="grid sm:grid-cols-3 gap-3">
                     <div><span className={lbl}>Data do contato</span><input name="prospectDate" type="date" defaultValue={paraInput(p.prospectDate)} className={inputCls} /></div>
@@ -249,19 +266,17 @@ export function ListaProspects({ prospects, contatos }: { prospects: ProspectLin
                     <button className="inline-flex items-center gap-1.5 bg-primary text-white text-sm px-4 py-2 rounded-xl font-semibold"><Save className="w-4 h-4" /> Atualizar</button>
                   </div>
                 </form>
+                )}
 
-                <div className="flex gap-2 flex-wrap border-t border-border pt-3 items-center">
+                <div className="flex gap-2 flex-wrap items-center">
                   <button type="button" onClick={alternarContatos} className="inline-flex items-center gap-1 text-xs font-bold text-primary hover:underline">
                     {contatosAbertos ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
                     {lista.length} contato(s)
                   </button>
-                  <div className="ml-auto flex gap-2">
+                  <div className="ml-auto">
                     <form action={async () => { await convertProspect(p.id); }}>
                       <button className="inline-flex items-center gap-1.5 bg-primary text-white text-sm px-4 py-2 rounded-xl font-semibold">Converter <ArrowRight className="w-4 h-4" /></button>
                     </form>
-                    <button type="button" onClick={() => excluir(p)} disabled={pendente} title="Excluir prospectado" aria-label={`Excluir prospectado ${p.name}`} className="inline-flex items-center justify-center p-2 rounded-xl border border-border text-red-600 hover:bg-red-50 transition disabled:opacity-50">
-                      <Trash2 className="w-4 h-4" />
-                    </button>
                   </div>
                 </div>
 
