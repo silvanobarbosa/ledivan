@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import { dataDoPreco, diaDoFormulario, formatoMudou, vigenciasAGravar } from "@/lib/trocaDeFormato";
+import { vencimentoDoPreco } from "@/lib/reajuste";
 
 const hoje = new Date(2026, 8, 15, 16, 30);
 
@@ -118,5 +119,28 @@ describe("de quando vale o preço novo — defeito achado no percurso real", () 
   it("sem data escolhida e sem troca: vale de hoje", () => {
     const d = dataDoPreco({ dataEfetiva: null, formatoMudou: false, formatoDesde: null, hoje });
     expect(d.getTime()).toBe(hoje.getTime());
+  });
+});
+
+describe("prazo do reajuste conta de 'Vale a partir de' (doc 37)", () => {
+  // Ao alterar o VALOR, a data efetiva do preço é "Vale a partir de" (formatoDesde), e o próximo
+  // reajuste conta a partir dela — não do cadastro inicial nem do reajuste anterior.
+  it("exemplo do doc: Vale a partir de 15/10/2026 + 12 meses = 15/10/2027", () => {
+    const efetiva = dataDoPreco({ dataEfetiva: null, formatoMudou: false, formatoDesde: "2026-10-15", hoje });
+    expect(efetiva.getFullYear()).toBe(2026);
+    expect(efetiva.getMonth()).toBe(9); // outubro (0-based)
+    expect(efetiva.getDate()).toBe(15);
+    const proximo = vencimentoDoPreco(efetiva, null, 12);
+    expect(proximo?.getFullYear()).toBe(2027);
+    expect(proximo?.getMonth()).toBe(9);
+    expect(proximo?.getDate()).toBe(15);
+  });
+
+  it("reinicia a cada alteração: nova vigência manda, ignora a referência anterior", () => {
+    const efetiva = dataDoPreco({ dataEfetiva: null, formatoMudou: false, formatoDesde: "2027-03-01", hoje });
+    const proximo = vencimentoDoPreco(efetiva, null, 6);
+    expect(proximo?.getFullYear()).toBe(2027);
+    expect(proximo?.getMonth()).toBe(8); // setembro
+    expect(proximo?.getDate()).toBe(1);
   });
 });
