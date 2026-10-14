@@ -31,6 +31,9 @@ export type DadosDoContrato = {
   responsavelNome: string | null;
   responsavelCpf: string | null;
   responsavelTelefone: string | null; // telefone do responsável (preferido no contato)
+  // E-mails (doc 41): guia-dados. Alimentam a linha E-mail do CONTRATANTE conforme quem é o R1/R2.
+  responsavelEmail?: string | null;
+  pacienteEmail?: string | null;
   // Honorários
   valorSessao: string | number | null;
   reajusteMeses: number | null;
@@ -166,8 +169,18 @@ export function montarContrato(d: DadosDoContrato): string {
   // Formação escolhida nos Ajustes decide título, objeto (2.1/2.2), reserva (5.1) e rótulo da
   // assinatura (doc 28).
   const m = PELA_MODALIDADE[descricaoValida(d.descricaoAtendimento)];
+  // Doc 41: quando a formação é TERAPIA, "analítico/analítica" vira "terapêutico/terapêutica"
+  // (sigilo da 6.1 e título da seção 8). Nas demais formações o termo analítico é mantido.
+  const ehTerapia = descricaoValida(d.descricaoAtendimento) === "terapia";
+  const sigiloAdj = ehTerapia ? "terapêutico" : "analítico";
+  const altaTermo = ehTerapia ? "TERAPÊUTICA" : "ANALÍTICA";
 
-  const reajusteMes = d.reajusteMeses && d.reajusteMeses > 0 ? neg(`a cada ${d.reajusteMeses} ${d.reajusteMeses === 1 ? "mês" : "meses"}`) : "[periodicidade]";
+  // Doc 41: sem "próximo reajuste em" (periodicidade não definida), a cláusula 4.3 inteira sai do
+  // contrato; volta a aparecer assim que a periodicidade é preenchida.
+  const temReajuste = !!(d.reajusteMeses && d.reajusteMeses > 0);
+  const linha43 = temReajuste
+    ? `\n4.3. Reajuste: O valor dos honorários poderá ser reajustado ${neg(`a cada ${d.reajusteMeses} ${d.reajusteMeses === 1 ? "mês" : "meses"}`)}, mediante prévio aviso de 30 (trinta) dias aos responsáveis.`
+    : "";
   // Enquadre dinâmico (doc 26).
   const duracaoTxt = d.duracaoMaxMin && d.duracaoMaxMin > 0 ? `até ${neg(`${d.duracaoMaxMin} minutos`)}` : "até [ex: 45 a 50 minutos]";
   const frequenciaTxt = frequenciaDoContrato(d.recorrencia);
@@ -192,9 +205,6 @@ export function montarContrato(d: DadosDoContrato): string {
   const localAssinatura = cidade ? `${neg(`${cidade}${estado ? ` - ${estado}` : ""}`)}` : "[Cidade - UF]";
   const dataAssinatura = d.hoje && !Number.isNaN(d.hoje.getTime()) ? neg(dataPorExtenso(d.hoje)) : dataPorExtenso(null);
 
-  // Contato do CONTRATANTE: telefone do responsável, senão o do paciente (doc 25).
-  const telefoneContratante = ou(d.responsavelTelefone?.trim() ? d.responsavelTelefone : d.pacienteTelefone, "Telefone de Contato");
-  const enderecoContratante = ou(d.pacienteEndereco, "Endereço Residencial Completo");
   // Valor por sessão, data de nascimento e idade em negrito quando preenchidos.
   const valorRaw = reaisBR(d.valorSessao);
   const valorSessaoTxt = valorRaw.startsWith("[") ? valorRaw : neg(`R$ ${valorRaw}`);
@@ -211,19 +221,39 @@ export function montarContrato(d: DadosDoContrato): string {
    */
   const idade = idadeNum(d.pacienteNascimento);
   const temResponsavel = !!(d.responsavelNome && d.responsavelNome.trim());
-  let r1Nome: string | null, r1Cpf: string | null, r2Nome: string | null, r2Cpf: string | null;
+  let r1Nome: string | null, r1Cpf: string | null, r1Email: string | null;
+  let r2Nome: string | null, r2Cpf: string | null, r2Email: string | null;
   if (idade != null && idade >= 18) {
     if (temResponsavel) {
-      r1Nome = d.responsavelNome; r1Cpf = d.responsavelCpf;
-      r2Nome = d.pacienteNome; r2Cpf = d.pacienteCpf;
+      r1Nome = d.responsavelNome; r1Cpf = d.responsavelCpf; r1Email = d.responsavelEmail ?? null;
+      r2Nome = d.pacienteNome; r2Cpf = d.pacienteCpf; r2Email = d.pacienteEmail ?? null;
     } else {
-      r1Nome = d.pacienteNome; r1Cpf = d.pacienteCpf;
-      r2Nome = null; r2Cpf = null;
+      r1Nome = d.pacienteNome; r1Cpf = d.pacienteCpf; r1Email = d.pacienteEmail ?? null;
+      r2Nome = null; r2Cpf = null; r2Email = null;
     }
   } else {
-    r1Nome = d.responsavelNome; r1Cpf = d.responsavelCpf;
-    r2Nome = null; r2Cpf = null;
+    r1Nome = d.responsavelNome; r1Cpf = d.responsavelCpf; r1Email = d.responsavelEmail ?? null;
+    r2Nome = null; r2Cpf = null; r2Email = null;
   }
+
+  // Doc 41: campo da guia dados vazio → a LINHA sai do contrato; volta quando a informação é
+  // cadastrada. Vale só para a identificação do CONTRATANTE e do PACIENTE (dados do cadastro). O
+  // cabeçalho da CONTRATADA (Perfil) e o enquadre (agenda) seguem com [placeholder].
+  const Lopt = (label: string, raw: string | number | null | undefined) =>
+    raw != null && String(raw).trim() !== "" ? `${label}: ${neg(String(raw).trim())}\n` : "";
+  const telefoneR1 = d.responsavelTelefone?.trim() ? d.responsavelTelefone : d.pacienteTelefone;
+  const blocoResponsavel = (nome: string | null, cpf: string | null, tel: string | null, email: string | null, rotuloNome: string) =>
+    Lopt(rotuloNome, nome) + Lopt("CPF", cpf) + Lopt("Endereço", d.pacienteEndereco) + Lopt("Telefone", tel) + Lopt("E-mail", email);
+  const contratanteBloco = blocoResponsavel(r1Nome, r1Cpf, telefoneR1, r1Email, "Nome do Responsável").trimEnd();
+  const contratante2Bloco = r2Nome && r2Nome.trim()
+    ? blocoResponsavel(r2Nome, r2Cpf, d.pacienteTelefone, r2Email, "Nome do Responsável 2").trimEnd()
+    : "";
+  // PACIENTE: idade/nascimento só quando há data de nascimento.
+  const pacienteBloco = (
+    Lopt("Nome", d.pacienteNome) +
+    (d.pacienteNascimento ? `Data de Nascimento: ${nascimentoTxt}\n` : "") +
+    (idadeNumero != null ? `Idade: ${idadeTxt} anos\n` : "")
+  ).trimEnd();
 
   return `CONTRATO DE PRESTAÇÃO DE SERVIÇOS DE ${m.titulo}
 
@@ -239,22 +269,12 @@ Telefone: ${telefoneProf}
 E-mail: ${emailProf}
 
 CONTRATANTE(S):
-Nome do Responsável: ${ou(r1Nome, "Nome Completo do Responsável")}
-CPF: ${ou(r1Cpf, "CPF")}
-Endereço: ${enderecoContratante}
-Telefone: ${telefoneContratante}
-E-mail: [E-mail de Contato]${r2Nome && r2Nome.trim() ? `
+${contratanteBloco}${contratante2Bloco ? `
 
-Nome do Responsável 2: ${ou(r2Nome, "Nome Completo do Responsável")}
-CPF: ${ou(r2Cpf, "CPF")}
-Endereço: ${enderecoContratante}
-Telefone: ${telefoneContratante}
-E-mail: [E-mail de Contato]` : ""}
+${contratante2Bloco}` : ""}
 
 PACIENTE:
-Nome: ${ou(d.pacienteNome, "Nome do Paciente")}
-Data de Nascimento: ${nascimentoTxt}
-Idade: ${idadeTxt} anos
+${pacienteBloco}
 
 2. DO OBJETO DO CONTRATO
 2.1. O presente instrumento tem por objeto ${m.objeto}.
@@ -269,18 +289,17 @@ Idade: ${idadeTxt} anos
 ${d.formatoPagamento === "gratuito"
   ? `4.1. Valor por Sessão / Mensalidade: ${neg("O valor acordado por cada sessão é de R$ 0,00.")}`
   : `4.1. Valor por Sessão / Mensalidade: O valor acordado por cada sessão é de ${valorSessaoTxt}, totalizando o valor mensal variável conforme o número de semanas/sessões do mês.`}
-${linha42}
-4.3. Reajuste: O valor dos honorários poderá ser reajustado ${reajusteMes}, mediante prévio aviso de 30 (trinta) dias aos responsáveis.
+${linha42}${linha43}
 
 5. DA POLÍTICA DE FALTAS, DESMARCAÇÕES E REAGENDAMENTOS
 5.1. Reserva do Horário: ${m.reserva}, o pagamento remunera a reserva exclusiva do tempo e do espaço clínico colocados à disposição do paciente.
-5.2. Faltas do Paciente: As sessões desmarcadas pelos responsáveis ou pelo paciente serão cobradas normalmente, independentemente do motivo (saúde, viagens, imprevistos ou compromissos escolares).
+5.2. Faltas do Paciente: As sessões em que o paciente não comparecer e não realizar o cancelamento prévio do agendamento serão cobradas normalmente, independentemente do motivo da ausência (saúde, viagens, imprevistos ou compromissos escolares). A cobrança será desconsiderada mediante apresentação de atestado médico.
 5.3. Reagendamento: Havendo disponibilidade de agenda por parte do PROFISSIONAL, poderá ser oferecido um horário alternativo na mesma semana, sem que isso constitua obrigação contratual.
 5.4. Faltas do Profissional: Caso o PROFISSIONAL precise desmarcar por motivo de força maior, a sessão não será cobrada ou será obrigatoriamente reposta em horário mutuamente combinado.
 5.5. Recessos e Feriados: Não haverá cobrança de sessões que coincidirem com recessos previstos e comunicados previamente (ex: Férias de Julho/Dezembro) ou feriados em que o consultório não funcione.
 
 6. DO SIGILO PROFISSIONAL E SESSÕES DE ORIENTAÇÃO DE PAIS
-6.1. Sigilo em Relação à Criança/Adolescente: O espaço de escuta é protegido pelo sigilo ético e analítico. O conteúdo direto das falas, brincadeiras e produções lúdicas da criança não será repassado de forma direta ou detalhada aos pais.
+6.1. Sigilo em Relação à Criança/Adolescente: O espaço de escuta é protegido pelo sigilo ético e ${sigiloAdj}. O conteúdo direto das falas, brincadeiras e produções lúdicas da criança não será repassado de forma direta ou detalhada aos pais.
 6.2. Orientações aos Responsáveis: Serão realizadas sessões periódicas de Orientação aos Responsáveis (frequência a combinar), focadas no manejo da rotina, direção do tratamento e percepção do desenvolvimento, preservando a intimidade da escuta da criança.
 6.3. Quebra de Sigilo: O sigilo só será mitigado diante de situações de risco iminente à integridade física ou à vida do paciente ou de terceiros, conforme o Código de Ética e a legislação vigente.
 
@@ -288,7 +307,7 @@ ${linha42}
 7.1. Privacidade do Ambiente: Para sessões online, os RESPONSÁVEIS comprometem-se a garantir ambiente privado, silencioso, sem interrupções e com conexão estável durante a sessão.
 7.2. Gravação Proibida: É expressamente proibida a gravação (áudio ou vídeo) das sessões por qualquer das partes sem autorização prévia e formal por escrito.
 
-8. DO ENCERRAMENTO E ALTA ANALÍTICA
+8. DO ENCERRAMENTO E ALTA ${altaTermo}
 8.1. Processo de Encerramento: O desligamento exige um período de elaboração. Caso se decida interromper o tratamento, concorda-se com a realização de no mínimo [ex: 2 a 4] sessões de encerramento para o manejo da separação e fechamento do vínculo.
 
 9. DO FORO

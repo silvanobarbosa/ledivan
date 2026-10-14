@@ -17,10 +17,36 @@ describe("montarContrato", () => {
     expect(t).toContain("R$ 120,00");
     expect(t).toContain("a cada 6 meses");
   });
-  it("deixa [campo] onde não há dado", () => {
-    const t = c({ ...base, analistaCpf: null, responsavelNome: null });
-    expect(t).toContain("[CPF]");
-    expect(t).toContain("[Nome Completo do Responsável]");
+  // Doc 41: campo da guia dados vazio SAI do contrato; a CONTRATADA (Perfil) mantém o placeholder.
+  it("doc 41: campo vazio da guia dados some; CONTRATADA mantém [placeholder]", () => {
+    const t = c({ ...base, analistaCpf: null });
+    expect(t).toContain("CPF: [CPF]"); // CONTRATADA, do Perfil → placeholder fica
+    const semResp = c({ ...base, responsavelNome: null, responsavelCpf: null });
+    expect(semResp).not.toContain("Nome do Responsável:");
+    expect(semResp).not.toContain("[Nome Completo do Responsável]");
+  });
+  it("doc 41: e-mail do contratante aparece quando cadastrado e some quando vazio", () => {
+    expect(c({ ...base, responsavelEmail: "mae@exemplo.com" })).toContain("E-mail: mae@exemplo.com");
+    expect(c({ ...base })).not.toContain("E-mail: [E-mail de Contato]");
+  });
+  it("doc 41: sem periodicidade de reajuste, a cláusula 4.3 sai do contrato", () => {
+    const sem = c({ ...base, reajusteMeses: null });
+    expect(sem).not.toContain("4.3. Reajuste:");
+    const com = c({ ...base, reajusteMeses: 6 });
+    expect(com).toContain("4.3. Reajuste: O valor dos honorários poderá ser reajustado a cada 6 meses");
+  });
+  it("doc 41: novo texto da cláusula 5.2 (Faltas do Paciente)", () => {
+    const t = c(base);
+    expect(t).toContain("5.2. Faltas do Paciente: As sessões em que o paciente não comparecer e não realizar o cancelamento prévio do agendamento serão cobradas normalmente, independentemente do motivo da ausência (saúde, viagens, imprevistos ou compromissos escolares). A cobrança será desconsiderada mediante apresentação de atestado médico.");
+  });
+  it("doc 41: terapia troca 'analítico' por 'terapêutico' (6.1 e seção 8)", () => {
+    const t = c({ ...base, descricaoAtendimento: "terapia" });
+    expect(t).toContain("sigilo ético e terapêutico");
+    expect(t).toContain("8. DO ENCERRAMENTO E ALTA TERAPÊUTICA");
+    expect(t).not.toContain("sigilo ético e analítico");
+    const psi = c({ ...base, descricaoAtendimento: "psicanalise" });
+    expect(psi).toContain("sigilo ético e analítico");
+    expect(psi).toContain("8. DO ENCERRAMENTO E ALTA ANALÍTICA");
   });
   it("calcula idade da data de nascimento", () => {
     const t = c({ ...base, pacienteNascimento: new Date(2010, 0, 1) });
