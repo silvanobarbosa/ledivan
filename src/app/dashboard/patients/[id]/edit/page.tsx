@@ -70,6 +70,8 @@ export default async function EditPatientPage({ params, searchParams }: { params
     pacienteEndereco: patient.address,
     pacienteTelefone: patient.phone,
     responsavelTelefone: patient.guardianPhone,
+    responsavelEmail: patient.guardianEmail,
+    pacienteEmail: patient.email,
     valorSessao: patient.sessionFee,
     reajusteMeses: patient.validadePrecoMeses,
     duracaoMaxMin: enq.duracaoMaxMin,
