@@ -1,21 +1,18 @@
 "use client";
 
-import { useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
-import { MessagesSquare, Check } from "lucide-react";
+import { useState } from "react";
+import { MessagesSquare } from "lucide-react";
 import { numeroDoWhatsapp } from "@/lib/telefoneWhatsapp";
-import { dispensarDevolutiva } from "@/app/dashboard/patients/actions";
 import { InfoTip } from "@/components/InfoTip";
 
 export type DevolutivaLinha = {
   id: string;
   name: string;
   phone: string | null;
+  guardianName: string | null;
   guardianPhone: string | null;
   /** Data prevista da próxima devolutiva (YYYY-MM-DD). */
   proxima: string;
-  /** ISO completo, para a ação de dispensa guardar o ciclo certo. */
-  proximaISO: string;
   dias: number;
 };
 
@@ -27,28 +24,20 @@ export type DevolutivaLinha = {
  * no ciclo seguinte. A mensagem é a mesma lógica da dos Prospectados; `{nome}` vira o 1º nome.
  */
 export function ListaDevolutivas({ devolutivas }: { devolutivas: DevolutivaLinha[] }) {
-  const router = useRouter();
   const [mensagem, setMensagem] = useState("");
   const [aviso, setAviso] = useState<string | null>(null);
-  const [indo, comecar] = useTransition();
 
   const vazio = devolutivas.length === 0;
 
-  function agendar(d: DevolutivaLinha) {
+  // Doc 41: "Lembrar" vai para o WhatsApp do RESPONSÁVEL (a devolutiva é com os pais do menor);
+  // {nome} é o nome do responsável. Sem responsável, cai no paciente como rede de segurança.
+  function lembrar(d: DevolutivaLinha) {
     const num = numeroDoWhatsapp(d.guardianPhone) ?? numeroDoWhatsapp(d.phone);
     if (!num) { setAviso(`${d.name} está sem telefone (responsável ou paciente).`); return; }
     setAviso(null);
-    const texto = mensagem.replace(/\{nome\}/g, d.name.split(" ")[0]);
+    const alvo = (d.guardianName?.trim() || d.name).split(" ")[0];
+    const texto = mensagem.replace(/\{nome\}/g, alvo);
     window.open(texto.trim() ? `https://wa.me/${num}?text=${encodeURIComponent(texto)}` : `https://wa.me/${num}`, "_blank", "noopener");
-  }
-
-  function resolver(d: DevolutivaLinha) {
-    setAviso(null);
-    comecar(async () => {
-      const r = await dispensarDevolutiva(d.id, d.proximaISO);
-      if (r.ok) router.refresh();
-      else setAviso(r.error ?? "Não deu para dispensar.");
-    });
   }
 
   const quando = (n: number) => (n < 0 ? "venceu" : n === 0 ? "hoje" : `em ${n} dia${n === 1 ? "" : "s"}`);
@@ -57,9 +46,12 @@ export function ListaDevolutivas({ devolutivas }: { devolutivas: DevolutivaLinha
     <section className="glass-card rounded-[24px] p-5 space-y-3 mt-4">
       <h3 className="text-lg font-display font-bold text-primary flex items-center gap-2">
         <MessagesSquare className="w-5 h-5" /> Próximas devolutivas
-        <InfoTip text="Visualize os pacientes que precisam agendar a devolutiva nos próximos 7 dias. Ao clicar em Agendar, o sistema abrirá o WhatsApp para que você entre em contato com o paciente. Essa ação não realiza o agendamento automaticamente. Após combinar e registrar o agendamento manualmente na agenda, clique no ícone de confirmação (✓) para retirar o paciente desta lista." />
-
+        <InfoTip text="O botão Lembrar abre o WhatsApp do cadastro para enviar mensagens individuais. Para enviar uma mensagem padrão a vários, digite o texto na caixa Mensagem e clique em Lembrar para cada paciente desejado. Esta mensagem será enviada para ao responsável do paciente." />
       </h3>
+      <p className="text-xs text-foreground/60 text-justify">
+        Visualize os pacientes que precisam agendar uma devolutiva no <strong>próximo mês</strong>.<br />
+        Ao <strong>agendar uma devolutiva</strong>, o paciente será <strong>removido automaticamente desta lista</strong>.
+      </p>
 
       {vazio && (
         <p className="text-sm text-foreground/45 py-2">Nenhuma devolutiva prevista no momento.</p>
@@ -71,13 +63,11 @@ export function ListaDevolutivas({ devolutivas }: { devolutivas: DevolutivaLinha
           <li key={d.id} className="py-2 flex items-center gap-3 flex-wrap">
             <span className="font-semibold flex-1 min-w-[140px]">{d.name}</span>
             <span className="text-xs text-foreground/50 tabular-nums">{d.proxima.split("-").reverse().join("/")} · {quando(d.dias)}</span>
-            <button type="button" onClick={() => agendar(d)}
+            {/* Doc 41: "Agendar" virou "Lembrar"; o tick de confirmação saiu (o paciente sai sozinho
+                ao agendar uma DEVOLUTIVA na agenda). */}
+            <button type="button" onClick={() => lembrar(d)}
               className="text-xs font-bold px-3 py-1.5 rounded-full bg-primary/10 text-primary hover:bg-primary/15 transition">
-              Agendar
-            </button>
-            <button type="button" onClick={() => resolver(d)} disabled={indo} title="Resolvida — tirar da lista"
-              className="w-7 h-7 inline-flex items-center justify-center rounded-full bg-emerald-50 text-emerald-700 hover:bg-emerald-100 transition disabled:opacity-50">
-              <Check className="w-4 h-4" />
+              Lembrar
             </button>
           </li>
         ))}
@@ -86,11 +76,16 @@ export function ListaDevolutivas({ devolutivas }: { devolutivas: DevolutivaLinha
 
       {!vazio && (
       <div className="space-y-1">
-        <label className="text-xs font-bold text-foreground/50 uppercase tracking-wide">Mensagem para agendar</label>
+        <label className="text-xs font-bold text-foreground/50 uppercase tracking-wide">Mensagem</label>
         <textarea value={mensagem} onChange={(e) => { setMensagem(e.target.value); setAviso(null); }}
-          rows={3} placeholder="Olá! Vamos marcar a devolutiva de {nome}?"
+          rows={3} placeholder="Olá, {nome}! Vamos marcar a devolutiva?"
           className="w-full px-3 py-2 rounded-xl bg-surface border border-border outline-none text-sm" />
-        <p className="text-[11px] text-foreground/40">Vai no WhatsApp do responsável (ou do paciente). Vazio: abre a conversa sem texto.</p>
+        <p className="text-[11px] text-foreground/60 text-justify">
+          Digite o texto de chamada para devolutiva no campo Mensagem e, em seguida, clique em <strong>Lembrar</strong>
+          em cada paciente cujo responsável deverá receber essa mensagem.<br />
+          Se desejar <strong>personalizar o texto</strong>, utilize &ldquo;{"{nome}"}&rdquo;. O sistema substituirá esse
+          marcador pelo nome do <strong>responsável</strong> do paciente.
+        </p>
       </div>
       )}
 

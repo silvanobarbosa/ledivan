@@ -10,6 +10,7 @@ import { ListaReajuste } from "@/components/dashboard/ListaReajuste";
 import { ListaDevolutivas } from "@/components/dashboard/ListaDevolutivas";
 import { diasParaReajuste } from "@/lib/reajuste";
 import { proximaDevolutiva, devolutivaNaLista, diasParaDevolutiva } from "@/lib/devolutiva";
+import { idadeEmAnos } from "@/lib/idade";
 import { apareceHoje, mesQueVem, pacientesALembrar } from "@/lib/lembrarAgendamento";
 import { horaDeParede } from "@/lib/horaLocal";
 import { AnalyticsFilters } from "@/components/dashboard/AnalyticsFilters";
@@ -80,7 +81,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
       .from(patientPackages).innerJoin(patients, eq(patientPackages.patientId, patients.id))
       .where(and(eq(patientPackages.userId, userId), eq(patients.patientStatus, "ativo"), eq(patients.contractType, "pacote"))).groupBy(patientPackages.patientId),
     db.select({ isOnline: therapySessions.isOnline, location: therapySessions.location, status: therapySessions.status, date: therapySessions.date }).from(therapySessions).where(and(...anConds)),
-    db.select({ id: patients.id, name: patients.name, agendaId: patients.agendaId, status: patients.patientStatus, prospectDate: patients.prospectDate, prospectFechou: patients.prospectFechou, paymentStatus: patients.paymentStatus, gender: patients.gender, birthDate: patients.birthDate, address: patients.address, phone: patients.phone, guardianPhone: patients.guardianPhone, email: patients.email, queixaPrincipal: patients.queixaPrincipal, startedAt: patients.startedAt, priceReviewDate: patients.priceReviewDate, devolutivaMeses: patients.devolutivaMeses, devolutivaDispensadaEm: patients.devolutivaDispensadaEm }).from(patients).where(eq(patients.userId, userId)),
+    db.select({ id: patients.id, name: patients.name, agendaId: patients.agendaId, status: patients.patientStatus, prospectDate: patients.prospectDate, prospectFechou: patients.prospectFechou, paymentStatus: patients.paymentStatus, gender: patients.gender, birthDate: patients.birthDate, address: patients.address, phone: patients.phone, guardianName: patients.guardianName, guardianPhone: patients.guardianPhone, email: patients.email, queixaPrincipal: patients.queixaPrincipal, startedAt: patients.startedAt, priceReviewDate: patients.priceReviewDate, devolutivaMeses: patients.devolutivaMeses, devolutivaDispensadaEm: patients.devolutivaDispensadaEm }).from(patients).where(eq(patients.userId, userId)),
     // Consumo de pacote = fonte única DERIVADA: sessões realizadas+cobráveis por paciente.
     db.select({ pid: therapySessions.patientId, cnt: sql<number>`count(*)::int` })
       .from(therapySessions).where(and(eq(therapySessions.userId, userId), eq(therapySessions.status, "realizada"), eq(therapySessions.chargeable, true))).groupBy(therapySessions.patientId),
@@ -154,17 +155,23 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
 
   // Próximas devolutivas (doc 9, item 2): paciente ativo com intervalo definido, cuja próxima
   // devolutiva está a ≤ 7 dias e não foi dispensada neste ciclo.
+  // Doc 41: só pacientes MENORES de 18 (a devolutiva é com os responsáveis); aparece com 1 mês de
+  // antecedência (dentro de `devolutivaNaLista`). O tick de dispensa saiu — o paciente sai sozinho
+  // ao agendar uma DEVOLUTIVA (a referência avança).
   const devolutivasLista = pats
-    .filter((p) => p.status === "ativo" && p.devolutivaMeses)
+    .filter((p) => {
+      if (p.status !== "ativo" || !p.devolutivaMeses) return false;
+      const idade = idadeEmAnos(p.birthDate ? (p.birthDate as unknown as string) : null);
+      return idade != null && idade < 18;
+    })
     .map((p) => {
       const proxima = proximaDevolutiva(primeiraSessaoPorPaciente.get(p.id) ?? null, ultimaDevolutivaPorPaciente.get(p.id) ?? null, p.devolutivaMeses);
       return { p, proxima };
     })
     .filter(({ p, proxima }) => devolutivaNaLista(proxima, (p.devolutivaDispensadaEm as unknown as Date) ?? null, hojeRef))
     .map(({ p, proxima }) => ({
-      id: p.id, name: p.name, phone: p.phone, guardianPhone: p.guardianPhone,
+      id: p.id, name: p.name, phone: p.phone, guardianName: p.guardianName, guardianPhone: p.guardianPhone,
       proxima: `${proxima!.getFullYear()}-${String(proxima!.getMonth() + 1).padStart(2, "0")}-${String(proxima!.getDate()).padStart(2, "0")}`,
-      proximaISO: proxima!.toISOString(),
       dias: diasParaDevolutiva(proxima, hojeRef) ?? 9999,
     }))
     .sort((a, b) => a.dias - b.dias);
