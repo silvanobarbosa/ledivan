@@ -524,14 +524,22 @@ function FormularioDeLancamento({ patientId, c, responsavel, responsavelCpf, fec
               </label>
             </div>
           )}
-          {/* Recebeu MAIS (doc 36): o usuário DECIDE se a sobra vira crédito no saldo (Sim/Não). */}
+          {/* Recebeu MAIS: o usuário DECIDE se a sobra vira crédito no saldo. Doc 38: o checkbox
+              confundia — virou pergunta com Sim/Não explícito. */}
           {aMais && (
-            <label className="sm:col-span-7 text-[11px] inline-flex items-center gap-1.5 cursor-pointer">
-              <input type="checkbox" checked={creditarSobra} onChange={(e) => setCreditarSobra(e.target.checked)} />
-              <span className={creditarSobra ? "text-[#047857] font-semibold" : "text-foreground/60"}>
-                {formatBRL(sobraCash)} a mais {creditarSobra ? "entram" : "NÃO entram"} como crédito no saldo?
-              </span>
-            </label>
+            <div className="sm:col-span-7 text-[11px] flex flex-wrap items-center gap-2">
+              <span className="text-foreground/70">{formatBRL(sobraCash)} a mais entram como crédito no saldo?</span>
+              <div className="inline-flex rounded-lg overflow-hidden border border-border">
+                <button type="button" onClick={() => setCreditarSobra(true)}
+                  className={`px-3 py-1 font-bold transition ${creditarSobra ? "bg-[#047857] text-white" : "bg-white text-foreground/60 hover:bg-surface"}`}>
+                  Sim
+                </button>
+                <button type="button" onClick={() => setCreditarSobra(false)}
+                  className={`px-3 py-1 font-bold transition border-l border-border ${!creditarSobra ? "bg-[#b91c1c] text-white" : "bg-white text-foreground/60 hover:bg-surface"}`}>
+                  Não
+                </button>
+              </div>
+            </div>
           )}
           {erro && <p className="sm:col-span-7 text-xs text-[#b91c1c]">{erro}</p>}
         </form>
