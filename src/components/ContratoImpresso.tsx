@@ -121,15 +121,12 @@ export function ContratoImpresso({ texto, textoPadrao, patientId, logoUrl }: { t
         @media print {
           .no-print { display: none !important; }
           body * { visibility: hidden; }
-          #contrato-papel, #contrato-papel *, .doc-logo, .doc-logo * { visibility: visible; }
-          /* Doc 36: o vao no topo persistia porque os ancestrais com visibility hidden continuam
-             ocupando espaco no fluxo e empurravam o papel para baixo — zerar padding/margin nao
-             tira esse espaco reservado. Tirando o papel do fluxo (position absolute, colado no topo
-             da area imprimivel), o logo comeca a 2cm da margem. Mesmo recurso que ja funciona no
-             controle-print (impressao do Controle). */
-          #contrato-papel { position: absolute; top: 0; left: 0; width: 100%; }
+          /* Doc 38: o bloco tirado do fluxo (para colar no topo, sem o vao do doc 36) tem de ser o
+             WRAP INTEIRO — logo + papel juntos — e nao so o papel; senao o papel absoluto cobria o
+             logo e ele saía fora de lugar. Assim o logo volta centralizado ACIMA do titulo, a 2cm. */
+          #contrato-wrap, #contrato-wrap * { visibility: visible; }
+          #contrato-wrap { position: absolute; top: 0; left: 0; width: 100%; margin: 0 !important; padding: 0 !important; }
           #contrato-root { padding: 0 !important; }
-          #contrato-wrap { margin-top: 0 !important; }
         }
       `}</style>
     </main>

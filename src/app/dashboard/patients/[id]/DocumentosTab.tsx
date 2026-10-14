@@ -36,7 +36,8 @@ function Cabecalho({ cab }: { cab: CabecalhoDoc }) {
         {pac.nascimento && <p>Data de nascimento: {pac.nascimento}{pac.idade ? ` (${pac.idade})` : ""}</p>}
         <p>Sessões realizadas: {pac.sessoesPresente}</p>
       </div>
-      <hr className="my-4 border-border" />
+      {/* Doc 38: a linha horizontal abaixo do cabeçalho saiu (pedido do dono). */}
+      <div className="mb-4" />
     </div>
   );
 }
