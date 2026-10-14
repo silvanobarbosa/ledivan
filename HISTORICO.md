@@ -7,6 +7,26 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-10-13 — Doc 37: reajuste conta de "Vale a partir de" + esconder o campo após salvar
+
+**Entregue:**
+- **A (prazo do reajuste):** ao alterar o VALOR da sessão, o próximo reajuste conta a partir da data
+  em "Vale a partir de" (reiniciado a cada alteração de valor), não do cadastro inicial nem do
+  reajuste anterior — e sem mexer no histórico. Esse comportamento **já estava correto** no motor
+  (`dataDoPreco` → "Vale a partir de"; o bloco de troca de valor grava
+  `priceReviewDate = vencimentoDoPreco(efetiva, null, prazo)`); o que o fazia parecer errado era o
+  salvamento do Financeiro que não persistia (doc 35 A2, corrigido no #352). Acrescentado o texto no
+  ⓘ do campo "Próximo reajuste em" explicando a regra. Teste do exemplo do doc (15/10/2026 +12 = 15/10/2027).
+- **B (esconder "Vale a partir de" após salvar):** depois de Salvar no Financeiro, o campo
+  "Vale a partir de" some da tela e só volta numa nova alteração. É só na INTERFACE — a data gravada
+  continua valendo nos cálculos e no histórico. Feito com `useActionState`: a cada save o tick avança
+  e zeramos `financeiroAlterado` (o "mexeu nesta edição"). Vale para todas as modalidades.
+
+**Decisões que ficam valendo:** o próximo reajuste SEMPRE conta de "Vale a partir de" na troca de
+valor. O campo de vigência é efêmero na tela (some após salvar), mas a data persiste no banco.
+
+---
+
 ## 2026-10-13 — Doc 36: miudezas, impressão, agenda, mobile, anexo e crédito (#354–#359)
 
 Lote de 12 frentes do doc 36. 11 entregues; só a #9 (quinzenal) ficou para depois (plano primeiro).

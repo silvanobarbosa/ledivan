@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition, type ReactNode } from "react";
+import { useActionState, useEffect, useState, useTransition, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { InfoTip } from "@/components/InfoTip";
 import { SubmitButton } from "@/components/SubmitButton";
@@ -314,6 +314,18 @@ export function PatientFormFields({ p, save, tabInicial, contrato, patientId }: 
   // Começa SEMPRE falso (diferente de `financeiroTocado`, que nasce true para paciente já salvo):
   // aqui o que importa é se o usuário MEXEU em algo nesta edição.
   const [financeiroAlterado, setFinanceiroAlterado] = useState(false);
+  // Doc 37: depois de SALVAR, "Vale a partir de" some da tela (a data já foi gravada e segue valendo
+  // nos cálculos — some só na interface). Para saber quando o save terminou, o form passa por
+  // useActionState: a cada salvamento o tick avança e zeramos o "mexeu nesta edição". O campo volta
+  // a aparecer só numa nova alteração financeira. Vale para TODAS as modalidades (o bloco é um só).
+  const [savedTick, formAction] = useActionState(
+    async (prev: number, fd: FormData) => { if (save) await save(fd); return prev + 1; },
+    0,
+  );
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- reset pós-save é o próprio efeito desejado
+    if (savedTick > 0) setFinanceiroAlterado(false);
+  }, [savedTick]);
   // Hoje no fuso de quem preenche, no formato do <input type="date">.
   const hojeISO = (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; })();
   const [pacote, setPacote] = useState(p?.pacoteTipo || "completo");
@@ -356,7 +368,7 @@ export function PatientFormFields({ p, save, tabInicial, contrato, patientId }: 
   const proximoReajuste = (
     <NumeroCom
       name="validadePrecoMeses" label="Próximo reajuste em" unidade="meses" max={60}
-      dica="Daqui a quantos meses deseja ser lembrado de realizar o reajuste? O sistema exibirá o lembrete no dashboard um mês antes da data prevista para o reajuste."
+      dica="Daqui a quantos meses deseja ser lembrado de realizar o reajuste? O sistema exibirá o lembrete no dashboard um mês antes da data prevista. O prazo para o próximo reajuste começa a contar a partir da data definida em “Vale a partir de” e é reiniciado a cada alteração de valor."
       defaultValue={p?.validadePrecoMeses} placeholder="ex: 12"
     />
   );
@@ -512,8 +524,10 @@ export function PatientFormFields({ p, save, tabInicial, contrato, patientId }: 
         ))}
       </div>
 
-      {/* Doc 35 (A2): Dados + Financeiro num form só, UM Salvar envia tudo. Contrato fica fora. */}
-      <Formulario save={save}>
+      {/* Doc 35 (A2): Dados + Financeiro num form só, UM Salvar envia tudo. Contrato fica fora.
+          Doc 37: na edição o form passa pelo formAction (useActionState) para zerar "Vale a partir de"
+          depois de salvar; no cadastro (sem save) o Formulario é passthrough e o form é o da página. */}
+      <Formulario save={save ? formAction : undefined}>
       {/* DADOS: pessoais → cônjuge → responsável/emergência → devolutiva → escola */}
       <Secao show={show("dados")}>
         <Card title="Dados pessoais">
