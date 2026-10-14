@@ -8,7 +8,6 @@ import { ModalPacientes } from "./ModalPacientes";
 import { salvarMensagemAgendamento, salvarMensagemAniversario } from "@/app/dashboard/actions";
 import { mensagemPara, MODELO_PADRAO_DO_LEMBRETE } from "@/lib/lembrarAgendamento";
 import { horaDeParede } from "@/lib/horaLocal";
-import { InfoTip } from "@/components/InfoTip";
 import { numeroDoWhatsapp } from "@/lib/telefoneWhatsapp";
 
 export type PanelPatient = {
@@ -98,10 +97,12 @@ function Prospeccao({ patients }: { patients: PanelPatient[] }) {
   const taxa = base.length ? Math.round((fechados / base.length) * 100) : 0;
   return (
     <div className={card}>
-      <h4 className="font-display font-bold text-primary inline-flex items-center">
-        Prospecção
-        <InfoTip text="Aqui você acompanha a quantidade de pacientes prospectados. Para cadastrar novos prospectados, acesse Menu → Prospecção." />
-      </h4>
+      <h4 className="font-display font-bold text-primary">Prospecção</h4>
+      <p className="text-xs text-foreground/60 text-justify">
+        <strong>Acompanhe</strong> a quantidade de pessoas que entraram em contato demonstrando interesse nos seus
+        serviços.<br />
+        Para <strong>adicionar</strong> uma pessoa à lista de prospectados, acesse o <strong>menu Prospecção</strong>.
+      </p>
       <div className="grid grid-cols-4 gap-2">
         <Stat n={base.length} label="Prospectados" />
         <Stat n={fechados} label="Fechados" tone="green" />
@@ -127,10 +128,13 @@ function Relatorios({ patients, presence, corte }: { patients: PanelPatient[]; p
   }, [ativos, presence, corte]);
   return (
     <div className={card}>
-      <h4 className="font-display font-bold text-primary inline-flex items-center">
-        Relatórios
-        <InfoTip text="A opção Ver lista exibe a lista de pacientes deste determinado grupo. Clique em Montar relatório para visualizar ou imprimir os campos do relatório." />
-      </h4>
+      <h4 className="font-display font-bold text-primary">Relatórios</h4>
+      <p className="text-xs text-foreground/60 text-justify">
+        Ao clicar no botão <strong>Montar relatório</strong>, você pode criar relatórios personalizados, selecionando
+        as opções disponíveis no sistema de acordo com as informações que deseja consultar.<br />
+        Nessa mesma tela, também é possível <strong>aplicar filtros</strong> para refinar os resultados e
+        <strong> imprimir os relatórios</strong>.
+      </p>
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
         <Stat n={ativos.length + inativos.length} label="No cadastro" />
         <Stat n={ativos.length} label="Ativos" tone="green" onAbrir={() => setLista({ titulo: "Pacientes ativos", itens: ativos })} />
@@ -281,6 +285,13 @@ function Aniversariantes({ patients, modeloSalvo, hoje }: { patients: PanelPatie
         <h4 className="font-display font-bold text-primary">Aniversariantes</h4>
         <span className="text-xs text-foreground/40">{lista.length} no período</span>
       </div>
+      <p className="text-xs text-foreground/60 text-justify">
+        Visualize os pacientes que fazem aniversário no mês atual ou utilize os filtros para consultar os
+        aniversariantes de um período específico.<br />
+        O botão <strong>Parabenizar</strong> abre o WhatsApp do paciente para enviar mensagens <strong>individuais</strong>.
+        Para enviar uma mensagem padrão a vários pacientes, digite o texto na caixa <strong>Mensagem</strong> e clique
+        em <strong>Parabenizar para cada paciente desejado.</strong>
+      </p>
       <div className="flex gap-2 flex-wrap items-end">
         <div><span className={lbl}>Data de</span><input type="date" value={de} onChange={(e) => setDe(e.target.value)} className={inp} /></div>
         <div><span className={lbl}>até</span><input type="date" value={ate} onChange={(e) => setAte(e.target.value)} className={inp} /></div>
@@ -305,10 +316,13 @@ function Aniversariantes({ patients, modeloSalvo, hoje }: { patients: PanelPatie
       {avisoAniv && <p className="text-xs font-semibold text-[#b45309]">{avisoAniv}</p>}
 
       <div className="space-y-1.5 border-t border-border pt-3">
-        <span className="text-sm font-semibold text-foreground/60 inline-flex items-center">
-          Mensagem
-          <InfoTip text="Digite a mensagem que será enviada para parabenizar o paciente e clique em Parabenizar. A mensagem vai pelo WhatsApp do paciente. Para personalizar com o nome, utilize {nome} — o sistema substitui pelo primeiro nome. Se estiver em branco, ao clicar em Parabenizar o WhatsApp abre com o campo vazio." />
-        </span>
+        <span className="text-sm font-semibold text-foreground/60">Mensagem</span>
+        <p className="text-[11px] text-foreground/60 text-justify">
+          Digite o texto de felicitação no campo Mensagem e, em seguida, clique em Parabenizar em cada paciente que
+          deverá receber essa mensagem.<br />
+          Se desejar <strong>personalizar o texto</strong>, utilize &ldquo;{"{nome}"}&rdquo;. O sistema substituirá
+          esse marcador pelo nome correspondente ao paciente.
+        </p>
         <textarea value={modelo} onChange={(e) => { setModelo(e.target.value); setSalvo(null); }} rows={2} className={`${inp} w-full resize-none`} />
         <div className="flex items-center gap-2">
           <button onClick={salvar} className="text-xs font-bold px-3 py-1.5 rounded-lg bg-primary text-white">Salvar modelo</button>
@@ -342,10 +356,12 @@ function QueixaBloco({ patients }: { patients: PanelPatient[] }) {
   const maior = Math.max(1, ...groups.map((x) => x[1].length));
   return (
     <div className={card}>
-      <h4 className="font-display font-bold text-primary inline-flex items-center">
-        Queixa principal
-        <InfoTip text="Filtre pelas queixas cadastradas e clique em Abrir para visualizar os pacientes que se enquadram em cada queixa." />
-      </h4>
+      <h4 className="font-display font-bold text-primary">Queixa principal</h4>
+      <p className="text-xs text-foreground/60 text-justify">
+        Visualize as <strong>queixas registradas</strong> nos cadastros dos pacientes.<br />
+        Clique no <strong>Abrir</strong> de uma das queixas listadas, e visualize os pacientes que foram cadastrados
+        naquela categoria.
+      </p>
       <div className="flex gap-2 flex-wrap items-end">
         <div><span className={lbl}>De</span><input type="date" value={from} onChange={(e) => setFrom(e.target.value)} className={inp} /></div>
         <div><span className={lbl}>Até</span><input type="date" value={to} onChange={(e) => setTo(e.target.value)} className={inp} /></div>
