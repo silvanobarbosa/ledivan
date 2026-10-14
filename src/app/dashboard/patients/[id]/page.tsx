@@ -78,10 +78,19 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
   const nowMs = Date.now();
   const realizadas = sessionsList.filter((s) => s.status === "realizada");
   const lastRealizada = realizadas.map((s) => new Date(horaDeParede(s.date)).getTime()).sort((a, b) => b - a)[0];
+  // Doc 41: card "Sessões Realizadas" com detalhe por mês/ano. Conta as presenças (status realizada)
+  // agrupadas por "YYYY-MM" no fuso de parede — o mesmo critério das demais contagens de sessão.
+  const realizadasPorMes: Record<string, number> = {};
+  for (const s of realizadas) {
+    const d = new Date(horaDeParede(s.date));
+    const k = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+    realizadasPorMes[k] = (realizadasPorMes[k] ?? 0) + 1;
+  }
   const sessionStats = {
     reservadas: sessionsList.filter((s) => s.pendingConfirmation && new Date(horaDeParede(s.date)).getTime() >= nowMs).length,
     agendadasFuturas: sessionsList.filter((s) => s.status === "agendada" && new Date(horaDeParede(s.date)).getTime() >= nowMs).length,
     realizadasCount: realizadas.length,
+    realizadasPorMes,
     lastRealizada: lastRealizada ? new Date(lastRealizada).toISOString() : null,
   };
 

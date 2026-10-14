@@ -19,6 +19,7 @@ import { TabelaAnual } from "./TabelaAnual";
 import type { LinhaNaTela } from "@/lib/geralDoPaciente";
 import { AnamneseTab } from "./AnamneseTab";
 import { DailyStatusPanel } from "./DailyStatusPanel";
+import { SessoesRealizadasCard } from "./SessoesRealizadasCard";
 import {
   formatBRL,
   formatDate,
@@ -94,7 +95,7 @@ export function PatientDetail({
   contractHistory?: ContractEntry[];
   finance: Finance;
   ledger?: LedgerEntry[];
-  sessionStats: { reservadas: number; agendadasFuturas: number; realizadasCount: number; lastRealizada: string | null };
+  sessionStats: { reservadas: number; agendadasFuturas: number; realizadasCount: number; realizadasPorMes: Record<string, number>; lastRealizada: string | null };
   recurring: { day: string; time: string; until: string | null } | null;
   transcriptionEnabled: boolean;
   risk: { level: RiskLevel; rate: number; faltas: number; total: number };
@@ -301,6 +302,9 @@ export function PatientDetail({
           <p className="text-[10px] text-foreground/40">{finance.emAtraso > 0 ? `${formatBRL(finance.emAtraso.toFixed(2))} · vencida` : "—"}</p>
         </button>
       </div>
+
+      {/* Doc 41: sessões realizadas (presenças), com detalhe por mês/ano, abaixo das agendadas. */}
+      <SessoesRealizadasCard total={sessionStats.realizadasCount} porMes={sessionStats.realizadasPorMes} />
 
       {recurring && (
         <div className="rounded-2xl bg-[#dbeafe] border border-[#93c5fd] px-4 py-2.5 text-sm text-[#1e40af] flex items-center gap-2">
