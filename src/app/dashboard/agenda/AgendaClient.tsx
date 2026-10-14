@@ -38,7 +38,7 @@ type PatientLite = { id: string; name: string; status: string; attendanceMode: s
 type LocationLite = { name: string; address: string };
 
 type SessionStatus = "realizada" | "nao_realizada" | "cancelada" | "realocada" | "agendada" | "prof_desmarcou" | "atestado";
-type AgendaSession = { id: string; date: string; duration: number; status: string; patientName: string; isOnline: boolean; risk: string; meetingUrl: string | null; meetingOpenedAt: string | null; guestJoinedAt: string | null; meetingEndedAt: string | null; pendingConfirmation: boolean; patientConfirmed: boolean; rescheduleRequested: boolean; patientArrived: boolean; location: string | null; recurring: boolean; recurrenceFreq?: string | null; patientId?: string; sessionKind?: string; pkg?: { seq: number; index: number; total: number } | null; pagamentoAtrasado?: boolean; abaterDoPacote?: boolean; codigo?: string | null; espelhoSoAnterior?: boolean };
+type AgendaSession = { id: string; date: string; duration: number; status: string; patientName: string; isOnline: boolean; risk: string; meetingUrl: string | null; meetingOpenedAt: string | null; guestJoinedAt: string | null; meetingEndedAt: string | null; pendingConfirmation: boolean; patientConfirmed: boolean; rescheduleRequested: boolean; patientArrived: boolean; location: string | null; recurring: boolean; recurrenceFreq?: string | null; patientId?: string; sessionKind?: string; pkg?: { seq: number; index: number; total: number } | null; pagamentoAtrasado?: boolean; abaterDoPacote?: boolean; codigo?: string | null; espelhoSoAnterior?: boolean; agendaId?: string | null; registro?: number | null };
 
 const blockColor = (s: AgendaSession, vencida: boolean) => sessionColorClasses(s.status, s.pendingConfirmation, s.recurring, vencida);
 
@@ -70,7 +70,9 @@ const LEGENDA_DO_SINAL: Record<string, string> = {
 const DAY_NAMES = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 const START_HOUR = 6;
 const END_HOUR = 22; // exibe as linhas de 6h até 21h (o dono pediu 6h–21h)
-const HOUR_PX = 64;
+// Doc 38: linhas mais BAIXAS (era 64) → mais agendamentos na tela sem perder legibilidade. Os
+// blocos de sessão e os rótulos de hora acompanham este valor automaticamente.
+const HOUR_PX = 48;
 const hours = Array.from({ length: END_HOUR - START_HOUR }, (_, i) => START_HOUR + i);
 
 function startOfWeek(d: Date) {
@@ -95,8 +97,10 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
   const celula = (s: AgendaSession) => {
     const p = patients.find((x) => x.id === s.patientId);
     return conteudoDaCelula({
-      agendaId: p?.agendaId,
-      registro: p?.registrationNumber,
+      // Doc 38: prefere o agendaId/registro que vêm NA sessão (join do paciente, inclui inativo);
+      // a lista `patients` exclui inativo e deixaria a célula cair no 1º nome.
+      agendaId: s.agendaId ?? p?.agendaId,
+      registro: s.registro ?? p?.registrationNumber,
       nome: s.patientName,
       formato: p?.paymentFormat,
       tipo: s.sessionKind,
