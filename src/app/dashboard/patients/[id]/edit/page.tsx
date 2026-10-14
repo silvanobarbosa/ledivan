@@ -90,7 +90,7 @@ export default async function EditPatientPage({ params, searchParams }: { params
       </Link>
 
       <div>
-        <h1 className="text-3xl font-display font-bold text-primary">Editar paciente</h1>
+        <h1 className="text-3xl font-display font-bold text-primary">Editar cadastro</h1>
         <p className="text-foreground/50 mt-1">{patient.name}</p>
       </div>
 

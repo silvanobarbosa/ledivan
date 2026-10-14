@@ -204,7 +204,7 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
   return (
     <div className="max-w-4xl space-y-6">
       <Link href="/dashboard/patients" className="inline-flex items-center gap-2 text-foreground/50 hover:text-primary transition">
-        <ArrowLeft className="w-4 h-4" /> Pacientes
+        <ArrowLeft className="w-4 h-4" /> Cadastros
       </Link>
 
       <PatientDetail

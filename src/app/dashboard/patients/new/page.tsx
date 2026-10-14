@@ -12,7 +12,7 @@ export default function NewPatientPage() {
       </Link>
 
       <div>
-        <h1 className="text-3xl font-display font-bold text-primary">Novo paciente</h1>
+        <h1 className="text-3xl font-display font-bold text-primary">Novo cadastro</h1>
         <p className="text-foreground/50 mt-1">Cadastre os dados do paciente</p>
       </div>
 

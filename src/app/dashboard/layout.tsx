@@ -67,7 +67,7 @@ export default async function DashboardLayout({
             </button>
             <Link href="/dashboard/patients/new" className="hidden sm:flex items-center gap-2 bg-primary text-white px-5 lg:px-6 py-3 rounded-2xl font-bold shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all">
               <Plus className="w-5 h-5" />
-              <span className="hidden md:inline">Novo paciente</span>
+              <span className="hidden md:inline">Novo cadastro</span>
             </Link>
           </div>
         </header>

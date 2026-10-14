@@ -24,7 +24,7 @@ export const NAV_GROUPS: NavGroup[] = [
     items: [
       { icon: LayoutDashboard, label: "Dashboard", href: "/dashboard" },
       { icon: CalendarDays, label: "Agenda", href: "/dashboard/agenda" },
-      { icon: Users, label: "Pacientes", href: "/dashboard/patients" },
+      { icon: Users, label: "Cadastros", href: "/dashboard/patients" },
       { icon: UserPlus, label: "Prospecção", href: "/dashboard/prospects" },
       // Doc 28: Prontuário, Contratos e Mensagens saíram do menu. Contrato vive na guia Contrato do
       // editar paciente; prontuário e mensagens continuam acessíveis pelo paciente. As rotas seguem
