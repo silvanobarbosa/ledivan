@@ -146,7 +146,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
     .map((p) => {
       const review = new Date(horaDeParede(p.priceReviewDate as unknown as string));
       const dias = diasParaReajuste(review, hojeRef);
-      return { id: p.id, name: p.name, agendaId: p.agendaId, phone: p.phone, guardianPhone: p.guardianPhone, review: `${review.getFullYear()}-${String(review.getMonth() + 1).padStart(2, "0")}-${String(review.getDate()).padStart(2, "0")}`, dias: dias ?? 9999 };
+      return { id: p.id, name: p.name, agendaId: p.agendaId, phone: p.phone, guardianName: p.guardianName, guardianPhone: p.guardianPhone, review: `${review.getFullYear()}-${String(review.getMonth() + 1).padStart(2, "0")}-${String(review.getDate()).padStart(2, "0")}`, dias: dias ?? 9999 };
     })
     // Doc 21: "1 mês" tem que caber na janela. Contado em dias, um mês vai até 31 (ex.: 15/01→15/02),
     // e o corte em 30 deixava o reajuste de 1 mês fora da lista. 31 cobre o mês inteiro.
