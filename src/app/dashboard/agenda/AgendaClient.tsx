@@ -1125,9 +1125,13 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
                   <input name="until" type="date" required className="w-full px-3 py-2 rounded-xl bg-white border border-[#bfdbfe] outline-none text-sm" />
                 </div>
               )}
-              {deSlotQ && (
+              {/* Doc 36 (item 3): no horário intercalado a repetição semanal AGORA é permitida — ela
+                  pula sozinha a semana que o quinzenal ocupa. Explica isso ao escolher "Toda semana". */}
+              {deSlotQ && newFreq === "semanal" && (
                 <p className="text-[11px] text-[#1e40af]/70">
-                  Horário intercalado: sem repetição semanal, para o quinzenal de {perguntaQ?.quem ?? "quem já usa"} não perder o lugar.
+                  Este horário já possui um agendamento na próxima semana. A repetição semanal será iniciada
+                  normalmente, pulando apenas essa semana ocupada. Caso queira, realize o agendamento da próxima
+                  semana em outra data, escolhendo a opção “Adicionar à sequência do pacote”.
                 </p>
               )}
               {(newFreq === "mensal" || newFreq === "mes") && (

@@ -49,8 +49,11 @@ export const REPETICOES: { valor: Repeticao; rotulo: string }[] = [
 export function repeticoesDe(opts: { tipo?: string | null; slotIntercalado?: boolean }): { valor: Repeticao; rotulo: string }[] {
   if (opts.tipo === "devolutiva") return [REPETICOES[0]];
   if (opts.slotIntercalado) {
+    // Doc 36 (item 3): no horário intercalado (a semana anterior de um quinzenal), AGORA se pode
+    // repetir semanalmente — a série pula sozinha a semana que o quinzenal já ocupa.
     return [
       { valor: "pontual", rotulo: "Não repetir" },
+      { valor: "semanal", rotulo: "Toda semana (1x)" },
       { valor: "mes", rotulo: "1x no mês" },
       { valor: "quinzenal", rotulo: "A cada quinzena" },
     ];
@@ -140,6 +143,14 @@ export function datasEPuladas(opts: {
    * a data vire agendamento. Sem a funcao, nada e pulado.
    */
   bloqueado?: (quando: Date) => boolean;
+  /**
+   * A data já tem uma SESSÃO ali? (doc 36, item 3)
+   *
+   * Diferente de `bloqueado`: aqui o horário não está impedido — já existe um atendimento (ex.: a
+   * ocorrência do quinzenal na semana seguinte). A série PULA essa semana SEM criar nada e SEM
+   * registrar "Hor. Bloq." — a sessão que já existe fica onde está, e a numeração do pacote segue.
+   */
+  ocupado?: (quando: Date) => boolean;
 }): { datas: Date[]; puladas: Date[] } {
   const { primeira, limite, freq } = opts;
   const passo = freq === "quinzenal" ? 14 : 7;
@@ -149,6 +160,7 @@ export function datasEPuladas(opts: {
   const puladas: Date[] = [];
 
   for (const d = new Date(primeira); d <= limite && datas.length < 260; d.setDate(d.getDate() + passo)) {
+    if (opts.ocupado?.(d)) continue; // já tem sessão ali: pula silencioso (item 3)
     if (livre(d)) datas.push(new Date(d));
     else puladas.push(new Date(d));
   }
@@ -167,6 +179,7 @@ export function datasEPuladas(opts: {
     }
 
     for (const d = new Date(segunda); d <= limite && datas.length < 520; d.setDate(d.getDate() + 7)) {
+      if (opts.ocupado?.(d)) continue;
       if (livre(d)) datas.push(new Date(d));
       else puladas.push(new Date(d));
     }

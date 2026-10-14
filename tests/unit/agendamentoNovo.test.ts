@@ -36,12 +36,12 @@ describe("as repetições que a janela oferece", () => {
     expect(valores(repeticoesDe({ tipo: "devolutiva" }))).toEqual(["pontual"]);
   });
 
-  it("o slot intercalado Q não oferece semanal", () => {
-    // Se o novo paciente ocupasse todas as semanas, o horário deixaria de ser intercalado e o
-    // quinzenal original perderia o lugar dele.
+  it("o slot intercalado Q oferece semanal (1x) — doc 36 item 3", () => {
+    // Agora PODE repetir semanalmente no horário intercalado: a série pula sozinha a semana que o
+    // quinzenal já ocupa (ver `ocupado` em datasEPuladas). Sem o 2x, que encheria as duas semanas.
     const lista = valores(repeticoesDe({ tipo: "consulta", slotIntercalado: true }));
-    expect(lista).not.toContain("semanal");
-    expect(lista).toEqual(["pontual", "mes", "quinzenal"]);
+    expect(lista).toEqual(["pontual", "semanal", "mes", "quinzenal"]);
+    expect(lista).not.toContain("semanal2x");
   });
 });
 
