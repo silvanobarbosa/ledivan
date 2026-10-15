@@ -54,7 +54,7 @@ export function RelatorioFinanceiro({ pacientes }: { pacientes: PacienteFin[] })
           <table className="w-full text-sm border-collapse">
             <thead>
               <tr className="border-b border-border text-foreground/50">
-                <th className="px-2 py-2 text-left font-bold sticky left-0 bg-surface">Paciente</th>
+                <th className="px-2 py-2 text-left font-bold sticky left-0 bg-surface" aria-label="Cadastro"></th>
                 {MESES.map((mes) => <th key={mes} className="px-2 py-2 text-right font-bold tabular-nums">{mes}</th>)}
                 <th className="px-2 py-2 text-right font-bold tabular-nums">Total</th>
               </tr>

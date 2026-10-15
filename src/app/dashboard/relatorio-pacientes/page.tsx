@@ -58,7 +58,7 @@ export default async function RelatorioPacientesPage() {
     <div className="max-w-7xl space-y-6 pb-20">
       <div>
         <h1 className="text-3xl lg:text-4xl font-display font-bold text-primary flex items-center gap-2">
-          <ClipboardList className="w-7 h-7" /> Relatório de pacientes
+          <ClipboardList className="w-7 h-7" /> Relatório
         </h1>
         <p className="text-foreground/50 mt-1 print:hidden text-justify">
           <strong>Monte</strong> o seu relatório conforme a sua necessidade.

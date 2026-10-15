@@ -37,8 +37,8 @@ export function ListaReajuste({ reajustes }: { reajustes: ReajusteLinha[] }) {
     const num = numeroDoWhatsapp(r.guardianPhone) ?? numeroDoWhatsapp(r.phone);
     if (!num) { setAviso(`${r.name} está sem telefone (responsável ou paciente) para o WhatsApp.`); return; }
     setAviso(null);
-    const alvo = (r.guardianName?.trim() || r.name).split(" ")[0];
-    const texto = mensagem.replace(/\{nome\}/g, alvo);
+    // Doc 42: a opção {nome} saiu — a mensagem vai como foi escrita, sem substituição.
+    const texto = mensagem;
     const url = texto.trim() ? `https://wa.me/${num}?text=${encodeURIComponent(texto)}` : `https://wa.me/${num}`;
     window.open(url, "_blank", "noopener");
   }
@@ -49,11 +49,11 @@ export function ListaReajuste({ reajustes }: { reajustes: ReajusteLinha[] }) {
     <section className="glass-card rounded-[24px] p-5 space-y-3">
       <h3 className="text-lg font-display font-bold text-primary flex items-center gap-2">
         <TrendingUp className="w-5 h-5" /> Reajustes a vencer
-        <InfoTip text="O botão Lembrar abre o WhatsApp do cadastro para enviar mensagens individuais. Para enviar uma mensagem padrão a vários, digite o texto na caixa Mensagem e clique em Lembrar para cada paciente desejado. Esta mensagem será enviada para ao responsável financeiro do paciente ou, se não houver, ao paciente." />
+        <InfoTip text="O botão Lembrar abre o WhatsApp do contato para enviar mensagens individuais. Para enviar uma mensagem padrão a várias pessoas, digite o texto na caixa Mensagem e clique em Lembrar para cada pessoa desejada. Esta mensagem será enviada ao responsável financeiro do cadastro ou, se não houver, à própria pessoa cadastrada." />
       </h3>
       <p className="text-xs text-foreground/60 text-justify">
-        Visualize os pacientes que estão com reajuste <strong>previsto para os próximos 30 dias.</strong><br />
-        Ao <strong>atualizar</strong> o valor do cadastro, o paciente será <strong>removido automaticamente desta lista</strong>.
+        Visualize os cadastros com reajuste <strong>previsto para os próximos 30 dias</strong>.<br />
+        Ao <strong>atualizar</strong> o valor do cadastro, o registro será <strong>removido automaticamente desta lista</strong>.
       </p>
 
       {vazio && <p className="text-sm text-foreground/45 py-2">Nenhum reajuste previsto no momento.</p>}
@@ -78,12 +78,10 @@ export function ListaReajuste({ reajustes }: { reajustes: ReajusteLinha[] }) {
         <label className="text-sm font-semibold text-foreground/60">Mensagem</label>
         <p className="text-[11px] text-foreground/60 text-justify">
           Digite o texto de lembrete de reajuste no campo Mensagem e, em seguida, clique em <strong>Lembrar</strong>
-          em cada paciente que deverá receber essa mensagem.<br />
-          Se desejar <strong>personalizar o texto</strong>, utilize &ldquo;{"{nome}"}&rdquo;. O sistema substituirá esse
-          marcador pelo nome do <strong>responsável financeiro</strong> ou, se não houver, pelo nome do paciente.
+          para cada pessoa que deverá receber a mensagem.
         </p>
         <textarea value={mensagem} onChange={(e) => { setMensagem(e.target.value); setAviso(null); }}
-          rows={3} placeholder="Olá, {nome}! Passando para avisar sobre o reajuste…"
+          rows={3} placeholder="Olá! Passando para avisar sobre o reajuste…"
           className="w-full px-3 py-2 rounded-xl bg-surface border border-border outline-none text-sm" />
       </div>
       )}

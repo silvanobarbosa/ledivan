@@ -137,8 +137,8 @@ function Relatorios({ patients, presence, corte }: { patients: PanelPatient[]; p
       </p>
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
         <Stat n={ativos.length + inativos.length} label="No cadastro" />
-        <Stat n={ativos.length} label="Ativos" tone="green" onAbrir={() => setLista({ titulo: "Pacientes ativos", itens: ativos })} />
-        <Stat n={inativos.length} label="Inativos" onAbrir={() => setLista({ titulo: "Pacientes inativos", itens: inativos })} />
+        <Stat n={ativos.length} label="Ativos" tone="green" onAbrir={() => setLista({ titulo: "Cadastros ativos", itens: ativos })} />
+        <Stat n={inativos.length} label="Inativos" onAbrir={() => setLista({ titulo: "Cadastros inativos", itens: inativos })} />
         <Stat n={semana.length} label="Não vieram na semana" tone="amber" onAbrir={() => setLista({ titulo: "Ativos sem sessão realizada nos últimos 7 dias", itens: semana })} />
       </div>
       <Link href="/dashboard/relatorio-pacientes" className="inline-block text-xs font-bold px-3 py-1.5 rounded-lg bg-primary text-white">Montar relatório</Link>
@@ -284,12 +284,12 @@ function Aniversariantes({ patients, modeloSalvo, hoje }: { patients: PanelPatie
       <div className="flex items-center justify-between">
         <h4 className="font-display font-bold text-primary inline-flex items-center">
           Aniversariantes
-          <InfoTip text="O botão Parabenizar abre o WhatsApp do paciente para enviar mensagens individuais. Para enviar uma mensagem padrão a vários pacientes, digite o texto na caixa Mensagem e clique em Parabenizar para cada paciente desejado." />
+          <InfoTip text="O botão Parabenizar abre o WhatsApp do contato para enviar mensagens individuais. Para enviar uma mensagem padrão a várias pessoas, digite o texto na caixa Mensagem e clique em Parabenizar para cada aniversariante desejado." />
         </h4>
         <span className="text-xs text-foreground/40">{lista.length} no período</span>
       </div>
       <p className="text-xs text-foreground/60 text-justify">
-        Visualize os pacientes que fazem aniversário no mês atual ou utilize os filtros para consultar os
+        Visualize os aniversariantes do mês atual ou utilize os filtros para consultar os
         aniversariantes de um período específico.
       </p>
       <div className="flex gap-2 flex-wrap items-end">
@@ -318,8 +318,8 @@ function Aniversariantes({ patients, modeloSalvo, hoje }: { patients: PanelPatie
       <div className="space-y-1.5 border-t border-border pt-3">
         <span className="text-sm font-semibold text-foreground/60">Mensagem</span>
         <p className="text-[11px] text-foreground/60 text-justify">
-          Digite o texto de felicitação no campo Mensagem e, em seguida, clique em Parabenizar em cada paciente que
-          deverá receber essa mensagem.<br />
+          Digite a mensagem de felicitação no campo Mensagem e, em seguida, clique em Parabenizar para cada aniversariante que
+          deverá recebê-la.<br />
           Se desejar <strong>personalizar o texto</strong>, utilize &ldquo;{"{nome}"}&rdquo;. O sistema substituirá
           esse marcador pelo nome correspondente ao paciente.
         </p>
@@ -405,7 +405,7 @@ function Pagamentos({ patients }: { patients: PanelPatient[] }) {
     <div className={card}>
       <h4 className="font-display font-bold text-primary">Pagamentos</h4>
       <p className="text-xs text-foreground/60 text-justify">
-        Acompanhe e consulte a <strong>situação financeira</strong> dos pacientes.
+        Acompanhe e consulte a <strong>situação financeira</strong> dos seus cadastros.
       </p>
       {/* Doc 41: em atraso + em aberto + em dia; os links (fechar mês/pagamentos/financeiro/saldos/
           conciliação/previsão) saíram e viraram um "Ver detalhes" → relatório financeiro. */}

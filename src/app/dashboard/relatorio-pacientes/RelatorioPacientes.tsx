@@ -145,7 +145,7 @@ export function RelatorioPacientes({ linhas }: { linhas: LinhaRelatorio[] }) {
         </div>
       </div>
 
-      <p className="text-sm text-foreground/50">{filtradas.length} paciente(s) no recorte.</p>
+      <p className="text-sm text-foreground/50">{filtradas.length} no recorte.</p>
 
       {visiveis.length === 0 ? (
         <p className="glass-card rounded-[24px] p-10 text-center text-foreground/40">Marque ao menos uma coluna.</p>

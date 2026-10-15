@@ -153,9 +153,9 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
     .filter((p) => p.dias <= 31)
     .sort((a, b) => a.dias - b.dias);
 
-  // Próximas devolutivas (doc 9, item 2): paciente ativo com intervalo definido, cuja próxima
-  // devolutiva está a ≤ 7 dias e não foi dispensada neste ciclo.
-  // Doc 41: só pacientes MENORES de 18 (a devolutiva é com os responsáveis); aparece com 1 mês de
+  // Próximas devolutivas (doc 9, item 2): paciente ativo com intervalo definido e próxima devolutiva
+  // dentro da janela.
+  // Doc 41/42: só pacientes MENORES de 18 (a devolutiva é com os responsáveis); aparece com 1 mês de
   // antecedência (dentro de `devolutivaNaLista`). O tick de dispensa saiu — o paciente sai sozinho
   // ao agendar uma DEVOLUTIVA (a referência avança).
   const devolutivasLista = pats
