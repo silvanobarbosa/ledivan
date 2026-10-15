@@ -16,7 +16,9 @@ export function AnalyticsFilters({ activePeriod, from, to }: {
   const nav = (patch: Record<string, string | null>) => {
     const q = new URLSearchParams(sp.toString());
     for (const [k, v] of Object.entries(patch)) { if (v === null || v === "") q.delete(k); else q.set(k, v); }
-    router.push(`/dashboard?${q.toString()}`);
+    // Doc 42: sem scroll:false o Next joga a página para o topo a cada filtro — a dona perdia o
+    // lugar nos analíticos. Mantém a posição de rolagem ao trocar o recorte.
+    router.push(`/dashboard?${q.toString()}`, { scroll: false });
   };
 
   return (

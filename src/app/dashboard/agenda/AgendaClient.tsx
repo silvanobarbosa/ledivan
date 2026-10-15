@@ -977,7 +977,7 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
             </div>
 
             <div>
-              <label className="text-xs font-semibold text-foreground/60">Paciente</label>
+              <label className="text-xs font-semibold text-foreground/60">Nome</label>
               <select name="patientId" required value={newPatient} onChange={(e) => setNewPatient(e.target.value)} className="w-full px-4 py-2.5 rounded-xl bg-surface border border-border outline-none text-sm">
                 <option value="">Selecione…</option>
                 {/* Novo atendimento lista SÓ pacientes ATIVOS (doc 19/10): prospectado fica só na
