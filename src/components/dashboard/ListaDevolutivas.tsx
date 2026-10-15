@@ -19,9 +19,9 @@ export type DevolutivaLinha = {
 /**
  * Próximas devolutivas (doc 9, item 2), logo abaixo de "Sessões do dia".
  *
- * Aparece 7 dias antes da devolutiva prevista. "Agendar" só ABRE o WhatsApp (responsável, ou paciente)
- * — não cria agendamento na Agenda; o ✓ dispensa esta devolutiva (resolvida sem agendar) e ela volta
- * no ciclo seguinte. A mensagem é a mesma lógica da dos Prospectados; `{nome}` vira o 1º nome.
+ * Aparece 1 mês antes da devolutiva prevista. "Lembrar" só ABRE o WhatsApp (responsável, ou paciente)
+ * — não cria agendamento na Agenda; o paciente sai sozinho ao agendar uma DEVOLUTIVA na agenda. A
+ * mensagem vai como foi escrita (doc 42: a opção {nome} saiu).
  */
 export function ListaDevolutivas({ devolutivas }: { devolutivas: DevolutivaLinha[] }) {
   const [mensagem, setMensagem] = useState("");
@@ -29,14 +29,13 @@ export function ListaDevolutivas({ devolutivas }: { devolutivas: DevolutivaLinha
 
   const vazio = devolutivas.length === 0;
 
-  // Doc 41: "Lembrar" vai para o WhatsApp do RESPONSÁVEL (a devolutiva é com os pais do menor);
-  // {nome} é o nome do responsável. Sem responsável, cai no paciente como rede de segurança.
+  // Doc 41/42: "Lembrar" vai para o WhatsApp do RESPONSÁVEL (a devolutiva é com os pais do menor);
+  // sem responsável, cai no paciente. A mensagem vai como foi escrita — sem substituição de {nome}.
   function lembrar(d: DevolutivaLinha) {
     const num = numeroDoWhatsapp(d.guardianPhone) ?? numeroDoWhatsapp(d.phone);
     if (!num) { setAviso(`${d.name} está sem telefone (responsável ou paciente).`); return; }
     setAviso(null);
-    const alvo = (d.guardianName?.trim() || d.name).split(" ")[0];
-    const texto = mensagem.replace(/\{nome\}/g, alvo);
+    const texto = mensagem;
     window.open(texto.trim() ? `https://wa.me/${num}?text=${encodeURIComponent(texto)}` : `https://wa.me/${num}`, "_blank", "noopener");
   }
 
@@ -46,7 +45,7 @@ export function ListaDevolutivas({ devolutivas }: { devolutivas: DevolutivaLinha
     <section className="glass-card rounded-[24px] p-5 space-y-3 mt-4">
       <h3 className="text-lg font-display font-bold text-primary flex items-center gap-2">
         <MessagesSquare className="w-5 h-5" /> Próximas devolutivas
-        <InfoTip text="O botão Lembrar abre o WhatsApp do cadastro para enviar mensagens individuais. Para enviar uma mensagem padrão a vários, digite o texto na caixa Mensagem e clique em Lembrar para cada paciente desejado. Esta mensagem será enviada para ao responsável do paciente." />
+        <InfoTip text="O botão Lembrar abre o WhatsApp do contato para enviar mensagens individuais. Para enviar uma mensagem padrão a várias pessoas, digite o texto na caixa Mensagem e clique em Lembrar para cada pessoa desejada. Esta mensagem será enviada ao responsável do cadastro ou, se não houver, à própria pessoa cadastrada." />
       </h3>
       <p className="text-xs text-foreground/60 text-justify">
         Visualize os pacientes que precisam agendar uma devolutiva no <strong>próximo mês</strong>.<br />
@@ -78,13 +77,11 @@ export function ListaDevolutivas({ devolutivas }: { devolutivas: DevolutivaLinha
       <div className="space-y-1">
         <label className="text-xs font-bold text-foreground/50 uppercase tracking-wide">Mensagem</label>
         <textarea value={mensagem} onChange={(e) => { setMensagem(e.target.value); setAviso(null); }}
-          rows={3} placeholder="Olá, {nome}! Vamos marcar a devolutiva?"
+          rows={3} placeholder="Olá! Vamos marcar a devolutiva?"
           className="w-full px-3 py-2 rounded-xl bg-surface border border-border outline-none text-sm" />
         <p className="text-[11px] text-foreground/60 text-justify">
           Digite o texto de chamada para devolutiva no campo Mensagem e, em seguida, clique em <strong>Lembrar</strong>
-          em cada paciente cujo responsável deverá receber essa mensagem.<br />
-          Se desejar <strong>personalizar o texto</strong>, utilize &ldquo;{"{nome}"}&rdquo;. O sistema substituirá esse
-          marcador pelo nome do <strong>responsável</strong> do paciente.
+          para cada pessoa que deverá receber a mensagem.
         </p>
       </div>
       )}

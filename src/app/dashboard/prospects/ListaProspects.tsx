@@ -190,8 +190,8 @@ export function ListaProspects({ prospects, contatos }: { prospects: ProspectLin
           <p className="text-xs text-foreground/60 text-justify">
             <strong>Expanda</strong> a lista de Prospectados para <strong>consultar e editar dados pessoais</strong>,
             <strong> visualizar informações</strong> ou <strong>cadastrar novos contatos realizados</strong>.<br />
-            Quando o prospectado decidir iniciar o atendimento, clique em <strong>Converter</strong> para transformá-lo
-            em paciente e retirá-lo da lista de prospecção.
+            Quando o prospectado decidir iniciar o atendimento, clique em <strong>Converter</strong> para transferi-lo
+            para a lista de cadastros e removê-lo da lista de prospecção.
           </p>
           {filtrados.map((p) => {
             const lista = porProspect.get(p.id) ?? [];

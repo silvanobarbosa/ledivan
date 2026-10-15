@@ -47,7 +47,7 @@ export default async function RelatorioFinanceiroPage() {
   return (
     <div className="max-w-7xl mx-auto space-y-5 pb-20">
       <h1 className="text-3xl lg:text-4xl font-display font-bold text-primary flex items-center gap-2">
-        <Wallet className="w-7 h-7" /> Relatório financeiro dos pacientes
+        <Wallet className="w-7 h-7" /> Relatório financeiro
       </h1>
       <RelatorioFinanceiro pacientes={dados} />
     </div>
