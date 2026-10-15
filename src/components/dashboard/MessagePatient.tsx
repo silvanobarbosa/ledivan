@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { MessageCircle, X, Send, Loader2, Phone, Mail } from "lucide-react";
+import { MessageCircle, X, Send, Loader2, Phone, Mail, type LucideIcon } from "lucide-react";
 import { sendPatientMessage } from "@/app/dashboard/patients/actions";
 
 const CHANNELS = [
@@ -15,6 +15,8 @@ export function MessagePatient({
   compact = false,
   textoInicial = "",
   rotulo,
+  canalInicial = null,
+  icone: Icone = MessageCircle,
 }: {
   patient: { id: string; name: string; phone: string | null; email: string | null };
   compact?: boolean;
@@ -22,15 +24,19 @@ export function MessagePatient({
   textoInicial?: string;
   /** Rótulo do botão no modo compacto. Padrão: "Mensagem". */
   rotulo?: string;
+  /** Canal já selecionado ao abrir (doc 42: botões diretos de Telegram/E-mail). */
+  canalInicial?: string | null;
+  /** Ícone do gatilho (padrão: balão de mensagem). */
+  icone?: LucideIcon;
 }) {
   const [open, setOpen] = useState(false);
-  const [channel, setChannel] = useState<string | null>(null);
+  const [channel, setChannel] = useState<string | null>(canalInicial);
   const [text, setText] = useState(textoInicial);
   const [result, setResult] = useState<{ ok: boolean; error?: string } | null>(null);
   const [pending, start] = useTransition();
 
   // volta ao texto inicial, não a vazio: quem abre de novo espera o modelo de novo
-  function close() { setOpen(false); setChannel(null); setText(textoInicial); setResult(null); }
+  function close() { setOpen(false); setChannel(canalInicial); setText(textoInicial); setResult(null); }
 
   function send() {
     if (!channel) return;
@@ -50,15 +56,15 @@ export function MessagePatient({
           title="Enviar mensagem"
           className="inline-flex items-center gap-1 font-bold px-2 py-0.5 rounded-full bg-secondary-container/30 text-primary hover:bg-secondary-container/50 transition"
         >
-          <MessageCircle className="w-3.5 h-3.5" /> {rotulo ?? "Mensagem"}
+          <Icone className="w-3.5 h-3.5" /> {rotulo ?? "Mensagem"}
         </button>
       ) : (
         <button
           onClick={(e) => { e.preventDefault(); e.stopPropagation(); setOpen(true); }}
-          title="Enviar mensagem"
+          title={rotulo ? `Enviar ${rotulo}` : "Enviar mensagem"}
           className="shrink-0 p-2.5 rounded-2xl bg-white border border-border text-primary hover:border-primary hover:bg-primary/5 transition"
         >
-          <MessageCircle className="w-5 h-5" />
+          <Icone className="w-5 h-5" />
         </button>
       )}
 
