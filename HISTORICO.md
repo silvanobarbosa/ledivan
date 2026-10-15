@@ -7,6 +7,46 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-10-15 — Docs 42+43 (parte 1): textos, contrato 3.2, Telegram/E-mail, scroll dos analíticos (#383–#386)
+
+**Entregue (frentes de baixo risco; o lote é grande e segue aberto):**
+- **#383 textos e rótulos:** Prospectados (subtítulo + Converter → "lista de cadastros"); Relatório
+  (título "Relatório", recorte sem "paciente"); Relatório financeiro (sem "dos pacientes", matriz sem
+  rótulo "Paciente"); Aniversariantes (intro/dica/mensagem); situação financeira "dos seus cadastros";
+  modal Ativos/Inativos → "Cadastros"; Reajustes e Devolutivas com textos revistos e **opção {nome}
+  removida** (mensagem vai como escrita); Novo cadastro sem subtexto, botão "Cadastrar".
+- **#384 contrato:** removida a cláusula **3.2 Horário Fixo**; 3.3 Pontualidade virou 3.2.
+- **#385 ficha:** botões diretos de **Telegram** e **E-mail** ao lado do WhatsApp (compositor da casa
+  com o canal pré-escolhido; MessagePatient ganhou `canalInicial`/`icone`).
+- **#386:** filtro dos **Analíticos** não joga mais a tela pro topo (router.push com `scroll:false`);
+  "Paciente" → "Nome" na janela de novo atendimento.
+
+**Decisões do dono (respondidas nos docs 42/43):**
+- **Devolutiva = 1 mês** confirmado; remover referências a 7 dias (feito no que havia).
+- **Editar recorrência = aprovado**, só para frente (ver Pendente).
+- **Supervisionado** passa a ter **Financeiro e Contrato** também (reverte a restrição "só dados
+  pessoais" do doc 41 — ver Pendente).
+
+**Pendente (frentes grandes/arriscadas de docs 42+43 — ainda NÃO feitas):**
+1. **Supervisionado completo:** exibir guias Financeiro+Contrato; **contrato de SUPERVISÃO CLÍNICA**
+   (modelo próprio, campos auto), recibo com "referente aos serviços de supervisão clínica"; na janela
+   de novo atendimento, se o cadastro é supervisionado o único tipo é **supervisão**; sessão de
+   supervisão marcada na agenda com **ícone de olho** + legenda; card **Supervisões Realizadas** nos
+   analíticos (total de sessões tipo supervisão com Presente). Precisa de **campo de tipo na sessão**
+   (schema) e decisão: supervisionado volta a mostrar TODOS os cards de Dados (responsável etc.), já
+   que o contrato de supervisão usa o responsável? (presumo que sim — "mesmo funcionamento do Paciente").
+2. **Editar recorrência na agenda:** janela mostra frequência+repetição; muda só FUTURO; preserva
+   realizadas/cobranças/pacotes anteriores; ajusta contrato/enquadre, sequência de cobrança e numeração
+   de pacote da data pra frente; diferença de valor o usuário ajusta na mão. (Toca motor de cobrança —
+   frente de maior risco.)
+3. **Confirmação para TODA exclusão do sistema** (varredura).
+4. **Contrato atualiza automático ao salvar Dados/Financeiro** (verificar: a revalidação já regenera o
+   padrão; o texto manual salvo é a exceção a tratar).
+5. **Mobile:** melhorar corte de Prospectados, colunas do Relatório, janela de novo atendimento e o
+   menu quando aberto sobre a agenda.
+
+---
+
 ## 2026-10-14 — Docs 40+41: relatório, cadastro/supervisionado, contrato, sessões realizadas (#377–#381)
 
 **Entregue:**
