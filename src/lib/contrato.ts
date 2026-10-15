@@ -134,17 +134,6 @@ function frequenciaDoContrato(r: DadosDoContrato["recorrencia"]): string {
   return `ocorre com a frequência ${neg(`Semanal (${r.vezesPorSemana >= 2 ? "2x" : "1x"} por semana)`)}`;
 }
 
-const DIAS_SEMANA_CONTRATO = ["domingo", "segunda-feira", "terça-feira", "quarta-feira", "quinta-feira", "sexta-feira", "sábado"];
-
-/** "Toda terça-feira, às 15h00" a partir do último agendamento (doc 26). Dia+hora em negrito (doc 29). */
-function horarioFixoDoContrato(dt: Date | null): string {
-  if (!dt || Number.isNaN(dt.getTime())) return "[ex: Toda terça-feira, às 15h00]";
-  const dia = DIAS_SEMANA_CONTRATO[dt.getDay()];
-  const hh = String(dt.getHours()).padStart(2, "0");
-  const mm = String(dt.getMinutes()).padStart(2, "0");
-  return neg(`Toda ${dia}, às ${hh}h${mm}`);
-}
-
 /** Texto do vencimento da cláusula 4.2 conforme o formato de pagamento (doc 26/28). */
 function vencimentoDoContrato(d: DadosDoContrato): string {
   const dia = (v: number | null) => (v != null ? neg(v) : "[x]");
@@ -184,7 +173,6 @@ export function montarContrato(d: DadosDoContrato): string {
   // Enquadre dinâmico (doc 26).
   const duracaoTxt = d.duracaoMaxMin && d.duracaoMaxMin > 0 ? `até ${neg(`${d.duracaoMaxMin} minutos`)}` : "até [ex: 45 a 50 minutos]";
   const frequenciaTxt = frequenciaDoContrato(d.recorrencia);
-  const horarioFixoTxt = horarioFixoDoContrato(d.horarioFixo);
   // Gratuito (doc 28): a cláusula 4.2 inteira é a isenção por tempo indeterminado; senão, o
   // vencimento conforme o formato. Doc 29: no gratuito, a isenção toda sai em negrito.
   const linha42 = d.formatoPagamento === "gratuito"
@@ -282,8 +270,7 @@ ${pacienteBloco}
 
 3. DO ENQUADRE CLÍNICO E HORÁRIOS
 3.1. Frequência e Duração: As sessões terão a duração de ${duracaoTxt}, ${frequenciaTxt}.
-3.2. Horário Fixo: Fica reservado ao paciente o seguinte horário semanal fixo: ${horarioFixoTxt}.
-3.3. Pontualidade: O horário reservado pertence exclusivamente ao paciente. Atrasos por parte do paciente/responsáveis não implicarão na prorrogação do tempo da sessão.
+3.2. Pontualidade: O horário reservado pertence exclusivamente ao paciente. Atrasos por parte do paciente/responsáveis não implicarão na prorrogação do tempo da sessão.
 
 4. DOS HONORÁRIOS, FORMA DE PAGAMENTO E REAJUSTE
 ${d.formatoPagamento === "gratuito"

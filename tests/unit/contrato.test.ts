@@ -137,8 +137,13 @@ describe("montarContrato", () => {
     expect(c({ ...base, recorrencia: { freq: "mensal", vezesPorSemana: 1, repete: true } })).toContain("ocorre com a frequência Mensal");
     expect(c({ ...base, recorrencia: { freq: "quinzenal", vezesPorSemana: 1, repete: true } })).toContain("ocorre com a frequência Quinzenal");
   });
-  it("3.2 horário fixo vem do último agendamento", () => {
-    expect(c(base)).toContain("Toda terça-feira, às 15h00");
+  // Doc 42: a cláusula 3.2 "Horário Fixo" saiu; 3.3 Pontualidade virou 3.2.
+  it("doc 42: não há mais cláusula de Horário Fixo; Pontualidade é a 3.2", () => {
+    const t = c(base);
+    expect(t).not.toContain("Horário Fixo");
+    expect(t).not.toContain("Toda terça-feira, às 15h00");
+    expect(t).toContain("3.2. Pontualidade:");
+    expect(t).not.toContain("3.3. Pontualidade:");
   });
 
   // Doc 28 — vencimento (4.2) por formato.
@@ -200,11 +205,10 @@ describe("montarContrato", () => {
     expect(bruto).toContain("\u000111 de outubro de 2026\u0002");
   });
 
-  // Doc 29 — sequência (3.1), horário fixo (3.2), 4.1 gratuito e 4.2 (gratuito/1ª/última) em negrito.
-  it("3.1 sequência e 3.2 horário fixo saem em negrito", () => {
+  // Doc 29 — sequência (3.1) em negrito. (Doc 42: horário fixo saiu.)
+  it("3.1 sequência sai em negrito", () => {
     const bruto = montarContrato(base);
     expect(bruto).toContain("\u0001Semanal (1x por semana)\u0002");
-    expect(bruto).toContain("\u0001Toda terça-feira, às 15h00\u0002");
   });
   it("gratuito: 4.1 'R$ 0,00' e 4.2 isenção em negrito (sem 'totalizando')", () => {
     const bruto = montarContrato({ ...base, formatoPagamento: "gratuito" });
