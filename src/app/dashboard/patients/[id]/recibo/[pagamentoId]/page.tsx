@@ -47,7 +47,7 @@ export default async function Recibo({ params }: { params: Promise<{ id: string;
 
   // O responsável do CADASTRO só entra como reserva: o recibo prefere quem pagou ESTE pagamento.
   const [paciente] = await db
-    .select({ name: patients.name, guardianName: patients.guardianName, guardianCpf: patients.guardianCpf, cpf: patients.cpf, sessionFee: patients.sessionFee })
+    .select({ name: patients.name, guardianName: patients.guardianName, guardianCpf: patients.guardianCpf, cpf: patients.cpf, sessionFee: patients.sessionFee, cadastroKind: patients.cadastroKind })
     .from(patients)
     .where(and(eq(patients.id, patientId), eq(patients.userId, userId)))
     .limit(1);
@@ -117,6 +117,7 @@ export default async function Recibo({ params }: { params: Promise<{ id: string;
     terapeutaCpf: terapeuta?.cpf,
     descricao: descricaoValida(terapeuta?.descricao),
     parcialDe,
+    supervisao: paciente.cadastroKind === "supervisionado",
   });
 
   const faltando = [

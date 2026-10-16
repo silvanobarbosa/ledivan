@@ -73,6 +73,13 @@ describe("a descrição do atendimento muda a palavra do recibo", () => {
     expect(montarRecibo({ ...base, descricao: "psicologia" })).toContain("atendimentos psicológicos");
   });
 
+  it("doc 42: supervisionado usa 'serviços de supervisão clínica' (assinatura segue a formação)", () => {
+    const t = montarRecibo({ ...base, descricao: "psicologia", supervisao: true });
+    expect(t).toContain("referente aos serviços de supervisão clínica realizados");
+    expect(t).not.toContain("atendimentos psicológicos");
+    expect(t).toContain("Psicólogo(a): Ledivan de Souza"); // o papel da assinatura NÃO muda
+  });
+
   it("escolha desconhecida cai em terapia, nunca numa profissão que a pessoa não tem", () => {
     expect(descricaoValida(null)).toBe("terapia");
     expect(descricaoValida("psicologa")).toBe("terapia");
