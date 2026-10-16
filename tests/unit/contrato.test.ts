@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { montarContrato, textoLimpo } from "@/lib/contrato";
+import { montarContrato, montarContratoSupervisao, textoLimpo } from "@/lib/contrato";
 
 // Helper: o texto SEM os marcadores de negrito (\u0001…\u0002), para asserção sobre o conteúdo.
 const c = (x: Parameters<typeof montarContrato>[0]) => textoLimpo(montarContrato(x));
@@ -219,5 +219,36 @@ describe("montarContrato", () => {
   it("4.2 primeira/última sessão do pacote: a condição em negrito", () => {
     expect(montarContrato({ ...base, formatoPagamento: "primeira_pacote" })).toContain("\u0001a primeira sessão de cada pacote\u0002");
     expect(montarContrato({ ...base, formatoPagamento: "ultima_pacote" })).toContain("\u0001a última sessão de cada pacote\u0002");
+  });
+
+  // Doc 42 — contrato de SUPERVISÃO CLÍNICA (cadastro supervisionado).
+  describe("montarContratoSupervisao", () => {
+    const s = (x: Parameters<typeof montarContratoSupervisao>[0]) => textoLimpo(montarContratoSupervisao(x));
+    it("título, partes e cláusulas próprias da supervisão", () => {
+      const t = s(base);
+      expect(t.startsWith("CONTRATO DE PRESTAÇÃO DE SERVIÇOS DE SUPERVISÃO CLÍNICA\n")).toBe(true);
+      expect(t).toContain("SUPERVISIONANDO(A):\nNome: João Silva");
+      expect(t).toContain("Nome do Responsável: Maria Silva");
+      expect(t).toContain("5.2. Faltas do SUPERVISIONANDO: As sessões em que o SUPERVISIONANDO não comparecer");
+      expect(t).toContain("3.2. Pontualidade:");
+    });
+    it("não tem Horário Fixo nem cláusula de reajuste", () => {
+      const t = s(base);
+      expect(t).not.toContain("Horário Fixo");
+      expect(t).not.toContain("4.3. Reajuste");
+    });
+    it("papel da assinatura vem da formação (Ajustes)", () => {
+      expect(s({ ...base, descricaoAtendimento: "terapia" })).toContain("— Terapeuta");
+      expect(s({ ...base, descricaoAtendimento: "psicanalise" })).toContain("— Psicanalista");
+      expect(s({ ...base, descricaoAtendimento: "psicologia" })).toContain("— Psicólogo(a)");
+    });
+    it("campo vazio da guia dados sai do contrato (responsável)", () => {
+      expect(s({ ...base, responsavelNome: null })).not.toContain("Nome do Responsável:");
+    });
+    it("valor e enquadre preenchidos do cadastro", () => {
+      const t = s({ ...base, duracaoMaxMin: 50, valorSessao: 200 });
+      expect(t).toContain("duração de até 50 minutos");
+      expect(t).toContain("R$ 200,00");
+    });
   });
 });

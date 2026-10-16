@@ -8,7 +8,7 @@ import { ArrowLeft } from "lucide-react";
 import { updatePatient, deletePatient } from "../../actions";
 import { PatientFormFields } from "@/components/dashboard/PatientFormFields";
 import { ExcluirPaciente } from "./ExcluirPaciente";
-import { montarContrato } from "@/lib/contrato";
+import { montarContrato, montarContratoSupervisao } from "@/lib/contrato";
 import { enquadreDaAgenda } from "@/lib/enquadreContrato";
 import { horaDeParede } from "@/lib/horaLocal";
 import { ContratoImpresso } from "@/components/ContratoImpresso";
@@ -51,7 +51,8 @@ export default async function EditPatientPage({ params, searchParams }: { params
   const prof = await db.query.users.findFirst({ where: eq(users.id, session.user.id) });
   const enq = await enquadreDaAgenda(session.user.id, id, patient.timesPerPeriod);
   // Doc 28/30: o modelo padrão é sempre gerado (p/ Restaurar); o contrato salvo tem prioridade.
-  const contratoPadrao = montarContrato({
+  const gerarContrato = patient.cadastroKind === "supervisionado" ? montarContratoSupervisao : montarContrato;
+  const contratoPadrao = gerarContrato({
     analistaNome: prof?.name ?? null,
     analistaCpf: prof?.therapistCpf ?? null,
     descricaoAtendimento: prof?.descricaoAtendimento ?? null,

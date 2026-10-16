@@ -3,7 +3,7 @@ import { and, eq } from "drizzle-orm";
 import { db } from "@/db";
 import { patients, users } from "@/db/schema";
 import { auth } from "@/auth";
-import { montarContrato } from "@/lib/contrato";
+import { montarContrato, montarContratoSupervisao } from "@/lib/contrato";
 import { enquadreDaAgenda } from "@/lib/enquadreContrato";
 import { horaDeParede } from "@/lib/horaLocal";
 import { ContratoImpresso } from "@/components/ContratoImpresso";
@@ -24,6 +24,7 @@ export default async function Contrato({ params }: { params: Promise<{ id: strin
   const [paciente] = await db
     .select({
       name: patients.name,
+      cadastroKind: patients.cadastroKind,
       birthDate: patients.birthDate,
       cpf: patients.cpf,
       guardianName: patients.guardianName,
@@ -52,7 +53,8 @@ export default async function Contrato({ params }: { params: Promise<{ id: strin
 
   // Doc 28/30: o modelo PADRÃO é sempre gerado dos dados (para o botão Restaurar); se a analista
   // salvou um contrato editado, a tela abre com ele.
-  const textoPadrao = montarContrato({
+  const gerarContrato = paciente.cadastroKind === "supervisionado" ? montarContratoSupervisao : montarContrato;
+  const textoPadrao = gerarContrato({
     analistaNome: prof?.name ?? null,
     analistaCpf: prof?.therapistCpf ?? null,
     descricaoAtendimento: prof?.descricaoAtendimento ?? null,

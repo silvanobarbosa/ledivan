@@ -316,3 +316,121 @@ ${ou(r1Nome, "NOME DO RESPONSÁVEL 1")} — Contratante / Responsável Legal${r2
 _______________________________________
 ${ou(r2Nome, "NOME DO RESPONSÁVEL 2")} — Contratante / Responsável Legal` : ""}`;
 }
+
+/**
+ * Contrato de SUPERVISÃO CLÍNICA (doc 42) — cadastros do tipo Supervisionado. Mesmo mecanismo do
+ * contrato de paciente (auto-preenchido do Perfil + cadastro, campos vazios da guia dados saem,
+ * negrito nos valores do sistema), com o texto próprio da supervisão e sem a cláusula de reajuste.
+ * A descrição profissional (Terapeuta/Psicanalista/Psicólogo(a)) continua vindo dos Ajustes.
+ */
+export function montarContratoSupervisao(d: DadosDoContrato): string {
+  const m = PELA_MODALIDADE[descricaoValida(d.descricaoAtendimento)];
+
+  const enderecoProf = ou(d.analistaEndereco, "Endereço");
+  const plataformaProf = ou(d.analistaPlataforma, "Plataforma utilizada para atendimentos online");
+  const telefoneProf = ou(d.analistaTelefone, "Telefone");
+  const emailProf = ou(d.analistaEmail, "E-mail");
+  const limpo = (v: string | null) => (v && v.trim() ? v.trim() : null);
+  const cidade = limpo(d.cidade);
+  const estado = limpo(d.estado);
+  const foroCidadeUf = cidade ? neg(`${cidade}${estado ? ` / ${estado}` : ""}`) : "[Sua Cidade / Estado]";
+  const localAssinatura = cidade ? neg(`${cidade}${estado ? ` - ${estado}` : ""}`) : "[Cidade - UF]";
+  const dataAssinatura = d.hoje && !Number.isNaN(d.hoje.getTime()) ? neg(dataPorExtenso(d.hoje)) : dataPorExtenso(null);
+
+  // Enquadre: duração + frequência (sem horário fixo, como no modelo de supervisão).
+  const duracaoTxt = d.duracaoMaxMin && d.duracaoMaxMin > 0 ? `até ${neg(`${d.duracaoMaxMin} minutos`)}` : "até [ex: 45 a 50 minutos]";
+  const frequenciaTxt = frequenciaDoContrato(d.recorrencia);
+
+  const valorRaw = reaisBR(d.valorSessao);
+  const valorSessaoTxt = valorRaw.startsWith("[") ? valorRaw : neg(`R$ ${valorRaw}`);
+  const linha41 = d.formatoPagamento === "gratuito"
+    ? `4.1. Valor por Sessão / Mensalidade: ${neg("O valor acordado por cada sessão é de R$ 0,00.")}`
+    : `4.1. Valor por Sessão / Mensalidade: O valor acordado por cada sessão é de ${valorSessaoTxt}, totalizando o valor mensal variável conforme o número de semanas/sessões do mês.`;
+  const linha42 = d.formatoPagamento === "gratuito"
+    ? `4.2. Vencimento e Forma de Pagamento: ${neg("Isento de qualquer tipo de pagamento por tempo indeterminado. Não há data de vencimento nem obrigação de pagamento enquanto essa condição estiver vigente.")}`
+    : `4.2. Vencimento e Forma de Pagamento: ${vencimentoDoContrato(d)}.`;
+
+  // Campo vazio da guia dados sai do contrato; volta ao ser cadastrado (doc 41/42).
+  const Lopt = (label: string, raw: string | number | null | undefined) =>
+    raw != null && String(raw).trim() !== "" ? `${label}: ${neg(String(raw).trim())}\n` : "";
+  // CONTRATANTE = responsável; telefone cai no do paciente quando o do responsável falta.
+  const telContratante = d.responsavelTelefone?.trim() ? d.responsavelTelefone : d.pacienteTelefone;
+  const contratanteBloco = (
+    Lopt("Nome do Responsável", d.responsavelNome) +
+    Lopt("Endereço", d.pacienteEndereco) +
+    Lopt("Telefone", telContratante)
+  ).trimEnd();
+  // SUPERVISIONANDO = a própria pessoa cadastrada.
+  const nascimentoTxt = d.pacienteNascimento ? neg(dataBR(d.pacienteNascimento)) : null;
+  const idadeNumero = idadeNum(d.pacienteNascimento);
+  const supervisionandoBloco = (
+    Lopt("Nome", d.pacienteNome) +
+    (nascimentoTxt ? `Data de Nascimento: ${nascimentoTxt}\n` : "") +
+    (idadeNumero != null ? `Idade: ${neg(String(idadeNumero))} anos\n` : "")
+  ).trimEnd();
+
+  return `CONTRATO DE PRESTAÇÃO DE SERVIÇOS DE SUPERVISÃO CLÍNICA
+
+1. DAS PARTES
+
+CONTRATADA:
+Nome: ${ou(d.analistaNome, "Seu Nome Completo")}
+Registro Profissional: ${ou(d.analistaConselho, "Nº do Conselho ou Associação")}
+CPF: ${ou(d.analistaCpf, "CPF")}
+Endereço: ${enderecoProf}
+Plataforma utilizada para atendimentos online: ${plataformaProf}
+Telefone: ${telefoneProf}
+E-mail: ${emailProf}
+
+CONTRATANTE(S):
+${contratanteBloco}
+
+SUPERVISIONANDO(A):
+${supervisionandoBloco}
+
+2. DO OBJETO DO CONTRATO
+2.1. O presente instrumento tem por objeto a prestação de serviços de supervisão clínica, voltados à reflexão, discussão e elaboração de questões relacionadas à prática profissional do SUPERVISIONANDO, incluindo casos clínicos, manejo, enquadre e demais aspectos pertinentes ao exercício de sua atividade.
+2.2. Por se tratar de um serviço de supervisão clínica, a prestação de serviços tem caráter orientativo e reflexivo, não constituindo garantia de resultados específicos. O aproveitamento da supervisão depende do engajamento do SUPERVISIONANDO, de sua participação ativa e da aplicação crítica das reflexões e orientações discutidas durante os encontros.
+
+3. DO ENQUADRE CLÍNICO E HORÁRIOS
+3.1. Frequência e Duração: As sessões terão a duração de ${duracaoTxt}, ${frequenciaTxt}.
+3.2. Pontualidade: O horário reservado pertence exclusivamente ao SUPERVISIONANDO. Atrasos por parte do SUPERVISIONANDO não implicarão na prorrogação do tempo da sessão.
+
+4. DOS HONORÁRIOS, FORMA DE PAGAMENTO E REAJUSTE
+${linha41}
+${linha42}
+
+5. DA POLÍTICA DE FALTAS, DESMARCAÇÕES E REAGENDAMENTOS
+5.1. Reserva do Horário: Na supervisão clínica, o pagamento remunera a reserva exclusiva do tempo e do espaço profissional colocados à disposição do SUPERVISIONANDO.
+5.2. Faltas do SUPERVISIONANDO: As sessões em que o SUPERVISIONANDO não comparecer e não realizar o cancelamento prévio do agendamento serão cobradas normalmente, independentemente do motivo da ausência, salvo acordo diverso entre as partes.
+5.3. Reagendamento: Havendo disponibilidade de agenda por parte do PROFISSIONAL, poderá ser oferecido um horário alternativo na mesma semana, sem que isso constitua obrigação contratual.
+5.4. Faltas do Profissional: Caso o PROFISSIONAL precise desmarcar por motivo de força maior, a sessão não será cobrada ou será obrigatoriamente reposta em horário mutuamente combinado.
+5.5. Recessos e Feriados: Não haverá cobrança de sessões que coincidirem com recessos previstos e comunicados previamente (ex: Férias de Julho/Dezembro) ou feriados em que o consultório não funcione.
+
+6. DO SIGILO PROFISSIONAL E DA CONFIDENCIALIDADE
+6.1. Sigilo: As informações, relatos, casos clínicos e demais conteúdos compartilhados pelo SUPERVISIONANDO durante as sessões de supervisão serão tratados com sigilo e confidencialidade, observados os limites previstos no Código de Ética Profissional e na legislação vigente.
+6.2. Responsabilidade do SUPERVISIONANDO: O SUPERVISIONANDO compromete-se a preservar o sigilo e a identidade dos pacientes e de terceiros mencionados durante a supervisão, utilizando, sempre que possível, informações anonimizadas e evitando o compartilhamento de dados que permitam sua identificação.
+6.3. Quebra de Sigilo: O sigilo só será mitigado diante de situações previstas em lei, de risco iminente à integridade física ou à vida do SUPERVISIONANDO, de seus pacientes ou de terceiros, ou quando necessário ao cumprimento de obrigação legal ou ética.
+
+7. ATENDIMENTOS ONLINE (SE APLICÁVEL)
+7.1. Privacidade do Ambiente: Para sessões online, o SUPERVISIONANDO compromete-se a garantir ambiente privado, silencioso, sem interrupções e com conexão estável durante a sessão.
+7.2. Gravação Proibida: É expressamente proibida a gravação (áudio ou vídeo) das sessões por qualquer das partes sem autorização prévia e formal por escrito.
+
+8. DO ENCERRAMENTO
+8.1. Processo de Encerramento: O encerramento da supervisão poderá ocorrer por iniciativa de qualquer das partes, preferencialmente mediante comunicação prévia e, quando possível, com a realização de sessão de encerramento para avaliação do processo e fechamento do vínculo profissional.
+
+9. DO FORO
+Para dirimir dúvidas oriundas deste contrato, as partes elegem o Foro da Comarca de ${foroCidadeUf}, com renúncia a qualquer outro.
+
+Por estarem assim justos e contratados, assinam o presente instrumento em 2 (duas) vias de igual teor e forma.
+
+${localAssinatura}, ${dataAssinatura}.
+
+
+_______________________________________
+${ou(d.analistaNome, "NOME DO PROFISSIONAL")} — ${m.assinatura}
+
+
+_______________________________________
+${ou(d.responsavelNome, "NOME DO CONTRATANTE")} — Contratante / Responsável Legal`;
+}
