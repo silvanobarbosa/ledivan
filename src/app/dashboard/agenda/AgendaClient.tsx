@@ -20,6 +20,8 @@ import { perguntaSeEntraNaSequencia } from "@/lib/sessaoExtra";
 import { formatoNaData } from "@/lib/vigenciaDoFormato";
 
 type PatientLite = { id: string; name: string; status: string; attendanceMode: string | null; attendanceLocation: string | null;
+  /** Doc 42: paciente | supervisionado — supervisionado só agenda sessões do tipo supervisão. */
+  cadastroKind?: string | null;
   /** O que a célula escreve no lugar do nome. */
   agendaId?: string | null;
   registrationNumber?: number | null;
@@ -55,6 +57,7 @@ const SIMBOLO: Record<string, string> = {
   pedido: "⏳",
   confirmou: "✓",
   online: "📹",
+  supervisao: "👁",
 };
 
 /** O que cada símbolo quer dizer, em duas ou três palavras. */
@@ -65,6 +68,7 @@ const LEGENDA_DO_SINAL: Record<string, string> = {
   pedido: "pedido pelo link, a confirmar",
   confirmou: "confirmou presença",
   online: "online",
+  supervisao: "supervisão",
 };
 
 const DAY_NAMES = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
@@ -215,6 +219,8 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
     });
   }
   const selectedPatient = patients.find((p) => p.id === newPatient);
+  // Doc 42: cadastro supervisionado só tem sessões de supervisão; o campo Tipo mostra só "Supervisão".
+  const supervisionando = selectedPatient?.cadastroKind === "supervisionado";
   const suggestLoc = selectedPatient?.attendanceLocation || "";
   const formatoNaDataNova = selectedPatient
     ? formatoNaData(
@@ -684,6 +690,7 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
                               pediuRemarcacao: s.rescheduleRequested,
                               realocada: s.status === "realocada",
                               reservaVencida: vencida,
+                              supervisao: s.sessionKind === "supervisao",
                             }).map((sinal) => (
                               <span key={sinal.chave} title={sinal.titulo} className="shrink-0 leading-none">
                                 {SIMBOLO[sinal.chave]}
@@ -978,7 +985,12 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
 
             <div>
               <label className="text-xs font-semibold text-foreground/60">Nome</label>
-              <select name="patientId" required value={newPatient} onChange={(e) => setNewPatient(e.target.value)} className="w-full px-4 py-2.5 rounded-xl bg-surface border border-border outline-none text-sm">
+              <select name="patientId" required value={newPatient} onChange={(e) => {
+                  setNewPatient(e.target.value);
+                  // Doc 42: ao escolher um supervisionado, o tipo vira Supervisão; ao voltar p/ paciente, Consulta.
+                  const alvo = patients.find((p) => p.id === e.target.value);
+                  setNewKind(alvo?.cadastroKind === "supervisionado" ? "supervisao" : "consulta");
+                }} className="w-full px-4 py-2.5 rounded-xl bg-surface border border-border outline-none text-sm">
                 <option value="">Selecione…</option>
                 {/* Novo atendimento lista SÓ pacientes ATIVOS (doc 19/10): prospectado fica só na
                     Prospecção e inativo não agenda; ao converter p/ Ativo, passa a aparecer. A lista
@@ -1006,8 +1018,14 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
             <div>
               <label className="text-xs font-semibold text-foreground/60">Tipo</label>
               <select name="sessionKind" value={newKind} onChange={(e) => setNewKind(e.target.value)} className="w-full px-4 py-2.5 rounded-xl bg-surface border border-border outline-none text-sm">
-                <option value="consulta">Consulta</option>
-                <option value="devolutiva">Devolutiva (aos responsáveis)</option>
+                {supervisionando ? (
+                  <option value="supervisao">Supervisão</option>
+                ) : (
+                  <>
+                    <option value="consulta">Consulta</option>
+                    <option value="devolutiva">Devolutiva (aos responsáveis)</option>
+                  </>
+                )}
               </select>
             </div>
 

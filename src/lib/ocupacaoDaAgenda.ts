@@ -138,6 +138,8 @@ export type FatosDaSessao = {
   realocada?: boolean | null;
   /** Reserva cujo dia já passou e ainda está sem desfecho — pede análise da terapeuta. */
   reservaVencida?: boolean | null;
+  /** Doc 42: sessão de supervisão clínica (cadastro supervisionado) — marcada com um olho. */
+  supervisao?: boolean | null;
 };
 
 /**
@@ -156,5 +158,7 @@ export function sinaisDaSessao(f: FatosDaSessao): SinalDaCelula[] {
   if (f.pedidoDoPaciente) out.push({ chave: "pedido", titulo: "Pedido pelo link público — falta você confirmar" });
   if (f.pacienteConfirmou) out.push({ chave: "confirmou", titulo: "Paciente confirmou presença" });
   if (f.online) out.push({ chave: "online", titulo: "Atendimento online" });
+  // Doc 42: o olho da supervisão vem à direita do ícone de modalidade.
+  if (f.supervisao) out.push({ chave: "supervisao", titulo: "Sessão de supervisão" });
   return out;
 }
