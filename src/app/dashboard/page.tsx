@@ -80,7 +80,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
     db.select({ pid: patientPackages.patientId, total: sql<number>`sum(${patientPackages.sessions})::int` })
       .from(patientPackages).innerJoin(patients, eq(patientPackages.patientId, patients.id))
       .where(and(eq(patientPackages.userId, userId), eq(patients.patientStatus, "ativo"), eq(patients.contractType, "pacote"))).groupBy(patientPackages.patientId),
-    db.select({ isOnline: therapySessions.isOnline, location: therapySessions.location, status: therapySessions.status, date: therapySessions.date, sessionKind: therapySessions.sessionKind }).from(therapySessions).where(and(...anConds)),
+    db.select({ isOnline: therapySessions.isOnline, location: therapySessions.location, status: therapySessions.status, date: therapySessions.date, cadastroKind: patients.cadastroKind }).from(therapySessions).innerJoin(patients, eq(therapySessions.patientId, patients.id)).where(and(...anConds)),
     db.select({ id: patients.id, name: patients.name, agendaId: patients.agendaId, status: patients.patientStatus, prospectDate: patients.prospectDate, prospectFechou: patients.prospectFechou, paymentStatus: patients.paymentStatus, gender: patients.gender, birthDate: patients.birthDate, address: patients.address, phone: patients.phone, guardianName: patients.guardianName, guardianPhone: patients.guardianPhone, email: patients.email, queixaPrincipal: patients.queixaPrincipal, startedAt: patients.startedAt, priceReviewDate: patients.priceReviewDate, devolutivaMeses: patients.devolutivaMeses, devolutivaDispensadaEm: patients.devolutivaDispensadaEm }).from(patients).where(eq(patients.userId, userId)),
     // Consumo de pacote = fonte única DERIVADA: sessões realizadas+cobráveis por paciente.
     db.select({ pid: therapySessions.patientId, cnt: sql<number>`count(*)::int` })
@@ -190,8 +190,10 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   const pacotesAcabando = pkgEndingRows.filter((r) => (Number(r.total) - (pkgRealizedMap.get(r.pid) ?? 0)) === 1).length;
 
   // ---- Analíticos ----
-  // Doc 42: supervisão é um serviço à parte — sai dos "Atendimentos realizados" e ganha card próprio.
-  const ehSupervisao = (r: { sessionKind?: string | null }) => r.sessionKind === "supervisao";
+  // Doc 44: a contagem vai pelo TIPO DO CADASTRO (não pelo tipo da sessão): Atendimentos = status
+  // Presente de cadastros Paciente; Supervisões = status Presente de cadastros Supervisionado. Assim
+  // sessões de supervisionado criadas antes (sessionKind antigo) também contam certo, sem misturar.
+  const ehSupervisao = (r: { cadastroKind?: string | null }) => r.cadastroKind === "supervisionado";
   const done = anRows.filter((r) => r.status === "realizada" && !ehSupervisao(r));
   const total = done.length;
   const online = done.filter((r) => r.isOnline).length;
@@ -287,12 +289,12 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
 
         <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
           <div className="glass-card rounded-[28px] p-6 flex items-center gap-4"><div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center"><CalendarCheck className="w-6 h-6" /></div><div><p className="text-2xl font-display font-bold text-primary leading-none">{total}</p><p className="text-xs text-foreground/50 mt-1">Atendimentos realizados</p></div></div>
+          {/* Doc 44: Supervisões realizadas vem logo à direita de Atendimentos; sempre visível (0 quando não há). */}
+          <div className="glass-card rounded-[28px] p-6 flex items-center gap-4"><div className="w-12 h-12 rounded-2xl bg-[#eef2ff] text-[#4338ca] flex items-center justify-center"><Eye className="w-6 h-6" /></div><div><p className="text-2xl font-display font-bold text-primary leading-none">{supervisoesRealizadas}</p><p className="text-xs text-foreground/50 mt-1">Supervisões realizadas</p></div></div>
           <div className="glass-card rounded-[28px] p-6 flex items-center gap-4"><div className="w-12 h-12 rounded-2xl bg-accent/10 text-accent flex items-center justify-center"><Video className="w-6 h-6" /></div><div><p className="text-2xl font-display font-bold text-primary leading-none">{online} <span className="text-sm font-normal text-foreground/40">({pct(online)}%)</span></p><p className="text-xs text-foreground/50 mt-1">Online</p></div></div>
           <div className="glass-card rounded-[28px] p-6 flex items-center gap-4"><div className="w-12 h-12 rounded-2xl bg-[#ecfdf5] text-[#047857] flex items-center justify-center"><MapPin className="w-6 h-6" /></div><div><p className="text-2xl font-display font-bold text-primary leading-none">{presencial} <span className="text-sm font-normal text-foreground/40">({pct(presencial)}%)</span></p><p className="text-xs text-foreground/50 mt-1">Presencial</p></div></div>
           <div className="glass-card rounded-[28px] p-6 flex items-center gap-4"><div className="w-12 h-12 rounded-2xl bg-[#fee2e2] text-[#b91c1c] flex items-center justify-center"><AlertTriangle className="w-6 h-6" /></div><div><p className="text-2xl font-display font-bold text-primary leading-none">{faltas}</p><p className="text-xs text-foreground/50 mt-1">Faltas</p></div></div>
           <div className="glass-card rounded-[28px] p-6 flex items-center gap-4"><div className="w-12 h-12 rounded-2xl bg-[#fef9c3] text-[#854d0e] flex items-center justify-center"><Percent className="w-6 h-6" /></div><div><p className="text-2xl font-display font-bold text-primary leading-none">{comparecimento}%</p><p className="text-xs text-foreground/50 mt-1">Comparecimento</p></div></div>
-          {/* Doc 42: supervisões realizadas (status Presente), fora da conta de Atendimentos. */}
-          <div className="glass-card rounded-[28px] p-6 flex items-center gap-4"><div className="w-12 h-12 rounded-2xl bg-[#eef2ff] text-[#4338ca] flex items-center justify-center"><Eye className="w-6 h-6" /></div><div><p className="text-2xl font-display font-bold text-primary leading-none">{supervisoesRealizadas}</p><p className="text-xs text-foreground/50 mt-1">Supervisões realizadas</p></div></div>
         </div>
 
         <AnaliticosCharts monthly={chartMonthly} weekday={chartWeekday} />
