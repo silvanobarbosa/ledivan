@@ -357,6 +357,7 @@ export function montarContratoSupervisao(d: DadosDoContrato): string {
   const telContratante = d.responsavelTelefone?.trim() ? d.responsavelTelefone : d.pacienteTelefone;
   const contratanteBloco = (
     Lopt("Nome do Responsável", d.responsavelNome) +
+    Lopt("CPF", d.responsavelCpf) +
     Lopt("Endereço", d.pacienteEndereco) +
     Lopt("Telefone", telContratante)
   ).trimEnd();

@@ -229,6 +229,7 @@ describe("montarContrato", () => {
       expect(t.startsWith("CONTRATO DE PRESTAÇÃO DE SERVIÇOS DE SUPERVISÃO CLÍNICA\n")).toBe(true);
       expect(t).toContain("SUPERVISIONANDO(A):\nNome: João Silva");
       expect(t).toContain("Nome do Responsável: Maria Silva");
+      expect(t).toContain("CPF: 987.654.321-00"); // doc 44: CPF do responsável no CONTRATANTE
       expect(t).toContain("5.2. Faltas do SUPERVISIONANDO: As sessões em que o SUPERVISIONANDO não comparecer");
       expect(t).toContain("3.2. Pontualidade:");
     });
