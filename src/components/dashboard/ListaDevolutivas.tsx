@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { MessagesSquare } from "lucide-react";
 import { numeroDoWhatsapp } from "@/lib/telefoneWhatsapp";
-import { InfoTip } from "@/components/InfoTip";
 
 export type DevolutivaLinha = {
   id: string;
@@ -45,11 +44,11 @@ export function ListaDevolutivas({ devolutivas }: { devolutivas: DevolutivaLinha
     <section className="glass-card rounded-[24px] p-5 space-y-3 mt-4">
       <h3 className="text-lg font-display font-bold text-primary flex items-center gap-2">
         <MessagesSquare className="w-5 h-5" /> Próximas devolutivas
-        <InfoTip text="O botão Lembrar abre o WhatsApp do contato para enviar mensagens individuais. Para enviar uma mensagem padrão a várias pessoas, digite o texto na caixa Mensagem e clique em Lembrar para cada pessoa desejada. Esta mensagem será enviada ao responsável do cadastro ou, se não houver, à própria pessoa cadastrada." />
       </h3>
       <p className="text-xs text-foreground/60 text-justify">
-        Visualize os pacientes que precisam agendar uma devolutiva no <strong>próximo mês</strong>.<br />
-        Ao <strong>agendar uma devolutiva</strong>, o paciente será <strong>removido automaticamente desta lista</strong>.
+        Visualize os pacientes que precisam agendar uma <strong>devolutiva no próximo mês</strong>.<br />
+        Clique em <strong>Lembrar</strong> ao lado de cada nome <strong>para enviar uma mensagem individual pelo WhatsApp.</strong> Nesse caso, não é necessário preencher o campo abaixo.<br />
+        <strong>Mensagens serão enviadas ao responsável do cadastro.</strong>
       </p>
 
       {vazio && (
@@ -74,15 +73,20 @@ export function ListaDevolutivas({ devolutivas }: { devolutivas: DevolutivaLinha
       )}
 
       {!vazio && (
+      <p className="text-xs text-foreground/60 text-justify">
+        Ao <strong>agendar uma devolutiva</strong>, o paciente será <strong>removido automaticamente desta lista.</strong>
+      </p>
+      )}
+
+      {!vazio && (
       <div className="space-y-1">
-        <label className="text-xs font-bold text-foreground/50 uppercase tracking-wide">Mensagem</label>
+        <label className="text-xs font-bold text-foreground/50 uppercase tracking-wide">Mensagem única para todos</label>
+        <p className="text-[11px] text-foreground/60 text-justify">
+          Escreva sua mensagem de chamada para devolutiva no campo abaixo e clique em <strong>Lembrar</strong> nos cadastros que deverão recebê-la.
+        </p>
         <textarea value={mensagem} onChange={(e) => { setMensagem(e.target.value); setAviso(null); }}
           rows={3} placeholder="Olá! Vamos marcar a devolutiva?"
           className="w-full px-3 py-2 rounded-xl bg-surface border border-border outline-none text-sm" />
-        <p className="text-[11px] text-foreground/60 text-justify">
-          Digite o texto de chamada para devolutiva no campo Mensagem e, em seguida, clique em <strong>Lembrar</strong>
-          para cada pessoa que deverá receber a mensagem.
-        </p>
       </div>
       )}
 

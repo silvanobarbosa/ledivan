@@ -5,7 +5,6 @@ import { useRouter } from "next/navigation";
 import { UserPlus, ArrowRight, Trash2, Save, ChevronDown, ChevronRight, Plus, MessageCircle } from "lucide-react";
 import { formatDate } from "@/lib/therapy";
 import { idadeEmAnos } from "@/lib/idade";
-import { InfoTip } from "@/components/InfoTip";
 import { numeroDoWhatsapp } from "@/lib/telefoneWhatsapp";
 import { MoneyInput } from "@/components/MoneyInput";
 import { SubmitButton } from "@/components/SubmitButton";
@@ -185,11 +184,11 @@ export function ListaProspects({ prospects, contatos }: { prospects: ProspectLin
         <div className="space-y-3">
           <div className="text-sm font-semibold text-foreground/60 inline-flex items-center">
             Prospectados
-            <InfoTip text="O botão Contatar abre o WhatsApp do prospectado para enviar mensagens individuais. Para enviar uma mensagem padrão a vários prospectados, digite o texto na caixa Mensagem e clique em Contatar para cada prospectado desejado." />
           </div>
           <p className="text-xs text-foreground/60 text-justify">
             <strong>Expanda</strong> a lista de Prospectados para <strong>consultar e editar dados pessoais</strong>,
             <strong> visualizar informações</strong> ou <strong>cadastrar novos contatos realizados</strong>.<br />
+            Clique em <strong>Contatar</strong> ao lado de cada nome <strong>para enviar uma mensagem individual pelo WhatsApp</strong>. Nesse caso, não é necessário preencher o campo abaixo.<br />
             Quando o prospectado decidir iniciar o atendimento, clique em <strong>Converter</strong> para transferi-lo
             para a lista de cadastros e removê-lo da lista de prospecção.
           </p>
@@ -219,10 +218,6 @@ export function ListaProspects({ prospects, contatos }: { prospects: ProspectLin
                     completas. À DIREITA, o botão "Contatar" (doc 20) envia a mensagem definida abaixo
                     SÓ para este prospectado — fora do botão de abrir, para um não disparar o outro. */}
                 <div className="flex items-center gap-3">
-                  {/* Doc 40: a lixeira fica à ESQUERDA do nome (saiu de baixo, do lado de Converter). */}
-                  <button type="button" onClick={() => excluir(p)} disabled={pendente} title="Excluir prospectado" aria-label={`Excluir prospectado ${p.name}`} className="shrink-0 text-red-600 hover:bg-red-50 rounded-lg p-1.5 transition disabled:opacity-50">
-                    <Trash2 className="w-4 h-4" />
-                  </button>
                   <button type="button" onClick={() => setAberto(expandido ? null : p.id)}
                     aria-expanded={expandido} className="flex-1 min-w-0 flex items-center gap-3 text-left">
                     {expandido ? <ChevronDown className="w-4 h-4 text-primary shrink-0" /> : <ChevronRight className="w-4 h-4 text-primary shrink-0" />}
@@ -238,11 +233,17 @@ export function ListaProspects({ prospects, contatos }: { prospects: ProspectLin
 
                 {expandido && (
                 <div className="space-y-2 mt-3 border-t border-border pt-3">
-                {/* Doc 40: ao abrir, aparecem as OPÇÕES (Atualizar dados / Contatos), não o form direto. */}
-                <button type="button" onClick={alternarForm} className="inline-flex items-center gap-1 text-xs font-bold text-primary hover:underline">
-                  {formAberto ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
-                  Atualizar dados
-                </button>
+                {/* Doc 40: ao abrir, aparecem as OPÇÕES (Atualizar dados / Contatos), não o form direto.
+                    Doc 44: a lixeira foi para o lado de "Atualizar dados". */}
+                <div className="flex items-center gap-2">
+                  <button type="button" onClick={alternarForm} className="inline-flex items-center gap-1 text-xs font-bold text-primary hover:underline">
+                    {formAberto ? <ChevronDown className="w-3.5 h-3.5" /> : <ChevronRight className="w-3.5 h-3.5" />}
+                    Atualizar dados
+                  </button>
+                  <button type="button" onClick={() => excluir(p)} disabled={pendente} title="Excluir prospectado" aria-label={`Excluir prospectado ${p.name}`} className="shrink-0 text-red-600 hover:bg-red-50 rounded-lg p-1.5 transition disabled:opacity-50">
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
                 {formAberto && (
                 <form action={atualizarEFechar} className="space-y-3">
                   <input type="hidden" name="id" value={p.id} />
@@ -318,12 +319,10 @@ export function ListaProspects({ prospects, contatos }: { prospects: ProspectLin
           envia só para ele. <code>{"{nome}"}</code> vira o primeiro nome. */}
       {prospects.length > 0 && (
         <div className="glass-card rounded-[24px] p-5 space-y-3">
-          <h3 className="font-semibold text-sm text-primary">Mensagem</h3>
+          <h3 className="font-semibold text-sm text-primary">Mensagem única para todos</h3>
           <p className="text-[11px] text-foreground/60 text-justify">
-            Digite o texto no campo <strong>Mensagem</strong> e, em seguida, clique em <strong>Contatar</strong> em cada
-            prospectado que deverá receber essa mensagem.<br />
-            Se desejar <strong>personalizar o texto</strong>, utilize &ldquo;{"{nome}"}&rdquo;. O sistema substituirá
-            esse marcador pelo nome correspondente ao prospectado.
+            Escreva sua mensagem no campo abaixo e clique em <strong>Contatar</strong> nos cadastros que deverão recebê-la.<br />
+            <strong>Dica:</strong> para personalizar a mensagem, utilize &ldquo;{"{nome}"}&rdquo; no texto. O sistema substituirá esse marcador pelo nome de cada cadastro automaticamente.
           </p>
           <textarea value={mensagem} onChange={(e) => { setMensagem(e.target.value); setEnvioMsg(null); }}
             rows={3} placeholder="Olá, {nome}! ..." className={`${inputCls} resize-none`} />

@@ -6,7 +6,6 @@ import { queixaGroup } from "@/lib/queixas";
 import { MessagePatient } from "./MessagePatient";
 import { ModalPacientes } from "./ModalPacientes";
 import { salvarMensagemAgendamento, salvarMensagemAniversario } from "@/app/dashboard/actions";
-import { InfoTip } from "@/components/InfoTip";
 import { mensagemPara, MODELO_PADRAO_DO_LEMBRETE } from "@/lib/lembrarAgendamento";
 import { horaDeParede } from "@/lib/horaLocal";
 import { numeroDoWhatsapp } from "@/lib/telefoneWhatsapp";
@@ -100,7 +99,6 @@ function Prospeccao({ patients }: { patients: PanelPatient[] }) {
     <div className={card}>
       <h4 className="font-display font-bold text-primary inline-flex items-center">
         Prospecção
-        <InfoTip text="Para adicionar uma pessoa à lista de prospectados, acesse o menu Prospecção." />
       </h4>
       <p className="text-xs text-foreground/60 text-justify">
         <strong>Acompanhe</strong> a quantidade de pessoas que entraram em contato demonstrando interesse nos seus
@@ -284,13 +282,12 @@ function Aniversariantes({ patients, modeloSalvo, hoje }: { patients: PanelPatie
       <div className="flex items-center justify-between">
         <h4 className="font-display font-bold text-primary inline-flex items-center">
           Aniversariantes
-          <InfoTip text="O botão Parabenizar abre o WhatsApp do contato para enviar mensagens individuais. Para enviar uma mensagem padrão a várias pessoas, digite o texto na caixa Mensagem e clique em Parabenizar para cada aniversariante desejado." />
         </h4>
         <span className="text-xs text-foreground/40">{lista.length} no período</span>
       </div>
       <p className="text-xs text-foreground/60 text-justify">
-        Visualize os aniversariantes do mês atual ou utilize os filtros para consultar os
-        aniversariantes de um período específico.
+        Visualize os aniversariantes do mês atual.<br />
+        Clique em <strong>Parabenizar</strong> ao lado de cada nome <strong>para enviar uma mensagem individual pelo WhatsApp</strong>. Nesse caso, não é necessário preencher o campo abaixo.
       </p>
       <div className="flex gap-2 flex-wrap items-end">
         <div><span className={lbl}>Data de</span><input type="date" value={de} onChange={(e) => setDe(e.target.value)} className={inp} /></div>
@@ -316,12 +313,10 @@ function Aniversariantes({ patients, modeloSalvo, hoje }: { patients: PanelPatie
       {avisoAniv && <p className="text-xs font-semibold text-[#b45309]">{avisoAniv}</p>}
 
       <div className="space-y-1.5 border-t border-border pt-3">
-        <span className="text-sm font-semibold text-foreground/60">Mensagem</span>
+        <span className="text-sm font-semibold text-foreground/60">Mensagem única para todos</span>
         <p className="text-[11px] text-foreground/60 text-justify">
-          Digite a mensagem de felicitação no campo Mensagem e, em seguida, clique em Parabenizar para cada aniversariante que
-          deverá recebê-la.<br />
-          Se desejar <strong>personalizar o texto</strong>, utilize &ldquo;{"{nome}"}&rdquo;. O sistema substituirá
-          esse marcador pelo nome correspondente ao paciente.
+          Escreva sua mensagem de felicitação no campo abaixo e clique em <strong>Parabenizar</strong> nos cadastros que deverão recebê-la.<br />
+          <strong>Dica:</strong> para personalizar a mensagem, utilize &ldquo;{"{nome}"}&rdquo; no texto. O sistema substituirá esse marcador pelo nome de cada cadastro automaticamente.
         </p>
         <textarea value={modelo} onChange={(e) => { setModelo(e.target.value); setSalvo(null); }} rows={2} className={`${inp} w-full resize-none`} />
         <div className="flex items-center gap-2">
@@ -358,7 +353,6 @@ function QueixaBloco({ patients }: { patients: PanelPatient[] }) {
     <div className={card}>
       <h4 className="font-display font-bold text-primary inline-flex items-center">
         Queixa principal
-        <InfoTip text="Clique no Abrir de uma das queixas listadas, e visualize os pacientes que foram cadastrados naquela categoria." />
       </h4>
       <p className="text-xs text-foreground/60 text-justify">
         Visualize as <strong>queixas registradas</strong> nos cadastros dos pacientes.
