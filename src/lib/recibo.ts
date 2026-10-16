@@ -53,6 +53,9 @@ export type DadosDoRecibo = {
   descricao: DescricaoAtendimento;
   /** Doc 28: pagamento parcial do pacote — a data em que o pacote começou (1ª sessão). */
   parcialDe?: Date | null;
+  /** Doc 42: cadastro supervisionado — o texto do serviço vira "serviços de supervisão clínica"
+   * (o rótulo da assinatura continua vindo da formação). */
+  supervisao?: boolean;
 };
 
 const dois = (n: number) => String(n).padStart(2, "0");
@@ -157,7 +160,7 @@ export function montarRecibo(d: DadosDoRecibo): string {
     "RECIBO DE PAGAMENTO",
     "",
     `Recebi de ${d.responsavel}${cpfResp}, o valor de ${valorBR(d.valorTotal)} (${porExtenso(d.valorTotal)}), ` +
-      `referente aos ${COMO_SE_ESCREVE[d.descricao]} realizados${alvo}, nas seguintes datas:`,
+      `referente aos ${d.supervisao ? "serviços de supervisão clínica" : COMO_SE_ESCREVE[d.descricao]} realizados${alvo}, nas seguintes datas:`,
     "",
     datas,
   ];
