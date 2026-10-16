@@ -1,0 +1,145 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { CalendarClock, MessageCircle, Loader2 } from "lucide-react";
+import { formatBRL, SESSION_STATUS_LABELS } from "@/lib/therapy";
+import { numeroDoWhatsapp } from "@/lib/telefoneWhatsapp";
+import { mensagemAvulsa, mensagemPacote, type CobrancaResolvida } from "@/lib/vencimentosDoDia";
+import { vencimentosEm, registrarCobranca } from "@/app/dashboard/vencimentos-actions";
+
+const SIT: Record<string, { rotulo: string; cor: string }> = {
+  pago: { rotulo: "Em dia", cor: "text-[#047857]" },
+  em_aberto: { rotulo: "Em aberto", cor: "text-[#854d0e]" },
+  em_atraso: { rotulo: "Em atraso", cor: "text-[#b91c1c]" },
+};
+const TIPO_VENC: Record<string, string> = { dia: "Dia específico", primeira: "1ª sessão do pacote", ultima: "Última sessão do pacote" };
+
+/** Hoje no relógio local, em YYYY-MM-DD (sem passar por UTC, que viraria o dia à noite). */
+function hojeLocal(): string {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+const dataBR = (iso: string | null | undefined) => {
+  const m = iso ? String(iso).match(/^(\d{4})-(\d{2})-(\d{2})/) : null;
+  return m ? `${m[3]}/${m[2]}/${m[1]}` : "—";
+};
+const horaBR = (iso: string | null | undefined) => {
+  const m = iso ? String(iso).match(/T(\d{2}:\d{2})/) : null;
+  return m ? m[1] : "";
+};
+
+/**
+ * Vencimentos por dia (doc 44): abaixo de Pagamentos no Dashboard. Seletor de data (default hoje, NÃO
+ * persistido — recarregar volta para hoje), tabela de sessões avulsas e tabela de pacotes que vencem
+ * na data. O botão Cobrar abre o WhatsApp com a mensagem preenchida e registra o acionamento.
+ */
+export function VencimentosPorDia() {
+  const [dia, setDia] = useState(hojeLocal());
+  const [avulsas, setAvulsas] = useState<CobrancaResolvida[]>([]);
+  const [pacotes, setPacotes] = useState<CobrancaResolvida[]>([]);
+  const [carregando, setCarregando] = useState(true);
+  const [enviadas, setEnviadas] = useState<Record<string, number>>({});
+
+  useEffect(() => {
+    let vivo = true;
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- buscar os vencimentos ao montar e a cada troca de data É o efeito desejado
+    setCarregando(true);
+    vencimentosEm(dia).then((r) => {
+      if (!vivo) return;
+      setAvulsas(r.ok ? r.avulsas ?? [] : []);
+      setPacotes(r.ok ? r.pacotes ?? [] : []);
+      setEnviadas({});
+      setCarregando(false);
+    });
+    return () => { vivo = false; };
+  }, [dia]);
+
+  function cobrar(c: CobrancaResolvida, texto: string) {
+    const num = numeroDoWhatsapp(c.telefone);
+    if (num) window.open(`https://wa.me/${num}?text=${encodeURIComponent(texto)}`, "_blank", "noopener");
+    // Conta o ACIONAMENTO (clique no botão), não a abertura do WhatsApp (doc 44).
+    void registrarCobranca(c.cadastroId, c.chave);
+    setEnviadas((e) => ({ ...e, [c.chave]: (e[c.chave] ?? c.enviosTotal) + 1 }));
+  }
+  const totalEnvios = (c: CobrancaResolvida) => enviadas[c.chave] ?? c.enviosTotal;
+
+  const th = "px-2 py-2 text-left font-bold whitespace-nowrap";
+  const td = "px-2 py-2 whitespace-nowrap";
+  const btnCobrar = "inline-flex items-center gap-1 text-xs font-bold px-3 py-1.5 rounded-full bg-primary/10 text-primary hover:bg-primary/15 transition disabled:opacity-40";
+
+  return (
+    <section className="glass-card rounded-[24px] p-5 space-y-4">
+      <div className="flex items-center justify-between gap-3 flex-wrap">
+        <h3 className="text-lg font-display font-bold text-primary flex items-center gap-2">
+          <CalendarClock className="w-5 h-5" /> Vencimentos por dia
+        </h3>
+        <input type="date" value={dia} onChange={(e) => setDia(e.target.value || hojeLocal())}
+          className="px-3 py-2 rounded-xl bg-surface border border-border outline-none text-sm" aria-label="Data dos vencimentos" />
+      </div>
+
+      {carregando ? (
+        <p className="text-sm text-foreground/40 py-4 flex items-center gap-2"><Loader2 className="w-4 h-4 animate-spin" /> Carregando…</p>
+      ) : (
+        <>
+          <div className="space-y-2">
+            <h4 className="text-sm font-bold text-foreground/70">Sessões avulsas</h4>
+            {avulsas.length === 0 ? (
+              <p className="text-sm text-foreground/40">Nenhuma sessão avulsa vence nesta data.</p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs">
+                  <thead className="text-foreground/50 border-b border-border">
+                    <tr><th className={th}>Nome</th><th className={th}>Data da sessão</th><th className={th}>Horário de atraso</th><th className={th}>Valor</th><th className={th}>Status</th><th className={th}>Cobrar</th><th className={th}>Cobranças enviadas</th></tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {avulsas.map((c) => (
+                      <tr key={c.chave}>
+                        <td className={`${td} font-semibold`}>{c.nome}</td>
+                        <td className={td}>{dataBR(c.dataSessao)}</td>
+                        <td className={td}>{dataBR(c.horarioAtraso)} {horaBR(c.horarioAtraso)}</td>
+                        <td className={`${td} tabular-nums`}>{formatBRL(c.valor)}</td>
+                        <td className={`${td} font-semibold ${SIT[c.situacao]?.cor ?? ""}`}>{SIT[c.situacao]?.rotulo ?? c.situacao}</td>
+                        <td className={td}><button type="button" onClick={() => cobrar(c, mensagemAvulsa(c))} disabled={!numeroDoWhatsapp(c.telefone)} title={numeroDoWhatsapp(c.telefone) ? "Cobrar pelo WhatsApp" : "Cadastro sem telefone"} className={btnCobrar}><MessageCircle className="w-3.5 h-3.5" /> Cobrar</button></td>
+                        <td className={`${td} tabular-nums text-center`}>{totalEnvios(c)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+
+          <div className="space-y-2">
+            <h4 className="text-sm font-bold text-foreground/70">Pacotes</h4>
+            {pacotes.length === 0 ? (
+              <p className="text-sm text-foreground/40">Nenhum pacote vence nesta data.</p>
+            ) : (
+              <div className="overflow-x-auto">
+                <table className="w-full text-xs">
+                  <thead className="text-foreground/50 border-b border-border">
+                    <tr><th className={th}>Nome</th><th className={th}>Tipo de vencimento</th><th className={th}>1ª sessão</th><th className={th}>Última sessão</th><th className={th}>Última realizada</th><th className={th}>Status</th><th className={th}>Valor a pagar</th><th className={th}>Cobrar</th><th className={th}>Cobranças enviadas</th></tr>
+                  </thead>
+                  <tbody className="divide-y divide-border">
+                    {pacotes.map((c) => (
+                      <tr key={c.chave}>
+                        <td className={`${td} font-semibold`}>{c.nome}</td>
+                        <td className={td}>{TIPO_VENC[c.tipoVencimento ?? "dia"]}</td>
+                        <td className={td}>{dataBR(c.primeiraSessao)}</td>
+                        <td className={td}>{dataBR(c.ultimaSessao)}</td>
+                        <td className={td}>{c.ultimaRealizada ? `${dataBR(c.ultimaRealizada.data)} · ${SESSION_STATUS_LABELS[c.ultimaRealizada.status] ?? c.ultimaRealizada.status}` : "—"}</td>
+                        <td className={`${td} font-semibold ${SIT[c.situacao]?.cor ?? ""}`}>{SIT[c.situacao]?.rotulo ?? c.situacao}</td>
+                        <td className={`${td} tabular-nums`}>{formatBRL(c.valor)}</td>
+                        <td className={td}><button type="button" onClick={() => cobrar(c, mensagemPacote(c))} disabled={!numeroDoWhatsapp(c.telefone)} title={numeroDoWhatsapp(c.telefone) ? "Cobrar pelo WhatsApp" : "Cadastro sem telefone"} className={btnCobrar}><MessageCircle className="w-3.5 h-3.5" /> Cobrar</button></td>
+                        <td className={`${td} tabular-nums text-center`}>{totalEnvios(c)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
+          </div>
+        </>
+      )}
+    </section>
+  );
+}

@@ -8,6 +8,7 @@ import { AnaliticosCharts } from "@/components/dashboard/AnaliticosCharts";
 import { DashboardPanels } from "@/components/dashboard/DashboardPanels";
 import { ListaReajuste } from "@/components/dashboard/ListaReajuste";
 import { ListaDevolutivas } from "@/components/dashboard/ListaDevolutivas";
+import { VencimentosPorDia } from "@/components/dashboard/VencimentosPorDia";
 import { diasParaReajuste } from "@/lib/reajuste";
 import { proximaDevolutiva, devolutivaNaLista, diasParaDevolutiva } from "@/lib/devolutiva";
 import { idadeEmAnos } from "@/lib/idade";
@@ -225,6 +226,9 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
       </section>
 
       <DashboardPanels patients={panelPatients} presence={panelPresence} mensagemAniversario={user.birthdayMessage ?? ""} aLembrar={aLembrar} mensagemAgendamento={user.agendamentoMessage ?? ""} mostrarLembrar={apareceHoje()} corteSemana={new Date(todayStart - 6 * 24 * 60 * 60 * 1000).toISOString()} hoje={`${diaInicio.getFullYear()}-${String(diaInicio.getMonth() + 1).padStart(2, "0")}-${String(diaInicio.getDate()).padStart(2, "0")}`} />
+
+      {/* Vencimentos por dia (doc 44): logo abaixo da área de Pagamentos. */}
+      <VencimentosPorDia />
 
       {/* Reajustes a vencer (doc 9, item 1) — logo abaixo da área de Pagamento. */}
       <ListaReajuste reajustes={reajustesLista} />
