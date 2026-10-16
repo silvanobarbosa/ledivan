@@ -7,6 +7,34 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-10-16 — Doc 44 (parte 1): contagem dos analíticos, CPF do contrato, textos das áreas (#398–#400)
+
+**Entregue:**
+- **#398 analíticos (correção):** os cards contam pelo TIPO DO CADASTRO, não pelo tipo da sessão —
+  Atendimentos realizados = Presente de cadastros Paciente; Supervisões realizadas = Presente de
+  cadastros Supervisionado (join com `cadastro_kind`). O card de Supervisões foi para logo à direita
+  de Atendimentos e segue sempre visível (0 quando não há). Resolve o caso de sessões de supervisionado
+  com `sessionKind` antigo que não contavam.
+- **#399 contrato de supervisão:** CPF do responsável acrescentado ao CONTRATANTE.
+- **#400 textos:** removidos os tooltips (i) de Prospectados, Prospecção, Aniversariantes, Queixa
+  principal, Reajustes a vencer e Próximas devolutivas; textos revistos (cada área ganha "Clique em
+  <ação> ao lado de cada nome…", o aviso de remoção desce para abaixo da lista, "Mensagem" → "Mensagem
+  única para todos", ajuda reescrita). Prospecção/Aniversariantes mantêm {nome} (com Dica); Reajustes/
+  Devolutivas sem {nome}. Prospectados: lixeira foi para o lado de "Atualizar dados".
+
+**Pendente (doc 44):**
+1. **Vencimentos por dia (feature nova grande):** área nova no Dashboard, abaixo de Pagamentos. Seletor
+   de data (default hoje, NÃO persistido). Duas tabelas: **Sessões avulsas** (Nome, Data da sessão,
+   Horário de atraso, Valor, Status, Cobrar=WhatsApp, Cobranças enviadas; ordenar por horário de atraso)
+   e **Pacotes** (Mensal/Quinzenal; Nome, Tipo de vencimento, 1ª sessão, última sessão, última realizada,
+   Status, Valor a pagar, Cobrar, Cobranças enviadas). Mensagens de cobrança por configuração (avulso /
+   pacote dia-específico / 1ª sessão / última sessão) — abrir WhatsApp preenchido, não enviar sozinho;
+   "cobranças enviadas" conta só acionamentos registrados (reusar `cobranca_envios`/recordOutbound). Vai
+   montar sobre o motor de cobrança (`geralDoPaciente`), como o Relatório financeiro faz.
+2. **Mobile** (cards da agenda cortados + menu com falhas) — precisa verificar no navegador/dispositivo.
+
+---
+
 ## 2026-10-16 — Doc 43: editar a recorrência de um agendamento (#396)
 
 **Entregue:** na janela de Editar agendamento, sessão recorrente ganha "Alterar recorrência"
