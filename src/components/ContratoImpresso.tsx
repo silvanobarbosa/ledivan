@@ -50,6 +50,16 @@ export function ContratoImpresso({ texto, textoPadrao, patientId, logoUrl }: { t
   // `versao` força o remonte do contentEditable (ele é não-controlado — só re-renderiza trocando a key).
   const [conteudo, setConteudo] = useState(texto);
   const [versao, setVersao] = useState(0);
+  // Doc 42: ao salvar Dados/Financeiro, a revalidação regenera o `texto` do servidor. O papel precisa
+  // acompanhar sozinho — sem salvar/atualizar o contrato na mão. Padrão React de "ajustar estado na
+  // renderização": quando o texto do servidor muda, o conteúdo visível e a key do contentEditable
+  // acompanham. (Edições em andamento no papel não disparam isto — elas não mudam a prop `texto`.)
+  const [textoServidor, setTextoServidor] = useState(texto);
+  if (texto !== textoServidor) {
+    setTextoServidor(texto);
+    setConteudo(texto);
+    setVersao((v) => v + 1);
+  }
   const padrao = textoPadrao ?? texto;
 
   function imprimir() {
