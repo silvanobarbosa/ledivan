@@ -150,7 +150,7 @@ export function AssignmentsTab({
                       {scaleCopiedId === s.id ? <><Check className="w-3.5 h-3.5 text-[#047857]" /> Link copiado</> : <><Copy className="w-3.5 h-3.5" /> Copiar link (pendente)</>}
                     </button>
                   )}
-                  <form action={deleteScale.bind(null, s.id)}>
+                  <form action={deleteScale.bind(null, s.id)} onSubmit={(e) => { if (!confirm("Excluir esta escala? Esta ação não pode ser desfeita.")) e.preventDefault(); }}>
                     <button className="text-foreground/30 hover:text-red-600 transition"><Trash2 className="w-3.5 h-3.5" /></button>
                   </form>
                 </div>
@@ -225,7 +225,7 @@ export function AssignmentsTab({
                   {editId !== a.id && (
                     <div className="flex items-center gap-2">
                       <button type="button" onClick={() => { setEditId(a.id); setEErro(null); }} className="text-foreground/30 hover:text-primary transition cursor-pointer" title="Editar"><Pencil className="w-4 h-4" /></button>
-                      <form action={deleteAssignment.bind(null, a.id)}>
+                      <form action={deleteAssignment.bind(null, a.id)} onSubmit={(e) => { if (!confirm("Excluir esta tarefa? Esta ação não pode ser desfeita.")) e.preventDefault(); }}>
                         <button className="text-foreground/30 hover:text-red-600 transition" title="Excluir"><Trash2 className="w-4 h-4" /></button>
                       </form>
                     </div>

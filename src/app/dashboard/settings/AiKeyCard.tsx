@@ -17,7 +17,7 @@ export function AiKeyCard({ configured, provider }: { configured: boolean; provi
     if (r.ok) { setKey(""); setSaved(true); setTimeout(() => setSaved(false), 2000); }
     else setErr(r.error ?? "Falha ao salvar.");
   });
-  const remove = () => start(async () => { await clearAiKey(); setKey(""); });
+  const remove = () => { if (!confirm("Remover a chave de IA salva?")) return; start(async () => { await clearAiKey(); setKey(""); }); };
 
   const field = "w-full rounded-2xl border border-border/60 bg-white/60 px-4 py-3 text-sm outline-none focus:border-primary";
 

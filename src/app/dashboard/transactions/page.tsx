@@ -7,6 +7,7 @@ import { AddTransaction } from "./AddTransaction";
 import { ExportCSV } from "./ExportCSV";
 import { deleteTransaction } from "./actions";
 import { Trash2 } from "lucide-react";
+import { ConfirmSubmit } from "@/components/ConfirmSubmit";
 import Link from "next/link";
 import { PAYMENT_FORM_LABELS } from "@/lib/finance";
 
@@ -175,9 +176,9 @@ export default async function TransactionsPage({
                   ) : (
                     <form action={removeTransaction}>
                       <input type="hidden" name="id" value={t.id} />
-                      <button className="opacity-100 lg:opacity-0 lg:group-hover:opacity-100 text-foreground/40 hover:text-red-600 transition p-1" title="Excluir">
+                      <ConfirmSubmit message="Excluir este lançamento? Esta ação não pode ser desfeita." title="Excluir" className="opacity-100 lg:opacity-0 lg:group-hover:opacity-100 text-foreground/40 hover:text-red-600 transition p-1">
                         <Trash2 className="w-4 h-4" />
-                      </button>
+                      </ConfirmSubmit>
                     </form>
                   )}
                 </td>

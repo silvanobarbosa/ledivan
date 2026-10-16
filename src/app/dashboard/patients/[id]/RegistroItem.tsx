@@ -45,7 +45,7 @@ export function RegistroItem({ patientId, r }: { patientId: string; r: Registro 
               <Pencil className="w-4 h-4" />
             </button>
           )}
-          <form action={deleteRecord.bind(null, r.id)}>
+          <form action={deleteRecord.bind(null, r.id)} onSubmit={(e) => { if (!confirm("Excluir este registro? Esta ação não pode ser desfeita.")) e.preventDefault(); }}>
             <button className="text-foreground/30 hover:text-red-600 transition cursor-pointer" title="Excluir registro" aria-label="Excluir registro">
               <Trash2 className="w-4 h-4" />
             </button>

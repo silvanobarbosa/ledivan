@@ -43,6 +43,7 @@ export function AnamneseItem({ patientId, campo }: { patientId: string; campo: C
 
   function excluir() {
     if (!campo.id) return;
+    if (!confirm("Excluir este campo da anamnese? Esta ação não pode ser desfeita.")) return;
     start(async () => {
       const r = await deleteAnamnese(campo.id!);
       if (r.ok) router.refresh();
