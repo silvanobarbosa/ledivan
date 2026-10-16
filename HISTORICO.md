@@ -7,6 +7,27 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-10-16 — Doc 43: editar a recorrência de um agendamento (#396)
+
+**Entregue:** na janela de Editar agendamento, sessão recorrente ganha "Alterar recorrência"
+(frequência Semanal 1x/2x/Quinzenal + "Repetir até"; 2º dia/horário no 2x). Recria as próximas sessões
+da série a partir daquela data com a nova frequência.
+
+**Como é seguro:** planejador puro `src/lib/replanejarRecorrencia.ts` (`sessoesDaSerieARemover`,
+5 testes) — só saem as futuras da MESMA série (mesma freq+limite) que são `agendada`, recorrentes e
+SEM pagamento. Ficam intactos passado, realizadas, faltas, canceladas, pagas e encaixes avulsos. A
+geração nova (`datasEPuladas`) pula horário bloqueado e os já ocupados. Cobrança e pacote seguem
+automáticos (derivam das sessões); diferença de valor por frequência o dono ajusta no Financeiro.
+
+**Decisões que ficam valendo:** série identificada por `recurrenceFreq` + `recurrenceUntil` (as criadas
+juntas compartilham os dois). Só sessão futura, recorrente, agendada e não paga pode ter a recorrência
+replanejada (`podeReplanejar`).
+
+**Pendente:** sobrou só o **mobile** de docs 42/43 (melhorar visualização de Prospectados, colunas do
+Relatório, novo atendimento e o menu sobre a agenda) — precisa de verificação no navegador/dispositivo.
+
+---
+
 ## 2026-10-16 — Docs 42+43 (parte 2): supervisionado completo, contrato auto-update, confirmação de exclusão (#388–#394)
 
 **Entregue:**
