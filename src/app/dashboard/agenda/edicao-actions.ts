@@ -1,17 +1,18 @@
 "use server";
 
-import { and, eq, gte, inArray } from "drizzle-orm";
+import { and, eq, gte, inArray, lte } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { db } from "@/db";
 import { auth } from "@/auth";
-import { therapySessions, sessoesPuladas } from "@/db/schema";
+import { therapySessions, sessoesPuladas, blockedSlots, sessionPayments, patients } from "@/db/schema";
 import {
   deslocamento,
   horarioOcupado,
   sessoesAlcancadas,
   type AlcanceDaExclusao,
 } from "@/lib/editarAgendamento";
-import { canalParaGravar, ehOnline, horasAntesParaGravar, pedeLocal } from "@/lib/agendamentoNovo";
+import { canalParaGravar, datasEPuladas, ehOnline, geraRepeticoes, horasAntesParaGravar, pedeLocal, segundoDiaValido } from "@/lib/agendamentoNovo";
+import { podeReplanejar, sessoesDaSerieARemover } from "@/lib/replanejarRecorrencia";
 
 /**
  * Editar e excluir agendamento, com o alcance que a pessoa escolheu.
@@ -168,6 +169,113 @@ export async function excluirAgendamento(sessionId: string, alcance: string): Pr
   revalidatePath("/dashboard/agenda");
   revalidatePath(`/dashboard/patients/${atual.patientId}`);
   return { ok: true, afetadas: alvos.length };
+}
+
+/**
+ * Replaneja a RECORRÊNCIA a partir desta sessão (doc 43).
+ *
+ * Só o futuro muda: as sessões já realizadas, faltas, canceladas, qualquer uma JÁ PAGA e os encaixes
+ * avulsos ficam intactos (o planejador puro `sessoesDaSerieARemover` garante o alcance). As futuras da
+ * MESMA série (agendadas, sem pagamento, daqui pra frente) saem e são recriadas com a nova frequência
+ * até o novo limite, pulando horário bloqueado e os que já têm sessão (sem duplicar).
+ *
+ * Cobrança e pacote seguem automáticos — são DERIVADOS das sessões. Diferença de valor por causa da
+ * nova frequência o profissional ajusta à mão no Financeiro, como o lote pediu.
+ */
+export async function reagendarRecorrencia(sessionId: string, opts: {
+  freq: string;
+  until: string;
+  segundoDia?: number | null;
+  segundoHorario?: string | null;
+}): Promise<Resultado> {
+  const session = await auth();
+  if (!session?.user?.id) return { ok: false, error: "Sessão inválida." };
+  const userId = session.user.id;
+
+  const atual = await db.query.therapySessions.findFirst({
+    where: and(eq(therapySessions.id, sessionId), eq(therapySessions.userId, userId)),
+  });
+  if (!atual) return { ok: false, error: "Agendamento não encontrado." };
+
+  // O anchor precisa poder ser recriado: futuro, recorrente, agendado e sem pagamento.
+  const pagoAnchor = !!(await db.query.sessionPayments.findFirst({ where: and(eq(sessionPayments.userId, userId), eq(sessionPayments.sessionId, atual.id)) }));
+  if (!podeReplanejar({ status: atual.status, recurring: atual.recurring, pago: pagoAnchor })) {
+    return { ok: false, error: "Só dá para alterar a recorrência de uma sessão futura, recorrente e sem pagamento." };
+  }
+
+  if (!geraRepeticoes(opts.freq)) return { ok: false, error: "Esta repetição não gera agendamentos." };
+  const until = new Date(opts.until);
+  if (Number.isNaN(until.getTime())) return { ok: false, error: "Data limite inválida." };
+  until.setHours(23, 59, 59, 999);
+  if (until <= atual.date) return { ok: false, error: "Data limite deve ser depois desta sessão." };
+  const segundoDia = opts.segundoDia == null ? null : Number(opts.segundoDia);
+  const segundoHorario = opts.segundoHorario || null;
+  if (!segundoDiaValido(opts.freq, segundoDia, segundoHorario, atual.date)) {
+    return { ok: false, error: "Informe o segundo dia da semana e o horário. No mesmo dia, o horário tem de ser outro." };
+  }
+
+  // Futuras do paciente daqui pra frente, com info de pagamento.
+  const futuras = await db
+    .select({ id: therapySessions.id, date: therapySessions.date, status: therapySessions.status, recurring: therapySessions.recurring, recurrenceFreq: therapySessions.recurrenceFreq, recurrenceUntil: therapySessions.recurrenceUntil })
+    .from(therapySessions)
+    .where(and(eq(therapySessions.userId, userId), eq(therapySessions.patientId, atual.patientId), gte(therapySessions.date, atual.date)));
+  const idsFuturas = futuras.map((s) => s.id);
+  const pagosRows = idsFuturas.length
+    ? await db.select({ sessionId: sessionPayments.sessionId }).from(sessionPayments).where(and(eq(sessionPayments.userId, userId), inArray(sessionPayments.sessionId, idsFuturas)))
+    : [];
+  const pagos = new Set(pagosRows.map((r) => r.sessionId));
+  const existentes = futuras.map((s) => ({ id: s.id, data: s.date, status: s.status, recurring: s.recurring, pago: pagos.has(s.id), recurrenceFreq: s.recurrenceFreq, recurrenceUntil: s.recurrenceUntil }));
+
+  const removiveis = sessoesDaSerieARemover({
+    anchor: { data: atual.date, recurrenceFreq: atual.recurrenceFreq, recurrenceUntil: atual.recurrenceUntil },
+    existentes,
+  });
+  if (!removiveis.includes(atual.id)) {
+    return { ok: false, error: "Não consegui identificar a série desta sessão." };
+  }
+
+  // Geração nova: pula horário bloqueado e os que JÁ TÊM sessão (as mantidas), sem duplicar.
+  const removSet = new Set(removiveis);
+  const mantidasTimes = new Set(futuras.filter((s) => !removSet.has(s.id)).map((s) => new Date(s.date).getTime()));
+  const bloqueios = await db.select({ date: blockedSlots.date }).from(blockedSlots).where(and(eq(blockedSlots.userId, userId), gte(blockedSlots.date, atual.date), lte(blockedSlots.date, until)));
+  const bloqueadoTimes = new Set(bloqueios.map((b) => new Date(b.date).getTime()));
+
+  const freqGravada = opts.freq === "quinzenal" ? "quinzenal" : "semanal";
+  const { datas, puladas } = datasEPuladas({
+    primeira: atual.date, limite: until, freq: opts.freq, segundoDia, segundoHorario,
+    bloqueado: (quando) => bloqueadoTimes.has(quando.getTime()),
+    ocupado: (quando) => mantidasTimes.has(quando.getTime()),
+  });
+  if (!datas.length) return { ok: false, error: "Todas as datas dessa repetição caem em horário bloqueado ou já ocupado." };
+
+  const patient = await db.query.patients.findFirst({ where: and(eq(patients.id, atual.patientId), eq(patients.userId, userId)) });
+  const fee = patient?.sessionFee ?? atual.fee;
+
+  // Apaga as futuras da série e recria. Delete antes do insert: as datas antigas podem coincidir com
+  // as novas, e o insert cairia no índice/duplicidade se as antigas ainda estivessem lá.
+  await db.delete(therapySessions).where(and(eq(therapySessions.userId, userId), inArray(therapySessions.id, removiveis)));
+  // Marcadores de "Hor. Bloq." órfãos da série, daqui pra frente, saem junto.
+  await db.delete(sessoesPuladas).where(and(eq(sessoesPuladas.userId, userId), eq(sessoesPuladas.patientId, atual.patientId), gte(sessoesPuladas.date, atual.date)));
+
+  const rows: typeof therapySessions.$inferInsert[] = datas.map((quando) => ({
+    userId, patientId: atual.patientId, date: quando, duration: atual.duration, fee,
+    status: "agendada" as const, chargeable: atual.chargeable, isOnline: atual.isOnline, location: atual.location,
+    modality: atual.modality, confirmChannel: atual.confirmChannel, confirmLeadHours: atual.confirmLeadHours,
+    pendingConfirmation: true, recurring: true, recurrenceFreq: freqGravada, recurrenceUntil: until,
+    sessionKind: atual.sessionKind, extra: atual.extra, valorExtra: atual.valorExtra,
+  }));
+  await db.insert(therapySessions).values(rows);
+  if (puladas.length) await db.insert(sessoesPuladas).values(puladas.map((date) => ({ userId, patientId: atual.patientId, date })));
+
+  // O ritmo semanal manda no tamanho do pacote (18/09): 2x fecha em oito, 1x em quatro.
+  if (opts.freq === "semanal" || opts.freq === "semanal2x") {
+    await db.update(patients).set({ frequency: "semanal", timesPerPeriod: opts.freq === "semanal2x" ? 2 : 1 }).where(and(eq(patients.id, atual.patientId), eq(patients.userId, userId)));
+  }
+
+  revalidatePath("/dashboard/agenda");
+  revalidatePath(`/dashboard/patients/${atual.patientId}`);
+  revalidatePath("/dashboard");
+  return { ok: true, afetadas: rows.length };
 }
 
 /** Quantas sessões cada alcance pegaria — a janela mostra isso antes de a pessoa confirmar. */

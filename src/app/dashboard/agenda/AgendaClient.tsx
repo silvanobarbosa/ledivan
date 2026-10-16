@@ -13,7 +13,7 @@ import { textoDoBloqueio } from "@/lib/bloqueioDeHorario";
 import { ehQuinzenal, espelhosDoDia, sinaisDaSessao } from "@/lib/ocupacaoDaAgenda";
 import { CANAIS_DE_CONFIRMACAO, DIAS_DA_SEMANA, ehSemanal2x, geraRepeticoes, modalidadesDe, pedeHorasAntes, pedeLocal, repeticoesDe } from "@/lib/agendamentoNovo";
 import { CAMPOS_EDITAVEIS } from "@/lib/editarAgendamento";
-import { contarAlcance, excluirAgendamento, salvarEdicao } from "./edicao-actions";
+import { contarAlcance, excluirAgendamento, reagendarRecorrencia, salvarEdicao } from "./edicao-actions";
 import { BloquearHorario } from "@/components/dashboard/BloquearHorario";
 import { FUNDO_DA_JANELA, JANELA } from "@/lib/modal";
 import { perguntaSeEntraNaSequencia } from "@/lib/sessaoExtra";
@@ -321,6 +321,19 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
   const [editModalidade, setEditModalidade] = useState("presencial");
   const [editCanal, setEditCanal] = useState("nenhum");
   const [editErro, setEditErro] = useState<string | null>(null);
+  // Doc 43: alterar a recorrência a partir desta sessão (só futuro).
+  const [recFreq, setRecFreq] = useState("semanal");
+  const [recUntil, setRecUntil] = useState("");
+  const [recSegDia, setRecSegDia] = useState<string>("");
+  const [recSegHora, setRecSegHora] = useState("");
+  function aplicarRecorrencia(id: string) {
+    if (!recUntil) return setEditErro("Informe até quando repetir.");
+    startTransition(async () => {
+      const r = await reagendarRecorrencia(id, { freq: recFreq, until: recUntil, segundoDia: recSegDia === "" ? null : Number(recSegDia), segundoHorario: recSegHora || null });
+      if (!r.ok) return setEditErro(r.error ?? "Não consegui alterar a recorrência.");
+      setEditErro(null); setEditing(false); setSelected(null); router.refresh();
+    });
+  }
   /** A edição preenchida, esperando a pessoa dizer o alcance. */
   const [perguntaAlcance, setPerguntaAlcance] = useState<Record<string, string> | null>(null);
   /** A exclusão, esperando o alcance. `null` quando ninguém pediu para excluir. */
@@ -765,7 +778,7 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
             {!editing ? (
               <div className="flex items-center gap-3">
                 <button
-                  onClick={() => { setEditing(true); setEditErro(null); setEditModalidade(selected.isOnline ? "online" : "presencial"); setEditCanal("nenhum"); }}
+                  onClick={() => { setEditing(true); setEditErro(null); setEditModalidade(selected.isOnline ? "online" : "presencial"); setEditCanal("nenhum"); setRecFreq(selected.recurrenceFreq === "quinzenal" ? "quinzenal" : "semanal"); setRecUntil(""); setRecSegDia(""); setRecSegHora(""); }}
                   className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary hover:underline"
                 >
                   <Pencil className="w-4 h-4" /> Editar agendamento
@@ -828,6 +841,47 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
                   <button type="button" onClick={() => { setEditing(false); setEditErro(null); }} className="px-3 py-2 rounded-xl text-sm text-foreground/50">Cancelar</button>
                 </div>
               </form>
+            )}
+
+            {/* Doc 43: alterar a RECORRÊNCIA a partir desta sessão. Só para sessões recorrentes; muda só o
+                futuro (as realizadas, faltas, canceladas, pagas e encaixes avulsos ficam intactos). */}
+            {editing && selected.recurring && (
+              <div className="rounded-xl bg-[#eef2ff] border border-[#c7d2fe] p-3 space-y-2">
+                <p className="text-xs font-bold text-[#4338ca] uppercase tracking-wide">Alterar recorrência</p>
+                <p className="text-[11px] text-foreground/60">Recria as próximas sessões desta série a partir desta data. Não mexe no passado, nas realizadas, nas pagas nem nos encaixes avulsos. Diferença de valor por frequência é ajustada no Financeiro.</p>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <label className="text-xs font-semibold text-foreground/60">Frequência</label>
+                    <select value={recFreq} onChange={(e) => setRecFreq(e.target.value)} className="w-full px-3 py-2 rounded-xl bg-white border border-border outline-none text-sm">
+                      <option value="semanal">Semanal (1x na semana)</option>
+                      <option value="semanal2x">Semanal (2x na semana)</option>
+                      <option value="quinzenal">Quinzenal</option>
+                    </select>
+                  </div>
+                  <div>
+                    <label className="text-xs font-semibold text-foreground/60">Repetir até</label>
+                    <input type="date" value={recUntil} onChange={(e) => setRecUntil(e.target.value)} className="w-full px-3 py-2 rounded-xl bg-white border border-border outline-none text-sm" />
+                  </div>
+                </div>
+                {recFreq === "semanal2x" && (
+                  <div className="grid grid-cols-2 gap-2">
+                    <div>
+                      <label className="text-xs font-semibold text-foreground/60">2º dia</label>
+                      <select value={recSegDia} onChange={(e) => setRecSegDia(e.target.value)} className="w-full px-3 py-2 rounded-xl bg-white border border-border outline-none text-sm">
+                        <option value="">Selecione…</option>
+                        {DIAS_DA_SEMANA.map((nome, i) => <option key={i} value={i}>{nome}</option>)}
+                      </select>
+                    </div>
+                    <div>
+                      <label className="text-xs font-semibold text-foreground/60">2º horário</label>
+                      <input type="time" value={recSegHora} onChange={(e) => setRecSegHora(e.target.value)} className="w-full px-3 py-2 rounded-xl bg-white border border-border outline-none text-sm" />
+                    </div>
+                  </div>
+                )}
+                <button type="button" disabled={pending} onClick={() => aplicarRecorrencia(selected.id)} className="w-full bg-[#4338ca] text-white py-2 rounded-xl text-sm font-bold disabled:opacity-60">
+                  Aplicar nova recorrência
+                </button>
+              </div>
             )}
 
             {selected.isOnline && (
