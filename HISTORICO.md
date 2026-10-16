@@ -7,6 +7,42 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-10-16 — Docs 42+43 (parte 2): supervisionado completo, contrato auto-update, confirmação de exclusão (#388–#394)
+
+**Entregue:**
+- **Supervisionado completo** (frente 1, decisão do dono: mesma estrutura do paciente, só os campos da supervisão):
+  - **#388 cadastro:** guias Dados + Financeiro + Contrato; Dados = pessoais + responsável (nome, CPF,
+    parentesco, telefone, e-mail); somem queixa, cônjuge/casal, emergência, devolutiva e escola.
+  - **#389 contrato:** modelo próprio de **Supervisão Clínica** (auto-preenchido, mesmo mecanismo do
+    de paciente, partes CONTRATADA/CONTRATANTE=responsável/SUPERVISIONANDO; sem Horário Fixo nem reajuste;
+    papel da assinatura vem da Descrição do atendimento). A tela de contrato escolhe o modelo pelo `cadastro_kind`.
+  - **#390 recibo:** texto do serviço vira "referente aos serviços de supervisão clínica".
+  - **#391 agenda:** cadastro supervisionado só agenda sessões de supervisão (campo Tipo = Supervisão,
+    `sessionKind="supervisao"`); sessão marcada com **👁** à direita da modalidade + legenda.
+  - **#392 analíticos:** card **Supervisões realizadas** (fora da conta de Atendimentos realizados).
+- **#393 contrato auto-update:** ao salvar Dados/Financeiro o contrato acompanha os dados sem salvar/
+  atualizar à mão (ContratoImpresso congelava o texto em useState — corrigido com sync na renderização).
+- **#394 confirmação de exclusão:** toda exclusão pede confirmação (atividade, anamnese, reajuste,
+  material, registro, meta, escala, tarefa, lançamento do caixa, reserva, chave de IA, avisos de cobrança).
+  Novo `ConfirmSubmit` para forms de Server Component.
+
+**Decisões que ficam valendo:**
+- `cadastro_kind` é ortogonal a `patient_status`; supervisionado = estrutura do paciente com subset de campos.
+- Supervisão é um serviço à parte dos "Atendimentos realizados" nos analíticos.
+- A sessão de supervisão é identificada por `sessionKind="supervisao"` (sem coluna nova — texto já aceitava).
+
+**Pendente (docs 42+43 — NÃO feito ainda):**
+1. **Editar recorrência na agenda (doc 43):** aprovado pelo dono. Plano: na janela de Editar agendamento,
+   mostrar frequência + "repetir até"; ao salvar, regenerar só as sessões FUTURAS da série (status agendada,
+   sem pagamento) da data editada pra frente; NÃO tocar passado/realizadas/cobranças/pacotes anteriores;
+   contrato/enquadre e cobrança/pacote seguem automaticamente (derivados das sessões); diferença de valor o
+   dono ajusta na mão no Financeiro. **Frente de maior risco (motor de cobrança) — fazer com testes.**
+2. **Mobile:** "melhorar visualização" de Prospectados, colunas do Relatório, janela de novo atendimento e
+   o menu aberto sobre a agenda. Precisa de verificação no navegador/dispositivo (não dá para corrigir no
+   escuro — lição de rolagem lateral/verificar no navegador).
+
+---
+
 ## 2026-10-15 — Docs 42+43 (parte 1): textos, contrato 3.2, Telegram/E-mail, scroll dos analíticos (#383–#386)
 
 **Entregue (frentes de baixo risco; o lote é grande e segue aberto):**
