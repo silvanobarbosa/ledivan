@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { TrendingUp } from "lucide-react";
 import { numeroDoWhatsapp } from "@/lib/telefoneWhatsapp";
-import { InfoTip } from "@/components/InfoTip";
 
 export type ReajusteLinha = {
   id: string;
@@ -49,11 +48,11 @@ export function ListaReajuste({ reajustes }: { reajustes: ReajusteLinha[] }) {
     <section className="glass-card rounded-[24px] p-5 space-y-3">
       <h3 className="text-lg font-display font-bold text-primary flex items-center gap-2">
         <TrendingUp className="w-5 h-5" /> Reajustes a vencer
-        <InfoTip text="O botão Lembrar abre o WhatsApp do contato para enviar mensagens individuais. Para enviar uma mensagem padrão a várias pessoas, digite o texto na caixa Mensagem e clique em Lembrar para cada pessoa desejada. Esta mensagem será enviada ao responsável financeiro do cadastro ou, se não houver, à própria pessoa cadastrada." />
       </h3>
       <p className="text-xs text-foreground/60 text-justify">
-        Visualize os cadastros com reajuste <strong>previsto para os próximos 30 dias</strong>.<br />
-        Ao <strong>atualizar</strong> o valor do cadastro, o registro será <strong>removido automaticamente desta lista</strong>.
+        Visualize os cadastros com reajuste <strong>previsto para os próximos 30 dias.</strong><br />
+        Clique em <strong>Lembrar</strong> ao lado de cada nome <strong>para enviar uma mensagem individual pelo WhatsApp</strong>. Nesse caso, não é necessário preencher o campo abaixo.<br />
+        <strong>Mensagens serão enviadas ao responsável financeiro do cadastro ou, se não houver, à própria pessoa cadastrada.</strong>
       </p>
 
       {vazio && <p className="text-sm text-foreground/45 py-2">Nenhum reajuste previsto no momento.</p>}
@@ -74,11 +73,16 @@ export function ListaReajuste({ reajustes }: { reajustes: ReajusteLinha[] }) {
       )}
 
       {!vazio && (
+      <p className="text-xs text-foreground/60 text-justify">
+        Ao <strong>atualizar</strong> o valor do cadastro, o registro será <strong>removido automaticamente desta lista.</strong>
+      </p>
+      )}
+
+      {!vazio && (
       <div className="space-y-1">
-        <label className="text-sm font-semibold text-foreground/60">Mensagem</label>
+        <label className="text-sm font-semibold text-foreground/60">Mensagem única para todos</label>
         <p className="text-[11px] text-foreground/60 text-justify">
-          Digite o texto de lembrete de reajuste no campo Mensagem e, em seguida, clique em <strong>Lembrar</strong>
-          para cada pessoa que deverá receber a mensagem.
+          Escreva sua mensagem de lembrete de reajuste no campo abaixo e clique em <strong>Lembrar</strong> nos cadastros que deverão recebê-la.
         </p>
         <textarea value={mensagem} onChange={(e) => { setMensagem(e.target.value); setAviso(null); }}
           rows={3} placeholder="Olá! Passando para avisar sobre o reajuste…"
