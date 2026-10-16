@@ -22,16 +22,15 @@ Quem abre este app lê este arquivo antes de propor trabalho.
   única para todos", ajuda reescrita). Prospecção/Aniversariantes mantêm {nome} (com Dica); Reajustes/
   Devolutivas sem {nome}. Prospectados: lixeira foi para o lado de "Atualizar dados".
 
-**Pendente (doc 44):**
-1. **Vencimentos por dia (feature nova grande):** área nova no Dashboard, abaixo de Pagamentos. Seletor
-   de data (default hoje, NÃO persistido). Duas tabelas: **Sessões avulsas** (Nome, Data da sessão,
-   Horário de atraso, Valor, Status, Cobrar=WhatsApp, Cobranças enviadas; ordenar por horário de atraso)
-   e **Pacotes** (Mensal/Quinzenal; Nome, Tipo de vencimento, 1ª sessão, última sessão, última realizada,
-   Status, Valor a pagar, Cobrar, Cobranças enviadas). Mensagens de cobrança por configuração (avulso /
-   pacote dia-específico / 1ª sessão / última sessão) — abrir WhatsApp preenchido, não enviar sozinho;
-   "cobranças enviadas" conta só acionamentos registrados (reusar `cobranca_envios`/recordOutbound). Vai
-   montar sobre o motor de cobrança (`geralDoPaciente`), como o Relatório financeiro faz.
-2. **Mobile** (cards da agenda cortados + menu com falhas) — precisa verificar no navegador/dispositivo.
+**Vencimentos por dia (#402 — FEITO):** área nova no Dashboard, abaixo de Pagamentos. Seletor de data
+(default hoje, não persistido). Tabela de **Sessões avulsas** e tabela de **Pacotes** (Mensal/Quinzenal),
+montadas sobre `geralDoPaciente`, filtradas pela data. Botão **Cobrar** abre o WhatsApp com a mensagem
+preenchida (4 modelos: avulso / pacote dia / 1ª sessão / última sessão) e registra o acionamento
+(reusa `registrarCobrancaEnviada` — conta o clique, não a abertura). Lógica pura em
+`src/lib/vencimentosDoDia.ts` (6 testes); extração do motor em `vencimentos-actions.ts`.
+
+**Pendente (doc 44):** só o **mobile** (cards da agenda cortados + menu com falhas) — precisa verificar
+no navegador/dispositivo, não corrigir no escuro.
 
 ---
 
