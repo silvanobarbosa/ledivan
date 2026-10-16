@@ -52,7 +52,7 @@ export function TreatmentPlan({ patientId: _patientId, goals }: { patientId: str
                   {g.description && <p className="text-sm text-foreground/50 mt-0.5">{g.description}</p>}
                   {g.targetDate && <p className="text-xs text-foreground/40 mt-0.5">Meta até {formatDate(g.targetDate)}</p>}
                 </div>
-                <form action={deleteTreatmentGoal.bind(null, g.id)}>
+                <form action={deleteTreatmentGoal.bind(null, g.id)} onSubmit={(e) => { if (!confirm("Excluir esta meta? Esta ação não pode ser desfeita.")) e.preventDefault(); }}>
                   <button className="opacity-0 group-hover:opacity-100 text-foreground/30 hover:text-red-600 transition"><Trash2 className="w-4 h-4" /></button>
                 </form>
               </div>

@@ -43,7 +43,7 @@ export function MaterialsTab({ patientId }: { patientId: string }) {
       else setErr(r.error ?? "Falha.");
     });
   };
-  const remove = (id: string) => start(async () => { await deleteMaterial(id); await load(); });
+  const remove = (id: string) => { if (!confirm("Excluir este material? Esta ação não pode ser desfeita.")) return; start(async () => { await deleteMaterial(id); await load(); }); };
 
   // Arquivo privado: pede uma URL assinada (5 min) e abre.
   const openFile = async (id: string) => {

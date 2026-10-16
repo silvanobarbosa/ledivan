@@ -3,6 +3,7 @@ import { auth } from "@/auth";
 import { therapySessions } from "@/db/schema";
 import { and, eq, gte } from "drizzle-orm";
 import { Clock, Stethoscope, Check, Video, MapPin, Trash2 } from "lucide-react";
+import { ConfirmSubmit } from "@/components/ConfirmSubmit";
 import Link from "next/link";
 import { formatDateTime } from "@/lib/therapy";
 import { confirmSession, deleteSession } from "../sessions/actions";
@@ -59,7 +60,7 @@ export default async function ReservasPage() {
               </form>
               <form action={excluir}>
                 <input type="hidden" name="id" value={s.id} />
-                <button title="Excluir reserva" aria-label={`Excluir reserva de ${s.patient?.name ?? "paciente"}`} className="inline-flex items-center justify-center p-2 rounded-xl border border-border text-red-600 hover:bg-red-50 transition"><Trash2 className="w-4 h-4" /></button>
+                <ConfirmSubmit message="Excluir esta reserva? Esta ação não pode ser desfeita." title="Excluir reserva" className="inline-flex items-center justify-center p-2 rounded-xl border border-border text-red-600 hover:bg-red-50 transition"><Trash2 className="w-4 h-4" /></ConfirmSubmit>
               </form>
             </div>
           ))}

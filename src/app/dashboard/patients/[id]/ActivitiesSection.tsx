@@ -32,6 +32,7 @@ function AtividadeItem({ a }: { a: Atividade }) {
     });
   }
   function excluir() {
+    if (!confirm("Excluir esta atividade? Esta ação não pode ser desfeita.")) return;
     start(async () => { const r = await deleteActivity(a.id); if (r.ok) router.refresh(); else setErro(r.error ?? "Não deu para excluir."); });
   }
 

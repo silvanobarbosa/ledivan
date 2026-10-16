@@ -203,11 +203,13 @@ function EnvioControle({ patientId, chave, envio }: { patientId: string; chave: 
 
   if (!envio) return null;
 
-  const limpar = () =>
+  const limpar = () => {
+    if (!confirm("Apagar os avisos registrados desta cobrança?")) return;
     start(async () => {
       const r = await limparEnviosDaCobranca({ patientId, cobrancaChave: chave });
       if (r.ok) router.refresh();
     });
+  };
 
   const historico = envio.datas.map((d) => partes(d).data).join(" · ");
 

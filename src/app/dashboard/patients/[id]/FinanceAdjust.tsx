@@ -42,7 +42,7 @@ export function FinanceAdjust({
               <span className="flex items-center gap-2">
                 <span className="text-foreground/40">{formatDate(h.dataEfetiva)}</span>
                 <button onClick={() => setEditId(h.id)} className="text-foreground/30 hover:text-primary transition"><Pencil className="w-3.5 h-3.5" /></button>
-                <button onClick={() => start(async () => { await deletePriceHistory(h.id); router.refresh(); })} className="text-foreground/30 hover:text-red-600 transition"><Trash2 className="w-3.5 h-3.5" /></button>
+                <button onClick={() => { if (!confirm("Excluir este registro de reajuste? Esta ação não pode ser desfeita.")) return; start(async () => { await deletePriceHistory(h.id); router.refresh(); }); }} className="text-foreground/30 hover:text-red-600 transition"><Trash2 className="w-3.5 h-3.5" /></button>
               </span>
             </div>
           )
