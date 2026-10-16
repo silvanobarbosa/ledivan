@@ -295,16 +295,14 @@ function Formulario({ save, children }: { save?: SaveAction; children: ReactNode
 }
 
 export function PatientFormFields({ p, save, tabInicial, contrato, patientId }: { p?: PatientFormData; save?: SaveAction; tabInicial?: string; contrato?: ReactNode; patientId?: string }) {
-  // Doc 41: tipo do cadastro. Supervisionado só tem dados pessoais, então nasce (e fica) na aba Dados.
+  // Doc 41/42: tipo do cadastro. O supervisionado usa a MESMA estrutura do paciente (Dados,
+  // Financeiro e Contrato), só com os campos que fazem sentido para a supervisão clínica.
   const [tipo, setTipo] = useState(p?.cadastroKind || "paciente");
   const supervisionado = tipo === "supervisionado";
-  const [tab, setTab] = useState(p?.cadastroKind === "supervisionado" ? "dados" : (tabInicial || "dados"));
+  const [tab, setTab] = useState(tabInicial || "dados");
   // Doc 22: no Editar paciente, uma aba "Contrato" ao lado de "Financeiro" mostra o mesmo contrato
   // do menu Contratos (montado no servidor e passado pronto). Só aparece quando há contrato (edição).
-  // Doc 41: o supervisionado não tem financeiro nem contrato — só a aba Dados.
-  const tabs = supervisionado
-    ? TABS.filter((t) => t.k === "dados")
-    : (contrato ? [...TABS, { k: "contrato", label: "Contrato" }] : TABS);
+  const tabs = contrato ? [...TABS, { k: "contrato", label: "Contrato" }] : TABS;
   // Formato antigo "avulso" e o "a cada sessao" do dono; "pacote" virou mensal com pacote.
   // primeira/última do pacote deixaram de ser modalidades próprias (prints 6.pdf, item 20): viram
   // OPÇÕES de "quando cobrar" dentro do Mensal pacote completo. No radio elas aparecem como "mensal".
@@ -547,20 +545,21 @@ export function PatientFormFields({ p, save, tabInicial, contrato, patientId }: 
       {/* DADOS: pessoais → cônjuge → responsável/emergência → devolutiva → escola */}
       <Secao show={show("dados")}>
         <Card title="Dados pessoais">
-          {/* Doc 41: tipo do cadastro vem ANTES do número — é ele que decide o que mais o formulário
-              pede. Supervisionado = só dados pessoais (sem financeiro, contrato, responsável etc.). */}
+          {/* Doc 41/42: tipo do cadastro vem ANTES do número. Supervisionado usa a mesma estrutura do
+              paciente (Dados, Financeiro, Contrato), só com os campos que fazem sentido na supervisão:
+              some a queixa, o cônjuge, o contato de emergência, a devolutiva e a escola. */}
           <div className="sm:max-w-xs">
             <label className={labelCls}>Tipo de cadastro</label>
             <select
               name="cadastroKind" value={tipo}
-              onChange={(e) => { setTipo(e.target.value); if (e.target.value === "supervisionado") setTab("dados"); }}
+              onChange={(e) => setTipo(e.target.value)}
               className={inputCls}
             >
               <option value="paciente">Paciente</option>
               <option value="supervisionado">Supervisionado</option>
             </select>
             <p className="text-xs text-foreground/50 mt-1">
-              {supervisionado ? "Registra apenas os dados pessoais." : "Paciente em atendimento, com financeiro e contrato."}
+              {supervisionado ? "Supervisão clínica: dados pessoais, responsável, financeiro e contrato." : "Paciente em atendimento, com financeiro e contrato."}
             </p>
           </div>
           <div className="grid sm:grid-cols-2 gap-4">
@@ -635,29 +634,31 @@ export function PatientFormFields({ p, save, tabInicial, contrato, patientId }: 
         )}
 
         {/* No atendimento de casal os dois são adultos que se respondem: responsável e contato de
-            emergência não fazem sentido, e o dono pediu que sumam da tela. */}
-        {!supervisionado && !casal && (
-          <>
-            <Card title="Dados do responsável">
-              <p className="text-xs text-foreground/50 -mt-1">Para menores de idade, pacientes sob responsabilidade de terceiros ou como responsável financeiro.</p>
-              <div className="grid sm:grid-cols-2 gap-4">
-                <div><label className={labelCls}>Nome do responsável</label><input name="guardianName" defaultValue={p?.guardianName ?? ""} className={inputCls} placeholder="Nome completo" /></div>
-                <div><label className={labelCls}>CPF do responsável</label><input name="guardianCpf" defaultValue={p?.guardianCpf ?? ""} className={inputCls} placeholder="000.000.000-00" /></div>
-                <div><label className={labelCls}>Grau de parentesco</label><input name="guardianRelationship" defaultValue={p?.guardianRelationship ?? ""} className={inputCls} placeholder="Mãe, pai, avó, tutor…" /></div>
-                <PhoneInput name="guardianPhone" defaultValue={p?.guardianPhone} label="Telefone do responsável" />
-                <div><label className={labelCls}>E-mail do responsável</label><input name="guardianEmail" type="email" defaultValue={p?.guardianEmail ?? ""} className={inputCls} placeholder="email@exemplo.com" /></div>
-              </div>
-            </Card>
+            emergência não fazem sentido, e o dono pediu que sumam da tela.
+            Doc 42: o supervisionado MANTÉM os dados do responsável (o contrato de supervisão usa o
+            responsável como contratante), mas NÃO tem contato de emergência. */}
+        {(supervisionado || !casal) && (
+          <Card title="Dados do responsável">
+            <p className="text-xs text-foreground/50 -mt-1">Para menores de idade, pacientes sob responsabilidade de terceiros ou como responsável financeiro.</p>
+            <div className="grid sm:grid-cols-2 gap-4">
+              <div><label className={labelCls}>Nome do responsável</label><input name="guardianName" defaultValue={p?.guardianName ?? ""} className={inputCls} placeholder="Nome completo" /></div>
+              <div><label className={labelCls}>CPF do responsável</label><input name="guardianCpf" defaultValue={p?.guardianCpf ?? ""} className={inputCls} placeholder="000.000.000-00" /></div>
+              <div><label className={labelCls}>Grau de parentesco</label><input name="guardianRelationship" defaultValue={p?.guardianRelationship ?? ""} className={inputCls} placeholder="Mãe, pai, avó, tutor…" /></div>
+              <PhoneInput name="guardianPhone" defaultValue={p?.guardianPhone} label="Telefone do responsável" />
+              <div><label className={labelCls}>E-mail do responsável</label><input name="guardianEmail" type="email" defaultValue={p?.guardianEmail ?? ""} className={inputCls} placeholder="email@exemplo.com" /></div>
+            </div>
+          </Card>
+        )}
 
-            <Card title="Contato de emergência">
-              <div className="grid sm:grid-cols-2 gap-4">
-                <div><label className={labelCls}>Nome</label><input name="emergencyName" defaultValue={p?.emergencyName ?? ""} className={inputCls} /></div>
-                <div><label className={labelCls}>Parentesco</label><input name="emergencyRelationship" defaultValue={p?.emergencyRelationship ?? ""} className={inputCls} /></div>
-                <PhoneInput name="emergencyPhone" defaultValue={p?.emergencyPhone} />
-                <div><label className={labelCls}>E-mail</label><input name="emergencyEmail" type="email" defaultValue={p?.emergencyEmail ?? ""} className={inputCls} placeholder="email@exemplo.com" /></div>
-              </div>
-            </Card>
-          </>
+        {!supervisionado && !casal && (
+          <Card title="Contato de emergência">
+            <div className="grid sm:grid-cols-2 gap-4">
+              <div><label className={labelCls}>Nome</label><input name="emergencyName" defaultValue={p?.emergencyName ?? ""} className={inputCls} /></div>
+              <div><label className={labelCls}>Parentesco</label><input name="emergencyRelationship" defaultValue={p?.emergencyRelationship ?? ""} className={inputCls} /></div>
+              <PhoneInput name="emergencyPhone" defaultValue={p?.emergencyPhone} />
+              <div><label className={labelCls}>E-mail</label><input name="emergencyEmail" type="email" defaultValue={p?.emergencyEmail ?? ""} className={inputCls} placeholder="email@exemplo.com" /></div>
+            </div>
+          </Card>
         )}
 
         {/* Era o único campo que sobrava da aba Atendimento. Virou área própria.
