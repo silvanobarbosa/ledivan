@@ -7,6 +7,35 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-10-17 — Docs 45+46 (parte 3): Faltou, troca de mês, nota nº, relatório/menu, pagamentos (#410–#414)
+
+**Entregue:**
+- **#410 Faltou "Considerar sessão realizada?"**: avulso Sim cobra / Não R$0; pacote Sim abate / Não não
+  abate. Coluna `therapy_sessions.faltou_conta` (null=legado). Motor exclui Faltou/Não; pergunta na agenda
+  e abaixo da sessão na guia Geral (recalcula na hora). +3 testes.
+- **#411 troca de mês de vencimento** na Geral: ao mudar o mês, pergunta "aplicar às próximas parcelas?";
+  Sim desloca o mês das futuras (sem pagamento) mantendo dias/anos; Não só a selecionada.
+- **#412 nota**: "nota emitida — nº [recibo]" na Geral (threaded receiptNumber); aviso gov.br com
+  ano-calendário/prazo automáticos na Receita Saúde. Sync Geral↔Receita Saúde já era pelo mesmo registro.
+- **#413 relatório/menu**: relatório financeiro sem os 4 gráficos + linhas Sessões/Receitas por mês;
+  "Visão geral/financeira/Previsão" saem do menu (rotas ficam).
+- **#414 Menu Pagamentos (parte 1)**: texto novo; remove "Cobrança automática mensal"; "todos os
+  pacientes"→"todos os cadastros"; "Por paciente"→"Por cadastro" (exclui prospectados); remove "Meses futuros…".
+
+**PENDENTE (grande/novo — próximas levas):**
+- **Menu Pagamentos (reformulação das colunas):** ID/Vencimento/Atrasado/Em aberto/Pago/Cobrar/Cobranças
+  enviadas pelo motor da guia Geral (geralDoPaciente), cards de resumo (Atrasados/Em aberto/Pagos),
+  ordenar por vencimento desc, ID clicável, Cobrar igual ao Vencimentos. (Hoje usa o lib `pagamentos`.)
+- **"Novo lançamento"** (Despesas/Receitas + recorrência mensal + **taxas débito/crédito** no Ajustes) +
+  **OCR por câmera** — decisão do dono: **Tesseract/PaddleOCR + chave de IA do usuário (BYOK)**, com
+  alerta de limitação. Feature grande; precisa de dependência (ex. tesseract.js) + fluxo de câmera.
+- **"Lembrar agendamento" (mensal)** no Dashboard + contagem "lembrado/parabenizado (Nx)" em
+  aniversário/reajuste/devolutiva (precisa de armazenamento de contagem — hoje só cobrança usa cobranca_envios).
+- **Cards na horizontal** (prospecção→devolutivas) e **mobile** — precisam de verificação no navegador.
+- **Vencimentos:** bug "avulsa some" + "Última realizada" formato — aguardam exemplo do dono.
+
+---
+
 ## 2026-10-17 — Doc 45 (parte 2): [Mais…], numeração, prospecção conta cadastro direto (#407–#408)
 
 **Entregue:**
