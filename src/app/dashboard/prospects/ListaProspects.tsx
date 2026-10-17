@@ -7,6 +7,7 @@ import { formatDate } from "@/lib/therapy";
 import { idadeEmAnos } from "@/lib/idade";
 import { numeroDoWhatsapp } from "@/lib/telefoneWhatsapp";
 import { useConfirmarEnvio, ConfirmarEnvioModal } from "@/components/dashboard/confirmarEnvio";
+import { TextoMais } from "@/components/dashboard/TextoMais";
 import { MoneyInput } from "@/components/MoneyInput";
 import { SubmitButton } from "@/components/SubmitButton";
 import {
@@ -187,13 +188,11 @@ export function ListaProspects({ prospects, contatos }: { prospects: ProspectLin
           <div className="text-sm font-semibold text-foreground/60 inline-flex items-center">
             Prospectados
           </div>
-          <p className="text-xs text-foreground/60 text-justify">
-            <strong>Expanda</strong> a lista de Prospectados para <strong>consultar e editar dados pessoais</strong>,
-            <strong> visualizar informações</strong> ou <strong>cadastrar novos contatos realizados</strong>.<br />
-            Clique em <strong>Contatar</strong> ao lado de cada nome <strong>para enviar uma mensagem individual pelo WhatsApp</strong>. Nesse caso, não é necessário preencher o campo abaixo.<br />
-            Quando o prospectado decidir iniciar o atendimento, clique em <strong>Converter</strong> para transferi-lo
-            para a lista de cadastros e removê-lo da lista de prospecção.
-          </p>
+          <TextoMais
+            resumo={<><strong>Expanda</strong> a lista de Prospectados para <strong>consultar e editar dados pessoais</strong>, <strong>visualizar informações</strong> ou <strong>cadastrar novos contatos realizados</strong>.</>}
+            detalhe={<>Clique em <strong>Contatar</strong> ao lado de cada nome <strong>para enviar uma mensagem individual pelo WhatsApp</strong>. Nesse caso, não é necessário preencher o campo Mensagem única para todos.<br />
+              Quando o prospectado decidir iniciar o atendimento, clique em <strong>Converter</strong> para transferi-lo para a lista de cadastros e removê-lo da lista de prospecção.</>}
+          />
           {filtrados.map((p) => {
             const lista = porProspect.get(p.id) ?? [];
             const expandido = aberto === p.id;

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { TrendingUp } from "lucide-react";
 import { numeroDoWhatsapp } from "@/lib/telefoneWhatsapp";
+import { TextoMais } from "./TextoMais";
 
 export type ReajusteLinha = {
   id: string;
@@ -49,11 +50,12 @@ export function ListaReajuste({ reajustes }: { reajustes: ReajusteLinha[] }) {
       <h3 className="text-lg font-display font-bold text-primary flex items-center gap-2">
         <TrendingUp className="w-5 h-5" /> Reajustes a vencer
       </h3>
-      <p className="text-xs text-foreground/60 text-justify">
-        Visualize os cadastros com reajuste <strong>previsto para os próximos 30 dias.</strong><br />
-        Clique em <strong>Lembrar</strong> ao lado de cada nome <strong>para enviar uma mensagem individual pelo WhatsApp</strong>. Nesse caso, não é necessário preencher o campo abaixo.<br />
-        <strong>Mensagens serão enviadas ao responsável financeiro do cadastro ou, se não houver, à própria pessoa cadastrada.</strong>
-      </p>
+      <TextoMais
+        resumo={<>Visualize os cadastros com reajuste <strong>previsto para os próximos 30 dias.</strong></>}
+        detalhe={<>Clique em <strong>Lembrar</strong> ao lado de cada nome <strong>para enviar uma mensagem individual pelo WhatsApp</strong>. Nesse caso, não é necessário preencher o campo abaixo.<br />
+          <strong>Mensagens serão enviadas ao responsável financeiro do cadastro ou, se não houver, à própria pessoa cadastrada.</strong><br />
+          Ao <strong>atualizar</strong> o valor do cadastro, o registro será <strong>removido automaticamente desta lista.</strong></>}
+      />
 
       {vazio && <p className="text-sm text-foreground/45 py-2">Nenhum reajuste previsto no momento.</p>}
 
@@ -70,12 +72,6 @@ export function ListaReajuste({ reajustes }: { reajustes: ReajusteLinha[] }) {
           </li>
         ))}
       </ul>
-      )}
-
-      {!vazio && (
-      <p className="text-xs text-foreground/60 text-justify">
-        Ao <strong>atualizar</strong> o valor do cadastro, o registro será <strong>removido automaticamente desta lista.</strong>
-      </p>
       )}
 
       {!vazio && (
