@@ -7,6 +7,37 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-10-17 — Doc 45 (parte 2): [Mais…], numeração, prospecção conta cadastro direto (#407–#408)
+
+**Entregue:**
+- **#407 [Mais…]/[Menos…]** (componente `TextoMais`) nos textos de Prospectados, Prospecção,
+  Aniversariantes, Reajustes e Devolutivas; a linha "Ao atualizar/agendar … removido desta lista" saiu
+  de baixo da lista e foi para dentro do texto expandido (sem duplicar); "Frequência" → "Frequência do
+  atendimento" no novo atendimento.
+- **#408 numeração + prospecção:** o prospectado não consome mais número de cadastro (nasce sem número;
+  recebe o próximo só na conversão) — resolve prospectado furando a numeração; números de prospectados
+  existentes zerados (dono não precisa preservar). Painel Prospecção: cadastro direto ("Novo cadastro")
+  conta como Prospectado + Fechado (e na taxa), nunca como "Em aberto".
+
+**Decisões do dono (doc 45/46/47):** OCR = incorporar com **Tesseract/PaddleOCR** + **chave de IA do
+usuário (BYOK)**, com ALERTA de que a chave pode ser necessária p/ alguns OCRs e que o recurso é bom mas
+tem limitação. Numeração = NÃO precisa preservar números atuais. O bug "avulsa some no Vencimentos" +
+formato "Última realizada" aguardam exemplo do dono.
+
+**AINDA PENDENTE (grande/billing — próximas levas):**
+- Vencimentos: bug "avulsa aparece na Geral mas some" (aguarda exemplo); "Última realizada" data–seq–status.
+- Status **"Faltou" → "Considerar sessão realizada?"** (avulso/pacote) — motor de cobrança/pacote.
+- Confirmar **troca de mês de vencimento** na Geral ("próximas parcelas também?") — sequência de parcelas.
+- **Cards na horizontal** (prospecção→devolutivas) — layout, verificar no navegador.
+- **"Lembrar agendamento"** (mensal) no Dashboard + contagem "lembrete enviado" em aniversário/reajuste/devolutiva.
+- **Converter sem ID da agenda** (esclarecer o que exibir).
+- **Doc 46 (financeiro):** nota/Receita Saúde sync + "Nota emitida — nº"; Menu Pagamentos reformulado;
+  "Novo lançamento" (Despesas/Receitas + recorrência + taxas); **OCR por câmera (Tesseract/Paddle + BYOK)**;
+  Relatório financeiro (tira gráficos + Sessões/Receitas).
+- **Mobile** (cards da agenda + menu).
+
+---
+
 ## 2026-10-17 — Docs 45+47 (parte 1): confirmar envio no retorno + fixes do Vencimentos (#404–#405)
 
 **Entregue:**
