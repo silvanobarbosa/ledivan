@@ -6,6 +6,7 @@ import { UserPlus, ArrowRight, Trash2, Save, ChevronDown, ChevronRight, Plus, Me
 import { formatDate } from "@/lib/therapy";
 import { idadeEmAnos } from "@/lib/idade";
 import { numeroDoWhatsapp } from "@/lib/telefoneWhatsapp";
+import { useConfirmarEnvio, ConfirmarEnvioModal } from "@/components/dashboard/confirmarEnvio";
 import { MoneyInput } from "@/components/MoneyInput";
 import { SubmitButton } from "@/components/SubmitButton";
 import {
@@ -55,19 +56,20 @@ export function ListaProspects({ prospects, contatos }: { prospects: ProspectLin
   const [contatoId, setContatoId] = useState<string | null>(null);
   const [envioMsg, setEnvioMsg] = useState<string | null>(null);
   const router = useRouter();
+  const confirmarContato = useConfirmarEnvio<{ p: ProspectLinha; texto: string; num: boolean }>();
 
+  // Doc 47: abrir o WhatsApp NÃO registra o contato; a confirmação explícita no retorno é que registra.
   function contatar(p: ProspectLinha) {
     setEnvioMsg(null);
     const num = numeroDoWhatsapp(p.phone);
-    // Campo VAZIO (doc 9, item 12): não manda nada automático — só abre a conversa (sem texto) para
-    // a pessoa digitar no próprio WhatsApp, e registra que o contato foi feito por fora do sistema.
-    // Campo preenchido: segue como antes — {nome} vira o primeiro nome, abre o wa.me com o texto.
+    // Campo VAZIO (doc 9, item 12): só abre a conversa (sem texto) para a pessoa digitar no WhatsApp.
+    // Campo preenchido: {nome} vira o primeiro nome, abre o wa.me com o texto.
     const vazio = !mensagem.trim();
     const texto = vazio ? "Contato feito externamente sem a utilização do sistema" : mensagem.replace(/\{nome\}/g, p.name.split(" ")[0]);
-    if (num) {
-      const url = vazio ? `https://wa.me/${num}` : `https://wa.me/${num}?text=${encodeURIComponent(texto)}`;
-      window.open(url, "_blank", "noopener");
-    }
+    const url = num ? (vazio ? `https://wa.me/${num}` : `https://wa.me/${num}?text=${encodeURIComponent(texto)}`) : null;
+    confirmarContato.abrir(url, { p, texto, num: !!num });
+  }
+  function registrarContato({ p, texto, num }: { p: ProspectLinha; texto: string; num: boolean }) {
     setContatoId(p.id);
     iniciarContato(async () => {
       const r = await registrarEnvioMensagem({ envios: [{ id: p.id, mensagem: texto }] });
@@ -329,6 +331,7 @@ export function ListaProspects({ prospects, contatos }: { prospects: ProspectLin
           {envioMsg && <span className="text-xs text-foreground/60">{envioMsg}</span>}
         </div>
       )}
+      <ConfirmarEnvioModal aberto={confirmarContato.pendente != null} onSim={() => confirmarContato.resolver(true, registrarContato)} onNao={() => confirmarContato.resolver(false, registrarContato)} />
     </div>
   );
 }

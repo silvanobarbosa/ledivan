@@ -14,6 +14,7 @@ import { desfazerVencimento, editarVencimento, lancarPagamento, limparEnviosDaCo
 import { marcarEmissao } from "./recibo-actions";
 import { doAno, dataDoAnoControle } from "@/lib/filtroDeAno";
 import { numeroDoWhatsapp } from "@/lib/telefoneWhatsapp";
+import { useConfirmarEnvio, ConfirmarEnvioModal } from "@/components/dashboard/confirmarEnvio";
 
 /** Dados para o botão "Cobrar" compor a mensagem da terapeuta. */
 export type CobrarInfo = { telefone: string | null; nome: string; modelo: string | null };
@@ -29,33 +30,24 @@ function BotaoCobrar({ patientId, c, cobrar }: { patientId: string; c: CobrancaN
     vencimento: c.vencimento ? partes(c.vencimento).data : null,
   });
   const numero = numeroDoWhatsapp(cobrar.telefone);
-  /**
-   * Abre o WhatsApp E registra o aviso.
-   *
-   * O botao "Marcar enviada" saiu (documento de 17/09): o registro deixa de depender de alguem
-   * lembrar de apertar um segundo botao. A janela abre primeiro — se o registro demorar, quem
-   * cobra nao fica esperando.
-   *
-   * Sem telefone, ele COPIA e diz isso na tela (18/09). Antes copiava calado e marcava como
-   * avisada do mesmo jeito: de fora, era igual a o botao nao ter funcionado — e o paciente
-   * aparecia avisado sem ninguem ter avisado.
-   */
+  // Doc 47: abrir o WhatsApp NÃO registra; a confirmação explícita no retorno é que registra.
+  // Sem telefone, só COPIA e avisa (18/09) — não registra e não pergunta.
+  const confirmar = useConfirmarEnvio<string>();
   function acionar() {
     if (numero) {
-      window.open(`https://wa.me/${numero}?text=${encodeURIComponent(msg)}`, "_blank", "noopener");
-      start(async () => {
-        await registrarCobrancaEnviada({ patientId, cobrancaChave: c.chave });
-        router.refresh();
-      });
+      confirmar.abrir(`https://wa.me/${numero}?text=${encodeURIComponent(msg)}`, c.chave);
       return;
     }
     navigator.clipboard?.writeText(msg);
     setCopiado(true);
   }
+  function registrar(chave: string) {
+    start(async () => { await registrarCobrancaEnviada({ patientId, cobrancaChave: chave }); router.refresh(); });
+  }
   return (
     <span className="inline-flex items-center gap-1.5 flex-wrap">
       <button type="button" onClick={acionar} disabled={pending}
-        title={numero ? "Cobrar pelo WhatsApp (registra o aviso)" : "Sem telefone no cadastro: copia a mensagem"}
+        title={numero ? "Cobrar pelo WhatsApp" : "Sem telefone no cadastro: copia a mensagem"}
         className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#047857] border border-[#a7f3d0] bg-[#ecfdf5] rounded-full px-2 py-0.5 hover:bg-[#d1fae5] disabled:opacity-60 whitespace-nowrap">
         <MessageCircle className="w-3 h-3" aria-hidden /> {pending ? "..." : "Cobrar"}
       </button>
@@ -64,6 +56,7 @@ function BotaoCobrar({ patientId, c, cobrar }: { patientId: string; c: CobrancaN
           Sem telefone no cadastro — mensagem copiada. Nao marquei como avisada.
         </span>
       )}
+      <ConfirmarEnvioModal aberto={confirmar.pendente != null} onSim={() => confirmar.resolver(true, registrar)} onNao={() => confirmar.resolver(false, registrar)} />
     </span>
   );
 }
