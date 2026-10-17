@@ -38,10 +38,10 @@ export type CobrancaNaTela = Omit<CobrancaDaGeral, "vencimento" | "competencia" 
   vencimento: string | null;
   /** Doc 31: o vencimento desta cobrança foi EDITADO à mão (há override). A tela mostra o "desfazer". */
   vencimentoEditado: boolean;
-  pagamento: { id: string; data: string; metodo: string | null; pagoPor: string | null; recibo: boolean; nota: boolean; credito: boolean } | null;
+  pagamento: { id: string; data: string; metodo: string | null; pagoPor: string | null; recibo: boolean; nota: boolean; reciboNumero: string | null; credito: boolean } | null;
   /** Cada lançamento desta cobrança (doc 21/28): id (remover), data (hora de parede), valor, quem
    *  pagou, método e se já teve recibo/nota emitidos (p/ os controles por lançamento). */
-  pagamentos: { id: string; data: string; valor: number; pagoPor: string | null; metodo: string | null; recibo: boolean; nota: boolean; credito: boolean }[];
+  pagamentos: { id: string; data: string; valor: number; pagoPor: string | null; metodo: string | null; recibo: boolean; nota: boolean; reciboNumero: string | null; credito: boolean }[];
   /**
    * Os avisos daquela cobranca (`data` = hora de parede). `total` e `datas` trazem o historico
    * inteiro: cada clique em "Cobrar" e um aviso, e o documento de 17/09 pede que nenhum substitua
@@ -80,8 +80,8 @@ function cobrancaNaTela(
     parte: c.parte,
     situacao: c.situacao,
     vencimento: texto(c.vencimento ?? c.competencia),
-    pagamento: c.pagamento ? { ...c.pagamento, data: texto(c.pagamento.data) ?? "", credito: c.pagamento.credito === true } : null,
-    pagamentos: c.pagamentos.map((p) => ({ id: p.id, data: texto(p.data) ?? "", valor: p.valor, pagoPor: p.pagoPor, metodo: p.metodo, recibo: p.recibo === true, nota: p.nota === true, credito: p.credito === true })),
+    pagamento: c.pagamento ? { ...c.pagamento, data: texto(c.pagamento.data) ?? "", reciboNumero: c.pagamento.reciboNumero ?? null, credito: c.pagamento.credito === true } : null,
+    pagamentos: c.pagamentos.map((p) => ({ id: p.id, data: texto(p.data) ?? "", valor: p.valor, pagoPor: p.pagoPor, metodo: p.metodo, recibo: p.recibo === true, nota: p.nota === true, reciboNumero: p.reciboNumero ?? null, credito: p.credito === true })),
     envio: c.envio
       ? { data: texto(c.envio.data) ?? "", por: c.envio.por, total: c.envio.total, datas: c.envio.datas.map((d) => texto(d) ?? "") }
       : null,
@@ -128,7 +128,7 @@ export async function geralDoPaciente(userId: string, patientId: string): Promis
   const [sessoes, pagamentos, precos, pacotes, vigencias, envios, puladas, pacoteHist, vencEditados] = await Promise.all([
     db.select({ id: therapySessions.id, date: therapySessions.date, status: therapySessions.status, sessionKind: therapySessions.sessionKind, abaterDoPacote: therapySessions.abaterDoPacote, chargeable: therapySessions.chargeable, faltouConta: therapySessions.faltouConta, extra: therapySessions.extra, valorExtra: therapySessions.valorExtra, repoeSessaoId: therapySessions.repoeSessaoId, isOnline: therapySessions.isOnline })
       .from(therapySessions).where(and(eq(therapySessions.patientId, patientId), eq(therapySessions.userId, userId))),
-    db.select({ id: sessionPayments.id, amount: sessionPayments.amount, date: sessionPayments.date, status: sessionPayments.status, method: sessionPayments.method, pagoPor: sessionPayments.pagoPor, cobrancaChave: sessionPayments.cobrancaChave, quita: sessionPayments.quitaDiferenca, kind: sessionPayments.kind, reciboEmitidoEm: sessionPayments.reciboEmitidoEm, notaEmitidaEm: sessionPayments.receiptIssuedAt })
+    db.select({ id: sessionPayments.id, amount: sessionPayments.amount, date: sessionPayments.date, status: sessionPayments.status, method: sessionPayments.method, pagoPor: sessionPayments.pagoPor, cobrancaChave: sessionPayments.cobrancaChave, quita: sessionPayments.quitaDiferenca, kind: sessionPayments.kind, reciboEmitidoEm: sessionPayments.reciboEmitidoEm, notaEmitidaEm: sessionPayments.receiptIssuedAt, reciboNumero: sessionPayments.receiptNumber })
       .from(sessionPayments).where(and(eq(sessionPayments.patientId, patientId), eq(sessionPayments.userId, userId))),
     db.select({ valor: patientPriceHistory.valor, dataEfetiva: patientPriceHistory.dataEfetiva })
       .from(patientPriceHistory).where(eq(patientPriceHistory.patientId, patientId)),
@@ -172,7 +172,7 @@ export async function geralDoPaciente(userId: string, patientId: string): Promis
     diaPagamento: paciente.paymentDay,
     diaPagamento2: paciente.paymentDay2,
     horasAntesPagamento: paciente.horasAntesPagamento,
-    pagamentos: pagamentos.map((p) => ({ id: p.id, valor: p.amount, data: local(p.date), status: p.status, metodo: p.method, pagoPor: p.pagoPor, cobrancaChave: p.cobrancaChave, quita: p.quita, kind: p.kind, recibo: !!p.reciboEmitidoEm, nota: !!p.notaEmitidaEm })),
+    pagamentos: pagamentos.map((p) => ({ id: p.id, valor: p.amount, data: local(p.date), status: p.status, metodo: p.method, pagoPor: p.pagoPor, cobrancaChave: p.cobrancaChave, quita: p.quita, kind: p.kind, recibo: !!p.reciboEmitidoEm, nota: !!p.notaEmitidaEm, reciboNumero: p.reciboNumero })),
     envios: envios.map((e) => ({ cobrancaChave: e.cobrancaChave, enviadaEm: local(e.enviadaEm), enviadaPor: e.enviadaPor })),
     vencimentos: vencEditados.map((v) => ({ chave: v.cobrancaChave, vencimento: local(v.vencimento) })),
     // As datas que a serie pulou por horario bloqueado: viram a linha "Hor. Bloq.", nunca sessao.

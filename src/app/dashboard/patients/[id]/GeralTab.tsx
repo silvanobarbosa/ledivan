@@ -341,7 +341,7 @@ function ListaLancamentos({ patientId, pagamentos, total }: { patientId: string;
             {(p.recibo || p.nota) && (
               <div className="flex items-center gap-1.5 flex-wrap">
                 {p.recibo && <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#ecfdf5] text-[#047857] whitespace-nowrap">recibo emitido</span>}
-                {p.nota && <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#eef2ff] text-[#4338ca] whitespace-nowrap">nota emitida</span>}
+                {p.nota && <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#eef2ff] text-[#4338ca] whitespace-nowrap">nota emitida{p.reciboNumero ? ` — nº ${p.reciboNumero}` : ""}</span>}
               </div>
             )}
             {/* Botões: Emitir recibo / Emitir nota (ações — fora do PDF, doc 30) */}
@@ -372,7 +372,7 @@ function ColunasDoPagamento({ patientId, c, onLancar, cobrar }: { patientId: str
     // representante, com o valor da cobrança (que o ListaLancamentos oculta por ser o total).
     const lancamentos = c.pagamentos.length
       ? c.pagamentos
-      : [{ id: pg.id, data: pg.data, valor: c.valor, pagoPor: pg.pagoPor, metodo: pg.metodo, recibo: pg.recibo, nota: pg.nota, credito: pg.credito }];
+      : [{ id: pg.id, data: pg.data, valor: c.valor, pagoPor: pg.pagoPor, metodo: pg.metodo, recibo: pg.recibo, nota: pg.nota, reciboNumero: pg.reciboNumero, credito: pg.credito }];
     return (
       <>
         <td className="px-3 py-2">
