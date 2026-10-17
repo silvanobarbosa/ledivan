@@ -26,6 +26,7 @@ export type UserPreferences = {
   timerShowToPatient?: boolean; // mostrar o cronômetro da sessão ao paciente
   autoCobranca?: boolean; // cobrança automática mensal dos valores em aberto (cron)
   pix?: { key: string; name: string; city: string }; // chave Pix estática (pagamento no app do paciente)
+  cardFees?: { debito?: number; credito?: number }; // taxas da maquininha (% descontado no débito/crédito)
   [key: string]: unknown;
 };
 
