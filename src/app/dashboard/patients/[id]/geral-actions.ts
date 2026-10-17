@@ -286,7 +286,7 @@ export async function limparEnviosDaCobranca(entrada: { patientId: string; cobra
  * SÓ enquanto o pagamento NÃO foi lançado — depois de pago não faz sentido remarcar o vencimento, e
  * o documento restringe a edição a esse caso.
  */
-export async function editarVencimento(entrada: { patientId: string; cobrancaChave: string; data: string }): Promise<{ ok: boolean; error?: string }> {
+export async function editarVencimento(entrada: { patientId: string; cobrancaChave: string; data: string; proximasTambem?: boolean }): Promise<{ ok: boolean; error?: string }> {
   const patientId = String(entrada?.patientId ?? "");
   const chave = String(entrada?.cobrancaChave ?? "").slice(0, 200);
   const ctx = await contexto(patientId, chave);
@@ -305,12 +305,36 @@ export async function editarVencimento(entrada: { patientId: string; cobrancaCha
 
   // Meio-dia hora de parede: não escorrega de dia em fuso nenhum do caminho (igual ao pagamento).
   const vencimento = new Date(`${entrada.data}T12:00:00`);
-  await db.insert(cobrancaVencimentos)
-    .values({ userId: ctx.userId, patientId, cobrancaChave: chave, vencimento })
-    .onConflictDoUpdate({
-      target: [cobrancaVencimentos.userId, cobrancaVencimentos.patientId, cobrancaVencimentos.cobrancaChave],
-      set: { vencimento, updatedAt: new Date() },
-    });
+  const overrides: { chave: string; vencimento: Date }[] = [{ chave, vencimento }];
+
+  // Doc 45: ao mudar o MÊS do vencimento, o dono pode aplicar às PRÓXIMAS parcelas também. Desloca o
+  // mês de cada cobrança futura (sem pagamento) pelo mesmo delta, mantendo o dia e a progressão de ano.
+  // Sem pagamento registrado, não mexe em cobrança já quitada.
+  const anoMes = (iso: string | null | undefined) => { const m = iso ? String(iso).match(/^(\d{4})-(\d{2})/) : null; return m ? Number(m[1]) * 12 + (Number(m[2]) - 1) : null; };
+  const atualAM = anoMes(cobranca.vencimento);
+  const novoAM = Number(entrada.data.slice(0, 4)) * 12 + (Number(entrada.data.slice(5, 7)) - 1);
+  const delta = atualAM != null ? novoAM - atualAM : 0;
+  if (entrada.proximasTambem && delta !== 0) {
+    const limite = cobranca.vencimento ? new Date(`${String(cobranca.vencimento).slice(0, 10)}T12:00:00`).getTime() : 0;
+    const futuras = (geral?.linhas ?? [])
+      .flatMap((l) => (l.tipo === "pagamento" ? [l] : []))
+      .filter((c) => c.chave !== chave && c.pagamentos.length === 0 && c.vencimento && new Date(`${String(c.vencimento).slice(0, 10)}T12:00:00`).getTime() > limite);
+    for (const f of futuras) {
+      const d = new Date(`${String(f.vencimento).slice(0, 10)}T12:00:00`);
+      const alvoMes = d.getMonth() + delta;
+      const ultimo = new Date(d.getFullYear(), alvoMes + 1, 0).getDate();
+      overrides.push({ chave: f.chave, vencimento: new Date(d.getFullYear(), alvoMes, Math.min(d.getDate(), ultimo), 12, 0, 0) });
+    }
+  }
+
+  for (const o of overrides) {
+    await db.insert(cobrancaVencimentos)
+      .values({ userId: ctx.userId, patientId, cobrancaChave: o.chave, vencimento: o.vencimento })
+      .onConflictDoUpdate({
+        target: [cobrancaVencimentos.userId, cobrancaVencimentos.patientId, cobrancaVencimentos.cobrancaChave],
+        set: { vencimento: o.vencimento, updatedAt: new Date() },
+      });
+  }
 
   revalidatePath(`/dashboard/patients/${patientId}`);
   return { ok: true };
