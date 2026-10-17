@@ -7,6 +7,35 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-10-17 — Docs 45+47 (parte 1): confirmar envio no retorno + fixes do Vencimentos (#404–#405)
+
+**Entregue:**
+- **#404 confirmar envio (doc 47):** abrir o WhatsApp deixou de contar a mensagem. Em Cobrar
+  (Vencimentos por dia + guia Geral) e Contatar (Prospecção), o app abre o WhatsApp e pergunta "Você
+  enviou a mensagem?" — só conta no "Sim". Hook `useConfirmarEnvio` + `ConfirmarEnvioModal` (confirmação
+  EXPLÍCITA logo após abrir — no PC o WhatsApp abre em aba nova e o retorno por foco não é confiável;
+  assim funciona no celular e no PC e nunca conta sozinho).
+- **#405 fixes do Vencimentos por dia (doc 45):** Valor = saldo em aberto (quitado = valor cheio);
+  quitado mostra "Pago em [data]" sem Cobrar nem contagem; coluna "Tipo de vencimento" → "Vencimento"
+  (dia específico mostra a data); mensagens de atraso próprias (pacote 6.1 / avulsa Presente 6.2 /
+  avulsa Faltou 6.3) com o valor em aberto (`mensagemDeCobranca`).
+
+**Pendente dos docs 45+46+47 (lote enorme — ainda aberto):**
+- **Vencimentos:** bug "avulsa aparece na Geral mas não no Vencimentos / some após pagar" (precisa
+  exemplo p/ achar a origem no motor); "Última realizada" no formato *data – seq – status*.
+- **Doc 45:** [Mais…] nos textos; remover a linha duplicada abaixo da lista (reajuste/devolutiva);
+  status "Faltou" → "Considerar sessão realizada?" (avulso/pacote); numeração dos cadastros pela ordem
+  de atendimento (prospectado só entra ao converter); prospecção conta cadastro direto (prospectado+
+  fechado+taxa); cards na horizontal; "Lembrar agendamento" (mensal); contagem "lembrete enviado" em
+  aniversário/reajuste/devolutiva; Converter não traz ID agenda (bug); confirmar troca de mês de
+  vencimento na Geral; renomes pequenos.
+- **Doc 46:** nota/Receita Saúde sync + "Nota emitida — nº"; Menu Pagamentos reformulado; "Novo
+  lançamento" (Despesas/Receitas + recorrência + taxas); **OCR de despesa por câmera (feature grande,
+  exige verificação de viabilidade)**; Relatório financeiro (tira gráficos + Sessões/Receitas).
+- **Mobile** (cards da agenda + menu).
+
+---
+
 ## 2026-10-16 — Doc 44 (parte 1): contagem dos analíticos, CPF do contrato, textos das áreas (#398–#400)
 
 **Entregue:**
