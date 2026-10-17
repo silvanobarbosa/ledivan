@@ -6,6 +6,7 @@ import { queixaGroup } from "@/lib/queixas";
 import { MessagePatient } from "./MessagePatient";
 import { ModalPacientes } from "./ModalPacientes";
 import { salvarMensagemAgendamento, salvarMensagemAniversario } from "@/app/dashboard/actions";
+import { TextoMais } from "./TextoMais";
 import { mensagemPara, MODELO_PADRAO_DO_LEMBRETE } from "@/lib/lembrarAgendamento";
 import { horaDeParede } from "@/lib/horaLocal";
 import { numeroDoWhatsapp } from "@/lib/telefoneWhatsapp";
@@ -100,10 +101,10 @@ function Prospeccao({ patients }: { patients: PanelPatient[] }) {
       <h4 className="font-display font-bold text-primary inline-flex items-center">
         Prospecção
       </h4>
-      <p className="text-xs text-foreground/60 text-justify">
-        <strong>Acompanhe</strong> a quantidade de pessoas que entraram em contato demonstrando interesse nos seus
-        serviços.
-      </p>
+      <TextoMais
+        resumo={<><strong>Acompanhe</strong> a quantidade de pessoas que entraram em contato demonstrando interesse nos seus serviços.</>}
+        detalhe={<>Para adicionar prospectados, clique no Menu, opção <strong>Prospecção</strong>.</>}
+      />
       <div className="grid grid-cols-4 gap-2">
         <Stat n={base.length} label="Prospectados" />
         <Stat n={fechados} label="Fechados" tone="green" />
@@ -285,10 +286,10 @@ function Aniversariantes({ patients, modeloSalvo, hoje }: { patients: PanelPatie
         </h4>
         <span className="text-xs text-foreground/40">{lista.length} no período</span>
       </div>
-      <p className="text-xs text-foreground/60 text-justify">
-        Visualize os aniversariantes do mês atual.<br />
-        Clique em <strong>Parabenizar</strong> ao lado de cada nome <strong>para enviar uma mensagem individual pelo WhatsApp</strong>. Nesse caso, não é necessário preencher o campo abaixo.
-      </p>
+      <TextoMais
+        resumo={<>Visualize os aniversariantes do mês atual.</>}
+        detalhe={<>Clique em <strong>Parabenizar</strong> ao lado de cada nome <strong>para enviar uma mensagem individual pelo WhatsApp</strong>. Nesse caso, não é necessário preencher o campo Mensagem única para todos.</>}
+      />
       <div className="flex gap-2 flex-wrap items-end">
         <div><span className={lbl}>Data de</span><input type="date" value={de} onChange={(e) => setDe(e.target.value)} className={inp} /></div>
         <div><span className={lbl}>até</span><input type="date" value={ate} onChange={(e) => setAte(e.target.value)} className={inp} /></div>

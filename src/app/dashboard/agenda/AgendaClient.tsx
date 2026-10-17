@@ -851,7 +851,7 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
                 <p className="text-[11px] text-foreground/60">Recria as próximas sessões desta série a partir desta data. Não mexe no passado, nas realizadas, nas pagas nem nos encaixes avulsos. Diferença de valor por frequência é ajustada no Financeiro.</p>
                 <div className="grid grid-cols-2 gap-2">
                   <div>
-                    <label className="text-xs font-semibold text-foreground/60">Frequência</label>
+                    <label className="text-xs font-semibold text-foreground/60">Frequência do atendimento</label>
                     <select value={recFreq} onChange={(e) => setRecFreq(e.target.value)} className="w-full px-3 py-2 rounded-xl bg-white border border-border outline-none text-sm">
                       <option value="semanal">Semanal (1x na semana)</option>
                       <option value="semanal2x">Semanal (2x na semana)</option>

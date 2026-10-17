@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { MessagesSquare } from "lucide-react";
 import { numeroDoWhatsapp } from "@/lib/telefoneWhatsapp";
+import { TextoMais } from "./TextoMais";
 
 export type DevolutivaLinha = {
   id: string;
@@ -45,11 +46,12 @@ export function ListaDevolutivas({ devolutivas }: { devolutivas: DevolutivaLinha
       <h3 className="text-lg font-display font-bold text-primary flex items-center gap-2">
         <MessagesSquare className="w-5 h-5" /> Próximas devolutivas
       </h3>
-      <p className="text-xs text-foreground/60 text-justify">
-        Visualize os pacientes que precisam agendar uma <strong>devolutiva no próximo mês</strong>.<br />
-        Clique em <strong>Lembrar</strong> ao lado de cada nome <strong>para enviar uma mensagem individual pelo WhatsApp.</strong> Nesse caso, não é necessário preencher o campo abaixo.<br />
-        <strong>Mensagens serão enviadas ao responsável do cadastro.</strong>
-      </p>
+      <TextoMais
+        resumo={<>Visualize os pacientes que precisam agendar uma <strong>devolutiva no próximo mês</strong>.</>}
+        detalhe={<>Clique em <strong>Lembrar</strong> ao lado de cada nome <strong>para enviar uma mensagem individual pelo WhatsApp.</strong> Nesse caso, não é necessário preencher o campo abaixo.<br />
+          <strong>Mensagens serão enviadas ao responsável do cadastro.</strong><br />
+          Ao <strong>agendar uma devolutiva</strong>, o paciente será <strong>removido automaticamente desta lista.</strong></>}
+      />
 
       {vazio && (
         <p className="text-sm text-foreground/45 py-2">Nenhuma devolutiva prevista no momento.</p>
@@ -70,12 +72,6 @@ export function ListaDevolutivas({ devolutivas }: { devolutivas: DevolutivaLinha
           </li>
         ))}
       </ul>
-      )}
-
-      {!vazio && (
-      <p className="text-xs text-foreground/60 text-justify">
-        Ao <strong>agendar uma devolutiva</strong>, o paciente será <strong>removido automaticamente desta lista.</strong>
-      </p>
       )}
 
       {!vazio && (
