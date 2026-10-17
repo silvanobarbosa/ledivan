@@ -6,6 +6,7 @@ import { auth } from "@/auth";
 import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { parseMoedaBR, moedaOuPadrao } from "@/lib/money";
+import { datasRecorrentes } from "@/lib/recorrencia";
 
 type TxType = "income" | "expense";
 
@@ -32,17 +33,30 @@ export async function createTransaction(formData: FormData) {
     accountId = own ? rawAccountId : null;
   }
 
-  await db.insert(transactions).values({
-    userId,
-    amount,
-    type,
-    categoryId: categoryId || null,
-    accountId,
-    description: (formData.get("description") as string) || null,
-    date: dateRaw ? new Date(dateRaw) : new Date(),
-    source: "manual",
-    method: (formData.get("method") as string) || null,
-  });
+  const description = (formData.get("description") as string) || null;
+  const method = (formData.get("method") as string) || null;
+
+  // Recorrência mensal (doc 47): "repetir todo mês" por N meses. Sem repetir = 1 lançamento na data.
+  // O seletor de dia (dateRaw = YYYY-MM-DD) é a data-base; as cópias mantêm o dia do mês (clamp 31→fim).
+  const baseISO = dateRaw || new Date().toISOString().slice(0, 10);
+  const repetir = formData.get("repetir") === "on";
+  const mesesRaw = Number(formData.get("meses"));
+  const meses = repetir && Number.isFinite(mesesRaw) ? Math.min(60, Math.max(2, Math.floor(mesesRaw))) : 1;
+  const datas = datasRecorrentes(baseISO, meses);
+
+  await db.insert(transactions).values(
+    datas.map((d) => ({
+      userId,
+      amount,
+      type,
+      categoryId: categoryId || null,
+      accountId,
+      description,
+      date: new Date(`${d}T12:00:00`),
+      source: "manual" as const,
+      method,
+    })),
+  );
 
   revalidatePath("/dashboard/transactions");
   revalidatePath("/dashboard");
