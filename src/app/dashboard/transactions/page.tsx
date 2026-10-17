@@ -9,7 +9,8 @@ import { deleteTransaction } from "./actions";
 import { Trash2 } from "lucide-react";
 import { ConfirmSubmit } from "@/components/ConfirmSubmit";
 import Link from "next/link";
-import { PAYMENT_FORM_LABELS } from "@/lib/finance";
+import { PAYMENT_FORM_LABELS, liquidoComTaxa } from "@/lib/finance";
+import { getPreferences } from "@/lib/preferences";
 
 export const dynamic = "force-dynamic";
 
@@ -59,6 +60,8 @@ export default async function TransactionsPage({
       .where(and(eq(sessionPayments.userId, userId), isNotNull(sessionPayments.linkedTransactionId))))
       .map((r) => [r.transacao as string, r.patientId]),
   );
+
+  const fees = (await getPreferences(userId)).cardFees;
 
   const removeTransaction = async (formData: FormData) => {
     "use server";
@@ -163,6 +166,14 @@ export default async function TransactionsPage({
                   t.type === "income" ? "text-green-600" : "text-red-600"
                 )}>
                   {t.type === "income" ? "+" : "-"} {formatCurrency(t.amount)}
+                  {(() => {
+                    // Líquido de taxa: só em RECEITA no cartão, quando a taxa foi configurada e desconta algo.
+                    if (t.type !== "income") return null;
+                    const bruto = parseFloat(t.amount);
+                    const liq = liquidoComTaxa(bruto, t.method, fees);
+                    if (!(liq < bruto)) return null;
+                    return <p className="text-[11px] font-semibold text-foreground/40 mt-0.5">líquido {formatCurrency(liq.toFixed(2))}</p>;
+                  })()}
                 </td>
                 <td className="p-6 text-right">
                   {dePagamento.has(t.id) ? (

@@ -23,6 +23,7 @@ import { FeaturesCard } from "./FeaturesCard";
 import { ConsentCard } from "./ConsentCard";
 import { getConsentForm } from "./consent-actions";
 import { PixCard } from "./PixCard";
+import { TaxasCard } from "./TaxasCard";
 import { AiKeyCard } from "./AiKeyCard";
 import { hasGoogleAccount, hasCalendarScope } from "@/lib/googleCalendar";
 
@@ -226,6 +227,8 @@ export default async function SettingsPage() {
           <ConsentCard initial={consentForm ? { title: consentForm.title, body: consentForm.body } : null} />
 
           <PixCard initial={(prefs.pix as { key: string; name: string; city: string } | undefined) ?? null} />
+
+          <TaxasCard initial={prefs.cardFees ?? null} />
 
           <div className="p-10 bg-primary/5 rounded-[48px] border border-primary/10 flex items-center gap-6">
             <div className="w-16 h-16 bg-white rounded-3xl flex items-center justify-center text-3xl shadow-sm">
