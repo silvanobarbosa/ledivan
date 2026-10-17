@@ -35,6 +35,10 @@ export async function createTransaction(formData: FormData) {
 
   const description = (formData.get("description") as string) || null;
   const method = (formData.get("method") as string) || null;
+  // Origem: "manual" por padrão; "scan" quando o lançamento veio da leitura de um recibo (revisado
+  // pela pessoa antes de salvar). Allowlist — nada mais entra.
+  const rawSource = formData.get("source") as string;
+  const source = rawSource === "scan" ? "scan" as const : "manual" as const;
 
   // Recorrência mensal (doc 47): "repetir todo mês" por N meses. Sem repetir = 1 lançamento na data.
   // O seletor de dia (dateRaw = YYYY-MM-DD) é a data-base; as cópias mantêm o dia do mês (clamp 31→fim).
@@ -53,7 +57,7 @@ export async function createTransaction(formData: FormData) {
       accountId,
       description,
       date: new Date(`${d}T12:00:00`),
-      source: "manual" as const,
+      source,
       method,
     })),
   );

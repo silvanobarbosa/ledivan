@@ -1,6 +1,6 @@
 import { Sidebar } from "@/components/dashboard/Sidebar";
 import { MobileSidebar } from "@/components/dashboard/MobileSidebar";
-import { ScanButton } from "@/components/dashboard/ScanButton";
+import { ScanRecibo } from "@/components/dashboard/ScanRecibo";
 import { BottomNavBar } from "@/components/dashboard/BottomNavBar";
 import { OnboardingTour } from "@/components/dashboard/OnboardingTour";
 import { AreaTint } from "@/components/dashboard/AreaTint";
@@ -88,7 +88,7 @@ export default async function DashboardLayout({
       </div>
 
       <BottomNavBar />
-      <ScanButton userId={user?.id || ""} />
+      <ScanRecibo hasAiKey={!!user?.aiKeyEnc} />
       <OnboardingTour />
     </div>
   );
