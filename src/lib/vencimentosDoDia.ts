@@ -13,6 +13,8 @@ export type TipoVencimentoPacote = "dia" | "primeira" | "ultima";
 export type CobrancaResolvida = {
   cadastroId: string;
   nome: string;
+  /** Doc 46: número do cadastro (#0020) — é o "ID do cadastro" clicável no Menu Pagamentos. */
+  registro?: number | null;
   /** Telefone do responsável financeiro ou, na falta, da própria pessoa. */
   telefone: string | null;
   chave: string;
