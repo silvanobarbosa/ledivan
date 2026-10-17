@@ -1,9 +1,5 @@
 import { NextResponse } from "next/server";
 import { getUserAiClient, SemChaveIA } from "@/lib/ai-client";
-import { db } from "@/db";
-import { transactions, categories } from "@/db/schema";
-import { eq, or, isNull } from "drizzle-orm";
-
 import { auth } from "@/auth";
 import { rateLimit } from "@/lib/rateLimit";
 
@@ -12,15 +8,19 @@ import { rateLimit } from "@/lib/rateLimit";
 // assim obriga o código a checar antes de usar — que é o que ele já faz logo abaixo.
 type ReciboLido = { amount?: unknown; description?: unknown; date?: unknown; category?: unknown };
 
-
+/**
+ * Lê um recibo/nota pela IA do PRÓPRIO terapeuta (BYOK) e DEVOLVE os campos — não grava nada.
+ *
+ * A gravação é feita depois, pela tela de revisão, com `createTransaction`: OCR/IA erra, então o
+ * resultado é sempre um palpite que a pessoa confere antes de virar lançamento (doc 47). Quem não
+ * tem chave de IA usa o leitor grátis (Tesseract) no navegador; aqui é só o caminho "mais preciso".
+ */
 export async function POST(req: Request) {
   try {
     const session = await auth();
-    // `userId` do corpo é IGNORADO de propósito — quem manda é a sessão (ver abaixo).
-    // Aceitar o do cliente deixaria qualquer um ler recibo dos outros.
-    const { image, userId: _bodyUserId } = await req.json();
-    
-    // Forçar o uso do ID da sessão
+    // `userId` do corpo é IGNORADO de propósito — quem manda é a sessão. Aceitar o do cliente
+    // deixaria qualquer um ler recibo dos outros.
+    const { image } = await req.json();
     const userId = session?.user?.id;
 
     if (!image || !userId) {
@@ -39,54 +39,27 @@ export async function POST(req: Request) {
           content: [
             {
               type: "text",
-              text: "Analise esta nota fiscal/recibo e extraia os seguintes dados em JSON: { 'amount': number, 'description': string, 'category': string, 'date': string (ISO format) }. Se não tiver certeza da categoria, use uma das seguintes: Alimentação, Transporte, Lazer, Saúde, Outros."
+              text: "Analise esta nota fiscal/recibo e extraia os seguintes dados em JSON: { 'amount': number, 'description': string, 'category': string, 'date': string (ISO format) }. Se não tiver certeza da categoria, use uma das seguintes: Alimentação, Transporte, Lazer, Saúde, Outros.",
             },
-            {
-              type: "image_url",
-              image_url: { url: image },
-            },
+            { type: "image_url", image_url: { url: image } },
           ],
         },
       ],
       response_format: { type: "json_object" },
     });
 
-    // A saída do modelo é DADO não confiável: validar antes de gravar. Antes, `result.amount
-    // .toString()` estourava (TypeError → 500) quando o modelo omitia `amount`.
+    // A saída do modelo é DADO não confiável: validar antes de devolver.
     let result: ReciboLido;
     try { result = JSON.parse(response.choices[0].message.content || "{}") as ReciboLido; }
     catch { return NextResponse.json({ error: "Não consegui ler os dados do recibo." }, { status: 422 }); }
 
-    const amount = Number(result?.amount);
-    if (!Number.isFinite(amount) || amount < 0) {
-      return NextResponse.json({ error: "Não consegui identificar o valor no recibo." }, { status: 422 });
-    }
-    const description = typeof result?.description === "string" ? result.description.slice(0, 300) : "Recibo";
-    const parsedDate = typeof result?.date === "string" ? new Date(result.date) : new Date();
-    const date = Number.isNaN(parsedDate.getTime()) ? new Date() : parsedDate;
+    const amountNum = Number(result?.amount);
+    const amount = Number.isFinite(amountNum) && amountNum >= 0 ? amountNum : null;
+    const description = typeof result?.description === "string" ? result.description.slice(0, 300) : null;
+    const date = typeof result?.date === "string" ? result.date.slice(0, 10) : null;
+    const category = typeof result?.category === "string" ? result.category.slice(0, 60) : null;
 
-    // Categoria: só do próprio terapeuta (a tabela ainda é global; filtra pelo que existe).
-    const categoryList = await db.query.categories.findMany({ where: or(isNull(categories.userId), eq(categories.userId, userId)) });
-    const wanted = typeof result?.category === "string" ? result.category.toLowerCase() : "";
-    const category = categoryList.find(c => c.name.toLowerCase() === wanted)
-                  || categoryList.find(c => c.name === "Outros");
-
-    const [newTransaction] = await db.insert(transactions).values({
-      userId,
-      amount: amount.toFixed(2),
-      description,
-      categoryId: category?.id,
-      type: "expense",
-      source: "scan",
-      date,
-    }).returning();
-
-    return NextResponse.json({
-      success: true,
-      transaction: newTransaction,
-      aiAnalysis: result
-    });
-
+    return NextResponse.json({ ok: true, amount, description, date, category });
   } catch (error: unknown) {
     if (error instanceof SemChaveIA) {
       return NextResponse.json({ error: error.message }, { status: 400 });
