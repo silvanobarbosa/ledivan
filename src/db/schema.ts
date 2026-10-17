@@ -20,7 +20,9 @@ export const transactionSourceEnum = pgEnum("transaction_source", ["manual", "te
  * ou não perder a sessão. Faltar por conta própria e faltar com atestado eram a mesma coisa aqui.
  */
 export const sessionStatusEnum = pgEnum("session_status", ["realizada", "nao_realizada", "cancelada", "realocada", "agendada", "prof_desmarcou", "atestado"]);
-export const paymentMethodEnum = pgEnum("payment_method", ["pix", "card", "cash", "transfer"]);
+// "card" é legado (não distingue débito/crédito); doc 49 passou a capturar "debito"/"credito" para o
+// cálculo da taxa. Pagamentos antigos em "card" ficam sem split de taxa (não dá para saber qual era).
+export const paymentMethodEnum = pgEnum("payment_method", ["pix", "card", "cash", "transfer", "debito", "credito"]);
 export const paymentStatusEnum = pgEnum("payment_status", ["paid", "pending", "overdue"]);
 export const contractTypeEnum = pgEnum("contract_type", ["pacote", "avulso"]);
 
@@ -1006,6 +1008,20 @@ export const sessionPaymentsRelations = relations(sessionPayments, ({ one }) => 
   session: one(therapySessions, { fields: [sessionPayments.sessionId], references: [therapySessions.id] }),
   linkedTransaction: one(transactions, { fields: [sessionPayments.linkedTransactionId], references: [transactions.id] }),
 }));
+
+/**
+ * Taxas de cartão com VIGÊNCIA (doc 49). Cada alteração gera um NOVO registro, preservando os
+ * percentuais e a data em que passaram a valer. O cálculo do líquido de um pagamento usa a taxa
+ * vigente na DATA DO PAGAMENTO (não a atual) — mudar a taxa nunca recalcula o passado.
+ */
+export const cardFeeRates = pgTable("card_fee_rates", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: text("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
+  debito: numeric("debito", { precision: 5, scale: 2 }).notNull(), // % no débito
+  credito: numeric("credito", { precision: 5, scale: 2 }).notNull(), // % no crédito
+  validFrom: timestamp("valid_from").notNull(), // a partir de quando esta configuração vale
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (t) => [index("card_fee_user_from_idx").on(t.userId, t.validFrom)]);
 
 // --- Push (app nativo) ---
 // Guarda o token Expo de cada aparelho para enviar notificação (lembrete de consulta + aviso de

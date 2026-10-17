@@ -24,6 +24,7 @@ import { ConsentCard } from "./ConsentCard";
 import { getConsentForm } from "./consent-actions";
 import { PixCard } from "./PixCard";
 import { TaxasCard } from "./TaxasCard";
+import { listarVigenciasTaxa } from "./taxas-actions";
 import { AiKeyCard } from "./AiKeyCard";
 import { hasGoogleAccount, hasCalendarScope } from "@/lib/googleCalendar";
 
@@ -43,6 +44,7 @@ export default async function SettingsPage() {
   const consentForm = await getConsentForm();
   const googleConnected = await hasGoogleAccount(user.id);
   const calendarAuthorized = await hasCalendarScope(user.id);
+  const vigenciasTaxa = await listarVigenciasTaxa();
 
   return (
     <div className="max-w-4xl mx-auto space-y-12 pb-20">
@@ -228,7 +230,7 @@ export default async function SettingsPage() {
 
           <PixCard initial={(prefs.pix as { key: string; name: string; city: string } | undefined) ?? null} />
 
-          <TaxasCard initial={prefs.cardFees ?? null} />
+          <TaxasCard vigencias={vigenciasTaxa} />
 
           <div className="p-10 bg-primary/5 rounded-[48px] border border-primary/10 flex items-center gap-6">
             <div className="w-16 h-16 bg-white rounded-3xl flex items-center justify-center text-3xl shadow-sm">
