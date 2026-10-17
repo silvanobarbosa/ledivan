@@ -7,6 +7,40 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-10-17 — Doc 49: taxa de cartão com vigência + líquido, ordem do dashboard, contagem de lembretes (#422–#424)
+
+**Entregue:**
+- **#422 Taxa de cartão com VIGÊNCIA + valor líquido.** Guia Dados/Geral seguem no **bruto** (valor
+  cheio da sessão). Nos **totais recebidos**, desconta a taxa da maquininha usando a taxa **vigente na
+  data do pagamento** (histórico, nunca retroativo). Peças: tabela `card_fee_rates` (débito/crédito %
+  + validFrom); `taxaCartao.ts` puro (`taxaVigenteEm`/`liquidoDoPagamento`); `receitaLiquida.carregarNetter`
+  (ponto único de desconto); `TaxasCard` com histórico de vigências. Captura **débito × crédito** no
+  registro de pagamento (antes só "card"): enum estendido, forma copiada para a transação do caixa.
+  Líquido aplicado em **Transações, Relatórios e Visão financeira**.
+- **#423 Ordem do dashboard.** Painéis do topo empilhados (um embaixo do outro) na ordem do doc:
+  Prospecção → Relatório → Aniversariantes → Queixa principal → Pagamentos. Resto da página já batia.
+- **#424 Contagem "(Nx)".** Aniversário mostra "parabenizado Nx"; reajuste/devolutiva "lembrado Nx".
+  Conta só quando o dono **confirma o envio** (abre WhatsApp → "Você enviou?" → Sim), igual ao Cobrar.
+  Tabela `outbound_reminders` + `lembretes-actions`.
+
+**Por quê:** doc 49 do dono (bruto × líquido + vigência de taxa; ordem dos cards; contagem de lembretes).
+
+**Decisões que ficam valendo:**
+- **Bruto é o fato lançado; líquido é só leitura** nos totais recebidos. Taxa descontada UMA vez, em um
+  único ponto (`carregarNetter` → `liquidoDoPagamento`).
+- Taxa por **vigência**: mudar a taxa nunca recalcula pagamentos anteriores; usa-se a taxa da data de cada pagamento.
+- Lembrete/parabéns conta **só na confirmação de envio** (nunca na abertura do WhatsApp).
+
+**Armadilhas:** só o provedor de IA/pagamento com "card" indistinto existia — pagamentos antigos como
+"card"/sem forma **não têm split débito×crédito** (o líquido só vale daqui pra frente). Tabelas criadas
+em prod de forma ADITIVA (CREATE TABLE IF NOT EXISTS / ALTER TYPE ADD VALUE), nunca db:push interativo.
+
+**PENDENTE (reportado ao dono):** aplicar o líquido nas áreas derivadas da **cobrança** (Pagamentos
+"Por mês", fechamento, relatório-financeiro matriz, TabelaAnual) e no **app mobile/admin** — exige threar
+`method` pelo motor `geralDoPaciente`. Pagamentos ficou no **bruto** por ora (consistente dentro da página).
+
+---
+
 ## 2026-10-17 — Docs 46+47 (parte 4): Menu Pagamentos reformulado, lançamento recorrente, OCR livre, taxas de cartão (#417–#420)
 
 **Entregue:**
