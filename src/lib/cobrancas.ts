@@ -53,6 +53,9 @@ export type SessaoDaCobranca = {
   abaterDoPacote?: boolean | null;
   /** Falso = marcada para não cobrar. Hoje só a devolutiva oferece essa escolha. */
   chargeable?: boolean | null;
+  /** Doc 45: numa sessão "Faltou", false = NÃO considerar realizada (não cobra, não abate do pacote).
+   *  null/true = considerar (comportamento padrão). Só vale quando o status é nao_realizada. */
+  faltouConta?: boolean | null;
   /** Sessão extra, FORA da sequência: `avul` cobra à parte, `grat` não cobra. */
   extra?: "avul" | "grat" | string | null;
   /** O valor informado da extra avulsa. */
@@ -125,10 +128,13 @@ function emOrdem(sessoes: SessaoDaCobranca[]): Ordenada[] {
 
 const ehExtra = (s: SessaoDaCobranca) => s.extra === "avul" || s.extra === "grat";
 const devolutivaGratuita = (s: SessaoDaCobranca) => s.sessionKind === "devolutiva" && s.chargeable === false;
+// Doc 45: "Faltou" com a resposta "não considerar realizada" → não cobra e não abate do pacote.
+const faltouNaoConta = (s: SessaoDaCobranca) => s.status === "nao_realizada" && s.faltouConta === false;
 
 /** Ocupa posição na sequência do pacote? */
 function entraNoPacote(s: SessaoDaCobranca): boolean {
   if (ehExtra(s)) return false;
+  if (faltouNaoConta(s)) return false;
   if (s.sessionKind === "devolutiva") return !!s.abaterDoPacote;
   return true;
 }
@@ -151,7 +157,7 @@ function cobrancasDoPeriodo(periodo: PeriodoDeVigencia, sessoes: Ordenada[], e: 
   if (!usaPacote(formato)) {
     // A cada sessão: cada atendimento que ocupou posição é uma cobrança, no dia em que aconteceu.
     return sessoes
-      .filter((s) => !ehExtra(s) && !devolutivaGratuita(s) && !STATUS_QUE_PAUSAM.has(s.status))
+      .filter((s) => !ehExtra(s) && !devolutivaGratuita(s) && !STATUS_QUE_PAUSAM.has(s.status) && !faltouNaoConta(s))
       .map((s) => ({
         chave: `sessao:${s.id}`,
         tipo: "sessao" as const,

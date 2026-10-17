@@ -141,6 +141,8 @@ export type LinhaDaGeral =
       online: boolean;
       status: string;
       rotulo: string;
+      /** Doc 45: resposta de "Considerar sessão realizada?" numa sessão Faltou (só vale nesse status). */
+      faltouConta?: boolean | null;
       /** Valor que a linha mostra. `null` = a sessão é paga pela linha do pacote. */
       valor: number | null;
       /** A cobrança da própria linha (a cada sessão, AVUL). */
@@ -417,6 +419,7 @@ export function linhasDaGeral(e: EntradaDaGeral): LinhaDaGeral[] {
       data: s.data,
       online: !!s.online,
       status: s.status,
+      faltouConta: s.faltouConta ?? null,
       rotulo: rotulos.get(s.id) ?? "",
       // GRAT mostra R$ 0,00 SEMPRE, inclusive com status que pausa (documento de 17/09). Vazio e
       // "R$ 0,00" não dizem a mesma coisa: vazio parece dado faltando, e numa tabela de dinheiro

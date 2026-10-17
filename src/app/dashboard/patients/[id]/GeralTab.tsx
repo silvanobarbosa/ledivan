@@ -12,6 +12,7 @@ import { parseMoedaBR } from "@/lib/money";
 import { aplicarCreditoNoLancamento } from "@/lib/credito";
 import { desfazerVencimento, editarVencimento, lancarPagamento, limparEnviosDaCobranca, registrarCobrancaEnviada, removerPagamento } from "./geral-actions";
 import { marcarEmissao } from "./recibo-actions";
+import { definirFaltouConta } from "@/app/dashboard/sessions/actions";
 import { doAno, dataDoAnoControle } from "@/lib/filtroDeAno";
 import { numeroDoWhatsapp } from "@/lib/telefoneWhatsapp";
 import { useConfirmarEnvio, ConfirmarEnvioModal } from "@/components/dashboard/confirmarEnvio";
@@ -172,6 +173,22 @@ const STATUS_GERAL: Record<string, string> = {
   realizada: "Presente", nao_realizada: "Faltou", cancelada: "Desmarcou",
   realocada: "Desmarcou", prof_desmarcou: "Prof. desm.", atestado: "Atestado",
 };
+/** Doc 45: pergunta "Considerar sessão realizada?" numa sessão Faltou, direto na guia Geral. */
+function FaltouToggle({ sessionId, conta }: { sessionId: string; conta: boolean | null }) {
+  const router = useRouter();
+  const [pending, start] = useTransition();
+  const set = (v: boolean) => start(async () => { const r = await definirFaltouConta(sessionId, v); if (r.ok) router.refresh(); });
+  const btn = (sel: boolean) => `px-2.5 py-0.5 rounded-full text-[11px] font-bold transition disabled:opacity-50 ${sel ? "bg-primary text-white" : "bg-white border border-border text-foreground/60 hover:bg-surface"}`;
+  return (
+    <div className="flex items-center gap-2 flex-wrap">
+      <span className="text-[11px] text-foreground/50">Considerar sessão realizada?</span>
+      <button type="button" disabled={pending} onClick={() => set(true)} className={btn(conta === true)}>Sim</button>
+      <button type="button" disabled={pending} onClick={() => set(false)} className={btn(conta === false)}>Não</button>
+      {conta === false && <span className="text-[10px] text-foreground/40">Não cobra / não abate do pacote.</span>}
+    </div>
+  );
+}
+
 function CelulaStatus({ status }: { status?: string | null }) {
   const rotulo = status ? STATUS_GERAL[status] : undefined;
   if (!rotulo || !status) return <td className="px-3 py-2" />;
@@ -653,6 +670,13 @@ export function GeralTab({ patientId, linhas, responsavel, responsavelCpf, cobra
                     <td className={`px-3 py-2 text-right tabular-nums ${c?.formato === "sessao" ? "font-bold" : ""}`}>{l.valor == null ? "" : formatBRL(l.valor)}</td>
                     {c ? <ColunasDoPagamento patientId={patientId} c={c} onLancar={() => setAberta(c.chave)} cobrar={cobrar} /> : <td />}
                   </tr>
+                  {/* Doc 45: abaixo da sessão Faltou, a pergunta "Considerar sessão realizada?" — mudar aqui
+                      recalcula a cobrança/pacote na hora (revalidate), sem reabrir a janela da agenda. */}
+                  {l.status === "nao_realizada" && (
+                    <tr className="border-b border-border bg-surface/30">
+                      <td colSpan={9} className="px-3 py-1.5"><FaltouToggle sessionId={l.id} conta={l.faltouConta} /></td>
+                    </tr>
+                  )}
                   {c && aberta === c.chave && <FormularioDeLancamento patientId={patientId} c={c} responsavel={responsavel} responsavelCpf={responsavelCpf ?? ""} fechar={() => setAberta(null)} creditoDisponivel={creditoDisponivel} />}
                 </Fragment>
               );

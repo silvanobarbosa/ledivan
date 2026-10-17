@@ -374,7 +374,7 @@ export async function confirmSession(sessionId: string) {
   revalidatePath("/dashboard");
 }
 
-export async function updateSessionStatus(sessionId: string, status: SessionStatus, justificativa?: string, chargeable?: boolean) {
+export async function updateSessionStatus(sessionId: string, status: SessionStatus, justificativa?: string, chargeable?: boolean, faltouConta?: boolean) {
   const session = await auth();
   if (!session?.user?.id) throw new Error("Não autorizado");
   const userId = session.user.id;
@@ -384,13 +384,33 @@ export async function updateSessionStatus(sessionId: string, status: SessionStat
   });
   if (!existing) return;
 
+  // Doc 45: "faltou_conta" só faz sentido quando o status é nao_realizada. Ao marcar Faltou, grava a
+  // resposta de "Considerar sessão realizada?"; ao sair de Faltou, limpa (volta a null).
+  const faltouAgora = status === "nao_realizada";
   await db.update(therapySessions)
-    .set({ status, justificativa: justificativa || null, ...(chargeable !== undefined ? { chargeable } : {}) })
+    .set({ status, justificativa: justificativa || null, ...(chargeable !== undefined ? { chargeable } : {}), faltouConta: faltouAgora ? (faltouConta ?? existing.faltouConta ?? true) : null })
     .where(and(eq(therapySessions.id, sessionId), eq(therapySessions.userId, userId)));
 
   // (consumo de pacote é derivado na página do paciente — sem update manual aqui)
   revalidatePath("/dashboard/agenda");
   revalidatePath(`/dashboard/patients/${existing.patientId}`);
+}
+
+/**
+ * Doc 45: muda a resposta de "Considerar sessão realizada?" de uma sessão Faltou, direto da guia Geral.
+ * Só vale quando o status é nao_realizada; a guia Geral se atualiza sozinha (revalidate), sem reabrir.
+ */
+export async function definirFaltouConta(sessionId: string, conta: boolean): Promise<{ ok: boolean; error?: string }> {
+  const session = await auth();
+  if (!session?.user?.id) return { ok: false, error: "Não autorizado" };
+  const userId = session.user.id;
+  const existing = await db.query.therapySessions.findFirst({ where: and(eq(therapySessions.id, sessionId), eq(therapySessions.userId, userId)) });
+  if (!existing) return { ok: false, error: "Sessão não encontrada." };
+  if (existing.status !== "nao_realizada") return { ok: false, error: "Só vale para sessões com status Faltou." };
+  await db.update(therapySessions).set({ faltouConta: conta }).where(and(eq(therapySessions.id, sessionId), eq(therapySessions.userId, userId)));
+  revalidatePath(`/dashboard/patients/${existing.patientId}`);
+  revalidatePath("/dashboard/agenda");
+  return { ok: true };
 }
 
 // Gera um resumo pós-sessão em linguagem acolhedora para o paciente (IA), a partir das notas.
