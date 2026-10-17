@@ -65,6 +65,18 @@ export function ReceiptCard({ item }: { item: ReceiptItem }) {
 
       {open && (
         <div className="mt-3 space-y-3">
+          {/* Doc 46: a emissão é ato pessoal no app da Receita Federal (conta gov.br). Aqui só copia os
+              dados e marca como emitido. O ano acompanha o do pagamento (muda sozinho a cada ano). */}
+          {(() => {
+            const ano = Number(f.dateBR.match(/\/(\d{4})$/)?.[1]) || new Date().getFullYear();
+            return (
+              <p className="text-[11px] text-foreground/60 bg-[#fff7ed] border border-[#fed7aa] rounded-xl p-3 text-justify">
+                A emissão é feita por você no app oficial da Receita Federal (é ato pessoal, com sua conta gov.br).
+                Aqui você copia os dados e marca como emitido. Recibos do ano-calendário <strong>{ano}</strong> devem ser
+                emitidos até o fim de <strong>fevereiro de {ano + 1}</strong>.
+              </p>
+            );
+          })()}
           <div className="rounded-xl border border-border/50 bg-white/50 p-3">
             <div className="flex items-center justify-between mb-1">
               <span className="text-[11px] font-bold uppercase tracking-widest text-foreground/40">Campos para o app Receita Saúde</span>
