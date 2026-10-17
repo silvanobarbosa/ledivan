@@ -9,7 +9,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { parseMoedaBR } from "@/lib/money";
 
-type PaymentMethod = "pix" | "card" | "transfer" | "cash";
+type PaymentMethod = "pix" | "card" | "transfer" | "cash" | "debito" | "credito";
 type PaymentStatus = "paid" | "pending" | "overdue";
 
 export async function createPayment(formData: FormData) {
@@ -54,6 +54,7 @@ export async function createPayment(formData: FormData) {
       description: `Sessão — ${patient.name}`,
       date,
       source: "session_payment",
+      method, // doc 49: leva a forma (débito/crédito) para o caixa calcular o líquido
     }).returning();
     linkedTransactionId = tx.id;
   }

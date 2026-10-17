@@ -28,7 +28,7 @@ import { aplicarCreditoNoLancamento } from "@/lib/credito";
  *   pagamento a mais.
  */
 
-const METODOS = new Set(["pix", "card", "cash", "transfer"]);
+const METODOS = new Set(["pix", "card", "cash", "transfer", "debito", "credito"]);
 
 export async function lancarPagamento(entrada: {
   patientId: string;
@@ -103,6 +103,7 @@ export async function lancarPagamento(entrada: {
     description: `Sessão — ${paciente?.name ?? ""}`,
     date,
     source: "session_payment",
+    method: metodo, // doc 49: forma (débito/crédito) vai para o caixa calcular o líquido
   }).returning();
 
   const [pgCash] = await db.insert(sessionPayments).values({
@@ -112,7 +113,7 @@ export async function lancarPagamento(entrada: {
     sessionId: /^(sessao|extra):[0-9a-f-]{36}$/i.test(chave) ? chave.split(":")[1] : null,
     amount,
     date,
-    method: metodo as "pix" | "card" | "cash" | "transfer",
+    method: metodo as "pix" | "card" | "cash" | "transfer" | "debito" | "credito",
     status: "paid",
     pagoPorCpf,
     pagoPor,

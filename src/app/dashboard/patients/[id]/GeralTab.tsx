@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { MapPin, Video, X, Trash2, Pencil, Undo2 } from "lucide-react";
 import { Check, MessageCircle } from "lucide-react";
-import { formatBRL, PAYMENT_METHOD_LABELS, sessionColorClasses } from "@/lib/therapy";
+import { formatBRL, PAYMENT_METHOD_LABELS, PAYMENT_METHOD_OPTIONS, sessionColorClasses } from "@/lib/therapy";
 import type { CobrancaNaTela, LinhaNaTela } from "@/lib/geralDoPaciente";
 import { montarMensagemCobranca } from "@/lib/mensagemCobranca";
 import { parseMoedaBR } from "@/lib/money";
@@ -526,7 +526,7 @@ function FormularioDeLancamento({ patientId, c, responsavel, responsavelCpf, fec
           <div>
             <label className="text-[11px] font-semibold text-foreground/60 block">Forma</label>
             <select name="metodo" defaultValue="pix" className="px-3 py-2 rounded-lg bg-white border border-border text-sm">
-              {Object.entries(PAYMENT_METHOD_LABELS).map(([k, v]) => <option key={k} value={k}>{v}</option>)}
+              {PAYMENT_METHOD_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
             </select>
           </div>
           <button disabled={pending} className="bg-primary text-white px-4 py-2 rounded-lg font-bold text-sm disabled:opacity-60">

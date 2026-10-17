@@ -8,13 +8,12 @@
    achados de verdade — eles passam a valer. */
 import { db } from "@/db";
 import { auth } from "@/auth";
-import { transactions, categories } from "@/db/schema";
-import { sql, eq, and, gte, lte } from "drizzle-orm";
+import { transactions } from "@/db/schema";
+import { eq, and, gte, lte } from "drizzle-orm";
 import { formatBRL } from "@/lib/therapy";
+import { carregarNetter } from "@/lib/receitaLiquida";
 import { TrendingUp, TrendingDown, Scale } from "lucide-react";
 import Link from "next/link";
-
-const SOURCE_LABELS: Record<string, string> = { manual: "Manual", telegram: "Telegram", scan: "Scan", session_payment: "Sessões" };
 
 export const dynamic = "force-dynamic";
 
@@ -54,58 +53,39 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
   if (end) dateConds.push(lte(transactions.date, end));
   const whereClause = and(...dateConds);
 
-  const rows = await db
-    .select({
-      ym: sql<string>`TO_CHAR(${transactions.date}, 'YYYY-MM')`,
-      income: sql<string>`sum(case when ${transactions.type} = 'income' then ${transactions.amount} else 0 end)`,
-      expense: sql<string>`sum(case when ${transactions.type} = 'expense' then ${transactions.amount} else 0 end)`,
-      sessionIncome: sql<string>`sum(case when ${transactions.source} = 'session_payment' then ${transactions.amount} else 0 end)`,
-    })
+  // Doc 49: as receitas entram pelo valor LÍQUIDO (desconta a taxa de cartão vigente na data do
+  // pagamento). Por isso iteramos as linhas (precisamos da forma + data de cada uma) em vez de somar
+  // no banco. Despesa não tem taxa — entra pelo valor cheio.
+  const net = await carregarNetter(userId);
+  const txs = await db
+    .select({ amount: transactions.amount, type: transactions.type, method: transactions.method, date: transactions.date, source: transactions.source })
     .from(transactions)
-    .where(whereClause)
-    .groupBy(sql`TO_CHAR(${transactions.date}, 'YYYY-MM')`)
-    .orderBy(sql`TO_CHAR(${transactions.date}, 'YYYY-MM') DESC`);
+    .where(whereClause);
 
-  // Despesas por categoria + receitas por origem (no período)
-  const catRows = await db
-    .select({ name: categories.name, color: categories.color, value: sql<string>`sum(${transactions.amount})` })
-    .from(transactions)
-    .leftJoin(categories, eq(transactions.categoryId, categories.id))
-    .where(and(whereClause, eq(transactions.type, "expense")))
-    .groupBy(categories.name, categories.color);
+  const porMes = new Map<string, { income: number; expense: number; sessionIncome: number }>();
+  const ymDe = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+  for (const t of txs) {
+    const ym = ymDe(t.date);
+    const m = porMes.get(ym) ?? { income: 0, expense: 0, sessionIncome: 0 };
+    const bruto = parseFloat(t.amount) || 0;
+    if (t.type === "income") {
+      const liq = net(bruto, t.method, t.date.toISOString());
+      m.income += liq;
+      if (t.source === "session_payment") m.sessionIncome += liq;
+    } else {
+      m.expense += bruto;
+    }
+    porMes.set(ym, m);
+  }
 
-  const srcRows = await db
-    .select({ source: transactions.source, value: sql<string>`sum(${transactions.amount})` })
-    .from(transactions)
-    .where(and(whereClause, eq(transactions.type, "income")))
-    .groupBy(transactions.source);
-
-  const chartCategories = catRows.map((r) => ({ name: r.name || "Sem categoria", color: r.color, value: parseFloat(r.value || "0") }));
-  const chartSources = srcRows.map((r) => ({ name: SOURCE_LABELS[r.source] || r.source, value: parseFloat(r.value || "0") }));
-
-  const data = rows.map((r) => {
-    const income = parseFloat(r.income || "0");
-    const expense = parseFloat(r.expense || "0");
-    return {
-      ym: r.ym,
-      income,
-      expense,
-      net: income - expense,
-      sessionIncome: parseFloat(r.sessionIncome || "0"),
-    };
-  });
+  const data = [...porMes.entries()]
+    .sort((a, b) => b[0].localeCompare(a[0]))
+    .map(([ym, m]) => ({ ym, income: m.income, expense: m.expense, net: m.income - m.expense, sessionIncome: m.sessionIncome }));
 
   const totalIncome = data.reduce((a, d) => a + d.income, 0);
   const totalExpense = data.reduce((a, d) => a + d.expense, 0);
   const totalNet = totalIncome - totalExpense;
   const maxBar = Math.max(1, ...data.map((d) => Math.max(d.income, d.expense)));
-
-  // Série mensal ascendente + saldo acumulado (para os gráficos)
-  let acc = 0;
-  const chartMonthly = [...data].reverse().map((d) => {
-    acc += d.net;
-    return { label: monthLabel(d.ym), income: d.income, expense: d.expense, net: d.net, cumulative: acc };
-  });
 
   return (
     <div className="max-w-5xl mx-auto space-y-8 pb-20">
