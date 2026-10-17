@@ -137,7 +137,7 @@ export function VencimentosPorDia() {
                         <td className={td}>{vencimentoCol(c)}</td>
                         <td className={td}>{dataBR(c.primeiraSessao)}</td>
                         <td className={td}>{dataBR(c.ultimaSessao)}</td>
-                        <td className={td}>{c.ultimaRealizada ? `${dataBR(c.ultimaRealizada.data)} · ${SESSION_STATUS_LABELS[c.ultimaRealizada.status] ?? c.ultimaRealizada.status}` : "—"}</td>
+                        <td className={td}>{c.ultimaRealizada ? `${dataBR(c.ultimaRealizada.data)} – ${c.ultimaRealizada.seq} – ${SESSION_STATUS_LABELS[c.ultimaRealizada.status] ?? c.ultimaRealizada.status}` : "—"}</td>
                         <td className={`${td} font-semibold ${SIT[c.situacao]?.cor ?? ""}`}>{SIT[c.situacao]?.rotulo ?? c.situacao}</td>
                         <td className={`${td} tabular-nums`}>{formatBRL(valorExibido(c))}</td>
                         <td className={td}>{pago(c) ? <span className="text-[11px] text-[#047857] whitespace-nowrap">Pago em {dataBR(c.pagoEm)}</span> : <button type="button" onClick={() => cobrar(c, mensagemDeCobranca(c))} disabled={!temTelefone(c)} title={temTelefone(c) ? "Cobrar pelo WhatsApp" : "Cadastro sem telefone"} className={btnCobrar}><MessageCircle className="w-3.5 h-3.5" /> Cobrar</button>}</td>

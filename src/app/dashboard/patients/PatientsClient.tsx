@@ -171,7 +171,8 @@ export function PatientsClient({ patients, initial }: { patients: PatientCard[];
                         não pelo número do cadastro. Sem ID da agenda, cai no nº do cadastro e, por fim,
                         no nome. O nome segue na busca e na mensagem. */}
                     <p className="font-bold leading-tight line-clamp-2 break-words" title={p.name}>
-                      {p.agendaId?.trim() ? p.agendaId : p.registrationNumber != null ? `#${String(p.registrationNumber).padStart(4, "0")}` : p.name}
+                      {/* Doc 48: sem ID da agenda (ex.: prospectado recém-convertido), mostra o NOME. */}
+                      {p.agendaId?.trim() ? p.agendaId : p.name}
                     </p>
                     <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wide ${patientStatusColor(p.patientStatus)}`}>
                       {p.patientStatus === "inativo" ? "Inativo" : "Ativo"}

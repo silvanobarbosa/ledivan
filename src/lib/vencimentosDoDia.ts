@@ -35,7 +35,8 @@ export type CobrancaResolvida = {
   tipoVencimento?: TipoVencimentoPacote;
   primeiraSessao?: string | null;
   ultimaSessao?: string | null;
-  ultimaRealizada?: { data: string; status: string } | null;
+  /** Doc 48: data da última sessão realizada – sequência (realizadas/total) – status DA SESSÃO. */
+  ultimaRealizada?: { data: string; status: string; seq: string } | null;
 };
 
 /** O dia (YYYY-MM-DD) de um ISO de hora de parede, sem passar por fuso. */

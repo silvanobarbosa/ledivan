@@ -43,8 +43,16 @@ export async function vencimentosEm(diaISO: string): Promise<{ ok: boolean; avul
     }
     const telefone = p.guardianPhone?.trim() ? p.guardianPhone : p.phone;
 
-    for (const l of geral.linhas as LinhaNaTela[]) {
-      if (l.tipo !== "pagamento") continue;
+    // Doc 48: a cobrança AVULSA (a cada sessão) não vem como linha "pagamento" — vem embutida na
+    // linha da SESSÃO (l.cobranca). Juntar as duas fontes era o que faltava para a avulsa (agendada ou
+    // paga) aparecer no Vencimentos. Dedup por chave para não contar a mesma cobrança duas vezes.
+    const cobrancasDaLinha = (geral.linhas as LinhaNaTela[]).flatMap((l) =>
+      l.tipo === "pagamento" ? [l] : l.tipo === "sessao" && l.cobranca ? [l.cobranca] : [],
+    );
+    const vistas = new Set<string>();
+    for (const l of cobrancasDaLinha) {
+      if (vistas.has(l.chave)) continue;
+      vistas.add(l.chave);
       if (!l.vencimento) continue;
       const datas = l.ids.map((id) => sessaoPorId.get(id)?.data).filter(Boolean) as string[];
       datas.sort();
@@ -52,7 +60,9 @@ export async function vencimentosEm(diaISO: string): Promise<{ ok: boolean; avul
         .map((id) => sessaoPorId.get(id))
         .filter((s): s is { data: string; status: string } => !!s && s.status !== "agendada")
         .sort((a, b) => a.data.localeCompare(b.data));
-      const ultimaRealizada = realizadas.length ? realizadas[realizadas.length - 1] : null;
+      // Doc 48: "Última realizada" = data – sequência (realizadas/total) – status DA SESSÃO.
+      const ult = realizadas.length ? realizadas[realizadas.length - 1] : null;
+      const ultimaRealizada = ult ? { data: ult.data, status: ult.status, seq: `${realizadas.length}/${l.sessoes}` } : null;
       const grupo = grupoDe(l.tipoDeCobranca);
       // Doc 45: quando quitado, "Pago em [data do último pagamento]" + esconde Cobrar.
       const pagoEm = l.pagamentos.length ? l.pagamentos[l.pagamentos.length - 1].data : null;
