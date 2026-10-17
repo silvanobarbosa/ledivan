@@ -13,7 +13,6 @@ import { sql, eq, and, gte, lte } from "drizzle-orm";
 import { formatBRL } from "@/lib/therapy";
 import { TrendingUp, TrendingDown, Scale } from "lucide-react";
 import Link from "next/link";
-import { ReportsCharts } from "./ReportsCharts";
 
 const SOURCE_LABELS: Record<string, string> = { manual: "Manual", telegram: "Telegram", scan: "Scan", session_payment: "Sessões" };
 
@@ -154,7 +153,8 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
       </div>
 
       {/* Gráficos do fluxo financeiro */}
-      <ReportsCharts monthly={chartMonthly} categories={chartCategories} sources={chartSources} />
+      {/* Doc 46: saíram os gráficos (receitas × despesas por mês, saldo acumulado, despesas por
+          categoria, receitas por origem). Abaixo de cada mês ficam as linhas Sessões e Receitas. */}
 
       {/* Tabela mensal */}
       {data.length === 0 ? (
@@ -179,9 +179,11 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
                   <span className="text-xs text-foreground/50 shrink-0">{formatBRL(d.expense)} despesa</span>
                 </div>
               </div>
-              {d.sessionIncome > 0 && (
-                <p className="text-[11px] text-foreground/40">Sessões: {formatBRL(d.sessionIncome)} do total de receitas</p>
-              )}
+              {/* Doc 46: compor o total de receita — Sessões (pacientes+supervisionados) e Receitas lançadas. */}
+              <div className="text-[11px] text-foreground/40 space-y-0.5">
+                <p><strong>Sessões:</strong> {formatBRL(d.sessionIncome)} <span className="text-foreground/30">do total recebido entre pacientes e supervisionados</span></p>
+                <p><strong>Receitas:</strong> {formatBRL(d.income - d.sessionIncome)} <span className="text-foreground/30">do total recebido de receitas lançadas</span></p>
+              </div>
             </div>
           ))}
         </div>

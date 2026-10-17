@@ -35,10 +35,9 @@ export const NAV_GROUPS: NavGroup[] = [
     title: "Caixa",
     items: [
       { icon: Banknote, label: "Pagamentos", href: "/dashboard/pagamentos" },
-      { icon: LayoutDashboard, label: "Visão geral", href: "/dashboard/financeiro" },
-      { icon: Wallet, label: "Visão financeira", href: "/dashboard/visao-financeira" },
+      // Doc 46: "Visão geral", "Visão financeira" e "Previsão" saíram do menu (as rotas seguem
+      // existindo para links diretos / integrações; só não aparecem mais na navegação).
       { icon: ArrowLeftRight, label: "Transações", href: "/dashboard/transactions" },
-      { icon: TrendingUp, label: "Previsão", href: "/dashboard/previsao" },
       { icon: BarChart3, label: "Relatórios", href: "/dashboard/reports" },
       { icon: Scale, label: "Conciliação", href: "/dashboard/conciliacao" },
       { icon: Receipt, label: "Receita Saúde", href: "/dashboard/receita-saude" },
