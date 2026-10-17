@@ -92,10 +92,16 @@ export function DashboardPanels({
 // "Não fechou" NÃO é uma coluna própria: enquanto o prospect não fechou, ele conta como em
 // aberto — é assim que o consultório lê o número.
 function Prospeccao({ patients }: { patients: PanelPatient[] }) {
-  const base = patients.filter((p) => p.prospectDate);
-  const fechados = base.filter((p) => p.status !== "prospect" || p.prospectFechou === "Fechou").length;
-  const emAberto = base.length - fechados;
-  const taxa = base.length ? Math.round((fechados / base.length) * 100) : 0;
+  // Quem passou pela prospecção (tem prospectDate): fecha quando converte/fechou; senão fica em aberto.
+  const comProspeccao = patients.filter((p) => p.prospectDate);
+  const fechadosProspeccao = comProspeccao.filter((p) => p.status !== "prospect" || p.prospectFechou === "Fechou").length;
+  const emAberto = comProspeccao.length - fechadosProspeccao;
+  // Doc 45: cadastro feito direto em "Novo cadastro" (sem prospectDate, já é paciente/supervisionado)
+  // também conta como Prospectado E Fechado — mas NUNCA como "em aberto".
+  const diretos = patients.filter((p) => !p.prospectDate && p.status !== "prospect").length;
+  const prospectados = comProspeccao.length + diretos;
+  const fechados = fechadosProspeccao + diretos;
+  const taxa = prospectados ? Math.round((fechados / prospectados) * 100) : 0;
   return (
     <div className={card}>
       <h4 className="font-display font-bold text-primary inline-flex items-center">
@@ -106,7 +112,7 @@ function Prospeccao({ patients }: { patients: PanelPatient[] }) {
         detalhe={<>Para adicionar prospectados, clique no Menu, opção <strong>Prospecção</strong>.</>}
       />
       <div className="grid grid-cols-4 gap-2">
-        <Stat n={base.length} label="Prospectados" />
+        <Stat n={prospectados} label="Prospectados" />
         <Stat n={fechados} label="Fechados" tone="green" />
         <Stat n={emAberto} label="Em aberto" tone="amber" />
         <Stat n={`${taxa}%`} label="Tx conversão" />

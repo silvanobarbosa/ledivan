@@ -42,14 +42,12 @@ export async function createProspect(formData: FormData) {
 
   const prospectDate = dataDeFormulario(formData.get("prospectDate")) ?? new Date();
 
-  // Número do cadastro sequencial por terapeuta — o prospect também recebe (antes nascia vazio
-  // e, convertido em paciente, ficava sem número para sempre).
-  const [{ maxNum }] = await db.select({ maxNum: sql<number>`coalesce(max(${patients.registrationNumber}), 0)` })
-    .from(patients).where(eq(patients.userId, userId));
-
+  // Doc 45: o PROSPECT não consome número de cadastro. O número só é atribuído na CONVERSÃO em
+  // paciente (convertProspect), para a sequência seguir a ordem em que começam a ser atendidos e os
+  // prospectados ainda não convertidos não "furarem" a numeração dos cadastros.
   const [created] = await db.insert(patients).values({
     userId,
-    registrationNumber: Number(maxNum) + 1,
+    registrationNumber: null,
     name: name.trim(),
     phone: (formData.get("phone") as string) || null,
     email: (formData.get("email") as string) || null,
@@ -199,8 +197,14 @@ export async function convertProspect(patientId: string) {
   const session = await auth();
   if (!session?.user?.id) throw new Error("Não autorizado");
 
+  // Doc 45: o número do cadastro é atribuído AGORA (na conversão), o próximo disponível — respeitando
+  // a ordem em que os pacientes começam a ser atendidos (quem converte depois, número maior). Só
+  // atribui se ainda não tiver (prospect convertido nasce sem número).
+  const existente = await db.query.patients.findFirst({ where: and(eq(patients.id, patientId), eq(patients.userId, session.user.id)) });
+  const [{ maxNum }] = await db.select({ maxNum: sql<number>`coalesce(max(${patients.registrationNumber}), 0)` })
+    .from(patients).where(eq(patients.userId, session.user.id));
   await db.update(patients)
-    .set({ patientStatus: "ativo", prospectFechou: "Fechou", startedAt: new Date() })
+    .set({ patientStatus: "ativo", prospectFechou: "Fechou", startedAt: new Date(), registrationNumber: existente?.registrationNumber ?? Number(maxNum) + 1 })
     .where(and(eq(patients.id, patientId), eq(patients.userId, session.user.id)));
 
   await db.insert(patientStatusHistory).values({ patientId, status: "ativo" });
