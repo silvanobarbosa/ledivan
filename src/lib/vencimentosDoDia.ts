@@ -23,8 +23,12 @@ export type CobrancaResolvida = {
   valor: number;
   falta: number;
   enviosTotal: number;
+  /** Doc 45: último pagamento (quando quitado) → mostra "Pago em [data]" e esconde o Cobrar. */
+  pagoEm?: string | null;
   // Avulsa
   dataSessao?: string | null;
+  /** Status da sessão avulsa (realizada | nao_realizada | …) — escolhe a mensagem de atraso. */
+  statusSessao?: string | null;
   /** Momento a partir do qual fica em atraso (= o vencimento da avulsa). */
   horarioAtraso?: string | null;
   // Pacote
@@ -93,4 +97,26 @@ export function mensagemPacote(c: {
   }
   // Dia específico (padrão).
   return `Olá! Espero que esteja bem!\n\nPassando para lembrar que, conforme combinado, o vencimento do seu pacote é hoje (${dataBR(c.vencimento)}), referente ao pacote com a data de início em (${dataBR(c.primeiraSessao)}), no valor de R$ ${reais(c.valor)}.\n\n${fim}`;
+}
+
+const fimAtraso = "Peço, por gentileza, que, assim que realizar o pagamento, me envie o comprovante.\n\nSe tiver alguma dúvida, estou à disposição!";
+
+/** Mensagem de um PACOTE em atraso (doc 45, 6.1) — valor em aberto = saldo. */
+export function mensagemPacoteAtraso(c: { vencimento?: string | null; falta: number }): string {
+  return `Olá! Espero que esteja bem!\n\nPassando para lembrar que o vencimento do seu pacote foi no dia ${dataBR(c.vencimento)} e que o pagamento, no valor de R$ ${reais(c.falta)}, ainda consta em aberto.\n\n${fimAtraso}`;
+}
+
+/** Mensagem de uma SESSÃO AVULSA em atraso (doc 45, 6.2 Presente / 6.3 Faltou). */
+export function mensagemAvulsaAtraso(c: { dataSessao?: string | null; vencimento?: string | null; falta: number; statusSessao?: string | null }): string {
+  if (c.statusSessao === "nao_realizada") {
+    return `Olá! Espero que esteja bem!\n\nPassando para lembrar que o pagamento referente à sessão agendada para o dia ${dataBR(c.dataSessao)}, na qual não houve comparecimento, venceu no dia ${dataBR(c.vencimento)} e ainda consta em aberto no valor de R$ ${reais(c.falta)}.\n\n${fimAtraso}`;
+  }
+  return `Olá! Espero que esteja bem!\n\nPassando para lembrar que o pagamento referente à sua sessão, realizada no dia ${dataBR(c.dataSessao)}, venceu no dia ${dataBR(c.vencimento)} e ainda consta em aberto no valor de R$ ${reais(c.falta)}.\n\n${fimAtraso}`;
+}
+
+/** A mensagem certa para a cobrança, conforme grupo e situação (doc 44/45). */
+export function mensagemDeCobranca(c: CobrancaResolvida): string {
+  const atraso = c.situacao === "em_atraso";
+  if (c.grupo === "pacote") return atraso ? mensagemPacoteAtraso(c) : mensagemPacote(c);
+  return atraso ? mensagemAvulsaAtraso(c) : mensagemAvulsa(c);
 }

@@ -54,6 +54,10 @@ export async function vencimentosEm(diaISO: string): Promise<{ ok: boolean; avul
         .sort((a, b) => a.data.localeCompare(b.data));
       const ultimaRealizada = realizadas.length ? realizadas[realizadas.length - 1] : null;
       const grupo = grupoDe(l.tipoDeCobranca);
+      // Doc 45: quando quitado, "Pago em [data do último pagamento]" + esconde Cobrar.
+      const pagoEm = l.pagamentos.length ? l.pagamentos[l.pagamentos.length - 1].data : null;
+      // Avulsa = 1 sessão: o status dela escolhe a mensagem de atraso (Presente x Faltou).
+      const statusSessao = grupo === "avulsa" ? (sessaoPorId.get(l.ids[0])?.status ?? null) : null;
       todas.push({
         cadastroId: p.id,
         nome: p.name,
@@ -65,7 +69,9 @@ export async function vencimentosEm(diaISO: string): Promise<{ ok: boolean; avul
         valor: l.valor,
         falta: l.falta,
         enviosTotal: l.envio?.total ?? 0,
+        pagoEm,
         dataSessao: grupo === "avulsa" ? (datas[0] ?? null) : null,
+        statusSessao,
         horarioAtraso: grupo === "avulsa" ? l.vencimento : null,
         tipoVencimento: grupo === "pacote" ? tipoVencimentoDe(l.formato, p.paymentFormat) : undefined,
         primeiraSessao: datas[0] ?? null,

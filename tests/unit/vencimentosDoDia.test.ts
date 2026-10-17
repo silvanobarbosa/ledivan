@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { vencimentosNoDia, mensagemAvulsa, mensagemPacote, diaDe, type CobrancaResolvida } from "@/lib/vencimentosDoDia";
+import { vencimentosNoDia, mensagemAvulsa, mensagemPacote, mensagemDeCobranca, diaDe, type CobrancaResolvida } from "@/lib/vencimentosDoDia";
 
 function cob(over: Partial<CobrancaResolvida> & { chave: string }): CobrancaResolvida {
   return { cadastroId: "p", nome: "Fulano", telefone: "11999990000", grupo: "avulsa", vencimento: "2026-10-20T14:00:00", situacao: "em_aberto", valor: 100, falta: 100, enviosTotal: 0, ...over };
@@ -49,5 +49,24 @@ describe("mensagens de cobrança (doc 44)", () => {
       .toContain("hoje (20/10/2026) inicia seu novo pacote");
     expect(mensagemPacote({ tipoVencimento: "ultima", ultimaSessao: "2026-10-20T00:00:00", valor: 400 }))
       .toContain("hoje (20/10/2026) finaliza seu pacote");
+  });
+});
+
+describe("mensagemDeCobranca — atraso (doc 45)", () => {
+  it("pacote em atraso usa o valor em aberto (saldo)", () => {
+    const m = mensagemDeCobranca(cob({ chave: "p", grupo: "pacote", situacao: "em_atraso", vencimento: "2026-10-10T00:00:00", valor: 400, falta: 150 }));
+    expect(m).toContain("o vencimento do seu pacote foi no dia 10/10/2026");
+    expect(m).toContain("R$ 150,00");
+    expect(m).not.toContain("R$ 400,00");
+  });
+  it("avulsa em atraso — Presente x Faltou", () => {
+    const presente = mensagemDeCobranca(cob({ chave: "a", situacao: "em_atraso", dataSessao: "2026-10-10T15:00:00", vencimento: "2026-10-10T13:00:00", valor: 100, falta: 100, statusSessao: "realizada" }));
+    expect(presente).toContain("sua sessão, realizada no dia 10/10/2026");
+    const faltou = mensagemDeCobranca(cob({ chave: "a", situacao: "em_atraso", dataSessao: "2026-10-10T15:00:00", vencimento: "2026-10-10T13:00:00", valor: 100, falta: 100, statusSessao: "nao_realizada" }));
+    expect(faltou).toContain("na qual não houve comparecimento");
+  });
+  it("em aberto (não atrasado) usa a mensagem normal", () => {
+    expect(mensagemDeCobranca(cob({ chave: "a", situacao: "em_aberto", dataSessao: "2026-10-20T15:00:00", valor: 100, falta: 100 })))
+      .toContain("sessão de hoje");
   });
 });
