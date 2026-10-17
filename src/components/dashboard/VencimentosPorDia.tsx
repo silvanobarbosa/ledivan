@@ -6,6 +6,7 @@ import { formatBRL, SESSION_STATUS_LABELS } from "@/lib/therapy";
 import { numeroDoWhatsapp } from "@/lib/telefoneWhatsapp";
 import { mensagemAvulsa, mensagemPacote, type CobrancaResolvida } from "@/lib/vencimentosDoDia";
 import { vencimentosEm, registrarCobranca } from "@/app/dashboard/vencimentos-actions";
+import { useConfirmarEnvio, ConfirmarEnvioModal } from "./confirmarEnvio";
 
 const SIT: Record<string, { rotulo: string; cor: string }> = {
   pago: { rotulo: "Em dia", cor: "text-[#047857]" },
@@ -39,6 +40,8 @@ export function VencimentosPorDia() {
   const [pacotes, setPacotes] = useState<CobrancaResolvida[]>([]);
   const [carregando, setCarregando] = useState(true);
   const [enviadas, setEnviadas] = useState<Record<string, number>>({});
+  // Doc 47: abrir o WhatsApp não conta; só conta após confirmar o envio no retorno.
+  const confirmar = useConfirmarEnvio<CobrancaResolvida>();
 
   useEffect(() => {
     let vivo = true;
@@ -55,9 +58,11 @@ export function VencimentosPorDia() {
   }, [dia]);
 
   function cobrar(c: CobrancaResolvida, texto: string) {
+    // Doc 47: abre o WhatsApp e deixa a confirmação pendente — NÃO registra agora.
     const num = numeroDoWhatsapp(c.telefone);
-    if (num) window.open(`https://wa.me/${num}?text=${encodeURIComponent(texto)}`, "_blank", "noopener");
-    // Conta o ACIONAMENTO (clique no botão), não a abertura do WhatsApp (doc 44).
+    confirmar.abrir(num ? `https://wa.me/${num}?text=${encodeURIComponent(texto)}` : null, c);
+  }
+  function registrarSeConfirmado(c: CobrancaResolvida) {
     void registrarCobranca(c.cadastroId, c.chave);
     setEnviadas((e) => ({ ...e, [c.chave]: (e[c.chave] ?? c.enviosTotal) + 1 }));
   }
@@ -140,6 +145,7 @@ export function VencimentosPorDia() {
           </div>
         </>
       )}
+      <ConfirmarEnvioModal aberto={confirmar.pendente != null} onSim={() => confirmar.resolver(true, registrarSeConfirmado)} onNao={() => confirmar.resolver(false, registrarSeConfirmado)} />
     </section>
   );
 }
