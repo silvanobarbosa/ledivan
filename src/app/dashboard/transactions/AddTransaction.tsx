@@ -14,6 +14,7 @@ const inputCls = "w-full px-4 py-2.5 rounded-xl bg-white border border-border fo
 export function AddTransaction({ categories, accounts }: { categories: Cat[]; accounts: Acc[] }) {
   const [open, setOpen] = useState(false);
   const [type, setType] = useState<"income" | "expense">("expense");
+  const [repetir, setRepetir] = useState(false);
 
   const cats = categories.filter((c) => c.type === type);
 
@@ -90,6 +91,22 @@ export function AddTransaction({ categories, accounts }: { categories: Cat[]; ac
                 <option key={f.value} value={f.value}>{f.label}</option>
               ))}
             </select>
+          </div>
+
+          {/* Recorrência mensal (doc 47): repete o mesmo lançamento por N meses (ex: aluguel). */}
+          <div className="sm:col-span-2 rounded-xl bg-white/60 border border-border p-3 space-y-2">
+            <label className="flex items-center gap-2 text-sm font-semibold text-foreground/70 cursor-pointer">
+              <input type="checkbox" name="repetir" checked={repetir} onChange={(e) => setRepetir(e.target.checked)} className="w-4 h-4 accent-primary" />
+              Repetir todo mês
+              <InfoTip text="Cria o mesmo lançamento nos próximos meses, no mesmo dia (ex: aluguel, assinaturas). O dia 31 vira o último dia dos meses mais curtos." />
+            </label>
+            {repetir && (
+              <div className="flex items-center gap-2 pl-6">
+                <span className="text-xs text-foreground/60">Por</span>
+                <input name="meses" type="number" min={2} max={60} defaultValue={12} className="w-20 px-3 py-1.5 rounded-lg bg-white border border-border text-sm outline-none" />
+                <span className="text-xs text-foreground/60">meses (a partir da data acima).</span>
+              </div>
+            )}
           </div>
 
           <button className="sm:col-span-2 bg-primary text-white py-3 rounded-xl font-bold mt-1">
