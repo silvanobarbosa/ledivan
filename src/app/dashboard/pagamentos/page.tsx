@@ -5,7 +5,6 @@ import { and, eq, gte, lte } from "drizzle-orm";
 import { Banknote } from "lucide-react";
 import { monthlyReport, type PgSession, type PgPayment } from "@/lib/pagamentos";
 import { PagamentosClient } from "./PagamentosClient";
-import { getPreferences } from "@/lib/preferences";
 
 export const dynamic = "force-dynamic";
 const ym = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
@@ -27,7 +26,6 @@ export default async function PagamentosPage({ searchParams }: { searchParams: P
     db.select({ id: patients.id, name: patients.name, phone: patients.phone, status: patients.patientStatus }).from(patients).where(eq(patients.userId, userId)),
   ]);
 
-  const prefs = await getPreferences(userId);
   const nameById = new Map(pats.map((p) => [p.id, p.name]));
 
   const fSessions: PgSession[] = sess.map((s) => ({ patientId: s.patientId, ym: ym(new Date(s.date)), fee: Number(s.fee) || 0, chargeable: s.chargeable, status: s.status }));
@@ -52,17 +50,16 @@ export default async function PagamentosPage({ searchParams }: { searchParams: P
         <h1 className="text-3xl lg:text-4xl font-display font-bold text-primary flex items-center gap-2">
           <Banknote className="w-7 h-7" /> Pagamentos
         </h1>
-        <p className="text-foreground/50 mt-1">Recebimentos por mês, por paciente e por total — com cobrança dos valores em aberto.</p>
+        <p className="text-foreground/50 mt-1 text-justify">Recebimentos por <strong>mês</strong>, por <strong>pessoa atendida</strong> e <strong>total geral</strong>, com acompanhamento dos <strong>valores recebidos</strong> e <strong>cobrança dos pagamentos em aberto</strong>.</p>
       </div>
       <PagamentosClient
         year={year}
         months={report.months}
         totals={report.totals}
         perMonthDetail={perMonthDetail}
-        patients={pats.filter((p) => p.status !== "inativo").map((p) => ({ id: p.id, name: p.name }))}
+        patients={pats.filter((p) => p.status !== "prospect").map((p) => ({ id: p.id, name: p.name }))}
         payments={paymentsLite}
         currentMonth={year === now.getFullYear() ? now.getMonth() : -1}
-        autoCobranca={!!prefs.autoCobranca}
       />
     </div>
   );

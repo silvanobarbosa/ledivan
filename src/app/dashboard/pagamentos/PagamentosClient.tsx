@@ -3,7 +3,7 @@
 import { useState, useMemo, useTransition, Fragment } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronDown, Send, Check } from "lucide-react";
-import { cobrarPaciente, setAutoCobranca } from "./actions";
+import { cobrarPaciente } from "./actions";
 
 type Cell = { esperado: number; pago: number; aberto: number };
 type Detail = { patientId: string; name: string; esperado: number; pago: number; aberto: number };
@@ -13,16 +13,15 @@ const MES = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho"
 const brl = (v: number) => v.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 const METODO: Record<string, string> = { pix: "Pix", card: "Cartão", transfer: "Transferência", cash: "Dinheiro" };
 
-export function PagamentosClient({ year, months: _months, totals, perMonthDetail, patients, payments, currentMonth, autoCobranca }: {
+export function PagamentosClient({ year, months: _months, totals, perMonthDetail, patients, payments, currentMonth }: {
   year: number; months: string[]; totals: Cell[]; perMonthDetail: Detail[][];
-  patients: { id: string; name: string }[]; payments: PayLite[]; currentMonth: number; autoCobranca: boolean;
+  patients: { id: string; name: string }[]; payments: PayLite[]; currentMonth: number;
 }) {
   const router = useRouter();
   const [open, setOpen] = useState<number | null>(currentMonth >= 0 ? currentMonth : null);
   const [selPatient, setSelPatient] = useState(patients[0]?.id ?? "");
   const [pending, start] = useTransition();
   const [sent, setSent] = useState<Record<string, boolean>>({});
-  const [auto, setAuto] = useState(autoCobranca);
 
   const totalAno = useMemo(() => totals.reduce((a, c) => ({ esperado: a.esperado + c.esperado, pago: a.pago + c.pago, aberto: a.aberto + c.aberto }), { esperado: 0, pago: 0, aberto: 0 }), [totals]);
 
@@ -58,15 +57,11 @@ export function PagamentosClient({ year, months: _months, totals, perMonthDetail
             {yearOpts.map((y) => <option key={y} value={y}>{y}</option>)}
           </select>
         </div>
-        <label className="flex items-center gap-2 text-sm cursor-pointer bg-surface rounded-xl px-3 py-1.5 border border-border">
-          <input type="checkbox" checked={auto} onChange={(e) => { setAuto(e.target.checked); start(async () => { await setAutoCobranca(e.target.checked); }); }} className="accent-primary w-4 h-4" />
-          Cobrança automática mensal
-        </label>
       </div>
 
-      {/* QUADRO 2 — por mês, todos os pacientes */}
+      {/* QUADRO 2 — por mês, todos os cadastros (doc 46) */}
       <div className="glass-card rounded-[24px] p-5 overflow-x-auto">
-        <h3 className="font-display text-lg font-bold text-primary mb-3">Por mês — todos os pacientes</h3>
+        <h3 className="font-display text-lg font-bold text-primary mb-3">Por mês — todos os cadastros</h3>
         <table className="w-full text-sm min-w-[620px]">
           <thead>
             <tr className="text-left text-[11px] uppercase tracking-wide text-foreground/40 border-b border-border">
@@ -128,13 +123,12 @@ export function PagamentosClient({ year, months: _months, totals, perMonthDetail
             </tr>
           </tfoot>
         </table>
-        <p className="text-[11px] text-foreground/40 mt-2">Meses futuros já contam as reservas/agendamentos da agenda. Cobrança vai pelo seu WhatsApp.</p>
       </div>
 
       {/* QUADRO 1 — por paciente, mês a mês (estilo planilha) */}
       <div className="glass-card rounded-[24px] p-5 overflow-x-auto">
         <div className="flex items-center justify-between gap-3 mb-3 flex-wrap">
-          <h3 className="font-display text-lg font-bold text-primary">Por paciente — mês a mês</h3>
+          <h3 className="font-display text-lg font-bold text-primary">Por cadastro — mês a mês</h3>
           <select value={selPatient} onChange={(e) => setSelPatient(e.target.value)} className="px-3 py-1.5 rounded-xl bg-surface border border-border text-sm outline-none">
             {patients.map((p) => <option key={p.id} value={p.id}>{p.name}</option>)}
           </select>
