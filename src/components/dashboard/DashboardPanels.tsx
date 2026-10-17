@@ -74,15 +74,16 @@ export function DashboardPanels({
   return (
     <section className="space-y-4">
       <h3 className="text-xs font-bold uppercase tracking-widest text-foreground/40">Painéis</h3>
-      {/* items-start: sem isto o grid esticava cada cartão até a altura do vizinho da linha, e
-          um painel curto ao lado de uma lista longa virava meia tela de espaço vazio. */}
-      <div className="grid lg:grid-cols-2 gap-4 items-start">
+      {/* Doc 49: um embaixo do outro, não lado a lado — e na ordem Prospecção → Relatório →
+          Aniversariantes → Queixa principal → Pagamentos. O "Lembrar agendamento" (condicional,
+          fim do mês) não está na lista do doc; fica ao fim dos painéis para não quebrar a ordem. */}
+      <div className="flex flex-col gap-4">
         <Prospeccao patients={patients} />
         <Relatorios patients={patients} presence={presence} corte={corteSemana} />
         <Aniversariantes patients={patients} modeloSalvo={mensagemAniversario} hoje={hoje} />
-        {mostrarLembrar && <LembrarAgendamento lista={aLembrar} modeloSalvo={mensagemAgendamento} />}
         <QueixaBloco patients={patients} />
         <Pagamentos patients={patients} />
+        {mostrarLembrar && <LembrarAgendamento lista={aLembrar} modeloSalvo={mensagemAgendamento} />}
       </div>
     </section>
   );
