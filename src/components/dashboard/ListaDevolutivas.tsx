@@ -4,6 +4,8 @@ import { useState } from "react";
 import { MessagesSquare } from "lucide-react";
 import { numeroDoWhatsapp } from "@/lib/telefoneWhatsapp";
 import { TextoMais } from "./TextoMais";
+import { useConfirmarEnvio, ConfirmarEnvioModal } from "./confirmarEnvio";
+import { registrarLembrete } from "@/app/dashboard/lembretes-actions";
 
 export type DevolutivaLinha = {
   id: string;
@@ -23,9 +25,13 @@ export type DevolutivaLinha = {
  * — não cria agendamento na Agenda; o paciente sai sozinho ao agendar uma DEVOLUTIVA na agenda. A
  * mensagem vai como foi escrita (doc 42: a opção {nome} saiu).
  */
-export function ListaDevolutivas({ devolutivas }: { devolutivas: DevolutivaLinha[] }) {
+export function ListaDevolutivas({ devolutivas, contagem = {} }: { devolutivas: DevolutivaLinha[]; contagem?: Record<string, number> }) {
   const [mensagem, setMensagem] = useState("");
   const [aviso, setAviso] = useState<string | null>(null);
+  // Doc 49: "(Nx)" por cadastro — conta só o que foi confirmado como enviado (igual o Cobrar).
+  const [enviados, setEnviados] = useState<Record<string, number>>({});
+  const confirmar = useConfirmarEnvio<DevolutivaLinha>();
+  const quantos = (d: DevolutivaLinha) => (contagem[`${d.id}:devolutiva`] ?? 0) + (enviados[d.id] ?? 0);
 
   const vazio = devolutivas.length === 0;
 
@@ -36,8 +42,13 @@ export function ListaDevolutivas({ devolutivas }: { devolutivas: DevolutivaLinha
     if (!num) { setAviso(`${d.name} está sem telefone (responsável ou paciente).`); return; }
     setAviso(null);
     const texto = mensagem;
-    window.open(texto.trim() ? `https://wa.me/${num}?text=${encodeURIComponent(texto)}` : `https://wa.me/${num}`, "_blank", "noopener");
+    confirmar.abrir(texto.trim() ? `https://wa.me/${num}?text=${encodeURIComponent(texto)}` : `https://wa.me/${num}`, d);
   }
+
+  const registrar = (d: DevolutivaLinha) => {
+    void registrarLembrete(d.id, "devolutiva");
+    setEnviados((e) => ({ ...e, [d.id]: (e[d.id] ?? 0) + 1 }));
+  };
 
   const quando = (n: number) => (n < 0 ? "venceu" : n === 0 ? "hoje" : `em ${n} dia${n === 1 ? "" : "s"}`);
 
@@ -63,8 +74,8 @@ export function ListaDevolutivas({ devolutivas }: { devolutivas: DevolutivaLinha
           <li key={d.id} className="py-2 flex items-center gap-3 flex-wrap">
             <span className="font-semibold flex-1 min-w-[140px]">{d.name}</span>
             <span className="text-xs text-foreground/50 tabular-nums">{d.proxima.split("-").reverse().join("/")} · {quando(d.dias)}</span>
-            {/* Doc 41: "Agendar" virou "Lembrar"; o tick de confirmação saiu (o paciente sai sozinho
-                ao agendar uma DEVOLUTIVA na agenda). */}
+            {quantos(d) > 0 && <span className="text-[11px] font-semibold text-emerald-600">lembrado {quantos(d)}x</span>}
+            {/* Doc 41: "Agendar" virou "Lembrar". Doc 49: conta "(Nx)" só após confirmar o envio. */}
             <button type="button" onClick={() => lembrar(d)}
               className="text-xs font-bold px-3 py-1.5 rounded-full bg-primary/10 text-primary hover:bg-primary/15 transition">
               Lembrar
@@ -87,6 +98,7 @@ export function ListaDevolutivas({ devolutivas }: { devolutivas: DevolutivaLinha
       )}
 
       {aviso && <p className="text-xs font-semibold text-[#b45309]">{aviso}</p>}
+      <ConfirmarEnvioModal aberto={confirmar.pendente != null} onSim={() => confirmar.resolver(true, registrar)} onNao={() => confirmar.resolver(false, registrar)} />
     </section>
   );
 }

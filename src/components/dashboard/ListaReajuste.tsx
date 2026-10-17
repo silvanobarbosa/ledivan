@@ -4,6 +4,8 @@ import { useState } from "react";
 import { TrendingUp } from "lucide-react";
 import { numeroDoWhatsapp } from "@/lib/telefoneWhatsapp";
 import { TextoMais } from "./TextoMais";
+import { useConfirmarEnvio, ConfirmarEnvioModal } from "./confirmarEnvio";
+import { registrarLembrete } from "@/app/dashboard/lembretes-actions";
 
 export type ReajusteLinha = {
   id: string;
@@ -26,9 +28,13 @@ export type ReajusteLinha = {
  * botão "Lembrar" abre o WhatsApp do RESPONSÁVEL (ou, sem ele, do paciente) com a mensagem digitada
  * abaixo — mesmo padrão da Mensagem dos Prospectados; `{nome}` vira o primeiro nome do paciente.
  */
-export function ListaReajuste({ reajustes }: { reajustes: ReajusteLinha[] }) {
+export function ListaReajuste({ reajustes, contagem = {} }: { reajustes: ReajusteLinha[]; contagem?: Record<string, number> }) {
   const [mensagem, setMensagem] = useState("");
   const [aviso, setAviso] = useState<string | null>(null);
+  // Doc 49: "(Nx)" por cadastro, contando só o que foi confirmado como enviado (igual o Cobrar).
+  const [enviados, setEnviados] = useState<Record<string, number>>({});
+  const confirmar = useConfirmarEnvio<ReajusteLinha>();
+  const quantos = (r: ReajusteLinha) => (contagem[`${r.id}:reajuste`] ?? 0) + (enviados[r.id] ?? 0);
 
   const vazio = reajustes.length === 0;
 
@@ -40,8 +46,13 @@ export function ListaReajuste({ reajustes }: { reajustes: ReajusteLinha[] }) {
     // Doc 42: a opção {nome} saiu — a mensagem vai como foi escrita, sem substituição.
     const texto = mensagem;
     const url = texto.trim() ? `https://wa.me/${num}?text=${encodeURIComponent(texto)}` : `https://wa.me/${num}`;
-    window.open(url, "_blank", "noopener");
+    confirmar.abrir(url, r); // doc 49: só conta depois do "Sim, enviei"
   }
+
+  const registrar = (r: ReajusteLinha) => {
+    void registrarLembrete(r.id, "reajuste");
+    setEnviados((e) => ({ ...e, [r.id]: (e[r.id] ?? 0) + 1 }));
+  };
 
   const quando = (d: number) => (d < 0 ? "venceu" : d === 0 ? "hoje" : `em ${d} dia${d === 1 ? "" : "s"}`);
 
@@ -65,6 +76,7 @@ export function ListaReajuste({ reajustes }: { reajustes: ReajusteLinha[] }) {
           <li key={r.id} className="py-2 flex items-center gap-3 flex-wrap">
             <span className="font-semibold flex-1 min-w-[140px]" title={r.name}>{r.agendaId?.trim() ? r.agendaId : r.name}</span>
             <span className="text-xs text-foreground/50 tabular-nums">{r.review.split("-").reverse().join("/")} · {quando(r.dias)}</span>
+            {quantos(r) > 0 && <span className="text-[11px] font-semibold text-emerald-600">lembrado {quantos(r)}x</span>}
             <button type="button" onClick={() => lembrar(r)}
               className="text-xs font-bold px-3 py-1.5 rounded-full bg-primary/10 text-primary hover:bg-primary/15 transition">
               Lembrar
@@ -87,6 +99,7 @@ export function ListaReajuste({ reajustes }: { reajustes: ReajusteLinha[] }) {
       )}
 
       {aviso && <p className="text-xs font-semibold text-[#b45309]">{aviso}</p>}
+      <ConfirmarEnvioModal aberto={confirmar.pendente != null} onSim={() => confirmar.resolver(true, registrar)} onNao={() => confirmar.resolver(false, registrar)} />
     </section>
   );
 }
