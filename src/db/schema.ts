@@ -1023,6 +1023,19 @@ export const cardFeeRates = pgTable("card_fee_rates", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (t) => [index("card_fee_user_from_idx").on(t.userId, t.validFrom)]);
 
+/**
+ * Lembretes enviados (doc 49): um registro por vez que o terapeuta confirma TER ENVIADO um lembrete
+ * (parabéns de aniversário, aviso de reajuste, chamada de devolutiva). Conta só na confirmação —
+ * igual ao "Cobrar" do Vencimentos por dia. A tela mostra "(Nx)" por cadastro.
+ */
+export const outboundReminders = pgTable("outbound_reminders", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: text("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
+  patientId: uuid("patient_id").references(() => patients.id, { onDelete: "cascade" }).notNull(),
+  kind: text("kind").notNull(), // "aniversario" | "reajuste" | "devolutiva"
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (t) => [index("outbound_reminders_user_kind_idx").on(t.userId, t.kind)]);
+
 // --- Push (app nativo) ---
 // Guarda o token Expo de cada aparelho para enviar notificação (lembrete de consulta + aviso de
 // atualização do app). Um usuário pode ter vários aparelhos; a chave é o token.

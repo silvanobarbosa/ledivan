@@ -10,6 +10,8 @@ import { TextoMais } from "./TextoMais";
 import { mensagemPara, MODELO_PADRAO_DO_LEMBRETE } from "@/lib/lembrarAgendamento";
 import { horaDeParede } from "@/lib/horaLocal";
 import { numeroDoWhatsapp } from "@/lib/telefoneWhatsapp";
+import { useConfirmarEnvio, ConfirmarEnvioModal } from "./confirmarEnvio";
+import { registrarLembrete } from "@/app/dashboard/lembretes-actions";
 
 export type PanelPatient = {
   id: string; name: string; status: string;
@@ -56,11 +58,13 @@ export type ParaLembrar = {
 
 export function DashboardPanels({
   patients, presence, mensagemAniversario, corteSemana, hoje,
-  aLembrar = [], mensagemAgendamento = "", mostrarLembrar = false,
+  aLembrar = [], mensagemAgendamento = "", mostrarLembrar = false, contagemLembretes = {},
 }: {
   patients: PanelPatient[];
   presence: PanelPresence[];
   mensagemAniversario: string;
+  /** Doc 49: contagem de lembretes confirmados, chave `${patientId}:${kind}`. */
+  contagemLembretes?: Record<string, number>;
   /** Início da janela de 7 dias, em ISO, calculado no servidor. Ver AtivosInativos. */
   corteSemana: string;
   /** Hoje em YYYY-MM-DD, do servidor. Ver Aniversariantes. */
@@ -80,7 +84,7 @@ export function DashboardPanels({
       <div className="flex flex-col gap-4">
         <Prospeccao patients={patients} />
         <Relatorios patients={patients} presence={presence} corte={corteSemana} />
-        <Aniversariantes patients={patients} modeloSalvo={mensagemAniversario} hoje={hoje} />
+        <Aniversariantes patients={patients} modeloSalvo={mensagemAniversario} hoje={hoje} contagem={contagemLembretes} />
         <QueixaBloco patients={patients} />
         <Pagamentos patients={patients} />
         {mostrarLembrar && <LembrarAgendamento lista={aLembrar} modeloSalvo={mensagemAgendamento} />}
@@ -240,7 +244,7 @@ const ordinal = (mes: number, dia: number) => mes * 100 + dia;
 
 // `hoje` vem do servidor: chamar new Date() aqui daria valor diferente na renderização do
 // servidor e na do cliente, e o React reclamaria da divergência nos campos de data.
-function Aniversariantes({ patients, modeloSalvo, hoje }: { patients: PanelPatient[]; modeloSalvo: string; hoje: string }) {
+function Aniversariantes({ patients, modeloSalvo, hoje, contagem = {} }: { patients: PanelPatient[]; modeloSalvo: string; hoje: string; contagem?: Record<string, number> }) {
   const [ano, mes] = hoje.split("-").map(Number);
   const ultimoDia = new Date(Date.UTC(ano, mes, 0)).getUTCDate();
   const [de, setDe] = useState(`${hoje.slice(0, 8)}01`);
@@ -248,6 +252,10 @@ function Aniversariantes({ patients, modeloSalvo, hoje }: { patients: PanelPatie
   const [modelo, setModelo] = useState(modeloSalvo || MODELO_PADRAO);
   const [salvo, setSalvo] = useState<boolean | null>(null);
   const [avisoAniv, setAvisoAniv] = useState<string | null>(null);
+  // Doc 49: "parabenizado (Nx)" por cadastro — conta só após confirmar o envio (igual o Cobrar).
+  const [enviados, setEnviados] = useState<Record<string, number>>({});
+  const confirmar = useConfirmarEnvio<PanelPatient>();
+  const quantos = (p: PanelPatient) => (contagem[`${p.id}:aniversario`] ?? 0) + (enviados[p.id] ?? 0);
 
   // Doc 21: Parabenizar ABRE o WhatsApp (como Lembrar/Contatar), não o envio interno. Vai no
   // WhatsApp do paciente; sem telefone do paciente, cai no do responsável. {nome} = primeiro nome.
@@ -256,8 +264,13 @@ function Aniversariantes({ patients, modeloSalvo, hoje }: { patients: PanelPatie
     if (!num) { setAvisoAniv(`${p.name} está sem telefone (paciente ou responsável) para o WhatsApp.`); return; }
     setAvisoAniv(null);
     const texto = modelo.replace(/\{nome\}/g, p.name.split(" ")[0]);
-    window.open(texto.trim() ? `https://wa.me/${num}?text=${encodeURIComponent(texto)}` : `https://wa.me/${num}`, "_blank", "noopener");
+    confirmar.abrir(texto.trim() ? `https://wa.me/${num}?text=${encodeURIComponent(texto)}` : `https://wa.me/${num}`, p);
   }
+
+  const registrar = (p: PanelPatient) => {
+    void registrarLembrete(p.id, "aniversario");
+    setEnviados((e) => ({ ...e, [p.id]: (e[p.id] ?? 0) + 1 }));
+  };
 
   const lista = useMemo(() => {
     const limites = (v: string) => {
@@ -310,6 +323,7 @@ function Aniversariantes({ patients, modeloSalvo, hoje }: { patients: PanelPatie
             <div key={p.id} className="flex items-center gap-2 rounded-xl bg-surface/60 px-3 py-2">
               <span className="font-mono text-xs font-bold text-primary shrink-0 w-12">{String(p.dia).padStart(2, "0")}/{String(p.mes).padStart(2, "0")}</span>
               <span className="flex-1 text-sm font-medium truncate">{p.name}</span>
+              {quantos(p) > 0 && <span className="shrink-0 text-[11px] font-semibold text-emerald-600">parabenizado {quantos(p)}x</span>}
               <button type="button" onClick={() => parabenizar(p)}
                 className="shrink-0 text-xs font-bold px-3 py-1.5 rounded-full bg-primary/10 text-primary hover:bg-primary/15 transition">
                 Parabenizar
@@ -319,6 +333,7 @@ function Aniversariantes({ patients, modeloSalvo, hoje }: { patients: PanelPatie
         </div>
       )}
       {avisoAniv && <p className="text-xs font-semibold text-[#b45309]">{avisoAniv}</p>}
+      <ConfirmarEnvioModal aberto={confirmar.pendente != null} onSim={() => confirmar.resolver(true, registrar)} onNao={() => confirmar.resolver(false, registrar)} />
 
       <div className="space-y-1.5 border-t border-border pt-3">
         <span className="text-sm font-semibold text-foreground/60">Mensagem única para todos</span>

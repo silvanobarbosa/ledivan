@@ -10,6 +10,7 @@ import { ListaReajuste } from "@/components/dashboard/ListaReajuste";
 import { ListaDevolutivas } from "@/components/dashboard/ListaDevolutivas";
 import { VencimentosPorDia } from "@/components/dashboard/VencimentosPorDia";
 import { diasParaReajuste } from "@/lib/reajuste";
+import { contarLembretes } from "@/app/dashboard/lembretes-actions";
 import { proximaDevolutiva, devolutivaNaLista, diasParaDevolutiva } from "@/lib/devolutiva";
 import { idadeEmAnos } from "@/lib/idade";
 import { apareceHoje, mesQueVem, pacientesALembrar } from "@/lib/lembrarAgendamento";
@@ -187,6 +188,9 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   }));
   const panelPresence = presenceRows.map((r) => ({ patientId: r.patientId, presente: r.status === "realizada", date: horaDeParede(r.date) }));
 
+  // Doc 49: quantas vezes cada cadastro já foi parabenizado/lembrado (chave `${id}:${kind}`).
+  const contagemLembretes = await contarLembretes(userId);
+
   const weekSessions = Number(weekRows[0]?.val || 0);
   const pacotesAcabando = pkgEndingRows.filter((r) => (Number(r.total) - (pkgRealizedMap.get(r.pid) ?? 0)) === 1).length;
 
@@ -225,13 +229,13 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
         <p className="text-foreground/40 font-medium">Resumo do seu consultório e analíticos de atendimento.</p>
       </section>
 
-      <DashboardPanels patients={panelPatients} presence={panelPresence} mensagemAniversario={user.birthdayMessage ?? ""} aLembrar={aLembrar} mensagemAgendamento={user.agendamentoMessage ?? ""} mostrarLembrar={apareceHoje()} corteSemana={new Date(todayStart - 6 * 24 * 60 * 60 * 1000).toISOString()} hoje={`${diaInicio.getFullYear()}-${String(diaInicio.getMonth() + 1).padStart(2, "0")}-${String(diaInicio.getDate()).padStart(2, "0")}`} />
+      <DashboardPanels patients={panelPatients} presence={panelPresence} mensagemAniversario={user.birthdayMessage ?? ""} aLembrar={aLembrar} mensagemAgendamento={user.agendamentoMessage ?? ""} mostrarLembrar={apareceHoje()} contagemLembretes={contagemLembretes} corteSemana={new Date(todayStart - 6 * 24 * 60 * 60 * 1000).toISOString()} hoje={`${diaInicio.getFullYear()}-${String(diaInicio.getMonth() + 1).padStart(2, "0")}-${String(diaInicio.getDate()).padStart(2, "0")}`} />
 
       {/* Vencimentos por dia (doc 44): logo abaixo da área de Pagamentos. */}
       <VencimentosPorDia />
 
       {/* Reajustes a vencer (doc 9, item 1) — logo abaixo da área de Pagamento. */}
-      <ListaReajuste reajustes={reajustesLista} />
+      <ListaReajuste reajustes={reajustesLista} contagem={contagemLembretes} />
 
       {/* "Pacientes ativos" saiu daqui: o painel "Ativos e inativos" acima abre a mesma lista, e
           ter os dois no mesmo scroll era a mesma informação duas vezes. */}
@@ -280,7 +284,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
       </div>
 
       {/* Próximas devolutivas (doc 9, item 2) — logo abaixo de "Sessões do dia". */}
-      <ListaDevolutivas devolutivas={devolutivasLista} />
+      <ListaDevolutivas devolutivas={devolutivasLista} contagem={contagemLembretes} />
 
       {/* ===== Analíticos de atendimento ===== */}
       <div className="space-y-6 pt-2">
