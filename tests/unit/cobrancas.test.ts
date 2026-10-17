@@ -362,3 +362,27 @@ describe("Gratuito→Mensal: preço 0 do período gratuito não zera a cobrança
     expect(c[0].valor).toBe(FEE);
   });
 });
+
+describe("Faltou — considerar realizada? (doc 45)", () => {
+  it("avulso: Faltou com faltouConta=false NÃO gera cobrança", () => {
+    const ss = [sessao(14), sessao(21, 8, { status: "nao_realizada", faltouConta: false })];
+    const c = cobrancasDoPaciente({ ...base(), sessoes: ss });
+    expect(c.map((x) => x.ids)).toEqual([["s" + (n - 1)]]); // só a 1ª vira cobrança
+  });
+  it("avulso: Faltou com faltouConta=true (ou null) cobra normal", () => {
+    const simN = [sessao(14), sessao(21, 8, { status: "nao_realizada", faltouConta: true })];
+    expect(cobrancasDoPaciente({ ...base(), sessoes: simN }).length).toBe(2);
+    const legado = [sessao(14), sessao(21, 8, { status: "nao_realizada" })];
+    expect(cobrancasDoPaciente({ ...base(), sessoes: legado }).length).toBe(2);
+  });
+  it("pacote: Faltou com faltouConta=false não abate (não entra em nenhuma cobrança)", () => {
+    const faltaId = "s_falta";
+    const b = { ...base(), reserva: { formato: "mensal", pacoteTipo: "completo" }, vezesPorSemana: 1 };
+    const semConta = [sessao(1), sessao(8), { id: faltaId, date: new Date(2026, 8, 15, 14, 0), status: "nao_realizada", faltouConta: false }, sessao(22)];
+    const idsSem = cobrancasDoPaciente({ ...b, sessoes: semConta }).flatMap((x) => x.ids);
+    expect(idsSem).not.toContain(faltaId);
+    const comConta = [sessao(1), sessao(8), { id: faltaId, date: new Date(2026, 8, 15, 14, 0), status: "nao_realizada", faltouConta: true }, sessao(22)];
+    const idsCom = cobrancasDoPaciente({ ...b, sessoes: comConta }).flatMap((x) => x.ids);
+    expect(idsCom).toContain(faltaId);
+  });
+});

@@ -403,17 +403,22 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
     });
   }
 
-  const changeStatus = (id: string, status: SessionStatus, chargeable?: boolean) => {
+  const changeStatus = (id: string, status: SessionStatus, chargeable?: boolean, faltouConta?: boolean) => {
     startTransition(async () => {
-      await updateSessionStatus(id, status, undefined, chargeable);
+      await updateSessionStatus(id, status, undefined, chargeable, faltouConta);
       setSelected(null);
+      setPerguntaFaltou(null);
       router.refresh();
     });
   };
 
-  // O desfecho é escolhido direto, sem perguntar "será cobrada?" — o controle de pagamento é
-  // assunto do financeiro (guia Geral/Controle), não da agenda (dono, 16/09/2026).
-  const pickStatus = (id: string, status: SessionStatus) => changeStatus(id, status);
+  // Doc 45: ao marcar "Faltou", pergunta "Considerar sessão realizada?" (Sim cobra/abate; Não não).
+  // Os demais desfechos vão direto — cobrança é assunto do financeiro (dono, 16/09/2026).
+  const [perguntaFaltou, setPerguntaFaltou] = useState<{ id: string } | null>(null);
+  const pickStatus = (id: string, status: SessionStatus) => {
+    if (status === "nao_realizada") setPerguntaFaltou({ id });
+    else changeStatus(id, status);
+  };
 
   const confirm = (id: string) => {
     startTransition(async () => {
@@ -956,6 +961,19 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
       {/* O alcance da EXCLUSÃO, em dois passos: primeiro se é só este, depois, se são os próximos,
           se o bloco respeita o combinado de dia e hora ou pega tudo. Os números vêm do servidor —
           apagar em bloco sem dizer quantos é pedir confirmação no escuro. */}
+      {perguntaFaltou && (
+        <div className={FUNDO_DA_JANELA} onClick={() => setPerguntaFaltou(null)}>
+          <div className={`${JANELA} max-w-sm`} onClick={(e) => e.stopPropagation()}>
+            <p className="text-lg font-display font-bold text-primary">Considerar sessão realizada?</p>
+            <p className="text-sm text-foreground/60 mt-1">Se <strong>Sim</strong>, a sessão conta para a cobrança (avulso) ou abate do pacote. Se <strong>Não</strong>, não gera cobrança (avulso = R$ 0,00) nem abate do pacote.</p>
+            <div className="flex gap-2 mt-4">
+              <button disabled={pending} onClick={() => changeStatus(perguntaFaltou.id, "nao_realizada", undefined, true)} className="flex-1 bg-primary text-white py-2.5 rounded-xl text-sm font-bold disabled:opacity-60">Sim</button>
+              <button disabled={pending} onClick={() => changeStatus(perguntaFaltou.id, "nao_realizada", undefined, false)} className="flex-1 bg-surface text-foreground/70 py-2.5 rounded-xl text-sm font-bold disabled:opacity-60">Não</button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {perguntaExcluir && (
         <div className={FUNDO_DA_JANELA} onClick={() => { setPerguntaExcluir(null); setQuantos(null); }}>
           <div className={`${JANELA} max-w-sm`} onClick={(e) => e.stopPropagation()}>
