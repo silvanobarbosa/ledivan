@@ -7,6 +7,46 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-10-17 — Docs 46+47 (parte 4): Menu Pagamentos reformulado, lançamento recorrente, OCR livre, taxas de cartão (#417–#420)
+
+**Entregue:**
+- **#417 Menu Pagamentos — "Por mês — todos os cadastros" reformulado** sobre o motor da guia Geral
+  (`geralDoPaciente`), mesma fonte do Vencimentos por dia. Cards de resumo do ano (Atrasados/Em aberto/
+  Pagos) + tabela por mês com **ID do cadastro** (clicável), Vencimento, Atrasado, Em aberto, Pago, Cobrar
+  e Cobranças enviadas. Novo `resolverCobrancas.ts` (fonte única — junta pacote + avulsa embutida na
+  sessão, o bug do doc 48) e `pagamentosPorMes.ts` (puro). ID = nº do registro (#0020) ou, sem número, o nome.
+- **#418 Lançamento recorrente mensal**: "Novo lançamento" ganha "Repetir todo mês" por N meses (2–60).
+  `recorrencia.ts` puro (clamp de fim de mês, virada de ano); datas ancoradas ao meio-dia local (sem bug de fuso).
+- **#419 Ler recibo com OCR**: o 📸 do Financeiro agora LÊ e abre REVISÃO antes de lançar. Grátis =
+  `tesseract.js` no navegador + heurística `reciboOcr.ts` (funciona sem chave); preciso = IA do próprio
+  terapeuta (BYOK) via "Ler com IA". **Alerta de limitação** explícito. `/api/scan` passou a só devolver
+  campos (não grava mais sozinho); gravação revisada por `createTransaction` com origem `scan`.
+  `ScanButton` removido → `ScanRecibo`.
+- **#420 Taxas de débito/crédito** nas Configurações (card novo) + valor **líquido** sob o bruto das
+  receitas no cartão no Financeiro. `finance.liquidoComTaxa/normalizarTaxa`; `preferences.cardFees`. O
+  valor lançado NÃO muda (líquido é só leitura).
+
+**Por quê:** docs 46/47 do dono + fix do doc 48 (avulsa sumia do Vencimentos porque a coleta pegava só
+linhas "pagamento", não a cobrança embutida na linha da sessão — agora `resolverCobrancas` junta as duas).
+
+**Decisões que ficam valendo:**
+- OCR: recurso grátis (Tesseract) + opcional BYOK; sempre com REVISÃO antes de lançar (OCR/IA erram).
+- Taxas de cartão: bruto é o fato lançado; líquido é apoio de leitura, não altera o dado.
+- `resolverCobrancas` é a fonte ÚNICA das cobranças de um cadastro (Vencimentos por dia + Menu Pagamentos).
+
+**Armadilhas:** só o provedor `openai` tem visão (gpt-4o-mini); `groq` é texto e falhava calado no scan —
+o caminho grátis cobre todos. `tesseract.js` é import dinâmico client-side (não entra no SSR).
+
+**PENDENTE (reportado ao dono — precisa de direção/decisão):**
+- **Taxas de cartão — tratamento contábil:** hoje o líquido é só exibição. Decisão do dono: também virar
+  despesa automática "Taxa cartão"? Relatório/caixa usar o líquido no total?
+- **Contagem "lembrado/parabenizado (Nx)"** em aniversário/reajuste/devolutiva: os painéis existem, mas
+  falta registrar cada envio por tipo e definir o que conta (abrir WhatsApp? confirmar?). Precisa de store novo.
+- **Cards na horizontal** (prospecção→devolutivas) + **mobile**: precisam do layout exato do doc e de
+  verificação no navegador.
+
+---
+
 ## 2026-10-17 — Docs 45+46 (parte 3): Faltou, troca de mês, nota nº, relatório/menu, pagamentos (#410–#414)
 
 **Entregue:**
