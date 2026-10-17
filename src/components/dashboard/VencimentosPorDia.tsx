@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { CalendarClock, MessageCircle, Loader2 } from "lucide-react";
 import { formatBRL, SESSION_STATUS_LABELS } from "@/lib/therapy";
 import { numeroDoWhatsapp } from "@/lib/telefoneWhatsapp";
-import { mensagemAvulsa, mensagemPacote, type CobrancaResolvida } from "@/lib/vencimentosDoDia";
+import { mensagemDeCobranca, type CobrancaResolvida } from "@/lib/vencimentosDoDia";
 import { vencimentosEm, registrarCobranca } from "@/app/dashboard/vencimentos-actions";
 import { useConfirmarEnvio, ConfirmarEnvioModal } from "./confirmarEnvio";
 
@@ -13,7 +13,7 @@ const SIT: Record<string, { rotulo: string; cor: string }> = {
   em_aberto: { rotulo: "Em aberto", cor: "text-[#854d0e]" },
   em_atraso: { rotulo: "Em atraso", cor: "text-[#b91c1c]" },
 };
-const TIPO_VENC: Record<string, string> = { dia: "Dia específico", primeira: "1ª sessão do pacote", ultima: "Última sessão do pacote" };
+const TIPO_VENC: Record<string, string> = { primeira: "1ª sessão do pacote", ultima: "Última sessão do pacote" };
 
 /** Hoje no relógio local, em YYYY-MM-DD (sem passar por UTC, que viraria o dia à noite). */
 function hojeLocal(): string {
@@ -67,6 +67,12 @@ export function VencimentosPorDia() {
     setEnviadas((e) => ({ ...e, [c.chave]: (e[c.chave] ?? c.enviosTotal) + 1 }));
   }
   const totalEnvios = (c: CobrancaResolvida) => enviadas[c.chave] ?? c.enviosTotal;
+  // Doc 45: quitado mostra "Pago em [data]" (sem Cobrar nem contagem). Valor = saldo em aberto;
+  // quando quitado, o valor cheio. Coluna Vencimento: data no dia específico; texto na 1ª/última.
+  const pago = (c: CobrancaResolvida) => c.situacao === "pago";
+  const valorExibido = (c: CobrancaResolvida) => (pago(c) ? c.valor : c.falta);
+  const vencimentoCol = (c: CobrancaResolvida) => (c.tipoVencimento === "primeira" || c.tipoVencimento === "ultima" ? TIPO_VENC[c.tipoVencimento] : dataBR(c.vencimento));
+  const temTelefone = (c: CobrancaResolvida) => !!numeroDoWhatsapp(c.telefone);
 
   const th = "px-2 py-2 text-left font-bold whitespace-nowrap";
   const td = "px-2 py-2 whitespace-nowrap";
@@ -102,10 +108,10 @@ export function VencimentosPorDia() {
                         <td className={`${td} font-semibold`}>{c.nome}</td>
                         <td className={td}>{dataBR(c.dataSessao)}</td>
                         <td className={td}>{dataBR(c.horarioAtraso)} {horaBR(c.horarioAtraso)}</td>
-                        <td className={`${td} tabular-nums`}>{formatBRL(c.valor)}</td>
+                        <td className={`${td} tabular-nums`}>{formatBRL(valorExibido(c))}</td>
                         <td className={`${td} font-semibold ${SIT[c.situacao]?.cor ?? ""}`}>{SIT[c.situacao]?.rotulo ?? c.situacao}</td>
-                        <td className={td}><button type="button" onClick={() => cobrar(c, mensagemAvulsa(c))} disabled={!numeroDoWhatsapp(c.telefone)} title={numeroDoWhatsapp(c.telefone) ? "Cobrar pelo WhatsApp" : "Cadastro sem telefone"} className={btnCobrar}><MessageCircle className="w-3.5 h-3.5" /> Cobrar</button></td>
-                        <td className={`${td} tabular-nums text-center`}>{totalEnvios(c)}</td>
+                        <td className={td}>{pago(c) ? <span className="text-[11px] text-[#047857] whitespace-nowrap">Pago em {dataBR(c.pagoEm)}</span> : <button type="button" onClick={() => cobrar(c, mensagemDeCobranca(c))} disabled={!temTelefone(c)} title={temTelefone(c) ? "Cobrar pelo WhatsApp" : "Cadastro sem telefone"} className={btnCobrar}><MessageCircle className="w-3.5 h-3.5" /> Cobrar</button>}</td>
+                        <td className={`${td} tabular-nums text-center`}>{pago(c) ? "—" : totalEnvios(c)}</td>
                       </tr>
                     ))}
                   </tbody>
@@ -122,20 +128,20 @@ export function VencimentosPorDia() {
               <div className="overflow-x-auto">
                 <table className="w-full text-xs">
                   <thead className="text-foreground/50 border-b border-border">
-                    <tr><th className={th}>Nome</th><th className={th}>Tipo de vencimento</th><th className={th}>1ª sessão</th><th className={th}>Última sessão</th><th className={th}>Última realizada</th><th className={th}>Status</th><th className={th}>Valor a pagar</th><th className={th}>Cobrar</th><th className={th}>Cobranças enviadas</th></tr>
+                    <tr><th className={th}>Nome</th><th className={th}>Vencimento</th><th className={th}>1ª sessão</th><th className={th}>Última sessão</th><th className={th}>Última realizada</th><th className={th}>Status</th><th className={th}>Valor a pagar</th><th className={th}>Cobrar</th><th className={th}>Cobranças enviadas</th></tr>
                   </thead>
                   <tbody className="divide-y divide-border">
                     {pacotes.map((c) => (
                       <tr key={c.chave}>
                         <td className={`${td} font-semibold`}>{c.nome}</td>
-                        <td className={td}>{TIPO_VENC[c.tipoVencimento ?? "dia"]}</td>
+                        <td className={td}>{vencimentoCol(c)}</td>
                         <td className={td}>{dataBR(c.primeiraSessao)}</td>
                         <td className={td}>{dataBR(c.ultimaSessao)}</td>
                         <td className={td}>{c.ultimaRealizada ? `${dataBR(c.ultimaRealizada.data)} · ${SESSION_STATUS_LABELS[c.ultimaRealizada.status] ?? c.ultimaRealizada.status}` : "—"}</td>
                         <td className={`${td} font-semibold ${SIT[c.situacao]?.cor ?? ""}`}>{SIT[c.situacao]?.rotulo ?? c.situacao}</td>
-                        <td className={`${td} tabular-nums`}>{formatBRL(c.valor)}</td>
-                        <td className={td}><button type="button" onClick={() => cobrar(c, mensagemPacote(c))} disabled={!numeroDoWhatsapp(c.telefone)} title={numeroDoWhatsapp(c.telefone) ? "Cobrar pelo WhatsApp" : "Cadastro sem telefone"} className={btnCobrar}><MessageCircle className="w-3.5 h-3.5" /> Cobrar</button></td>
-                        <td className={`${td} tabular-nums text-center`}>{totalEnvios(c)}</td>
+                        <td className={`${td} tabular-nums`}>{formatBRL(valorExibido(c))}</td>
+                        <td className={td}>{pago(c) ? <span className="text-[11px] text-[#047857] whitespace-nowrap">Pago em {dataBR(c.pagoEm)}</span> : <button type="button" onClick={() => cobrar(c, mensagemDeCobranca(c))} disabled={!temTelefone(c)} title={temTelefone(c) ? "Cobrar pelo WhatsApp" : "Cadastro sem telefone"} className={btnCobrar}><MessageCircle className="w-3.5 h-3.5" /> Cobrar</button>}</td>
+                        <td className={`${td} tabular-nums text-center`}>{pago(c) ? "—" : totalEnvios(c)}</td>
                       </tr>
                     ))}
                   </tbody>
