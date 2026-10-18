@@ -7,6 +7,39 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-10-18 — Paleta azul + doc 50 (parte 1): ajustes de UI financeira/agenda (#426–#429)
+
+**Entregue:**
+- **#426 Paleta azul (Lovable).** Ledivan sai de berinjela/creme para azul profundo #0B3D91 · azul céu
+  #3BA7F2 · menta #7FE7D6 · gelo #E8F6FF. Os NOMES dos tokens foram mantidos (inclusive "eggplant") →
+  só os valores mudaram, em globals.css + hex de marca espalhados (charts, landing, prontuário,
+  themeColor, e-mails). Fonte do design: repo `silvanobarbosa/ledivan-practice-companion` (lido, não escrito).
+- **#427 Vencimentos por dia:** avulsa mostra data+hora da sessão; coluna "Horário de atraso" removida;
+  título "Cobrar" sem texto (avulsa e pacote); títulos centralizados.
+- **#428 Relatório financeiro:** valores coloridos pelo filtro (Em atraso vermelho, Pagos azul, Em
+  aberto/Todos preto); títulos centralizados. **Agenda:** HOUR_PX 48→60 + alturas mínimas maiores
+  (os dados estavam sendo cortados).
+- **#429 Atender:** removida a janela "finalizar atendimento" — Finalizar marca como realizada direto;
+  as regras de cobrança já vêm do formato do cadastro.
+
+**Ops (fora do repo):** base de dados da terapeuta Ana Raquel Bassi **zerada** (dados apagados, conta
+mantida) a pedido do dono.
+
+**PENDENTE do doc 50 (grande — próximas levas):**
+- Relatório pacientes: "Avulso/Mensal" → **Formato de pagamento** (Gratuito/Avulso/Mensal Completo/
+  Fracionado/Quinzenal Completo/Fracionado) + regra de Vencimento (dia / 1ª / última sessão) e Valor;
+  centralizar títulos.
+- **Menu Pagamentos reformula:** título "Nome" com agendaId; pagos por forma (Pix/Deb/Cre/Din/Trans)
+  com **líquido** no cartão; 1º mês reduzido; "Por mês" abaixo dos cards; Pagos=soma líquida; "Por
+  cadastro" só Mês+Valores recebidos (com breakdown por forma); cores = Relatório financeiro.
+- **Líquido em TODAS as áreas de cobrança** (bruto só na Geral/contrato; resto bruto+líquido; somas
+  pelo líquido) — exige threar `method` pelo motor `geralDoPaciente`.
+- **Transações:** tabelas Despesas + Receitas (cadastro/edição/lixeira, cores por status) + área
+  **Movimentações (extrato bancário)** unificada; substitui a visão de conciliado.
+- **Taxa de parcelado 2x/3x** no Ajuste + crédito à vista/2x/3x na guia Geral.
+
+---
+
 ## 2026-10-17 — Doc 49: taxa de cartão com vigência + líquido, ordem do dashboard, contagem de lembretes (#422–#424)
 
 **Entregue:**
