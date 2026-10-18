@@ -29,15 +29,19 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 **Armadilhas:** tabelas/enum sempre ADITIVOS em prod (ALTER TABLE/TYPE ADD, nunca db:push interativo).
 
-**PENDENTE do doc 50:**
-- **Item 1 — Relatório pacientes "Formato de pagamento":** as 6 categorias (Gratuito/Avulso/Mensal
-  Completo/Fracionado/Quinzenal Completo/Fracionado) + Vencimento (dia/1ª/última sessão) + Valor
-  (Completo = nº sessões × valor; Fracionado = valor por sessão). ATENÇÃO: o `paymentFormat` guarda o
-  TIMING do vencimento (mensal/primeira_pacote/ultima_pacote) e `pacoteTipo` o completo/fragmentado —
-  confirmar como mensal × quinzenal se distinguem no banco antes de mapear (risco de rótulo errado).
-- **Item 6 — módulo Transações:** tabelas Despesas (venc/nome/valor/pagamento, cores por status) e
-  Receitas pessoais + área **Movimentações (extrato bancário)** unificando despesas/receitas/pagamentos
-  de pacientes/supervisionados, cronológico, cartão com bruto+líquido; substitui a visão de conciliado.
+**#436 Relatório pacientes — "Formato de pagamento" (item 1):** coluna "Avulso/Pacote" → Formato de
+pagamento (Gratuito/Avulso/Mensal Completo/Fracionado/Quinzenal Completo/Fracionado); Vencimento
+(dia/1ª/última sessão do pacote); Valor (Completo = nº sessões × valor; Fracionado = por sessão);
+títulos centralizados. `formatoRelatorio.ts` puro; mapeamento conferido nos dados reais (1ª/última só
+existem no pacote mensal).
+
+**PENDENTE do doc 50 (último item):**
+- **Item 6 — módulo Transações (grande):** tabelas Despesas (venc/nome/valor/pagamento, edição
+  lápis/lixeira, cores por status verde/preto/vermelho) e Receitas pessoais + área **Movimentações
+  (extrato bancário)** unificando despesas/receitas/pagamentos de pacientes/supervisionados em ordem
+  cronológica (data prevista enquanto pendente, efetiva após; valor verde=recebido/vermelho=pago/
+  vazio=pendente; cartão com bruto+líquido); substitui a visão de conciliado. Ambiguidade a resolver:
+  modelo de "receita pendente × recebida".
 
 ---
 
