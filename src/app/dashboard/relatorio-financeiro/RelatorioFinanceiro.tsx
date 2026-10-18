@@ -22,6 +22,10 @@ export function RelatorioFinanceiro({ pacientes }: { pacientes: PacienteFin[] })
 
   const m = useMemo(() => matrizFinanceira(pacientes, ano, situacao), [pacientes, ano, situacao]);
 
+  // Doc 50: cor do valor conforme a situação selecionada — Em atraso vermelho, Pagos azul,
+  // Em aberto (e Todos) permanecem em preto.
+  const corValor = situacao === "atraso" ? "text-[#b91c1c]" : situacao === "pagos" ? "text-[#2563eb]" : "text-foreground/80";
+
   return (
     <div className="space-y-4">
       <div className="glass-card rounded-[24px] p-5 flex flex-wrap items-end gap-4 no-print">
@@ -55,16 +59,17 @@ export function RelatorioFinanceiro({ pacientes }: { pacientes: PacienteFin[] })
             <thead>
               <tr className="border-b border-border text-foreground/50">
                 <th className="px-2 py-2 text-left font-bold sticky left-0 bg-surface" aria-label="Cadastro"></th>
-                {MESES.map((mes) => <th key={mes} className="px-2 py-2 text-right font-bold tabular-nums">{mes}</th>)}
-                <th className="px-2 py-2 text-right font-bold tabular-nums">Total</th>
+                {/* Doc 50: títulos centralizados. */}
+                {MESES.map((mes) => <th key={mes} className="px-2 py-2 text-center font-bold tabular-nums">{mes}</th>)}
+                <th className="px-2 py-2 text-center font-bold tabular-nums">Total</th>
               </tr>
             </thead>
             <tbody>
               {m.linhas.map((l) => (
                 <tr key={l.id} className="border-b border-border/60">
                   <td className="px-2 py-2 font-medium sticky left-0 bg-white truncate max-w-[180px]" title={l.nome}>{l.nome}</td>
-                  {l.meses.map((v, i) => <td key={i} className="px-2 py-2 text-right tabular-nums text-foreground/70">{brl(v)}</td>)}
-                  <td className="px-2 py-2 text-right tabular-nums font-bold">{brl(l.total)}</td>
+                  {l.meses.map((v, i) => <td key={i} className={`px-2 py-2 text-right tabular-nums ${corValor}`}>{brl(v)}</td>)}
+                  <td className={`px-2 py-2 text-right tabular-nums font-bold ${corValor}`}>{brl(l.total)}</td>
                 </tr>
               ))}
             </tbody>

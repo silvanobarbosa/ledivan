@@ -76,7 +76,7 @@ const START_HOUR = 6;
 const END_HOUR = 22; // exibe as linhas de 6h até 21h (o dono pediu 6h–21h)
 // Doc 38: linhas mais BAIXAS (era 64) → mais agendamentos na tela sem perder legibilidade. Os
 // blocos de sessão e os rótulos de hora acompanham este valor automaticamente.
-const HOUR_PX = 48;
+const HOUR_PX = 60; // doc 50: linha mais alta — os dados estavam sendo cortados (era 48)
 const hours = Array.from({ length: END_HOUR - START_HOUR }, (_, i) => START_HOUR + i);
 
 function startOfWeek(d: Date) {
@@ -434,7 +434,7 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
     const d = new Date(s.date);
     const minutes = (d.getHours() - START_HOUR) * 60 + d.getMinutes();
     const top = Math.max(0, (minutes / 60) * HOUR_PX);
-    const height = Math.max(26, (s.duration / 60) * HOUR_PX - 2);
+    const height = Math.max(34, (s.duration / 60) * HOUR_PX - 2);
     return { top, height };
   };
 
@@ -636,7 +636,7 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
                       const d = new Date(b.date);
                       const minutos = (d.getHours() - START_HOUR) * 60 + d.getMinutes();
                       const top = Math.max(0, (minutos / 60) * HOUR_PX);
-                      const height = Math.max(22, (b.duration / 60) * HOUR_PX - 2);
+                      const height = Math.max(30, (b.duration / 60) * HOUR_PX - 2);
                       const texto = textoDoBloqueio(b.note);
                       return (
                         <div
