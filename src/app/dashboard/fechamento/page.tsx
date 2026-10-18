@@ -4,6 +4,7 @@ import { CalendarCheck, ChevronLeft, ChevronRight } from "lucide-react";
 import { db } from "@/db";
 import { auth } from "@/auth";
 import { patientPackages, patientPaymentFormatHistory, patientPriceHistory, patients, sessionPayments, therapySessions } from "@/db/schema";
+import { getVigenciasTaxa } from "@/lib/cardFees";
 import { tamanhosDasSequencias } from "@/lib/sequenciaPacote";
 import {
   linhaDoFechamento,
@@ -91,6 +92,7 @@ export default async function FechamentoPage({
         amount: sessionPayments.amount,
         date: sessionPayments.date,
         status: sessionPayments.status,
+        method: sessionPayments.method,
       })
       .from(sessionPayments)
       .where(eq(sessionPayments.userId, userId)),
@@ -147,7 +149,9 @@ export default async function FechamentoPage({
     valor: Number(p.amount) || 0,
     data: p.date,
     status: p.status,
+    metodo: p.method,
   }));
+  const taxaVigencias = await getVigenciasTaxa(userId);
 
   const linhas = ordemDoFechamento(
     carteira.map((p) =>
@@ -168,6 +172,7 @@ export default async function FechamentoPage({
         pagamentos: pagos,
         tamanhos: tamanhosDasSequencias(contratos.filter((c) => c.patientId === p.id)),
         vigencias: vigencias.filter((v) => v.patientId === p.id),
+        taxaVigencias,
         ano,
         mes,
       }),

@@ -18,6 +18,9 @@
  */
 
 import { ativasEmOrdem, sessoesDoMes, type SessaoDoPacote } from "./pacoteMes";
+import { liquidoDoPagamento, type VigenciaTaxa } from "./taxaCartao";
+
+const isoData = (d: Date | string): string => (d instanceof Date ? d.toISOString() : String(d));
 import { precoNaData, type PrecoVigente } from "./preco";
 import { cobrancasDoPaciente, type Cobranca, type SessaoDaCobranca } from "./cobrancas";
 import type { VigenciaDoFormato } from "./vigenciaDoFormato";
@@ -58,6 +61,8 @@ export type PagamentoDoMes = {
   data: Date | string;
   /** `paid` conta; `pending` e `overdue` não entraram ainda. */
   status: string;
+  /** Doc 50: forma de pagamento — o recebido entra pelo líquido no débito/crédito. */
+  metodo?: string | null;
 };
 
 
@@ -219,23 +224,23 @@ export function sessoesCobradas(opts: {
   return sessoesDoMes(opts.sessoes, opts.ano, opts.mes);
 }
 
-/** O que entrou no mês para aquele paciente. Só o que foi realmente pago. */
-export function pagoNoMes(pagamentos: PagamentoDoMes[], pacienteId: string, ano: number, mes: number): number {
+/** O que entrou no mês para aquele paciente. Só o pago, pelo valor LÍQUIDO (doc 50). */
+export function pagoNoMes(pagamentos: PagamentoDoMes[], pacienteId: string, ano: number, mes: number, taxaVigencias: VigenciaTaxa[] = []): number {
   const total = pagamentos
     .filter((p) => p.pacienteId === pacienteId && p.status === "paid")
-    .map((p) => ({ valor: Number(p.valor), data: emData(p.data) }))
+    .map((p) => ({ valor: liquidoDoPagamento(Number(p.valor), p.metodo, isoData(p.data), taxaVigencias), data: emData(p.data) }))
     .filter((p) => Number.isFinite(p.valor) && !Number.isNaN(p.data.getTime()))
     .filter((p) => p.data.getFullYear() === ano && p.data.getMonth() === mes)
     .reduce((soma, p) => soma + p.valor, 0);
   return Number(total.toFixed(2));
 }
 
-/** Tudo que o paciente pagou até o fim daquele mês. */
-export function pagoAte(pagamentos: PagamentoDoMes[], pacienteId: string, ano: number, mes: number): number {
+/** Tudo que o paciente pagou até o fim daquele mês, pelo valor LÍQUIDO (doc 50). */
+export function pagoAte(pagamentos: PagamentoDoMes[], pacienteId: string, ano: number, mes: number, taxaVigencias: VigenciaTaxa[] = []): number {
   const limite = new Date(ano, mes + 1, 0, 23, 59, 59, 999);
   const total = pagamentos
     .filter((p) => p.pacienteId === pacienteId && p.status === "paid")
-    .map((p) => ({ valor: Number(p.valor), data: emData(p.data) }))
+    .map((p) => ({ valor: liquidoDoPagamento(Number(p.valor), p.metodo, isoData(p.data), taxaVigencias), data: emData(p.data) }))
     .filter((p) => Number.isFinite(p.valor) && !Number.isNaN(p.data.getTime()))
     .filter((p) => p.data.getTime() <= limite.getTime())
     .reduce((soma, p) => soma + p.valor, 0);
@@ -277,6 +282,8 @@ export function linhaDoFechamento(opts: {
   tamanhos?: number[];
   /** O histórico de formato do paciente. Vazio = vale o formato do cadastro para tudo. */
   vigencias?: VigenciaDoFormato[];
+  /** Doc 50: vigências de TAXA de cartão — o recebido entra pelo líquido. */
+  taxaVigencias?: VigenciaTaxa[];
   ano: number;
   mes: number;
 }): LinhaDoFechamento {
@@ -309,9 +316,9 @@ export function linhaDoFechamento(opts: {
 
   const naAgenda = sessoesDoMes(opts.sessoes as SessaoDoPacote[], ano, mes);
   const cobradoNoMes = soma(doMes);
-  const pagoNoMesAtual = pagoNoMes(opts.pagamentos, paciente.id, ano, mes);
+  const pagoNoMesAtual = pagoNoMes(opts.pagamentos, paciente.id, ano, mes, opts.taxaVigencias ?? []);
   const cobradoAcumulado = soma(acumuladas);
-  const pagoAcumulado = pagoAte(opts.pagamentos, paciente.id, ano, mes);
+  const pagoAcumulado = pagoAte(opts.pagamentos, paciente.id, ano, mes, opts.taxaVigencias ?? []);
   const saldo = Number((cobradoAcumulado - pagoAcumulado).toFixed(2));
   // Cobra se o formato de ALGUM momento cobrou, ou se sobrou cobrança — não só o de hoje.
   const temCobranca = cobrancas.length > 0 || cobra(paciente.formato);
