@@ -7,6 +7,40 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-10-18 — Doc 50 (parte 2): líquido em todas as cobranças, Menu Pagamentos, taxa parcelado (#431–#434)
+
+**Entregue:**
+- **#431 Menu Pagamentos reformulado + líquido por forma.** "Por mês — todos os cadastros": coluna
+  "Nome" com o id do cadastro (agenda); cores Atrasado vermelho / Em aberto preto / Pago azul; "Pago"
+  quebrado por forma (Pix/Deb/Cre/Din/Trans) com o **líquido** em verde no cartão; "Pagos" (card do ano)
+  = soma dos líquidos; meses começam reduzidos; títulos centralizados. "Por cadastro — mês a mês": só
+  Mês + Valores recebidos (por forma, com líquido). Núcleo: `resolverCobrancas` anexa o recebido por
+  forma (bruto+líquido) + agendaId; novo `recebidoPorForma.ts` (puro).
+- **#432 + #433 Líquido nas demais áreas de cobrança.** Relatório financeiro (matriz), ficha/TabelaAnual
+  e Fechamento do mês passam a somar o recebido pelo **líquido**. Em aberto/atraso seguem no bruto.
+- **#434 Taxa de crédito parcelado 2x/3x.** Vigência de taxa ganha crédito 2x e 3x; no registro de
+  pagamento o crédito abre à vista / 2x / 3x e o líquido usa a % do parcelamento.
+
+**Decisões que ficam valendo:**
+- O recebido é **líquido** em todo "total recebido" (Transações, Relatórios, Visão financeira,
+  Pagamentos, Relatório financeiro, ficha, Fechamento); **bruto** só na guia Geral/contrato (preço
+  contratado). Somas sempre pelo líquido, descontado uma vez (`carregarNetter`/`liquidoDoPagamento`).
+- Taxa por vigência na data do pagamento; parcelado 2x/3x com % próprio.
+
+**Armadilhas:** tabelas/enum sempre ADITIVOS em prod (ALTER TABLE/TYPE ADD, nunca db:push interativo).
+
+**PENDENTE do doc 50:**
+- **Item 1 — Relatório pacientes "Formato de pagamento":** as 6 categorias (Gratuito/Avulso/Mensal
+  Completo/Fracionado/Quinzenal Completo/Fracionado) + Vencimento (dia/1ª/última sessão) + Valor
+  (Completo = nº sessões × valor; Fracionado = valor por sessão). ATENÇÃO: o `paymentFormat` guarda o
+  TIMING do vencimento (mensal/primeira_pacote/ultima_pacote) e `pacoteTipo` o completo/fragmentado —
+  confirmar como mensal × quinzenal se distinguem no banco antes de mapear (risco de rótulo errado).
+- **Item 6 — módulo Transações:** tabelas Despesas (venc/nome/valor/pagamento, cores por status) e
+  Receitas pessoais + área **Movimentações (extrato bancário)** unificando despesas/receitas/pagamentos
+  de pacientes/supervisionados, cronológico, cartão com bruto+líquido; substitui a visão de conciliado.
+
+---
+
 ## 2026-10-18 — Paleta azul + doc 50 (parte 1): ajustes de UI financeira/agenda (#426–#429)
 
 **Entregue:**
