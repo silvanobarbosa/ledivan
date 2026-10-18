@@ -33,7 +33,7 @@ export function PorMesCadastros({ year }: { year: number }) {
       if (!vivo) return;
       setMeses(r.ok ? r.meses ?? [] : []);
       setResumo(r.ok ? r.resumo ?? null : null);
-      setAberto(r.ok && r.meses?.length ? r.meses[0].mes : null);
+      setAberto(null); // doc 50: todos os meses começam reduzidos (inclusive o primeiro)
       setCarregando(false);
     });
     return () => { vivo = false; };
@@ -48,9 +48,11 @@ export function PorMesCadastros({ year }: { year: number }) {
     setEnviadas((e) => ({ ...e, [c.chave]: (e[c.chave] ?? c.enviosTotal) + 1 }));
   };
   const envios = (c: LinhaPagamento) => enviadas[c.chave] ?? c.enviosTotal;
-  const idLabel = (c: LinhaPagamento) => (c.registro != null ? `#${String(c.registro).padStart(4, "0")}` : c.nome);
+  // Doc 50: coluna "Nome" com o ID do cadastro (agenda); sem agenda, cai no nome.
+  const idLabel = (c: LinhaPagamento) => (c.agendaId?.trim() ? c.agendaId : c.nome);
 
-  const th = "px-2 py-2 text-left font-bold whitespace-nowrap";
+  // Doc 50: títulos centralizados.
+  const th = "px-2 py-2 text-center font-bold whitespace-nowrap";
   const td = "px-2 py-2 whitespace-nowrap";
 
   return (
@@ -81,18 +83,32 @@ export function PorMesCadastros({ year }: { year: number }) {
                 <div className="overflow-x-auto">
                   <table className="w-full text-xs">
                     <thead className="text-foreground/50 border-b border-border">
-                      <tr><th className={th}>ID do cadastro</th><th className={th}>Vencimento</th><th className={th}>Atrasado</th><th className={th}>Em aberto</th><th className={th}>Pago</th><th className={th}>Cobrar</th><th className={th}>Cobranças enviadas</th></tr>
+                      {/* Doc 50: "Nome" = id do cadastro; cores atraso vermelho / em aberto preto / pago azul;
+                          "Pago" quebrado por forma, com o líquido em verde no débito/crédito. */}
+                      <tr><th className={th}>Nome</th><th className={th}>Vencimento</th><th className={th}>Atrasado</th><th className={th}>Em aberto</th><th className={th}>Pago</th><th className={th} /><th className={th}>Cobranças enviadas</th></tr>
                     </thead>
                     <tbody className="divide-y divide-border">
                       {m.cobrancas.map((c) => {
                         const pago = c.situacao === "pago";
+                        const formas = c.recebido?.formas ?? [];
                         return (
                           <tr key={c.chave}>
                             <td className={`${td} font-semibold`}><Link href={`/dashboard/patients/${c.cadastroId}`} className="text-primary hover:underline">{idLabel(c)}</Link></td>
                             <td className={td}>{dataBR(c.vencimento)}</td>
                             <td className={`${td} tabular-nums ${c.atrasado > 0 ? "text-[#b91c1c] font-semibold" : "text-foreground/30"}`}>{c.atrasado > 0 ? formatBRL(c.atrasado) : "—"}</td>
-                            <td className={`${td} tabular-nums ${c.emAberto > 0 ? "text-[#854d0e]" : "text-foreground/30"}`}>{c.emAberto > 0 ? formatBRL(c.emAberto) : "—"}</td>
-                            <td className={`${td} tabular-nums ${c.pago > 0 ? "text-[#166534]" : "text-foreground/30"}`}>{c.pago > 0 ? formatBRL(c.pago) : "—"}</td>
+                            <td className={`${td} tabular-nums ${c.emAberto > 0 ? "text-foreground" : "text-foreground/30"}`}>{c.emAberto > 0 ? formatBRL(c.emAberto) : "—"}</td>
+                            <td className={`${td} tabular-nums`}>
+                              {formas.length === 0 ? <span className="text-foreground/30">—</span> : (
+                                <div className="space-y-0.5">
+                                  {formas.map((f) => (
+                                    <div key={f.metodo}>
+                                      <span className="text-[#2563eb]">{formatBRL(f.bruto)} {f.curto}</span>
+                                      {f.temTaxa && <span className="block text-[11px] text-[#047857]">Líquido {formatBRL(f.liquido)}</span>}
+                                    </div>
+                                  ))}
+                                </div>
+                              )}
+                            </td>
                             <td className={td}>{pago ? <span className="text-[11px] text-[#047857] whitespace-nowrap">Pago em {dataBR(c.pagoEm)}</span> : <button type="button" onClick={() => cobrar(c)} disabled={!numeroDoWhatsapp(c.telefone)} title={numeroDoWhatsapp(c.telefone) ? "Cobrar pelo WhatsApp" : "Cadastro sem telefone"} className="inline-flex items-center gap-1 text-xs font-bold px-3 py-1.5 rounded-full bg-primary/10 text-primary hover:bg-primary/15 transition disabled:opacity-40"><MessageCircle className="w-3.5 h-3.5" /> Cobrar</button>}</td>
                             <td className={`${td} tabular-nums text-center`}>{pago ? "—" : envios(c)}</td>
                           </tr>

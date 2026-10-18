@@ -4,6 +4,7 @@ import { sessionPayments, patients } from "@/db/schema";
 import { and, eq, gte, lte } from "drizzle-orm";
 import { Banknote } from "lucide-react";
 import { PagamentosClient } from "./PagamentosClient";
+import { getVigenciasTaxa } from "@/lib/cardFees";
 
 export const dynamic = "force-dynamic";
 const ym = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
@@ -23,9 +24,11 @@ export default async function PagamentosPage({ searchParams }: { searchParams: P
     db.select({ id: patients.id, name: patients.name, phone: patients.phone, status: patients.patientStatus }).from(patients).where(eq(patients.userId, userId)),
   ]);
 
-  // Quadro 1 (por paciente): recebido por mês + info (métodos) — passa pagamentos leves.
+  // Quadro 1 (por cadastro): recebido por mês quebrado por forma (bruto+líquido). Precisa da forma e
+  // da data de cada pagamento + das vigências de taxa (doc 50).
+  const vigencias = await getVigenciasTaxa(userId);
   const paymentsLite = pays.filter((p) => p.status === "paid" && p.kind !== "pacote")
-    .map((p) => ({ patientId: p.patientId, ym: ym(new Date(p.date)), amount: Number(p.amount) || 0, method: p.method ?? "" }));
+    .map((p) => ({ patientId: p.patientId, ym: ym(new Date(p.date)), data: new Date(p.date).toISOString(), amount: Number(p.amount) || 0, method: p.method ?? "" }));
 
   return (
     <div className="max-w-5xl mx-auto space-y-6 pb-20">
@@ -39,6 +42,7 @@ export default async function PagamentosPage({ searchParams }: { searchParams: P
         year={year}
         patients={pats.filter((p) => p.status !== "prospect").map((p) => ({ id: p.id, name: p.name }))}
         payments={paymentsLite}
+        vigencias={vigencias}
       />
     </div>
   );

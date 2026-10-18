@@ -7,6 +7,8 @@
  * a regra de filtro/ordenação/mensagem poder ser conferida sem tocar em dado de verdade.
  */
 
+import { type RecebidoResumo } from "./recebidoPorForma";
+
 export type SituacaoVenc = "pago" | "em_aberto" | "em_atraso";
 export type TipoVencimentoPacote = "dia" | "primeira" | "ultima";
 
@@ -15,6 +17,10 @@ export type CobrancaResolvida = {
   nome: string;
   /** Doc 46: número do cadastro (#0020) — é o "ID do cadastro" clicável no Menu Pagamentos. */
   registro?: number | null;
+  /** Doc 50: id do cadastro (agenda) — vira o conteúdo da coluna "Nome" do Menu Pagamentos. */
+  agendaId?: string | null;
+  /** Doc 50: o recebido desta cobrança por forma de pagamento, com bruto e líquido (soma pelo líquido). */
+  recebido?: RecebidoResumo;
   /** Telefone do responsável financeiro ou, na falta, da própria pessoa. */
   telefone: string | null;
   chave: string;

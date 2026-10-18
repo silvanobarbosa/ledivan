@@ -7,10 +7,14 @@ export type ResumoAno = { atrasados: { qtd: number; total: number }; aberto: { q
 const MES_PT = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
 const r2 = (n: number) => Math.round(n * 100) / 100;
 
-/** Quanto cada cobrança representa em atrasado / em aberto / pago (doc 46). */
+/**
+ * Quanto cada cobrança representa em atrasado / em aberto / pago (doc 46/50).
+ * Atrasado e Em aberto = o que falta receber (valor BRUTO contratado, o que é devido).
+ * Pago = o que de fato entrou, pelo valor LÍQUIDO (desconta a taxa do cartão) — doc 50.
+ */
 function decompor(c: CobrancaResolvida): { atrasado: number; emAberto: number; pago: number } {
-  const pago = r2(c.valor - c.falta);
-  if (c.situacao === "pago") return { atrasado: 0, emAberto: 0, pago: c.valor };
+  const pago = r2(c.recebido?.totalLiquido ?? c.valor - c.falta);
+  if (c.situacao === "pago") return { atrasado: 0, emAberto: 0, pago };
   if (c.situacao === "em_atraso") return { atrasado: c.falta, emAberto: 0, pago };
   return { atrasado: 0, emAberto: c.falta, pago };
 }
@@ -32,7 +36,9 @@ export function pagamentosPorMes(todas: CobrancaResolvida[], ano: number): { mes
     (porMes.get(mes) ?? porMes.set(mes, []).get(mes)!).push(linha);
     if (c.situacao === "em_atraso") { resumo.atrasados.qtd++; resumo.atrasados.total = r2(resumo.atrasados.total + c.falta); }
     else if (c.situacao === "em_aberto") { resumo.aberto.qtd++; resumo.aberto.total = r2(resumo.aberto.total + c.falta); }
-    else if (c.situacao === "pago") { resumo.pagos.qtd++; resumo.pagos.total = r2(resumo.pagos.total + c.valor); }
+    // Doc 50: "Pagos" = soma dos valores LÍQUIDOS recebidos (cartão desconta a taxa), não dos brutos.
+    // Conta toda cobrança que recebeu algo (inclusive parciais), não só as quitadas.
+    if (d.pago > 0.005) { resumo.pagos.qtd++; resumo.pagos.total = r2(resumo.pagos.total + d.pago); }
   }
 
   const meses: MesPagamentos[] = [...porMes.entries()]
