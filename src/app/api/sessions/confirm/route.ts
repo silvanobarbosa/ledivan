@@ -11,9 +11,9 @@ export const runtime = "nodejs";
 function page(title: string, sub: string, ok: boolean) {
   return new Response(
     `<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-     <div style="font-family:system-ui;text-align:center;padding:56px 22px;color:#1a0f1f;background:#faf6f1;min-height:100vh">
+     <div style="font-family:system-ui;text-align:center;padding:56px 22px;color:#122749;background:#e8f6ff;min-height:100vh">
        <div style="font-size:52px">${ok ? "✅" : "⚠️"}</div>
-       <h2 style="color:#2b1830;margin:12px 0 6px">${title}</h2>
+       <h2 style="color:#0b3d91;margin:12px 0 6px">${title}</h2>
        <p style="color:#6b5b66">${sub}</p>
      </div>`,
     { status: ok ? 200 : 400, headers: { "Content-Type": "text/html; charset=utf-8" } },

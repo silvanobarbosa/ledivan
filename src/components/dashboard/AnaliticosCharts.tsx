@@ -32,7 +32,7 @@ export function AnaliticosCharts({ monthly, weekday }: { monthly: Pt[]; weekday:
               <XAxis dataKey="label" tick={{ fill: "#9b8aa0", fontSize: 11 }} tickLine={false} axisLine={false} />
               <YAxis allowDecimals={false} tick={{ fill: "#9b8aa0", fontSize: 11 }} tickLine={false} axisLine={false} width={32} />
               <Tooltip contentStyle={tip} />
-              <Line type="monotone" dataKey="count" name="Atendimentos" stroke="#2b1830" strokeWidth={3} dot={{ r: 3, fill: "#8b5cf6" }} />
+              <Line type="monotone" dataKey="count" name="Atendimentos" stroke="#0b3d91" strokeWidth={3} dot={{ r: 3, fill: "#3ba7f2" }} />
             </LineChart>
           </ResponsiveContainer>
         ) : <Empty />}
@@ -47,7 +47,7 @@ export function AnaliticosCharts({ monthly, weekday }: { monthly: Pt[]; weekday:
               <XAxis dataKey="label" tick={{ fill: "#9b8aa0", fontSize: 11 }} tickLine={false} axisLine={false} />
               <YAxis allowDecimals={false} tick={{ fill: "#9b8aa0", fontSize: 11 }} tickLine={false} axisLine={false} width={32} />
               <Tooltip contentStyle={tip} />
-              <Bar dataKey="count" name="Atendimentos" fill="#8b5cf6" radius={[6, 6, 0, 0]} />
+              <Bar dataKey="count" name="Atendimentos" fill="#3ba7f2" radius={[6, 6, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         ) : <Empty />}
@@ -61,7 +61,7 @@ export function AnaliticosCharts({ monthly, weekday }: { monthly: Pt[]; weekday:
               <XAxis dataKey="label" tick={{ fill: "#9b8aa0", fontSize: 11 }} tickLine={false} axisLine={false} />
               <YAxis allowDecimals={false} tick={{ fill: "#9b8aa0", fontSize: 11 }} tickLine={false} axisLine={false} width={32} />
               <Tooltip contentStyle={tip} />
-              <Bar dataKey="count" name="Atendimentos" fill="#2b1830" radius={[6, 6, 0, 0]} />
+              <Bar dataKey="count" name="Atendimentos" fill="#0b3d91" radius={[6, 6, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         ) : <Empty />}

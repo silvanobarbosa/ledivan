@@ -33,10 +33,10 @@ export function ScaleHistory({ apps }: { apps: App[] }) {
                 <ResponsiveContainer width="100%" height="100%">
                   <LineChart data={points} margin={{ top: 5, right: 5, left: -25, bottom: 0 }}>
                     <CartesianGrid strokeDasharray="3 3" stroke="#e7ddd4" />
-                    <XAxis dataKey="date" tick={{ fontSize: 9, fill: "#6b5b6f" }} />
-                    <YAxis domain={[0, scale.max]} tick={{ fontSize: 9, fill: "#6b5b6f" }} />
+                    <XAxis dataKey="date" tick={{ fontSize: 9, fill: "#5b6b80" }} />
+                    <YAxis domain={[0, scale.max]} tick={{ fontSize: 9, fill: "#5b6b80" }} />
                     <Tooltip contentStyle={{ borderRadius: 12, border: "1px solid #e7ddd4", fontSize: 12 }} />
-                    <Line type="monotone" dataKey="score" stroke="#8b5cf6" strokeWidth={2} dot={{ r: 3, fill: "#8b5cf6" }} />
+                    <Line type="monotone" dataKey="score" stroke="#3ba7f2" strokeWidth={2} dot={{ r: 3, fill: "#3ba7f2" }} />
                   </LineChart>
                 </ResponsiveContainer>
               </div>

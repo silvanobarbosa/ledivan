@@ -38,8 +38,8 @@ export function TransactionsChart({ data }: { data: ChartData[] }) {
         <AreaChart data={formattedData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
           <defs>
             <linearGradient id="colorAmount" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor="#8b5cf6" stopOpacity={0.35} />
-              <stop offset="95%" stopColor="#8b5cf6" stopOpacity={0} />
+              <stop offset="5%" stopColor="#3ba7f2" stopOpacity={0.35} />
+              <stop offset="95%" stopColor="#3ba7f2" stopOpacity={0} />
             </linearGradient>
           </defs>
           <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e7ddd4" />
@@ -61,14 +61,14 @@ export function TransactionsChart({ data }: { data: ChartData[] }) {
               border: "1px solid #e7ddd4",
               boxShadow: "0 10px 15px -3px rgba(43, 24, 48, 0.1)"
             }}
-            labelStyle={{ fontWeight: "bold", color: "#2b1830", marginBottom: "4px" }}
-            itemStyle={{ color: "#1a0f1f", fontSize: "12px" }}
+            labelStyle={{ fontWeight: "bold", color: "#0b3d91", marginBottom: "4px" }}
+            itemStyle={{ color: "#122749", fontSize: "12px" }}
             formatter={(value: ValorTooltip) => [`R$ ${numeroDoTooltip(value).toFixed(2)}`, "Total"]}
           />
           <Area
             type="monotone"
             dataKey="amount"
-            stroke="#2b1830"
+            stroke="#0b3d91"
             strokeWidth={3}
             fillOpacity={1}
             fill="url(#colorAmount)"

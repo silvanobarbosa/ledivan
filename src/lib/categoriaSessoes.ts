@@ -26,7 +26,7 @@ export async function ensureSessionCategory(userId: string): Promise<string> {
     name: SESSION_CATEGORY,
     type: "income",
     icon: "HeartHandshake",
-    color: "#8b5cf6",
+    color: "#3ba7f2",
   }).returning();
   return created.id;
 }

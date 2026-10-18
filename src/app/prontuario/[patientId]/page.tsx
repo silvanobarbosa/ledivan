@@ -50,20 +50,20 @@ export default async function ProntuarioExport({ params }: { params: Promise<{ p
   }
 
   return (
-    <div className="min-h-screen bg-[#faf6f1] py-8 px-4 print:bg-white print:py-0">
+    <div className="min-h-screen bg-[#e8f6ff] py-8 px-4 print:bg-white print:py-0">
       <div className="mx-auto max-w-3xl">
         <div className="mb-4 flex justify-between items-center print:hidden">
-          <a href={`/dashboard/patients/${patientId}`} className="text-sm text-[#6b5b6f] hover:text-[#2b1830]">← Voltar</a>
+          <a href={`/dashboard/patients/${patientId}`} className="text-sm text-[#5b6b80] hover:text-[#0b3d91]">← Voltar</a>
           <PrintButton label="Imprimir / Salvar prontuário" />
         </div>
 
-        <div className="bg-white rounded-[20px] border border-[#e7ddd4] p-10 print:border-0 print:rounded-none print:p-0 space-y-7 text-[#1a0f1f]">
+        <div className="bg-white rounded-[20px] border border-[#e7ddd4] p-10 print:border-0 print:rounded-none print:p-0 space-y-7 text-[#122749]">
           <div className="flex items-center justify-between border-b border-[#e7ddd4] pb-5">
             {/* `priority` porque esta página existe para ser IMPRESSA: imagem em lazy pode não
                 entrar no papel se a impressão dispara antes de ela carregar. */}
             <Image src={logo} alt="Ledivan" sizes="240px" priority className="h-12 w-auto" />
-            <div className="text-right text-xs text-[#6b5b6f]">
-              <p className="font-display text-lg font-semibold text-[#2b1830]">Prontuário</p>
+            <div className="text-right text-xs text-[#5b6b80]">
+              <p className="font-display text-lg font-semibold text-[#0b3d91]">Prontuário</p>
               <p>{therapist?.name ?? "Terapeuta"}</p>
               <p>Emitido em {formatDate(new Date())}</p>
             </div>
@@ -78,15 +78,15 @@ export default async function ProntuarioExport({ params }: { params: Promise<{ p
               <Field label="Início" value={formatDate(patient.startedAt)} />
               <Field label="Frequência" value={patient.frequency ?? "—"} />
             </Grid>
-            {patient.tags && <p className="text-sm mt-2"><span className="text-[#6b5b6f]">Etiquetas:</span> <strong>{patient.tags}</strong></p>}
-            {patient.notes && <p className="text-sm mt-2 text-[#1a0f1f]/80 whitespace-pre-wrap"><span className="text-[#6b5b6f]">Observações:</span> {patient.notes}</p>}
+            {patient.tags && <p className="text-sm mt-2"><span className="text-[#5b6b80]">Etiquetas:</span> <strong>{patient.tags}</strong></p>}
+            {patient.notes && <p className="text-sm mt-2 text-[#122749]/80 whitespace-pre-wrap"><span className="text-[#5b6b80]">Observações:</span> {patient.notes}</p>}
           </Section>
 
           <Section title="Histórico terapêutico">
             {goals.length === 0 ? <Empty /> : goals.map((g) => (
               <div key={g.id} className="py-1.5 border-b border-[#f0e9e0] last:border-0">
-                <p className="text-sm font-semibold">{g.title} <span className="text-xs font-normal text-[#6b5b6f]">· {g.progress}% · {g.status}</span></p>
-                {g.description && <p className="text-xs text-[#6b5b6f]">{g.description}</p>}
+                <p className="text-sm font-semibold">{g.title} <span className="text-xs font-normal text-[#5b6b80]">· {g.progress}% · {g.status}</span></p>
+                {g.description && <p className="text-xs text-[#5b6b80]">{g.description}</p>}
               </div>
             ))}
           </Section>
@@ -96,7 +96,7 @@ export default async function ProntuarioExport({ params }: { params: Promise<{ p
               <div className="space-y-1">
                 {scales.map((s) => {
                   const sc = SCALES[s.scaleType as ScaleType];
-                  return <p key={s.id} className="text-sm">{sc?.short ?? s.scaleType}: <strong>{s.score}/{sc?.max}</strong> — {s.severity} <span className="text-xs text-[#6b5b6f]">({formatDate(s.appliedAt)})</span></p>;
+                  return <p key={s.id} className="text-sm">{sc?.short ?? s.scaleType}: <strong>{s.score}/{sc?.max}</strong> — {s.severity} <span className="text-xs text-[#5b6b80]">({formatDate(s.appliedAt)})</span></p>;
                 })}
               </div>
             )}
@@ -105,7 +105,7 @@ export default async function ProntuarioExport({ params }: { params: Promise<{ p
           <Section title="Evoluções e registros">
             {records.length === 0 ? <Empty /> : records.map((r) => (
               <div key={r.id} className="py-2 border-b border-[#f0e9e0] last:border-0">
-                <p className="text-xs font-bold uppercase tracking-wide text-[#6b5b6f]">{r.type}{r.title ? ` · ${r.title}` : ""} · {formatDate(r.createdAt)}</p>
+                <p className="text-xs font-bold uppercase tracking-wide text-[#5b6b80]">{r.type}{r.title ? ` · ${r.title}` : ""} · {formatDate(r.createdAt)}</p>
                 <p className="text-sm mt-1 whitespace-pre-wrap leading-relaxed">{r.content}</p>
               </div>
             ))}
@@ -116,7 +116,7 @@ export default async function ProntuarioExport({ params }: { params: Promise<{ p
               <div className="space-y-1">
                 {tasks.map((t) => (
                   <p key={t.id} className="text-sm">
-                    {t.title} <span className="text-xs text-[#6b5b6f]">· {t.status === "respondida" ? "respondida" : "pendente"} · {formatDate(t.createdAt)}</span>
+                    {t.title} <span className="text-xs text-[#5b6b80]">· {t.status === "respondida" ? "respondida" : "pendente"} · {formatDate(t.createdAt)}</span>
                   </p>
                 ))}
               </div>
@@ -133,7 +133,7 @@ export default async function ProntuarioExport({ params }: { params: Promise<{ p
                   return (
                     <div key={s.id} className="rounded-[12px] border border-[#e7ddd4] p-4 break-inside-avoid">
                       <div className="flex flex-wrap items-center gap-2 text-xs">
-                        <strong className="text-sm text-[#2b1830]">{formatDateTime(s.date)}</strong>
+                        <strong className="text-sm text-[#0b3d91]">{formatDateTime(s.date)}</strong>
                         <Badge>{SESSION_STATUS_LABELS[s.status]}</Badge>
                         <Badge>{s.chargeable ? "Cobrável" : "Cortesia"}</Badge>
                         {pays.length > 0 ? (
@@ -144,24 +144,24 @@ export default async function ProntuarioExport({ params }: { params: Promise<{ p
                       </div>
 
                       {s.isOnline && (s.meetingOpenedAt || s.guestJoinedAt || s.meetingEndedAt) && (
-                        <p className="text-[11px] text-[#6b5b6f] mt-1.5">
+                        <p className="text-[11px] text-[#5b6b80] mt-1.5">
                           Reunião: {s.meetingOpenedAt ? `abriu ${formatDateTime(s.meetingOpenedAt)}` : "—"}
                           {s.guestJoinedAt ? ` · convidado ${new Date(s.guestJoinedAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}` : ""}
                           {s.meetingEndedAt ? ` · encerrou ${new Date(s.meetingEndedAt).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })}` : ""}
                         </p>
                       )}
 
-                      {s.notes && <p className="text-sm mt-2 whitespace-pre-wrap leading-relaxed"><span className="text-[#6b5b6f] text-xs">Notas: </span>{s.notes}</p>}
+                      {s.notes && <p className="text-sm mt-2 whitespace-pre-wrap leading-relaxed"><span className="text-[#5b6b80] text-xs">Notas: </span>{s.notes}</p>}
 
                       {recs.map((r) => (
                         <div key={r.id} className="mt-2 pl-3 border-l-2 border-[#e7ddd4]">
-                          <p className="text-[11px] font-bold uppercase tracking-wide text-[#6b5b6f]">{r.type}{r.title ? ` · ${r.title}` : ""}</p>
+                          <p className="text-[11px] font-bold uppercase tracking-wide text-[#5b6b80]">{r.type}{r.title ? ` · ${r.title}` : ""}</p>
                           <p className="text-sm whitespace-pre-wrap leading-relaxed">{r.content}</p>
                         </div>
                       ))}
 
                       {s.patientSummary && (
-                        <p className="text-[12px] mt-2 text-[#6b5b6f] italic whitespace-pre-wrap">Resumo ao paciente: {s.patientSummary}</p>
+                        <p className="text-[12px] mt-2 text-[#5b6b80] italic whitespace-pre-wrap">Resumo ao paciente: {s.patientSummary}</p>
                       )}
                     </div>
                   );
@@ -170,7 +170,7 @@ export default async function ProntuarioExport({ params }: { params: Promise<{ p
             )}
           </Section>
 
-          <p className="text-[10px] text-[#6b5b6f] pt-4 border-t border-[#e7ddd4]">
+          <p className="text-[10px] text-[#5b6b80] pt-4 border-t border-[#e7ddd4]">
             Documento confidencial — uso clínico. Gerado pelo Ledivan.
           </p>
         </div>
@@ -182,7 +182,7 @@ export default async function ProntuarioExport({ params }: { params: Promise<{ p
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
     <section>
-      <h2 className="font-display text-lg font-semibold text-[#2b1830] mb-2">{title}</h2>
+      <h2 className="font-display text-lg font-semibold text-[#0b3d91] mb-2">{title}</h2>
       {children}
     </section>
   );
@@ -191,11 +191,11 @@ function Grid({ children }: { children: React.ReactNode }) {
   return <div className="grid grid-cols-2 gap-x-6 gap-y-1.5">{children}</div>;
 }
 function Field({ label, value }: { label: string; value: string }) {
-  return <p className="text-sm"><span className="text-[#6b5b6f]">{label}:</span> <strong>{value}</strong></p>;
+  return <p className="text-sm"><span className="text-[#5b6b80]">{label}:</span> <strong>{value}</strong></p>;
 }
 function Empty() {
-  return <p className="text-sm text-[#6b5b6f]">—</p>;
+  return <p className="text-sm text-[#5b6b80]">—</p>;
 }
 function Badge({ children }: { children: React.ReactNode }) {
-  return <span className="inline-block rounded-full bg-[#f5efe8] border border-[#e7ddd4] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[#6b5b6f]">{children}</span>;
+  return <span className="inline-block rounded-full bg-[#f5efe8] border border-[#e7ddd4] px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-[#5b6b80]">{children}</span>;
 }

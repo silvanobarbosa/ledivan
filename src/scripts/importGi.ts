@@ -52,7 +52,7 @@ function sessStatus(s?: string) { const x = (s || "").toLowerCase().replace(/\s+
 async function ensureCategory(name: string) {
   const e = await db.query.categories.findFirst({ where: eq(categories.name, name) });
   if (e) return e.id;
-  const [c] = await db.insert(categories).values({ name, type: "income", icon: "HeartHandshake", color: "#8b5cf6" }).returning();
+  const [c] = await db.insert(categories).values({ name, type: "income", icon: "HeartHandshake", color: "#3ba7f2" }).returning();
   return c.id;
 }
 async function chunk(table: any, rows: any[], size = 200) { for (let i = 0; i < rows.length; i += size) if (rows.length) await db.insert(table).values(rows.slice(i, i + size)); }
@@ -64,7 +64,7 @@ async function main() {
   console.log("Zerando domínio da Gisele…");
   await wipeUserData(userId);
 
-  const [contaPJ] = await db.insert(financialAccounts).values({ userId, name: "Conta PJ", type: "checking", balance: "0", color: "#2b1830" }).returning();
+  const [contaPJ] = await db.insert(financialAccounts).values({ userId, name: "Conta PJ", type: "checking", balance: "0", color: "#0b3d91" }).returning();
   const catSessoes = await ensureCategory("Sessões");
 
   const pRows = parseCsv(path.join(DIR, "importacao-ledivan.csv"));

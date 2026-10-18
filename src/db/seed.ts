@@ -44,7 +44,7 @@ async function seed() {
     { name: "Saúde", type: "expense" as const, icon: "HeartPulse", color: "#66BB6A" },
     { name: "Salário", type: "income" as const, icon: "Banknote", color: "#43A047" },
     { name: "Investimentos", type: "income" as const, icon: "TrendingUp", color: "#00E676" },
-    { name: "Sessões", type: "income" as const, icon: "HeartHandshake", color: "#8b5cf6" },
+    { name: "Sessões", type: "income" as const, icon: "HeartHandshake", color: "#3ba7f2" },
     { name: "Aluguel sala", type: "expense" as const, icon: "Building2", color: "#b45309" },
   ];
 
