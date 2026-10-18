@@ -6,6 +6,7 @@ import { cn } from "@/lib/utils";
 import { AddTransaction } from "./AddTransaction";
 import { DespesasSection, type DespesaLinha } from "./DespesasSection";
 import { ReceitasSection, type ReceitaLinha } from "./ReceitasSection";
+import { MovimentacoesSection } from "./MovimentacoesSection";
 import { ExportCSV } from "./ExportCSV";
 import { deleteTransaction } from "./actions";
 import { Trash2 } from "lucide-react";
@@ -119,9 +120,10 @@ export default async function TransactionsPage({
         </div>
       </div>
 
-      {/* Despesas + Receitas pessoais (doc 50) */}
+      {/* Despesas + Receitas pessoais + Movimentações/extrato (doc 50) */}
       <DespesasSection despesas={despesasLista} hoje={hojeISO} />
       <ReceitasSection receitas={receitasLista} />
+      <MovimentacoesSection />
 
       {/* Filtro por período (data início/fim) */}
       <form method="get" className="flex flex-wrap items-center gap-2 glass-card rounded-2xl px-4 py-3">
