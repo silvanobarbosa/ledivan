@@ -35,13 +35,18 @@ pagamento (Gratuito/Avulso/Mensal Completo/Fracionado/Quinzenal Completo/Fracion
 títulos centralizados. `formatoRelatorio.ts` puro; mapeamento conferido nos dados reais (1ª/última só
 existem no pacote mensal).
 
-**PENDENTE do doc 50 (último item):**
-- **Item 6 — módulo Transações (grande):** tabelas Despesas (venc/nome/valor/pagamento, edição
-  lápis/lixeira, cores por status verde/preto/vermelho) e Receitas pessoais + área **Movimentações
-  (extrato bancário)** unificando despesas/receitas/pagamentos de pacientes/supervisionados em ordem
-  cronológica (data prevista enquanto pendente, efetiva após; valor verde=recebido/vermelho=pago/
-  vazio=pendente; cartão com bruto+líquido); substitui a visão de conciliado. Ambiguidade a resolver:
-  modelo de "receita pendente × recebida".
+**#438–#440 Item 6 — módulo Transações (FECHA o doc 50):**
+- #438 **Despesas**: Data vencimento/Nome/Valor/Data pagamento; Cadastrar (modal + Repetir todo mês);
+  editar lápis, excluir lixeira; cor do valor por status (verde paga / preto aberta / vermelho atraso,
+  `despesaStatus.ts`). Tabelas `despesas` e `receitas_pessoais` criadas em prod.
+- #439 **Receitas pessoais**: Data recebimento/Nome/Valor + chip Recebido/Previsto; Cadastrar (modal +
+  Repetir todo mês); editar/excluir. Campo `recebido` resolve o pendente×recebida (default pela caixa "Já recebido").
+- #440 **Movimentações (extrato bancário)**: lista única cronológica (despesas + receitas + pagamentos
+  de pacientes/supervisionados, realizados e previstos); verde=recebido/vermelho=pago/branco=pendente;
+  data efetiva→vencimento; cartão com bruto+líquido. `extratoBancario.ts` puro + `montarMovimentacoes()`
+  roda o motor por cadastro. Conteúdo conciliado NÃO entra (etapa futura, conforme o doc).
+
+**Doc 50 — COMPLETO (itens 1–7).**
 
 ---
 
