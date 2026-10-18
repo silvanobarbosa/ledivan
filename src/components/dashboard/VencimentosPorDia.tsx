@@ -74,7 +74,8 @@ export function VencimentosPorDia() {
   const vencimentoCol = (c: CobrancaResolvida) => (c.tipoVencimento === "primeira" || c.tipoVencimento === "ultima" ? TIPO_VENC[c.tipoVencimento] : dataBR(c.vencimento));
   const temTelefone = (c: CobrancaResolvida) => !!numeroDoWhatsapp(c.telefone);
 
-  const th = "px-2 py-2 text-left font-bold whitespace-nowrap";
+  // Doc 50: títulos centralizados.
+  const th = "px-2 py-2 text-center font-bold whitespace-nowrap";
   const td = "px-2 py-2 whitespace-nowrap";
   const btnCobrar = "inline-flex items-center gap-1 text-xs font-bold px-3 py-1.5 rounded-full bg-primary/10 text-primary hover:bg-primary/15 transition disabled:opacity-40";
 
@@ -100,14 +101,14 @@ export function VencimentosPorDia() {
               <div className="overflow-x-auto">
                 <table className="w-full text-xs">
                   <thead className="text-foreground/50 border-b border-border">
-                    <tr><th className={th}>Nome</th><th className={th}>Data da sessão</th><th className={th}>Horário de atraso</th><th className={th}>Valor</th><th className={th}>Status</th><th className={th}>Cobrar</th><th className={th}>Cobranças enviadas</th></tr>
+                    {/* Doc 50: avulsa mostra data+hora da sessão; coluna "Horário de atraso" removida; título "Cobrar" sem texto. */}
+                    <tr><th className={th}>Nome</th><th className={th}>Data da sessão</th><th className={th}>Valor</th><th className={th}>Status</th><th className={th} /><th className={th}>Cobranças enviadas</th></tr>
                   </thead>
                   <tbody className="divide-y divide-border">
                     {avulsas.map((c) => (
                       <tr key={c.chave}>
                         <td className={`${td} font-semibold`}>{c.nome}</td>
-                        <td className={td}>{dataBR(c.dataSessao)}</td>
-                        <td className={td}>{dataBR(c.horarioAtraso)} {horaBR(c.horarioAtraso)}</td>
+                        <td className={td}>{dataBR(c.dataSessao)} {horaBR(c.dataSessao)}</td>
                         <td className={`${td} tabular-nums`}>{formatBRL(valorExibido(c))}</td>
                         <td className={`${td} font-semibold ${SIT[c.situacao]?.cor ?? ""}`}>{SIT[c.situacao]?.rotulo ?? c.situacao}</td>
                         <td className={td}>{pago(c) ? <span className="text-[11px] text-[#047857] whitespace-nowrap">Pago em {dataBR(c.pagoEm)}</span> : <button type="button" onClick={() => cobrar(c, mensagemDeCobranca(c))} disabled={!temTelefone(c)} title={temTelefone(c) ? "Cobrar pelo WhatsApp" : "Cadastro sem telefone"} className={btnCobrar}><MessageCircle className="w-3.5 h-3.5" /> Cobrar</button>}</td>
@@ -128,7 +129,8 @@ export function VencimentosPorDia() {
               <div className="overflow-x-auto">
                 <table className="w-full text-xs">
                   <thead className="text-foreground/50 border-b border-border">
-                    <tr><th className={th}>Nome</th><th className={th}>Vencimento</th><th className={th}>1ª sessão</th><th className={th}>Última sessão</th><th className={th}>Última realizada</th><th className={th}>Status</th><th className={th}>Valor a pagar</th><th className={th}>Cobrar</th><th className={th}>Cobranças enviadas</th></tr>
+                    {/* Doc 50: título "Cobrar" sem texto (só o conteúdo da coluna). */}
+                    <tr><th className={th}>Nome</th><th className={th}>Vencimento</th><th className={th}>1ª sessão</th><th className={th}>Última sessão</th><th className={th}>Última realizada</th><th className={th}>Status</th><th className={th}>Valor a pagar</th><th className={th} /><th className={th}>Cobranças enviadas</th></tr>
                   </thead>
                   <tbody className="divide-y divide-border">
                     {pacotes.map((c) => (
