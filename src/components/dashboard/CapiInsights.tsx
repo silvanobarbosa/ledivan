@@ -36,7 +36,7 @@ export function CapiInsights({
   ]);
   const [isLoading, setIsLoading] = useState(false);
 
-  const PALETTE = ["#2b1830", "#8b5cf6", "#c4b5fd", "#6b5b6f", "#b45309", "#047857"];
+  const PALETTE = ["#0b3d91", "#3ba7f2", "#7fe7d6", "#5b6b80", "#b45309", "#047857"];
   const data = categoryData.map((c, i) => ({
     name: c.name,
     value: parseFloat(c.value || "0"),

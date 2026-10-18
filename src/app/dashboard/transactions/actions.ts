@@ -112,7 +112,7 @@ export async function createFinancialAccount(formData: FormData) {
     name: name.trim(),
     type: (formData.get("type") as string) || "checking",
     balance: moedaOuPadrao(formData.get("balance"), "0"),
-    color: "#8b5cf6",
+    color: "#3ba7f2",
   });
 
   revalidatePath("/dashboard/transactions");

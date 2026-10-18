@@ -14,7 +14,7 @@ const tip = { backgroundColor: "#fff", borderRadius: "12px", border: "1px solid 
 
 const BUCKETS = [
   { key: "agendado", label: "Agendado", color: "#047857", desc: "Sessões já marcadas (sem pacote)." },
-  { key: "pacotes", label: "Pacotes a receber", color: "#8b5cf6", desc: "Sessões de pacote marcadas." },
+  { key: "pacotes", label: "Pacotes a receber", color: "#3ba7f2", desc: "Sessões de pacote marcadas." },
   { key: "recorrencia", label: "Recorrência projetada", color: "#0ea5e9", desc: "Esperado da recorrência além do marcado." },
   { key: "reajuste", label: "Reajustes", color: "#b45309", desc: "Acréscimo de reajustes futuros." },
 ] as const;

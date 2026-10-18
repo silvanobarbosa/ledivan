@@ -51,8 +51,8 @@ export function reservaVencida(status: string, date: Date | string, hoje: Date):
 const STATUS_CORES: Record<string, string> = {
   realizada: "bg-[#fef9c3] text-[#854d0e] border-[#eab308]",       // Presente — amarelo
   nao_realizada: "bg-[#fecaca] text-[#991b1b] border-[#ef4444]",   // Faltou — vermelho
-  cancelada: "bg-[#ede9fe] text-[#6d28d9] border-[#c4b5fd]",       // Desmarcou — violeta (longe do vermelho do Faltou)
-  realocada: "bg-[#ede9fe] text-[#6d28d9] border-[#c4b5fd]",       // legado, se comporta como Desmarcou
+  cancelada: "bg-[#ede9fe] text-[#6d28d9] border-[#7fe7d6]",       // Desmarcou — violeta (longe do vermelho do Faltou)
+  realocada: "bg-[#ede9fe] text-[#6d28d9] border-[#7fe7d6]",       // legado, se comporta como Desmarcou
   prof_desmarcou: "bg-[#f1f5f9] text-[#475569] border-[#cbd5e1]",  // Prof. desm. — cinza claro
   atestado: "bg-[#dbeafe] text-[#1e40af] border-[#93c5fd]",        // Atestado — azul claro
 };
@@ -189,7 +189,7 @@ export function corDaLegenda(status: string): { fundo: string; borda: string } {
   const CORES: Record<string, { fundo: string; borda: string }> = {
     realizada: { fundo: "#fef9c3", borda: "#eab308" },
     nao_realizada: { fundo: "#fecaca", borda: "#ef4444" },
-    cancelada: { fundo: "#ede9fe", borda: "#c4b5fd" },
+    cancelada: { fundo: "#ede9fe", borda: "#7fe7d6" },
     prof_desmarcou: { fundo: "#f1f5f9", borda: "#cbd5e1" },
     atestado: { fundo: "#dbeafe", borda: "#93c5fd" },
   };

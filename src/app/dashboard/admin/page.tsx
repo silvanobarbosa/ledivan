@@ -90,7 +90,7 @@ export default async function AdminPage() {
         <p className="text-foreground/50 mt-1">Métricas agregadas e anonimizadas (sem nomes, e-mails ou dados de pacientes — LGPD). Contas demo excluídas.</p>
       </div>
 
-      <div className="rounded-[24px] p-5 bg-gradient-to-br from-primary to-[#5b2d7a] text-white flex items-center justify-between flex-wrap gap-4">
+      <div className="rounded-[24px] p-5 bg-gradient-to-br from-primary to-[#1b5fb5] text-white flex items-center justify-between flex-wrap gap-4">
         <div><p className="text-5xl font-display font-bold">{indexUso}%</p><p className="text-white/70 text-sm">Índice de adoção (média de uso dos recursos)</p></div>
         <div className="flex gap-6 text-sm">
           <div><p className="text-2xl font-bold">{totalUsers}</p><p className="text-white/60">terapeutas</p></div>

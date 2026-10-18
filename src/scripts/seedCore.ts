@@ -112,17 +112,17 @@ export async function runSeed(cfg: SeedCfg) {
   }
   const userId = user.id;
 
-  const catSessions = await ensureCategory("Sessões", "income", "HeartHandshake", "#8b5cf6");
+  const catSessions = await ensureCategory("Sessões", "income", "HeartHandshake", "#3ba7f2");
   const catOutras = await ensureCategory("Outras receitas", "income", "PlusCircle", "#16a34a");
   const catAluguel = await ensureCategory("Aluguel sala", "expense", "Building2", "#b45309");
-  const catSuper = await ensureCategory("Supervisão", "expense", "GraduationCap", "#6b5b6f");
+  const catSuper = await ensureCategory("Supervisão", "expense", "GraduationCap", "#5b6b80");
   const catMaterial = await ensureCategory("Material", "expense", "Package", "#0ea5e9");
   const catImpostos = await ensureCategory("Impostos", "expense", "Landmark", "#b91c1c");
   const catMkt = await ensureCategory("Marketing", "expense", "Megaphone", "#16a34a");
-  const catSoftware = await ensureCategory("Software/Assinaturas", "expense", "Laptop", "#8b5cf6");
+  const catSoftware = await ensureCategory("Software/Assinaturas", "expense", "Laptop", "#3ba7f2");
 
-  const [contaPJ] = await db.insert(financialAccounts).values({ userId, name: "Conta PJ", type: "checking", balance: "0", color: "#2b1830" }).returning();
-  await db.insert(financialAccounts).values({ userId, name: "Carteira", type: "cash", balance: "0", color: "#8b5cf6" });
+  const [contaPJ] = await db.insert(financialAccounts).values({ userId, name: "Conta PJ", type: "checking", balance: "0", color: "#0b3d91" }).returning();
+  await db.insert(financialAccounts).values({ userId, name: "Carteira", type: "cash", balance: "0", color: "#3ba7f2" });
   await db.insert(financialAccounts).values({ userId, name: "Poupança", type: "savings", balance: "0", color: "#047857" });
 
   const now = new Date();

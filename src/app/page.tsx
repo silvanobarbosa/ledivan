@@ -190,7 +190,7 @@ function HeroVisual() {
           </div>
           <ul className="mt-4 space-y-2">
             {[
-              { t: "14:00", n: "Mariana S.", c: "#8b5cf6" },
+              { t: "14:00", n: "Mariana S.", c: "#3ba7f2" },
               { t: "15:00", n: "Rafael C.", c: "#047857" },
               { t: "16:30", n: "Bianca M.", c: "#b45309" },
             ].map((s) => (
@@ -209,7 +209,7 @@ function HeroVisual() {
           <p className="text-[10px] uppercase tracking-wide text-[color:var(--muted-foreground)]">Receita do mês</p>
           <p className="font-display text-2xl font-medium text-[color:var(--brand-eggplant)] tabular-nums">R$ 9.840</p>
           <div className="mt-2 h-1.5 rounded-full bg-[rgba(43,24,48,0.06)] overflow-hidden">
-            <div className="h-full rounded-full" style={{ width: "72%", background: "linear-gradient(90deg, #c4b5fd, #8b5cf6)" }} />
+            <div className="h-full rounded-full" style={{ width: "72%", background: "linear-gradient(90deg, #7fe7d6, #3ba7f2)" }} />
           </div>
         </div>
         <div className="hidden sm:flex absolute bottom-[60%] left-[-1rem] glass-card px-3 py-2 z-20 items-center gap-2 float-soft" style={{ animationDelay: "2.5s" }}>
@@ -483,7 +483,7 @@ function Highlight() {
   return (
     <section className="mx-auto max-w-6xl px-6 py-24">
       <Reveal>
-        <div className="relative overflow-hidden rounded-[2.5rem] p-10 md:p-14 text-cream" style={{ background: "linear-gradient(135deg, #2b1830 0%, #3a2240 60%, #5b2d7a 100%)", boxShadow: "var(--shadow-eggplant)" }}>
+        <div className="relative overflow-hidden rounded-[2.5rem] p-10 md:p-14 text-cream" style={{ background: "linear-gradient(135deg, #0b3d91 0%, #0e4ab0 60%, #1b5fb5 100%)", boxShadow: "var(--shadow-eggplant)" }}>
           <div aria-hidden className="absolute -right-20 -top-20 h-80 w-80 rounded-full" style={{ background: "radial-gradient(circle, rgba(139,92,246,0.6), transparent 70%)" }} />
           <div aria-hidden className="absolute -left-10 -bottom-10 h-60 w-60 rounded-full" style={{ background: "radial-gradient(circle, rgba(196,181,253,0.35), transparent 70%)" }} />
           <div className="relative grid md:grid-cols-2 gap-10 items-center">

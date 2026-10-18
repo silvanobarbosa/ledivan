@@ -32,8 +32,8 @@ export type NotifyResult = { ok: boolean; channel?: Channel; skipped?: boolean; 
 
 const wrapHtml = (text: string) =>
   `<div style="font-family:sans-serif;max-width:560px;margin:0 auto;padding:20px;border:1px solid #e7ddd4;border-radius:16px;">
-    <h1 style="color:#2b1830;font-size:20px;">Ledivan</h1>
-    <p style="color:#1a0f1f;white-space:pre-line;font-size:15px;line-height:1.6;">${escapeHtml(text.replace(/\*/g, ""))}</p>
+    <h1 style="color:#0b3d91;font-size:20px;">Ledivan</h1>
+    <p style="color:#122749;white-space:pre-line;font-size:15px;line-height:1.6;">${escapeHtml(text.replace(/\*/g, ""))}</p>
   </div>`;
 
 // E-mail via Resend (fallback quando o terapeuta não configurou SMTP próprio).

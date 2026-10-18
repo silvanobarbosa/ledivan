@@ -5,18 +5,21 @@
 @import "tailwindcss";
 
 @theme {
-  /* Ledivan — Warm Glass Layered Palette */
-  --color-primary: #2b1830;            /* eggplant */
+  /* Ledivan — Blue Glass Palette (ajuste de paleta Lovable, doc 50):
+     azul profundo #0B3D91 · azul céu #3BA7F2 · menta #7FE7D6 · gelo #E8F6FF.
+     Os NOMES dos tokens foram mantidos (inclusive "eggplant"/"violet") para não mexer no código
+     dos componentes — só os VALORES mudaram de berinjela/creme para azul/gelo. */
+  --color-primary: #0b3d91;            /* azul profundo */
   --color-on-primary: #ffffff;
-  --color-primary-container: #3a2240;  /* eggplant soft */
-  --color-on-primary-container: #f3e8ff;
+  --color-primary-container: #0e4ab0;  /* azul profundo soft */
+  --color-on-primary-container: #e8f6ff;
 
-  --color-secondary: #8b5cf6;          /* accent violet */
+  --color-secondary: #3ba7f2;          /* azul céu */
   --color-on-secondary: #ffffff;
-  --color-secondary-container: #c4b5fd;/* accent soft */
-  --color-on-secondary-container: #2b1830;
+  --color-secondary-container: #bfe3fb;/* céu soft */
+  --color-on-secondary-container: #0b3d91;
 
-  --color-tertiary: #6b5b6f;           /* muted */
+  --color-tertiary: #5b6b80;           /* muted blue-gray */
   --color-on-tertiary: #ffffff;
 
   --color-error: #b91c1c;
@@ -24,24 +27,24 @@
   --color-error-container: #fee2e2;
   --color-on-error-container: #7f1d1d;
 
-  --color-background: #faf6f1;         /* creme */
-  --color-on-background: #1a0f1f;      /* ink */
+  --color-background: #e8f6ff;         /* gelo */
+  --color-on-background: #122749;      /* ink azul */
 
-  --color-surface: #faf6f1;            /* creme (page bg) */
-  --color-on-surface: #1a0f1f;
-  --color-surface-variant: #efe7df;
-  --color-on-surface-variant: #6b5b6f; /* muted */
+  --color-surface: #e8f6ff;            /* gelo (page bg) */
+  --color-on-surface: #122749;
+  --color-surface-variant: #dcebf7;
+  --color-on-surface-variant: #5b6b80; /* muted */
 
-  --color-outline: #9b8aa0;
-  --color-outline-variant: #e7ddd4;
+  --color-outline: #8aa6c0;
+  --color-outline-variant: #cfe6f5;
 
   --color-surface-container-lowest: #ffffff;
-  --color-surface-container-low: #fbf8f4;
-  --color-surface-container: #f5efe8;
-  --color-surface-container-high: #efe7df;
-  --color-surface-container-highest: #e7ddd4;
+  --color-surface-container-low: #f4fbff;
+  --color-surface-container: #e8f6ff;
+  --color-surface-container-high: #dcebf7;
+  --color-surface-container-highest: #cfe6f5;
 
-  --color-accent: #8b5cf6;             /* violet highlight */
+  --color-accent: #3ba7f2;             /* azul céu highlight */
 
   /* status (do design handoff) */
   --color-success: #047857;
@@ -49,12 +52,12 @@
   --color-pending: #6b7280;
 
   /* tokens nomeados usados pela landing/login (Lovable) */
-  --color-ink: #1a0f1f;
-  --color-cream: #faf6f1;
-  --color-accent-violet: #8b5cf6;
-  --color-accent-soft: #c4b5fd;
-  --color-brand-eggplant: #2b1830;
-  --color-brand-eggplant-soft: #3a2240;
+  --color-ink: #122749;
+  --color-cream: #e8f6ff;
+  --color-accent-violet: #3ba7f2;
+  --color-accent-soft: #7fe7d6;        /* menta */
+  --color-brand-eggplant: #0b3d91;
+  --color-brand-eggplant-soft: #0e4ab0;
 
   /* --font-inter e --font-fraunces são criadas pelo next/font no <html>; as de fallback ficam
      porque a fonte autohospedada ainda pode falhar em carregar. */
@@ -74,17 +77,17 @@
   --ring: var(--color-primary);
 
   /* vars cruas usadas via var() na landing/login */
-  --brand-eggplant: #2b1830;
-  --brand-eggplant-soft: #3a2240;
-  --cream: #faf6f1;
-  --ink: #1a0f1f;
-  --accent-violet: #8b5cf6;
-  --accent-soft: #c4b5fd;
-  --muted-foreground: #6b5b6f;
-  /* Sombras mais suaves e difusas — sensação leve e refinada */
-  --shadow-glass: 0 1px 2px rgba(43, 24, 48, 0.03), 0 10px 30px -16px rgba(43, 24, 48, 0.10);
-  --shadow-glass-lg: 0 1px 3px rgba(43, 24, 48, 0.04), 0 28px 60px -28px rgba(43, 24, 48, 0.16);
-  --shadow-eggplant: 0 18px 38px -18px rgba(43, 24, 48, 0.38);
+  --brand-eggplant: #0b3d91;
+  --brand-eggplant-soft: #0e4ab0;
+  --cream: #e8f6ff;
+  --ink: #122749;
+  --accent-violet: #3ba7f2;
+  --accent-soft: #7fe7d6;
+  --muted-foreground: #5b6b80;
+  /* Sombras mais suaves e difusas — sensação leve e refinada (azul profundo 11,61,145) */
+  --shadow-glass: 0 1px 2px rgba(11, 61, 145, 0.03), 0 10px 30px -16px rgba(11, 61, 145, 0.10);
+  --shadow-glass-lg: 0 1px 3px rgba(11, 61, 145, 0.04), 0 28px 60px -28px rgba(11, 61, 145, 0.16);
+  --shadow-eggplant: 0 18px 38px -18px rgba(11, 61, 145, 0.38);
 }
 
 @layer base {
@@ -138,16 +141,16 @@
     transition: border-color 180ms ease, box-shadow 180ms ease, background-color 180ms ease;
   }
   input:focus-visible, select:focus-visible, textarea:focus-visible {
-    box-shadow: 0 0 0 3px rgba(139, 92, 246, 0.16);
+    box-shadow: 0 0 0 3px rgba(59, 167, 242, 0.16);
     border-color: var(--accent-violet);
     outline: none;
   }
   button, a { transition: color 160ms ease, background-color 160ms ease, border-color 160ms ease, box-shadow 200ms ease, transform 120ms ease; }
-  ::selection { background: rgba(139, 92, 246, 0.22); color: var(--brand-eggplant); }
+  ::selection { background: rgba(59, 167, 242, 0.22); color: var(--brand-eggplant); }
   /* Scrollbar fina e discreta (não toca .no-scrollbar) */
   *:not(.no-scrollbar)::-webkit-scrollbar { width: 10px; height: 10px; }
-  *:not(.no-scrollbar)::-webkit-scrollbar-thumb { background: rgba(43, 24, 48, 0.14); border-radius: 9999px; border: 3px solid transparent; background-clip: padding-box; }
-  *:not(.no-scrollbar)::-webkit-scrollbar-thumb:hover { background: rgba(43, 24, 48, 0.26); background-clip: padding-box; }
+  *:not(.no-scrollbar)::-webkit-scrollbar-thumb { background: rgba(11, 61, 145, 0.14); border-radius: 9999px; border: 3px solid transparent; background-clip: padding-box; }
+  *:not(.no-scrollbar)::-webkit-scrollbar-thumb:hover { background: rgba(11, 61, 145, 0.26); background-clip: padding-box; }
   *:not(.no-scrollbar)::-webkit-scrollbar-track { background: transparent; }
 }
 
@@ -156,7 +159,7 @@
     background: rgba(255, 255, 255, 0.74);
     backdrop-filter: saturate(135%) blur(12px);
     -webkit-backdrop-filter: saturate(135%) blur(12px);
-    border: 1px solid rgba(43, 24, 48, 0.05);
+    border: 1px solid rgba(11, 61, 145, 0.05);
     box-shadow: var(--shadow-glass), inset 0 1px 0 rgba(255, 255, 255, 0.55);
     border-radius: 1.5rem;
   }
@@ -165,7 +168,7 @@
     background: rgba(255, 255, 255, 0.8);
     backdrop-filter: saturate(135%) blur(14px);
     -webkit-backdrop-filter: saturate(135%) blur(14px);
-    border: 1px solid rgba(43, 24, 48, 0.05);
+    border: 1px solid rgba(11, 61, 145, 0.05);
     box-shadow: var(--shadow-glass-lg), inset 0 1px 0 rgba(255, 255, 255, 0.6);
     border-radius: 2rem;
   }
@@ -175,10 +178,10 @@
     position: relative;
     background-color: var(--cream);
     background-image:
-      radial-gradient(820px 460px at 90% -12%, rgba(139, 92, 246, 0.14), transparent 62%),
+      radial-gradient(820px 460px at 90% -12%, rgba(59, 167, 242, 0.14), transparent 62%),
       radial-gradient(680px 480px at -8% 6%, rgba(196, 181, 253, 0.20), transparent 62%),
       radial-gradient(760px 560px at 50% 116%, rgba(196, 181, 253, 0.16), transparent 66%),
-      radial-gradient(circle at 1px 1px, rgba(43, 24, 48, 0.035) 1px, transparent 1.7px);
+      radial-gradient(circle at 1px 1px, rgba(11, 61, 145, 0.035) 1px, transparent 1.7px);
     background-size: auto, auto, auto, 24px 24px;
   }
   /* Grão fino por cima (multiply, bem sutil) — refino tátil */
@@ -195,16 +198,16 @@
 
   /* Textura de pontos para a área do dashboard (fundo do próprio elemento, sem overlay) */
   .app-texture {
-    background-image: radial-gradient(circle at 1px 1px, rgba(43, 24, 48, 0.035) 1px, transparent 1.7px);
+    background-image: radial-gradient(circle at 1px 1px, rgba(11, 61, 145, 0.035) 1px, transparent 1.7px);
     background-size: 26px 26px;
   }
 
   .primary-gradient {
-    background: linear-gradient(135deg, #2b1830 0%, #8b5cf6 100%);
+    background: linear-gradient(135deg, #0b3d91 0%, #3ba7f2 100%);
   }
 
   .achievement-shield {
-    filter: drop-shadow(0px 4px 12px rgba(43, 24, 48, 0.15));
+    filter: drop-shadow(0px 4px 12px rgba(11, 61, 145, 0.15));
   }
   
   .no-scrollbar::-webkit-scrollbar {
