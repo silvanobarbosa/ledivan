@@ -199,18 +199,22 @@ export function corDaLegenda(status: string): { fundo: string; borda: string } {
 export const PAYMENT_METHOD_LABELS: Record<string, string> = {
   pix: "PIX",
   debito: "Cartão de débito",
-  credito: "Cartão de crédito",
+  credito: "Crédito à vista",
+  credito_2x: "Crédito 2x",
+  credito_3x: "Crédito 3x",
   card: "Cartão", // legado (doc 49): pagamentos antigos sem split débito/crédito
   cash: "Dinheiro",
   transfer: "Transferência",
 };
 
-// Formas oferecidas ao REGISTRAR um pagamento (doc 49): cartão virou débito/crédito para a taxa.
-// "card" fica só para exibir registros antigos, não para novos lançamentos.
+// Formas oferecidas ao REGISTRAR um pagamento (doc 49/50): cartão virou débito/crédito; crédito abre
+// à vista/2x/3x para a taxa. "card" fica só para exibir registros antigos, não para novos lançamentos.
 export const PAYMENT_METHOD_OPTIONS: { value: string; label: string }[] = [
   { value: "pix", label: PAYMENT_METHOD_LABELS.pix },
   { value: "debito", label: PAYMENT_METHOD_LABELS.debito },
   { value: "credito", label: PAYMENT_METHOD_LABELS.credito },
+  { value: "credito_2x", label: PAYMENT_METHOD_LABELS.credito_2x },
+  { value: "credito_3x", label: PAYMENT_METHOD_LABELS.credito_3x },
   { value: "cash", label: PAYMENT_METHOD_LABELS.cash },
   { value: "transfer", label: PAYMENT_METHOD_LABELS.transfer },
 ];

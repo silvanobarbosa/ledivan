@@ -15,6 +15,8 @@ export const FORMAS_RECEBIMENTO: { metodo: string; curto: string }[] = [
   { metodo: "pix", curto: "Pix" },
   { metodo: "debito", curto: "Deb" },
   { metodo: "credito", curto: "Cre" },
+  { metodo: "credito_2x", curto: "Cre 2x" },
+  { metodo: "credito_3x", curto: "Cre 3x" },
   { metodo: "dinheiro", curto: "Din" },
   { metodo: "cash", curto: "Din" },
   { metodo: "transferencia", curto: "Trans" },
@@ -23,7 +25,7 @@ export const FORMAS_RECEBIMENTO: { metodo: string; curto: string }[] = [
 ];
 const CURTO = new Map(FORMAS_RECEBIMENTO.map((f) => [f.metodo, f.curto]));
 /** Formas que sofrem taxa (mostram líquido abaixo do bruto). */
-const COM_TAXA = new Set(["debito", "credito"]);
+const COM_TAXA = new Set(["debito", "credito", "credito_2x", "credito_3x"]);
 
 export type FormaRecebida = { metodo: string; curto: string; bruto: number; liquido: number; temTaxa: boolean };
 export type RecebidoResumo = { formas: FormaRecebida[]; totalBruto: number; totalLiquido: number };

@@ -14,7 +14,9 @@ export type VigenciaTaxa = {
   /** Data a partir da qual esta configuração vale (ISO; só a parte YYYY-MM-DD importa). */
   validFrom: string;
   debito: number; // %
-  credito: number; // %
+  credito: number; // % crédito à vista
+  credito2x?: number | null; // % crédito 2x (doc 50)
+  credito3x?: number | null; // % crédito 3x (doc 50)
 };
 
 /** Só a parte YYYY-MM-DD de um ISO/Date, para comparar vigência sem passar por fuso. */
@@ -27,7 +29,7 @@ function dia(iso: string | null | undefined): string {
  * pagamento. Devolve null se não houver nenhuma vigência até aquela data (pagamento é anterior à
  * primeira taxa cadastrada → sem desconto).
  */
-export function taxaVigenteEm(dataISO: string, vigencias: VigenciaTaxa[]): { debito: number; credito: number } | null {
+export function taxaVigenteEm(dataISO: string, vigencias: VigenciaTaxa[]): VigenciaTaxa | null {
   const d = dia(dataISO);
   if (!d) return null;
   let escolhida: VigenciaTaxa | null = null;
@@ -36,19 +38,29 @@ export function taxaVigenteEm(dataISO: string, vigencias: VigenciaTaxa[]): { deb
       escolhida = v;
     }
   }
-  return escolhida ? { debito: escolhida.debito, credito: escolhida.credito } : null;
+  return escolhida;
+}
+
+/** Formas de cartão que sofrem taxa e qual % da vigência cada uma usa (doc 50: parcelado 2x/3x). */
+function pctDaForma(method: string, taxa: VigenciaTaxa): number {
+  if (method === "debito") return taxa.debito;
+  if (method === "credito") return taxa.credito;
+  if (method === "credito_2x") return taxa.credito2x ?? 0;
+  if (method === "credito_3x") return taxa.credito3x ?? 0;
+  return 0;
 }
 
 /**
- * Valor líquido de UM pagamento, conforme a forma e a taxa vigente na data dele. Débito/crédito
- * descontam o %; qualquer outra forma (ou sem vigência/taxa zero) devolve o próprio valor.
+ * Valor líquido de UM pagamento, conforme a forma e a taxa vigente na data dele. Débito, crédito
+ * à vista, crédito 2x e 3x descontam o % próprio; qualquer outra forma (ou sem vigência/taxa zero)
+ * devolve o próprio valor.
  */
 export function liquidoDoPagamento(valor: number, method: string | null | undefined, dataISO: string, vigencias: VigenciaTaxa[]): number {
-  if (!Number.isFinite(valor) || valor <= 0) return valor;
-  if (method !== "debito" && method !== "credito") return valor;
+  if (!Number.isFinite(valor) || valor <= 0 || !method) return valor;
+  if (!["debito", "credito", "credito_2x", "credito_3x"].includes(method)) return valor;
   const taxa = taxaVigenteEm(dataISO, vigencias);
   if (!taxa) return valor;
-  const pct = method === "debito" ? taxa.debito : taxa.credito;
+  const pct = pctDaForma(method, taxa);
   if (!pct || pct <= 0) return valor;
   return Math.round(valor * (1 - pct / 100) * 100) / 100;
 }

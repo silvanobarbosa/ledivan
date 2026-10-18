@@ -14,14 +14,16 @@ export function TaxasCard({ vigencias }: { vigencias: VigenciaTaxaDTO[] }) {
   const atual = vigencias[0] ?? null;
   const [debito, setDebito] = useState("");
   const [credito, setCredito] = useState("");
+  const [credito2x, setCredito2x] = useState("");
+  const [credito3x, setCredito3x] = useState("");
   const [validFrom, setValidFrom] = useState("");
   const [pending, start] = useTransition();
   const [msg, setMsg] = useState<string | null>(null);
 
   const salvar = () => start(async () => {
     setMsg(null);
-    const r = await adicionarVigenciaTaxa({ debito, credito, validFrom });
-    if (r.ok) { setDebito(""); setCredito(""); setValidFrom(""); setMsg("salvo ✓"); setTimeout(() => setMsg(null), 1500); }
+    const r = await adicionarVigenciaTaxa({ debito, credito, credito2x, credito3x, validFrom });
+    if (r.ok) { setDebito(""); setCredito(""); setCredito2x(""); setCredito3x(""); setValidFrom(""); setMsg("salvo ✓"); setTimeout(() => setMsg(null), 1500); }
     else setMsg(r.error || "não deu para salvar");
   });
 
@@ -43,26 +45,34 @@ export function TaxasCard({ vigencias }: { vigencias: VigenciaTaxaDTO[] }) {
 
       {atual && (
         <div className="rounded-2xl bg-surface/60 border border-border px-4 py-3 text-sm">
-          <span className="font-semibold text-foreground/70">Em vigor:</span> débito {atual.debito}% · crédito {atual.credito}% <span className="text-foreground/40">(desde {dataBR(atual.validFrom)})</span>
+          <span className="font-semibold text-foreground/70">Em vigor:</span> débito {atual.debito}% · crédito à vista {atual.credito}% · 2x {atual.credito2x}% · 3x {atual.credito3x}% <span className="text-foreground/40">(desde {dataBR(atual.validFrom)})</span>
         </div>
       )}
 
       {/* Nova vigência */}
       <div className="space-y-3 border-t border-border pt-4">
         <h4 className="text-sm font-bold text-foreground">Nova vigência</h4>
-        <div className="grid grid-cols-3 gap-3">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
           <div className="space-y-1">
             <label className="text-xs font-bold text-foreground/40 uppercase tracking-widest">Débito (%)</label>
             <input value={debito} onChange={(e) => setDebito(e.target.value)} inputMode="decimal" placeholder="ex: 2" className={field} />
           </div>
           <div className="space-y-1">
-            <label className="text-xs font-bold text-foreground/40 uppercase tracking-widest">Crédito (%)</label>
+            <label className="text-xs font-bold text-foreground/40 uppercase tracking-widest">Créd. à vista (%)</label>
             <input value={credito} onChange={(e) => setCredito(e.target.value)} inputMode="decimal" placeholder="ex: 3" className={field} />
           </div>
           <div className="space-y-1">
-            <label className="text-xs font-bold text-foreground/40 uppercase tracking-widest">A partir de</label>
-            <input value={validFrom} onChange={(e) => setValidFrom(e.target.value)} type="date" className={field} />
+            <label className="text-xs font-bold text-foreground/40 uppercase tracking-widest">Créd. 2x (%)</label>
+            <input value={credito2x} onChange={(e) => setCredito2x(e.target.value)} inputMode="decimal" placeholder="ex: 5" className={field} />
           </div>
+          <div className="space-y-1">
+            <label className="text-xs font-bold text-foreground/40 uppercase tracking-widest">Créd. 3x (%)</label>
+            <input value={credito3x} onChange={(e) => setCredito3x(e.target.value)} inputMode="decimal" placeholder="ex: 7" className={field} />
+          </div>
+        </div>
+        <div className="space-y-1 max-w-[220px]">
+          <label className="text-xs font-bold text-foreground/40 uppercase tracking-widest">A partir de</label>
+          <input value={validFrom} onChange={(e) => setValidFrom(e.target.value)} type="date" className={field} />
         </div>
         <button onClick={salvar} disabled={pending || !validFrom} className="rounded-full bg-primary px-6 py-2.5 text-sm font-semibold text-white disabled:opacity-50">
           {pending ? "Salvando…" : "Registrar vigência"}
@@ -76,7 +86,7 @@ export function TaxasCard({ vigencias }: { vigencias: VigenciaTaxaDTO[] }) {
           {vigencias.map((v) => (
             <div key={v.id} className="flex items-center gap-3 rounded-xl bg-surface/40 px-3 py-2 text-sm">
               <span className="text-foreground/40 w-24 shrink-0">desde {dataBR(v.validFrom)}</span>
-              <span className="flex-1">débito {v.debito}% · crédito {v.credito}%</span>
+              <span className="flex-1">déb {v.debito}% · cré {v.credito}% · 2x {v.credito2x}% · 3x {v.credito3x}%</span>
               <button onClick={() => remover(v.id)} disabled={pending} title="Remover esta vigência" className="text-foreground/30 hover:text-red-600 disabled:opacity-40"><Trash2 className="w-4 h-4" /></button>
             </div>
           ))}

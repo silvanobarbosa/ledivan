@@ -22,7 +22,7 @@ export const transactionSourceEnum = pgEnum("transaction_source", ["manual", "te
 export const sessionStatusEnum = pgEnum("session_status", ["realizada", "nao_realizada", "cancelada", "realocada", "agendada", "prof_desmarcou", "atestado"]);
 // "card" é legado (não distingue débito/crédito); doc 49 passou a capturar "debito"/"credito" para o
 // cálculo da taxa. Pagamentos antigos em "card" ficam sem split de taxa (não dá para saber qual era).
-export const paymentMethodEnum = pgEnum("payment_method", ["pix", "card", "cash", "transfer", "debito", "credito"]);
+export const paymentMethodEnum = pgEnum("payment_method", ["pix", "card", "cash", "transfer", "debito", "credito", "credito_2x", "credito_3x"]);
 export const paymentStatusEnum = pgEnum("payment_status", ["paid", "pending", "overdue"]);
 export const contractTypeEnum = pgEnum("contract_type", ["pacote", "avulso"]);
 
@@ -1018,7 +1018,9 @@ export const cardFeeRates = pgTable("card_fee_rates", {
   id: uuid("id").primaryKey().defaultRandom(),
   userId: text("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
   debito: numeric("debito", { precision: 5, scale: 2 }).notNull(), // % no débito
-  credito: numeric("credito", { precision: 5, scale: 2 }).notNull(), // % no crédito
+  credito: numeric("credito", { precision: 5, scale: 2 }).notNull(), // % no crédito à vista
+  credito2x: numeric("credito_2x", { precision: 5, scale: 2 }), // % no crédito parcelado 2x (doc 50)
+  credito3x: numeric("credito_3x", { precision: 5, scale: 2 }), // % no crédito parcelado 3x (doc 50)
   validFrom: timestamp("valid_from").notNull(), // a partir de quando esta configuração vale
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (t) => [index("card_fee_user_from_idx").on(t.userId, t.validFrom)]);
