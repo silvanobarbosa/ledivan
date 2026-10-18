@@ -1038,6 +1038,36 @@ export const outboundReminders = pgTable("outbound_reminders", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (t) => [index("outbound_reminders_user_kind_idx").on(t.userId, t.kind)]);
 
+/**
+ * Despesas da clínica (doc 50): nome, valor, data de vencimento e data de pagamento (null = em aberto).
+ * A cor no quadro vem do status: paga (tem data de pagamento), em aberto (sem, dentro do prazo) ou em
+ * atraso (sem, vencida). A recorrência mensal reaproveita o mesmo caminho dos lançamentos (uma linha
+ * por mês). Entra na área Movimentações como saída.
+ */
+export const despesas = pgTable("despesas", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: text("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
+  nome: text("nome").notNull(),
+  valor: numeric("valor", { precision: 12, scale: 2 }).notNull(),
+  vencimento: timestamp("vencimento").notNull(),
+  pagamentoData: timestamp("pagamento_data"), // null = ainda não paga
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (t) => [index("despesas_user_idx").on(t.userId, t.vencimento)]);
+
+/**
+ * Receitas pessoais da terapeuta (doc 50): nome, valor e data de recebimento. `recebido` marca se já
+ * entrou (verde no extrato) ou se ainda é previsto (sem valor no extrato). Entra em Movimentações como entrada.
+ */
+export const receitasPessoais = pgTable("receitas_pessoais", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: text("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
+  nome: text("nome").notNull(),
+  valor: numeric("valor", { precision: 12, scale: 2 }).notNull(),
+  recebimento: timestamp("recebimento").notNull(),
+  recebido: boolean("recebido").default(false).notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (t) => [index("receitas_pessoais_user_idx").on(t.userId, t.recebimento)]);
+
 // --- Push (app nativo) ---
 // Guarda o token Expo de cada aparelho para enviar notificação (lembrete de consulta + aviso de
 // atualização do app). Um usuário pode ter vários aparelhos; a chave é o token.

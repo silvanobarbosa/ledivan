@@ -1,9 +1,10 @@
 import { db } from "@/db";
 import { auth } from "@/auth";
-import { transactions, categories, financialAccounts, sessionPayments } from "@/db/schema";
+import { transactions, categories, financialAccounts, sessionPayments, despesas } from "@/db/schema";
 import { eq, desc, ilike, and, gte, lte, or, isNull, isNotNull } from "drizzle-orm";
 import { cn } from "@/lib/utils";
 import { AddTransaction } from "./AddTransaction";
+import { DespesasSection, type DespesaLinha } from "./DespesasSection";
 import { ExportCSV } from "./ExportCSV";
 import { deleteTransaction } from "./actions";
 import { Trash2 } from "lucide-react";
@@ -36,7 +37,7 @@ export default async function TransactionsPage({
   if (from) { const d = new Date(from); d.setHours(0, 0, 0, 0); conds.push(gte(transactions.date, d)); }
   if (to) { const d = new Date(to); d.setHours(23, 59, 59, 999); conds.push(lte(transactions.date, d)); }
 
-  const [allTransactions, allCategories, userAccounts] = await Promise.all([
+  const [allTransactions, allCategories, userAccounts, despesasRows] = await Promise.all([
     db.query.transactions.findMany({
       where: and(...conds),
       with: { category: true },
@@ -44,7 +45,12 @@ export default async function TransactionsPage({
     }),
     db.query.categories.findMany({ where: or(isNull(categories.userId), eq(categories.userId, userId)) }),
     db.query.financialAccounts.findMany({ where: eq(financialAccounts.userId, userId) }),
+    db.select({ id: despesas.id, nome: despesas.nome, valor: despesas.valor, vencimento: despesas.vencimento, pagamentoData: despesas.pagamentoData })
+      .from(despesas).where(eq(despesas.userId, userId)).orderBy(desc(despesas.vencimento)),
   ]);
+
+  const hojeISO = (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; })();
+  const despesasLista: DespesaLinha[] = despesasRows.map((d) => ({ id: d.id, nome: d.nome, valor: d.valor, vencimento: d.vencimento.toISOString(), pagamentoData: d.pagamentoData ? d.pagamentoData.toISOString() : null }));
 
   /**
    * Quais entradas vieram de um pagamento de paciente.
@@ -108,6 +114,9 @@ export default async function TransactionsPage({
           <AddTransaction categories={allCategories} accounts={userAccounts.map((a) => ({ id: a.id, name: a.name }))} />
         </div>
       </div>
+
+      {/* Despesas (doc 50) */}
+      <DespesasSection despesas={despesasLista} hoje={hojeISO} />
 
       {/* Filtro por período (data início/fim) */}
       <form method="get" className="flex flex-wrap items-center gap-2 glass-card rounded-2xl px-4 py-3">
