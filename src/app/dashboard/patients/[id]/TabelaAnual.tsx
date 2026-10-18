@@ -2,8 +2,9 @@
 
 import { formatBRL } from "@/lib/therapy";
 import { recebidosPorAno, anosComPagamento } from "@/lib/tabelaAnual";
+import { type VigenciaTaxa } from "@/lib/taxaCartao";
 
-type Pagamento = { id: string; amount: string; date: string; status: string };
+type Pagamento = { id: string; amount: string; date: string; status: string; method?: string | null };
 
 /**
  * A tabela de valores recebidos por mês, DENTRO do paciente.
@@ -14,17 +15,17 @@ type Pagamento = { id: string; amount: string; date: string; status: string };
  * Doc 30: com "TODOS" selecionado, uma tabela por ano (cada uma identificada pelo seu ano), em vez
  * de uma só.
  */
-export function TabelaAnual({ payments, ano }: { payments: Pagamento[]; ano: number | "TODOS" }) {
+export function TabelaAnual({ payments, ano, vigencias = [] }: { payments: Pagamento[]; ano: number | "TODOS"; vigencias?: VigenciaTaxa[] }) {
   if (ano === "TODOS") {
     const anos = anosComPagamento(payments);
-    if (!anos.length) return <TabelaDoAno payments={payments} ano={new Date().getFullYear()} />;
-    return <div className="space-y-4">{anos.map((a) => <TabelaDoAno key={a} payments={payments} ano={a} />)}</div>;
+    if (!anos.length) return <TabelaDoAno payments={payments} ano={new Date().getFullYear()} vigencias={vigencias} />;
+    return <div className="space-y-4">{anos.map((a) => <TabelaDoAno key={a} payments={payments} ano={a} vigencias={vigencias} />)}</div>;
   }
-  return <TabelaDoAno payments={payments} ano={ano} />;
+  return <TabelaDoAno payments={payments} ano={ano} vigencias={vigencias} />;
 }
 
-function TabelaDoAno({ payments, ano }: { payments: Pagamento[]; ano: number }) {
-  const { meses, total } = recebidosPorAno(payments, ano);
+function TabelaDoAno({ payments, ano, vigencias }: { payments: Pagamento[]; ano: number; vigencias: VigenciaTaxa[] }) {
+  const { meses, total } = recebidosPorAno(payments, ano, vigencias);
 
   return (
     <div className="glass-card rounded-[24px] p-4 sm:p-5">

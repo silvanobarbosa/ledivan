@@ -5,6 +5,7 @@ import { eq } from "drizzle-orm";
 import { Wallet } from "lucide-react";
 import { geralDoPaciente } from "@/lib/geralDoPaciente";
 import type { PacienteFin } from "@/lib/matrizFinanceira";
+import { getVigenciasTaxa } from "@/lib/cardFees";
 import { RelatorioFinanceiro } from "./RelatorioFinanceiro";
 
 export const dynamic = "force-dynamic";
@@ -37,19 +38,21 @@ export default async function RelatorioFinanceiroPage() {
             vencimento: c.vencimento,
             situacao: c.situacao,
             falta: c.falta,
-            pagamentos: c.pagamentos.map((pg) => ({ data: pg.data, valor: pg.valor, credito: pg.credito })),
+            pagamentos: c.pagamentos.map((pg) => ({ data: pg.data, valor: pg.valor, credito: pg.credito, metodo: pg.metodo })),
           };
         });
       return { id: p.id, nome: p.name, cobrancas };
     }),
   );
 
+  const vigencias = await getVigenciasTaxa(userId);
+
   return (
     <div className="max-w-7xl mx-auto space-y-5 pb-20">
       <h1 className="text-3xl lg:text-4xl font-display font-bold text-primary flex items-center gap-2">
         <Wallet className="w-7 h-7" /> Relatório financeiro
       </h1>
-      <RelatorioFinanceiro pacientes={dados} />
+      <RelatorioFinanceiro pacientes={dados} vigencias={vigencias} />
     </div>
   );
 }

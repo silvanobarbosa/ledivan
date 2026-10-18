@@ -10,9 +10,11 @@
  *
  * Função pura: recebe os dados já lidos do motor de cobranças e devolve a tabela + os totais.
  */
+import { liquidoDoPagamento, type VigenciaTaxa } from "./taxaCartao";
+
 export type SituacaoFiltro = "todos" | "pagos" | "aberto" | "atraso";
 
-export type PagamentoFin = { data: string | null; valor: number; credito?: boolean };
+export type PagamentoFin = { data: string | null; valor: number; credito?: boolean; metodo?: string | null };
 export type CobrancaFin = {
   vencimento: string | null; // YYYY-MM-DD (hora de parede)
   situacao: "pago" | "em_aberto" | "em_atraso";
@@ -45,7 +47,7 @@ export function anosDisponiveis(pacientes: PacienteFin[]): number[] {
   return [...set].sort((a, b) => b - a);
 }
 
-export function matrizFinanceira(pacientes: PacienteFin[], ano: number, filtro: SituacaoFiltro): Matriz {
+export function matrizFinanceira(pacientes: PacienteFin[], ano: number, filtro: SituacaoFiltro, vigencias: VigenciaTaxa[] = []): Matriz {
   const linhas: LinhaMatriz[] = [];
   for (const p of pacientes) {
     const meses = new Array(12).fill(0);
@@ -54,7 +56,8 @@ export function matrizFinanceira(pacientes: PacienteFin[], ano: number, filtro: 
         for (const pg of c.pagamentos) {
           if (pg.credito) continue; // crédito do saldo não é dinheiro novo
           const d = anoMes(pg.data);
-          if (d && d.ano === ano) meses[d.mes] += pg.valor;
+          // Doc 50: o recebido entra pelo valor LÍQUIDO (desconta a taxa do cartão vigente na data).
+          if (d && d.ano === ano) meses[d.mes] += liquidoDoPagamento(pg.valor, pg.metodo, pg.data ?? "", vigencias);
         }
       }
       if (c.falta > 0.005) {

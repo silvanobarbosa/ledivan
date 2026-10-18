@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { Printer } from "lucide-react";
 import { formatBRL } from "@/lib/therapy";
 import { matrizFinanceira, type PacienteFin, type SituacaoFiltro } from "@/lib/matrizFinanceira";
+import { type VigenciaTaxa } from "@/lib/taxaCartao";
 
 const MESES = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
 const SITUACOES: { v: SituacaoFiltro; r: string }[] = [
@@ -14,13 +15,14 @@ const SITUACOES: { v: SituacaoFiltro; r: string }[] = [
 ];
 const brl = (n: number) => (n > 0.005 ? formatBRL(n) : "—");
 
-export function RelatorioFinanceiro({ pacientes }: { pacientes: PacienteFin[] }) {
+export function RelatorioFinanceiro({ pacientes, vigencias }: { pacientes: PacienteFin[]; vigencias: VigenciaTaxa[] }) {
   // `anos` sai do próprio cálculo; começa no mais recente, ou no ano corrente se não houver dados.
-  const anosBase = useMemo(() => matrizFinanceira(pacientes, 0, "todos").anos, [pacientes]);
+  const anosBase = useMemo(() => matrizFinanceira(pacientes, 0, "todos", vigencias).anos, [pacientes, vigencias]);
   const [situacao, setSituacao] = useState<SituacaoFiltro>("todos");
   const [ano, setAno] = useState<number>(anosBase[0] ?? new Date().getFullYear());
 
-  const m = useMemo(() => matrizFinanceira(pacientes, ano, situacao), [pacientes, ano, situacao]);
+  // Doc 50: nos filtros "Pagos"/"Todos" o valor recebido entra pelo LÍQUIDO (taxa do cartão).
+  const m = useMemo(() => matrizFinanceira(pacientes, ano, situacao, vigencias), [pacientes, ano, situacao, vigencias]);
 
   // Doc 50: cor do valor conforme a situação selecionada — Em atraso vermelho, Pagos azul,
   // Em aberto (e Todos) permanecem em preto.

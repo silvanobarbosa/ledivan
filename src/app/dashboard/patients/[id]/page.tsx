@@ -20,6 +20,7 @@ import { derivePackageLabels } from "@/lib/packages";
 import { resolveFeature, parseOverrides } from "@/lib/features";
 import { horaDeParede } from "@/lib/horaLocal";
 import { creditoDisponivel, geralDoPaciente } from "@/lib/geralDoPaciente";
+import { getVigenciasTaxa } from "@/lib/cardFees";
 import { descricaoValida } from "@/lib/recibo";
 
 export default async function PatientPage({ params }: { params: Promise<{ id: string }> }) {
@@ -55,6 +56,7 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
   const geral = (await geralDoPaciente(userId, id)) ?? { linhas: [], resumo: { saldo: 0, totalPago: 0, totalExigivel: 0, emAberto: 0, emAtraso: 0, nAberto: 0, nAtraso: 0, sessoesEmAberto: 0, sessoesEmAtraso: 0, extrato: [] } };
   // Doc 36: saldo de crédito do paciente (sobras guardadas), abatido no próximo pagamento.
   const credito = await creditoDisponivel(userId, id);
+  const vigenciasTaxa = await getVigenciasTaxa(userId);
 
   const prefs = (() => { try { return me?.preferences ? JSON.parse(me.preferences) : {}; } catch { return {}; } })();
   const locations = parseLocations(me?.attendanceLocations);
@@ -241,6 +243,7 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
         contractHistory={JSON.parse(JSON.stringify(contractHist))}
         finance={finance}
         cobrancaMessage={me?.cobrancaMessage ?? null}
+        vigenciasTaxa={vigenciasTaxa}
         ledger={JSON.parse(JSON.stringify(ledger))}
         sessionStats={sessionStats}
         recurring={recurring}
