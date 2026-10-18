@@ -33,7 +33,6 @@ export function AtenderClient({ session, records, meeting, therapistName, timerE
   const [recs, setRecs] = useState<Rec[]>(records);
   const [pending, start] = useTransition();
   const [patientOpen, setPatientOpen] = useState(false);
-  const [askCharge, setAskCharge] = useState(false);
 
   // Cronômetro da sessão (só quando o recurso está ligado pra este paciente).
   const [timerStart, setTimerStart] = useState<string | null>(session.timerStartedAt ?? null);
@@ -167,25 +166,12 @@ export function AtenderClient({ session, records, meeting, therapistName, timerE
         <button onClick={toggleOnline} disabled={pending} className="inline-flex items-center gap-1.5 text-xs font-semibold px-3 py-2 rounded-xl bg-surface hover:bg-surface-container transition disabled:opacity-60">
           <ArrowLeftRight className="w-4 h-4" /> {online ? "Converter p/ presencial" : "Converter p/ online"}
         </button>
-        <button onClick={() => setAskCharge(true)} disabled={pending} className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-xl bg-primary text-white disabled:opacity-60">
+        {/* Doc 50: sem a janela "finalizar atendimento". Iniciado o atendimento, o status é presente
+            (realizada) e as regras de cobrança já vêm do formato do cadastro — finaliza direto. */}
+        <button onClick={() => finalizar(true)} disabled={pending} className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-2 rounded-xl bg-primary text-white disabled:opacity-60">
           <Check className="w-4 h-4" /> Finalizar
         </button>
       </header>
-
-      {/* Finalizar: cobra ou não? */}
-      {askCharge && (
-        <div className="fixed inset-0 z-[80] flex items-center justify-center bg-black/40 p-4" onClick={() => setAskCharge(false)}>
-          <div className="bg-white rounded-[28px] p-6 w-full max-w-sm space-y-4 shadow-2xl text-center" onClick={(e) => e.stopPropagation()}>
-            <p className="font-display text-lg font-bold text-primary">Finalizar atendimento</p>
-            <p className="text-sm text-foreground/60">A sessão será marcada como <strong>realizada</strong>. Esta sessão será cobrada?</p>
-            <div className="flex gap-3">
-              <button disabled={pending} onClick={() => finalizar(false)} className="flex-1 py-3 rounded-2xl font-semibold bg-surface text-foreground/70 hover:bg-surface-container transition disabled:opacity-60">Não cobrar</button>
-              <button disabled={pending} onClick={() => finalizar(true)} className="flex-1 py-3 rounded-2xl font-bold bg-primary text-white transition disabled:opacity-60">Cobrar</button>
-            </div>
-            <button onClick={() => setAskCharge(false)} className="text-xs text-foreground/40 hover:text-primary">cancelar</button>
-          </div>
-        </div>
-      )}
 
       {/* Conteúdo.
           Notebook (lg+) com vídeo: DUAS COLUNAS — esquerda o paciente (vídeo), direita
