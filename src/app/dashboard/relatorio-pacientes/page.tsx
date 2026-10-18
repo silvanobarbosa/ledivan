@@ -35,6 +35,8 @@ export default async function RelatorioPacientesPage() {
       priceReviewDate: patients.priceReviewDate,
       paymentFormat: patients.paymentFormat,
       contractType: patients.contractType,
+      pacoteTipo: patients.pacoteTipo,
+      sessionsInPacket: patients.sessionsInPacket,
       paymentDay: patients.paymentDay,
       dueDateType: patients.dueDateType,
       dueDate: patients.dueDate,

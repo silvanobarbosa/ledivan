@@ -3,10 +3,10 @@
 import { useMemo, useState } from "react";
 import Link from "next/link";
 import { Printer } from "lucide-react";
-import { formatBRL, formatDate } from "@/lib/therapy";
+import { formatDate } from "@/lib/therapy";
 import { queixaGroup } from "@/lib/queixas";
 import { idadeEmAnos } from "@/lib/idade";
-import { rotuloDoFormato } from "@/lib/reajuste";
+import { categoriaFormato, vencimentoRelatorio, valorRelatorio } from "@/lib/formatoRelatorio";
 
 export type LinhaRelatorio = {
   id: string;
@@ -22,6 +22,8 @@ export type LinhaRelatorio = {
   priceReviewDate: string | null;
   paymentFormat: string | null;
   contractType: string | null;
+  pacoteTipo: string | null;
+  sessionsInPacket: number | null;
   paymentDay: number | null;
   dueDateType: string | null;
   dueDate: string | null;
@@ -33,29 +35,14 @@ export type LinhaRelatorio = {
 // A conta da idade e uma so, em lib/idade: copiada aqui, ela errava o dia por causa do fuso.
 const idade = (nasc: string | null): number | null => idadeEmAnos(nasc);
 
-const VENCIMENTO: Record<string, string> = {
-  avista: "À vista", "7d": "7 dias", "15d": "15 dias", "30d": "30 dias", fim_mes: "Fim do mês", data: "Data fixa",
-};
-/** Vencimento legível: o dia do mês manda quando existe; senão cai no tipo de prazo. */
-const vencimentoDe = (p: LinhaRelatorio): string => {
-  if (p.paymentDay) return `dia ${p.paymentDay}`;
-  if (p.dueDateType === "data" && p.dueDate) return formatDate(p.dueDate);
-  if (p.dueDateType) return VENCIMENTO[p.dueDateType] ?? p.dueDateType;
-  return "—";
-};
+/** Doc 50: Vencimento = dia do mês, ou 1ª/última sessão do pacote. */
+const vencimentoDe = (p: LinhaRelatorio): string => vencimentoRelatorio(p.paymentFormat, p.paymentDay);
 
-/**
- * Avulso ou pacote: `paymentFormat` é mais específico que `contractType`, então vem primeiro.
- *
- * O rótulo vem de `lib/reajuste`, o mesmo que o Financeiro usa — "o padrão definido no financeiro",
- * como a dona pediu (18/09). A tabela daqui tinha um mapa próprio e incompleto, e os formatos que
- * faltavam nele (`sessao`, `gratuito`, `primeira_pacote`, `ultima_pacote`) vazavam crus para a tela
- * e para o CSV.
- */
-const contratoDe = (p: LinhaRelatorio): string => {
-  const f = p.paymentFormat || p.contractType || "";
-  return f ? rotuloDoFormato(f) : "—";
-};
+/** Doc 50: "Formato de pagamento" — Gratuito/Avulso/Mensal/Quinzenal × Completo/Fracionado. */
+const contratoDe = (p: LinhaRelatorio): string => categoriaFormato(p.paymentFormat || p.contractType, p.pacoteTipo).label;
+
+/** Doc 50: Valor conforme o formato (Completo = nº sessões × valor; Fracionado = por sessão). */
+const valorDe = (p: LinhaRelatorio): string => valorRelatorio(categoriaFormato(p.paymentFormat || p.contractType, p.pacoteTipo).categoria, Number(p.sessionFee) || 0, p.sessionsInPacket);
 
 // Cada coluna sabe o próprio rótulo e como se extrai do paciente. Assim o cabeçalho, o corpo da
 // tabela e o CSV nunca saem de sincronia — é uma lista só.
@@ -67,9 +54,9 @@ const COLUNAS: { chave: string; rotulo: string; valor: (p: LinhaRelatorio) => st
   { chave: "address", rotulo: "Endereço", valor: (p) => p.address || "—" },
   { chave: "idade", rotulo: "Idade", valor: (p) => { const a = idade(p.birthDate); return a === null ? "—" : String(a); } },
   { chave: "qtdeAtendida", rotulo: "Qtde Atendida", valor: (p) => String(p.qtdeAtendida) },
-  { chave: "contrato", rotulo: "Avulso / Pacote", valor: contratoDe },
+  { chave: "contrato", rotulo: "Formato de pagamento", valor: contratoDe },
   { chave: "vencimento", rotulo: "Vencim.", valor: vencimentoDe },
-  { chave: "valor", rotulo: "Valor", valor: (p) => formatBRL(p.sessionFee) },
+  { chave: "valor", rotulo: "Valor", valor: valorDe },
   { chave: "inicio", rotulo: "Data início", valor: (p) => (p.startedAt ? formatDate(p.startedAt) : "—") },
   { chave: "reajuste", rotulo: "Data reajuste", valor: (p) => (p.priceReviewDate ? formatDate(p.priceReviewDate) : "—") },
   { chave: "queixa", rotulo: "Queixa principal", valor: (p) => queixaGroup(p.queixaPrincipal) },
@@ -159,7 +146,7 @@ export function RelatorioPacientes({ linhas }: { linhas: LinhaRelatorio[] }) {
             <thead>
               <tr className="border-b border-border">
                 {visiveis.map((c) => (
-                  <th key={c.chave} className="text-left px-4 py-3 font-semibold text-xs uppercase tracking-wide text-foreground/40 whitespace-nowrap">{c.rotulo}</th>
+                  <th key={c.chave} className="text-center px-4 py-3 font-semibold text-xs uppercase tracking-wide text-foreground/40 whitespace-nowrap">{c.rotulo}</th>
                 ))}
                 <th className="px-4 py-3 print:hidden" />
               </tr>
