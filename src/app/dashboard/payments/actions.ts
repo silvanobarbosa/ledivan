@@ -9,7 +9,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { parseMoedaBR } from "@/lib/money";
 
-type PaymentMethod = "pix" | "card" | "transfer" | "cash" | "debito" | "credito";
+type PaymentMethod = "pix" | "card" | "transfer" | "cash" | "debito" | "credito" | "credito_2x" | "credito_3x";
 type PaymentStatus = "paid" | "pending" | "overdue";
 
 export async function createPayment(formData: FormData) {

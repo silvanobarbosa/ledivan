@@ -16,7 +16,7 @@ import { type VigenciaTaxa } from "@/lib/taxaCartao";
  */
 export async function getVigenciasTaxa(userId: string): Promise<VigenciaTaxa[]> {
   const rows = await db
-    .select({ debito: cardFeeRates.debito, credito: cardFeeRates.credito, validFrom: cardFeeRates.validFrom })
+    .select({ debito: cardFeeRates.debito, credito: cardFeeRates.credito, credito2x: cardFeeRates.credito2x, credito3x: cardFeeRates.credito3x, validFrom: cardFeeRates.validFrom })
     .from(cardFeeRates)
     .where(eq(cardFeeRates.userId, userId));
 
@@ -25,6 +25,8 @@ export async function getVigenciasTaxa(userId: string): Promise<VigenciaTaxa[]> 
       validFrom: r.validFrom.toISOString(),
       debito: Number(r.debito) || 0,
       credito: Number(r.credito) || 0,
+      credito2x: r.credito2x != null ? Number(r.credito2x) : null,
+      credito3x: r.credito3x != null ? Number(r.credito3x) : null,
     }));
   }
 

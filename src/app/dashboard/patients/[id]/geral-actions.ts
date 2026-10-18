@@ -28,7 +28,7 @@ import { aplicarCreditoNoLancamento } from "@/lib/credito";
  *   pagamento a mais.
  */
 
-const METODOS = new Set(["pix", "card", "cash", "transfer", "debito", "credito"]);
+const METODOS = new Set(["pix", "card", "cash", "transfer", "debito", "credito", "credito_2x", "credito_3x"]);
 
 export async function lancarPagamento(entrada: {
   patientId: string;
@@ -113,7 +113,7 @@ export async function lancarPagamento(entrada: {
     sessionId: /^(sessao|extra):[0-9a-f-]{36}$/i.test(chave) ? chave.split(":")[1] : null,
     amount,
     date,
-    method: metodo as "pix" | "card" | "cash" | "transfer" | "debito" | "credito",
+    method: metodo as "pix" | "card" | "cash" | "transfer" | "debito" | "credito" | "credito_2x" | "credito_3x",
     status: "paid",
     pagoPorCpf,
     pagoPor,
