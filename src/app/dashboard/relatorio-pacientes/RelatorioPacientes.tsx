@@ -7,6 +7,7 @@ import { formatDate } from "@/lib/therapy";
 import { queixaGroup } from "@/lib/queixas";
 import { idadeEmAnos } from "@/lib/idade";
 import { categoriaFormato, vencimentoRelatorio, valorRelatorio } from "@/lib/formatoRelatorio";
+import { ExportXLSX } from "@/components/ExportXLSX";
 
 export type LinhaRelatorio = {
   id: string;
@@ -114,9 +115,20 @@ export function RelatorioPacientes({ linhas }: { linhas: LinhaRelatorio[] }) {
           {/* Imprime o que está na tela: o recorte e as colunas escolhidas. As regras de
               @media print no globals.css é que tiram o menu e soltam a trava de altura do
               dashboard — sem elas, o papel sairia com o cromo e cortado na primeira página. */}
-          <button type="button" onClick={() => window.print()} className="ml-auto inline-flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-xl font-bold text-sm hover:opacity-90 transition">
-            <Printer className="h-4 w-4" /> Imprimir relatório
-          </button>
+          {/* Exportar XLS fica à ESQUERDA do imprimir (doc 51). Recebe o mesmo `visiveis` ×
+              `filtradas` que monta a tabela, então a planilha sai com o recorte e as colunas
+              que estão na tela — nunca com mais nem com menos. */}
+          <div className="ml-auto flex items-center gap-2">
+            <ExportXLSX
+              cabecalho={visiveis.map((c) => c.rotulo)}
+              linhas={filtradas.map((p) => visiveis.map((c) => c.valor(p)))}
+              nomeArquivo="relatorio-pacientes"
+              aba="Pacientes"
+            />
+            <button type="button" onClick={() => window.print()} className="inline-flex items-center gap-2 bg-primary text-white px-4 py-2 rounded-xl font-bold text-sm hover:opacity-90 transition">
+              <Printer className="h-4 w-4" /> Imprimir relatório
+            </button>
+          </div>
         </div>
 
         <div>
