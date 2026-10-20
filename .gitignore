@@ -24,8 +24,13 @@ yarn-debug.log*
 yarn-error.log*
 
 # local env files
-.env*.local
-.env
+# Ignora QUALQUER .env e libera só os de exemplo. O padrao antigo (.env*.local + .env)
+# deixava passar `.env.vercel`, `.env.production.vercel` e `.env.production` — que sao
+# justamente os nomes que o `vercel env pull` cria. Foi por essa fresta que 40 chaves de
+# producao do hub foram parar num repositorio publico em julho/2026.
+.env*
+!.env.example
+!.env*.example
 
 # vercel
 .vercel
