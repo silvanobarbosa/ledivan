@@ -5,6 +5,7 @@ import { Printer } from "lucide-react";
 import { formatBRL } from "@/lib/therapy";
 import { matrizFinanceira, type PacienteFin, type SituacaoFiltro } from "@/lib/matrizFinanceira";
 import { type VigenciaTaxa } from "@/lib/taxaCartao";
+import { ExportXLSX } from "@/components/ExportXLSX";
 
 const MESES = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
 const SITUACOES: { v: SituacaoFiltro; r: string }[] = [
@@ -48,9 +49,24 @@ export function RelatorioFinanceiro({ pacientes, vigencias }: { pacientes: Pacie
             {(anosBase.length ? anosBase : [ano]).map((a) => <option key={a} value={a}>{a}</option>)}
           </select>
         </div>
-        <button type="button" onClick={() => window.print()} className="ml-auto inline-flex items-center gap-2 text-sm font-semibold text-primary border border-border rounded-xl px-4 py-2 hover:bg-surface cursor-pointer">
-          <Printer className="w-4 h-4" /> Imprimir
-        </button>
+        {/* Exportar XLS à ESQUERDA do imprimir (doc 51). A planilha leva a matriz exatamente
+            como está na tela — mesmo ano, mesma situação, mesma ordem — e os valores vão como
+            NÚMERO, não como texto "R$ 1.200,00": no Excel eles precisam somar. O "—" da tela
+            (valor zerado) vira célula vazia, que é o equivalente numa planilha. */}
+        <div className="ml-auto flex items-center gap-2">
+          <ExportXLSX
+            cabecalho={["Cadastro", ...MESES, "Total"]}
+            linhas={[
+              ...m.linhas.map((l) => [l.nome, ...l.meses.map((v) => (v > 0.005 ? v : "")), l.total]),
+              ["Total mensal", ...m.totalMes.map((v) => (v > 0.005 ? v : "")), m.totalGeral],
+            ]}
+            nomeArquivo={`relatorio-financeiro-${ano}`}
+            aba={String(ano)}
+          />
+          <button type="button" onClick={() => window.print()} className="inline-flex items-center gap-2 text-sm font-semibold text-primary border border-border rounded-xl px-4 py-2 hover:bg-surface cursor-pointer">
+            <Printer className="w-4 h-4" /> Imprimir
+          </button>
+        </div>
       </div>
 
       <div className="glass-card rounded-[24px] p-5 overflow-x-auto">
