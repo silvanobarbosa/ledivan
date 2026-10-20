@@ -23,8 +23,39 @@ export type CobrancaFin = {
 };
 export type PacienteFin = { id: string; nome: string; cobrancas: CobrancaFin[] };
 
-export type LinhaMatriz = { id: string; nome: string; meses: number[]; total: number };
-export type Matriz = { linhas: LinhaMatriz[]; totalMes: number[]; totalGeral: number; anos: number[] };
+/**
+ * Situação de UMA célula da matriz, para pintar o valor (doc 51).
+ *
+ * Com o filtro "Todos" a célula SOMA o mês inteiro, e o mesmo cadastro pode ter cobrança paga e
+ * atrasada no mesmo mês — então nem sempre existe uma situação única. A regra é **o pior manda**:
+ * atraso > aberto > pago. É o que precisa chamar atenção; esconder o atraso porque havia um
+ * pagamento junto seria o erro caro.
+ */
+export type SituacaoCelula = "pago" | "aberto" | "atraso" | "vazio";
+
+export type LinhaMatriz = {
+  id: string; nome: string; meses: number[]; total: number;
+  /** Situação de cada mês, na mesma ordem de `meses`. */
+  mesesSituacao: SituacaoCelula[];
+  /** Situação da coluna Total da linha. */
+  totalSituacao: SituacaoCelula;
+};
+export type Matriz = {
+  linhas: LinhaMatriz[]; totalMes: number[]; totalGeral: number; anos: number[];
+  /** Situação de cada coluna do rodapé "Total mensal". */
+  totalMesSituacao: SituacaoCelula[];
+  totalGeralSituacao: SituacaoCelula;
+};
+
+/** Marcas do que entrou numa célula. Guardamos a PRESENÇA, não o valor: a cor não é proporcional. */
+type Marcas = { pago: boolean; aberto: boolean; atraso: boolean };
+const marcaVazia = (): Marcas => ({ pago: false, aberto: false, atraso: false });
+const somarMarcas = (a: Marcas, b: Marcas): Marcas => ({
+  pago: a.pago || b.pago, aberto: a.aberto || b.aberto, atraso: a.atraso || b.atraso,
+});
+/** O pior manda. */
+const situacaoDe = (m: Marcas): SituacaoCelula =>
+  m.atraso ? "atraso" : m.aberto ? "aberto" : m.pago ? "pago" : "vazio";
 
 const r2 = (n: number) => Math.round(n * 100) / 100;
 
@@ -49,33 +80,63 @@ export function anosDisponiveis(pacientes: PacienteFin[]): number[] {
 
 export function matrizFinanceira(pacientes: PacienteFin[], ano: number, filtro: SituacaoFiltro, vigencias: VigenciaTaxa[] = []): Matriz {
   const linhas: LinhaMatriz[] = [];
+  // Marcas por linha, guardadas junto com os valores para derivar a cor de cada célula.
+  const marcasPorLinha: Marcas[][] = [];
   for (const p of pacientes) {
     const meses = new Array(12).fill(0);
+    const marcas: Marcas[] = Array.from({ length: 12 }, marcaVazia);
     for (const c of p.cobrancas) {
       if (filtro === "pagos" || filtro === "todos") {
         for (const pg of c.pagamentos) {
           if (pg.credito) continue; // crédito do saldo não é dinheiro novo
           const d = anoMes(pg.data);
           // Doc 50: o recebido entra pelo valor LÍQUIDO (desconta a taxa do cartão vigente na data).
-          if (d && d.ano === ano) meses[d.mes] += liquidoDoPagamento(pg.valor, pg.metodo, pg.data ?? "", vigencias);
+          if (d && d.ano === ano) {
+            const liq = liquidoDoPagamento(pg.valor, pg.metodo, pg.data ?? "", vigencias);
+            meses[d.mes] += liq;
+            if (liq > 0.005) marcas[d.mes].pago = true;
+          }
         }
       }
       if (c.falta > 0.005) {
         const v = anoMes(c.vencimento);
         if (v && v.ano === ano) {
-          if ((filtro === "aberto" || filtro === "todos") && c.situacao === "em_aberto") meses[v.mes] += c.falta;
-          if ((filtro === "atraso" || filtro === "todos") && c.situacao === "em_atraso") meses[v.mes] += c.falta;
+          if ((filtro === "aberto" || filtro === "todos") && c.situacao === "em_aberto") { meses[v.mes] += c.falta; marcas[v.mes].aberto = true; }
+          if ((filtro === "atraso" || filtro === "todos") && c.situacao === "em_atraso") { meses[v.mes] += c.falta; marcas[v.mes].atraso = true; }
         }
       }
     }
     const arred = meses.map(r2);
     const total = r2(arred.reduce((a, b) => a + b, 0));
-    if (total > 0.005) linhas.push({ id: p.id, nome: p.nome, meses: arred, total });
+    if (total > 0.005) {
+      // A célula zerada não tem cor, mesmo que algo tenha sido marcado e depois se anulado.
+      const mesesSituacao = marcas.map((m, i) => (arred[i] > 0.005 ? situacaoDe(m) : "vazio"));
+      linhas.push({
+        id: p.id, nome: p.nome, meses: arred, total, mesesSituacao,
+        totalSituacao: situacaoDe(marcas.reduce(somarMarcas, marcaVazia())),
+      });
+      marcasPorLinha.push(marcas);
+    }
   }
-  linhas.sort((a, b) => a.nome.localeCompare(b.nome, "pt-BR"));
+  // A ordenação precisa levar as marcas junto, senão a cor descola da linha.
+  const ordem = linhas.map((l, i) => i).sort((a, b) => linhas[a].nome.localeCompare(linhas[b].nome, "pt-BR"));
+  const linhasOrd = ordem.map((i) => linhas[i]);
+  const marcasOrd = ordem.map((i) => marcasPorLinha[i]);
+  linhas.length = 0; linhas.push(...linhasOrd);
+
   const totalMes = new Array(12).fill(0);
-  for (const l of linhas) for (let m = 0; m < 12; m++) totalMes[m] += l.meses[m];
+  const marcasMes: Marcas[] = Array.from({ length: 12 }, marcaVazia);
+  for (let i = 0; i < linhas.length; i++) {
+    for (let m = 0; m < 12; m++) {
+      totalMes[m] += linhas[i].meses[m];
+      marcasMes[m] = somarMarcas(marcasMes[m], marcasOrd[i][m]);
+    }
+  }
   const totalMesR = totalMes.map(r2);
   const totalGeral = r2(totalMesR.reduce((a, b) => a + b, 0));
-  return { linhas, totalMes: totalMesR, totalGeral, anos: anosDisponiveis(pacientes) };
+  return {
+    linhas, totalMes: totalMesR, totalGeral, anos: anosDisponiveis(pacientes),
+    totalMesSituacao: marcasMes.map((m, i) => (totalMesR[i] > 0.005 ? situacaoDe(m) : "vazio")),
+    totalGeralSituacao: totalGeral > 0.005 ? situacaoDe(marcasMes.reduce(somarMarcas, marcaVazia())) : "vazio",
+  };
 }
