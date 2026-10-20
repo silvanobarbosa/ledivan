@@ -17,7 +17,28 @@ export type VigenciaTaxa = {
   credito: number; // % crédito à vista
   credito2x?: number | null; // % crédito 2x (doc 50)
   credito3x?: number | null; // % crédito 3x (doc 50)
+  credito4x?: number | null; // % crédito 4x (doc 53)
+  credito5x?: number | null; // % crédito 5x (doc 53)
 };
+
+/**
+ * As formas de cartão que sofrem taxa, e de qual campo da vigência cada uma tira o percentual.
+ *
+ * É um mapa, e não uma cadeia de `if`, porque a lista cresce: nasceu com débito e crédito à vista
+ * (doc 49), ganhou 2x e 3x (doc 50) e agora 4x e 5x (doc 53). Com o mapa, incluir uma parcela é
+ * uma linha — e a lista de formas permitidas sai dele, sem poder divergir.
+ */
+const CAMPO_DA_FORMA: Record<string, (t: VigenciaTaxa) => number> = {
+  debito: (t) => t.debito,
+  credito: (t) => t.credito,
+  credito_2x: (t) => t.credito2x ?? 0,
+  credito_3x: (t) => t.credito3x ?? 0,
+  credito_4x: (t) => t.credito4x ?? 0,
+  credito_5x: (t) => t.credito5x ?? 0,
+};
+
+/** As formas que passam pela taxa. Qualquer outra (pix, dinheiro, transferência) sai pelo bruto. */
+export const FORMAS_COM_TAXA = Object.keys(CAMPO_DA_FORMA);
 
 /** Só a parte YYYY-MM-DD de um ISO/Date, para comparar vigência sem passar por fuso. */
 function dia(iso: string | null | undefined): string {
@@ -41,13 +62,8 @@ export function taxaVigenteEm(dataISO: string, vigencias: VigenciaTaxa[]): Vigen
   return escolhida;
 }
 
-/** Formas de cartão que sofrem taxa e qual % da vigência cada uma usa (doc 50: parcelado 2x/3x). */
 function pctDaForma(method: string, taxa: VigenciaTaxa): number {
-  if (method === "debito") return taxa.debito;
-  if (method === "credito") return taxa.credito;
-  if (method === "credito_2x") return taxa.credito2x ?? 0;
-  if (method === "credito_3x") return taxa.credito3x ?? 0;
-  return 0;
+  return CAMPO_DA_FORMA[method]?.(taxa) ?? 0;
 }
 
 /**
@@ -57,7 +73,7 @@ function pctDaForma(method: string, taxa: VigenciaTaxa): number {
  */
 export function liquidoDoPagamento(valor: number, method: string | null | undefined, dataISO: string, vigencias: VigenciaTaxa[]): number {
   if (!Number.isFinite(valor) || valor <= 0 || !method) return valor;
-  if (!["debito", "credito", "credito_2x", "credito_3x"].includes(method)) return valor;
+  if (!FORMAS_COM_TAXA.includes(method)) return valor;
   const taxa = taxaVigenteEm(dataISO, vigencias);
   if (!taxa) return valor;
   const pct = pctDaForma(method, taxa);

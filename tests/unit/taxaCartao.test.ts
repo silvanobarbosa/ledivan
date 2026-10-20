@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { taxaVigenteEm, liquidoDoPagamento, type VigenciaTaxa } from "@/lib/taxaCartao";
+import { taxaVigenteEm, liquidoDoPagamento, type VigenciaTaxa, FORMAS_COM_TAXA } from "@/lib/taxaCartao";
 
 // Exemplo do doc 49: 2%/3% a partir de 01/10; 4%/5% a partir de 01/12.
 const vigs: VigenciaTaxa[] = [
@@ -48,5 +48,56 @@ describe("liquidoDoPagamento", () => {
   it("parcelado sem taxa configurada fica bruto", () => {
     const vs: VigenciaTaxa[] = [{ validFrom: "2026-01-01", debito: 2, credito: 5 }]; // sem 2x/3x
     expect(liquidoDoPagamento(100, "credito_2x", "2026-03-10", vs)).toBe(100);
+  });
+});
+
+/**
+ * Doc 53: crédito 4x e 5x. O teste que importa não é "4x desconta": é que a lista de formas com
+ * taxa e o mapa de percentuais NÃO PODEM DIVERGIR — divergir significa cobrar taxa de quem não
+ * tem, ou deixar de descontar de quem tem, e em silêncio.
+ */
+describe("crédito 4x e 5x (doc 53)", () => {
+  const vig: VigenciaTaxa[] = [{
+    validFrom: "2026-01-01",
+    debito: 1, credito: 2, credito2x: 3, credito3x: 4, credito4x: 5, credito5x: 6,
+  }];
+
+  it("cada parcela desconta o SEU percentual", () => {
+    expect(liquidoDoPagamento(100, "credito_4x", "2026-06-10", vig)).toBe(95);
+    expect(liquidoDoPagamento(100, "credito_5x", "2026-06-10", vig)).toBe(94);
+  });
+
+  it("as parcelas antigas continuam no percentual delas", () => {
+    expect(liquidoDoPagamento(100, "debito", "2026-06-10", vig)).toBe(99);
+    expect(liquidoDoPagamento(100, "credito", "2026-06-10", vig)).toBe(98);
+    expect(liquidoDoPagamento(100, "credito_2x", "2026-06-10", vig)).toBe(97);
+    expect(liquidoDoPagamento(100, "credito_3x", "2026-06-10", vig)).toBe(96);
+  });
+
+  it("vigência antiga, sem 4x/5x cadastrados, não inventa desconto", () => {
+    // Taxa criada antes do doc 53: os campos novos chegam null. Descontar algo seria errado;
+    // o valor tem que sair inteiro.
+    const antiga: VigenciaTaxa[] = [{ validFrom: "2026-01-01", debito: 1, credito: 2 }];
+    expect(liquidoDoPagamento(100, "credito_4x", "2026-06-10", antiga)).toBe(100);
+    expect(liquidoDoPagamento(100, "credito_5x", "2026-06-10", antiga)).toBe(100);
+  });
+
+  it("formas sem cartão seguem pelo bruto", () => {
+    for (const forma of ["pix", "cash", "transfer"]) {
+      expect(liquidoDoPagamento(100, forma, "2026-06-10", vig)).toBe(100);
+    }
+  });
+
+  it("a lista FORMAS_COM_TAXA cobre exatamente as formas de cartão — nem mais, nem menos", () => {
+    expect([...FORMAS_COM_TAXA].sort()).toEqual(
+      ["credito", "credito_2x", "credito_3x", "credito_4x", "credito_5x", "debito"],
+    );
+  });
+
+  it("toda forma com taxa realmente desconta — nenhuma entra na lista e fica inerte", () => {
+    // Pega o caso de alguém incluir a forma na lista e esquecer o percentual no mapa.
+    for (const forma of FORMAS_COM_TAXA) {
+      expect(liquidoDoPagamento(100, forma, "2026-06-10", vig)).toBeLessThan(100);
+    }
   });
 });
