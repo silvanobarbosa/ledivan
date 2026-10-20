@@ -7,6 +7,64 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-10-20 — Docs 51 e 52 (primeira leva): relatórios, menu e a pergunta da falta (#445–#449)
+
+**Entregue:**
+- **#445 `.gitignore`.** O padrão era `.env*.local` + `.env`, que **não cobria** `.env.vercel`,
+  `.env.production.vercel` nem `.env.production` — os nomes que o `vercel env pull` cria. Foi por
+  essa fresta que 40 chaves de produção do hub foram parar num repositório público em julho. Aqui
+  nada havia vazado (conferido commit a commit); a mudança é preventiva.
+- **#446 Exportar XLS** no relatório de pacientes e no financeiro, à esquerda do Imprimir. `.xlsx`
+  de verdade (decisão do dono). A dependência `xlsx` já existia no `package.json` sem nenhum uso.
+- **#447 Cor por valor no relatório financeiro.** Azul pago, vermelho atrasado, preto em aberto.
+- **#448 Menu** do Consultório na ordem Dashboard · Prospecção · Cadastros · Agenda; cartão
+  "Volume mensal" removido; corte do menu no celular travado.
+- **#449 A pergunta da falta** vira a do tipo: gratuito pergunta se vira paga, avulso se cobra,
+  pacote se abate. A guia Geral deixa de perguntar e passa a mostrar.
+
+**Por quê:** o dono perguntou o que era o "volume mensal" e se a chamada online precisava de
+configuração. As duas respostas mudaram o trabalho (ver Decisões).
+
+**Decisões que ficam valendo:**
+- **A cor do relatório financeiro vem do VALOR, não do filtro.** Antes, a visão "Todos" — onde se
+  olha o ano fechado — deixava tudo preto. Na célula que mistura (pago e atrasado no mesmo mês) o
+  **pior manda**: atraso > aberto > pago. Pintar de azul porque houve um pagamento junto esconderia
+  a dívida.
+- **"Volume mensal" era duplicata**, não um indicador mal nomeado: usava a MESMA série do
+  "Atendimentos por mês" logo acima, só em barra. Removido, não renomeado.
+- **A chamada online já está configurada.** JaaS (Jitsi da 8x8), com `JAAS_APP_ID`, `JAAS_KID` e
+  `JAAS_PRIVATE_KEY` em produção. O "Entrando na sala como anfitrião…" travado é outra coisa — e
+  segue sem diagnóstico, porque precisa de uma sessão real para reproduzir.
+- **Trocar a pergunta da falta é interface; mudar o que ela faz com o dinheiro é outra entrega.**
+  O que vai ao servidor continua sendo o mesmo booleano `faltouConta`.
+- **O tipo do agendamento sai do formato vigente NA DATA DA SESSÃO.** Quem trocou de plano depois
+  da falta receberia a pergunta errada.
+- **A planilha recebe o que está na tela** — mesmo recorte, mesmas colunas. Não recalcula nada, logo
+  não tem como divergir.
+
+**Armadilhas:**
+- No relatório financeiro, as marcas de status são calculadas antes da ordenação por nome. Sem
+  reordená-las junto, **a cor de um cadastro aparece na linha de outro**. Tem teste de regressão.
+- No export, valor tem que sair como **número**, não como `"R$ 1.200,00"`: numa planilha ele precisa
+  somar. E sem largura de coluna o Excel abre tudo em 8 caracteres e todo valor vira `####`.
+- Num contêiner com `overflow-y-auto` o eixo X **vira `auto` junto** (regra do CSS). Era o que
+  permitia o menu do celular rolar na horizontal e comer o começo dos rótulos.
+- A suíte falhou 1 teste de 923 numa execução e passou nas duas seguintes, com o mesmo total.
+  Instabilidade, não regressão — mas fica o registro.
+
+**Pendente:**
+- **Doc 52 item 04:** "Sequência do pacote" no editar agendamento. Exige mexer no server action
+  `salvarEdicao` e no modelo de sessão extra — é backend, não tela.
+- **Doc 51:** anexar print no Reportar erro; foto de perfil na área de ajustes.
+- **Doc 53 (taxa de cartão), inteiro.** Inclui o ponto que precisa de confirmação: o dono escolheu
+  gerar despesa automática "Taxa cartão" em Transações, o que **obriga as somas a voltarem para o
+  bruto** — desfazendo os PRs #432/#433 do doc 50 e contrariando o item 3 do próprio texto do doc 53.
+  Os dois desenhos são corretos; misturar desconta a taxa duas vezes.
+- `definirFaltouConta` (server action) ficou sem chamador.
+- O menu mobile foi corrigido **sem reprodução** — a correção é defensiva.
+
+---
+
 ## 2026-10-18 — Doc 50 (parte 2): líquido em todas as cobranças, Menu Pagamentos, taxa parcelado (#431–#434)
 
 **Entregue:**
