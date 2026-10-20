@@ -28,14 +28,20 @@ export function NavList({ onNavigate, className }: { onNavigate?: () => void; cl
         )}
       >
         <item.icon className={cn("w-5 h-5 shrink-0", isActive ? "text-primary" : "group-hover:text-primary")} />
-        <span>{item.label}</span>
+        {/* `min-w-0` + `truncate`: sem isso o texto não encolhe e empurra a linha para fora da
+            largura da gaveta. Num contêiner com `overflow-y-auto`, o eixo X vira `auto` junto
+            (regra do CSS), e aí a lista rola na horizontal e come o começo dos rótulos. */}
+        <span className="min-w-0 truncate">{item.label}</span>
         {isActive && <span className="ml-auto w-1.5 h-1.5 rounded-full bg-primary" />}
       </Link>
     );
   };
 
   return (
-    <nav className={cn("flex-1 min-h-0 px-4 space-y-1 overflow-y-auto overscroll-contain", className)}>
+    // `overflow-x-hidden` é a trava: no celular o menu apareceu com o começo de cada rótulo
+    // cortado ("ashboard", "genda"), que é a lista rolada na horizontal. Com o eixo X preso,
+    // esse estado deixa de existir.
+    <nav className={cn("flex-1 min-h-0 px-4 space-y-1 overflow-y-auto overflow-x-hidden overscroll-contain", className)}>
       {NAV_GROUPS.map((group, i) => (
         /*
          * Os tres titulos se parecem. O grupo Financeiro tinha caixa azul propria e TRES `pt-`

@@ -22,10 +22,13 @@ export const NAV_GROUPS: NavGroup[] = [
   {
     title: "Consultório",
     items: [
+      // Doc 51: ordem pedida pelo dono — Dashboard, Prospecção, Cadastros, Agenda. Segue o
+      // caminho natural do paciente na clínica: ele é prospectado, vira cadastro e só então
+      // ocupa a agenda.
       { icon: LayoutDashboard, label: "Dashboard", href: "/dashboard" },
-      { icon: CalendarDays, label: "Agenda", href: "/dashboard/agenda" },
-      { icon: Users, label: "Cadastros", href: "/dashboard/patients" },
       { icon: UserPlus, label: "Prospecção", href: "/dashboard/prospects" },
+      { icon: Users, label: "Cadastros", href: "/dashboard/patients" },
+      { icon: CalendarDays, label: "Agenda", href: "/dashboard/agenda" },
       // Doc 28: Prontuário, Contratos e Mensagens saíram do menu. Contrato vive na guia Contrato do
       // editar paciente; prontuário e mensagens continuam acessíveis pelo paciente. As rotas seguem
       // existindo (links diretos), só não aparecem mais na navegação.

@@ -53,19 +53,10 @@ export function AnaliticosCharts({ monthly, weekday }: { monthly: Pt[]; weekday:
         ) : <Empty />}
       </Card>
 
-      <Card title="Volume mensal (barras)">
-        {hasM ? (
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={monthly} margin={{ top: 8, right: 8, left: 0, bottom: 0 }}>
-              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#e7ddd4" />
-              <XAxis dataKey="label" tick={{ fill: "#9b8aa0", fontSize: 11 }} tickLine={false} axisLine={false} />
-              <YAxis allowDecimals={false} tick={{ fill: "#9b8aa0", fontSize: 11 }} tickLine={false} axisLine={false} width={32} />
-              <Tooltip contentStyle={tip} />
-              <Bar dataKey="count" name="Atendimentos" fill="#0b3d91" radius={[6, 6, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
-        ) : <Empty />}
-      </Card>
+      {/* Doc 51: o cartão "Volume mensal (barras)" saiu. O dono perguntou o que era aquele
+          "volume" — e a resposta é que era a MESMA série do "Atendimentos por mês" logo acima
+          (mesmo `monthly`, mesma contagem de sessões realizadas), só desenhada em barra. Dois
+          gráficos para o mesmo número. Mesmo motivo pelo qual o "Online × Presencial" saiu. */}
     </div>
   );
 }
