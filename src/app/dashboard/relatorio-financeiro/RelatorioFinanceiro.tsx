@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import { Printer } from "lucide-react";
 import { formatBRL } from "@/lib/therapy";
-import { matrizFinanceira, type PacienteFin, type SituacaoFiltro } from "@/lib/matrizFinanceira";
+import { matrizFinanceira, type PacienteFin, type SituacaoFiltro, type SituacaoCelula } from "@/lib/matrizFinanceira";
 import { type VigenciaTaxa } from "@/lib/taxaCartao";
 import { ExportXLSX } from "@/components/ExportXLSX";
 
@@ -25,9 +25,16 @@ export function RelatorioFinanceiro({ pacientes, vigencias }: { pacientes: Pacie
   // Doc 50: nos filtros "Pagos"/"Todos" o valor recebido entra pelo LÍQUIDO (taxa do cartão).
   const m = useMemo(() => matrizFinanceira(pacientes, ano, situacao, vigencias), [pacientes, ano, situacao, vigencias]);
 
-  // Doc 50: cor do valor conforme a situação selecionada — Em atraso vermelho, Pagos azul,
-  // Em aberto (e Todos) permanecem em preto.
-  const corValor = situacao === "atraso" ? "text-[#b91c1c]" : situacao === "pagos" ? "text-[#2563eb]" : "text-foreground/80";
+  // Doc 51: a cor passa a vir do VALOR, não do filtro. Antes, escolher "Em atraso" pintava a
+  // tabela inteira de vermelho e "Todos" deixava tudo preto — o que escondia justamente a
+  // informação útil quando se olha tudo junto.
+  // Quando a célula mistura (pago e atrasado no mesmo mês), o pior manda: ver `situacaoDe`.
+  const COR: Record<SituacaoCelula, string> = {
+    pago: "text-[#2563eb]",     // azul
+    atraso: "text-[#b91c1c]",   // vermelho
+    aberto: "text-foreground/80", // preto
+    vazio: "text-foreground/30",
+  };
 
   return (
     <div className="space-y-4">
@@ -86,15 +93,15 @@ export function RelatorioFinanceiro({ pacientes, vigencias }: { pacientes: Pacie
               {m.linhas.map((l) => (
                 <tr key={l.id} className="border-b border-border/60">
                   <td className="px-2 py-2 font-medium sticky left-0 bg-white truncate max-w-[180px]" title={l.nome}>{l.nome}</td>
-                  {l.meses.map((v, i) => <td key={i} className={`px-2 py-2 text-right tabular-nums ${corValor}`}>{brl(v)}</td>)}
-                  <td className={`px-2 py-2 text-right tabular-nums font-bold ${corValor}`}>{brl(l.total)}</td>
+                  {l.meses.map((v, i) => <td key={i} className={`px-2 py-2 text-right tabular-nums ${COR[l.mesesSituacao[i]]}`}>{brl(v)}</td>)}
+                  <td className={`px-2 py-2 text-right tabular-nums font-bold ${COR[l.totalSituacao]}`}>{brl(l.total)}</td>
                 </tr>
               ))}
             </tbody>
             <tfoot>
               <tr className="border-t-2 border-border font-bold">
                 <td className="px-2 py-2 text-left sticky left-0 bg-surface">Total mensal</td>
-                {m.totalMes.map((v, i) => <td key={i} className="px-2 py-2 text-right tabular-nums">{brl(v)}</td>)}
+                {m.totalMes.map((v, i) => <td key={i} className={`px-2 py-2 text-right tabular-nums ${COR[m.totalMesSituacao[i]]}`}>{brl(v)}</td>)}
                 <td className="px-2 py-2 text-right tabular-nums text-primary">{brl(m.totalGeral)}</td>
               </tr>
             </tfoot>

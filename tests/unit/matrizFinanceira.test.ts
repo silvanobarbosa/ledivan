@@ -65,3 +65,78 @@ describe("matriz financeira (doc 41)", () => {
     expect(anosDisponiveis(pacientes)).toEqual([2026]);
   });
 });
+
+/**
+ * Doc 51: a cor do valor passa a vir da PRÓPRIA célula, não do filtro selecionado.
+ * O caso que decide o desenho é a célula que mistura — e ela existe de verdade: basta o
+ * cadastro ter uma cobrança paga e outra atrasada no mesmo mês.
+ */
+describe("situação por célula (doc 51) — a cor sai do valor, não do filtro", () => {
+  const misto: PacienteFin[] = [
+    {
+      id: "m", nome: "Mistura",
+      cobrancas: [
+        // Jan: uma cobrança paga (200) E outra em atraso (100), no mesmo mês.
+        { vencimento: "2026-01-05", situacao: "pago", falta: 0, pagamentos: [{ data: "2026-01-10", valor: 200 }] },
+        { vencimento: "2026-01-20", situacao: "em_atraso", falta: 100, pagamentos: [] },
+        // Fev: só em aberto.
+        { vencimento: "2026-02-05", situacao: "em_aberto", falta: 50, pagamentos: [] },
+        // Mar: só pago.
+        { vencimento: "2026-03-05", situacao: "pago", falta: 0, pagamentos: [{ data: "2026-03-05", valor: 300 }] },
+      ],
+    },
+  ];
+
+  it("célula de um status só recebe aquele status", () => {
+    const m = matrizFinanceira(misto, 2026, "todos");
+    const l = m.linhas[0];
+    expect(l.mesesSituacao[1]).toBe("aberto"); // Fev
+    expect(l.mesesSituacao[2]).toBe("pago");   // Mar
+  });
+
+  it("célula MISTA (pago + atraso no mesmo mês) fica como ATRASO — o pior manda", () => {
+    // Esconder o atraso porque havia um pagamento junto seria o erro caro: o valor somado
+    // apareceria azul e ninguém iria atrás da dívida.
+    const m = matrizFinanceira(misto, 2026, "todos");
+    expect(m.linhas[0].meses[0]).toBe(300);          // 200 pago + 100 em atraso
+    expect(m.linhas[0].mesesSituacao[0]).toBe("atraso");
+  });
+
+  it("mês sem valor não tem cor", () => {
+    const m = matrizFinanceira(misto, 2026, "todos");
+    expect(m.linhas[0].meses[5]).toBe(0);
+    expect(m.linhas[0].mesesSituacao[5]).toBe("vazio");
+  });
+
+  it("o Total da linha também segue o pior status presente no ano", () => {
+    const m = matrizFinanceira(misto, 2026, "todos");
+    expect(m.linhas[0].totalSituacao).toBe("atraso");
+  });
+
+  it("o filtro não dita mais a cor: filtrando Pagos, as células pagas são 'pago'", () => {
+    const m = matrizFinanceira(misto, 2026, "pagos");
+    expect(m.linhas[0].mesesSituacao[0]).toBe("pago"); // só o pago entrou no recorte
+    expect(m.linhas[0].mesesSituacao[2]).toBe("pago");
+  });
+
+  it("o rodapé Total mensal agrega o pior status da coluna", () => {
+    const m = matrizFinanceira(misto, 2026, "todos");
+    expect(m.totalMesSituacao[0]).toBe("atraso");
+    expect(m.totalMesSituacao[1]).toBe("aberto");
+    expect(m.totalMesSituacao[2]).toBe("pago");
+    expect(m.totalMesSituacao[5]).toBe("vazio");
+  });
+
+  it("a ordenação por nome não descola a cor da linha", () => {
+    // Regressão: as marcas são calculadas antes do sort; se não forem reordenadas junto,
+    // a linha de um cadastro passa a exibir a cor de outro.
+    const dois: PacienteFin[] = [
+      { id: "z", nome: "Zara", cobrancas: [{ vencimento: "2026-01-05", situacao: "em_atraso", falta: 10, pagamentos: [] }] },
+      { id: "a", nome: "Ana", cobrancas: [{ vencimento: "2026-01-05", situacao: "pago", falta: 0, pagamentos: [{ data: "2026-01-05", valor: 10 }] }] },
+    ];
+    const m = matrizFinanceira(dois, 2026, "todos");
+    expect(m.linhas.map((l) => l.nome)).toEqual(["Ana", "Zara"]);
+    expect(m.linhas[0].mesesSituacao[0]).toBe("pago");   // Ana
+    expect(m.linhas[1].mesesSituacao[0]).toBe("atraso"); // Zara
+  });
+});
