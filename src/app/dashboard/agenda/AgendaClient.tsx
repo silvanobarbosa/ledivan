@@ -18,6 +18,7 @@ import { BloquearHorario } from "@/components/dashboard/BloquearHorario";
 import { FUNDO_DA_JANELA, JANELA } from "@/lib/modal";
 import { perguntaSeEntraNaSequencia } from "@/lib/sessaoExtra";
 import { formatoNaData } from "@/lib/vigenciaDoFormato";
+import { tipoDaFalta, perguntaDaFalta } from "@/lib/perguntaFalta";
 
 type PatientLite = { id: string; name: string; status: string; attendanceMode: string | null; attendanceLocation: string | null;
   /** Doc 42: paciente | supervisionado — supervisionado só agenda sessões do tipo supervisão. */
@@ -414,10 +415,24 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
 
   // Doc 45: ao marcar "Faltou", pergunta "Considerar sessão realizada?" (Sim cobra/abate; Não não).
   // Os demais desfechos vão direto — cobrança é assunto do financeiro (dono, 16/09/2026).
-  const [perguntaFaltou, setPerguntaFaltou] = useState<{ id: string } | null>(null);
+  // Doc 52: a pergunta agora é a do TIPO do agendamento (gratuito / avulso / pacote), porque a
+  // consequência de "Sim" é diferente em cada um. O texto mora em `@/lib/perguntaFalta`.
+  const [perguntaFaltou, setPerguntaFaltou] = useState<{ id: string; tipo: ReturnType<typeof tipoDaFalta> } | null>(null);
   const pickStatus = (id: string, status: SessionStatus) => {
-    if (status === "nao_realizada") setPerguntaFaltou({ id });
-    else changeStatus(id, status);
+    if (status === "nao_realizada") {
+      // O formato muda no tempo: vale o que estava vigente NA DATA DA SESSÃO, não o de hoje.
+      // Perguntar pelo formato atual erraria o paciente que trocou de plano depois da falta.
+      const sess = sessions.find((x) => x.id === id);
+      const pac = patients.find((x) => x.id === sess?.patientId);
+      const formato = pac
+        ? formatoNaData(
+            (pac.vigencias ?? []).map((v) => ({ ...v, desde: new Date(v.desde), criadoEm: new Date(v.criadoEm) })),
+            sess?.date ? new Date(sess.date as unknown as string) : new Date(),
+            { formato: pac.paymentFormat ?? "sessao", pacoteTipo: pac.pacoteTipo ?? null },
+          ).formato
+        : null;
+      setPerguntaFaltou({ id, tipo: tipoDaFalta(formato) });
+    } else changeStatus(id, status);
   };
 
   const confirm = (id: string) => {
@@ -947,10 +962,7 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
                 Apenas este
               </button>
               <button disabled={pending} onClick={() => aplicarEdicao("mesmos_dias")} className="w-full bg-surface text-foreground/70 py-2.5 rounded-xl font-bold hover:bg-surface-container disabled:opacity-60">
-                Este e os próximos, nos mesmos dias e horários
-              </button>
-              <button disabled={pending} onClick={() => aplicarEdicao("todas")} className="w-full bg-surface text-foreground/70 py-2.5 rounded-xl font-bold hover:bg-surface-container disabled:opacity-60">
-                Este e todos os próximos
+                Este e os próximos
               </button>
               <button onClick={() => setPerguntaAlcance(null)} className="w-full py-2 text-sm text-foreground/40">Cancelar</button>
             </div>
@@ -964,8 +976,16 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
       {perguntaFaltou && (
         <div className={FUNDO_DA_JANELA} onClick={() => setPerguntaFaltou(null)}>
           <div className={`${JANELA} max-w-sm`} onClick={(e) => e.stopPropagation()}>
-            <p className="text-lg font-display font-bold text-primary">Considerar sessão realizada?</p>
-            <p className="text-sm text-foreground/60 mt-1">Se <strong>Sim</strong>, a sessão conta para a cobrança (avulso) ou abate do pacote. Se <strong>Não</strong>, não gera cobrança (avulso = R$ 0,00) nem abate do pacote.</p>
+            {/* Doc 52: a pergunta é a do tipo do agendamento. A genérica "Considerar sessão
+                realizada?" obrigava o usuário a traduzir sozinho o que "realizada" significa
+                no contrato daquele paciente — e a consequência é outra em cada caso. */}
+            <p className="text-lg font-display font-bold text-primary">{perguntaDaFalta(perguntaFaltou.tipo).titulo}</p>
+            <p className="text-sm text-foreground/60 mt-1">
+              <strong>Sim:</strong> {perguntaDaFalta(perguntaFaltou.tipo).explicaSim}
+            </p>
+            <p className="text-sm text-foreground/60 mt-1">
+              <strong>Não:</strong> {perguntaDaFalta(perguntaFaltou.tipo).explicaNao}
+            </p>
             <div className="flex gap-2 mt-4">
               <button disabled={pending} onClick={() => changeStatus(perguntaFaltou.id, "nao_realizada", undefined, true)} className="flex-1 bg-primary text-white py-2.5 rounded-xl text-sm font-bold disabled:opacity-60">Sim</button>
               <button disabled={pending} onClick={() => changeStatus(perguntaFaltou.id, "nao_realizada", undefined, false)} className="flex-1 bg-surface text-foreground/70 py-2.5 rounded-xl text-sm font-bold disabled:opacity-60">Não</button>

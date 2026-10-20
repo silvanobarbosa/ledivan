@@ -12,7 +12,6 @@ import { parseMoedaBR } from "@/lib/money";
 import { aplicarCreditoNoLancamento } from "@/lib/credito";
 import { desfazerVencimento, editarVencimento, lancarPagamento, limparEnviosDaCobranca, registrarCobrancaEnviada, removerPagamento } from "./geral-actions";
 import { marcarEmissao } from "./recibo-actions";
-import { definirFaltouConta } from "@/app/dashboard/sessions/actions";
 import { doAno, dataDoAnoControle } from "@/lib/filtroDeAno";
 import { numeroDoWhatsapp } from "@/lib/telefoneWhatsapp";
 import { useConfirmarEnvio, ConfirmarEnvioModal } from "@/components/dashboard/confirmarEnvio";
@@ -193,18 +192,25 @@ const STATUS_GERAL: Record<string, string> = {
   realizada: "Presente", nao_realizada: "Faltou", cancelada: "Desmarcou",
   realocada: "Desmarcou", prof_desmarcou: "Prof. desm.", atestado: "Atestado",
 };
-/** Doc 45: pergunta "Considerar sessão realizada?" numa sessão Faltou, direto na guia Geral. */
+/**
+ * Doc 52: a guia Geral deixa de PERGUNTAR e passa a MOSTRAR.
+ *
+ * A decisão de cobrar ou abater já é tomada na agenda, no momento em que a falta é registrada —
+ * e lá a pergunta é a do tipo do agendamento. Repeti-la aqui criava dois controles para o mesmo
+ * dado, cada um com um texto, e nada dizia qual tinha valido por último.
+ *
+ * Para mudar de ideia: abrir o agendamento na agenda e escolher "Faltou" de novo. A pergunta
+ * reaparece e a nova resposta SUBSTITUI a anterior — não soma.
+ */
 function FaltouToggle({ sessionId, conta }: { sessionId: string; conta: boolean | null }) {
-  const router = useRouter();
-  const [pending, start] = useTransition();
-  const set = (v: boolean) => start(async () => { const r = await definirFaltouConta(sessionId, v); if (r.ok) router.refresh(); });
-  const btn = (sel: boolean) => `px-2.5 py-0.5 rounded-full text-[11px] font-bold transition disabled:opacity-50 ${sel ? "bg-primary text-white" : "bg-white border border-border text-foreground/60 hover:bg-surface"}`;
+  void sessionId;
+  if (conta === null) return null;
   return (
     <div className="flex items-center gap-2 flex-wrap">
-      <span className="text-[11px] text-foreground/50">Considerar sessão realizada?</span>
-      <button type="button" disabled={pending} onClick={() => set(true)} className={btn(conta === true)}>Sim</button>
-      <button type="button" disabled={pending} onClick={() => set(false)} className={btn(conta === false)}>Não</button>
-      {conta === false && <span className="text-[10px] text-foreground/40">Não cobra / não abate do pacote.</span>}
+      <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold ${conta ? "bg-primary/10 text-primary" : "bg-foreground/10 text-foreground/60"}`}>
+        {conta ? "Cobra / abate" : "Não cobra / não abate"}
+      </span>
+      <span className="text-[10px] text-foreground/40">Para mudar, marque &quot;Faltou&quot; de novo na agenda.</span>
     </div>
   );
 }
