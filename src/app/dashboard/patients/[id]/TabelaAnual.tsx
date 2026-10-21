@@ -42,8 +42,25 @@ function TabelaDoAno({ payments, ano, vigencias }: { payments: Pagamento[]; ano:
         <tbody>
           {meses.map((m) => (
             <tr key={m.mes} className="border-t border-border">
-              <td className="px-3 py-1.5">{m.mes}</td>
-              <td className={`px-3 py-1.5 text-right tabular-nums ${m.valor > 0 ? "" : "text-foreground/30"}`}>{m.valor > 0 ? formatBRL(m.valor) : "—"}</td>
+              <td className="px-3 py-1.5 align-top">{m.mes}</td>
+              {/* Doc 53: o valor vem com a FORMA ao lado, e nos cartões o líquido logo abaixo.
+                  O total da linha segue sendo o líquido — é o que entrou na conta. Mostrar o
+                  bruto por forma serve para conferir contra o comprovante da maquininha. */}
+              <td className={`px-3 py-1.5 text-right tabular-nums ${m.valor > 0 ? "" : "text-foreground/30"}`}>
+                {m.valor > 0 ? (
+                  <>
+                    {m.formas.map((f) => (
+                      <span key={f.metodo} className="block">
+                        <span className="text-[#2563eb]">{formatBRL(f.bruto)} {f.curto}</span>
+                        {f.temTaxa && <span className="block text-[11px] text-[#047857]">Líquido {formatBRL(f.liquido)}</span>}
+                      </span>
+                    ))}
+                    {m.formas.length > 1 && (
+                      <span className="block text-[11px] text-foreground/50 border-t border-border mt-1 pt-1">{formatBRL(m.valor)}</span>
+                    )}
+                  </>
+                ) : "—"}
+              </td>
             </tr>
           ))}
           <tr className="border-t-2 border-border font-bold">
