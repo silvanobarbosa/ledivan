@@ -9,6 +9,7 @@ import { formatBRL, PAYMENT_METHOD_LABELS, PAYMENT_METHOD_OPTIONS, sessionColorC
 import type { CobrancaNaTela, LinhaNaTela } from "@/lib/geralDoPaciente";
 import { montarMensagemCobranca } from "@/lib/mensagemCobranca";
 import { parseMoedaBR } from "@/lib/money";
+import { PARCELAS_CREDITO, metodoDoCredito, rotuloDaParcela } from "@/lib/parcelaCredito";
 import { aplicarCreditoNoLancamento } from "@/lib/credito";
 import { desfazerVencimento, editarVencimento, lancarPagamento, limparEnviosDaCobranca, registrarCobrancaEnviada, removerPagamento } from "./geral-actions";
 import { marcarEmissao } from "./recibo-actions";
@@ -188,6 +189,15 @@ const hojeISO = () => {
 
 // Só estes cinco status aparecem na coluna Status da Geral (dono, 16/09/2026). Sem status = célula
 // vazia, sem cor. As cores são as mesmas da agenda.
+/**
+ * As formas do seletor. "Crédito" aparece UMA vez; o parcelamento é a pergunta seguinte.
+ * Derivada de PAYMENT_METHOD_OPTIONS para não virar uma segunda lista: tira as parcelas
+ * (`credito_Nx`) e mantém o resto na ordem original.
+ */
+const FORMAS_BASE = PAYMENT_METHOD_OPTIONS
+  .filter((o) => !/^credito_\d+x$/.test(o.value))
+  .map((o) => (o.value === "credito" ? { value: o.value, label: "Crédito" } : o));
+
 const STATUS_GERAL: Record<string, string> = {
   realizada: "Presente", nao_realizada: "Faltou", cancelada: "Desmarcou",
   realocada: "Desmarcou", prof_desmarcou: "Prof. desm.", atestado: "Atestado",
@@ -444,6 +454,8 @@ function FormularioDeLancamento({ patientId, c, responsavel, responsavelCpf, fec
    */
   const [nome, setNome] = useState(responsavel);
   const [cpf, setCpf] = useState(responsavelCpf);
+  const [formaBase, setFormaBase] = useState("pix");
+  const [parcelas, setParcelas] = useState(1);
   const mesmoPagador = nome.trim().toLowerCase() === responsavel.trim().toLowerCase();
 
   // Valor editável (doc 17): pré-preenchido com o que FALTA, em pt-BR. A diferença e o aviso são
@@ -529,12 +541,28 @@ function FormularioDeLancamento({ patientId, c, responsavel, responsavelCpf, fec
               value={cpf} onChange={(e) => setCpf(e.target.value)}
               className="w-[150px] px-3 py-2 rounded-lg bg-white border border-border text-sm tabular-nums" />
           </div>
+          {/* Doc 53: a forma pergunta primeiro "foi no crédito?" e só então "em quantas vezes".
+              Antes as parcelas vinham soltas na mesma lista, junto de Pix e Dinheiro — o que
+              misturava duas perguntas diferentes e crescia a cada parcela nova.
+              O que vai ao servidor continua sendo UMA string (`metodo`), montada por
+              `metodoDoCredito`: o server action não muda. */}
           <div>
             <label className="text-[11px] font-semibold text-foreground/60 block">Forma</label>
-            <select name="metodo" defaultValue="pix" className="px-3 py-2 rounded-lg bg-white border border-border text-sm">
-              {PAYMENT_METHOD_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
+            <select value={formaBase} onChange={(e) => setFormaBase(e.target.value)}
+              className="px-3 py-2 rounded-lg bg-white border border-border text-sm">
+              {FORMAS_BASE.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
             </select>
           </div>
+          {formaBase === "credito" && (
+            <div>
+              <label className="text-[11px] font-semibold text-foreground/60 block">Parcelas</label>
+              <select value={parcelas} onChange={(e) => setParcelas(Number(e.target.value))}
+                className="px-3 py-2 rounded-lg bg-white border border-border text-sm">
+                {PARCELAS_CREDITO.map((n) => <option key={n} value={n}>{rotuloDaParcela(n)}</option>)}
+              </select>
+            </div>
+          )}
+          <input type="hidden" name="metodo" value={formaBase === "credito" ? metodoDoCredito(parcelas) : formaBase} />
           <button disabled={pending} className="bg-primary text-white px-4 py-2 rounded-lg font-bold text-sm disabled:opacity-60">
             {pending ? "Salvando…" : `Confirmar ${formatBRL(valorNum)}`}
           </button>
