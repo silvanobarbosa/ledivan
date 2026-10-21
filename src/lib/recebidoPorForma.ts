@@ -6,7 +6,7 @@
  * descontam, pela taxa vigente na data de cada pagamento — [[taxaCartao]]). As somas usam o líquido.
  */
 
-import { liquidoDoPagamento, type VigenciaTaxa } from "./taxaCartao";
+import { liquidoDoPagamento, FORMAS_COM_TAXA, type VigenciaTaxa } from "./taxaCartao";
 
 export type PagamentoSimples = { valor: number; metodo: string | null | undefined; data: string };
 
@@ -17,6 +17,8 @@ export const FORMAS_RECEBIMENTO: { metodo: string; curto: string }[] = [
   { metodo: "credito", curto: "Cre" },
   { metodo: "credito_2x", curto: "Cre 2x" },
   { metodo: "credito_3x", curto: "Cre 3x" },
+  { metodo: "credito_4x", curto: "Cre 4x" },
+  { metodo: "credito_5x", curto: "Cre 5x" },
   { metodo: "dinheiro", curto: "Din" },
   { metodo: "cash", curto: "Din" },
   { metodo: "transferencia", curto: "Trans" },
@@ -24,8 +26,15 @@ export const FORMAS_RECEBIMENTO: { metodo: string; curto: string }[] = [
   { metodo: "card", curto: "Cartão" },
 ];
 const CURTO = new Map(FORMAS_RECEBIMENTO.map((f) => [f.metodo, f.curto]));
-/** Formas que sofrem taxa (mostram líquido abaixo do bruto). */
-const COM_TAXA = new Set(["debito", "credito", "credito_2x", "credito_3x"]);
+/**
+ * Quais formas mostram o líquido — vem de `FORMAS_COM_TAXA`, a MESMA fonte que decide o desconto.
+ *
+ * Aqui havia uma terceira lista escrita à mão, parada no 3x. Quando o doc 53 abriu 4x e 5x, o
+ * líquido desses pagamentos passava a ser calculado certo e simplesmente não aparecia na tela —
+ * a conta batia e o usuário via só o bruto. Uma lista que decide EXIBIÇÃO não pode viver longe
+ * da lista que decide o CÁLCULO.
+ */
+const COM_TAXA = new Set(FORMAS_COM_TAXA);
 
 export type FormaRecebida = { metodo: string; curto: string; bruto: number; liquido: number; temTaxa: boolean };
 export type RecebidoResumo = { formas: FormaRecebida[]; totalBruto: number; totalLiquido: number };
