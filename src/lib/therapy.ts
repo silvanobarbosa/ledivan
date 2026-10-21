@@ -202,6 +202,8 @@ export const PAYMENT_METHOD_LABELS: Record<string, string> = {
   credito: "Crédito à vista",
   credito_2x: "Crédito 2x",
   credito_3x: "Crédito 3x",
+  credito_4x: "Crédito 4x",
+  credito_5x: "Crédito 5x",
   card: "Cartão", // legado (doc 49): pagamentos antigos sem split débito/crédito
   cash: "Dinheiro",
   transfer: "Transferência",
@@ -215,6 +217,8 @@ export const PAYMENT_METHOD_OPTIONS: { value: string; label: string }[] = [
   { value: "credito", label: PAYMENT_METHOD_LABELS.credito },
   { value: "credito_2x", label: PAYMENT_METHOD_LABELS.credito_2x },
   { value: "credito_3x", label: PAYMENT_METHOD_LABELS.credito_3x },
+  { value: "credito_4x", label: PAYMENT_METHOD_LABELS.credito_4x },
+  { value: "credito_5x", label: PAYMENT_METHOD_LABELS.credito_5x },
   { value: "cash", label: PAYMENT_METHOD_LABELS.cash },
   { value: "transfer", label: PAYMENT_METHOD_LABELS.transfer },
 ];

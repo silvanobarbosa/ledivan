@@ -16,13 +16,15 @@ export function TaxasCard({ vigencias }: { vigencias: VigenciaTaxaDTO[] }) {
   const [credito, setCredito] = useState("");
   const [credito2x, setCredito2x] = useState("");
   const [credito3x, setCredito3x] = useState("");
+  const [credito4x, setCredito4x] = useState("");
+  const [credito5x, setCredito5x] = useState("");
   const [validFrom, setValidFrom] = useState("");
   const [pending, start] = useTransition();
   const [msg, setMsg] = useState<string | null>(null);
 
   const salvar = () => start(async () => {
     setMsg(null);
-    const r = await adicionarVigenciaTaxa({ debito, credito, credito2x, credito3x, validFrom });
+    const r = await adicionarVigenciaTaxa({ debito, credito, credito2x, credito3x, credito4x, credito5x, validFrom });
     if (r.ok) { setDebito(""); setCredito(""); setCredito2x(""); setCredito3x(""); setValidFrom(""); setMsg("salvo ✓"); setTimeout(() => setMsg(null), 1500); }
     else setMsg(r.error || "não deu para salvar");
   });
@@ -69,6 +71,16 @@ export function TaxasCard({ vigencias }: { vigencias: VigenciaTaxaDTO[] }) {
             <label className="text-xs font-bold text-foreground/40 uppercase tracking-widest">Créd. 3x (%)</label>
             <input value={credito3x} onChange={(e) => setCredito3x(e.target.value)} inputMode="decimal" placeholder="ex: 7" className={field} />
           </div>
+          {/* Doc 53: 4x e 5x. Deixar em branco vale zero — e zero não desconta nada, que é o
+              certo para quem não parcela nessas faixas. */}
+          <div className="space-y-1">
+            <label className="text-xs font-bold text-foreground/40 uppercase tracking-widest">Créd. 4x (%)</label>
+            <input value={credito4x} onChange={(e) => setCredito4x(e.target.value)} inputMode="decimal" placeholder="ex: 9" className={field} />
+          </div>
+          <div className="space-y-1">
+            <label className="text-xs font-bold text-foreground/40 uppercase tracking-widest">Créd. 5x (%)</label>
+            <input value={credito5x} onChange={(e) => setCredito5x(e.target.value)} inputMode="decimal" placeholder="ex: 11" className={field} />
+          </div>
         </div>
         <div className="space-y-1 max-w-[220px]">
           <label className="text-xs font-bold text-foreground/40 uppercase tracking-widest">A partir de</label>
@@ -86,7 +98,7 @@ export function TaxasCard({ vigencias }: { vigencias: VigenciaTaxaDTO[] }) {
           {vigencias.map((v) => (
             <div key={v.id} className="flex items-center gap-3 rounded-xl bg-surface/40 px-3 py-2 text-sm">
               <span className="text-foreground/40 w-24 shrink-0">desde {dataBR(v.validFrom)}</span>
-              <span className="flex-1">déb {v.debito}% · cré {v.credito}% · 2x {v.credito2x}% · 3x {v.credito3x}%</span>
+              <span className="flex-1">déb {v.debito}% · cré {v.credito}% · 2x {v.credito2x}% · 3x {v.credito3x}% · 4x {v.credito4x}% · 5x {v.credito5x}%</span>
               <button onClick={() => remover(v.id)} disabled={pending} title="Remover esta vigência" className="text-foreground/30 hover:text-red-600 disabled:opacity-40"><Trash2 className="w-4 h-4" /></button>
             </div>
           ))}
