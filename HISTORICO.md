@@ -7,6 +7,53 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-10-21 — Docs 51, 52 e 53 FECHADOS (#451–#456)
+
+**Entregue:**
+- **#451 Crédito 4x e 5x.** `card_fee_rates` e o enum `payment_method` ganham as faixas novas.
+- **#452 O líquido sumia da tela em 4x/5x.** Havia TRÊS listas de "formas de cartão": a do cálculo,
+  a da exibição e a da ordem. Só a primeira foi atualizada.
+- **#453 Crédito abre as parcelas.** O seletor mostra Crédito uma vez; escolhê-lo abre à vista a 5x.
+- **#454 Valores recebidos com a forma ao lado** e o líquido nos cartões, dentro do paciente.
+- **#455 Anexar print no Reportar erro** + **foto de perfil** nos Ajustes.
+- **#456 Sequência do pacote também ao editar** o agendamento.
+
+**Por quê:** o doc 53 pedia taxa até 5x e bruto+líquido em toda parte; os docs 51 e 52 tinham
+sobrado o anexo, a foto e a sequência no editar.
+
+**Decisões que ficam valendo:**
+- **Somas pelo LÍQUIDO, sem despesa automática de taxa.** O dono chegou a pedir uma despesa
+  "Taxa cartão" em Transações, o que obrigaria as somas a voltarem para o bruto e desfaria os PRs
+  #432/#433. Revisto: vale o desenho do item 3 do próprio doc 53 — líquido dos cartões + bruto das
+  demais formas. Os dois desenhos são corretos; **misturar desconta a taxa duas vezes**.
+- **"À vista" continua gravando `credito`, sem sufixo.** Mudar para `credito_1x` renomearia a forma
+  de todo pagamento à vista já existente, e a taxa passaria a ser lida de um campo inexistente.
+- **A sequência do pacote é da SESSÃO, nunca do bloco** — mesmo quando o alcance pega as próximas.
+  É propriedade do encaixe avulso; aplicar ao bloco vira mudança financeira em série.
+- **O formato vale o da DATA da sessão**, não o de hoje — na falta, na sequência e na edição.
+- **Prints do suporte viajam em `context.extra`**, que a rota do hub repassa inteira ao `jsonb`.
+  Nada de rota de upload nova. Conferido ANTES de escrever a tela: anexo em qualquer outro campo
+  seria descartado em silêncio.
+
+**Armadilhas:**
+- **Uma lista que decide EXIBIÇÃO não pode viver longe da que decide o CÁLCULO.** Foi assim que o
+  líquido de 4x/5x virou invisível com a conta certa — o pior tipo de defeito. Agora há teste que
+  percorre toda forma com taxa exigindo que ela desconte E apareça.
+- Print de celular passa de 3 MB; base64 disso dentro de `jsonb` incha o chamado. A imagem é
+  reduzida no navegador (1280px, JPEG 0.7) antes de virar texto.
+- `photo3x4` era campo ÓRFÃO: o banco tinha, a action salvava, a tela nunca mostrava.
+- Teste com `toEqual` exato quebra quando o objeto ganha campo novo por desenho. Virou
+  `toMatchObject` — o caso prova a soma, não o formato.
+
+**Não se aplica:** bruto+líquido na Conciliação. Ela lê extrato bancário importado, e o que cai na
+conta de um cartão **já é o líquido** — não há bruto a exibir.
+
+**Pendente:** a sala de chamada online trava em "Entrando na sala como anfitrião…". **Não é falta
+de configuração** — JaaS (8x8) está configurado em produção com as três variáveis. Precisa de uma
+sessão real para reproduzir.
+
+---
+
 ## 2026-10-20 — Docs 51 e 52 (primeira leva): relatórios, menu e a pergunta da falta (#445–#449)
 
 **Entregue:**
