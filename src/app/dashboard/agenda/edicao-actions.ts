@@ -4,7 +4,9 @@ import { and, eq, gte, inArray, lte } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { db } from "@/db";
 import { auth } from "@/auth";
-import { therapySessions, sessoesPuladas, blockedSlots, sessionPayments, patients } from "@/db/schema";
+import { therapySessions, sessoesPuladas, blockedSlots, sessionPayments, patients, patientPaymentFormatHistory } from "@/db/schema";
+import { formatoNaData } from "@/lib/vigenciaDoFormato";
+import { extraParaGravar } from "@/lib/sessaoExtra";
 import {
   deslocamento,
   horarioOcupado,
@@ -55,6 +57,10 @@ export async function salvarEdicao(opts: {
   location?: string;
   confirmChannel?: string;
   confirmLeadHours?: string;
+  /** Doc 52: a sessão entra ou não na sequência do pacote. "sim" | "nao" | undefined (não mexer). */
+  naSequencia?: string;
+  cobrada?: string;
+  valorExtra?: string;
 }): Promise<Resultado> {
   const session = await auth();
   if (!session?.user?.id) return { ok: false, error: "Sessão inválida." };
@@ -110,6 +116,34 @@ export async function salvarEdicao(opts: {
     }
   }
 
+  /**
+   * Doc 52: a sequência do pacote também pode ser decidida ao EDITAR, não só ao criar.
+   *
+   * Só vale para ESTA sessão, mesmo quando o alcance pega as próximas: "entra ou não na
+   * sequência" é uma propriedade do agendamento avulso que foi encaixado, não do bloco. Aplicar
+   * ao bloco inteiro transformaria uma correção pontual numa mudança financeira em série.
+   *
+   * O formato é o VIGENTE NA DATA da sessão, como no resto da agenda.
+   */
+  let extraDaSessao: { extra: "avul" | "grat" | null; valorExtra: string | null } | null = null;
+  if (opts.naSequencia !== undefined) {
+    const vigencias = await db
+      .select({ formato: patientPaymentFormatHistory.formato, pacoteTipo: patientPaymentFormatHistory.pacoteTipo,
+                desde: patientPaymentFormatHistory.dataEfetiva, criadoEm: patientPaymentFormatHistory.dataCriacao })
+      .from(patientPaymentFormatHistory)
+      .where(eq(patientPaymentFormatHistory.patientId, atual.patientId));
+    const paciente = await db.query.patients.findFirst({ where: eq(patients.id, atual.patientId) });
+    const formato = formatoNaData(vigencias, novaData ?? atual.date, {
+      formato: paciente?.paymentFormat ?? "sessao", pacoteTipo: paciente?.pacoteTipo ?? null,
+    }).formato;
+    const r = extraParaGravar({
+      formato, sessionKind: atual.sessionKind ?? undefined,
+      naSequencia: opts.naSequencia, cobrada: opts.cobrada ?? null, valor: opts.valorExtra ?? null,
+    });
+    if (!r.ok) return { ok: false, error: r.error };
+    extraDaSessao = { extra: r.extra, valorExtra: r.valorExtra };
+  }
+
   const porId = new Map(novas.map((n) => [n.id, n.data]));
   for (const id of alvos) {
     const data = porId.get(id);
@@ -119,6 +153,13 @@ export async function salvarEdicao(opts: {
       .update(therapySessions)
       .set(data ? { ...mudancas, date: data } : mudancas)
       .where(and(eq(therapySessions.id, id), eq(therapySessions.userId, userId)));
+  }
+
+  // A sequência é da sessão editada, nunca do bloco — ver o comentário acima.
+  if (extraDaSessao) {
+    await db.update(therapySessions)
+      .set({ extra: extraDaSessao.extra, valorExtra: extraDaSessao.valorExtra })
+      .where(and(eq(therapySessions.id, atual.id), eq(therapySessions.userId, userId)));
   }
 
   revalidatePath("/dashboard/agenda");

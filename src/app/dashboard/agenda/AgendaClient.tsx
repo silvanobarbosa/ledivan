@@ -243,6 +243,19 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
   // A pergunta "entra na sequência do pacote?" vale também na RECORRÊNCIA (doc 9, item 4): é como a
   // 2ª série do paciente escolhe ser Avulso/Gratuito, independente do pacote já existente. Antes só
   // o agendamento único perguntava (`!newRecorrente`), e por isso a recorrência caía sempre no pacote.
+  // Doc 52: a mesma regra da criação, mas para a sessão que está sendo editada.
+  const perguntaSequenciaEdicao = (() => {
+    if (!selected) return false;
+    const pac = patients.find((x) => x.id === selected.patientId);
+    if (!pac) return false;
+    const formato = formatoNaData(
+      (pac.vigencias ?? []).map((v) => ({ ...v, desde: new Date(v.desde), criadoEm: new Date(v.criadoEm) })),
+      selected.date ? new Date(selected.date as unknown as string) : new Date(),
+      { formato: pac.paymentFormat ?? "sessao", pacoteTipo: pac.pacoteTipo ?? null },
+    ).formato;
+    return perguntaSeEntraNaSequencia({ formato, sessionKind: selected.sessionKind ?? undefined });
+  })();
+
   const perguntaSequencia = perguntaSeEntraNaSequencia({ formato: formatoNaDataNova, sessionKind: newKind }, jaTemSequencia);
   // Doc 22: ao ADICIONAR à sequência do pacote, a sessão SEMPRE preenche uma desmarcada — nunca
   // acrescenta uma a mais. Então a escolha "é uma sessão a mais" saiu, e a primeira desmarcada já
@@ -337,6 +350,8 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
   }
   /** A edição preenchida, esperando a pessoa dizer o alcance. */
   const [perguntaAlcance, setPerguntaAlcance] = useState<Record<string, string> | null>(null);
+  // Doc 52: a sequência do pacote também se decide ao EDITAR, não só ao criar.
+  const [edicaoSequencia, setEdicaoSequencia] = useState<string>("");
   /** A exclusão, esperando o alcance. `null` quando ninguém pediu para excluir. */
   const [perguntaExcluir, setPerguntaExcluir] = useState<{ id: string; passo: "inicio" | "proximos" } | null>(null);
   const [quantos, setQuantos] = useState<{ mesmosDias: number; todas: number } | null>(null);
@@ -377,6 +392,7 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
         location: perguntaAlcance.location,
         confirmChannel: perguntaAlcance.confirmChannel,
         confirmLeadHours: perguntaAlcance.confirmLeadHours,
+        ...(edicaoSequencia ? { naSequencia: edicaoSequencia } : {}),
       });
       setPerguntaAlcance(null);
       if (!r.ok) return setEditErro(r.error ?? "Não consegui salvar.");
@@ -961,6 +977,22 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
               <button disabled={pending} onClick={() => aplicarEdicao("apenas_esta")} className="w-full bg-primary text-white py-2.5 rounded-xl font-bold disabled:opacity-60">
                 Apenas este
               </button>
+              {/* Doc 52: a mesma escolha de sequência que existe ao criar aparece aqui. Mostrada
+                  só quando o paciente está em pacote — fora dele a pergunta não faz sentido.
+                  Vale para ESTA sessão, nunca para o bloco: é propriedade do encaixe, não da série. */}
+              {perguntaSequenciaEdicao && (
+                <div className="rounded-xl bg-[#fef3c7] px-3 py-2.5 space-y-2 text-left">
+                  <p className="text-xs font-semibold text-[#92400e]">Sequência do pacote</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    {[{ v: "sim", r: "Adicionar à sequência do pacote" }, { v: "nao", r: "Não adicionar à sequência do pacote" }].map((o) => (
+                      <button key={o.v} type="button" onClick={() => setEdicaoSequencia(o.v)}
+                        className={`py-2 px-2 rounded-xl text-xs font-bold transition ${edicaoSequencia === o.v ? "bg-[#92400e] text-white" : "bg-white text-foreground/70 hover:bg-[#fde68a]"}`}>
+                        {o.r}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
               <button disabled={pending} onClick={() => aplicarEdicao("mesmos_dias")} className="w-full bg-surface text-foreground/70 py-2.5 rounded-xl font-bold hover:bg-surface-container disabled:opacity-60">
                 Este e os próximos
               </button>
