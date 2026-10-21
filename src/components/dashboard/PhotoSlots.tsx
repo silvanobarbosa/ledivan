@@ -69,11 +69,24 @@ function Slot({
           </div>
         )}
       </label>
+      {/* Doc 51: além de escolher um arquivo, poder TIRAR a foto. `capture="user"` pede a câmera
+          frontal no celular; no computador o navegador ignora e abre o seletor de arquivo, que é
+          a degradação certa — nunca fica sem caminho. */}
+      <label className="text-[11px] font-semibold text-primary/80 hover:text-primary inline-flex items-center gap-1 cursor-pointer">
+        <input
+          type="file"
+          accept="image/*"
+          capture="user"
+          className="hidden"
+          onChange={(e) => { const f = e.target.files?.[0]; if (f) onPick(f); }}
+        />
+        <Camera className="w-3 h-3" /> tirar foto
+      </label>
       {value && (
         <button
           type="button"
           onClick={() => setValue("")}
-          className="text-[11px] font-semibold text-red-500/70 hover:text-red-600 inline-flex items-center gap-1"
+          className="text-[11px] font-semibold text-red-500/70 hover:text-red-600 inline-flex items-center gap-1 ml-3"
         >
           <X className="w-3 h-3" /> remover
         </button>

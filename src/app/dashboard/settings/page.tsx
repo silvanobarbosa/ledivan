@@ -5,7 +5,7 @@ import { eq } from "drizzle-orm";
 import { LogOut } from "lucide-react";
 import { updateProfile } from "./actions";
 import { SubmitButton } from "@/components/SubmitButton";
-import { SingleLogo } from "@/components/dashboard/PhotoSlots";
+import { SingleLogo, SinglePhoto } from "@/components/dashboard/PhotoSlots";
 import { LocationsCard } from "./LocationsCard";
 import { parseLocations } from "@/lib/locations";
 import { TelegramSync } from "./TelegramSync";
@@ -182,6 +182,13 @@ export default async function SettingsPage() {
                   <label className="text-xs font-bold text-foreground/30 uppercase tracking-widest">Logotipo</label>
                   <p className="text-xs text-foreground/40">Aparece no contrato e no recibo, à direita do título. Sem imagem, o espaço fica em branco.</p>
                   <SingleLogo initial={user.logoUrl} />
+                </div>
+                {/* Doc 51: foto de perfil, logo abaixo do logotipo. O campo `photo3x4` já existia
+                    no banco e a action de Ajustes já o salvava — só a tela nunca o mostrava, então
+                    não havia como preencher. */}
+                <div className="space-y-1.5">
+                  <label className="text-xs font-bold text-foreground/30 uppercase tracking-widest">Foto de perfil</label>
+                  <SinglePhoto name="photo3x4" label="Escolher ou tirar" initial={user.photo3x4} />
                 </div>
               </div>
 
