@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { recebidoPorForma } from "@/lib/recebidoPorForma";
-import { type VigenciaTaxa } from "@/lib/taxaCartao";
+import { type VigenciaTaxa, FORMAS_COM_TAXA } from "@/lib/taxaCartao";
 
 const vigs: VigenciaTaxa[] = [{ validFrom: "2026-01-01", debito: 2, credito: 5 }];
 
@@ -46,5 +46,55 @@ describe("recebidoPorForma", () => {
     expect(cre.bruto).toBe(200);
     expect(cre.liquido).toBe(191);
     expect(r.formas.length).toBe(1);
+  });
+});
+
+/**
+ * Doc 53: o líquido tem que APARECER para toda forma que sofre taxa.
+ *
+ * Havia três listas de "formas com taxa" no código — a do cálculo, a da exibição e a da ordem.
+ * Quando 4x e 5x entraram, só a do cálculo foi atualizada: o desconto era aplicado e a tela
+ * mostrava apenas o bruto. A conta batia, e ninguém via.
+ */
+describe("exibição do líquido acompanha o cálculo (doc 53)", () => {
+  const vig: VigenciaTaxa[] = [{
+    validFrom: "2026-01-01", debito: 1, credito: 2, credito2x: 3, credito3x: 4, credito4x: 5, credito5x: 6,
+  }];
+
+  it("toda forma que desconta também é marcada para mostrar o líquido", () => {
+    for (const metodo of FORMAS_COM_TAXA) {
+      const r = recebidoPorForma([{ valor: 100, metodo, data: "2026-06-10" }], vig);
+      const f = r.formas.find((x) => x.metodo === metodo)!;
+      expect(f, `forma ${metodo} sumiu do resumo`).toBeTruthy();
+      expect(f.temTaxa, `forma ${metodo} desconta mas não mostra o líquido`).toBe(true);
+      expect(f.liquido).toBeLessThan(f.bruto);
+    }
+  });
+
+  it("crédito 4x e 5x aparecem com rótulo próprio, não como forma desconhecida", () => {
+    const r = recebidoPorForma([
+      { valor: 100, metodo: "credito_4x", data: "2026-06-10" },
+      { valor: 100, metodo: "credito_5x", data: "2026-06-10" },
+    ], vig);
+    expect(r.formas.map((f) => f.curto)).toEqual(["Cre 4x", "Cre 5x"]);
+  });
+
+  it("formas sem taxa não são marcadas e têm líquido igual ao bruto", () => {
+    for (const metodo of ["pix", "cash", "transfer"]) {
+      const r = recebidoPorForma([{ valor: 100, metodo, data: "2026-06-10" }], vig);
+      const f = r.formas.find((x) => x.bruto === 100)!;
+      expect(f.temTaxa).toBe(false);
+      expect(f.liquido).toBe(f.bruto);
+    }
+  });
+
+  it("o total líquido soma o líquido dos cartões + o bruto das demais", () => {
+    // É a regra do item 3 do doc 53, no número.
+    const r = recebidoPorForma([
+      { valor: 100, metodo: "credito_5x", data: "2026-06-10" }, // 6% -> 94
+      { valor: 100, metodo: "pix", data: "2026-06-10" },        // sem taxa -> 100
+    ], vig);
+    expect(r.totalBruto).toBe(200);
+    expect(r.totalLiquido).toBe(194);
   });
 });
