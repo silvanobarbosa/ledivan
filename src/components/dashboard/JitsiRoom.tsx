@@ -37,6 +37,9 @@ export function JitsiRoom({
 }) {
   const ref = useRef<HTMLDivElement>(null);
   const [loaded, setLoaded] = useState(false);
+  // Sem isto, qualquer falha (script bloqueado, JWT recusado, sala fechada) deixava o spinner
+  // "Entrando na sala…" para sempre, escondendo o motivo. Agora a falha aparece.
+  const [erro, setErro] = useState<string | null>(null);
   const guestReported = useRef(false);
 
   function report(event: "opened" | "guest" | "ended") {
@@ -86,6 +89,11 @@ export function JitsiRoom({
         report("ended");
         window.location.href = onLeaveHref;
       });
+      // Falhas que antes passavam em silêncio: token recusado, sala só para membros, conexão caiu.
+      api.addEventListener("errorOccurred", (e: unknown) => {
+        const nome = (e as { error?: { name?: string } })?.error?.name;
+        setErro(nome ? `A sala recusou a entrada (${nome}).` : "Não consegui entrar na sala.");
+      });
 
       return api;
     }
@@ -99,6 +107,8 @@ export function JitsiRoom({
       script.src = `https://${domain}/external_api.js`;
       script.async = true;
       script.onload = () => { apiInstance = start(); };
+      // O script do Jitsi não carregou (bloqueado por CSP, rede, etc.) — não deixar o spinner eterno.
+      script.onerror = () => setErro("Não consegui carregar a sala de vídeo. Verifique a conexão e tente de novo.");
       document.body.appendChild(script);
     }
 
@@ -114,10 +124,18 @@ export function JitsiRoom({
 
   return (
     <div className={inline ? "relative h-full w-full bg-black overflow-hidden" : "fixed inset-0 bg-black"}>
-      {!loaded && (
+      {!loaded && !erro && (
         <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 text-white/80">
           <Loader2 className="w-8 h-8 animate-spin" />
           <p className="text-sm">Entrando na sala como anfitrião…</p>
+        </div>
+      )}
+      {erro && (
+        <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-4 px-6 text-center text-white/90">
+          <p className="text-sm max-w-sm">{erro}</p>
+          <a href={onLeaveHref} className="rounded-xl bg-white/15 px-4 py-2 text-sm font-semibold hover:bg-white/25">
+            Voltar
+          </a>
         </div>
       )}
       <div ref={ref} className="h-full w-full" />
