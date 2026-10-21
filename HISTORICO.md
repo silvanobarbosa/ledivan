@@ -7,6 +7,46 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-10-21 — Sala de vídeo travava por 3 bloqueios de CSP (#458)
+
+**Entregue:** a chamada online, que travava para sempre em "Entrando na sala…", volta a funcionar.
+Em produção.
+
+**Causa (confirmada no console, não deduzida):** três bloqueios na CSP/Permissions-Policy do
+`next.config.ts` — o próprio app barrava o recurso. (1) `script-src` sem `8x8.vc` recusava o
+`external_api.js` do JaaS → `JitsiMeetExternalAPI` nunca existia → spinner eterno. (2) sem
+`frame-src`, o iframe do Jitsi caía no `default-src 'self'`. (3) `camera=() microphone=()` proibia
+áudio/vídeo para todos, inclusive self.
+
+**Por quê o JaaS estava certo e mesmo assim não funcionava:** a config do 8x8 (app id, kid, chave,
+JWT moderador) estava correta o tempo todo. Quem barrava era a casca de segurança do app. Não
+confundir "config certa" com "funciona" — foi exatamente o alerta do dono.
+
+**Decisões que ficam valendo:**
+- Qualquer recurso que carregue script/iframe de domínio externo (Jitsi/8x8) precisa do domínio na
+  `script-src` E na `frame-src`, e de delegação na `Permissions-Policy`. As três juntas.
+- Allowlist restrita aos domínios do Jitsi — nunca curinga aberto.
+
+**Armadilhas:**
+- O `JitsiRoom` não tinha tratamento de erro: o overlay do spinner ficava por cima do iframe e
+  nenhuma falha chegava à tela. Foi o que escondeu o bug por tanto tempo. Agora falha (script
+  bloqueado, token recusado, sala fechada) aparece com botão Voltar.
+- As credenciais JaaS são `sensitive` no Vercel (write-only) — não dá para extrair a chave para um
+  join real em teste. O JWT foi validado à parte (claims, moderator=true, exp/nbf, kid casa sub).
+- O merge do fix NÃO disparou produção sozinho (gitForkProtection) — produção só subiu via
+  `rl-provision vercel-deploy`. Padrão da frota.
+
+**Testes:** harness em Playwright com câmera/microfone sintéticos (sem paciente, sem sessão real).
+Antes: script recusado, getUserMedia NotAllowedError. Depois (CSP exata do arquivo): script carrega,
+iframe carrega, getUserMedia video=1 audio=1, zero violações, API do 8x8 emite eventos de áudio/vídeo.
+Produção: headers confirmados no ar.
+
+**Pendente:** a confirmação FINAL do join real (entrar e ver/ouvir) depende do JWT de produção, que
+não pôde ser exercitado do teste. O dono abre uma sala real e confirma; se travar, a tela agora
+mostra o erro em vez de spinner.
+
+---
+
 ## 2026-10-21 — Docs 51, 52 e 53 FECHADOS (#451–#456)
 
 **Entregue:**
