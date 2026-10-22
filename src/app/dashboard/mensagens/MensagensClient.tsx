@@ -4,6 +4,7 @@ import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { Send, MessageCircle, Sparkles, Loader2 } from "lucide-react";
 import { replyMessage, suggestReply } from "./actions";
+import { formatDateTime } from "@/lib/therapy";
 
 export type ThreadMsg = { direction: string; text: string; channel: string; at: string };
 export type Thread = { key: string; patientId: string | null; contact: string | null; name: string; messages: ThreadMsg[] };
@@ -27,7 +28,13 @@ export function MensagensClient({ threads }: { threads: Thread[] }) {
     } finally { setAiBusy(false); }
   };
 
-  const fmt = (iso: string) => new Date(iso).toLocaleString("pt-BR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" });
+  /**
+   * `formatDateTime` em vez de `toLocaleString` cru: ele passa pela hora de PAREDE, que é a mesma
+   * no servidor e no navegador. O cru formatava no fuso de cada um — UTC na Vercel, São Paulo aqui
+   * —, o que dava horas diferentes no mesmo nó (erro de hidratação #418) e mostrava a hora
+   * deslocada em três, a armadilha de fuso já conhecida deste app.
+   */
+  const fmt = (iso: string) => formatDateTime(iso);
 
   const send = () => {
     if (!active || !text.trim()) return;

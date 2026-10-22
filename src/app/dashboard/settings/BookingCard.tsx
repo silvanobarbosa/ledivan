@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useTransition } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { CalendarCheck, Copy, Check } from "lucide-react";
 import { setBookingSlug, setBookingAutoConfirm } from "./actions";
 
@@ -17,8 +17,21 @@ export function BookingCard({ initialSlug, initialAutoConfirm = false }: { initi
     startAuto(async () => { await setBookingAutoConfirm(v); });
   }
 
-  const origin = typeof window !== "undefined" ? window.location.origin : "https://levianpuls.vercel.app";
-  const link = saved ? `${origin}/agendar/${saved}` : "";
+  /**
+   * O domínio só entra DEPOIS de montar.
+   *
+   * Lendo `window.location.origin` durante o render, o servidor caía num domínio fixo e o
+   * navegador no de verdade: dois textos diferentes no mesmo nó, que é o erro de hidratação #418
+   * desta tela. Pior, o domínio fixo estava escrito errado (`levianpuls.vercel.app`, que não
+   * existe) — então o link público aparecia QUEBRADO até o React hidratar, janela em que dava
+   * para copiá-lo.
+   *
+   * Com o estado começando vazio, o primeiro render do navegador é igual ao do servidor, e o
+   * efeito preenche em seguida. Sem domínio não há link, e o botão de copiar já trata isso.
+   */
+  const [origin, setOrigin] = useState("");
+  useEffect(() => { setOrigin(window.location.origin); }, []);
+  const link = saved && origin ? `${origin}/agendar/${saved}` : "";
 
   function save() {
     startTransition(async () => {
