@@ -6,12 +6,12 @@ import { CalendarDays, X, Search, Plus, MapPin } from "lucide-react";
 import { saveHolidayCities } from "@/app/dashboard/agenda/holiday-actions";
 import type { HolidayCity } from "@/lib/holidays-style";
 import { FUNDO_DA_JANELA, JANELA } from "@/lib/modal";
-import { useFecharComEscape } from "@/lib/useFecharComEscape";
+import { useJanela } from "@/lib/useJanela";
 
 export function HolidaySetup({ cities, autoOpen = false }: { cities: HolidayCity[]; autoOpen?: boolean }) {
   const router = useRouter();
   const [open, setOpen] = useState(autoOpen);
-  useFecharComEscape(open, () => setOpen(false));
+  const janela = useJanela(open, () => setOpen(false));
   const [selected, setSelected] = useState<HolidayCity[]>(cities);
   const [q, setQ] = useState("");
   const [results, setResults] = useState<HolidayCity[]>([]);
@@ -74,7 +74,7 @@ export function HolidaySetup({ cities, autoOpen = false }: { cities: HolidayCity
 
       {open && (
         <div className={FUNDO_DA_JANELA} onClick={() => setOpen(false)}>
-          <div className={`${JANELA} max-w-md`} onClick={(e) => e.stopPropagation()}>
+          <div ref={janela} tabIndex={-1} role="dialog" aria-modal="true" aria-label="Feriados na agenda" className={`${JANELA} max-w-md outline-none`} onClick={(e) => e.stopPropagation()}>
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-lg font-display font-bold text-primary">Feriados na agenda</p>

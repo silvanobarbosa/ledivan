@@ -20,7 +20,7 @@ import { perguntaSeEntraNaSequencia } from "@/lib/sessaoExtra";
 import { formatoNaData } from "@/lib/vigenciaDoFormato";
 import { tipoDaFalta, perguntaDaFalta, COMO_REFAZER } from "@/lib/perguntaFalta";
 import { podeSerCortesia } from "@/lib/cortesia";
-import { useFecharComEscape } from "@/lib/useFecharComEscape";
+import { useJanela } from "@/lib/useJanela";
 
 type PatientLite = { id: string; name: string; status: string; attendanceMode: string | null; attendanceLocation: string | null;
   /** Doc 42: paciente | supervisionado — supervisionado só agenda sessões do tipo supervisão. */
@@ -457,12 +457,13 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
    * Escape fecha qualquer uma destas janelas (achado do SuperQA de 22/10). A da falta era a pior:
    * ela só oferece Sim e Não, as duas com consequência em dinheiro, e não tinha saída pelo teclado.
    */
-  useFecharComEscape(!!selected, () => setSelected(null));
-  useFecharComEscape(!!perguntaAlcance, () => setPerguntaAlcance(null));
-  useFecharComEscape(!!perguntaFaltou, () => setPerguntaFaltou(null));
-  useFecharComEscape(!!perguntaExcluir, () => { setPerguntaExcluir(null); setQuantos(null); });
-  useFecharComEscape(!!perguntaQ, () => setPerguntaQ(null));
-  useFecharComEscape(showNew, () => setShowNew(false));
+  const janelaSessao = useJanela(!!selected, () => setSelected(null));
+  const janelaAlcance = useJanela(!!perguntaAlcance, () => setPerguntaAlcance(null));
+  const janelaFalta = useJanela(!!perguntaFaltou, () => setPerguntaFaltou(null));
+  const janelaExcluir = useJanela(!!perguntaExcluir, () => { setPerguntaExcluir(null); setQuantos(null); });
+  const janelaQ = useJanela(!!perguntaQ, () => setPerguntaQ(null));
+  // O painel do novo agendamento é um <form>, não um <div> — daí o tipo explícito.
+  const janelaNova = useJanela<HTMLFormElement>(showNew, () => setShowNew(false));
   const pickStatus = (id: string, status: SessionStatus) => {
     if (status === "nao_realizada") {
       // O formato muda no tempo: vale o que estava vigente NA DATA DA SESSÃO, não o de hoje.
@@ -804,7 +805,7 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
       {/* Painel da sessão selecionada */}
       {selected && (
         <div className={FUNDO_DA_JANELA} onClick={() => setSelected(null)}>
-          <div className={`${JANELA} max-w-sm`} onClick={(e) => e.stopPropagation()}>
+          <div ref={janelaSessao} tabIndex={-1} role="dialog" aria-modal="true" aria-label="Detalhes do agendamento" className={`${JANELA} max-w-sm outline-none`} onClick={(e) => e.stopPropagation()}>
             <div className="flex items-start justify-between">
               <div>
                 <p className="text-lg font-display font-bold text-primary">{selected.patientName}</p>
@@ -1011,7 +1012,7 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
           metade das vezes, e em silêncio. */}
       {perguntaAlcance && (
         <div className={FUNDO_DA_JANELA} onClick={() => setPerguntaAlcance(null)}>
-          <div className={`${JANELA} max-w-sm`} onClick={(e) => e.stopPropagation()}>
+          <div ref={janelaAlcance} tabIndex={-1} role="dialog" aria-modal="true" aria-label="Alterar quais agendamentos" className={`${JANELA} max-w-sm outline-none`} onClick={(e) => e.stopPropagation()}>
             <p className="text-lg font-display font-bold text-primary">Alterar quais?</p>
             <p className="text-sm text-foreground/70">Deseja alterar apenas este agendamento ou este e também os próximos?</p>
             <div className="space-y-2">
@@ -1048,7 +1049,7 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
           apagar em bloco sem dizer quantos é pedir confirmação no escuro. */}
       {perguntaFaltou && (
         <div className={FUNDO_DA_JANELA} onClick={() => setPerguntaFaltou(null)}>
-          <div className={`${JANELA} max-w-sm`} onClick={(e) => e.stopPropagation()}>
+          <div ref={janelaFalta} tabIndex={-1} role="dialog" aria-modal="true" aria-label="Resposta sobre a sessão que faltou" className={`${JANELA} max-w-sm outline-none`} onClick={(e) => e.stopPropagation()}>
             {/* Doc 52: a pergunta é a do tipo do agendamento. A genérica "Considerar sessão
                 realizada?" obrigava o usuário a traduzir sozinho o que "realizada" significa
                 no contrato daquele paciente — e a consequência é outra em cada caso. */}
@@ -1071,7 +1072,7 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
 
       {perguntaExcluir && (
         <div className={FUNDO_DA_JANELA} onClick={() => { setPerguntaExcluir(null); setQuantos(null); }}>
-          <div className={`${JANELA} max-w-sm`} onClick={(e) => e.stopPropagation()}>
+          <div ref={janelaExcluir} tabIndex={-1} role="dialog" aria-modal="true" aria-label="Excluir agendamento" className={`${JANELA} max-w-sm outline-none`} onClick={(e) => e.stopPropagation()}>
             <p className="text-lg font-display font-bold text-red-600">Excluir agendamento</p>
             {perguntaExcluir.passo === "inicio" ? (
               <>
@@ -1107,7 +1108,7 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
           não é pergunta que dê para responder. */}
       {perguntaQ && (
         <div className={FUNDO_DA_JANELA} onClick={() => setPerguntaQ(null)}>
-          <div className={`${JANELA} max-w-sm`} onClick={(e) => e.stopPropagation()}>
+          <div ref={janelaQ} tabIndex={-1} role="dialog" aria-modal="true" aria-label="Sessão da quinzena" className={`${JANELA} max-w-sm outline-none`} onClick={(e) => e.stopPropagation()}>
             <p className="text-lg font-display font-bold text-primary">Horário intercalado</p>
             <p className="text-sm text-foreground/70">
               Este horário intercala com o paciente <strong>{perguntaQ.quem}</strong>. Deseja intercalar um novo
@@ -1143,7 +1144,7 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
           <form
             action={submitNew}
             onClick={(e) => e.stopPropagation()}
-            className={`${JANELA} max-w-sm`}
+            ref={janelaNova} tabIndex={-1} role="dialog" aria-modal="true" aria-label="Novo agendamento" className={`${JANELA} max-w-sm outline-none`}
           >
             <div className="flex items-center justify-between">
               <p className="text-lg font-display font-bold text-primary">Novo atendimento</p>
