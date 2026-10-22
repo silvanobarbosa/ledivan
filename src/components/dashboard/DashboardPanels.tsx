@@ -1,6 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
+import { contagemDeCadastros } from "@/lib/contagemDeCadastros";
 import Link from "next/link";
 import { queixaGroup } from "@/lib/queixas";
 import { MessagePatient } from "./MessagePatient";
@@ -132,7 +133,11 @@ function Prospeccao({ patients }: { patients: PanelPatient[] }) {
 function Relatorios({ patients, presence, corte }: { patients: PanelPatient[]; presence: PanelPresence[]; corte: string }) {
   const [lista, setLista] = useState<{ titulo: string; itens: PanelPatient[] } | null>(null);
   const ativos = patients.filter((p) => p.status === "ativo");
+  const pausados = patients.filter((p) => p.status === "pausado");
   const inativos = patients.filter((p) => p.status === "inativo");
+  // A regra de quem entra em "No cadastro" mora em `contagemDeCadastros`, testada: o painel dizia
+  // 73 e a lista de pacientes dizia 91 para a mesma terapeuta, e a diferença eram os pausados.
+  const contagem = contagemDeCadastros(patients);
   // "Não vieram na semana": ativo sem sessão realizada nos últimos 7 dias. `corte` vem do servidor.
   const semana = useMemo(() => {
     const limite = new Date(corte).getTime();
@@ -145,9 +150,14 @@ function Relatorios({ patients, presence, corte }: { patients: PanelPatient[]; p
       <p className="text-xs text-foreground/60 text-justify">
         <strong>Monte relatórios personalizados</strong> com as informações desejadas e <strong>imprima</strong> quando precisar.
       </p>
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-        <Stat n={ativos.length + inativos.length} label="No cadastro" />
+      {/* Cinco números: o total, as três partes que o compõem, e o alerta. Nesta ordem, porque as
+          partes somam o total e lê-se da esquerda para a direita. */}
+      <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+        <Stat n={contagem.noCadastro} label="No cadastro" />
         <Stat n={ativos.length} label="Ativos" tone="green" onAbrir={() => setLista({ titulo: "Cadastros ativos", itens: ativos })} />
+        {/* Pausado é quem interrompeu e é esperado de volta — o que mais pede ação, e o que o
+            painel escondia. */}
+        <Stat n={pausados.length} label="Pausados" tone="amber" onAbrir={() => setLista({ titulo: "Cadastros pausados", itens: pausados })} />
         <Stat n={inativos.length} label="Inativos" onAbrir={() => setLista({ titulo: "Cadastros inativos", itens: inativos })} />
         <Stat n={semana.length} label="Não vieram na semana" tone="amber" onAbrir={() => setLista({ titulo: "Ativos sem sessão realizada nos últimos 7 dias", itens: semana })} />
       </div>
