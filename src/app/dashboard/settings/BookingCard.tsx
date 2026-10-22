@@ -30,6 +30,7 @@ export function BookingCard({ initialSlug, initialAutoConfirm = false }: { initi
    * efeito preenche em seguida. Sem domínio não há link, e o botão de copiar já trata isso.
    */
   const [origin, setOrigin] = useState("");
+  // eslint-disable-next-line react-hooks/set-state-in-effect -- ler o domínio só no navegador É o efeito
   useEffect(() => { setOrigin(window.location.origin); }, []);
   const link = saved && origin ? `${origin}/agendar/${saved}` : "";
 
