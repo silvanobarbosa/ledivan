@@ -53,6 +53,14 @@ export function VencimentosPorDia() {
       setPacotes(r.ok ? r.pacotes ?? [] : []);
       setEnviadas({});
       setCarregando(false);
+    }).catch(() => {
+      // Falhou: mostra o erro em vez de girar para sempre. Sem este `catch`, qualquer recusa da
+      // Server Action (rede, sessão vencida, conta somente leitura) deixava o spinner eterno — a
+      // tela dizia "carregando" para sempre e nada chegava a quem olha.
+      if (!vivo) return;
+      setAvulsas([]);
+      setPacotes([]);
+      setCarregando(false);
     });
     return () => { vivo = false; };
   }, [dia]);

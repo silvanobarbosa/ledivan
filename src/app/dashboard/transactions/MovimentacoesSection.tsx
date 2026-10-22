@@ -16,6 +16,7 @@ const dataBR = (iso: string | null | undefined) => { const m = iso ? String(iso)
 export function MovimentacoesSection() {
   const [movs, setMovs] = useState<Movimentacao[]>([]);
   const [carregando, setCarregando] = useState(true);
+  const [erro, setErro] = useState(false);
 
   useEffect(() => {
     let vivo = true;
@@ -24,6 +25,13 @@ export function MovimentacoesSection() {
     montarMovimentacoes().then((r) => {
       if (!vivo) return;
       setMovs(r.ok ? r.movs ?? [] : []);
+      setCarregando(false);
+    }).catch(() => {
+      // Falhou: mostra o erro em vez de girar para sempre. Sem este `catch`, qualquer recusa da
+      // Server Action (rede, sessão vencida, conta somente leitura) deixava o spinner eterno — a
+      // tela dizia "carregando" para sempre e nada chegava a quem olha.
+      if (!vivo) return;
+      setErro(true);
       setCarregando(false);
     });
     return () => { vivo = false; };
@@ -38,6 +46,8 @@ export function MovimentacoesSection() {
 
       {carregando ? (
         <p className="text-sm text-foreground/40 py-4 flex items-center gap-2"><Loader2 className="w-4 h-4 animate-spin" /> Montando o extrato…</p>
+      ) : erro ? (
+        <p className="text-sm text-red-600 py-4">Não foi possível montar o extrato. Recarregue a página.</p>
       ) : movs.length === 0 ? (
         <p className="text-sm text-foreground/40">Nenhuma movimentação.</p>
       ) : (

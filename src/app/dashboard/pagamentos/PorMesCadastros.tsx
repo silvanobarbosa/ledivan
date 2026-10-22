@@ -35,6 +35,14 @@ export function PorMesCadastros({ year }: { year: number }) {
       setResumo(r.ok ? r.resumo ?? null : null);
       setAberto(null); // doc 50: todos os meses começam reduzidos (inclusive o primeiro)
       setCarregando(false);
+    }).catch(() => {
+      // Falhou: mostra o erro em vez de girar para sempre. Sem este `catch`, qualquer recusa da
+      // Server Action (rede, sessão vencida, conta somente leitura) deixava o spinner eterno — a
+      // tela dizia "carregando" para sempre e nada chegava a quem olha.
+      if (!vivo) return;
+      setMeses([]);
+      setResumo(null);
+      setCarregando(false);
     });
     return () => { vivo = false; };
   }, [year]);
