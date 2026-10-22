@@ -57,3 +57,13 @@ export function tipoDaFalta(formato: string | null | undefined): TipoDaFalta {
 export function perguntaDaFalta(tipo: TipoDaFalta): PerguntaDaFalta {
   return PERGUNTAS[tipo] ?? PERGUNTAS.avulso;
 }
+
+/**
+ * Como DESFAZER a escolha (doc 54). A resposta parecia definitiva: a janela some e não volta, e
+ * nada na tela dizia que remarcar "Faltou" a traz de novo. Quem errou o clique ficava procurando
+ * um botão que não existe.
+ *
+ * Isto substitui a dica que ficava na linha da guia Geral, embaixo da sessão. Ela dizia a mesma
+ * coisa, mas no lugar onde a dúvida JÁ tinha virado problema — a hora de avisar é na escolha.
+ */
+export const COMO_REFAZER = 'Se mudar de ideia, selecione novamente "Faltou" para refazer sua escolha.';

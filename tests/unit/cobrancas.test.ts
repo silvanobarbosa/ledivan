@@ -375,12 +375,17 @@ describe("Faltou — considerar realizada? (doc 45)", () => {
     const legado = [sessao(14), sessao(21, 8, { status: "nao_realizada" })];
     expect(cobrancasDoPaciente({ ...base(), sessoes: legado }).length).toBe(2);
   });
-  it("pacote: Faltou com faltouConta=false não abate (não entra em nenhuma cobrança)", () => {
+  /**
+   * Doc 54 corrigiu esta regra: no PACOTE o "não" PAUSA a sequência, em vez de tirar a sessão dele.
+   * A sessão continua no grupo de pagamento (era o que estava desorganizando a tabela da guia
+   * Geral) e não ocupa posição — ver `tests/unit/doc54Faltou.test.ts` para a sequência resultante.
+   */
+  it("pacote: Faltou com faltouConta=false não abate, mas continua no grupo de pagamento (doc 54)", () => {
     const faltaId = "s_falta";
     const b = { ...base(), reserva: { formato: "mensal", pacoteTipo: "completo" }, vezesPorSemana: 1 };
     const semConta = [sessao(1), sessao(8), { id: faltaId, date: new Date(2026, 8, 15, 14, 0), status: "nao_realizada", faltouConta: false }, sessao(22)];
     const idsSem = cobrancasDoPaciente({ ...b, sessoes: semConta }).flatMap((x) => x.ids);
-    expect(idsSem).not.toContain(faltaId);
+    expect(idsSem).toContain(faltaId);
     const comConta = [sessao(1), sessao(8), { id: faltaId, date: new Date(2026, 8, 15, 14, 0), status: "nao_realizada", faltouConta: true }, sessao(22)];
     const idsCom = cobrancasDoPaciente({ ...b, sessoes: comConta }).flatMap((x) => x.ids);
     expect(idsCom).toContain(faltaId);
