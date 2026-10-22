@@ -24,6 +24,7 @@ import { SessoesRealizadasCard } from "./SessoesRealizadasCard";
 import {
   formatBRL,
   formatDate,
+  formatDateTime,
   patientStatusColor,
   type RiskLevel,
 } from "@/lib/therapy";
@@ -499,7 +500,9 @@ export function PatientDetail({
                   <div key={c.id} className="rounded-lg border border-gray-200 bg-white p-3 text-sm">
                     <div className="font-medium text-gray-700">{c.title}</div>
                     <div className="text-xs text-gray-400 mt-1">
-                      Assinado por <b>{c.acceptedName}</b> em {new Date(c.acceptedAt).toLocaleString("pt-BR", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" })}
+                      {/* Hora de parede: formatar no fuso de cada runtime divergia entre servidor e
+                          navegador (erro de hidratação) e mostrava a hora deslocada. */}
+                      Assinado por <b>{c.acceptedName}</b> em {formatDateTime(c.acceptedAt)}
                     </div>
                   </div>
                 ))}
@@ -532,7 +535,7 @@ export function PatientDetail({
                 {diaryEntries.map((e) => (
                   <div key={e.id} className="rounded-lg border border-gray-200 bg-white p-3">
                     <div className="flex items-center justify-between text-xs text-gray-400">
-                      <span>{new Date(e.createdAt).toLocaleString("pt-BR", { day: "2-digit", month: "short", hour: "2-digit", minute: "2-digit" })}</span>
+                      <span>{formatDateTime(e.createdAt)}</span>
                       {e.mood ? <span>{["😞", "😕", "😐", "🙂", "😄"][e.mood - 1]}</span> : null}
                     </div>
                     <p className="mt-1 whitespace-pre-wrap text-sm text-gray-700">{e.content}</p>
