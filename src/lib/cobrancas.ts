@@ -221,7 +221,7 @@ function cobrancasDoPeriodo(periodo: PeriodoDeVigencia, sessoes: Ordenada[], e: 
 
   const tipoPacote = periodo.pacoteTipo === "fragmentado" ? "fragmentado" : "completo";
   const opcoesDaSequencia = { pacoteTipo: tipoPacote, tamanhos: e.tamanhos, tamanhoPacote: e.tamanhoPacote, tamanhosPorData: e.tamanhosPorData, vezesPorSemana: e.vezesPorSemana };
-  const doPacote = sessoes.filter(entraNoPacote).map((s) => ({ id: s.id, date: s.data, status: s.status, repoeSessaoId: s.repoeSessaoId, pausa: pausaASequencia(s), cortesia: ehCortesia(s) }));
+  const doPacote = sessoes.filter(entraNoPacote).map((s) => ({ id: s.id, date: s.data, status: s.status, repoeSessaoId: s.repoeSessaoId, pausa: pausaASequencia(s) }));
   const out: Cobranca[] = [];
 
   for (const seq of todasAsSequencias(doPacote, opcoesDaSequencia)) {
@@ -231,7 +231,12 @@ function cobrancasDoPeriodo(periodo: PeriodoDeVigencia, sessoes: Ordenada[], e: 
     const competencia = naAbertura ? inicio : seq.fechouEm;
     const unitario = precoCobravel(e.precos, competencia ?? inicio, reservaPreco);
     const valor = dinheiro(unitario * seq.total);
-    const ultimaData = doPacote.filter((s) => seq.ids.includes(s.id)).reduce<Date>((m, s) => (s.date > m ? s.date : m), inicio);
+    // "Última do pacote" vence na última sessão que OCUPOU posição — a falta não abatida e a
+    // cortesia estão no grupo, mas não são o fim do pacote. Sem este filtro o vencimento andava
+    // para a data delas, mudando a data de uma cobrança que já existia.
+    const ultimaData = doPacote
+      .filter((s) => seq.ids.includes(s.id) && !s.pausa)
+      .reduce<Date>((m, s) => (s.date > m ? s.date : m), inicio);
 
     const comum = {
       formato,
@@ -295,11 +300,15 @@ function cobrancasDoPeriodo(periodo: PeriodoDeVigencia, sessoes: Ordenada[], e: 
       for (const metade of metades) {
         if (!metade.ids.length) continue;
         /**
-         * A quinzena cobra AS SESSÕES QUE CAÍRAM NELA. A cortesia caiu nela e continua no grupo de
-         * pagamento — é o que o doc 54 exige —, mas cobrá-la seria cobrar justamente o atendimento
-         * que a terapeuta decidiu dar. Ela conta para o `ids`, nunca para o valor.
+         * A quinzena cobra AS SESSÕES QUE CAÍRAM NELA — e a falta não abatida e a cortesia não são
+         * sessões a cobrar.
+         *
+         * As duas continuam no `ids`, porque o doc 54 exige que permaneçam no conjunto daquele
+         * pagamento. Mas entrar no VALOR seria cobrar exatamente o que o usuário mandou não cobrar:
+         * a quinzena passou a pedir uma sessão a mais do que pedia antes de elas pausarem. No
+         * mensal isso não aparecia, porque lá o pacote sempre cobrou o tamanho contratado.
          */
-        const cobraveis = metade.ids.filter((s) => !s.cortesia).length;
+        const cobraveis = metade.ids.filter((s) => !s.pausa).length;
         if (!cobraveis) continue;
         /**
          * Doc 24 (dono, 09/10): cada quinzena vence na SUA data — a 1ª quinzena no 1º dia combinado,

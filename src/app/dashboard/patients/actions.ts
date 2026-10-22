@@ -6,7 +6,7 @@ import { auth } from "@/auth";
 import { and, eq, gt, inArray, sql } from "drizzle-orm";
 import { encerraAgenda, sessoesAEncerrar } from "@/lib/encerrarAgenda";
 import { revalidatePath } from "next/cache";
-import { entradaDoHistorico, usaPacote, vencimentoDoPreco } from "@/lib/reajuste";
+import { entradaDoHistorico, maisRecenteDoHistorico, usaPacote, vencimentoDoPreco } from "@/lib/reajuste";
 import { dataDoPreco, diaDoFormulario, formatoMudou, vigenciasAGravar } from "@/lib/trocaDeFormato";
 import { agoraParede } from "@/lib/horaLocal";
 import { redirect } from "next/navigation";
@@ -1183,16 +1183,17 @@ export async function apagarReajuste(patientId: string, vigenciaISO: string): Pr
   // Reconcilia o cadastro com o que sobrou: valor e formato atuais = último registro restante.
   const patch: Record<string, unknown> = {};
   if (precoIds.length) {
-    const sobra = precos.filter((p) => !precoIds.includes(p.id)).sort((a, b) => a.dataEfetiva.getTime() - b.dataEfetiva.getTime());
-    const ultimo = sobra[sobra.length - 1];
+    // A ponta oposta de `entradaDoHistorico`, com o MESMO desempate. Ordenar só por vigência
+    // deixava a escolha ao sabor da ordem que o Postgres devolveu (os SELECTs não têm ORDER BY),
+    // e o doc 54 tornou comum ter vários registros na mesma data.
+    const ultimo = maisRecenteDoHistorico(precos.filter((p) => !precoIds.includes(p.id)));
     if (ultimo) {
       patch.sessionFee = ultimo.valor;
       patch.priceReviewDate = vencimentoDoPreco(ultimo.dataEfetiva, null, paciente.validadePrecoMeses);
     }
   }
   if (formatoIds.length) {
-    const sobra = formatos.filter((f) => !formatoIds.includes(f.id)).sort((a, b) => a.dataEfetiva.getTime() - b.dataEfetiva.getTime());
-    const ultimo = sobra[sobra.length - 1];
+    const ultimo = maisRecenteDoHistorico(formatos.filter((f) => !formatoIds.includes(f.id)));
     if (ultimo) {
       patch.paymentFormat = ultimo.formato;
       patch.pacoteTipo = ultimo.pacoteTipo;

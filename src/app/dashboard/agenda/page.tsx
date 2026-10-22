@@ -25,7 +25,7 @@ export default async function AgendaPage() {
   const [list, pats, bloqueios, me] = await Promise.all([
     db.query.therapySessions.findMany({
       where: eq(therapySessions.userId, session.user.id),
-      columns: { id: true, patientId: true, date: true, duration: true, status: true, isOnline: true, meetingUrl: true, meetingOpenedAt: true, guestJoinedAt: true, meetingEndedAt: true, pendingConfirmation: true, patientConfirmedAt: true, rescheduleRequestedAt: true, patientArrivedAt: true, location: true, recurring: true, recurrenceFreq: true, sessionKind: true, packageId: true, abaterDoPacote: true, cortesia: true, espelhoSoAnterior: true },
+      columns: { id: true, patientId: true, date: true, duration: true, status: true, isOnline: true, meetingUrl: true, meetingOpenedAt: true, guestJoinedAt: true, meetingEndedAt: true, pendingConfirmation: true, patientConfirmedAt: true, rescheduleRequestedAt: true, patientArrivedAt: true, location: true, recurring: true, recurrenceFreq: true, sessionKind: true, packageId: true, abaterDoPacote: true, cortesia: true, extra: true, espelhoSoAnterior: true },
       with: { patient: { columns: { name: true, agendaId: true, registrationNumber: true } } },
     }),
     db.query.patients.findMany({
@@ -191,6 +191,7 @@ export default async function AgendaPage() {
           sessionKind: s.sessionKind ?? "consulta",
           abaterDoPacote: s.abaterDoPacote,
           cortesia: s.cortesia,
+          extra: s.extra,
           pkg: pkgLabels.get(s.id) ?? null,
           codigo: codigos.get(s.id) ?? null,
           pagamentoAtrasado: atrasadas.has(s.id),
