@@ -348,7 +348,19 @@ function casarPagamentos(cobrancas: Cobranca[], pagamentos: PagamentoDaGeral[], 
       : Math.round((valorEfetivo - transferido) * 100) / 100;
 
     const limite = limiteDaCobranca(c, horasAntes);
-    const atrasada = limite ? hoje.getTime() > limite.getTime() : false;
+    /**
+     * A falta do gratuito que ainda espera o valor NÃO vence (dono, 22/10/2026).
+     *
+     * Ela nasce como AVUL de R$ 0,00 por desenho (doc 54) — o valor é lançado depois, na própria
+     * sessão. Até lá a linha mostrava o selo vermelho "Em atraso" com falta de R$ 0,00: alarme de
+     * dívida numa cobrança que não deve nada, e justamente pelo passo que o app acabou de pedir.
+     *
+     * Isto NÃO vale para toda cobrança zerada. Uma que nasce em R$ 0,00 porque o preço do paciente
+     * não alcança aquela data é DEFEITO, e vencer em vermelho é o que faz alguém notar — regra
+     * antiga, coberta por teste, e que fica. Os dois zeros são coisas diferentes, e quem os separa
+     * é a origem (`aguardandoValor`), não o número.
+     */
+    const atrasada = limite && !c.aguardandoValor ? hoje.getTime() > limite.getTime() : false;
     // Transferida conta como resolvida (a dívida rolou), nunca "em atraso".
     const situacao: Situacao = pago || transferido > TOLERANCIA ? "pago" : atrasada ? "em_atraso" : "em_aberto";
 

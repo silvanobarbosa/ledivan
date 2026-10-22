@@ -86,6 +86,15 @@ export type Cobranca = {
   posicao: "antes" | "depois" | "na_sessao";
   /** Quinzenal: primeira ou segunda metade. */
   parte?: 1 | 2;
+  /**
+   * Nasceu de uma falta do paciente GRATUITO transformada em paga (doc 54) e AINDA não tem valor.
+   *
+   * Existe para separar dois zeros que são coisas diferentes. Uma cobrança de R$ 0,00 porque o
+   * preço do paciente não alcança aquela data é DEFEITO, e vencer em vermelho é o que faz alguém
+   * notar — é regra antiga e fica. Esta aqui nasce zerada por desenho, esperando a terapeuta
+   * lançar o valor na própria sessão; alarmar nela seria gritar pelo que o app acabou de pedir.
+   */
+  aguardandoValor?: boolean;
 };
 
 export type EntradaDasCobrancas = {
@@ -119,7 +128,7 @@ const dinheiro = (v: number) => Math.round(v * 100) / 100;
 const chaveDoDia = (d: Date | null) =>
   d ? `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}` : "inicio";
 
-type Ordenada = SessaoDaCobranca & { data: Date };
+type Ordenada = SessaoDaCobranca & { data: Date; derivadaDoGratuito?: boolean };
 
 function emOrdem(sessoes: SessaoDaCobranca[]): Ordenada[] {
   return sessoes
@@ -177,7 +186,9 @@ function marcarFaltaCobradaNoGratuito(ordenadas: Ordenada[], periodos: PeriodoDe
     }
   }
   if (!avulsas.size) return ordenadas;
-  return ordenadas.map((s) => (avulsas.has(s.id) ? { ...s, extra: "avul" as const } : s));
+  // `derivadaDoGratuito` sobrevive só dentro desta leitura: é como a cobrança sabe que o zero dela
+  // é de espera, não de defeito.
+  return ordenadas.map((s) => (avulsas.has(s.id) ? { ...s, extra: "avul" as const, derivadaDoGratuito: true } : s));
 }
 
 /** Pertence à sequência do pacote? (Pertencer e OCUPAR posição são coisas diferentes — ver `pausa`.) */
@@ -382,6 +393,7 @@ export function cobrancasDoPaciente(e: EntradaDasCobrancas): Cobranca[] {
       vencimento: s.data,
       competencia: s.data,
       posicao: "na_sessao",
+      aguardandoValor: s.derivadaDoGratuito === true && dinheiro(valor) <= 0,
     });
   }
 
