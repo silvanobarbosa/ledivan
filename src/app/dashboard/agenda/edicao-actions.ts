@@ -7,6 +7,7 @@ import { auth } from "@/auth";
 import { therapySessions, sessoesPuladas, blockedSlots, sessionPayments, patients, patientPaymentFormatHistory } from "@/db/schema";
 import { formatoNaData } from "@/lib/vigenciaDoFormato";
 import { extraParaGravar } from "@/lib/sessaoExtra";
+import { podeSerCortesia } from "@/lib/cortesia";
 import {
   deslocamento,
   horarioOcupado,
@@ -61,6 +62,8 @@ export async function salvarEdicao(opts: {
   naSequencia?: string;
   cobrada?: string;
   valorExtra?: string;
+  /** Doc 54: "Este atendimento será uma cortesia". Vale só para ESTA sessão, nunca para o bloco. */
+  cortesia?: boolean;
 }): Promise<Resultado> {
   const session = await auth();
   if (!session?.user?.id) return { ok: false, error: "Sessão inválida." };
@@ -153,6 +156,36 @@ export async function salvarEdicao(opts: {
       .update(therapySessions)
       .set(data ? { ...mudancas, date: data } : mudancas)
       .where(and(eq(therapySessions.id, id), eq(therapySessions.userId, userId)));
+  }
+
+  /**
+   * Doc 54: a CORTESIA também é só da sessão editada.
+   *
+   * Dar cortesia é uma decisão sobre um atendimento — "este atendimento" é o que o checkbox diz —,
+   * não sobre o combinado do paciente. Aplicá-la ao bloco dispensaria o pagamento de meses
+   * inteiros com um clique, e o alcance "este e os próximos" existe para mudar horário, não preço.
+   *
+   * O gate do formato é o mesmo da tela (`podeSerCortesia`), refeito aqui com o formato VIGENTE NA
+   * DATA: tela é conveniência, servidor é fronteira.
+   */
+  if (opts.cortesia !== undefined) {
+    const vigencias = await db
+      .select({ formato: patientPaymentFormatHistory.formato, pacoteTipo: patientPaymentFormatHistory.pacoteTipo,
+                desde: patientPaymentFormatHistory.dataEfetiva, criadoEm: patientPaymentFormatHistory.dataCriacao })
+      .from(patientPaymentFormatHistory)
+      .where(eq(patientPaymentFormatHistory.patientId, atual.patientId));
+    const paciente = await db.query.patients.findFirst({ where: eq(patients.id, atual.patientId) });
+    const periodo = formatoNaData(vigencias, novaData ?? atual.date, {
+      formato: paciente?.paymentFormat ?? "sessao", pacoteTipo: paciente?.pacoteTipo ?? null,
+    });
+    // Desmarcar a cortesia é sempre permitido — senão uma troca de formato deixaria a sessão presa
+    // em GRAT, sem nenhuma tela capaz de tirá-la de lá.
+    if (opts.cortesia && !podeSerCortesia({ formato: periodo.formato, pacoteTipo: periodo.pacoteTipo, sessionKind: atual.sessionKind })) {
+      return { ok: false, error: "Cortesia só vale em pacote completo mensal ou quinzenal." };
+    }
+    await db.update(therapySessions)
+      .set({ cortesia: opts.cortesia })
+      .where(and(eq(therapySessions.id, atual.id), eq(therapySessions.userId, userId)));
   }
 
   // A sequência é da sessão editada, nunca do bloco — ver o comentário acima.

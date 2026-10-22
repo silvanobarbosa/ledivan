@@ -624,6 +624,11 @@ export const therapySessions = pgTable("therapy_sessions", {
   // true = conta para cobrança/pacote (comportamento padrão); false = não cobra (R$0) e não abate do
   // pacote; null = legado (conta, como sempre foi). Só tem efeito quando o status é nao_realizada.
   faltouConta: boolean("faltou_conta"),
+  // Doc 54: atendimento do pacote dado de CORTESIA. Ele não cobra e deixa de ocupar posição na
+  // sequência — a sessão seguinte assume o número que ele teria —, mas continua pertencendo ao
+  // pacote e ao grupo de pagamento dele. É o que o separa de `extra: "grat"`, que acontece FORA do
+  // pacote e seria o lançamento isolado que o doc proíbe.
+  cortesia: boolean("cortesia").default(false).notNull(),
   // SESSÃO EXTRA, FORA da sequência do pacote (dono, 15/09/2026). `avul` gera cobrança própria no
   // `valorExtra`; `grat` não gera nada. Nenhuma das duas mexe na numeração nem no valor do pacote, e
   // as duas valem independentemente do formato de pagamento do paciente. `null` = sessão comum.

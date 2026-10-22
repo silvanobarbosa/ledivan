@@ -19,6 +19,7 @@ import { FUNDO_DA_JANELA, JANELA } from "@/lib/modal";
 import { perguntaSeEntraNaSequencia } from "@/lib/sessaoExtra";
 import { formatoNaData } from "@/lib/vigenciaDoFormato";
 import { tipoDaFalta, perguntaDaFalta, COMO_REFAZER } from "@/lib/perguntaFalta";
+import { podeSerCortesia } from "@/lib/cortesia";
 
 type PatientLite = { id: string; name: string; status: string; attendanceMode: string | null; attendanceLocation: string | null;
   /** Doc 42: paciente | supervisionado — supervisionado só agenda sessões do tipo supervisão. */
@@ -41,7 +42,7 @@ type PatientLite = { id: string; name: string; status: string; attendanceMode: s
 type LocationLite = { name: string; address: string };
 
 type SessionStatus = "realizada" | "nao_realizada" | "cancelada" | "realocada" | "agendada" | "prof_desmarcou" | "atestado";
-type AgendaSession = { id: string; date: string; duration: number; status: string; patientName: string; isOnline: boolean; risk: string; meetingUrl: string | null; meetingOpenedAt: string | null; guestJoinedAt: string | null; meetingEndedAt: string | null; pendingConfirmation: boolean; patientConfirmed: boolean; rescheduleRequested: boolean; patientArrived: boolean; location: string | null; recurring: boolean; recurrenceFreq?: string | null; patientId?: string; sessionKind?: string; pkg?: { seq: number; index: number; total: number } | null; pagamentoAtrasado?: boolean; abaterDoPacote?: boolean; codigo?: string | null; espelhoSoAnterior?: boolean; agendaId?: string | null; registro?: number | null };
+type AgendaSession = { id: string; date: string; duration: number; status: string; patientName: string; isOnline: boolean; risk: string; meetingUrl: string | null; meetingOpenedAt: string | null; guestJoinedAt: string | null; meetingEndedAt: string | null; pendingConfirmation: boolean; patientConfirmed: boolean; rescheduleRequested: boolean; patientArrived: boolean; location: string | null; recurring: boolean; recurrenceFreq?: string | null; patientId?: string; sessionKind?: string; cortesia?: boolean; pkg?: { seq: number; index: number; total: number } | null; pagamentoAtrasado?: boolean; abaterDoPacote?: boolean; codigo?: string | null; espelhoSoAnterior?: boolean; agendaId?: string | null; registro?: number | null };
 
 const blockColor = (s: AgendaSession, vencida: boolean) => sessionColorClasses(s.status, s.pendingConfirmation, s.recurring, vencida);
 
@@ -256,6 +257,19 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
     return perguntaSeEntraNaSequencia({ formato, sessionKind: selected.sessionKind ?? undefined });
   })();
 
+  /** Doc 54: a cortesia só é oferecida em pacote COMPLETO mensal/quinzenal, pelo formato DA DATA. */
+  const ofereceCortesia = (() => {
+    if (!selected) return false;
+    const pac = patients.find((x) => x.id === selected.patientId);
+    if (!pac) return false;
+    const periodo = formatoNaData(
+      (pac.vigencias ?? []).map((v) => ({ ...v, desde: new Date(v.desde), criadoEm: new Date(v.criadoEm) })),
+      selected.date ? new Date(selected.date as unknown as string) : new Date(),
+      { formato: pac.paymentFormat ?? "sessao", pacoteTipo: pac.pacoteTipo ?? null },
+    );
+    return podeSerCortesia({ formato: periodo.formato, pacoteTipo: periodo.pacoteTipo, sessionKind: selected.sessionKind });
+  })();
+
   const perguntaSequencia = perguntaSeEntraNaSequencia({ formato: formatoNaDataNova, sessionKind: newKind }, jaTemSequencia);
   // Doc 22: ao ADICIONAR à sequência do pacote, a sessão SEMPRE preenche uma desmarcada — nunca
   // acrescenta uma a mais. Então a escolha "é uma sessão a mais" saiu, e a primeira desmarcada já
@@ -352,6 +366,8 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
   const [perguntaAlcance, setPerguntaAlcance] = useState<Record<string, string> | null>(null);
   // Doc 52: a sequência do pacote também se decide ao EDITAR, não só ao criar.
   const [edicaoSequencia, setEdicaoSequencia] = useState<string>("");
+  // Doc 54: "Este atendimento será uma cortesia" — marcado no editar, aplicado só a esta sessão.
+  const [editCortesia, setEditCortesia] = useState(false);
   /** A exclusão, esperando o alcance. `null` quando ninguém pediu para excluir. */
   const [perguntaExcluir, setPerguntaExcluir] = useState<{ id: string; passo: "inicio" | "proximos" } | null>(null);
   const [quantos, setQuantos] = useState<{ mesmosDias: number; todas: number } | null>(null);
@@ -393,6 +409,7 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
         confirmChannel: perguntaAlcance.confirmChannel,
         confirmLeadHours: perguntaAlcance.confirmLeadHours,
         ...(edicaoSequencia ? { naSequencia: edicaoSequencia } : {}),
+        ...(ofereceCortesia && editCortesia !== !!selected.cortesia ? { cortesia: editCortesia } : {}),
       });
       setPerguntaAlcance(null);
       if (!r.ok) return setEditErro(r.error ?? "Não consegui salvar.");
@@ -814,7 +831,7 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
             {!editing ? (
               <div className="flex items-center gap-3">
                 <button
-                  onClick={() => { setEditing(true); setEditErro(null); setEditModalidade(selected.isOnline ? "online" : "presencial"); setEditCanal("nenhum"); setRecFreq(selected.recurrenceFreq === "quinzenal" ? "quinzenal" : "semanal"); setRecUntil(""); setRecSegDia(""); setRecSegHora(""); }}
+                  onClick={() => { setEditing(true); setEditErro(null); setEditCortesia(!!selected.cortesia); setEditModalidade(selected.isOnline ? "online" : "presencial"); setEditCanal("nenhum"); setRecFreq(selected.recurrenceFreq === "quinzenal" ? "quinzenal" : "semanal"); setRecUntil(""); setRecSegDia(""); setRecSegHora(""); }}
                   className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary hover:underline"
                 >
                   <Pencil className="w-4 h-4" /> Editar agendamento
@@ -828,6 +845,18 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
                  repetição ficam de fora de propósito: trocar isso não é editar o agendamento, é
                  outro agendamento — e o lote pediu que ficassem inativos. */
               <form action={submitEdit} className="rounded-xl bg-surface/60 border border-border p-3 space-y-2">
+                {/* Doc 54: acima da data e hora, como ele pediu. A sessão vira GRAT na agenda e na
+                    guia Geral, deixa de ocupar posição na sequência — a seguinte assume o número
+                    dela — e continua no grupo de pagamento do pacote. */}
+                {ofereceCortesia && (
+                  <label className="flex items-start gap-2 rounded-xl bg-[#ecfdf5] border border-[#a7f3d0] px-3 py-2 cursor-pointer">
+                    <input type="checkbox" checked={editCortesia} onChange={(e) => setEditCortesia(e.target.checked)} className="mt-0.5 accent-[#047857]" />
+                    <span className="text-xs">
+                      <span className="font-bold text-[#047857]">Este atendimento será uma cortesia</span>
+                      <span className="block text-foreground/60">Vira GRAT e não ocupa posição na sequência — a próxima sessão assume o número dela. Continua no pagamento deste pacote.</span>
+                    </span>
+                  </label>
+                )}
                 <div className="grid grid-cols-2 gap-2">
                   <div>
                     <label className="text-xs font-semibold text-foreground/60">Data e horário</label>

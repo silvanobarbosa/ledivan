@@ -79,6 +79,7 @@ export default async function FechamentoPage({
         // extra. Sem estes campos a Fechamento contava a devolutiva no pacote e a agenda não.
         sessionKind: therapySessions.sessionKind,
         abaterDoPacote: therapySessions.abaterDoPacote,
+        cortesia: therapySessions.cortesia,
         chargeable: therapySessions.chargeable,
         extra: therapySessions.extra,
         repoeSessaoId: therapySessions.repoeSessaoId,
