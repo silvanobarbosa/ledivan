@@ -62,6 +62,8 @@ export type SessaoDaCobranca = {
   valorExtra?: number | string | null;
   /** Qual sessao desmarcada esta aqui repoe (documento de 17/09). Reposicao ocupa vaga, nao cria. */
   repoeSessaoId?: string | null;
+  /** Doc 54: atendimento do pacote dado de cortesia. Não cobra e não ocupa posição, mas continua no pacote. */
+  cortesia?: boolean | null;
 };
 
 export type TipoDeCobranca = "sessao" | "pacote" | "quinzena" | "extra";
@@ -143,6 +145,19 @@ const devolutivaGratuita = (s: SessaoDaCobranca) => s.sessionKind === "devolutiv
 const faltouNaoConta = (s: SessaoDaCobranca) => s.status === "nao_realizada" && s.faltouConta === false;
 
 /**
+ * CORTESIA (doc 54): um atendimento do pacote que a terapeuta decidiu não cobrar.
+ *
+ * Ele PAUSA a sequência — deixa de ocupar uma posição, e quem vem depois assume o número que ele
+ * teria — mas continua pertencendo ao pacote e ao grupo de pagamento dele. É a diferença para a
+ * sessão extra gratuita (`extra: "grat"`), que acontece FORA do pacote: usá-la aqui produziria o
+ * lançamento separado que o doc proíbe em letra ("não deverá ser lançada isoladamente").
+ */
+const ehCortesia = (s: SessaoDaCobranca) => s.cortesia === true;
+
+/** Segura a posição sem ocupá-la: a falta não abatida e a cortesia (doc 54). */
+const pausaASequencia = (s: SessaoDaCobranca) => faltouNaoConta(s) || ehCortesia(s);
+
+/**
  * GRATUITO + "Faltou" + "Sim, transformar em sessão paga" = uma sessão AVULSA (doc 54).
  *
  * Marcá-la aqui, e não no banco, é de propósito: a janela promete que remarcar "Faltou" refaz a
@@ -190,7 +205,7 @@ function cobrancasDoPeriodo(periodo: PeriodoDeVigencia, sessoes: Ordenada[], e: 
   if (!usaPacote(formato)) {
     // A cada sessão: cada atendimento que ocupou posição é uma cobrança, no dia em que aconteceu.
     return sessoes
-      .filter((s) => !ehExtra(s) && !devolutivaGratuita(s) && !STATUS_QUE_PAUSAM.has(s.status) && !faltouNaoConta(s))
+      .filter((s) => !ehExtra(s) && !devolutivaGratuita(s) && !STATUS_QUE_PAUSAM.has(s.status) && !pausaASequencia(s))
       .map((s) => ({
         chave: `sessao:${s.id}`,
         tipo: "sessao" as const,
@@ -206,7 +221,7 @@ function cobrancasDoPeriodo(periodo: PeriodoDeVigencia, sessoes: Ordenada[], e: 
 
   const tipoPacote = periodo.pacoteTipo === "fragmentado" ? "fragmentado" : "completo";
   const opcoesDaSequencia = { pacoteTipo: tipoPacote, tamanhos: e.tamanhos, tamanhoPacote: e.tamanhoPacote, tamanhosPorData: e.tamanhosPorData, vezesPorSemana: e.vezesPorSemana };
-  const doPacote = sessoes.filter(entraNoPacote).map((s) => ({ id: s.id, date: s.data, status: s.status, repoeSessaoId: s.repoeSessaoId, pausa: faltouNaoConta(s) }));
+  const doPacote = sessoes.filter(entraNoPacote).map((s) => ({ id: s.id, date: s.data, status: s.status, repoeSessaoId: s.repoeSessaoId, pausa: pausaASequencia(s), cortesia: ehCortesia(s) }));
   const out: Cobranca[] = [];
 
   for (const seq of todasAsSequencias(doPacote, opcoesDaSequencia)) {
@@ -280,6 +295,13 @@ function cobrancasDoPeriodo(periodo: PeriodoDeVigencia, sessoes: Ordenada[], e: 
       for (const metade of metades) {
         if (!metade.ids.length) continue;
         /**
+         * A quinzena cobra AS SESSÕES QUE CAÍRAM NELA. A cortesia caiu nela e continua no grupo de
+         * pagamento — é o que o doc 54 exige —, mas cobrá-la seria cobrar justamente o atendimento
+         * que a terapeuta decidiu dar. Ela conta para o `ids`, nunca para o valor.
+         */
+        const cobraveis = metade.ids.filter((s) => !s.cortesia).length;
+        if (!cobraveis) continue;
+        /**
          * Doc 24 (dono, 09/10): cada quinzena vence na SUA data — a 1ª quinzena no 1º dia combinado,
          * a 2ª quinzena no 2º dia —, no mês da primeira sessão da quinzena. É a recorrência quinzenal
          * literal: paga dia 10 e dia 20 do mês. As duas datas são respeitadas desde a geração inicial;
@@ -294,11 +316,11 @@ function cobrancasDoPeriodo(periodo: PeriodoDeVigencia, sessoes: Ordenada[], e: 
         const vencimento = dataDaParte ? diaDoMes(primeira, dataDaParte) : primeira;
         out.push({
           ...comum,
-          sessoes: metade.ids.length,
+          sessoes: cobraveis,
           ids: metade.ids.map((s) => s.id),
           chave: `quinzena:${chavePeriodo}:${seq.sequencia}:${metade.parte}`,
           tipo: "quinzena",
-          valor: dinheiro(unitario * metade.ids.length),
+          valor: dinheiro(unitario * cobraveis),
           vencimento,
           posicao: "antes",
           parte: metade.parte,
@@ -387,7 +409,7 @@ export function rotulosDasSessoes(e: EntradaDasCobrancas): Map<string, string> {
     const { formato, pacoteTipo } = grupo.periodo;
     const posicoes = usaPacote(formato)
       ? posicoesDaSequencia(
-          grupo.sessoes.filter(entraNoPacote).map((s) => ({ id: s.id, date: s.data, status: s.status, repoeSessaoId: s.repoeSessaoId, pausa: faltouNaoConta(s) })),
+          grupo.sessoes.filter(entraNoPacote).map((s) => ({ id: s.id, date: s.data, status: s.status, repoeSessaoId: s.repoeSessaoId, pausa: pausaASequencia(s) })),
           { pacoteTipo: pacoteTipo === "fragmentado" ? "fragmentado" : "completo", tamanhos: e.tamanhos, tamanhoPacote: e.tamanhoPacote, tamanhosPorData: e.tamanhosPorData, vezesPorSemana: e.vezesPorSemana },
         )
       : new Map();
@@ -396,6 +418,9 @@ export function rotulosDasSessoes(e: EntradaDasCobrancas): Map<string, string> {
       if (s.extra === "avul") { rotulos.set(s.id, "AVUL"); continue; }
       if (s.extra === "grat") { rotulos.set(s.id, "GRAT"); continue; }
       if (formato === "sessao" && devolutivaGratuita(s)) { rotulos.set(s.id, "GRAT"); continue; }
+      // Doc 54: a cortesia é GRAT na agenda e na guia Geral — é o que ela é, e o número que ela
+      // teria passou para a sessão seguinte.
+      if (ehCortesia(s)) { rotulos.set(s.id, "GRAT"); continue; }
       const p = posicoes.get(s.id);
       rotulos.set(
         s.id,

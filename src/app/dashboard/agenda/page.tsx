@@ -25,7 +25,7 @@ export default async function AgendaPage() {
   const [list, pats, bloqueios, me] = await Promise.all([
     db.query.therapySessions.findMany({
       where: eq(therapySessions.userId, session.user.id),
-      columns: { id: true, patientId: true, date: true, duration: true, status: true, isOnline: true, meetingUrl: true, meetingOpenedAt: true, guestJoinedAt: true, meetingEndedAt: true, pendingConfirmation: true, patientConfirmedAt: true, rescheduleRequestedAt: true, patientArrivedAt: true, location: true, recurring: true, recurrenceFreq: true, sessionKind: true, packageId: true, abaterDoPacote: true, espelhoSoAnterior: true },
+      columns: { id: true, patientId: true, date: true, duration: true, status: true, isOnline: true, meetingUrl: true, meetingOpenedAt: true, guestJoinedAt: true, meetingEndedAt: true, pendingConfirmation: true, patientConfirmedAt: true, rescheduleRequestedAt: true, patientArrivedAt: true, location: true, recurring: true, recurrenceFreq: true, sessionKind: true, packageId: true, abaterDoPacote: true, cortesia: true, espelhoSoAnterior: true },
       with: { patient: { columns: { name: true, agendaId: true, registrationNumber: true } } },
     }),
     db.query.patients.findMany({
@@ -72,7 +72,7 @@ export default async function AgendaPage() {
   if (pats.length) {
     const ids = pats.map((x) => x.id);
     const [todas, contratos, vigencias, pacoteHist] = await Promise.all([
-      db.select({ id: therapySessions.id, patientId: therapySessions.patientId, date: therapySessions.date, status: therapySessions.status, sessionKind: therapySessions.sessionKind, abaterDoPacote: therapySessions.abaterDoPacote, chargeable: therapySessions.chargeable, extra: therapySessions.extra, repoeSessaoId: therapySessions.repoeSessaoId })
+      db.select({ id: therapySessions.id, patientId: therapySessions.patientId, date: therapySessions.date, status: therapySessions.status, sessionKind: therapySessions.sessionKind, abaterDoPacote: therapySessions.abaterDoPacote, chargeable: therapySessions.chargeable, cortesia: therapySessions.cortesia, extra: therapySessions.extra, repoeSessaoId: therapySessions.repoeSessaoId })
         .from(therapySessions)
         .where(and(eq(therapySessions.userId, session.user.id), inArray(therapySessions.patientId, ids))),
       db.select({ patientId: patientPackages.patientId, seq: patientPackages.seq, sessions: patientPackages.sessions })
@@ -190,6 +190,7 @@ export default async function AgendaPage() {
           patientId: s.patientId,
           sessionKind: s.sessionKind ?? "consulta",
           abaterDoPacote: s.abaterDoPacote,
+          cortesia: s.cortesia,
           pkg: pkgLabels.get(s.id) ?? null,
           codigo: codigos.get(s.id) ?? null,
           pagamentoAtrasado: atrasadas.has(s.id),
