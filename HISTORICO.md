@@ -7,6 +7,75 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-10-22 — Doc 54 fechado, e uma RCE crítica no Next (#460–#463)
+
+**Entregue:**
+- **#460 — "Faltou" no pacote PAUSA a sequência.** Responder "Não" TIRAVA a sessão do pacote.
+  Tirar não é pausar: ela perdia o número (virava `—`) e saía do grupo de pagamento. Era a
+  tabela desorganizada que ele relatou. Agora mantém o número onde a falta aconteceu, a
+  próxima assume a posição, e ela continua no pagamento daquele pacote.
+- **#460 — gratuito + "Sim" passa a fazer alguma coisa.** Não fazia nada: paciente gratuito
+  não gera cobrança, e a resposta ficava guardada sem efeito. Agora a sessão é cobrada como
+  AVUL, em R$ 0,00 até o valor ser lançado na própria linha.
+- **#460 — o selo "Cobra / abate" saiu da tabela** e a janela da agenda passou a dizer como
+  refazer a escolha.
+- **#461 — reajustes na mesma vigência voltam a poder ser apagados.**
+- **#462 — "Este atendimento será uma cortesia"** no editar agendamento, em pacote completo
+  mensal/quinzenal.
+- **#463 — Next 16.4.0 → 16.4.2.**
+
+**Por quê:** documento do dono (doc 54), quatro itens, todos vindos do uso real. O #463 não
+estava no documento — apareceu sozinho, ver abaixo.
+
+**Decisões que ficam valendo:**
+- **Pausar e EXCLUIR do pacote são coisas diferentes**, e a diferença aparece na tela. Pausada,
+  a sessão mantém o número e o grupo de pagamento; excluída, perde os dois. Faltou-não-abatida
+  e cortesia PAUSAM. Isso substitui a regra do doc 45, que excluía.
+- **A cortesia é do pacote, não uma sessão extra.** `extra: "grat"` acontece FORA do pacote e
+  sai do grupo de pagamento — seria o lançamento isolado que o doc proíbe em letra. Por isso
+  coluna própria (`therapy_sessions.cortesia`), não reuso do extra.
+- **Cortesia vale só para a sessão editada, nunca para o bloco.** "Este e os próximos" existe
+  para mudar horário; em série, dispensaria meses de pagamento com um clique.
+- **Gratuito + "Sim" é DERIVADO, não gravado.** A janela promete que remarcar "Faltou" refaz a
+  escolha; uma coluna gravada obrigaria a desfazer o efeito antigo em todo caminho que grava
+  status — o mesmo motivo pelo qual a sequência nunca é guardada.
+- **Só o "Sim" EXPLÍCITO cobra.** Falta antiga sem resposta (`null`) nunca gerou cobrança, e não
+  é agora que vai gerar dívida retroativa em paciente que não paga.
+- **A ENTRADA do histórico de reajuste é UM REGISTRO, não uma data.** Protegendo por data, várias
+  alterações na mesma vigência empatam todas no mínimo e nenhuma é removível.
+
+**Armadilhas:**
+- **O `next build` passou a RECUSAR com `SecurityFatalError`**, e tinha razão: Next 16.4.0 está
+  na faixa da GHSA-2464-fhr4-w9xw — **execução remota de código SEM autenticação** na API de
+  otimização de imagem via SVG (`>=16.0.0 <=16.4.0`). Produção rodou com isso. O bump é patch.
+  Achado por acaso, fechando outra coisa: **`npm audit --omit=dev` precisa entrar na rotina**,
+  não só no CI.
+- **No ramo "Sim" o motor JÁ ESTAVA CERTO.** Gastei tempo procurando um defeito de cálculo que
+  não existia; o que bagunçava a tabela da imagem era a LINHA EXTRA do selo. Antes de caçar bug
+  no motor, reproduzir a saída dele — levou um teste e três minutos.
+- **PR empilhada: reaponte a base ANTES de mergear.** `gh pr edit 462 --base main` antes do merge
+  da #460. Mergear a base com `--delete-branch` fecha a empilhada e ela não reabre (foi assim
+  que o #124 se perdeu). Depois do squash da base, `git rebase origin/main` detecta o commit
+  duplicado e pula sozinho.
+- **`drizzle-kit generate` não roda aqui** — pede prompt interativo por um conflito de rename
+  antigo no snapshot. O padrão do repo é `scripts/migrar-*.mjs` com SQL direto.
+- **`.env.local` aponta para PRODUÇÃO.** Confirmado medindo a base (5 usuários, 120 pacientes,
+  5.955 sessões). Qualquer script de migração roda em cima do dado real.
+
+**Testes:** `doc54Faltou` (11), `doc54Cortesia` (6), `cortesiaOferecida` (5), `doc54Reajuste` (5).
+1.001 no total. Verificado em produção com a conta de demonstração: o selo sumiu nas fichas que
+têm Faltou, a pausa aparece na sequência (`7/8 Desmarcou` → `7/8 Presente`), o checkbox de
+cortesia renderiza, e a janela da falta mostra o texto de como refazer.
+
+**Pendente:**
+- **`proxy-addr@2.0.7` (GHSA-jqcg-44mw-7w3h, CVSS 9.1)** chega por `@modelcontextprotocol/sdk` →
+  `express`, que não serve tráfego do app. Decisão do dono: `override` para `>=2.0.8`, tirar o
+  SDK de `dependencies` (parece ferramenta, não runtime), ou registrar como risco aceito em
+  `DEPENDENCIAS.md`. Sobram 15 altas e 4 moderadas em produção, nenhuma nova.
+- A confirmação do join real da sala de vídeo (#458) continua aberta, com o dono.
+
+---
+
 ## 2026-10-21 — Sala de vídeo travava por 3 bloqueios de CSP (#458)
 
 **Entregue:** a chamada online, que travava para sempre em "Entrando na sala…", volta a funcionar.
