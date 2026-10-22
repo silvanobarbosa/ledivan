@@ -6,7 +6,7 @@ import { Lock, X } from "lucide-react";
 import { bloquearHorarios, desbloquearHorarios, horariosDoDia, remanejarAgenda } from "@/app/dashboard/agenda/bloqueio-actions";
 import { TEXTO_PADRAO_DO_BLOQUEIO } from "@/lib/bloqueioDeHorario";
 import { FUNDO_DA_JANELA, JANELA } from "@/lib/modal";
-import { useFecharComEscape } from "@/lib/useFecharComEscape";
+import { useJanela } from "@/lib/useJanela";
 
 /**
  * A janela de bloquear e desbloquear horário.
@@ -30,7 +30,7 @@ const hojeISO = () => {
 
 export function BloquearHorario() {
   const [aberto, setAberto] = useState(false);
-  useFecharComEscape(aberto, () => setAberto(false));
+  const janela = useJanela(aberto, () => setAberto(false));
   const [data, setData] = useState(hojeISO);
   const [livres, setLivres] = useState<Livre[]>([]);
   const [bloqueados, setBloqueados] = useState<Bloqueado[]>([]);
@@ -112,7 +112,7 @@ export function BloquearHorario() {
       {aberto && (
         <div className={FUNDO_DA_JANELA} onClick={() => setAberto(false)}>
           <div
-            className={`${JANELA} max-w-md`}
+            ref={janela} tabIndex={-1} role="dialog" aria-modal="true" aria-label="Bloquear horário" className={`${JANELA} max-w-md outline-none`}
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-start justify-between">

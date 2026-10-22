@@ -4,7 +4,7 @@ import { useState, useRef } from "react";
 import { Loader2, Camera, Sparkles, X, Info } from "lucide-react";
 import { useRouter, usePathname } from "next/navigation";
 import { FLUTUANTE_BAIXO, FUNDO_DA_JANELA, JANELA } from "@/lib/modal";
-import { useFecharComEscape } from "@/lib/useFecharComEscape";
+import { useJanela } from "@/lib/useJanela";
 import { lerReciboTexto } from "@/lib/reciboOcr";
 import { createTransaction } from "@/app/dashboard/transactions/actions";
 import { PAYMENT_FORMS } from "@/lib/finance";
@@ -28,7 +28,7 @@ export function ScanRecibo({ hasAiKey }: { hasAiKey: boolean }) {
   const pathname = usePathname();
   const fileRef = useRef<HTMLInputElement>(null);
   const [aberto, setAberto] = useState(false);
-  useFecharComEscape(aberto, () => setAberto(false));
+  const janela = useJanela(aberto, () => setAberto(false));
   const [imagem, setImagem] = useState<string | null>(null);
   const [lendo, setLendo] = useState<null | "livre" | "ia">(null);
   const [erro, setErro] = useState<string | null>(null);
@@ -136,8 +136,10 @@ export function ScanRecibo({ hasAiKey }: { hasAiKey: boolean }) {
       </button>
 
       {aberto && (
-        <div className={FUNDO_DA_JANELA} role="dialog" aria-modal="true">
-          <div className={`${JANELA} max-w-md`}>
+        <div className={FUNDO_DA_JANELA}>
+          {/* O `role`/`aria-modal` desceu do fundo para o PAINEL: o fundo é a cortina, o diálogo é
+              o que tem o conteúdo, e é nele que o foco é preso. */}
+          <div ref={janela} tabIndex={-1} role="dialog" aria-modal="true" aria-label="Escanear recibo" className={`${JANELA} max-w-md outline-none`}>
             <div className="flex items-center justify-between">
               <h3 className="font-display text-lg font-bold text-primary">Ler recibo</h3>
               <button onClick={() => { setAberto(false); setImagem(null); }} aria-label="Fechar" className="text-foreground/40 hover:text-foreground"><X className="w-5 h-5" /></button>
