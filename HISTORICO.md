@@ -7,6 +7,66 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-10-22 — SuperQA achou 4 regressões de dinheiro no lote do doc 54 (#466, #467)
+
+**Entregue:**
+- **#467** — a falta não abatida volta a não encarecer nem mover cobrança nenhuma.
+- **#466** — ferramenta de design sai de `dependencies`: 21 vulnerabilidades de produção
+  (1 crítica, 15 altas) caem para 5, nenhuma crítica. Zero linha de runtime mudada.
+
+**Por quê:** fazer a falta não abatida PAUSAR em vez de sair do pacote (entrega da manhã) a
+colocou dentro do fluxo do motor — e ela passou a CONTAR nele. Quatro formatos saíram cobrando
+diferente do dia anterior: quinzenal pedia uma sessão a mais (R$ 600 → R$ 800); fragmentado
+ganhava uma vaga no mês (R$ 400 → R$ 600) E deixava a sequência aberta, fazendo a cobrança
+SUMIR da Fechamento; primeira do pacote mudava a competência de mês; última do pacote movia o
+vencimento para a data da falta. Em produção o alcance era zero — não existe nenhuma sessão
+com "não abater" no banco —, então ninguém chegou a ser cobrado errado.
+
+**Decisões que ficam valendo:**
+- **Pausa por RESPOSTA ≠ pausa por STATUS.** Falta não abatida e cortesia pertencem ao grupo de
+  pagamento e exibem a posição onde pararam, mas são INVISÍVEIS para contar: não viram vaga, não
+  datam a cobrança, não entram no valor. Desmarcou, Atestado e Prof. desm. continuam como sempre
+  foram — são sessões CONTRATADAS, ocupam vaga e seguram o denominador ("o denominador não
+  encolhe", a regra do fracionado). `agrupar()` em `sequenciaPacote.ts` separa o que a sequência
+  CONTÉM (ids, o grupo de pagamento) do que a DATA (primeira/última ocupante, o dinheiro).
+- **`faltouConta` sem resposta grava `null`, nunca `true`.** A tela Atender encerra como "Faltou"
+  sem abrir a janela, de propósito; num paciente gratuito aquele `true` virava cobrança avulsa.
+- **Ferramenta de build não mora em `dependencies`.** `shadcn`, `@google/stitch-sdk` e o SDK de
+  MCP arrastavam um Express inteiro para o grafo de produção de um app que roda Next na Vercel.
+
+**Armadilhas:**
+- **A suíte de 1.001 testes passou inteira com as 4 regressões dentro.** Nenhum teste cobria
+  quinzenal, fracionado ou primeira/última do pacote com falta não abatida. Mexeu no motor de
+  cobrança? Varra os formatos TODOS, não só o que o documento citou.
+- **O método que achou foi comparar com o motor ANTIGO**, copiando `cobrancas.ts`/
+  `sequenciaPacote.ts` do commit anterior para um diretório de teste e rodando as duas versões
+  na mesma entrada, no mesmo processo. Vale repetir sempre que o motor mudar.
+- **Medir o raio em PRODUÇÃO antes de entrar em pânico.** Um `SELECT` mostrou zero sessões
+  afetadas e transformou "incidente" em "corrigir com calma".
+- **Relatório de agente não é verdade.** Um deles reportou "tela diz GRAT, motor cobra" como
+  Alto; conferido, o rótulo dizia AVUL e tela e cobrança concordavam. O defeito real era outro e
+  menor. Reproduzir antes de corrigir.
+- **A bateria `test:parallel` está morta** desde o wipe de 30/08: procura
+  `giselebarrossantos@gmail.com` (a conta é `giselesantosbarbosa@`), nome "Gisele Barros Santos"
+  (é "Gisele Barbosa"), conta demo `demo@ledivan.com.br` (é `socrates@`) e afirma `expected: 65`
+  pacientes. Seis vermelhos constantes que ninguém lê.
+
+**Pendente:**
+- Reescrever `tests/test-ledivan-parallel.ts` para INVARIANTES (cada dado tem dono, nenhum dono
+  enxerga o do outro) em vez de fotografia da base. Começado e não terminado hoje.
+- Cortesia pode ser marcada em sessão JÁ PAGA; se todas as sessões de uma quinzena virarem
+  cortesia, a cobrança some e o pagamento fica sem vínculo.
+- `/dashboard/transactions`: spinner "Montando o extrato…" nunca some, com as 1.737 linhas já
+  renderizadas abaixo. E os cards dizem "Nenhuma despesa cadastrada" enquanto o extrato lista
+  despesas.
+- Escape não fecha a janela "Abater esta sessão do pacote?" (e ela não prende o foco).
+- Hydration mismatch (React #418) em `/mensagens`, `/settings` e ao menos uma ficha.
+- Dashboard diz "73 no cadastro"; `/patients` lista 91.
+- As 5 vulnerabilidades de produção que sobraram (undici, postcss, nanoid, source-map-js,
+  baseline-browser-mapping), todas com correção disponível.
+
+---
+
 ## 2026-10-22 — Doc 54 fechado, e uma RCE crítica no Next (#460–#463)
 
 **Entregue:**
