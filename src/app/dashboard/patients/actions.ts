@@ -6,7 +6,7 @@ import { auth } from "@/auth";
 import { and, eq, gt, inArray, sql } from "drizzle-orm";
 import { encerraAgenda, sessoesAEncerrar } from "@/lib/encerrarAgenda";
 import { revalidatePath } from "next/cache";
-import { usaPacote, vencimentoDoPreco } from "@/lib/reajuste";
+import { entradaDoHistorico, usaPacote, vencimentoDoPreco } from "@/lib/reajuste";
 import { dataDoPreco, diaDoFormulario, formatoMudou, vigenciasAGravar } from "@/lib/trocaDeFormato";
 import { agoraParede } from "@/lib/horaLocal";
 import { redirect } from "next/navigation";
@@ -1155,17 +1155,22 @@ export async function apagarReajuste(patientId: string, vigenciaISO: string): Pr
   });
   if (!paciente) return { ok: false, error: "Paciente não encontrado" };
 
-  const precos = await db.select({ id: patientPriceHistory.id, valor: patientPriceHistory.valor, dataEfetiva: patientPriceHistory.dataEfetiva })
+  const precos = await db.select({ id: patientPriceHistory.id, valor: patientPriceHistory.valor, dataEfetiva: patientPriceHistory.dataEfetiva, dataCriacao: patientPriceHistory.dataCriacao })
     .from(patientPriceHistory).where(eq(patientPriceHistory.patientId, patientId));
-  const formatos = await db.select({ id: patientPaymentFormatHistory.id, formato: patientPaymentFormatHistory.formato, pacoteTipo: patientPaymentFormatHistory.pacoteTipo, dataEfetiva: patientPaymentFormatHistory.dataEfetiva })
+  const formatos = await db.select({ id: patientPaymentFormatHistory.id, formato: patientPaymentFormatHistory.formato, pacoteTipo: patientPaymentFormatHistory.pacoteTipo, dataEfetiva: patientPaymentFormatHistory.dataEfetiva, dataCriacao: patientPaymentFormatHistory.dataCriacao })
     .from(patientPaymentFormatHistory).where(eq(patientPaymentFormatHistory.patientId, patientId));
 
   const t = alvo.getTime();
-  // O registro mais antigo de cada tabela é a ENTRADA: nunca entra na seleção para apagar.
-  const minPreco = precos.length ? Math.min(...precos.map((p) => p.dataEfetiva.getTime())) : Infinity;
-  const minFormato = formatos.length ? Math.min(...formatos.map((f) => f.dataEfetiva.getTime())) : Infinity;
-  const precoIds = precos.filter((p) => p.dataEfetiva.getTime() === t && p.dataEfetiva.getTime() !== minPreco).map((p) => p.id);
-  const formatoIds = formatos.filter((f) => f.dataEfetiva.getTime() === t && f.dataEfetiva.getTime() !== minFormato).map((f) => f.id);
+  /**
+   * A ENTRADA de cada tabela — o primeiro preço, o primeiro formato — nunca é apagada. Doc 54: é UM
+   * registro, não uma data. Protegendo por data, várias alterações na mesma vigência empatavam todas
+   * no mínimo e NENHUMA podia ser removida, embora a tela oferecesse a lixeira em todas menos a
+   * primeira. Era o "Esse registro não pode ser removido" que a dona recebia três vezes seguidas.
+   */
+  const entradaPreco = entradaDoHistorico(precos);
+  const entradaFormato = entradaDoHistorico(formatos);
+  const precoIds = precos.filter((p) => p.dataEfetiva.getTime() === t && p.id !== entradaPreco).map((p) => p.id);
+  const formatoIds = formatos.filter((f) => f.dataEfetiva.getTime() === t && f.id !== entradaFormato).map((f) => f.id);
 
   if (!precoIds.length && !formatoIds.length) {
     // Nada removível nessa vigência (ou é a entrada): não apaga, e não finge que apagou.

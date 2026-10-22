@@ -6,6 +6,7 @@ import { Search, ChevronRight, ChevronDown, MessageCircle } from "lucide-react";
 import { numeroDoWhatsapp } from "@/lib/telefoneWhatsapp";
 import { formatBRL, patientStatusColor } from "@/lib/therapy";
 import { rotuloFinanceiro, ROTULO_SITUACAO_LISTA, type SituacaoDaLista } from "@/lib/rotulosPaciente";
+import { cobra } from "@/lib/reajuste";
 
 // Fora do componente DE PROPÓSITO: definido dentro do render, cada tecla digitada na busca
 // criava um tipo novo e o React REMONTAVA os cinco selects (perdendo foco e dropdown aberto).
@@ -182,7 +183,11 @@ export function PatientsClient({ patients, initial }: { patients: PatientCard[];
                       cortar nem forçar rolagem lateral no celular. */}
                   <p className="text-sm text-foreground/60">
                     <span className="block truncate">{rotuloFinanceiro(p.paymentFormat, p.pacoteTipo)}</span>
-                    <span className="block truncate text-foreground/40">{formatBRL(p.sessionFee)}/sessão</span>
+                    {/* Doc 54: quem é Gratuito não mostra valor por sessão. O `sessionFee` sobra de um
+                        período anterior em que o paciente pagava, e a lista dizia "Gratuito · R$ 50,00/
+                        sessão" — duas informações que se desmentem na mesma linha. A ficha
+                        (PatientDetail) já fazia esse gate; a lista não. */}
+                    {cobra(p.paymentFormat) && <span className="block truncate text-foreground/40">{formatBRL(p.sessionFee)}/sessão</span>}
                   </p>
                   <p className="text-xs text-foreground/45 truncate">🕐 {p.frequenciaLabel}</p>
                   {/* Doc 21: só "Em atraso" aparece no card. "Em aberto" (e "Em dia") não viram etiqueta

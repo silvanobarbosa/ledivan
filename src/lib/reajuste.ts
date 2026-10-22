@@ -223,6 +223,32 @@ export function eventosDeReajuste(
 // paciente, não um reajuste que possa ter sido lançado errado.
 export type LinhaDeHistorico = { data: Date; solicitadoEm: Date | null; texto: string; removivel: boolean };
 
+/**
+ * Qual registro do histórico é a ENTRADA do cadastro — o primeiro preço, o primeiro formato.
+ *
+ * A entrada nunca é removível: é a base do financeiro do paciente, não um reajuste lançado errado.
+ * Mas ela é UM registro, não uma data. Protegendo por data, três alterações na mesma vigência
+ * empatam todas no mínimo, e a tela oferece uma lixeira que o servidor recusa — foi o que aconteceu
+ * com a paciente que trocou Gratuito → Avulso → Gratuito no mesmo dia (doc 54).
+ *
+ * `dataCriacao` desempata quem foi gravado primeiro no mesmo dia; o id desempata o resto, para a
+ * resposta não mudar entre duas leituras iguais.
+ */
+export function entradaDoHistorico(
+  registros: { id: string; dataEfetiva: Date | string; dataCriacao?: Date | string | null }[],
+): string | null {
+  const ms = (d: Date | string | null | undefined, reserva: number): number => {
+    if (!d) return reserva;
+    const x = d instanceof Date ? d : new Date(d);
+    return Number.isNaN(x.getTime()) ? reserva : x.getTime();
+  };
+  const ordenados = [...registros]
+    .map((r) => ({ id: r.id, vigencia: ms(r.dataEfetiva, NaN), criacao: ms(r.dataCriacao, Infinity) }))
+    .filter((r) => !Number.isNaN(r.vigencia))
+    .sort((a, b) => a.vigencia - b.vigencia || a.criacao - b.criacao || a.id.localeCompare(b.id));
+  return ordenados[0]?.id ?? null;
+}
+
 export function historicoDeReajuste(
   precos: { valor: string | number; dataEfetiva: Date | string; dataCriacao?: Date | string | null }[],
   formatos: { formato: string; dataEfetiva: Date | string; dataCriacao?: Date | string | null }[],
