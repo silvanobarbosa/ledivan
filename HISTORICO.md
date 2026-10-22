@@ -7,6 +7,61 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-10-22 — Fila de pendências zerada: spinner, hidratação, Escape, bateria de QA, dependências (#469–#475)
+
+**Entregue:**
+- **#469 — spinner eterno em TRÊS telas**, não uma. `montarMovimentacoes`, `pagamentosPorMesDoAno`
+  e `vencimentosEm` são Server Actions chamadas num efeito, e o `.then()` não tinha `.catch()`.
+- **#470 — hidratação (#418) em três telas.** Inclui um achado maior que o erro de console: o link
+  público de agendamento aparecia QUEBRADO até o React hidratar.
+- **#471 + #475 — Escape fecha as janelas.** Nenhuma das nove fechava.
+- **#472 — `test:parallel` volta a medir algo**, depois de quase dois meses morta.
+- **#473 — zero vulnerabilidades de produção** (eram 5).
+
+**Por quê:** era a fila que sobrou do SuperQA, toda ela "depende só de mim".
+
+**Decisões que ficam valendo:**
+- **O hook de Escape mora em arquivo próprio, não em `modal.ts`.** O `modal.ts` argumenta que as
+  medidas ficam num lugar só e seria o lugar natural, mas ele só exporta texto de classe e pode ser
+  lido por componente de servidor. Hook ali seria armadilha para o próximo.
+- **Bateria de QA afirma INVARIANTE, nunca fotografia.** Contagem que muda com o uso vira
+  informação no relatório. Foi transformar contagem em asserção que matou a bateria da outra vez.
+- **Ferramenta de build não mora em `dependencies`** (vem da #466 e continua valendo).
+
+**Armadilhas:**
+- **`keydown` é evento DISCRETO: o React descarrega a atualização de forma SÍNCRONA, dentro do
+  disparo.** Com `fechar` nas dependências do efeito (arrow nova a cada render), fechar a janela de
+  baixo removia o ouvinte da de cima ANTES dele ser chamado — e, pela especificação do DOM,
+  ouvinte removido durante o disparo não executa. Com duas janelas abertas (o caso comum), um
+  Escape fechava só uma. Cura: `fechar` numa ref, efeito dependendo só de `aberto`.
+- **O CI ficou verde com a correção incompleta.** Só apareceu conferindo no navegador, em
+  produção, com uma sonda contando o evento no `document`. Evento sintético fechava as duas; tecla
+  real, não — foi essa diferença que apontou a causa.
+- **Li o DOM antes do React re-renderizar** e quase registrei um falso negativo. Depois de
+  disparar evento, esperar antes de conferir.
+- **Escrever em ref no corpo do componente** acusa `react-hooks/refs`. Atualizar num efeito sem
+  dependências é o caminho; a regra existe porque em render concorrente o corpo pode rodar duas vezes.
+- **A catraca de lint não falha o `&&` da linha de comando quando você a canaliza para `tail`** —
+  o código de saída vira o do `tail`. Rodar sozinha e conferir o `$?`.
+
+**Investigado e NÃO era bug:** "Nenhuma despesa cadastrada" com o extrato listando despesas. São
+duas tabelas: `despesas` (módulo do doc 50) tem **0 linhas** para a conta demo, e os R$ 26.740 do
+`/reports` vêm de `transactions` (legado). O card está certo para a tabela dele.
+
+**Mas isso revelou pendência real:** o módulo novo de Movimentações/Despesas **não enxerga** as 202
+despesas que a conta demo tem em `transactions`. Duas noções de despesa convivendo, e a tela nova
+mostra só uma. Decisão do dono: migrar, unificar a leitura, ou aposentar uma delas.
+
+**Pendente:**
+- **Prender o foco** dentro da janela aberta (focus trap). O Escape resolveu a saída; o foco
+  continua passeando pela página atrás da janela.
+- Cortesia em sessão JÁ PAGA (decisão do dono: recusar, avisar, ou permitir).
+- Dashboard diz "73 no cadastro"; `/patients` lista 91. São `pausado` e `prospect` fora da conta —
+  decisão do dono sobre a regra.
+- As duas noções de despesa, acima.
+
+---
+
 ## 2026-10-22 — SuperQA achou 4 regressões de dinheiro no lote do doc 54 (#466, #467)
 
 **Entregue:**
