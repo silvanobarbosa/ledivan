@@ -4,6 +4,7 @@ import { useState, useRef } from "react";
 import { Loader2, Camera, Sparkles, X, Info } from "lucide-react";
 import { useRouter, usePathname } from "next/navigation";
 import { FLUTUANTE_BAIXO, FUNDO_DA_JANELA, JANELA } from "@/lib/modal";
+import { useFecharComEscape } from "@/lib/useFecharComEscape";
 import { lerReciboTexto } from "@/lib/reciboOcr";
 import { createTransaction } from "@/app/dashboard/transactions/actions";
 import { PAYMENT_FORMS } from "@/lib/finance";
@@ -27,6 +28,7 @@ export function ScanRecibo({ hasAiKey }: { hasAiKey: boolean }) {
   const pathname = usePathname();
   const fileRef = useRef<HTMLInputElement>(null);
   const [aberto, setAberto] = useState(false);
+  useFecharComEscape(aberto, () => setAberto(false));
   const [imagem, setImagem] = useState<string | null>(null);
   const [lendo, setLendo] = useState<null | "livre" | "ia">(null);
   const [erro, setErro] = useState<string | null>(null);

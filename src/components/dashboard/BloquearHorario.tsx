@@ -6,6 +6,7 @@ import { Lock, X } from "lucide-react";
 import { bloquearHorarios, desbloquearHorarios, horariosDoDia, remanejarAgenda } from "@/app/dashboard/agenda/bloqueio-actions";
 import { TEXTO_PADRAO_DO_BLOQUEIO } from "@/lib/bloqueioDeHorario";
 import { FUNDO_DA_JANELA, JANELA } from "@/lib/modal";
+import { useFecharComEscape } from "@/lib/useFecharComEscape";
 
 /**
  * A janela de bloquear e desbloquear horário.
@@ -29,6 +30,7 @@ const hojeISO = () => {
 
 export function BloquearHorario() {
   const [aberto, setAberto] = useState(false);
+  useFecharComEscape(aberto, () => setAberto(false));
   const [data, setData] = useState(hojeISO);
   const [livres, setLivres] = useState<Livre[]>([]);
   const [bloqueados, setBloqueados] = useState<Bloqueado[]>([]);
