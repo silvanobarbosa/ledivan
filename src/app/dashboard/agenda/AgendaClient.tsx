@@ -20,6 +20,7 @@ import { perguntaSeEntraNaSequencia } from "@/lib/sessaoExtra";
 import { formatoNaData } from "@/lib/vigenciaDoFormato";
 import { tipoDaFalta, perguntaDaFalta, COMO_REFAZER } from "@/lib/perguntaFalta";
 import { podeSerCortesia } from "@/lib/cortesia";
+import { useFecharComEscape } from "@/lib/useFecharComEscape";
 
 type PatientLite = { id: string; name: string; status: string; attendanceMode: string | null; attendanceLocation: string | null;
   /** Doc 42: paciente | supervisionado — supervisionado só agenda sessões do tipo supervisão. */
@@ -451,6 +452,17 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
   // Doc 52: a pergunta agora é a do TIPO do agendamento (gratuito / avulso / pacote), porque a
   // consequência de "Sim" é diferente em cada um. O texto mora em `@/lib/perguntaFalta`.
   const [perguntaFaltou, setPerguntaFaltou] = useState<{ id: string; tipo: ReturnType<typeof tipoDaFalta> } | null>(null);
+
+  /**
+   * Escape fecha qualquer uma destas janelas (achado do SuperQA de 22/10). A da falta era a pior:
+   * ela só oferece Sim e Não, as duas com consequência em dinheiro, e não tinha saída pelo teclado.
+   */
+  useFecharComEscape(!!selected, () => setSelected(null));
+  useFecharComEscape(!!perguntaAlcance, () => setPerguntaAlcance(null));
+  useFecharComEscape(!!perguntaFaltou, () => setPerguntaFaltou(null));
+  useFecharComEscape(!!perguntaExcluir, () => { setPerguntaExcluir(null); setQuantos(null); });
+  useFecharComEscape(!!perguntaQ, () => setPerguntaQ(null));
+  useFecharComEscape(showNew, () => setShowNew(false));
   const pickStatus = (id: string, status: SessionStatus) => {
     if (status === "nao_realizada") {
       // O formato muda no tempo: vale o que estava vigente NA DATA DA SESSÃO, não o de hoje.

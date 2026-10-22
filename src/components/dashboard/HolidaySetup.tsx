@@ -6,10 +6,12 @@ import { CalendarDays, X, Search, Plus, MapPin } from "lucide-react";
 import { saveHolidayCities } from "@/app/dashboard/agenda/holiday-actions";
 import type { HolidayCity } from "@/lib/holidays-style";
 import { FUNDO_DA_JANELA, JANELA } from "@/lib/modal";
+import { useFecharComEscape } from "@/lib/useFecharComEscape";
 
 export function HolidaySetup({ cities, autoOpen = false }: { cities: HolidayCity[]; autoOpen?: boolean }) {
   const router = useRouter();
   const [open, setOpen] = useState(autoOpen);
+  useFecharComEscape(open, () => setOpen(false));
   const [selected, setSelected] = useState<HolidayCity[]>(cities);
   const [q, setQ] = useState("");
   const [results, setResults] = useState<HolidayCity[]>([]);
