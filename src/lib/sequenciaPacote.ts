@@ -40,6 +40,14 @@ export type SessaoDaSequencia = {
    * reposição OCUPA a vaga aberta, sessão a mais CRIA uma vaga nova.
    */
   repoeSessaoId?: string | null;
+  /**
+   * Segura a posição sem ocupá-la, como Desmarcou e Atestado fazem pelo status (doc 54).
+   *
+   * Existe porque nem toda pausa cabe num status: "Faltou" com a resposta "não abater do pacote"
+   * precisa PAUSAR a sequência e, ao mesmo tempo, continuar sendo Faltou na agenda — a cor e o
+   * texto são do status, a pausa é da resposta. Quem decide isso é quem chama; aqui só se obedece.
+   */
+  pausa?: boolean | null;
 };
 
 export type PosicaoNaSequencia = {
@@ -107,10 +115,13 @@ export type MomentoDaCobranca = "abertura" | "fechamento";
 
 const emData = (d: Date | string): Date => (d instanceof Date ? d : new Date(d));
 
+/** Pausa pelo status (Desmarcou, Atestado, Prof. desm.) ou pela resposta de quem chamou (doc 54). */
+const pausou = (s: { status: string; pausa?: boolean | null }): boolean => !!s.pausa || STATUS_QUE_PAUSAM.has(s.status);
+
 /** Descarta o que não dá para posicionar e ordena pelo que manda: a data. */
 function emOrdem(sessoes: SessaoDaSequencia[]): { id: string; data: Date; status: string; repoe: string | null }[] {
   return sessoes
-    .map((s) => ({ id: s.id, data: emData(s.date), status: s.status, repoe: s.repoeSessaoId ?? null }))
+    .map((s) => ({ id: s.id, data: emData(s.date), status: s.status, repoe: s.repoeSessaoId ?? null, pausa: !!s.pausa }))
     .filter((s) => !Number.isNaN(s.data.getTime()))
     // Duas no mesmo instante acontecem (encaixe, casal). O id desempata para que a numeração seja
     // sempre a mesma — ordem instável aqui faria o número dançar a cada recarga da tela.
@@ -184,7 +195,7 @@ export function posicoesDaSequencia(
     mapa.set(s.id, { sequencia, index: posicao, total });
 
     // Pausou: a posição fica de pé para a próxima sessão ocupar.
-    if (STATUS_QUE_PAUSAM.has(s.status)) continue;
+    if (pausou(s)) continue;
 
     posicao += 1;
     if (posicao > total) {
@@ -253,7 +264,7 @@ function posicoesFragmentado(sessoes: SessaoDaSequencia[]): Map<string, PosicaoN
       if (mesDela !== k && !s.repoe) gastas.set(mesDela, (gastas.get(mesDela) ?? 0) + 1);
       // O clamp evita "4/3" quando o mês termina numa sessão que pausou.
       mapa.set(s.id, { sequencia, index: Math.min(ocupadas + 1, total), total });
-      if (!STATUS_QUE_PAUSAM.has(s.status)) ocupadas++;
+      if (!pausou(s)) ocupadas++;
     }
     sequencia++;
   }
@@ -291,7 +302,7 @@ export function todasAsSequencias(
   const out: SequenciaFechada[] = [];
   for (const [sequencia, dados] of porSequencia) {
     const ultimaSessao = ordenadas.find((s) => s.id === dados.ids[dados.ids.length - 1]);
-    const ocupouAUltima = dados.maiorIndex >= dados.total && !!ultimaSessao && !STATUS_QUE_PAUSAM.has(ultimaSessao.status);
+    const ocupouAUltima = dados.maiorIndex >= dados.total && !!ultimaSessao && !pausou(ultimaSessao);
     out.push({
       sequencia,
       total: dados.total,
@@ -342,7 +353,7 @@ export function sequenciasFechadasNoMes(
     // Fechou quando a última posição foi OCUPADA — e ocupar é diferente de existir: uma sessão
     // pausada na posição final deixa a sequência aberta, esperando a reposição.
     const ultimaSessao = ordenadas.find((s) => s.id === dados.ids[dados.ids.length - 1]);
-    const ocupouAUltima = dados.maiorIndex >= dados.total && !!ultimaSessao && !STATUS_QUE_PAUSAM.has(ultimaSessao.status);
+    const ocupouAUltima = dados.maiorIndex >= dados.total && !!ultimaSessao && !pausou(ultimaSessao);
 
     // Quem paga na abertura cobra assim que a sequência COMEÇA, mesmo ela ainda estando aberta —
     // é o que "paga na primeira do pacote" quer dizer. Quem paga depois só entra quando fecha.

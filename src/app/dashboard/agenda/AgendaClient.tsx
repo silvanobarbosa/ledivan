@@ -18,7 +18,7 @@ import { BloquearHorario } from "@/components/dashboard/BloquearHorario";
 import { FUNDO_DA_JANELA, JANELA } from "@/lib/modal";
 import { perguntaSeEntraNaSequencia } from "@/lib/sessaoExtra";
 import { formatoNaData } from "@/lib/vigenciaDoFormato";
-import { tipoDaFalta, perguntaDaFalta } from "@/lib/perguntaFalta";
+import { tipoDaFalta, perguntaDaFalta, COMO_REFAZER } from "@/lib/perguntaFalta";
 
 type PatientLite = { id: string; name: string; status: string; attendanceMode: string | null; attendanceLocation: string | null;
   /** Doc 42: paciente | supervisionado — supervisionado só agenda sessões do tipo supervisão. */
@@ -1018,6 +1018,8 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
             <p className="text-sm text-foreground/60 mt-1">
               <strong>Não:</strong> {perguntaDaFalta(perguntaFaltou.tipo).explicaNao}
             </p>
+            {/* Doc 54: a saída. Sem isto a escolha parece definitiva, e não é. */}
+            <p className="text-xs text-foreground/50 mt-2">{COMO_REFAZER}</p>
             <div className="flex gap-2 mt-4">
               <button disabled={pending} onClick={() => changeStatus(perguntaFaltou.id, "nao_realizada", undefined, true)} className="flex-1 bg-primary text-white py-2.5 rounded-xl text-sm font-bold disabled:opacity-60">Sim</button>
               <button disabled={pending} onClick={() => changeStatus(perguntaFaltou.id, "nao_realizada", undefined, false)} className="flex-1 bg-surface text-foreground/70 py-2.5 rounded-xl text-sm font-bold disabled:opacity-60">Não</button>

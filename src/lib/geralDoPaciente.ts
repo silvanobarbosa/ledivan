@@ -51,7 +51,7 @@ export type CobrancaNaTela = Omit<CobrancaDaGeral, "vencimento" | "competencia" 
 };
 
 export type LinhaNaTela =
-  | { tipo: "sessao"; id: string; data: string; online: boolean; status: string; faltouConta: boolean | null; rotulo: string; valor: number | null; cobranca: CobrancaNaTela | null }
+  | { tipo: "sessao"; id: string; data: string; online: boolean; status: string; faltouConta: boolean | null; viraAvulsa: boolean; rotulo: string; valor: number | null; cobranca: CobrancaNaTela | null }
   | ({ tipo: "pagamento" } & CobrancaNaTela)
   /** Data que a serie pulou por horario bloqueado. Nao e sessao: so ocupa a linha (dona, 19/09). */
   | { tipo: "bloqueio"; data: string };
@@ -98,6 +98,7 @@ function naTela(l: LinhaDaGeral, editados: Set<string>): LinhaNaTela {
     online: l.online,
     status: l.status,
     faltouConta: l.faltouConta ?? null,
+    viraAvulsa: l.viraAvulsa === true,
     rotulo: l.rotulo,
     valor: l.valor,
     cobranca: l.cobranca ? cobrancaNaTela({ ...l.cobranca, tipoDeCobranca: l.cobranca.tipo }, editados) : null,

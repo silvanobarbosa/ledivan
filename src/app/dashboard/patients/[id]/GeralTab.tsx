@@ -13,6 +13,7 @@ import { PARCELAS_CREDITO, metodoDoCredito, rotuloDaParcela } from "@/lib/parcel
 import { aplicarCreditoNoLancamento } from "@/lib/credito";
 import { desfazerVencimento, editarVencimento, lancarPagamento, limparEnviosDaCobranca, registrarCobrancaEnviada, removerPagamento } from "./geral-actions";
 import { marcarEmissao } from "./recibo-actions";
+import { definirValorDaFalta } from "@/app/dashboard/sessions/actions";
 import { doAno, dataDoAnoControle } from "@/lib/filtroDeAno";
 import { numeroDoWhatsapp } from "@/lib/telefoneWhatsapp";
 import { useConfirmarEnvio, ConfirmarEnvioModal } from "@/components/dashboard/confirmarEnvio";
@@ -212,15 +213,59 @@ const STATUS_GERAL: Record<string, string> = {
  * Para mudar de ideia: abrir o agendamento na agenda e escolher "Faltou" de novo. A pergunta
  * reaparece e a nova resposta SUBSTITUI a anterior — não soma.
  */
-function FaltouToggle({ sessionId, conta }: { sessionId: string; conta: boolean | null }) {
-  void sessionId;
-  if (conta === null) return null;
+/**
+ * O VALOR da sessão que era gratuita e virou paga (doc 54, item 01).
+ *
+ * Ela é cobrada como avulsa e nasce em R$ 0,00 — o doc manda preenchê-lo "na própria sessão", e este
+ * é o campo. O aviso fica junto porque uma linha cobrando zero, sozinha, parece dado faltando em vez
+ * de passo pendente.
+ *
+ * Isto ocupa o lugar do selo "Cobra / abate · Não cobra / não abate", que saiu a pedido do dono: ele
+ * repetia na tabela uma escolha que agora a própria janela da agenda explica, com a saída para
+ * refazê-la.
+ */
+function ValorDaFalta({ sessionId, valor }: { sessionId: string; valor: number | null }) {
+  const router = useRouter();
+  const [editando, setEditando] = useState(false);
+  const [texto, setTexto] = useState("");
+  const [erro, setErro] = useState<string | null>(null);
+  const [pending, start] = useTransition();
+
+  function salvar() {
+    setErro(null);
+    start(async () => {
+      const r = await definirValorDaFalta(sessionId, texto);
+      if (r.ok) { setEditando(false); setTexto(""); router.refresh(); }
+      else setErro(r.error ?? "Não foi possível lançar o valor.");
+    });
+  }
+
   return (
-    <div className="flex items-center gap-2 flex-wrap">
-      <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold ${conta ? "bg-primary/10 text-primary" : "bg-foreground/10 text-foreground/60"}`}>
-        {conta ? "Cobra / abate" : "Não cobra / não abate"}
-      </span>
-      <span className="text-[10px] text-foreground/40">Para mudar, marque &quot;Faltou&quot; de novo na agenda.</span>
+    <div className="flex items-center gap-2 flex-wrap text-xs">
+      <span className="text-foreground/60">Esta sessão foi considerada cobrada. Lance o valor correspondente.</span>
+      {editando ? (
+        <>
+          <input
+            autoFocus
+            inputMode="decimal"
+            value={texto}
+            onChange={(e) => setTexto(e.target.value)}
+            onKeyDown={(e) => { if (e.key === "Enter") salvar(); if (e.key === "Escape") setEditando(false); }}
+            placeholder="200,00"
+            aria-label="Valor da sessão"
+            className="w-24 px-2 py-1 rounded-lg border border-border bg-surface tabular-nums"
+          />
+          <button type="button" onClick={salvar} disabled={pending} className="font-bold text-primary disabled:opacity-50 cursor-pointer">
+            {pending ? "…" : "Salvar"}
+          </button>
+          <button type="button" onClick={() => { setEditando(false); setErro(null); }} disabled={pending} className="text-foreground/50 cursor-pointer">Cancelar</button>
+          {erro && <span className="text-red-500">{erro}</span>}
+        </>
+      ) : (
+        <button type="button" onClick={() => setEditando(true)} className="font-bold text-primary cursor-pointer">
+          {valor ? "Alterar valor" : "Lançar valor"}
+        </button>
+      )}
     </div>
   );
 }
@@ -724,11 +769,12 @@ export function GeralTab({ patientId, linhas, responsavel, responsavelCpf, cobra
                     <td className={`px-3 py-2 text-right tabular-nums ${c?.formato === "sessao" ? "font-bold" : ""}`}>{l.valor == null ? "" : formatBRL(l.valor)}</td>
                     {c ? <ColunasDoPagamento patientId={patientId} c={c} onLancar={() => setAberta(c.chave)} cobrar={cobrar} /> : <td />}
                   </tr>
-                  {/* Doc 45: abaixo da sessão Faltou, a pergunta "Considerar sessão realizada?" — mudar aqui
-                      recalcula a cobrança/pacote na hora (revalidate), sem reabrir a janela da agenda. */}
-                  {l.status === "nao_realizada" && (
+                  {/* Doc 54: a falta de um paciente GRATUITO que virou paga — a linha avisa e abre o
+                      campo do valor. O selo "Cobra / abate" que ficava aqui saiu: a escolha, e como
+                      refazê-la, são ditas na própria janela da agenda. */}
+                  {l.viraAvulsa && (
                     <tr className="border-b border-border bg-surface/30">
-                      <td colSpan={9} className="px-3 py-1.5"><FaltouToggle sessionId={l.id} conta={l.faltouConta} /></td>
+                      <td colSpan={9} className="px-3 py-1.5"><ValorDaFalta sessionId={l.id} valor={l.valor} /></td>
                     </tr>
                   )}
                   {c && aberta === c.chave && <FormularioDeLancamento patientId={patientId} c={c} responsavel={responsavel} responsavelCpf={responsavelCpf ?? ""} fechar={() => setAberta(null)} creditoDisponivel={creditoDisponivel} />}

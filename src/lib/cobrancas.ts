@@ -128,13 +128,46 @@ function emOrdem(sessoes: SessaoDaCobranca[]): Ordenada[] {
 
 const ehExtra = (s: SessaoDaCobranca) => s.extra === "avul" || s.extra === "grat";
 const devolutivaGratuita = (s: SessaoDaCobranca) => s.sessionKind === "devolutiva" && s.chargeable === false;
-// Doc 45: "Faltou" com a resposta "não considerar realizada" → não cobra e não abate do pacote.
+/**
+ * "Faltou" com a resposta "não cobrar / não abater do pacote".
+ *
+ * Em "a cada sessão" ela não gera cobrança, e é só isso. No PACOTE ela PAUSA a sequência (doc 54):
+ * continua pertencendo ao pacote e ao grupo de pagamento dele, mantém o número onde a falta
+ * aconteceu, e a próxima sessão assume aquela posição — a regra de Desmarcou, Atestado e Prof.
+ * desm., que foi o que o dono pediu.
+ *
+ * Até o doc 54 ela era TIRADA do pacote, e as duas coisas não são a mesma: fora do pacote a sessão
+ * perdia o número (aparecia "—") e sumia do grupo de pagamento a que pertencia, que é a tabela
+ * desorganizada que ele relatou.
+ */
 const faltouNaoConta = (s: SessaoDaCobranca) => s.status === "nao_realizada" && s.faltouConta === false;
 
-/** Ocupa posição na sequência do pacote? */
+/**
+ * GRATUITO + "Faltou" + "Sim, transformar em sessão paga" = uma sessão AVULSA (doc 54).
+ *
+ * Marcá-la aqui, e não no banco, é de propósito: a janela promete que remarcar "Faltou" refaz a
+ * escolha, e uma coluna gravada obrigaria a desfazer o efeito antigo em todo caminho que grava
+ * status — o mesmo motivo pelo qual a sequência do pacote nunca é guardada. Derivado, o "Não"
+ * desfaz sozinho.
+ *
+ * Só o Sim EXPLÍCITO vale. Falta antiga sem resposta (`null`) nunca gerou cobrança nenhuma, e
+ * tratá-la como Sim criaria dívida retroativa em paciente que não paga.
+ */
+function marcarFaltaCobradaNoGratuito(ordenadas: Ordenada[], periodos: PeriodoDeVigencia[]): Ordenada[] {
+  const avulsas = new Set<string>();
+  for (const grupo of separarPorVigencia(ordenadas, periodos)) {
+    if (grupo.periodo.formato !== "gratuito") continue;
+    for (const s of grupo.sessoes) {
+      if (!ehExtra(s) && s.status === "nao_realizada" && s.faltouConta === true) avulsas.add(s.id);
+    }
+  }
+  if (!avulsas.size) return ordenadas;
+  return ordenadas.map((s) => (avulsas.has(s.id) ? { ...s, extra: "avul" as const } : s));
+}
+
+/** Pertence à sequência do pacote? (Pertencer e OCUPAR posição são coisas diferentes — ver `pausa`.) */
 function entraNoPacote(s: SessaoDaCobranca): boolean {
   if (ehExtra(s)) return false;
-  if (faltouNaoConta(s)) return false;
   if (s.sessionKind === "devolutiva") return !!s.abaterDoPacote;
   return true;
 }
@@ -173,7 +206,7 @@ function cobrancasDoPeriodo(periodo: PeriodoDeVigencia, sessoes: Ordenada[], e: 
 
   const tipoPacote = periodo.pacoteTipo === "fragmentado" ? "fragmentado" : "completo";
   const opcoesDaSequencia = { pacoteTipo: tipoPacote, tamanhos: e.tamanhos, tamanhoPacote: e.tamanhoPacote, tamanhosPorData: e.tamanhosPorData, vezesPorSemana: e.vezesPorSemana };
-  const doPacote = sessoes.filter(entraNoPacote).map((s) => ({ id: s.id, date: s.data, status: s.status, repoeSessaoId: s.repoeSessaoId }));
+  const doPacote = sessoes.filter(entraNoPacote).map((s) => ({ id: s.id, date: s.data, status: s.status, repoeSessaoId: s.repoeSessaoId, pausa: faltouNaoConta(s) }));
   const out: Cobranca[] = [];
 
   for (const seq of todasAsSequencias(doPacote, opcoesDaSequencia)) {
@@ -297,8 +330,8 @@ function cobrancasDoPeriodo(periodo: PeriodoDeVigencia, sessoes: Ordenada[], e: 
 
 /** Todas as cobranças do paciente, em ordem de vencimento. */
 export function cobrancasDoPaciente(e: EntradaDasCobrancas): Cobranca[] {
-  const ordenadas = emOrdem(e.sessoes);
   const periodos = periodosDeVigencia(e.vigencias, e.reserva);
+  const ordenadas = marcarFaltaCobradaNoGratuito(emOrdem(e.sessoes), periodos);
   const reservaPreco = Number(e.valorDaSessao) || 0;
 
   const out: Cobranca[] = [];
@@ -346,15 +379,15 @@ export function cobrancasDoPaciente(e: EntradaDasCobrancas): Cobranca[] {
  * não conseguem mais discordar da Fechamento sobre qual sessão é qual.
  */
 export function rotulosDasSessoes(e: EntradaDasCobrancas): Map<string, string> {
-  const ordenadas = emOrdem(e.sessoes);
   const periodos = periodosDeVigencia(e.vigencias, e.reserva);
+  const ordenadas = marcarFaltaCobradaNoGratuito(emOrdem(e.sessoes), periodos);
   const rotulos = new Map<string, string>(ordenadas.map((s) => [s.id, ""]));
 
   for (const grupo of separarPorVigencia(ordenadas, periodos)) {
     const { formato, pacoteTipo } = grupo.periodo;
     const posicoes = usaPacote(formato)
       ? posicoesDaSequencia(
-          grupo.sessoes.filter(entraNoPacote).map((s) => ({ id: s.id, date: s.data, status: s.status, repoeSessaoId: s.repoeSessaoId })),
+          grupo.sessoes.filter(entraNoPacote).map((s) => ({ id: s.id, date: s.data, status: s.status, repoeSessaoId: s.repoeSessaoId, pausa: faltouNaoConta(s) })),
           { pacoteTipo: pacoteTipo === "fragmentado" ? "fragmentado" : "completo", tamanhos: e.tamanhos, tamanhoPacote: e.tamanhoPacote, tamanhosPorData: e.tamanhosPorData, vezesPorSemana: e.vezesPorSemana },
         )
       : new Map();

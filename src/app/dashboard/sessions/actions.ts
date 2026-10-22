@@ -397,6 +397,32 @@ export async function updateSessionStatus(sessionId: string, status: SessionStat
 }
 
 /**
+ * Doc 54: o valor da sessão que era gratuita e virou paga ("Transformar esta sessão em uma sessão
+ * paga?" → Sim). Ela é cobrada como avulsa e nasce em R$ 0,00 — "o valor deverá ser preenchido e
+ * registrado na própria sessão", e é esta a porta por onde ele entra.
+ *
+ * Só aceita sessão Faltou com a resposta Sim: fora disso o valor não teria onde aparecer, e gravá-lo
+ * deixaria um número escondido esperando para surpreender quando o status mudasse.
+ */
+export async function definirValorDaFalta(sessionId: string, valor: string): Promise<{ ok: boolean; error?: string }> {
+  const session = await auth();
+  if (!session?.user?.id) return { ok: false, error: "Não autorizado" };
+  const userId = session.user.id;
+  const existing = await db.query.therapySessions.findFirst({ where: and(eq(therapySessions.id, sessionId), eq(therapySessions.userId, userId)) });
+  if (!existing) return { ok: false, error: "Sessão não encontrada." };
+  if (existing.status !== "nao_realizada" || existing.faltouConta !== true) {
+    return { ok: false, error: "Só vale para a falta que foi considerada cobrada." };
+  }
+  const limpo = parseMoedaBR(valor);
+  if (limpo == null || Number(limpo) <= 0) return { ok: false, error: "Informe um valor maior que zero." };
+
+  await db.update(therapySessions).set({ valorExtra: limpo }).where(and(eq(therapySessions.id, sessionId), eq(therapySessions.userId, userId)));
+  revalidatePath(`/dashboard/patients/${existing.patientId}`);
+  revalidatePath("/dashboard/agenda");
+  return { ok: true };
+}
+
+/**
  * Doc 45: muda a resposta de "Considerar sessão realizada?" de uma sessão Faltou, direto da guia Geral.
  * Só vale quando o status é nao_realizada; a guia Geral se atualiza sozinha (revalidate), sem reabrir.
  */
