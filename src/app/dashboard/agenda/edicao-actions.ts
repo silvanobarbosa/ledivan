@@ -147,6 +147,40 @@ export async function salvarEdicao(opts: {
     extraDaSessao = { extra: r.extra, valorExtra: r.valorExtra };
   }
 
+  /**
+   * Doc 54: a CORTESIA é só da sessão editada, e é CONFERIDA ANTES DE QUALQUER ESCRITA.
+   *
+   * Dar cortesia é uma decisão sobre um atendimento — "este atendimento" é o que o checkbox diz —,
+   * não sobre o combinado do paciente. Aplicá-la ao bloco dispensaria o pagamento de meses
+   * inteiros com um clique, e o alcance "este e os próximos" existe para mudar horário, não preço.
+   *
+   * O gate do formato é o mesmo da tela (`podeSerCortesia`), refeito aqui com o formato VIGENTE NA
+   * DATA: tela é conveniência, servidor é fronteira. Ele fica aqui em cima, junto das outras
+   * recusas, porque recusar DEPOIS de gravar deixava data, horário e modalidade já alterados no
+   * banco enquanto a tela dizia que nada foi salvo (achado do SuperQA de 22/10) — é a regra que
+   * este arquivo já declara: conferir tudo antes de escrever qualquer coisa.
+   */
+  let cortesiaAGravar: boolean | null = null;
+  if (opts.cortesia !== undefined) {
+    const vigenciasC = await db
+      .select({ formato: patientPaymentFormatHistory.formato, pacoteTipo: patientPaymentFormatHistory.pacoteTipo,
+                desde: patientPaymentFormatHistory.dataEfetiva, criadoEm: patientPaymentFormatHistory.dataCriacao })
+      .from(patientPaymentFormatHistory)
+      .where(eq(patientPaymentFormatHistory.patientId, atual.patientId));
+    const pacienteC = await db.query.patients.findFirst({
+      where: and(eq(patients.id, atual.patientId), eq(patients.userId, userId)),
+    });
+    const periodo = formatoNaData(vigenciasC, novaData ?? atual.date, {
+      formato: pacienteC?.paymentFormat ?? "sessao", pacoteTipo: pacienteC?.pacoteTipo ?? null,
+    });
+    // Desmarcar a cortesia é sempre permitido — senão uma troca de formato deixaria a sessão presa
+    // em GRAT, sem nenhuma tela capaz de tirá-la de lá.
+    if (opts.cortesia && !podeSerCortesia({ formato: periodo.formato, pacoteTipo: periodo.pacoteTipo, sessionKind: atual.sessionKind, extra: atual.extra })) {
+      return { ok: false, error: "Cortesia só vale em sessão do pacote completo mensal ou quinzenal." };
+    }
+    cortesiaAGravar = opts.cortesia;
+  }
+
   const porId = new Map(novas.map((n) => [n.id, n.data]));
   for (const id of alvos) {
     const data = porId.get(id);
@@ -158,33 +192,9 @@ export async function salvarEdicao(opts: {
       .where(and(eq(therapySessions.id, id), eq(therapySessions.userId, userId)));
   }
 
-  /**
-   * Doc 54: a CORTESIA também é só da sessão editada.
-   *
-   * Dar cortesia é uma decisão sobre um atendimento — "este atendimento" é o que o checkbox diz —,
-   * não sobre o combinado do paciente. Aplicá-la ao bloco dispensaria o pagamento de meses
-   * inteiros com um clique, e o alcance "este e os próximos" existe para mudar horário, não preço.
-   *
-   * O gate do formato é o mesmo da tela (`podeSerCortesia`), refeito aqui com o formato VIGENTE NA
-   * DATA: tela é conveniência, servidor é fronteira.
-   */
-  if (opts.cortesia !== undefined) {
-    const vigencias = await db
-      .select({ formato: patientPaymentFormatHistory.formato, pacoteTipo: patientPaymentFormatHistory.pacoteTipo,
-                desde: patientPaymentFormatHistory.dataEfetiva, criadoEm: patientPaymentFormatHistory.dataCriacao })
-      .from(patientPaymentFormatHistory)
-      .where(eq(patientPaymentFormatHistory.patientId, atual.patientId));
-    const paciente = await db.query.patients.findFirst({ where: eq(patients.id, atual.patientId) });
-    const periodo = formatoNaData(vigencias, novaData ?? atual.date, {
-      formato: paciente?.paymentFormat ?? "sessao", pacoteTipo: paciente?.pacoteTipo ?? null,
-    });
-    // Desmarcar a cortesia é sempre permitido — senão uma troca de formato deixaria a sessão presa
-    // em GRAT, sem nenhuma tela capaz de tirá-la de lá.
-    if (opts.cortesia && !podeSerCortesia({ formato: periodo.formato, pacoteTipo: periodo.pacoteTipo, sessionKind: atual.sessionKind })) {
-      return { ok: false, error: "Cortesia só vale em pacote completo mensal ou quinzenal." };
-    }
+  if (cortesiaAGravar !== null) {
     await db.update(therapySessions)
-      .set({ cortesia: opts.cortesia })
+      .set({ cortesia: cortesiaAGravar })
       .where(and(eq(therapySessions.id, atual.id), eq(therapySessions.userId, userId)));
   }
 

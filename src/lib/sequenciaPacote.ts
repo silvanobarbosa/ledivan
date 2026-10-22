@@ -118,8 +118,25 @@ const emData = (d: Date | string): Date => (d instanceof Date ? d : new Date(d))
 /** Pausa pelo status (Desmarcou, Atestado, Prof. desm.) ou pela resposta de quem chamou (doc 54). */
 const pausou = (s: { status: string; pausa?: boolean | null }): boolean => !!s.pausa || STATUS_QUE_PAUSAM.has(s.status);
 
+/**
+ * TRANSPARENTE: pausa que veio da RESPOSTA, não do status.
+ *
+ * A diferença importa em dinheiro, e custou uma regressão para aparecer. Desmarcou e Atestado são
+ * sessões CONTRATADAS que não aconteceram: elas sempre ocuparam uma vaga do mês e sempre contaram
+ * no denominador — "o denominador não encolhe", que é a regra do fracionado.
+ *
+ * A falta não abatida e a cortesia são outra coisa. Até ontem elas eram TIRADAS do pacote, então
+ * não criavam vaga, não moviam o começo da sequência e não entravam no valor da quinzena. Ao
+ * passarem a pausar, passaram a existir no fluxo — e, sem esta distinção, cada uma delas somava uma
+ * vaga, empurrava a data de vencimento e fazia a quinzena cobrar uma sessão a mais.
+ *
+ * Então elas pausam para EXIBIR (mantêm o número onde pararam, a próxima assume a posição) e são
+ * invisíveis para CONTAR. É exatamente o que o dono pediu nas duas telas.
+ */
+const transparente = (s: { pausa?: boolean | null }): boolean => !!s.pausa;
+
 /** Descarta o que não dá para posicionar e ordena pelo que manda: a data. */
-function emOrdem(sessoes: SessaoDaSequencia[]): { id: string; data: Date; status: string; repoe: string | null }[] {
+function emOrdem(sessoes: SessaoDaSequencia[]): { id: string; data: Date; status: string; repoe: string | null; pausa: boolean }[] {
   return sessoes
     .map((s) => ({ id: s.id, data: emData(s.date), status: s.status, repoe: s.repoeSessaoId ?? null, pausa: !!s.pausa }))
     .filter((s) => !Number.isNaN(s.data.getTime()))
@@ -244,7 +261,8 @@ function posicoesFragmentado(sessoes: SessaoDaSequencia[]): Map<string, PosicaoN
   for (const s of ordenadas) {
     const k = chaveDoMes(s.data);
     if (!vagas.has(k)) { vagas.set(k, 0); meses.push(k); }
-    if (!s.repoe) vagas.set(k, vagas.get(k)! + 1);
+    // Pausa por resposta não cria vaga: ela não é uma sessão contratada a mais.
+    if (!s.repoe && !transparente(s)) vagas.set(k, vagas.get(k)! + 1);
   }
 
   // Preenche mês a mês, consumindo de uma fila única — é o que permite a sessão de outubro fechar
@@ -261,7 +279,7 @@ function posicoesFragmentado(sessoes: SessaoDaSequencia[]): Map<string, PosicaoN
     while (ocupadas < total && ponteiro < ordenadas.length) {
       const s = ordenadas[ponteiro++];
       const mesDela = chaveDoMes(s.data);
-      if (mesDela !== k && !s.repoe) gastas.set(mesDela, (gastas.get(mesDela) ?? 0) + 1);
+      if (mesDela !== k && !s.repoe && !transparente(s)) gastas.set(mesDela, (gastas.get(mesDela) ?? 0) + 1);
       // O clamp evita "4/3" quando o mês termina numa sessão que pausou.
       mapa.set(s.id, { sequencia, index: Math.min(ocupadas + 1, total), total });
       if (!pausou(s)) ocupadas++;
@@ -270,6 +288,55 @@ function posicoesFragmentado(sessoes: SessaoDaSequencia[]): Map<string, PosicaoN
   }
 
   return mapa;
+}
+
+
+type DadosDaSequencia = {
+  total: number;
+  ids: string[];
+  /** Datas das sessões que OCUPARAM posição — são elas que datam a cobrança. */
+  primeira: Date | null;
+  ultima: Date | null;
+  maiorIndex: number;
+  /** A última sessão que ocupou posição, para saber se a sequência fechou. */
+  ultimaOcupante: { id: string; data: Date } | null;
+};
+
+/**
+ * Agrupa as sessões por sequência, separando o que ela CONTÉM do que a DATA.
+ *
+ * `ids` carrega tudo — é o grupo de pagamento, e o doc 54 exige que a falta não abatida e a
+ * cortesia continuem dentro dele. `primeira`/`ultima` olham só quem OCUPOU posição, porque são
+ * elas que decidem dinheiro: quando o pacote começou (vencimento) e quando fechou (competência,
+ * que é o mês em que a Fechamento soma).
+ *
+ * Misturar as duas coisas foi a regressão: uma falta não abatida na primeira sessão puxava o
+ * vencimento do pacote para a data dela, e na última deixava a sequência eternamente aberta —
+ * sumindo com a cobrança do mês.
+ */
+function agrupar(
+  ordenadas: { id: string; data: Date; status: string; pausa?: boolean | null }[],
+  posicoes: Map<string, PosicaoNaSequencia>,
+): Map<number, DadosDaSequencia> {
+  const porSequencia = new Map<number, DadosDaSequencia>();
+  for (const s of ordenadas) {
+    const p = posicoes.get(s.id);
+    if (!p) continue;
+    let atual = porSequencia.get(p.sequencia);
+    if (!atual) {
+      atual = { total: p.total, ids: [], primeira: null, ultima: null, maiorIndex: 0, ultimaOcupante: null };
+      porSequencia.set(p.sequencia, atual);
+    }
+    atual.ids.push(s.id);
+    if (transparente(s)) continue; // está no grupo, mas não data nem fecha nada
+    if (!atual.primeira || s.data.getTime() < atual.primeira.getTime()) atual.primeira = s.data;
+    if (!atual.ultima || s.data.getTime() > atual.ultima.getTime()) atual.ultima = s.data;
+    if (p.index > atual.maiorIndex) atual.maiorIndex = p.index;
+    if (!atual.ultimaOcupante || s.data.getTime() >= atual.ultimaOcupante.data.getTime()) {
+      atual.ultimaOcupante = { id: s.id, data: s.data };
+    }
+  }
+  return porSequencia;
 }
 
 /**
@@ -284,24 +351,15 @@ export function todasAsSequencias(
 ): SequenciaFechada[] {
   const ordenadas = emOrdem(sessoes);
   const posicoes = posicoesDaSequencia(sessoes, opts);
-  const porSequencia = new Map<number, { total: number; ids: string[]; primeira: Date; ultima: Date; maiorIndex: number }>();
-
-  for (const s of ordenadas) {
-    const p = posicoes.get(s.id);
-    if (!p) continue;
-    const atual = porSequencia.get(p.sequencia);
-    if (!atual) {
-      porSequencia.set(p.sequencia, { total: p.total, ids: [s.id], primeira: s.data, ultima: s.data, maiorIndex: p.index });
-      continue;
-    }
-    atual.ids.push(s.id);
-    if (s.data.getTime() > atual.ultima.getTime()) atual.ultima = s.data;
-    if (p.index > atual.maiorIndex) atual.maiorIndex = p.index;
-  }
+  const porSequencia = agrupar(ordenadas, posicoes);
 
   const out: SequenciaFechada[] = [];
   for (const [sequencia, dados] of porSequencia) {
-    const ultimaSessao = ordenadas.find((s) => s.id === dados.ids[dados.ids.length - 1]);
+    // Fechou quando a última posição foi OCUPADA. Quem decide é a última ocupante — uma sessão
+    // pausada depois dela não reabre o pacote, e uma pausada por resposta nem conta.
+    const ultimaSessao = dados.ultimaOcupante
+      ? ordenadas.find((s) => s.id === dados.ultimaOcupante!.id)
+      : undefined;
     const ocupouAUltima = dados.maiorIndex >= dados.total && !!ultimaSessao && !pausou(ultimaSessao);
     out.push({
       sequencia,
@@ -333,33 +391,24 @@ export function sequenciasFechadasNoMes(
   const ordenadas = emOrdem(sessoes);
   const posicoes = posicoesDaSequencia(sessoes, opts);
 
-  const porSequencia = new Map<number, { total: number; ids: string[]; primeira: Date; ultima: Date; maiorIndex: number }>();
-
-  for (const s of ordenadas) {
-    const p = posicoes.get(s.id);
-    if (!p) continue;
-    const atual = porSequencia.get(p.sequencia);
-    if (!atual) {
-      porSequencia.set(p.sequencia, { total: p.total, ids: [s.id], primeira: s.data, ultima: s.data, maiorIndex: p.index });
-      continue;
-    }
-    atual.ids.push(s.id);
-    if (s.data.getTime() > atual.ultima.getTime()) atual.ultima = s.data;
-    if (p.index > atual.maiorIndex) atual.maiorIndex = p.index;
-  }
+  const porSequencia = agrupar(ordenadas, posicoes);
 
   const escolhidas: SequenciaFechada[] = [];
   for (const [sequencia, dados] of porSequencia) {
     // Fechou quando a última posição foi OCUPADA — e ocupar é diferente de existir: uma sessão
     // pausada na posição final deixa a sequência aberta, esperando a reposição.
-    const ultimaSessao = ordenadas.find((s) => s.id === dados.ids[dados.ids.length - 1]);
+    // Fechou quando a última posição foi OCUPADA. Quem decide é a última ocupante — uma sessão
+    // pausada depois dela não reabre o pacote, e uma pausada por resposta nem conta.
+    const ultimaSessao = dados.ultimaOcupante
+      ? ordenadas.find((s) => s.id === dados.ultimaOcupante!.id)
+      : undefined;
     const ocupouAUltima = dados.maiorIndex >= dados.total && !!ultimaSessao && !pausou(ultimaSessao);
 
     // Quem paga na abertura cobra assim que a sequência COMEÇA, mesmo ela ainda estando aberta —
     // é o que "paga na primeira do pacote" quer dizer. Quem paga depois só entra quando fecha.
     const referencia = momento === "abertura" ? dados.primeira : dados.ultima;
     if (momento === "fechamento" && !ocupouAUltima) continue;
-    if (referencia.getFullYear() !== ano || referencia.getMonth() !== mes) continue;
+    if (!referencia || referencia.getFullYear() !== ano || referencia.getMonth() !== mes) continue;
 
     escolhidas.push({
       sequencia,

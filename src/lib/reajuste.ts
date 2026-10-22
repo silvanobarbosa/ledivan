@@ -234,6 +234,45 @@ export type LinhaDeHistorico = { data: Date; solicitadoEm: Date | null; texto: s
  * `dataCriacao` desempata quem foi gravado primeiro no mesmo dia; o id desempata o resto, para a
  * resposta não mudar entre duas leituras iguais.
  */
+/**
+ * A ordem canônica do histórico financeiro: vigência, depois quem foi GRAVADO primeiro, depois o id.
+ *
+ * Os dois desempates existem porque a data sozinha empata com frequência — o doc 54 abriu a porta
+ * para várias alterações na mesma vigência, e é justamente nesse empate que as pontas da lista
+ * decidem o que vale. `dataCriacao` é `defaultNow().notNull()` nas duas tabelas; o id entra como
+ * último recurso para que duas leituras iguais nunca devolvam respostas diferentes.
+ */
+function ordemDoHistorico(
+  registros: { id: string; dataEfetiva: Date | string; dataCriacao?: Date | string | null }[],
+): { id: string; vigencia: number; criacao: number }[] {
+  const ms = (d: Date | string | null | undefined, reserva: number): number => {
+    if (!d) return reserva;
+    const x = d instanceof Date ? d : new Date(d);
+    return Number.isNaN(x.getTime()) ? reserva : x.getTime();
+  };
+  return registros
+    .map((r) => ({ id: r.id, vigencia: ms(r.dataEfetiva, NaN), criacao: ms(r.dataCriacao, Infinity) }))
+    .filter((r) => !Number.isNaN(r.vigencia))
+    .sort((a, b) => a.vigencia - b.vigencia || a.criacao - b.criacao || a.id.localeCompare(b.id));
+}
+
+/**
+ * O registro que VALE depois de apagar um reajuste — a outra ponta de `entradaDoHistorico`.
+ *
+ * Apagar reconcilia o cadastro com o que sobrou, e "o que sobrou" precisa ser UM registro definido.
+ * Antes a escolha ordenava só por vigência, e as leituras do banco não têm `ORDER BY`: com vários
+ * registros na mesma data, o escolhido era qualquer um, e duas execuções iguais podiam gravar
+ * formatos diferentes no cadastro do paciente — Avulso onde é Gratuito, com a cobrança seguindo
+ * atrás. Achado do SuperQA de 22/10.
+ */
+export function maisRecenteDoHistorico<T extends { id: string; dataEfetiva: Date | string; dataCriacao?: Date | string | null }>(
+  registros: T[],
+): T | null {
+  const ordenados = ordemDoHistorico(registros);
+  const ultimo = ordenados[ordenados.length - 1];
+  return ultimo ? registros.find((r) => r.id === ultimo.id) ?? null : null;
+}
+
 export function entradaDoHistorico(
   registros: { id: string; dataEfetiva: Date | string; dataCriacao?: Date | string | null }[],
 ): string | null {

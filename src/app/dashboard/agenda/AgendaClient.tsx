@@ -42,7 +42,7 @@ type PatientLite = { id: string; name: string; status: string; attendanceMode: s
 type LocationLite = { name: string; address: string };
 
 type SessionStatus = "realizada" | "nao_realizada" | "cancelada" | "realocada" | "agendada" | "prof_desmarcou" | "atestado";
-type AgendaSession = { id: string; date: string; duration: number; status: string; patientName: string; isOnline: boolean; risk: string; meetingUrl: string | null; meetingOpenedAt: string | null; guestJoinedAt: string | null; meetingEndedAt: string | null; pendingConfirmation: boolean; patientConfirmed: boolean; rescheduleRequested: boolean; patientArrived: boolean; location: string | null; recurring: boolean; recurrenceFreq?: string | null; patientId?: string; sessionKind?: string; cortesia?: boolean; pkg?: { seq: number; index: number; total: number } | null; pagamentoAtrasado?: boolean; abaterDoPacote?: boolean; codigo?: string | null; espelhoSoAnterior?: boolean; agendaId?: string | null; registro?: number | null };
+type AgendaSession = { id: string; date: string; duration: number; status: string; patientName: string; isOnline: boolean; risk: string; meetingUrl: string | null; meetingOpenedAt: string | null; guestJoinedAt: string | null; meetingEndedAt: string | null; pendingConfirmation: boolean; patientConfirmed: boolean; rescheduleRequested: boolean; patientArrived: boolean; location: string | null; recurring: boolean; recurrenceFreq?: string | null; patientId?: string; sessionKind?: string; cortesia?: boolean; extra?: string | null; pkg?: { seq: number; index: number; total: number } | null; pagamentoAtrasado?: boolean; abaterDoPacote?: boolean; codigo?: string | null; espelhoSoAnterior?: boolean; agendaId?: string | null; registro?: number | null };
 
 const blockColor = (s: AgendaSession, vencida: boolean) => sessionColorClasses(s.status, s.pendingConfirmation, s.recurring, vencida);
 
@@ -267,7 +267,7 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
       selected.date ? new Date(selected.date as unknown as string) : new Date(),
       { formato: pac.paymentFormat ?? "sessao", pacoteTipo: pac.pacoteTipo ?? null },
     );
-    return podeSerCortesia({ formato: periodo.formato, pacoteTipo: periodo.pacoteTipo, sessionKind: selected.sessionKind });
+    return podeSerCortesia({ formato: periodo.formato, pacoteTipo: periodo.pacoteTipo, sessionKind: selected.sessionKind, extra: selected.extra });
   })();
 
   const perguntaSequencia = perguntaSeEntraNaSequencia({ formato: formatoNaDataNova, sessionKind: newKind }, jaTemSequencia);

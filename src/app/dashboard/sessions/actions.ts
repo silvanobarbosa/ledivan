@@ -384,11 +384,28 @@ export async function updateSessionStatus(sessionId: string, status: SessionStat
   });
   if (!existing) return;
 
-  // Doc 45: "faltou_conta" só faz sentido quando o status é nao_realizada. Ao marcar Faltou, grava a
-  // resposta de "Considerar sessão realizada?"; ao sair de Faltou, limpa (volta a null).
+  /**
+   * Doc 45: "faltou_conta" só faz sentido quando o status é nao_realizada. Ao marcar Faltou, grava
+   * a resposta da janela; ao sair de Faltou, limpa (volta a null).
+   *
+   * SEM resposta, grava `null` — nunca `true`. O padrão era `true`, e isso ficou perigoso com o doc
+   * 54: a tela Atender encerra a sessão como "Faltou" SEM abrir a janela (de propósito, para não
+   * cobrar um clique a mais no meio do dia), e num paciente gratuito aquele `true` virava uma
+   * cobrança avulsa que ninguém pediu. `null` se comporta como sempre se comportou — a sessão conta
+   * e a sequência avança —, e só o "Sim" EXPLÍCITO da janela cria cobrança.
+   */
   const faltouAgora = status === "nao_realizada";
+  /**
+   * Saiu de "Faltou": a resposta é limpa, e o VALOR que ela tinha gerado vai junto.
+   *
+   * O valor da falta cobrada do paciente gratuito (doc 54) só existe por causa da resposta. Deixá-lo
+   * para trás guardava um número que ressuscitava sozinho se o status voltasse a Faltou — sem
+   * ninguém digitar nada —, contra o que a própria janela promete ao dizer que remarcar refaz a
+   * escolha. Sessão EXTRA não entra: o `valorExtra` dela é do agendamento e não tem nada com isto.
+   */
+  const limpaValorDaFalta = !faltouAgora && !existing.extra && existing.valorExtra != null;
   await db.update(therapySessions)
-    .set({ status, justificativa: justificativa || null, ...(chargeable !== undefined ? { chargeable } : {}), faltouConta: faltouAgora ? (faltouConta ?? existing.faltouConta ?? true) : null })
+    .set({ status, justificativa: justificativa || null, ...(chargeable !== undefined ? { chargeable } : {}), ...(limpaValorDaFalta ? { valorExtra: null } : {}), faltouConta: faltouAgora ? (faltouConta ?? existing.faltouConta ?? null) : null })
     .where(and(eq(therapySessions.id, sessionId), eq(therapySessions.userId, userId)));
 
   // (consumo de pacote é derivado na página do paciente — sem update manual aqui)
@@ -413,6 +430,15 @@ export async function definirValorDaFalta(sessionId: string, valor: string): Pro
   if (existing.status !== "nao_realizada" || existing.faltouConta !== true) {
     return { ok: false, error: "Só vale para a falta que foi considerada cobrada." };
   }
+  /**
+   * Sessão EXTRA tem o valor dela definido no agendamento, não por aqui.
+   *
+   * Sem esta recusa, uma avulsa de R$ 300 que depois faltou podia ter o preço reescrito por esta
+   * porta — que foi feita para outra coisa: a falta do paciente GRATUITO, que nasce sem valor.
+   * Em formato que não é gratuito o número gravado aqui nem seria lido, e ficaria escondido no
+   * banco esperando para aparecer. Achado do SuperQA de 22/10.
+   */
+  if (existing.extra) return { ok: false, error: "O valor da sessão avulsa é definido no agendamento." };
   const limpo = parseMoedaBR(valor);
   if (limpo == null || Number(limpo) <= 0) return { ok: false, error: "Informe um valor maior que zero." };
 

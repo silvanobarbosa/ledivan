@@ -26,7 +26,18 @@ export function podeSerCortesia(o: {
   formato?: string | null;
   pacoteTipo?: string | null;
   sessionKind?: string | null;
+  /** `avul`/`grat` = sessão extra, que já acontece FORA da sequência. */
+  extra?: string | null;
 }): boolean {
+  /**
+   * Sessão EXTRA já está fora da sequência (doc 54 + achado do SuperQA de 22/10).
+   *
+   * A cortesia serve para abrir uma vaga DENTRO da numeração. Numa extra não há vaga a abrir: a
+   * avulsa continua sendo cobrada pelo caminho das extras e a gratuita já não cobra nada. O
+   * checkbox aparecia nas duas e não fazia efeito nenhum — oferecer uma escolha que não muda nada
+   * é pior do que não oferecer, porque quem marcou acha que resolveu.
+   */
+  if (o.extra === "avul" || o.extra === "grat") return false;
   if (o.sessionKind === "devolutiva") return false;
   if (!FORMATOS.has(String(o.formato ?? "").trim().toLowerCase())) return false;
   return completo(o.pacoteTipo);
