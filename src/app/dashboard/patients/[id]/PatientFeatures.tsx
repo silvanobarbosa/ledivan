@@ -10,7 +10,9 @@ export function PatientFeatures({ patientId }: { patientId: string }) {
   const [cfg, setCfg] = useState<Cfg | null>(null);
   const [pending, start] = useTransition();
 
-  useEffect(() => { getPatientFeatureConfig(patientId).then(setCfg); }, [patientId]);
+  // O `catch` evita rejeição não tratada quando a busca falha; sem config a área só não aparece,
+  // que já é o comportamento de antes de ela chegar.
+  useEffect(() => { getPatientFeatureConfig(patientId).then(setCfg).catch(() => {}); }, [patientId]);
   if (!cfg || cfg.perPatient.length === 0) return null;
 
   const toggle = (k: FeatureKey, v: boolean) => {
