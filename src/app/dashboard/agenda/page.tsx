@@ -3,6 +3,7 @@ import { auth } from "@/auth";
 import { blockedSlots, patientPackages, patientPackageHistory, patientPaymentFormatHistory, patients, sessionPayments, therapySessions, users } from "@/db/schema";
 import { and, eq, gte, inArray, isNotNull, ne } from "drizzle-orm";
 import { AgendaClient } from "./AgendaClient";
+import { COLUNAS_DA_SESSAO_COM_PACIENTE } from "@/lib/colunasDaSessao";
 import { riskFromSessions } from "@/lib/therapy";
 import { parseLocations } from "@/lib/locations";
 import { parseHolidayCities, holidaysByDate } from "@/lib/holidays";
@@ -72,7 +73,7 @@ export default async function AgendaPage() {
   if (pats.length) {
     const ids = pats.map((x) => x.id);
     const [todas, contratos, vigencias, pacoteHist] = await Promise.all([
-      db.select({ id: therapySessions.id, patientId: therapySessions.patientId, date: therapySessions.date, status: therapySessions.status, sessionKind: therapySessions.sessionKind, abaterDoPacote: therapySessions.abaterDoPacote, chargeable: therapySessions.chargeable, cortesia: therapySessions.cortesia, extra: therapySessions.extra, repoeSessaoId: therapySessions.repoeSessaoId })
+      db.select(COLUNAS_DA_SESSAO_COM_PACIENTE)
         .from(therapySessions)
         .where(and(eq(therapySessions.userId, session.user.id), inArray(therapySessions.patientId, ids))),
       db.select({ patientId: patientPackages.patientId, seq: patientPackages.seq, sessions: patientPackages.sessions })

@@ -12,6 +12,7 @@ import "server-only";
 
 import { and, eq, inArray } from "drizzle-orm";
 import { db } from "@/db";
+import { COLUNAS_DA_SESSAO_COM_PACIENTE } from "@/lib/colunasDaSessao";
 import { cobrancaVencimentos, patientPackages, patientPackageHistory, patientPaymentFormatHistory, patientPriceHistory, sessionPayments, therapySessions } from "@/db/schema";
 import { horaDeParede } from "./horaLocal";
 import { resumoDaGeral, type EntradaDaGeral } from "./guiaGeral";
@@ -51,7 +52,7 @@ export async function situacoesDaLista(userId: string, pacientes: PacienteParaSi
   if (!ids.length) return saida;
 
   const [sessoes, pagamentos, precos, vigencias, pacotes, pacoteHist, vencEditados] = await Promise.all([
-    db.select({ id: therapySessions.id, patientId: therapySessions.patientId, date: therapySessions.date, status: therapySessions.status, sessionKind: therapySessions.sessionKind, abaterDoPacote: therapySessions.abaterDoPacote, chargeable: therapySessions.chargeable, cortesia: therapySessions.cortesia, extra: therapySessions.extra, valorExtra: therapySessions.valorExtra, repoeSessaoId: therapySessions.repoeSessaoId, isOnline: therapySessions.isOnline })
+    db.select({ ...COLUNAS_DA_SESSAO_COM_PACIENTE, isOnline: therapySessions.isOnline })
       .from(therapySessions).where(eq(therapySessions.userId, userId)),
     db.select({ id: sessionPayments.id, patientId: sessionPayments.patientId, amount: sessionPayments.amount, date: sessionPayments.date, status: sessionPayments.status, method: sessionPayments.method, pagoPor: sessionPayments.pagoPor, cobrancaChave: sessionPayments.cobrancaChave, kind: sessionPayments.kind, quita: sessionPayments.quitaDiferenca })
       .from(sessionPayments).where(eq(sessionPayments.userId, userId)),
