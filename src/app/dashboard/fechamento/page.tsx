@@ -2,6 +2,7 @@ import Link from "next/link";
 import { and, eq, inArray, ne } from "drizzle-orm";
 import { CalendarCheck, ChevronLeft, ChevronRight } from "lucide-react";
 import { db } from "@/db";
+import { COLUNAS_DA_SESSAO_COM_PACIENTE } from "@/lib/colunasDaSessao";
 import { auth } from "@/auth";
 import { patientPackages, patientPaymentFormatHistory, patientPriceHistory, patients, sessionPayments, therapySessions } from "@/db/schema";
 import { getVigenciasTaxa } from "@/lib/cardFees";
@@ -71,19 +72,10 @@ export default async function FechamentoPage({
     // varredura começar no meio e dar a posição errada, e com ela o valor errado.
     db
       .select({
-        id: therapySessions.id,
-        patientId: therapySessions.patientId,
-        date: therapySessions.date,
-        status: therapySessions.status,
-        // O motor único precisa saber o que fica FORA da sequência: a devolutiva comum e a sessão
-        // extra. Sem estes campos a Fechamento contava a devolutiva no pacote e a agenda não.
-        sessionKind: therapySessions.sessionKind,
-        abaterDoPacote: therapySessions.abaterDoPacote,
-        cortesia: therapySessions.cortesia,
-        chargeable: therapySessions.chargeable,
-        extra: therapySessions.extra,
-        repoeSessaoId: therapySessions.repoeSessaoId,
-        valorExtra: therapySessions.valorExtra,
+        // A lista mora em `colunasDaSessao`: estava copiada aqui, e quando o doc 54 acrescentou
+        // `faltou_conta` esta cópia ficou para trás — o motor recebia um dado a menos e a
+        // Fechamento somava um mês diferente do que a guia Geral mostrava.
+        ...COLUNAS_DA_SESSAO_COM_PACIENTE,
       })
       .from(therapySessions)
       .where(eq(therapySessions.userId, userId)),
