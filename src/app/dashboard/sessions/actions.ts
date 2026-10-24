@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@/db";
-import { therapySessions, patients, patientPaymentFormatHistory, blockedSlots, sessoesPuladas } from "@/db/schema";
+import { therapySessions, patients, patientPaymentFormatHistory, blockedSlots, sessoesPuladas, sessionPayments } from "@/db/schema";
 import { auth } from "@/auth";
 import { canalParaGravar, datasEPuladas, ehMensal, ehOnline, geraRepeticoes, horasAntesParaGravar, pedeLocal, segundoDiaValido } from "@/lib/agendamentoNovo";
 import { and, eq, gte, lte } from "drizzle-orm";
@@ -13,6 +13,7 @@ import { parseMoedaBR } from "@/lib/money";
 import { desmarcadasSemReposicao, extraParaGravar } from "@/lib/sessaoExtra";
 import { formatoNaData } from "@/lib/vigenciaDoFormato";
 import { getUserAiClient, SemChaveIA } from "@/lib/ai-client";
+import { decidirDesfazer } from "@/lib/desfazerCobranca";
 
 type SessionStatus = "realizada" | "nao_realizada" | "cancelada" | "realocada" | "agendada" | "prof_desmarcou" | "atestado";
 
@@ -372,6 +373,95 @@ export async function confirmSession(sessionId: string) {
   // a reserva confirmada sai da fila de "a confirmar", e o dashboard conta essa fila
   revalidatePath("/dashboard/reservas");
   revalidatePath("/dashboard");
+}
+
+/**
+ * A sessão tem pagamento lançado? É o que decide se a janela do doc 55 precisa aparecer.
+ *
+ * O pagamento não aponta para a sessão: ele aponta para a COBRANÇA dela, e a cobrança de uma
+ * sessão avulsa é sempre `extra:<id da sessão>` (ver `cobrancas.ts`). Procurar por aí é o que
+ * encontra o dinheiro preso àquele atendimento.
+ */
+export async function pagamentoDaSessao(sessionId: string): Promise<{ ok: boolean; valor?: number; error?: string }> {
+  const session = await auth();
+  if (!session?.user?.id) return { ok: false, error: "Não autorizado" };
+  const userId = session.user.id;
+  const [pg] = await db
+    .select({ amount: sessionPayments.amount })
+    .from(sessionPayments)
+    .where(and(eq(sessionPayments.userId, userId), eq(sessionPayments.cobrancaChave, `extra:${sessionId}`), eq(sessionPayments.status, "paid")))
+    .limit(1);
+  return { ok: true, valor: pg ? Number(pg.amount) || 0 : undefined };
+}
+
+/**
+ * Desfaz a cobrança de uma sessão — o "Não" da janela da falta (doc 55).
+ *
+ * Sem pagamento lançado, é só limpar: a sessão volta a ser gratuita e o valor sai da guia Geral.
+ * Com pagamento, há dinheiro recebido preso a uma cobrança que vai deixar de existir, e sumir com
+ * a linha sem dizer nada é a pior saída numa tela de dinheiro. Daí as duas escolhas.
+ *
+ * A ESCOLHA é obrigatória quando há pagamento: aceitar `null` ali deixaria o valor órfão.
+ */
+export async function desfazerCobrancaDaSessao(
+  sessionId: string,
+  escolha: "estornar" | "transferir" | null,
+): Promise<{ ok: boolean; error?: string }> {
+  const session = await auth();
+  if (!session?.user?.id) return { ok: false, error: "Não autorizado" };
+  const userId = session.user.id;
+
+  const existing = await db.query.therapySessions.findFirst({
+    where: and(eq(therapySessions.id, sessionId), eq(therapySessions.userId, userId)),
+  });
+  if (!existing) return { ok: false, error: "Sessão não encontrada." };
+
+  const [pg] = await db
+    .select({ id: sessionPayments.id, amount: sessionPayments.amount, cobrancaChave: sessionPayments.cobrancaChave })
+    .from(sessionPayments)
+    .where(and(eq(sessionPayments.userId, userId), eq(sessionPayments.cobrancaChave, `extra:${sessionId}`), eq(sessionPayments.status, "paid")))
+    .limit(1);
+
+  const irmas = await db
+    .select({ id: therapySessions.id, date: therapySessions.date, status: therapySessions.status })
+    .from(therapySessions)
+    .where(and(eq(therapySessions.userId, userId), eq(therapySessions.patientId, existing.patientId)));
+
+  const decisao = decidirDesfazer({
+    escolha,
+    pagamento: pg ? { id: pg.id, valor: Number(pg.amount) || 0, cobrancaChave: pg.cobrancaChave } : null,
+    sessaoAtualId: sessionId,
+    sessoes: irmas,
+  });
+  if ("erro" in decisao) return { ok: false, error: decisao.erro };
+
+  if (decisao.acao === "estornar") {
+    // O pagamento sai: o dinheiro deixa de contar em TODAS as somas sozinho, porque elas derivam
+    // dos pagamentos — não há total guardado para corrigir. Fica só o registro do estorno, que é o
+    // que permite à guia Geral dizer para onde o valor foi.
+    await db.delete(sessionPayments)
+      .where(and(eq(sessionPayments.id, decisao.pagamentoId), eq(sessionPayments.userId, userId)));
+    await db.update(therapySessions)
+      .set({ estornoValor: String(decisao.valor.toFixed(2)), estornoEm: new Date() })
+      .where(and(eq(therapySessions.id, sessionId), eq(therapySessions.userId, userId)));
+  } else if (decisao.acao === "transferir") {
+    // Só a cobrança a que ele pertence muda. Data, valor, forma e quem pagou ficam como estavam —
+    // o documento pede isso em letra, e é o que mantém o histórico honesto: o paciente pagou
+    // naquele dia, não neste.
+    await db.update(sessionPayments)
+      .set({ cobrancaChave: decisao.novaChave })
+      .where(and(eq(sessionPayments.id, decisao.pagamentoId), eq(sessionPayments.userId, userId)));
+  }
+
+  // A sessão volta a ser gratuita: a resposta vira "não" e o valor que ela gerou sai junto.
+  await db.update(therapySessions)
+    .set({ faltouConta: false, valorExtra: null })
+    .where(and(eq(therapySessions.id, sessionId), eq(therapySessions.userId, userId)));
+
+  revalidatePath("/dashboard/agenda");
+  revalidatePath(`/dashboard/patients/${existing.patientId}`);
+  revalidatePath("/dashboard/fechamento");
+  return { ok: true };
 }
 
 export async function updateSessionStatus(sessionId: string, status: SessionStatus, justificativa?: string, chargeable?: boolean, faltouConta?: boolean) {
