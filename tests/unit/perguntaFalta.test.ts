@@ -52,11 +52,13 @@ describe("perguntaDaFalta — cada tipo tem a SUA pergunta", () => {
     expect(p.explicaNao).toContain("Gratuita");
   });
 
-  it("pacote pergunta sobre abater da sequência", () => {
+  it("pacote pergunta sobre abater, e as explicações falam de NUMERAÇÃO (doc 55)", () => {
+    // O texto antigo dizia "abater" e "contagem" — palavras do sistema. O dono trocou pelo que ela
+    // vê na célula e na tabela: a numeração das sessões.
     const p = perguntaDaFalta("pacote");
     expect(p.titulo).toContain("Abater");
-    expect(p.explicaSim).toContain("sequência do pacote");
-    expect(p.explicaNao).toContain("inalterada");
+    expect(p.explicaSim).toContain("avançando a numeração");
+    expect(p.explicaNao).toContain("sem consumir uma sessão do pacote");
   });
 
   it("toda pergunta explica o Sim E o Não — nenhuma deixa metade no escuro", () => {

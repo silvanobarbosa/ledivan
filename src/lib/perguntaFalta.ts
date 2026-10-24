@@ -24,7 +24,7 @@ export type PerguntaDaFalta = {
 const PERGUNTAS: Record<TipoDaFalta, PerguntaDaFalta> = {
   gratuito: {
     titulo: "Transformar esta sessão em uma sessão paga?",
-    explicaSim: "A sessão será lançada como Avulso, e o valor deverá ser preenchido na própria sessão.",
+    explicaSim: "A sessão será lançada como Avulso.",
     explicaNao: "A sessão seguirá normalmente como gratuita, sem cobrança.",
   },
   avulso: {
@@ -34,8 +34,10 @@ const PERGUNTAS: Record<TipoDaFalta, PerguntaDaFalta> = {
   },
   pacote: {
     titulo: "Abater esta sessão do pacote?",
-    explicaSim: "A sessão será abatida da sequência do pacote, atualizando a contagem de sessões utilizadas.",
-    explicaNao: "A sessão não será abatida da sequência do pacote, mantendo a contagem inalterada.",
+    // Doc 55: o texto antigo falava em "abater" e "contagem", que é a palavra do sistema. Estes
+    // dizem o que acontece com a NUMERAÇÃO — que é o que ela vê na célula e na tabela.
+    explicaSim: "A sessão será contabilizada como utilizada no pacote, avançando a numeração das sessões.",
+    explicaNao: "A sessão não será contabilizada como utilizada no pacote. A numeração das sessões seguintes será mantida, sem consumir uma sessão do pacote.",
   },
 };
 
