@@ -160,10 +160,32 @@ describe("montarContrato", () => {
   it("4.2 avulso: X horas antes da sessão", () => {
     expect(c({ ...base, formatoPagamento: "sessao", horasAntesPagamento: 24 })).toContain("efetuado até 24 horas antes da sessão.");
   });
-  it("4.2 gratuito: isenção por tempo indeterminado", () => {
+  it("4.2 gratuito: sem cobrança enquanto a gratuidade vigorar (doc 55)", () => {
     const t = c({ ...base, formatoPagamento: "gratuito" });
-    expect(t).toContain("4.2. Vencimento e Forma de Pagamento: Isento de qualquer tipo de pagamento por tempo indeterminado. Não há data de vencimento nem obrigação de pagamento enquanto essa condição estiver vigente.");
+    expect(t).toContain("4.2. Vencimento e Forma de Pagamento: Enquanto vigente a condição de gratuidade, não haverá cobrança pelas sessões realizadas, nem data de vencimento ou obrigação de pagamento referente a esses atendimentos.");
     expect(t).not.toContain("[Sua Chave PIX]");
+  });
+
+  /**
+   * Doc 55: no gratuito a 4.3 deixa de ser Reajuste e passa a ser a cobrança por falta.
+   *
+   * Reajuste não faz sentido onde o valor é zero — a cláusula ficava prometendo que R$ 0,00
+   * subiria a cada seis meses. E sem a cláusula nova o contrato não dá base para cobrar a falta
+   * sem aviso, que é o caso em que a terapeuta perde a hora e o dinheiro.
+   */
+  it("4.3 gratuito: cobrança por falta no lugar do reajuste", () => {
+    const t = c({ ...base, formatoPagamento: "gratuito", reajusteMeses: 6 });
+    expect(t).toContain("4.3. Cobrança em Caso de Falta:");
+    expect(t).toContain("I – Falta sem aviso prévio;");
+    expect(t).toContain("fora do prazo mínimo de 24 horas de antecedência da sessão");
+    expect(t).toContain("Não haverá cobrança quando o cancelamento ocorrer dentro do prazo estabelecido");
+    expect(t).not.toContain("4.3. Reajuste:");
+  });
+
+  it("4.3 fora do gratuito continua sendo o reajuste", () => {
+    const t = c({ ...base, formatoPagamento: "mensal", reajusteMeses: 6 });
+    expect(t).toContain("4.3. Reajuste:");
+    expect(t).not.toContain("4.3. Cobrança em Caso de Falta:");
   });
   it("nenhum formato mostra mais a linha de PIX", () => {
     expect(c({ ...base, formatoPagamento: "mensal", diaPagamento: 5 })).not.toContain("via [PIX");
@@ -212,9 +234,12 @@ describe("montarContrato", () => {
   });
   it("gratuito: 4.1 'R$ 0,00' e 4.2 isenção em negrito (sem 'totalizando')", () => {
     const bruto = montarContrato({ ...base, formatoPagamento: "gratuito" });
-    expect(bruto).toContain("\u0001O valor acordado por cada sessão é de R$ 0,00.\u0002");
+    expect(bruto).toContain("\u0001O valor acordado por cada sessão é de R$ 0,00,\u0002 sendo o atendimento concedido gratuitamente por tempo indeterminado.");
     expect(textoLimpo(bruto)).not.toContain("totalizando o valor mensal");
-    expect(bruto).toContain("\u0001Isento de qualquer tipo de pagamento por tempo indeterminado.");
+    expect(bruto).toContain("\u0001não haverá cobrança pelas sessões realizadas, nem data de vencimento ou obrigação de pagamento referente a esses atendimentos.\u0002");
+    // Doc 55: os negritos da 4.3 nova também são os que o dono marcou.
+    expect(bruto).toContain("\u0001A gratuidade não isenta o(a) contratante da possibilidade de cobrança em caso de ausência à sessão previamente agendada\u0002");
+    expect(bruto).toContain("\u0001fora do prazo mínimo de 24 horas de antecedência da sessão\u0002");
   });
   it("4.2 primeira/última sessão do pacote: a condição em negrito", () => {
     expect(montarContrato({ ...base, formatoPagamento: "primeira_pacote" })).toContain("\u0001a primeira sessão de cada pacote\u0002");

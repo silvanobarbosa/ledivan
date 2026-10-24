@@ -64,6 +64,22 @@ export const AUTO_L = "\u0001";
 export const AUTO_R = "\u0002";
 const neg = (v: string | number) => `${AUTO_L}${v}${AUTO_R}`;
 
+/**
+ * A cláusula 4.3 do contrato GRATUITO (doc 55), com os negritos que o dono marcou.
+ *
+ * Fica fora do corpo das funções porque as duas a usam, e porque é texto jurídico: muda por
+ * decisão do dono, não por refatoração.
+ */
+const FALTA_NO_GRATUITO =
+  `
+4.3. Cobrança em Caso de Falta: ${neg("A gratuidade não isenta o(a) contratante da possibilidade de cobrança em caso de ausência à sessão previamente agendada")}, nas seguintes situações:` +
+  `
+I – Falta sem aviso prévio;` +
+  `
+II – Cancelamento ou solicitação de remarcação ${neg("fora do prazo mínimo de 24 horas de antecedência da sessão")}.` +
+  `
+Nessas situações, poderá ser cobrado o valor correspondente à sessão agendada. Não haverá cobrança quando o cancelamento ocorrer dentro do prazo estabelecido ou quando houver acordo entre as partes para a dispensa da cobrança.`;
+
 /** Remove os marcadores de negrito — para comparar/afirmar sobre o texto puro. */
 export function textoLimpo(s: string): string {
   return s.split(AUTO_L).join("").split(AUTO_R).join("");
@@ -167,16 +183,27 @@ export function montarContrato(d: DadosDoContrato): string {
   // Doc 41: sem "próximo reajuste em" (periodicidade não definida), a cláusula 4.3 inteira sai do
   // contrato; volta a aparecer assim que a periodicidade é preenchida.
   const temReajuste = !!(d.reajusteMeses && d.reajusteMeses > 0);
-  const linha43 = temReajuste
-    ? `\n4.3. Reajuste: O valor dos honorários poderá ser reajustado ${neg(`a cada ${d.reajusteMeses} ${d.reajusteMeses === 1 ? "mês" : "meses"}`)}, mediante prévio aviso de 30 (trinta) dias aos responsáveis.`
-    : "";
+  /**
+   * A 4.3 do GRATUITO é outra cláusula (doc 55).
+   *
+   * Reajuste não faz sentido onde o valor é zero — não há o que reajustar, e a cláusula ficava
+   * no contrato prometendo que R$ 0,00 subiria a cada seis meses. No lugar dela entra a que
+   * importa para quem atende de graça: a gratuidade dispensa o pagamento da sessão, não a
+   * responsabilidade pelo horário reservado. Sem ela o contrato não dá base para cobrar uma
+   * falta sem aviso — que é justamente o caso em que a terapeuta perde a hora e o dinheiro.
+   */
+  const linha43 = d.formatoPagamento === "gratuito"
+    ? FALTA_NO_GRATUITO
+    : temReajuste
+      ? `\n4.3. Reajuste: O valor dos honorários poderá ser reajustado ${neg(`a cada ${d.reajusteMeses} ${d.reajusteMeses === 1 ? "mês" : "meses"}`)}, mediante prévio aviso de 30 (trinta) dias aos responsáveis.`
+      : "";
   // Enquadre dinâmico (doc 26).
   const duracaoTxt = d.duracaoMaxMin && d.duracaoMaxMin > 0 ? `até ${neg(`${d.duracaoMaxMin} minutos`)}` : "até [ex: 45 a 50 minutos]";
   const frequenciaTxt = frequenciaDoContrato(d.recorrencia);
   // Gratuito (doc 28): a cláusula 4.2 inteira é a isenção por tempo indeterminado; senão, o
   // vencimento conforme o formato. Doc 29: no gratuito, a isenção toda sai em negrito.
   const linha42 = d.formatoPagamento === "gratuito"
-    ? `4.2. Vencimento e Forma de Pagamento: ${neg("Isento de qualquer tipo de pagamento por tempo indeterminado. Não há data de vencimento nem obrigação de pagamento enquanto essa condição estiver vigente.")}`
+    ? `4.2. Vencimento e Forma de Pagamento: Enquanto vigente a condição de gratuidade, ${neg("não haverá cobrança pelas sessões realizadas, nem data de vencimento ou obrigação de pagamento referente a esses atendimentos.")}`
     : `4.2. Vencimento e Forma de Pagamento: ${vencimentoDoContrato(d)}.`;
   // 4.1 (doc 29): no gratuito, "O valor acordado por cada sessão é de R$ 0,00." em negrito, sem a
   // cauda "totalizando…". Senão, o valor da sessão + a cauda, como no doc 28.
@@ -274,7 +301,7 @@ ${pacienteBloco}
 
 4. DOS HONORÁRIOS, FORMA DE PAGAMENTO E REAJUSTE
 ${d.formatoPagamento === "gratuito"
-  ? `4.1. Valor por Sessão / Mensalidade: ${neg("O valor acordado por cada sessão é de R$ 0,00.")}`
+  ? `4.1. Valor por Sessão / Mensalidade: ${neg("O valor acordado por cada sessão é de R$ 0,00,")} sendo o atendimento concedido gratuitamente por tempo indeterminado.`
   : `4.1. Valor por Sessão / Mensalidade: O valor acordado por cada sessão é de ${valorSessaoTxt}, totalizando o valor mensal variável conforme o número de semanas/sessões do mês.`}
 ${linha42}${linha43}
 
@@ -344,10 +371,10 @@ export function montarContratoSupervisao(d: DadosDoContrato): string {
   const valorRaw = reaisBR(d.valorSessao);
   const valorSessaoTxt = valorRaw.startsWith("[") ? valorRaw : neg(`R$ ${valorRaw}`);
   const linha41 = d.formatoPagamento === "gratuito"
-    ? `4.1. Valor por Sessão / Mensalidade: ${neg("O valor acordado por cada sessão é de R$ 0,00.")}`
+    ? `4.1. Valor por Sessão / Mensalidade: ${neg("O valor acordado por cada sessão é de R$ 0,00,")} sendo o atendimento concedido gratuitamente por tempo indeterminado.`
     : `4.1. Valor por Sessão / Mensalidade: O valor acordado por cada sessão é de ${valorSessaoTxt}, totalizando o valor mensal variável conforme o número de semanas/sessões do mês.`;
   const linha42 = d.formatoPagamento === "gratuito"
-    ? `4.2. Vencimento e Forma de Pagamento: ${neg("Isento de qualquer tipo de pagamento por tempo indeterminado. Não há data de vencimento nem obrigação de pagamento enquanto essa condição estiver vigente.")}`
+    ? `4.2. Vencimento e Forma de Pagamento: Enquanto vigente a condição de gratuidade, ${neg("não haverá cobrança pelas sessões realizadas, nem data de vencimento ou obrigação de pagamento referente a esses atendimentos.")}`
     : `4.2. Vencimento e Forma de Pagamento: ${vencimentoDoContrato(d)}.`;
 
   // Campo vazio da guia dados sai do contrato; volta ao ser cadastrado (doc 41/42).
