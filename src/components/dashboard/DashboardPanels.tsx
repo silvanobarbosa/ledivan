@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { contagemDeCadastros } from "@/lib/contagemDeCadastros";
+import { categoriaDoCadastro, contagemDeCadastros } from "@/lib/contagemDeCadastros";
 import Link from "next/link";
 import { queixaGroup } from "@/lib/queixas";
 import { MessagePatient } from "./MessagePatient";
@@ -16,6 +16,8 @@ import { registrarLembrete } from "@/app/dashboard/lembretes-actions";
 
 export type PanelPatient = {
   id: string; name: string; status: string;
+  /** Tem sessão marcada para o futuro? Define em qual caixa um PAUSADO cai (dono, 23/10). */
+  temAgendaFutura?: boolean;
   gender: string | null; birthDate: string | null; address: string | null;
   phone: string | null; guardianPhone: string | null; email: string | null;
   queixaPrincipal: string | null; paymentStatus: string | null;
@@ -132,11 +134,13 @@ function Prospeccao({ patients }: { patients: PanelPatient[] }) {
 // dashboard, e o resultado é uma tabela larga. Aqui ficam só os números que orientam o clique.
 function Relatorios({ patients, presence, corte }: { patients: PanelPatient[]; presence: PanelPresence[]; corte: string }) {
   const [lista, setLista] = useState<{ titulo: string; itens: PanelPatient[] } | null>(null);
-  const ativos = patients.filter((p) => p.status === "ativo");
-  const pausados = patients.filter((p) => p.status === "pausado");
-  const inativos = patients.filter((p) => p.status === "inativo");
-  // A regra de quem entra em "No cadastro" mora em `contagemDeCadastros`, testada: o painel dizia
-  // 73 e a lista de pacientes dizia 91 para a mesma terapeuta, e a diferença eram os pausados.
+  /**
+   * Duas caixas só: Ativos e Inativos (dono, 23/10). Quem está PAUSADO cai numa delas pela agenda
+   * — com sessão marcada à frente é ativo, sem nada marcado é inativo. A regra mora em
+   * `contagemDeCadastros`, testada; aqui só se obedece.
+   */
+  const ativos = patients.filter((p) => categoriaDoCadastro(p) === "ativo");
+  const inativos = patients.filter((p) => categoriaDoCadastro(p) === "inativo");
   const contagem = contagemDeCadastros(patients);
   // "Não vieram na semana": ativo sem sessão realizada nos últimos 7 dias. `corte` vem do servidor.
   const semana = useMemo(() => {
@@ -150,14 +154,9 @@ function Relatorios({ patients, presence, corte }: { patients: PanelPatient[]; p
       <p className="text-xs text-foreground/60 text-justify">
         <strong>Monte relatórios personalizados</strong> com as informações desejadas e <strong>imprima</strong> quando precisar.
       </p>
-      {/* Cinco números: o total, as três partes que o compõem, e o alerta. Nesta ordem, porque as
-          partes somam o total e lê-se da esquerda para a direita. */}
-      <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
         <Stat n={contagem.noCadastro} label="No cadastro" />
         <Stat n={ativos.length} label="Ativos" tone="green" onAbrir={() => setLista({ titulo: "Cadastros ativos", itens: ativos })} />
-        {/* Pausado é quem interrompeu e é esperado de volta — o que mais pede ação, e o que o
-            painel escondia. */}
-        <Stat n={pausados.length} label="Pausados" tone="amber" onAbrir={() => setLista({ titulo: "Cadastros pausados", itens: pausados })} />
         <Stat n={inativos.length} label="Inativos" onAbrir={() => setLista({ titulo: "Cadastros inativos", itens: inativos })} />
         <Stat n={semana.length} label="Não vieram na semana" tone="amber" onAbrir={() => setLista({ titulo: "Ativos sem sessão realizada nos últimos 7 dias", itens: semana })} />
       </div>
