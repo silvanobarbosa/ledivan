@@ -394,23 +394,36 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
       const dur = campos.duration ? Number(campos.duration) : selected.duration;
       if (!avisaColisao(colisaoDeHorario(ini, dur, selected.id))) return;
     }
+    /**
+     * CORTESIA salva direto, sem perguntar o alcance (doc 55).
+     *
+     * A pergunta "alterar quais?" existe porque mexer na data de uma sessão de uma série é
+     * ambíguo. Cortesia não é: o checkbox já diz "ESTE atendimento", e dar cortesia a um bloco
+     * inteiro dispensaria o pagamento de meses com um clique — coisa que o servidor recusa de
+     * qualquer jeito, porque a cortesia só é aplicada à sessão editada.
+     *
+     * Então a janela só teria uma resposta certa, e perguntar algo com uma resposta certa é
+     * cobrar um clique por nada. Segue direto pelo mesmo caminho do "Apenas este".
+     */
+    if (mudouACortesia) return aplicarEdicao("apenas_esta", campos);
     setPerguntaAlcance(campos);
   }
 
-  function aplicarEdicao(alcance: string) {
-    if (!selected || !perguntaAlcance) return;
+  function aplicarEdicao(alcance: string, campos?: Record<string, string>) {
+    const dados = campos ?? perguntaAlcance;
+    if (!selected || !dados) return;
     startTransition(async () => {
       const r = await salvarEdicao({
         sessionId: selected.id,
         alcance,
-        date: perguntaAlcance.date,
-        duration: perguntaAlcance.duration ? Number(perguntaAlcance.duration) : undefined,
-        modality: perguntaAlcance.modality,
-        location: perguntaAlcance.location,
-        confirmChannel: perguntaAlcance.confirmChannel,
-        confirmLeadHours: perguntaAlcance.confirmLeadHours,
+        date: dados.date,
+        duration: dados.duration ? Number(dados.duration) : undefined,
+        modality: dados.modality,
+        location: dados.location,
+        confirmChannel: dados.confirmChannel,
+        confirmLeadHours: dados.confirmLeadHours,
         ...(edicaoSequencia ? { naSequencia: edicaoSequencia } : {}),
-        ...(ofereceCortesia && editCortesia !== !!selected.cortesia ? { cortesia: editCortesia } : {}),
+        ...(mudouACortesia ? { cortesia: editCortesia } : {}),
       });
       setPerguntaAlcance(null);
       if (!r.ok) return setEditErro(r.error ?? "Não consegui salvar.");
@@ -457,6 +470,9 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
    * Escape fecha qualquer uma destas janelas (achado do SuperQA de 22/10). A da falta era a pior:
    * ela só oferece Sim e Não, as duas com consequência em dinheiro, e não tinha saída pelo teclado.
    */
+  /** A cortesia foi marcada ou desmarcada nesta edição? É o que dispensa a pergunta do alcance. */
+  const mudouACortesia = ofereceCortesia && editCortesia !== !!selected?.cortesia;
+
   const janelaSessao = useJanela(!!selected, () => setSelected(null));
   const janelaAlcance = useJanela(!!perguntaAlcance, () => setPerguntaAlcance(null));
   const janelaFalta = useJanela(!!perguntaFaltou, () => setPerguntaFaltou(null));
