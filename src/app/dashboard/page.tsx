@@ -73,7 +73,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   if (cutoff) anConds.push(gte(therapySessions.date, cutoff));
   if (end) anConds.push(lte(therapySessions.date, end));
 
-  const [weekRows, sessoesDoDia, pkgEndingRows, anRows, pats, pkgRealizedRows] = await Promise.all([
+  const [weekRows, sessoesDoDia, pkgEndingRows, anRows, pats, pkgRealizedRows, agendaFuturaRows] = await Promise.all([
     db.select({ val: count() }).from(therapySessions).where(sql`${therapySessions.userId} = ${userId} AND ${therapySessions.date} >= ${weekStart} AND ${therapySessions.date} < ${weekEnd}`),
     db.query.therapySessions.findMany({
       where: sql`${therapySessions.userId} = ${userId} AND ${therapySessions.date} >= ${diaInicio} AND ${therapySessions.date} < ${diaFim} AND ${therapySessions.status} = 'agendada' AND ${therapySessions.pendingConfirmation} = false`,
@@ -87,7 +87,18 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
     // Consumo de pacote = fonte única DERIVADA: sessões realizadas+cobráveis por paciente.
     db.select({ pid: therapySessions.patientId, cnt: sql<number>`count(*)::int` })
       .from(therapySessions).where(and(eq(therapySessions.userId, userId), eq(therapySessions.status, "realizada"), eq(therapySessions.chargeable, true))).groupBy(therapySessions.patientId),
+    /**
+     * Quem tem sessão marcada À FRENTE (dono, 23/10).
+     *
+     * É o que decide em qual das duas caixas do painel um paciente PAUSADO cai: com a volta
+     * marcada ele segue em tratamento, sem nada marcado não está sendo atendido. Só `agendada`
+     * conta — qualquer outro status já é um desfecho, não uma expectativa.
+     */
+    db.selectDistinct({ pid: therapySessions.patientId })
+      .from(therapySessions)
+      .where(and(eq(therapySessions.userId, userId), gte(therapySessions.date, new Date()), eq(therapySessions.status, "agendada"))),
   ]);
+  const comAgendaFutura = new Set(agendaFuturaRows.map((r) => r.pid));
   const pkgRealizedMap = new Map(pkgRealizedRows.map((r) => [r.pid, Number(r.cnt)]));
 
   // Presença: TODAS as sessões realizadas/faltadas do profissional — sem corte de janela e sem
@@ -180,6 +191,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
 
   const panelPatients = pats.map((p) => ({
     id: p.id, name: p.name, status: p.status,
+    temAgendaFutura: comAgendaFutura.has(p.id),
     gender: p.gender, birthDate: p.birthDate ? (p.birthDate as unknown as string) : null,
     address: p.address, phone: p.phone, guardianPhone: p.guardianPhone, email: p.email,
     queixaPrincipal: p.queixaPrincipal, paymentStatus: p.paymentStatus,
