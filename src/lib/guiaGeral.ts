@@ -147,12 +147,6 @@ export type LinhaDaGeral =
       rotulo: string;
       /** Doc 45: resposta de "Considerar sessão realizada?" numa sessão Faltou (só vale nesse status). */
       faltouConta?: boolean | null;
-      /**
-       * Doc 54: esta sessão era GRATUITA e a falta foi transformada em paga — virou avulsa, e o
-       * valor ainda precisa ser lançado nela. A tela avisa; sem o aviso, a linha aparece cobrando
-       * R$ 0,00 e ninguém sabe que falta um passo.
-       */
-      viraAvulsa?: boolean;
       /** Valor que a linha mostra. `null` = a sessão é paga pela linha do pacote. */
       valor: number | null;
       /** A cobrança da própria linha (a cada sessão, AVUL). */
@@ -435,7 +429,6 @@ export function linhasDaGeral(e: EntradaDaGeral): LinhaDaGeral[] {
     const pausada = STATUS_QUE_PAUSAM.has(s.status);
     const formato = formatoNaData(e.vigencias, s.data, e.reserva).formato;
     const gratis = rotulos.get(s.id) === "GRAT" || (!s.extra && formato === "gratuito");
-    const viraAvulsa = formato === "gratuito" && !s.extra && s.status === "nao_realizada" && s.faltouConta === true;
     out.push({
       tipo: "sessao",
       id: s.id,
@@ -443,7 +436,6 @@ export function linhasDaGeral(e: EntradaDaGeral): LinhaDaGeral[] {
       online: !!s.online,
       status: s.status,
       faltouConta: s.faltouConta ?? null,
-      viraAvulsa,
       rotulo: rotulos.get(s.id) ?? "",
       // GRAT mostra R$ 0,00 SEMPRE, inclusive com status que pausa (documento de 17/09). Vazio e
       // "R$ 0,00" não dizem a mesma coisa: vazio parece dado faltando, e numa tabela de dinheiro
