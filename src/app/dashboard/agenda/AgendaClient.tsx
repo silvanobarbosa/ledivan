@@ -864,10 +864,9 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
                 {ofereceCortesia && (
                   <label className="flex items-start gap-2 rounded-xl bg-[#ecfdf5] border border-[#a7f3d0] px-3 py-2 cursor-pointer">
                     <input type="checkbox" checked={editCortesia} onChange={(e) => setEditCortesia(e.target.checked)} className="mt-0.5 accent-[#047857]" />
-                    <span className="text-xs">
-                      <span className="font-bold text-[#047857]">Este atendimento será uma cortesia</span>
-                      <span className="block text-foreground/60">Vira GRAT e não ocupa posição na sequência — a próxima sessão assume o número dela. Continua no pagamento deste pacote.</span>
-                    </span>
+                    {/* Doc 55: só o título. A explicação embaixo repetia o que a própria escolha
+                        já ensina no uso, e enchia o formulário de edição. */}
+                    <span className="text-xs font-bold text-[#047857]">Este atendimento será uma cortesia</span>
                   </label>
                 )}
                 <div className="grid grid-cols-2 gap-2">
