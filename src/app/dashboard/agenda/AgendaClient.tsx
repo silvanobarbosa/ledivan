@@ -4,7 +4,7 @@ import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronLeft, ChevronRight, X, Stethoscope, Repeat, Video, AlertTriangle, MapPin, Pencil, CalendarDays, Trash2 } from "lucide-react";
 import { SESSION_STATUS_LABELS, sessionStatusColor, sessionColorClasses, reservaVencida, RISK_LABELS, riskColor, LEGENDA_DA_AGENDA, corDaLegenda, STATUS_OFERECIDOS, STATUS_QUE_PAUSAM, type RiskLevel } from "@/lib/therapy";
-import { updateSessionStatus, confirmSession, createSessionFromAgenda, createRecurring } from "../sessions/actions";
+import { updateSessionStatus, confirmSession, createSessionFromAgenda, createRecurring, definirValorDaFalta } from "../sessions/actions";
 import { HolidaySetup } from "@/components/dashboard/HolidaySetup";
 import { HOLIDAY_STYLE, type Holiday, type HolidayCity } from "@/lib/holidays-style";
 import { geometriaDaFaixa, posicoesDoDia } from "@/lib/agendaLayout";
@@ -438,11 +438,36 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
     });
   }
 
-  const changeStatus = (id: string, status: SessionStatus, chargeable?: boolean, faltouConta?: boolean) => {
+  const changeStatus = (id: string, status: SessionStatus, chargeable?: boolean, faltouConta?: boolean, depois?: () => void) => {
     startTransition(async () => {
       await updateSessionStatus(id, status, undefined, chargeable, faltouConta);
       setSelected(null);
       setPerguntaFaltou(null);
+      if (depois) depois();
+      router.refresh();
+    });
+  };
+
+  /**
+   * "Sim" na falta: no GRATUITO abre a janela do valor; nos demais, grava e pronto.
+   *
+   * A ordem importa — o valor só pode ser gravado depois de a sessão estar em "Faltou" com a
+   * resposta "Sim", que é o estado que o servidor exige para aceitá-lo.
+   */
+  const responderSim = (id: string, tipo: ReturnType<typeof tipoDaFalta>) => {
+    if (tipo !== "gratuito") return changeStatus(id, "nao_realizada", undefined, true);
+    setValorDaFalta("");
+    setErroDoValor(null);
+    changeStatus(id, "nao_realizada", undefined, true, () => setPedeValor({ id }));
+  };
+
+  const salvarValorDaFalta = () => {
+    if (!pedeValor) return;
+    setErroDoValor(null);
+    startTransition(async () => {
+      const r = await definirValorDaFalta(pedeValor.id, valorDaFalta);
+      if (!r.ok) return setErroDoValor(r.error ?? "Não consegui lançar o valor.");
+      setPedeValor(null);
       router.refresh();
     });
   };
@@ -452,6 +477,14 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
   // Doc 52: a pergunta agora é a do TIPO do agendamento (gratuito / avulso / pacote), porque a
   // consequência de "Sim" é diferente em cada um. O texto mora em `@/lib/perguntaFalta`.
   const [perguntaFaltou, setPerguntaFaltou] = useState<{ id: string; tipo: ReturnType<typeof tipoDaFalta> } | null>(null);
+  /**
+   * Doc 55: respondido "Sim" num paciente GRATUITO, a sessão vira avulsa e precisa de valor.
+   * A janela pergunta na hora, em vez de deixar a linha em R$ 0,00 esperando que alguém lembre
+   * de voltar na guia Geral para lançar.
+   */
+  const [pedeValor, setPedeValor] = useState<{ id: string } | null>(null);
+  const [valorDaFalta, setValorDaFalta] = useState("");
+  const [erroDoValor, setErroDoValor] = useState<string | null>(null);
 
   /**
    * Escape fecha qualquer uma destas janelas (achado do SuperQA de 22/10). A da falta era a pior:
@@ -460,6 +493,7 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
   const janelaSessao = useJanela(!!selected, () => setSelected(null));
   const janelaAlcance = useJanela(!!perguntaAlcance, () => setPerguntaAlcance(null));
   const janelaFalta = useJanela(!!perguntaFaltou, () => setPerguntaFaltou(null));
+  const janelaValor = useJanela(!!pedeValor, () => setPedeValor(null));
   const janelaExcluir = useJanela(!!perguntaExcluir, () => { setPerguntaExcluir(null); setQuantos(null); });
   const janelaQ = useJanela(!!perguntaQ, () => setPerguntaQ(null));
   // O painel do novo agendamento é um <form>, não um <div> — daí o tipo explícito.
@@ -1063,8 +1097,35 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
             {/* Doc 54: a saída. Sem isto a escolha parece definitiva, e não é. */}
             <p className="text-xs text-foreground/50 mt-2">{COMO_REFAZER}</p>
             <div className="flex gap-2 mt-4">
-              <button disabled={pending} onClick={() => changeStatus(perguntaFaltou.id, "nao_realizada", undefined, true)} className="flex-1 bg-primary text-white py-2.5 rounded-xl text-sm font-bold disabled:opacity-60">Sim</button>
+              <button disabled={pending} onClick={() => responderSim(perguntaFaltou.id, perguntaFaltou.tipo)} className="flex-1 bg-primary text-white py-2.5 rounded-xl text-sm font-bold disabled:opacity-60">Sim</button>
               <button disabled={pending} onClick={() => changeStatus(perguntaFaltou.id, "nao_realizada", undefined, false)} className="flex-1 bg-surface text-foreground/70 py-2.5 rounded-xl text-sm font-bold disabled:opacity-60">Não</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Doc 55: o valor da sessão que era gratuita e virou paga, perguntado na hora. Antes a linha
+          nascia em R$ 0,00 e um aviso na guia Geral pedia para voltar lá e lançar — dois passos,
+          em telas diferentes, para uma decisão que acabou de ser tomada aqui. */}
+      {pedeValor && (
+        <div className={FUNDO_DA_JANELA} onClick={() => setPedeValor(null)}>
+          <div ref={janelaValor} tabIndex={-1} role="dialog" aria-modal="true" aria-label="Valor da sessão" className={`${JANELA} max-w-sm outline-none`} onClick={(e) => e.stopPropagation()}>
+            <p className="text-lg font-display font-bold text-primary">Qual o valor desta sessão?</p>
+            <p className="text-sm text-foreground/60 mt-1">Ela será lançada como Avulso com este valor.</p>
+            <input
+              autoFocus
+              inputMode="decimal"
+              value={valorDaFalta}
+              onChange={(e) => setValorDaFalta(e.target.value)}
+              onKeyDown={(e) => { if (e.key === "Enter") salvarValorDaFalta(); }}
+              placeholder="200,00"
+              aria-label="Valor da sessão"
+              className="w-full mt-3 px-3 py-2 rounded-xl bg-white border border-border outline-none text-sm tabular-nums"
+            />
+            {erroDoValor && <p className="text-sm text-red-600 mt-2">{erroDoValor}</p>}
+            <div className="flex gap-2 mt-4">
+              <button disabled={pending} onClick={salvarValorDaFalta} className="flex-1 bg-primary text-white py-2.5 rounded-xl text-sm font-bold disabled:opacity-60">OK</button>
+              <button disabled={pending} onClick={() => setPedeValor(null)} className="px-3 py-2.5 rounded-xl text-sm text-foreground/50">Depois</button>
             </div>
           </div>
         </div>
