@@ -39,7 +39,7 @@ export default async function TransactionsPage({
   if (from) { const d = new Date(from); d.setHours(0, 0, 0, 0); conds.push(gte(transactions.date, d)); }
   if (to) { const d = new Date(to); d.setHours(23, 59, 59, 999); conds.push(lte(transactions.date, d)); }
 
-  const [allTransactions, allCategories, userAccounts, despesasRows, receitasRows] = await Promise.all([
+  const [allTransactions, allCategories, userAccounts, despesasRows, receitasRows, despesasDoLivro] = await Promise.all([
     db.query.transactions.findMany({
       where: and(...conds),
       with: { category: true },
@@ -51,10 +51,46 @@ export default async function TransactionsPage({
       .from(despesas).where(eq(despesas.userId, userId)).orderBy(desc(despesas.vencimento)),
     db.select({ id: receitasPessoais.id, nome: receitasPessoais.nome, valor: receitasPessoais.valor, recebimento: receitasPessoais.recebimento, recebido: receitasPessoais.recebido })
       .from(receitasPessoais).where(eq(receitasPessoais.userId, userId)).orderBy(desc(receitasPessoais.recebimento)),
+    /**
+     * As despesas do LIVRO, SEM o filtro de período da tela.
+     *
+     * `allTransactions` é a lista da tabela de lançamentos, e ela obedece ao filtro e à busca. O
+     * quadro de Despesas não — as cadastradas aparecem todas. Montá-lo a partir da lista filtrada
+     * faria metade do quadro encolher ao filtrar e a outra metade não, que é confusão nova no lugar
+     * da que se está consertando.
+     */
+    db.select({ id: transactions.id, amount: transactions.amount, date: transactions.date, description: transactions.description, categoria: categories.name })
+      .from(transactions)
+      .leftJoin(categories, eq(categories.id, transactions.categoryId))
+      .where(and(eq(transactions.userId, userId), eq(transactions.type, "expense")))
+      .orderBy(desc(transactions.date)),
   ]);
 
   const hojeISO = (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; })();
-  const despesasLista: DespesaLinha[] = despesasRows.map((d) => ({ id: d.id, nome: d.nome, valor: d.valor, vencimento: d.vencimento.toISOString(), pagamentoData: d.pagamentoData ? d.pagamentoData.toISOString() : null }));
+  /**
+   * O quadro de Despesas mostra as duas origens: as cadastradas aqui e as lançadas no LIVRO.
+   *
+   * A tela se contradizia — "Nenhuma despesa cadastrada" logo acima de anos de despesas lançadas.
+   * As duas estavam certas; olhavam lugares diferentes. Agora o quadro é o lugar de olhar.
+   *
+   * A despesa do livro entra para LER: o lançamento original guarda categoria, forma de pagamento e
+   * conta, que este quadro não tem, e editá-la daqui apagaria esse histórico sem avisar. Ela se
+   * edita na tabela de lançamentos, logo abaixo — e a linha diz isso.
+   *
+   * Uma despesa lançada no livro já aconteceu: vencimento e pagamento são a data do lançamento.
+   */
+  const doLivro: DespesaLinha[] = despesasDoLivro.map((t) => ({
+    id: t.id,
+    nome: t.description?.trim() || t.categoria || "Despesa",
+    valor: t.amount,
+    vencimento: t.date.toISOString(),
+    pagamentoData: t.date.toISOString(),
+    doLivro: true,
+  }));
+  const despesasLista: DespesaLinha[] = [
+    ...despesasRows.map((d) => ({ id: d.id, nome: d.nome, valor: d.valor, vencimento: d.vencimento.toISOString(), pagamentoData: d.pagamentoData ? d.pagamentoData.toISOString() : null })),
+    ...doLivro,
+  ].sort((a, b) => b.vencimento.localeCompare(a.vencimento));
   const receitasLista: ReceitaLinha[] = receitasRows.map((r) => ({ id: r.id, nome: r.nome, valor: r.valor, recebimento: r.recebimento.toISOString(), recebido: r.recebido }));
 
   /**

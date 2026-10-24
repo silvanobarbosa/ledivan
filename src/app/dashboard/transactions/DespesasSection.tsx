@@ -7,7 +7,22 @@ import { statusDespesa, corDoStatus } from "@/lib/despesaStatus";
 import { criarDespesa, editarDespesa, excluirDespesa } from "./despesas-actions";
 import { ConfirmSubmit } from "@/components/ConfirmSubmit";
 
-export type DespesaLinha = { id: string; nome: string; valor: string; vencimento: string; pagamentoData: string | null };
+export type DespesaLinha = {
+  id: string;
+  nome: string;
+  valor: string;
+  vencimento: string;
+  pagamentoData: string | null;
+  /**
+   * Veio do LIVRO (`transactions`), onde as despesas moravam antes deste quadro.
+   *
+   * Ela aparece aqui para a tela parar de se contradizer — dizia "Nenhuma despesa cadastrada" logo
+   * acima de anos de despesas lançadas. Mas não se edita nem se exclui por aqui: o lançamento
+   * original guarda categoria, forma de pagamento e conta, que este quadro não tem, e editá-lo daqui
+   * apagaria esse histórico sem avisar. Para mexer nela, a tabela de lançamentos, logo abaixo.
+   */
+  doLivro?: boolean;
+};
 
 const dataBR = (iso: string | null | undefined) => { const m = iso ? String(iso).match(/^(\d{4})-(\d{2})-(\d{2})/) : null; return m ? `${m[3]}/${m[2]}/${m[1]}` : "—"; };
 const dataInput = (iso: string | null | undefined) => (iso ? String(iso).slice(0, 10) : "");
@@ -62,15 +77,19 @@ export function DespesasSection({ despesas, hoje }: { despesas: DespesaLinha[]; 
                 const st = statusDespesa(d.vencimento, d.pagamentoData, hoje);
                 return (
                   <tr key={d.id} className="border-b border-border/40">
-                    <td className="py-2 text-center tabular-nums">{dataBR(d.vencimento)} <button onClick={() => setEditando(d)} title="Editar" className="text-foreground/30 hover:text-primary align-middle"><Pencil className="inline w-3.5 h-3.5" /></button></td>
+                    <td className="py-2 text-center tabular-nums">{dataBR(d.vencimento)} {!d.doLivro && <button onClick={() => setEditando(d)} title="Editar" className="text-foreground/30 hover:text-primary align-middle"><Pencil className="inline w-3.5 h-3.5" /></button>}</td>
                     <td className="py-2 font-medium">{d.nome}</td>
-                    <td className={`py-2 text-center tabular-nums font-semibold ${corDoStatus(st)}`}>{formatBRL(d.valor)} <button onClick={() => setEditando(d)} title="Editar" className="text-foreground/30 hover:text-primary align-middle"><Pencil className="inline w-3.5 h-3.5" /></button></td>
-                    <td className="py-2 text-center tabular-nums">{dataBR(d.pagamentoData)} <button onClick={() => setEditando(d)} title="Editar" className="text-foreground/30 hover:text-primary align-middle"><Pencil className="inline w-3.5 h-3.5" /></button></td>
+                    <td className={`py-2 text-center tabular-nums font-semibold ${corDoStatus(st)}`}>{formatBRL(d.valor)} {!d.doLivro && <button onClick={() => setEditando(d)} title="Editar" className="text-foreground/30 hover:text-primary align-middle"><Pencil className="inline w-3.5 h-3.5" /></button>}</td>
+                    <td className="py-2 text-center tabular-nums">{dataBR(d.pagamentoData)} {!d.doLivro && <button onClick={() => setEditando(d)} title="Editar" className="text-foreground/30 hover:text-primary align-middle"><Pencil className="inline w-3.5 h-3.5" /></button>}</td>
                     <td className="py-2 text-center">
-                      <form action={(fd) => excluir(fd.get("id") as string)} className="inline">
-                        <input type="hidden" name="id" value={d.id} />
-                        <ConfirmSubmit message={`Excluir a despesa "${d.nome}"?`} title="Excluir" className="text-foreground/30 hover:text-red-600"><Trash2 className="w-4 h-4" /></ConfirmSubmit>
-                      </form>
+                      {d.doLivro ? (
+                        <span title="Lançada na tabela de lançamentos, abaixo — é lá que ela se edita" className="text-[10px] text-foreground/35">lançamento</span>
+                      ) : (
+                        <form action={(fd) => excluir(fd.get("id") as string)} className="inline">
+                          <input type="hidden" name="id" value={d.id} />
+                          <ConfirmSubmit message={`Excluir a despesa "${d.nome}"?`} title="Excluir" className="text-foreground/30 hover:text-red-600"><Trash2 className="w-4 h-4" /></ConfirmSubmit>
+                        </form>
+                      )}
                     </td>
                   </tr>
                 );
