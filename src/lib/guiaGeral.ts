@@ -56,7 +56,11 @@ export type EnvioDaGeral = {
 };
 
 export type EntradaDaGeral = Omit<EntradaDasCobrancas, "sessoes"> & {
-  sessoes: (SessaoDaCobranca & { online?: boolean | null })[];
+  sessoes: (SessaoDaCobranca & {
+    online?: boolean | null;
+    /** Doc 55: valor estornado nesta sessão, quando a cobrança foi desfeita com estorno. */
+    estornoValor?: number | string | null;
+  })[];
   pagamentos: PagamentoDaGeral[];
   envios?: EnvioDaGeral[];
   /** As datas que a serie pulou por horario bloqueado. Viram linha, nunca sessao. */
@@ -147,6 +151,13 @@ export type LinhaDaGeral =
       rotulo: string;
       /** Doc 45: resposta de "Considerar sessão realizada?" numa sessão Faltou (só vale nesse status). */
       faltouConta?: boolean | null;
+      /**
+       * Doc 55: o que dizer na coluna de pagamento quando a sessão deixou de ser cobrada.
+       *
+       * Uma linha que esvazia sem explicação, numa tabela de dinheiro, vira dúvida — e a dúvida
+       * mais cara é "para onde foi o que o paciente pagou?". Então ela diz.
+       */
+      avisoDoPagamento?: string | null;
       /** Valor que a linha mostra. `null` = a sessão é paga pela linha do pacote. */
       valor: number | null;
       /** A cobrança da própria linha (a cada sessão, AVUL). */
@@ -379,6 +390,30 @@ function casarPagamentos(cobrancas: Cobranca[], pagamentos: PagamentoDaGeral[], 
 
 const comoLinha = ({ tipo, ...c }: CobrancaDaGeral): LinhaDaGeral => ({ ...c, tipo: "pagamento", tipoDeCobranca: tipo });
 
+/**
+ * O que a coluna de pagamento diz quando a sessão deixou de ser cobrada (doc 55).
+ *
+ * Dois casos, e os dois existem para a mesma razão: linha que esvazia sem explicação, numa tabela
+ * de dinheiro, vira dúvida — e a dúvida mais cara é "para onde foi o que o paciente pagou?".
+ *
+ * O estorno vem primeiro porque é o mais forte: houve dinheiro recebido e devolvido, e isso precisa
+ * aparecer mesmo que a sessão também tenha virado gratuita.
+ */
+function avisoDoPagamento(
+  s: { estornoValor?: number | string | null; status: string; faltouConta?: boolean | null; extra?: string | null },
+  formato: string,
+): string | null {
+  const estornado = Number(s.estornoValor);
+  if (Number.isFinite(estornado) && estornado > 0) {
+    return `Estorno realizado no valor de ${dinheiroBR(estornado)}`;
+  }
+  // A avulsa que voltou a ser gratuita: o "Não" depois de um "Sim", ou o "Não" do próprio avulso.
+  const voltouAGratuita = s.status === "nao_realizada" && s.faltouConta === false && (formato === "gratuito" || formato === "sessao" || !!s.extra);
+  return voltouAGratuita ? "Sessão avulsa que foi convertida para gratuita" : null;
+}
+
+const dinheiroBR = (n: number) => `R$ ${n.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
 export function linhasDaGeral(e: EntradaDaGeral): LinhaDaGeral[] {
   const cobrancas = casarPagamentos(cobrancasDoPaciente(e), e.pagamentos, e.hoje, e.envios ?? [], e.horasAntesPagamento ?? 0, e.sessoes);
   const rotulos = rotulosDasSessoes(e);
@@ -436,6 +471,7 @@ export function linhasDaGeral(e: EntradaDaGeral): LinhaDaGeral[] {
       online: !!s.online,
       status: s.status,
       faltouConta: s.faltouConta ?? null,
+      avisoDoPagamento: avisoDoPagamento(s, formato),
       rotulo: rotulos.get(s.id) ?? "",
       // GRAT mostra R$ 0,00 SEMPRE, inclusive com status que pausa (documento de 17/09). Vazio e
       // "R$ 0,00" não dizem a mesma coisa: vazio parece dado faltando, e numa tabela de dinheiro

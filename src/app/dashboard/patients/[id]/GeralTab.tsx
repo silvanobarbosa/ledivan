@@ -709,7 +709,16 @@ export function GeralTab({ patientId, linhas, responsavel, responsavelCpf, cobra
                     <CelulaStatus status={l.status} />
                     {/* Doc 30: o valor da sessão AVULSA (formato "sessao") sai em negrito na tabela de Controle. */}
                     <td className={`px-3 py-2 text-right tabular-nums ${c?.formato === "sessao" ? "font-bold" : ""}`}>{l.valor == null ? "" : formatBRL(l.valor)}</td>
-                    {c ? <ColunasDoPagamento patientId={patientId} c={c} onLancar={() => setAberta(c.chave)} cobrar={cobrar} /> : <td />}
+                    {c ? (
+                      <ColunasDoPagamento patientId={patientId} c={c} onLancar={() => setAberta(c.chave)} cobrar={cobrar} />
+                    ) : l.avisoDoPagamento ? (
+                      /* Doc 55: a sessão deixou de ser cobrada. Linha que esvazia sem explicação,
+                         numa tabela de dinheiro, vira dúvida — e a mais cara é "para onde foi o que
+                         o paciente pagou?". */
+                      <td className="px-3 py-2 text-xs text-foreground/50">{l.avisoDoPagamento}</td>
+                    ) : (
+                      <td />
+                    )}
                   </tr>
                   {c && aberta === c.chave && <FormularioDeLancamento patientId={patientId} c={c} responsavel={responsavel} responsavelCpf={responsavelCpf ?? ""} fechar={() => setAberta(null)} creditoDisponivel={creditoDisponivel} />}
                 </Fragment>
