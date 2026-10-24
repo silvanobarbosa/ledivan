@@ -2,8 +2,8 @@
 
 import { db } from "@/db";
 import { auth } from "@/auth";
-import { despesas, receitasPessoais, patients } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { despesas, receitasPessoais, patients, transactions } from "@/db/schema";
+import { and, eq } from "drizzle-orm";
 import { geralDoPaciente, type LinhaNaTela } from "@/lib/geralDoPaciente";
 import { resolverCobrancas } from "@/lib/resolverCobrancas";
 import { getVigenciasTaxa } from "@/lib/cardFees";
@@ -25,10 +25,24 @@ export async function montarMovimentacoes(): Promise<{ ok: boolean; movs?: Movim
   const userId = session.user.id;
 
   const vigencias = await getVigenciasTaxa(userId);
-  const [despesasRows, receitasRows, cadastros] = await Promise.all([
+  const [despesasRows, receitasRows, cadastros, despesasDoLivro] = await Promise.all([
     db.select({ nome: despesas.nome, valor: despesas.valor, vencimento: despesas.vencimento, pagamentoData: despesas.pagamentoData }).from(despesas).where(eq(despesas.userId, userId)),
     db.select({ nome: receitasPessoais.nome, valor: receitasPessoais.valor, recebimento: receitasPessoais.recebimento, recebido: receitasPessoais.recebido }).from(receitasPessoais).where(eq(receitasPessoais.userId, userId)),
     db.select({ id: patients.id, name: patients.name, phone: patients.phone, guardianPhone: patients.guardianPhone, paymentFormat: patients.paymentFormat, registrationNumber: patients.registrationNumber, agendaId: patients.agendaId, status: patients.patientStatus }).from(patients).where(eq(patients.userId, userId)),
+    /**
+     * As despesas lançadas no LIVRO (`transactions`), que é onde elas moravam antes deste módulo.
+     *
+     * O extrato lia só a tabela nova, e o resultado era a tela se contradizendo: "Nenhuma despesa
+     * cadastrada" logo acima de uma lista com anos de despesas. As duas estavam certas — olhavam
+     * lugares diferentes.
+     *
+     * Elas entram aqui para LER, não para mudar de lugar. Mover as linhas custaria a categoria, a
+     * forma de pagamento e a conta, que a tabela nova não guarda, e deixaria os Relatórios somando
+     * zero — ver a nota na PR.
+     */
+    db.select({ valor: transactions.amount, data: transactions.date, descricao: transactions.description })
+      .from(transactions)
+      .where(and(eq(transactions.userId, userId), eq(transactions.type, "expense"))),
   ]);
 
   const movs: Movimentacao[] = [];
@@ -38,6 +52,12 @@ export async function montarMovimentacoes(): Promise<{ ok: boolean; movs?: Movim
     const v = Number(d.valor) || 0;
     const pago = !!d.pagamentoData;
     movs.push({ data: dia(pago ? d.pagamentoData : d.vencimento), descricao: d.nome, tipo: "saida", efetivado: pago, bruto: v, liquido: v, temLiquido: false });
+  }
+
+  // Despesa do livro → saída, sempre efetivada: ela é o registro de um gasto que já aconteceu.
+  for (const t of despesasDoLivro) {
+    const v = Number(t.valor) || 0;
+    movs.push({ data: dia(t.data), descricao: t.descricao || "Despesa", tipo: "saida", efetivado: true, bruto: v, liquido: v, temLiquido: false });
   }
 
   // Receitas pessoais → entrada. Recebida: data de recebimento (verde); prevista: mesma data, sem valor.
