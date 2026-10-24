@@ -624,6 +624,12 @@ export const therapySessions = pgTable("therapy_sessions", {
   // true = conta para cobrança/pacote (comportamento padrão); false = não cobra (R$0) e não abate do
   // pacote; null = legado (conta, como sempre foi). Só tem efeito quando o status é nao_realizada.
   faltouConta: boolean("faltou_conta"),
+  // Doc 55: a sessão avulsa que voltou a ser gratuita E TINHA pagamento lançado, com a terapeuta
+  // escolhendo ESTORNAR. O pagamento em si é apagado — então o dinheiro sai de todas as somas
+  // sozinho; o que fica aqui é o REGISTRO do estorno, para a guia Geral poder dizer "Estorno
+  // realizado no valor de R$ xx,xx" em vez de a linha simplesmente esvaziar sem explicação.
+  estornoValor: numeric("estorno_valor", { precision: 10, scale: 2 }),
+  estornoEm: timestamp("estorno_em"),
   // Doc 54: atendimento do pacote dado de CORTESIA. Ele não cobra e deixa de ocupar posição na
   // sequência — a sessão seguinte assume o número que ele teria —, mas continua pertencendo ao
   // pacote e ao grupo de pagamento dele. É o que o separa de `extra: "grat"`, que acontece FORA do

@@ -13,6 +13,7 @@ import "server-only";
 
 import { and, eq, isNull } from "drizzle-orm";
 import { db } from "@/db";
+import { COLUNAS_DA_SESSAO } from "@/lib/colunasDaSessao";
 import { blockedSlots, cobrancaEnvios, cobrancaVencimentos, sessoesPuladas, patientCredits, patientPackages, patientPackageHistory, patientPaymentFormatHistory, patientPriceHistory, patients, sessionPayments, therapySessions } from "@/db/schema";
 import { horaDeParede } from "./horaLocal";
 import { linhasDaGeral, resumoDaGeral, type CobrancaDaGeral, type EntradaDaGeral, type LinhaDaGeral } from "./guiaGeral";
@@ -51,7 +52,7 @@ export type CobrancaNaTela = Omit<CobrancaDaGeral, "vencimento" | "competencia" 
 };
 
 export type LinhaNaTela =
-  | { tipo: "sessao"; id: string; data: string; online: boolean; status: string; faltouConta: boolean | null; rotulo: string; valor: number | null; cobranca: CobrancaNaTela | null }
+  | { tipo: "sessao"; id: string; data: string; online: boolean; status: string; faltouConta: boolean | null; avisoDoPagamento: string | null; rotulo: string; valor: number | null; cobranca: CobrancaNaTela | null }
   | ({ tipo: "pagamento" } & CobrancaNaTela)
   /** Data que a serie pulou por horario bloqueado. Nao e sessao: so ocupa a linha (dona, 19/09). */
   | { tipo: "bloqueio"; data: string };
@@ -98,6 +99,7 @@ function naTela(l: LinhaDaGeral, editados: Set<string>): LinhaNaTela {
     online: l.online,
     status: l.status,
     faltouConta: l.faltouConta ?? null,
+    avisoDoPagamento: l.avisoDoPagamento ?? null,
     rotulo: l.rotulo,
     valor: l.valor,
     cobranca: l.cobranca ? cobrancaNaTela({ ...l.cobranca, tipoDeCobranca: l.cobranca.tipo }, editados) : null,
@@ -126,7 +128,7 @@ export async function geralDoPaciente(userId: string, patientId: string): Promis
   if (!paciente) return null;
 
   const [sessoes, pagamentos, precos, pacotes, vigencias, envios, puladas, pacoteHist, vencEditados] = await Promise.all([
-    db.select({ id: therapySessions.id, date: therapySessions.date, status: therapySessions.status, sessionKind: therapySessions.sessionKind, abaterDoPacote: therapySessions.abaterDoPacote, chargeable: therapySessions.chargeable, faltouConta: therapySessions.faltouConta, cortesia: therapySessions.cortesia, extra: therapySessions.extra, valorExtra: therapySessions.valorExtra, repoeSessaoId: therapySessions.repoeSessaoId, isOnline: therapySessions.isOnline })
+    db.select({ ...COLUNAS_DA_SESSAO, isOnline: therapySessions.isOnline, estornoValor: therapySessions.estornoValor })
       .from(therapySessions).where(and(eq(therapySessions.patientId, patientId), eq(therapySessions.userId, userId))),
     db.select({ id: sessionPayments.id, amount: sessionPayments.amount, date: sessionPayments.date, status: sessionPayments.status, method: sessionPayments.method, pagoPor: sessionPayments.pagoPor, cobrancaChave: sessionPayments.cobrancaChave, quita: sessionPayments.quitaDiferenca, kind: sessionPayments.kind, reciboEmitidoEm: sessionPayments.reciboEmitidoEm, notaEmitidaEm: sessionPayments.receiptIssuedAt, reciboNumero: sessionPayments.receiptNumber })
       .from(sessionPayments).where(and(eq(sessionPayments.patientId, patientId), eq(sessionPayments.userId, userId))),

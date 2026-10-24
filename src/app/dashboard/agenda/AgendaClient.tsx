@@ -3,8 +3,8 @@
 import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronLeft, ChevronRight, X, Stethoscope, Repeat, Video, AlertTriangle, MapPin, Pencil, CalendarDays, Trash2 } from "lucide-react";
-import { SESSION_STATUS_LABELS, sessionStatusColor, sessionColorClasses, reservaVencida, RISK_LABELS, riskColor, LEGENDA_DA_AGENDA, corDaLegenda, STATUS_OFERECIDOS, STATUS_QUE_PAUSAM, type RiskLevel } from "@/lib/therapy";
-import { updateSessionStatus, confirmSession, createSessionFromAgenda, createRecurring, definirValorDaFalta } from "../sessions/actions";
+import { formatBRL, SESSION_STATUS_LABELS, sessionStatusColor, sessionColorClasses, reservaVencida, RISK_LABELS, riskColor, LEGENDA_DA_AGENDA, corDaLegenda, STATUS_OFERECIDOS, STATUS_QUE_PAUSAM, type RiskLevel } from "@/lib/therapy";
+import { updateSessionStatus, confirmSession, createSessionFromAgenda, createRecurring, definirValorDaFalta, pagamentoDaSessao, desfazerCobrancaDaSessao } from "../sessions/actions";
 import { HolidaySetup } from "@/components/dashboard/HolidaySetup";
 import { HOLIDAY_STYLE, type Holiday, type HolidayCity } from "@/lib/holidays-style";
 import { geometriaDaFaixa, posicoesDoDia } from "@/lib/agendaLayout";
@@ -474,6 +474,47 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
     changeStatus(id, "nao_realizada", undefined, true, () => setPedeValor({ id }));
   };
 
+  /**
+   * "Não" na falta: antes de desfazer, confere se há dinheiro preso àquela sessão.
+   *
+   * Sem pagamento, segue direto — é o que o documento manda ("caso não exista pagamento, executar
+   * diretamente o comportamento já definido"). Com pagamento, a janela pergunta o destino: sumir
+   * com a cobrança sem dizer para onde foi o valor recebido é a pior saída numa tela de dinheiro.
+   *
+   * Fora do gratuito e do avulso não há cobrança própria da sessão para desfazer, então a pergunta
+   * não se aplica e o caminho é o de sempre.
+   */
+  const responderNao = (id: string, tipo: ReturnType<typeof tipoDaFalta>) => {
+    if (tipo === "pacote") return changeStatus(id, "nao_realizada", undefined, false);
+    setErroDoDestino(null);
+    startTransition(async () => {
+      const r = await pagamentoDaSessao(id);
+      if (r.ok && r.valor != null && r.valor > 0) {
+        setPerguntaFaltou(null);
+        setPedeDestino({ id, valor: r.valor });
+        return;
+      }
+      await desfazerCobrancaDaSessao(id, null);
+      await updateSessionStatus(id, "nao_realizada", undefined, undefined, false);
+      setSelected(null);
+      setPerguntaFaltou(null);
+      router.refresh();
+    });
+  };
+
+  const escolherDestino = (escolha: "estornar" | "transferir") => {
+    if (!pedeDestino) return;
+    setErroDoDestino(null);
+    startTransition(async () => {
+      await updateSessionStatus(pedeDestino.id, "nao_realizada", undefined, undefined, false);
+      const r = await desfazerCobrancaDaSessao(pedeDestino.id, escolha);
+      if (!r.ok) return setErroDoDestino(r.error ?? "Não consegui concluir.");
+      setPedeDestino(null);
+      setSelected(null);
+      router.refresh();
+    });
+  };
+
   const salvarValorDaFalta = () => {
     if (!pedeValor) return;
     setErroDoValor(null);
@@ -496,6 +537,9 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
    * de voltar na guia Geral para lançar.
    */
   const [pedeValor, setPedeValor] = useState<{ id: string } | null>(null);
+  /** Doc 55: o "Não" numa sessão que JÁ tem pagamento lançado — estornar ou transferir. */
+  const [pedeDestino, setPedeDestino] = useState<{ id: string; valor: number } | null>(null);
+  const [erroDoDestino, setErroDoDestino] = useState<string | null>(null);
   const [valorDaFalta, setValorDaFalta] = useState("");
   const [erroDoValor, setErroDoValor] = useState<string | null>(null);
 
@@ -510,6 +554,7 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
   const janelaAlcance = useJanela(!!perguntaAlcance, () => setPerguntaAlcance(null));
   const janelaFalta = useJanela(!!perguntaFaltou, () => setPerguntaFaltou(null));
   const janelaValor = useJanela(!!pedeValor, () => setPedeValor(null));
+  const janelaDestino = useJanela(!!pedeDestino, () => setPedeDestino(null));
   const janelaExcluir = useJanela(!!perguntaExcluir, () => { setPerguntaExcluir(null); setQuantos(null); });
   const janelaQ = useJanela(!!perguntaQ, () => setPerguntaQ(null));
   // O painel do novo agendamento é um <form>, não um <div> — daí o tipo explícito.
@@ -1113,8 +1158,30 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
             <p className="text-xs text-foreground/50 mt-2">{COMO_REFAZER}</p>
             <div className="flex gap-2 mt-4">
               <button disabled={pending} onClick={() => responderSim(perguntaFaltou.id, perguntaFaltou.tipo)} className="flex-1 bg-primary text-white py-2.5 rounded-xl text-sm font-bold disabled:opacity-60">Sim</button>
-              <button disabled={pending} onClick={() => changeStatus(perguntaFaltou.id, "nao_realizada", undefined, false)} className="flex-1 bg-surface text-foreground/70 py-2.5 rounded-xl text-sm font-bold disabled:opacity-60">Não</button>
+              <button disabled={pending} onClick={() => responderNao(perguntaFaltou.id, perguntaFaltou.tipo)} className="flex-1 bg-surface text-foreground/70 py-2.5 rounded-xl text-sm font-bold disabled:opacity-60">Não</button>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Doc 55: o "Não" numa sessão que JÁ tem pagamento lançado. Sumir com a cobrança sem dizer
+          para onde foi o dinheiro recebido é a pior saída numa tela de dinheiro — então o sistema
+          pergunta, e as duas saídas preservam o valor: uma devolve, a outra adia. */}
+      {pedeDestino && (
+        <div className={FUNDO_DA_JANELA} onClick={() => setPedeDestino(null)}>
+          <div ref={janelaDestino} tabIndex={-1} role="dialog" aria-modal="true" aria-label="Destino do pagamento" className={`${JANELA} max-w-sm outline-none`} onClick={(e) => e.stopPropagation()}>
+            <p className="text-lg font-display font-bold text-primary">Esta sessão já possui um pagamento registrado</p>
+            <p className="text-sm text-foreground/70 mt-1">O que deseja fazer com esse pagamento de <strong>{formatBRL(pedeDestino.valor)}</strong>?</p>
+            <div className="space-y-2 mt-4">
+              <button disabled={pending} onClick={() => escolherDestino("estornar")} className="w-full bg-primary text-white py-2.5 rounded-xl text-sm font-bold disabled:opacity-60">
+                Estornar o valor
+              </button>
+              <button disabled={pending} onClick={() => escolherDestino("transferir")} className="w-full bg-surface text-foreground/70 py-2.5 rounded-xl text-sm font-bold hover:bg-surface-container disabled:opacity-60">
+                Transferir para a próxima sessão
+              </button>
+            </div>
+            {erroDoDestino && <p className="text-sm text-red-600 mt-2">{erroDoDestino}</p>}
+            <button onClick={() => setPedeDestino(null)} className="w-full py-2 mt-1 text-sm text-foreground/40">Cancelar</button>
           </div>
         </div>
       )}
