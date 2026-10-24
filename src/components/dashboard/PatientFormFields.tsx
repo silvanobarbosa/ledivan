@@ -558,9 +558,6 @@ export function PatientFormFields({ p, save, tabInicial, contrato, patientId }: 
               <option value="paciente">Paciente</option>
               <option value="supervisionado">Supervisionado</option>
             </select>
-            <p className="text-xs text-foreground/50 mt-1">
-              {supervisionado ? "Supervisão clínica: dados pessoais, responsável, financeiro e contrato." : "Paciente em atendimento, com financeiro e contrato."}
-            </p>
           </div>
           <div className="grid sm:grid-cols-2 gap-4">
             <div>

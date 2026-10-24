@@ -29,6 +29,9 @@ export const NAV_GROUPS: NavGroup[] = [
       { icon: UserPlus, label: "Prospecção", href: "/dashboard/prospects" },
       { icon: Users, label: "Cadastros", href: "/dashboard/patients" },
       { icon: CalendarDays, label: "Agenda", href: "/dashboard/agenda" },
+      // Doc 55: Receita Saúde sai do Caixa e vem para debaixo da Agenda. A emissão nasce do
+      // atendimento, não do dinheiro — é a sessão realizada que vira recibo.
+      { icon: Receipt, label: "Receita Saúde", href: "/dashboard/receita-saude" },
       // Doc 28: Prontuário, Contratos e Mensagens saíram do menu. Contrato vive na guia Contrato do
       // editar paciente; prontuário e mensagens continuam acessíveis pelo paciente. As rotas seguem
       // existindo (links diretos), só não aparecem mais na navegação.
@@ -43,13 +46,12 @@ export const NAV_GROUPS: NavGroup[] = [
       { icon: ArrowLeftRight, label: "Transações", href: "/dashboard/transactions" },
       { icon: BarChart3, label: "Relatórios", href: "/dashboard/reports" },
       { icon: Scale, label: "Conciliação", href: "/dashboard/conciliacao" },
-      { icon: Receipt, label: "Receita Saúde", href: "/dashboard/receita-saude" },
     ],
   },
   {
     title: "Conta",
     items: [
-      { icon: Settings, label: "Meu Perfil", href: "/dashboard/settings" },
+      { icon: Settings, label: "Ajustes", href: "/dashboard/settings" },
       { icon: HelpCircle, label: "Ajuda", href: "/dashboard/ajuda" },
     ],
   },
