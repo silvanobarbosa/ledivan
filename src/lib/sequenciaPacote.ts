@@ -261,7 +261,8 @@ function posicoesFragmentado(sessoes: SessaoDaSequencia[]): Map<string, PosicaoN
   for (const s of ordenadas) {
     const k = chaveDoMes(s.data);
     if (!vagas.has(k)) { vagas.set(k, 0); meses.push(k); }
-    if (!s.repoe) vagas.set(k, vagas.get(k)! + 1);
+    // Pausa por resposta não cria vaga: ela não é uma sessão contratada a mais.
+    if (!s.repoe && !transparente(s)) vagas.set(k, vagas.get(k)! + 1);
   }
 
   // Preenche mês a mês, consumindo de uma fila única — é o que permite a sessão de outubro fechar
@@ -278,7 +279,7 @@ function posicoesFragmentado(sessoes: SessaoDaSequencia[]): Map<string, PosicaoN
     while (ocupadas < total && ponteiro < ordenadas.length) {
       const s = ordenadas[ponteiro++];
       const mesDela = chaveDoMes(s.data);
-      if (mesDela !== k && !s.repoe) gastas.set(mesDela, (gastas.get(mesDela) ?? 0) + 1);
+      if (mesDela !== k && !s.repoe && !transparente(s)) gastas.set(mesDela, (gastas.get(mesDela) ?? 0) + 1);
       // O clamp evita "4/3" quando o mês termina numa sessão que pausou.
       mapa.set(s.id, { sequencia, index: Math.min(ocupadas + 1, total), total });
       if (!pausou(s)) ocupadas++;

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { cobrancasDoPaciente, rotulosDasSessoes, type SessaoDaCobranca } from "@/lib/cobrancas";
+import { cobrancasDoPaciente, type SessaoDaCobranca } from "@/lib/cobrancas";
 
 /**
  * GUARDAS DAS REGRESSÕES QUE O SUPERQA DE 22/10 ENCONTROU.
@@ -39,33 +39,7 @@ const base = (formato: string, n: number, faltaEm: number, pacoteTipo = "complet
   })) as SessaoDaCobranca[],
 });
 
-const total = (e: { sessoes: SessaoDaCobranca[] } & Record<string, unknown>) =>
-  cobrancasDoPaciente(e as Parameters<typeof cobrancasDoPaciente>[0]).reduce((a, c) => a + c.valor, 0);
-
-/**
- * Fracionado com DOIS meses — agosto e setembro, três atendimentos em cada.
- *
- * Dois meses, e não um, porque a regra do doc 55 é sobre a redistribuição ENTRE eles: a vaga que a
- * falta deixa aberta em agosto é ocupada por uma sessão de setembro, e setembro reduz. Um mês
- * sozinho não mostra isso — e foi olhando um mês só que o teste anterior concluiu errado.
- */
-const fracionadoDoisMeses = (comFalta: boolean) => ({
-  vigencias: [],
-  reserva: { formato: "mensal", pacoteTipo: "fragmentado" },
-  precos: [{ valor: FEE, desde: new Date(2024, 0, 1) }],
-  valorDaSessao: FEE,
-  tamanhos: [],
-  vezesPorSemana: 1,
-  diaPagamento: 10,
-  sessoes: [
-    { id: "a1", date: new Date(2024, 7, 7, 11, 0), status: comFalta ? "nao_realizada" : "realizada", ...(comFalta ? { faltouConta: false } : {}) },
-    { id: "a2", date: new Date(2024, 7, 14, 11, 0), status: "realizada" },
-    { id: "a3", date: new Date(2024, 7, 21, 11, 0), status: "realizada" },
-    { id: "s1", date: new Date(2024, 8, 4, 11, 0), status: "realizada" },
-    { id: "s2", date: new Date(2024, 8, 11, 11, 0), status: "realizada" },
-    { id: "s3", date: new Date(2024, 8, 18, 11, 0), status: "realizada" },
-  ] as SessaoDaCobranca[],
-});
+const total = (e: ReturnType<typeof base>) => cobrancasDoPaciente(e).reduce((a, c) => a + c.valor, 0);
 
 describe("doc 54 — a falta não abatida não pode encarecer a cobrança", () => {
   it("quinzenal: cobra as sessões que aconteceram, não a que faltou", () => {
@@ -75,22 +49,9 @@ describe("doc 54 — a falta não abatida não pode encarecer a cobrança", () =
     expect(total(base("quinzenal", 4, 3))).toBe(FEE * 3);
   });
 
-  /**
-   * Doc 55 reescreveu esta regra, e o teste mudou junto.
-   *
-   * Em agosto, isolado, a falta não abatida FAZ o mês cobrar 3 em vez de 2 — porque o denominador
-   * não encolhe (o paciente contratou três atendimentos) e a vaga aberta é ocupada por uma sessão
-   * de setembro, que atravessa. O que não pode crescer é o TOTAL, e ele não cresce: setembro
-   * reduz na mesma medida. É o que o dono pediu — "reduzindo a quantidade de sessões previstas
-   * para cobrança no mês seguinte".
-   *
-   * Olhar um mês só e gritar "encareceu" foi o erro do teste anterior.
-   */
-  it("fragmentado: a falta redistribui entre os meses, sem aumentar o total", () => {
-    const comFalta = total(fracionadoDoisMeses(true));
-    const semFalta = total(fracionadoDoisMeses(false));
-    // Uma sessão deixou de ser cobrada: o total cai exatamente o preço dela, nunca sobe.
-    expect(comFalta).toBe(semFalta - FEE);
+  it("fragmentado: o mês não ganha uma vaga por causa da falta", () => {
+    // Agosto com 3 marcadas e a 1ª faltando cobrava R$ 400. Pausar virava R$ 600.
+    expect(total(base("mensal", 3, 0, "fragmentado"))).toBe(FEE * 2);
   });
 
   it("mensal completo: o pacote sempre cobrou o tamanho contratado, e continua", () => {
@@ -100,23 +61,11 @@ describe("doc 54 — a falta não abatida não pode encarecer a cobrança", () =
 });
 
 describe("doc 54 — a falta não abatida não pode mover a cobrança de mês nem de dia", () => {
-  /**
-   * O que NÃO pode acontecer, e acontecia: a sequência ficar eternamente aberta
-   * (`competencia: null`), fazendo a cobrança sumir da Fechamento. Ela tem que fechar em ALGUM
-   * mês. Fecha no mês em que a última vaga foi ocupada — a mesma regra de quem desmarca, que o
-   * doc 55 mandou seguir.
-   */
-  it("fragmentado: a cobrança não some da Fechamento — ela fecha no mês em que a vaga foi ocupada", () => {
-    const c = cobrancasDoPaciente(fracionadoDoisMeses(true));
-    expect(c.every((x) => x.competencia !== null)).toBe(true);
-  });
-
-  it("fragmentado: a numeração é preservada e o mês seguinte reduz (doc 55)", () => {
-    const e = fracionadoDoisMeses(true);
-    const r = rotulosDasSessoes(e);
-    // A falta mantém o número onde parou, a seguinte repete, e a 3ª vaga é ocupada por uma sessão
-    // do mês seguinte — que então passa a ter uma sessão a menos para cobrar.
-    expect(e.sessoes.map((s) => r.get(s.id))).toEqual(["1/3", "1/3", "2/3", "3/3", "1/2", "2/2"]);
+  it("fragmentado: a cobrança de agosto continua caindo em agosto", () => {
+    // Pausar deixava a sequência aberta (`competencia: null`) e agosto PERDIA a cobrança inteira.
+    const c = cobrancasDoPaciente(base("mensal", 3, 0, "fragmentado"));
+    expect(c).toHaveLength(1);
+    expect(c[0].competencia?.getMonth()).toBe(7);
   });
 
   it("primeira do pacote: a competência não anda para o mês anterior", () => {
