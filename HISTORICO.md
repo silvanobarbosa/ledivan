@@ -7,6 +7,36 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-10-24 — Despesas: o quadro novo passa a enxergar o livro (#490)
+
+**Entregue:** o quadro de Despesas e o extrato de Movimentações mostram as DUAS origens — as
+cadastradas ali e as lançadas no livro (`transactions`). Fecha o último item do doc 55.
+
+**Por quê:** a tela se contradizia. "Nenhuma despesa cadastrada" logo acima de uma tabela com três
+anos de despesas. As duas estavam certas; olhavam lugares diferentes.
+
+**Decisões que ficam valendo:**
+- **A despesa do livro entra no quadro para LER, não para mudar de lugar.** Sem lápis, sem lixeira,
+  e a linha diz `lançamento`, apontando onde ela se edita.
+- **NÃO movi as linhas, que era o pedido literal.** A tabela nova não guarda categoria, forma de
+  pagamento nem conta — as 202 têm as três —, então mover perderia justamente o histórico que a
+  condição do pedido manda preservar. E Relatórios, exportação e conciliação leem do livro:
+  esvaziá-lo faria os Relatórios somarem ZERO em despesas, numa tela que ninguém mandou mexer.
+- **A consulta do quadro é própria, sem o filtro de período da tela.** Montá-la a partir da lista
+  filtrada faria metade do quadro encolher ao filtrar e a outra metade não.
+
+**Armadilhas:**
+- **MEDIR antes de migrar mudou a decisão inteira.** As 202 despesas do livro são TODAS da conta de
+  demonstração; Gisele e Ana Raquel não têm nenhuma, nem no livro nem na tabela nova, e nenhum
+  lançamento está conciliado. O problema era de TELA, não de dado — e uma migração teria risco sem
+  nenhum ganho hoje.
+
+**Pendente:** a unificação de verdade (estender a tabela nova com categoria/forma/conta, migrar, e
+reescrever Relatórios, exportação e conciliação para lerem de lá). É bloco próprio, e o dono decide
+se vale — com dado real inexistente, o ganho hoje é zero.
+
+---
+
 ## 2026-10-24 — Doc 55 fechado: a falta vira avulsa na hora, e o pagamento tem para onde ir (#484–#488)
 
 **Entregue:**
