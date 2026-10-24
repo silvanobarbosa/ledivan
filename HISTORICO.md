@@ -7,6 +7,43 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-10-24 — zod não era dependência declarada (#492)
+
+**Entregue:** `zod` vira dependência direta em 4.6.7; `nodemailer` 10.1.3 → 10.2.1.
+
+**Por quê:** advisories publicados no dia. O lockfile não mudava desde a #473, que havia zerado a
+auditoria — não era regressão nossa.
+
+**O achado que importa:** quatro rotas de API do app do paciente (`consent`, `diary`, `rating`,
+`scales`) importavam `zod` **sem ele estar declarado**. Resolvia para uma cópia 4.4.3 que o
+`@google/stitch-sdk` arrastava — e a #466 tinha acabado de mover esse SDK para `devDependencies`.
+O app dependia, em produção, de algo declarado como ferramenta de build. E 4.4.3 está na faixa da
+GHSA-mrhx-c7xc-m3w5 (alta, CVSS 7.5): exaustão de memória validando coleção grande, em rotas que
+recebem entrada de fora.
+
+**Decisões que ficam valendo:**
+- **Pacote que o nosso código importa é dependência DIRETA**, declarada e fixada — mesmo quando
+  "já funciona" por vir de outro.
+- **O `nodemailer` subiu porque o app manda e-mail de verdade.** As três falhas do parser de
+  endereço entregam mensagem a domínio que o cabeçalho não nomeia; lembrete de sessão vai por ali.
+
+**Armadilhas:**
+- **Pacote vulnerável que aparece como transitivo parece problema de terceiro.** Só olhando quem o
+  IMPORTA a gravidade aparece. Antes de classificar como "não é nosso código":
+  `grep -rn 'from "<pacote>"' src`.
+- **Mover algo para `devDependencies` pode orfanar imports** do que ele arrastava. Foi o que a #466
+  fez sem ninguém notar.
+- **`npm audit fix --only=prod` PODA as devDependencies** — eslint e typescript somem, e a
+  conferência seguinte falha com "módulo não encontrado", que parece defeito do código. `npm i`
+  depois.
+
+**Fica em aberto:** `zod@4.1.11` aninhado em `@vercel/blob → @vercel/oidc → @vercel/cli-config`. A
+correção exige bump semver-major do `@vercel/blob`, que é o caminho de upload de documento e foto
+do paciente, e o zod de lá valida respostas da API da Vercel — não a entrada dos nossos pacientes.
+Decisão do dono.
+
+---
+
 ## 2026-10-24 — Despesas: o quadro novo passa a enxergar o livro (#490)
 
 **Entregue:** o quadro de Despesas e o extrato de Movimentações mostram as DUAS origens — as
