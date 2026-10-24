@@ -7,6 +7,51 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-10-24 — Doc 55 fechado: a falta vira avulsa na hora, e o pagamento tem para onde ir (#484–#488)
+
+**Entregue:**
+- **#484** — textos das duas janelas e do checkbox de cortesia.
+- **#485** — cortesia aplica direto, sem a janela "Alterar quais?".
+- **#486** — cláusulas 4.1/4.2/4.3 do contrato gratuito, Receita Saúde abaixo da Agenda,
+  "Meu Perfil" → "Ajustes", e saiu a explicação do tipo de cadastro.
+- **#487** — "Sim" na falta do gratuito abre a janela do valor; a guia Geral já nasce preenchida.
+- **#488** — "Não" numa sessão JÁ PAGA pergunta o destino do dinheiro: estornar ou transferir.
+
+**Decisões que ficam valendo:**
+- **A pergunta do pacote fala de NUMERAÇÃO, não de "contagem".** "Abater" e "contagem" são palavras
+  do sistema; numeração é o que ela vê na célula e na tabela, e o que compara quando desconfia.
+- **Cortesia não pergunta alcance.** O checkbox já diz "este atendimento", e o servidor só aplica à
+  sessão editada. A janela tinha uma resposta certa só — e perguntar isso é cobrar um clique por nada.
+- **No contrato GRATUITO a cláusula 4.3 é a cobrança por falta, não o reajuste.** Reajuste não faz
+  sentido onde o valor é zero; sem a cláusula nova, o contrato não dá base para cobrar falta sem aviso.
+- **O valor da falta é perguntado na hora.** Some o aviso "Esta sessão foi considerada cobrada" e o
+  campo da guia Geral. Para mudar o valor depois, o caminho é marcar "Faltou" de novo — o mesmo da
+  janela, que já ensina isso.
+- **Pagamento lançado nunca some em silêncio.** Estornar apaga o pagamento (as somas derivam dele, e
+  se ajustam sozinhas) e GRAVA o registro do estorno, para a guia Geral dizer para onde o dinheiro
+  foi. Transferir muda só a cobrança a que ele pertence — data, valor, forma e quem pagou ficam.
+- **A "próxima sessão" que recebe a transferência pula as que não aconteceram.** E sem nenhuma
+  adiante, a transferência é RECUSADA em vez de deixar o pagamento preso a uma cobrança extinta.
+
+**Armadilhas:**
+- **PR empilhada volta a morder.** A #488 depende da #487; criei a #488 a partir de `main` e o
+  import da #487 não existia lá. Rebase resolveu, mas o sintoma (símbolo não encontrado) não
+  parece dependência de PR — parece erro de digitação.
+- **`git checkout` com alteração não commitada levou a mudança do fracionado para dentro da PR do
+  painel.** Separei depois. Commitar antes de trocar de branch, sempre.
+- **Crase em `gh pr create --body "..."` é comida pelo shell** — três trechos sumiram em duas PRs.
+  Escrever o corpo em arquivo e usar `--body-file`.
+- **Heredoc `<<'EOF'` com acentos em string de código** saiu sem acento no texto que o usuário lê.
+  Conferir o que foi gravado, não só o que o script disse.
+
+**Verificado em produção** (demo, com os olhos): menu com Receita Saúde abaixo de Agenda e
+"Ajustes"; textos das duas janelas palavra por palavra; checkbox só com o título.
+
+**Pendente:** centralizar as despesas no módulo novo (decidido pelo dono, com migração segura
+preservando os históricos) — único item do doc 55 que não entrou nesta leva.
+
+---
+
 ## 2026-10-24 — O motor não chegava inteiro em três telas (#480–#482)
 
 **Entregue:**
