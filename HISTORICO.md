@@ -7,6 +7,60 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-10-24 — O motor não chegava inteiro em três telas (#480–#482)
+
+**Entregue:**
+- **#480** — agenda, Fechamento e lista de pacientes voltam a ler a resposta do "Faltou".
+- **#481** — Dashboard classifica em DUAS categorias; os pausados caem numa delas pela agenda.
+- **#482** — no fracionado, a falta não abatida volta a empurrar a sessão para o mês seguinte.
+
+**Por quê:** a terapeuta mandou print — a mesma sessão aparecia `1/4` na guia Geral e `2/4` na
+agenda.
+
+**A causa não estava no cálculo, estava na CONSULTA.** A lista de colunas que o motor precisa ler
+estava copiada em quatro telas. Quando o doc 54 acrescentou `faltou_conta`, só a guia Geral passou
+a trazê-la. Sem o dado, a resposta "não abater" nunca chegava ao motor naquelas telas — e ele
+respondia outra coisa, em silêncio, porque cada tela sozinha ficava coerente consigo mesma.
+
+O alcance era maior que o print: a **Fechamento** tinha a mesma falta, e ali o dado faltando não
+desalinha um número — muda o dinheiro somado no mês.
+
+**Decisões que ficam valendo:**
+- **A lista de colunas do motor mora em `colunasDaSessao.ts`, num lugar só**, com o motivo de cada
+  uma escrito ao lado. Acrescentar um dado que o motor lê é mexer num arquivo.
+- **Dashboard tem DUAS caixas: Ativos e Inativos.** Pausado com sessão marcada à frente é Ativo;
+  sem nada marcado, Inativo. É classificação de EXIBIÇÃO — o status gravado continua "pausado", e
+  a ficha, a lista e o filtro da visão financeira seguem usando-o.
+- **No fracionado, a falta não abatida ocupa vaga** e empurra a última sessão para o mês seguinte,
+  como Desmarcou/Atestado. O mês seguinte REDUZ a quantidade cobrada, e o total se conserva. Não
+  são duas regras brigando: é uma redistribuição.
+- **A transparência da falta continua valendo onde evitou regressão real:** ela não data a cobrança
+  (não puxa vencimento nem competência) e não entra no valor da quinzena.
+
+**Armadilhas:**
+- **Testes de motor alimentam a entrada COMPLETA.** Todos eles montam o objeto na mão, como a guia
+  Geral faz — ninguém testava o que a agenda realmente envia. Três divergências de numeração em
+  três dias, e nenhuma conferência automática pegou nenhuma.
+- **Olhar um mês isolado e concluir "encareceu" é erro de medição.** Meu teste de ontem fazia isso
+  e me levou para o desenho errado no fracionado. A pergunta certa é sobre o TOTAL entre os meses.
+- **`git checkout` de branch com alteração não commitada leva a alteração junto.** A mudança do
+  motor entrou na PR do painel; separei depois, mas quase viajou de carona numa revisão que não
+  olharia para ela. Commitar antes de trocar de branch.
+- **Crase em corpo de PR pela linha de comando é comida pelo shell.** Três trechos sumiram em duas
+  PRs. Escrever o corpo em arquivo e usar `--body-file`.
+
+**Não verificável no ar:** a divergência exata não dá para reproduzir em produção — não existe
+nenhuma sessão com a resposta "não abater" gravada (as terapeutas testam e apagam). O conserto está
+provado por teste e por leitura do código; a confirmação na tela depende de refazerem o caso.
+
+**Pendente — resto do doc 55:** textos dos dois modais e do checkbox de cortesia; janela de valor ao
+responder "Sim" no gratuito; comportamento do "Não" com estorno/transferência de pagamento; cortesia
+aplicada sem a janela "Alterar quais?"; contrato do gratuito (4.1, 4.2 e cláusula 4.3 nova); menu
+"Meu perfil" → "Ajustes"; Receita Saúde abaixo de Agenda. Mais a centralização das despesas no
+módulo novo, já decidida.
+
+---
+
 ## 2026-10-22 — Fila de pendências zerada: spinner, hidratação, Escape, bateria de QA, dependências (#469–#475)
 
 **Entregue:**
