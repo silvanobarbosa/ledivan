@@ -1,47 +1,71 @@
 import { describe, expect, it } from "vitest";
-import { contagemDeCadastros } from "@/lib/contagemDeCadastros";
+import { categoriaDoCadastro, contagemDeCadastros } from "@/lib/contagemDeCadastros";
 
 /**
- * O painel do dashboard dizia 73 e a lista de pacientes dizia 91, para a mesma terapeuta. A
- * diferença eram os 18 PAUSADOS, que o painel não contava. Decisão do dono: eles entram.
+ * O painel classifica em DUAS caixas: Ativos e Inativos (dono, 23/10/2026). O status Pausado
+ * continua existindo no cadastro, mas no painel cada pausado cai numa das duas — pela agenda.
  */
 
-const pacientes = (n: Record<string, number>) =>
-  Object.entries(n).flatMap(([status, q]) => Array.from({ length: q }, () => ({ status })));
+const p = (status: string, temAgendaFutura?: boolean) => ({ status, temAgendaFutura });
 
-describe("contagemDeCadastros", () => {
-  it('"No cadastro" soma ativos, pausados e inativos', () => {
-    const c = contagemDeCadastros(pacientes({ ativo: 31, inativo: 42, pausado: 18 }));
-    expect(c).toEqual({ noCadastro: 91, ativos: 31, pausados: 18, inativos: 42 });
+describe("categoriaDoCadastro", () => {
+  it("ativo e inativo caem onde o nome diz", () => {
+    expect(categoriaDoCadastro(p("ativo"))).toBe("ativo");
+    expect(categoriaDoCadastro(p("inativo"))).toBe("inativo");
   });
 
-  it("o caso real que motivou a mudança: o painel dizia 73, a lista dizia 91", () => {
-    // Conta de demonstração em 22/10/2026 — os números são estes mesmos.
-    const todos = pacientes({ inativo: 42, ativo: 31, pausado: 18, prospect: 12 });
-    expect(todos).toHaveLength(103);
-    expect(contagemDeCadastros(todos).noCadastro).toBe(91); // era 73
+  it("pausado COM sessão marcada à frente é ativo — ele volta semana que vem", () => {
+    expect(categoriaDoCadastro(p("pausado", true))).toBe("ativo");
   });
 
-  it("prospect fica de fora: ainda não é paciente, e tem painel próprio", () => {
-    const c = contagemDeCadastros(pacientes({ ativo: 2, prospect: 50 }));
-    expect(c.noCadastro).toBe(2);
+  it("pausado SEM nada marcado é inativo — não está sendo atendido", () => {
+    expect(categoriaDoCadastro(p("pausado", false))).toBe("inativo");
+    expect(categoriaDoCadastro(p("pausado"))).toBe("inativo");
   });
 
-  it("status desconhecido não entra em conta nenhuma — e não quebra a tela", () => {
-    const c = contagemDeCadastros(pacientes({ ativo: 1, arquivado: 9, "": 3 }));
-    expect(c).toEqual({ noCadastro: 1, ativos: 1, pausados: 0, inativos: 0 });
+  it("prospect não entra em nenhuma das duas: ainda não é paciente", () => {
+    expect(categoriaDoCadastro(p("prospect", true))).toBeNull();
+  });
+
+  it("status desconhecido não é chutado para nenhum lado", () => {
+    expect(categoriaDoCadastro(p("arquivado"))).toBeNull();
+    expect(categoriaDoCadastro(p(""))).toBeNull();
   });
 
   it("não se importa com maiúscula nem espaço em volta", () => {
-    expect(contagemDeCadastros([{ status: " Pausado " }, { status: "ATIVO" }]).noCadastro).toBe(2);
+    expect(categoriaDoCadastro(p(" Pausado ", true))).toBe("ativo");
+    expect(categoriaDoCadastro(p("ATIVO"))).toBe("ativo");
+  });
+});
+
+describe("contagemDeCadastros", () => {
+  it('"No cadastro" é ativos + inativos, e só', () => {
+    const c = contagemDeCadastros([p("ativo"), p("ativo"), p("inativo"), p("prospect")]);
+    expect(c).toEqual({ noCadastro: 3, ativos: 2, inativos: 1 });
   });
 
-  it("lista vazia é tudo zero", () => {
-    expect(contagemDeCadastros([])).toEqual({ noCadastro: 0, ativos: 0, pausados: 0, inativos: 0 });
+  it("o caso real da base: 31 ativos, 42 inativos e 18 pausados sem agenda futura", () => {
+    // Medido em 23/10/2026: nenhum dos 18 pausados tinha sessão marcada à frente.
+    const base = [
+      ...Array.from({ length: 31 }, () => p("ativo")),
+      ...Array.from({ length: 42 }, () => p("inativo")),
+      ...Array.from({ length: 18 }, () => p("pausado", false)),
+      ...Array.from({ length: 12 }, () => p("prospect")),
+    ];
+    expect(contagemDeCadastros(base)).toEqual({ noCadastro: 91, ativos: 31, inativos: 60 });
+  });
+
+  it("um pausado que remarcou volta a contar como ativo", () => {
+    const c = contagemDeCadastros([p("pausado", true), p("pausado", false)]);
+    expect(c).toEqual({ noCadastro: 2, ativos: 1, inativos: 1 });
   });
 
   it("as partes sempre somam o todo", () => {
-    const c = contagemDeCadastros(pacientes({ ativo: 7, pausado: 3, inativo: 5, prospect: 11 }));
-    expect(c.ativos + c.pausados + c.inativos).toBe(c.noCadastro);
+    const c = contagemDeCadastros([p("ativo"), p("pausado", true), p("pausado", false), p("inativo"), p("prospect")]);
+    expect(c.ativos + c.inativos).toBe(c.noCadastro);
+  });
+
+  it("lista vazia é tudo zero", () => {
+    expect(contagemDeCadastros([])).toEqual({ noCadastro: 0, ativos: 0, inativos: 0 });
   });
 });

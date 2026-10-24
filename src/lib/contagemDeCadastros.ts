@@ -1,41 +1,63 @@
 /**
- * QUANTOS PACIENTES A TERAPEUTA TEM — e por que isso precisava de uma regra escrita.
+ * QUANTOS PACIENTES A TERAPEUTA TEM — e em quais duas caixas eles caem.
  *
- * O app tinha TRÊS respostas diferentes para a mesma pergunta, cada tela com a sua:
+ * O painel do dashboard classifica os cadastros em **duas** categorias apenas: Ativos e Inativos
+ * (dono, 23/10/2026). Não há caixa para Pausado ali — mas o status existe no cadastro, e os
+ * pacientes que estão nele precisam cair em alguma das duas.
  *
- * - o painel do dashboard dizia **73**: só `ativo` + `inativo`;
- * - a lista `/dashboard/patients` mostrava **91**: tudo menos `prospect`;
- * - o banco tinha **103**: tudo.
+ * **A regra: pausado com sessão marcada À FRENTE é Ativo; sem nenhuma, é Inativo.**
  *
- * A diferença de 18 entre as duas primeiras eram exatamente os PAUSADOS — gente que interrompeu a
- * terapia e é esperada de volta. Eles existiam no banco, apareciam na lista e sumiam do painel.
+ * É o que "pausado" quer dizer na prática. Quem interrompeu mas já tem a volta marcada está em
+ * tratamento — some do painel de ativos e a terapeuta perde de vista alguém que ela vai atender na
+ * semana que vem. Quem interrompeu e não tem nada marcado não está sendo atendido, e contá-lo como
+ * ativo infla o número que ela usa para saber o tamanho da carteira.
  *
- * A decisão do dono (22/10/2026): o pausado **entra** em "No cadastro", e ganha número próprio no
- * painel. É justamente quem pede ação — o paciente que pode voltar, ou que ela deveria procurar —,
- * e escondê-lo do painel era esconder o que mais interessa lembrar.
+ * Medido antes de escolher a regra: dos 18 pausados da base, **nenhum** tinha sessão futura, e a
+ * última realizada de todos passava de 136 dias. Pela regra, os 18 caem em Inativos — que é
+ * exatamente onde a leitura humana os colocaria.
  *
- * `prospect` continua FORA: ainda não é paciente, é alguém que procurou. Ele tem painel próprio
- * (Prospecção) e é o mesmo recorte que a lista de pacientes já usava.
+ * Isto é classificação de EXIBIÇÃO. O status gravado no cadastro continua "pausado": a ficha, a
+ * lista de pacientes e o filtro da visão financeira seguem mostrando-o, porque lá a distinção
+ * ainda serve. O que o dono pediu foi não ter a caixa separada no painel.
+ *
+ * `prospect` continua fora de tudo: ainda não é paciente, e tem painel próprio.
  *
  * Função pura.
  */
 
-export type CadastroContavel = { status: string };
+export type CadastroContavel = {
+  status: string;
+  /** Tem alguma sessão marcada para o futuro? Só importa para quem está pausado. */
+  temAgendaFutura?: boolean;
+};
 
 export type ContagemDeCadastros = {
-  /** Ativos + pausados + inativos. É o que "No cadastro" quer dizer. */
+  /** Ativos + inativos. É o que "No cadastro" quer dizer. */
   noCadastro: number;
   ativos: number;
-  /** Interrompeu e é esperado de volta. Nem ativo nem encerrado. */
-  pausados: number;
   inativos: number;
 };
 
-const ehStatus = (p: CadastroContavel, status: string) => String(p.status ?? "").trim().toLowerCase() === status;
+const normal = (s: string | null | undefined) => String(s ?? "").trim().toLowerCase();
+
+/**
+ * Em qual das duas caixas este cadastro cai. `null` = em nenhuma (prospect, status desconhecido).
+ */
+export function categoriaDoCadastro(p: CadastroContavel): "ativo" | "inativo" | null {
+  const s = normal(p.status);
+  if (s === "ativo") return "ativo";
+  if (s === "inativo") return "inativo";
+  if (s === "pausado") return p.temAgendaFutura ? "ativo" : "inativo";
+  return null;
+}
 
 export function contagemDeCadastros(pacientes: CadastroContavel[]): ContagemDeCadastros {
-  const ativos = pacientes.filter((p) => ehStatus(p, "ativo")).length;
-  const pausados = pacientes.filter((p) => ehStatus(p, "pausado")).length;
-  const inativos = pacientes.filter((p) => ehStatus(p, "inativo")).length;
-  return { noCadastro: ativos + pausados + inativos, ativos, pausados, inativos };
+  let ativos = 0;
+  let inativos = 0;
+  for (const p of pacientes) {
+    const c = categoriaDoCadastro(p);
+    if (c === "ativo") ativos += 1;
+    else if (c === "inativo") inativos += 1;
+  }
+  return { noCadastro: ativos + inativos, ativos, inativos };
 }
