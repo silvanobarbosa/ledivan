@@ -436,13 +436,24 @@ export async function desfazerCobrancaDaSessao(
   if ("erro" in decisao) return { ok: false, error: decisao.erro };
 
   if (decisao.acao === "estornar") {
-    // O pagamento sai: o dinheiro deixa de contar em TODAS as somas sozinho, porque elas derivam
-    // dos pagamentos — não há total guardado para corrigir. Fica só o registro do estorno, que é o
-    // que permite à guia Geral dizer para onde o valor foi.
-    await db.delete(sessionPayments)
+    /**
+     * O pagamento é MARCADO, não apagado (doc 57).
+     *
+     * Apagar fazia o dinheiro sumir do histórico sem rastro: a entrada desaparecia do extrato, e
+     * não dava para ver que houve pagamento e devolução. Marcado, o extrato mostra as duas pontas
+     * — a entrada no dia em que ela aconteceu, a saída no dia do estorno — e o saldo fecha em
+     * zero, que é a verdade.
+     *
+     * Ele deixa de quitar qualquer coisa: `casarPagamentos` ignora o estornado. Sem isso, o
+     * pagamento perderia a cobrança (que deixa de existir) e seria redistribuído para OUTRA
+     * sessão, pagando o que ninguém pagou.
+     */
+    const agora = new Date();
+    await db.update(sessionPayments)
+      .set({ estornadoEm: agora })
       .where(and(eq(sessionPayments.id, decisao.pagamentoId), eq(sessionPayments.userId, userId)));
     await db.update(therapySessions)
-      .set({ estornoValor: String(decisao.valor.toFixed(2)), estornoEm: new Date() })
+      .set({ estornoValor: String(decisao.valor.toFixed(2)), estornoEm: agora })
       .where(and(eq(therapySessions.id, sessionId), eq(therapySessions.userId, userId)));
   } else if (decisao.acao === "transferir") {
     // Só a cobrança a que ele pertence muda. Data, valor, forma e quem pagou ficam como estavam —

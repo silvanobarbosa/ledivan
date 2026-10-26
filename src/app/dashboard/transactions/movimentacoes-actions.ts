@@ -2,8 +2,8 @@
 
 import { db } from "@/db";
 import { auth } from "@/auth";
-import { despesas, receitasPessoais, patients, transactions } from "@/db/schema";
-import { and, eq } from "drizzle-orm";
+import { despesas, receitasPessoais, patients, transactions, therapySessions } from "@/db/schema";
+import { and, eq, isNotNull } from "drizzle-orm";
 import { geralDoPaciente, type LinhaNaTela } from "@/lib/geralDoPaciente";
 import { resolverCobrancas } from "@/lib/resolverCobrancas";
 import { getVigenciasTaxa } from "@/lib/cardFees";
@@ -25,7 +25,7 @@ export async function montarMovimentacoes(): Promise<{ ok: boolean; movs?: Movim
   const userId = session.user.id;
 
   const vigencias = await getVigenciasTaxa(userId);
-  const [despesasRows, receitasRows, cadastros, despesasDoLivro] = await Promise.all([
+  const [despesasRows, receitasRows, cadastros, despesasDoLivro, estornos] = await Promise.all([
     db.select({ nome: despesas.nome, valor: despesas.valor, vencimento: despesas.vencimento, pagamentoData: despesas.pagamentoData }).from(despesas).where(eq(despesas.userId, userId)),
     db.select({ nome: receitasPessoais.nome, valor: receitasPessoais.valor, recebimento: receitasPessoais.recebimento, recebido: receitasPessoais.recebido }).from(receitasPessoais).where(eq(receitasPessoais.userId, userId)),
     db.select({ id: patients.id, name: patients.name, phone: patients.phone, guardianPhone: patients.guardianPhone, paymentFormat: patients.paymentFormat, registrationNumber: patients.registrationNumber, agendaId: patients.agendaId, status: patients.patientStatus }).from(patients).where(eq(patients.userId, userId)),
@@ -43,6 +43,18 @@ export async function montarMovimentacoes(): Promise<{ ok: boolean; movs?: Movim
     db.select({ valor: transactions.amount, data: transactions.date, descricao: transactions.description })
       .from(transactions)
       .where(and(eq(transactions.userId, userId), eq(transactions.type, "expense"))),
+    /**
+     * Os ESTORNOS — dinheiro que voltou para o paciente (doc 57).
+     *
+     * Entram como SAÍDA, e isso só fecha porque o pagamento estornado continua no extrato como
+     * entrada: as duas pontas aparecem, e o saldo volta a zero. Se o pagamento fosse apagado, esta
+     * saída sozinha tiraria do mês um dinheiro que já não estava lá — a duplicidade que o
+     * documento manda evitar.
+     */
+    db.select({ valor: therapySessions.estornoValor, data: therapySessions.estornoEm, paciente: patients.name })
+      .from(therapySessions)
+      .innerJoin(patients, eq(patients.id, therapySessions.patientId))
+      .where(and(eq(therapySessions.userId, userId), isNotNull(therapySessions.estornoEm))),
   ]);
 
   const movs: Movimentacao[] = [];
@@ -58,6 +70,14 @@ export async function montarMovimentacoes(): Promise<{ ok: boolean; movs?: Movim
   for (const t of despesasDoLivro) {
     const v = Number(t.valor) || 0;
     movs.push({ data: dia(t.data), descricao: t.descricao || "Despesa", tipo: "saida", efetivado: true, bruto: v, liquido: v, temLiquido: false });
+  }
+
+  // Estorno → saída, no dia em que o dinheiro voltou. A entrada original continua no extrato,
+  // então as duas pontas aparecem e o saldo fecha em zero.
+  for (const e of estornos) {
+    const v = Number(e.valor) || 0;
+    if (v <= 0) continue;
+    movs.push({ data: dia(e.data), descricao: `Estorno · ${e.paciente}`, tipo: "saida", efetivado: true, bruto: v, liquido: v, temLiquido: false });
   }
 
   // Receitas pessoais → entrada. Recebida: data de recebimento (verde); prevista: mesma data, sem valor.

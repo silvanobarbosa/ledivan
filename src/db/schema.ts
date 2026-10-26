@@ -820,6 +820,17 @@ export const sessionPayments = pgTable("session_payments", {
   // A qual cobrança este pagamento pertence (a `chave` de `cobrancasDoPaciente`). Pagamento antigo
   // sem chave é distribuído pela ordem de vencimento.
   cobrancaChave: text("cobranca_chave"),
+  /**
+   * Doc 57: o pagamento foi ESTORNADO — devolvido ao paciente.
+   *
+   * A linha fica. Apagá-la fazia o dinheiro sumir do histórico sem deixar rastro: a entrada
+   * desaparecia do extrato e ninguém conseguia ver que houve pagamento e devolução. Com a marca, o
+   * extrato mostra as duas pontas — a entrada no dia em que ela aconteceu e a saída no dia do
+   * estorno —, e o saldo fecha em zero, que é a verdade.
+   *
+   * Um pagamento estornado NÃO quita nada: ele é ignorado ao casar pagamentos com cobranças.
+   */
+  estornadoEm: timestamp("estornado_em"),
   // "Não haverá diferença de valor" (doc 17): quando a pessoa lança MENOS do que a cobrança e marca
   // esta opção, a cobrança é QUITADA mesmo faltando — a diferença é perdoada, nunca vira "pago em
   // parte". O caixa continua honesto: guarda o valor REALMENTE recebido (`amount`); quem fecha a
