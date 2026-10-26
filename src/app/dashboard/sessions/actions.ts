@@ -436,12 +436,14 @@ export async function desfazerCobrancaDaSessao(
    * poderiam discordar, que é o defeito que já custou caro neste app.
    */
   const geral = await geralDoPaciente(userId, existing.patientId);
-  const rotuloDe = new Map((geral?.linhas ?? []).flatMap((l) => (l.tipo === "sessao" ? [[l.id, l.rotulo] as const] : [])));
+  const daGeral = new Map(
+    (geral?.linhas ?? []).flatMap((l) => (l.tipo === "sessao" ? [[l.id, { rotulo: l.rotulo, chave: l.cobranca?.chave ?? null }] as const] : [])),
+  );
   const irmas = (await db
     .select({ id: therapySessions.id, date: therapySessions.date, status: therapySessions.status })
     .from(therapySessions)
     .where(and(eq(therapySessions.userId, userId), eq(therapySessions.patientId, existing.patientId))))
-    .map((x) => ({ ...x, rotulo: rotuloDe.get(x.id) ?? null }));
+    .map((x) => ({ ...x, rotulo: daGeral.get(x.id)?.rotulo ?? null, chaveDaCobranca: daGeral.get(x.id)?.chave ?? null }));
 
   const decisao = decidirDesfazer({
     escolha,
@@ -497,8 +499,18 @@ export async function desfazerCobrancaDaSessao(
     // o documento pede isso em letra, e é o que mantém o histórico honesto: o paciente pagou
     // naquele dia, não neste.
     await db.update(sessionPayments)
-      .set({ cobrancaChave: decisao.novaChave })
+      .set({ cobrancaChave: decisao.novaChave, sessionId: decisao.paraSessaoId })
       .where(and(eq(sessionPayments.id, decisao.pagamentoId), eq(sessionPayments.userId, userId)));
+    /**
+     * E a sessão de ORIGEM guarda para onde o dinheiro foi (doc 58, item 7).
+     *
+     * Sem isto a transferência era invisível: a linha de origem esvaziava, o valor reaparecia
+     * noutra data, e nada ligava as duas — a terapeuta ficava sem saber se o pagamento tinha sido
+     * movido ou perdido.
+     */
+    await db.update(therapySessions)
+      .set({ transferidoPara: decisao.paraData })
+      .where(and(eq(therapySessions.id, sessionId), eq(therapySessions.userId, userId)));
   }
 
   // A sessão volta a ser gratuita: a resposta vira "não" e o valor que ela gerou sai junto.

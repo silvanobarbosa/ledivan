@@ -53,9 +53,28 @@ describe("decidirDesfazer", () => {
       .toEqual({ acao: "estornar", pagamentoId: "p1", valor: 200 });
   });
 
-  it("transferir aponta para a próxima sessão e para a cobrança dela", () => {
+  it("transferir aponta para a próxima sessão, com a DATA dela", () => {
+    // A data vai para a sessão de origem: é ela que a coluna Pagamento cita em "transferido para".
     expect(decidirDesfazer({ escolha: "transferir", pagamento: pg, sessaoAtualId: "s2", sessoes }))
-      .toEqual({ acao: "transferir", pagamentoId: "p1", valor: 200, paraSessaoId: "s4", novaChave: "extra:s4" });
+      .toEqual({ acao: "transferir", pagamentoId: "p1", valor: 200, paraSessaoId: "s4", paraData: d(26), novaChave: "extra:s4" });
+  });
+
+  /**
+   * Doc 58: a chave da cobrança de destino é a REAL, não uma montada aqui.
+   *
+   * `extra:<id>` só vale para a sessão extra avulsa. No paciente Avulso a cobrança da sessão é
+   * `sessao:<id>`, e mandar o pagamento para uma chave que não existe o solta de novo: a guia Geral
+   * passa a distribuí-lo por vencimento, sem vínculo com a linha nem com o recibo.
+   */
+  it("usa a chave de cobrança que a sessão de destino realmente tem", () => {
+    const comChave = sessoes.map((s) => (s.id === "s4" ? { ...s, chaveDaCobranca: "sessao:s4" } : s));
+    const r = decidirDesfazer({ escolha: "transferir", pagamento: pg, sessaoAtualId: "s2", sessoes: comChave });
+    expect(r).toMatchObject({ acao: "transferir", novaChave: "sessao:s4" });
+  });
+
+  it("sem chave na linha, cai no palpite antigo em vez de ficar sem destino", () => {
+    const r = decidirDesfazer({ escolha: "transferir", pagamento: pg, sessaoAtualId: "s2", sessoes });
+    expect(r).toMatchObject({ novaChave: "extra:s4" });
   });
 
   /**
