@@ -41,6 +41,12 @@ export type PagamentoDaGeral = {
   quita?: boolean | null;
   /** `pacote` = crédito de pacote (não emite recibo). */
   kind?: string | null;
+  /**
+   * Doc 57: foi ESTORNADO — devolvido ao paciente. A linha fica no histórico (o extrato mostra a
+   * entrada e a saída), mas ela não quita nada: deixá-la quitando faria a cobrança parecer paga
+   * com um dinheiro que já voltou.
+   */
+  estornadoEm?: Date | string | null;
   /** Documento já emitido para este pagamento (17/09). Só o fato interessa aqui, não a hora. */
   recibo?: boolean;
   nota?: boolean;
@@ -216,7 +222,7 @@ function limiteDaCobranca(c: Cobranca, horasAntes: number): Date | null {
 function casarPagamentos(cobrancas: Cobranca[], pagamentos: PagamentoDaGeral[], hoje: Date, envios: EnvioDaGeral[] = [], horasAntes = 0, sessoes: { id: string; date: Date | string }[] = []): CobrancaDaGeral[] {
   const enviosPorChave = mapaDeEnvios(envios);
   const pagos = pagamentos
-    .filter((p) => p.status === "paid")
+    .filter((p) => p.status === "paid" && !p.estornadoEm)
     .map((p) => ({ ...p, valor: Number(p.valor) || 0, data: emData(p.data) }))
     .sort((a, b) => a.data.getTime() - b.data.getTime() || a.id.localeCompare(b.id));
 
@@ -576,7 +582,8 @@ export function resumoDaGeral(e: EntradaDaGeral): ResumoDaGeral {
   // Exigível = o que já se pode cobrar: pago ou em atraso. O que ainda está no prazo (em aberto) não
   // entra no saldo — senão uma cobrança futura já apareceria como dívida.
   const exigiveis = cobrancas.filter((c) => c.situacao !== "em_aberto");
-  const pagos = e.pagamentos.filter((p) => p.status === "paid");
+  // Estornado não entra no saldo: o dinheiro voltou para o paciente.
+  const pagos = e.pagamentos.filter((p) => p.status === "paid" && !p.estornadoEm);
 
   const movimentos = [
     ...exigiveis.map((c) => ({
