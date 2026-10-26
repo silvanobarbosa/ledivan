@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { decidirDesfazer, proximaSessaoParaReceber, type SessaoNaLinha } from "@/lib/desfazerCobranca";
+import { decidirDesfazer, proximaSessaoParaReceber, recebePagamento, type SessaoNaLinha } from "@/lib/desfazerCobranca";
 
 /**
  * Desfazer a cobrança de uma sessão que JÁ foi paga (doc 55).
@@ -11,10 +11,10 @@ import { decidirDesfazer, proximaSessaoParaReceber, type SessaoNaLinha } from "@
 
 const d = (dia: number) => new Date(2026, 9, dia, 11, 0);
 const sessoes: SessaoNaLinha[] = [
-  { id: "s1", date: d(5), status: "realizada" },
-  { id: "s2", date: d(12), status: "nao_realizada" },
-  { id: "s3", date: d(19), status: "cancelada" },
-  { id: "s4", date: d(26), status: "agendada" },
+  { id: "s1", date: d(5), status: "realizada", rotulo: "AVUL" },
+  { id: "s2", date: d(12), status: "nao_realizada", rotulo: "AVUL" },
+  { id: "s3", date: d(19), status: "cancelada", rotulo: "AVUL" },
+  { id: "s4", date: d(26), status: "agendada", rotulo: "AVUL" },
 ];
 const pg = { id: "p1", valor: 200, cobrancaChave: "extra:s2" };
 
@@ -58,10 +58,40 @@ describe("decidirDesfazer", () => {
       .toEqual({ acao: "transferir", pagamentoId: "p1", valor: 200, paraSessaoId: "s4", novaChave: "extra:s4" });
   });
 
-  it("transferir sem próxima sessão RECUSA, em vez de deixar o pagamento órfão", () => {
-    // Devolver "nada" aqui prenderia o dinheiro a uma cobrança que vai deixar de existir.
-    const r = decidirDesfazer({ escolha: "transferir", pagamento: pg, sessaoAtualId: "s4", sessoes });
-    expect(r).toHaveProperty("erro");
-    expect((r as { erro: string }).erro).toContain("Estorne");
+  /**
+   * Doc 57: sem próxima elegível o dinheiro VIRA CRÉDITO — não se perde nem se devolve.
+   *
+   * Antes eu recusava e mandava estornar. Recusar era melhor do que deixar o pagamento órfão, mas
+   * obrigava a terapeuta a devolver um dinheiro que o paciente não pediu de volta: ele continua
+   * cliente, e a sessão seguinte só ainda não foi marcada.
+   */
+  it("transferir sem próxima elegível vira CRÉDITO, não erro nem estorno", () => {
+    expect(decidirDesfazer({ escolha: "transferir", pagamento: pg, sessaoAtualId: "s4", sessoes }))
+      .toEqual({ acao: "creditar", pagamentoId: "p1", valor: 200 });
+  });
+});
+
+describe("quem pode receber o pagamento transferido (doc 57)", () => {
+  it("AVUL e X/X recebem: são as que têm o que pagar", () => {
+    for (const r of ["AVUL", "1/4", "3/8", "DEVOL 2/4"]) expect(recebePagamento(r)).toBe(true);
+  });
+
+  it("GRAT não recebe — mandar dinheiro para uma sessão gratuita o faria sumir", () => {
+    expect(recebePagamento("GRAT")).toBe(false);
+  });
+
+  it("sem rótulo não se adivinha: adivinhar aqui é mandar dinheiro para o lugar errado", () => {
+    expect(recebePagamento("")).toBe(false);
+    expect(recebePagamento(null)).toBe(false);
+    expect(recebePagamento("DEVOL")).toBe(false);
+  });
+
+  it("a próxima elegível PULA as gratuitas, mesmo sendo mais próximas na data", () => {
+    const lista: SessaoNaLinha[] = [
+      { id: "a", date: d(5), status: "realizada", rotulo: "AVUL" },
+      { id: "b", date: d(12), status: "agendada", rotulo: "GRAT" },
+      { id: "c", date: d(19), status: "agendada", rotulo: "2/4" },
+    ];
+    expect(proximaSessaoParaReceber("a", lista)?.id).toBe("c");
   });
 });

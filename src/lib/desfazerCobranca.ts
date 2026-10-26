@@ -33,6 +33,14 @@ export type SessaoNaLinha = {
   date: Date | string;
   /** Status atual — uma sessão que não aconteceu não recebe pagamento transferido. */
   status: string;
+  /**
+   * O rótulo da célula: `AVUL`, `2/4`, `GRAT`, `DEVOL`…
+   *
+   * Doc 57: só é ELEGÍVEL para receber o pagamento a sessão `AVUL` ou `X/X`, porque são as que têm
+   * o que pagar. Mandar o dinheiro para uma GRAT seria pagar uma sessão gratuita — o crédito
+   * desapareceria dentro de uma cobrança que não existe.
+   */
+  rotulo?: string | null;
 };
 
 const emData = (d: Date | string): Date => (d instanceof Date ? d : new Date(d));
@@ -44,6 +52,13 @@ const emData = (d: Date | string): Date => (d instanceof Date ? d : new Date(d))
  * ainda vai acontecer ou aconteceu: transferir para uma desmarcada só adiaria o mesmo problema, e
  * para uma que também está sendo dispensada criaria um crédito circulando sem destino.
  */
+/** `AVUL` ou `X/X` — as que têm o que pagar (doc 57). */
+export function recebePagamento(rotulo: string | null | undefined): boolean {
+  const r = String(rotulo ?? "").trim().toUpperCase();
+  if (r.startsWith("AVUL")) return true;
+  return /\d+\s*\/\s*\d+/.test(r);
+}
+
 export function proximaSessaoParaReceber(
   sessaoAtualId: string,
   todas: SessaoNaLinha[],
@@ -56,7 +71,9 @@ export function proximaSessaoParaReceber(
 
   return (
     todas
-      .filter((s) => s.id !== sessaoAtualId && !naoRecebem.has(s.status))
+      // Elegível = tem o que pagar (AVUL ou X/X) E aconteceu ou vai acontecer. Sem rótulo, não dá
+      // para afirmar que tem cobrança — e adivinhar aqui é mandar dinheiro para o lugar errado.
+      .filter((s) => s.id !== sessaoAtualId && !naoRecebem.has(s.status) && recebePagamento(s.rotulo))
       .map((s) => ({ s, t: emData(s.date).getTime() }))
       .filter((x) => !Number.isNaN(x.t) && x.t > quando)
       .sort((a, b) => a.t - b.t || a.s.id.localeCompare(b.s.id))
@@ -67,7 +84,16 @@ export function proximaSessaoParaReceber(
 export type DecisaoDeDesfazer =
   | { acao: "nada" }
   | { acao: "estornar"; pagamentoId: string; valor: number }
-  | { acao: "transferir"; pagamentoId: string; valor: number; paraSessaoId: string; novaChave: string };
+  | { acao: "transferir"; pagamentoId: string; valor: number; paraSessaoId: string; novaChave: string }
+  /**
+   * Doc 57: não há próxima sessão elegível, e o dinheiro NÃO se perde nem vira estorno — fica como
+   * crédito, esperando a próxima sessão que tenha o que pagar.
+   *
+   * Antes eu recusava a transferência e mandava estornar. Recusar era melhor do que deixar o
+   * pagamento órfão, mas obrigava a terapeuta a devolver um dinheiro que o paciente não pediu de
+   * volta — ele continua cliente, e a sessão seguinte simplesmente ainda não foi marcada.
+   */
+  | { acao: "creditar"; pagamentoId: string; valor: number };
 
 /**
  * O que fazer com o pagamento, dada a escolha da terapeuta.
@@ -93,7 +119,8 @@ export function decidirDesfazer(opts: {
   }
 
   const proxima = proximaSessaoParaReceber(opts.sessaoAtualId, opts.sessoes);
-  if (!proxima) return { erro: "Não há sessão seguinte para receber este pagamento. Estorne o valor." };
+  // Sem destino, o valor VIRA CRÉDITO — não se perde nem se devolve (doc 57).
+  if (!proxima) return { acao: "creditar", pagamentoId: pagamento.id, valor: pagamento.valor };
   return {
     acao: "transferir",
     pagamentoId: pagamento.id,

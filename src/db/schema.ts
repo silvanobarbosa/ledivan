@@ -628,6 +628,10 @@ export const therapySessions = pgTable("therapy_sessions", {
   // escolhendo ESTORNAR. O pagamento em si é apagado — então o dinheiro sai de todas as somas
   // sozinho; o que fica aqui é o REGISTRO do estorno, para a guia Geral poder dizer "Estorno
   // realizado no valor de R$ xx,xx" em vez de a linha simplesmente esvaziar sem explicação.
+  // Doc 57: a sessão AVUL que virou GRAT e cujo pagamento virou CRÉDITO, por não haver próxima
+  // sessão elegível para recebê-lo. Guarda só o valor, para a guia Geral poder dizer que há um
+  // crédito esperando — o crédito em si mora em `patient_credits`, com o resto do app.
+  creditoValor: numeric("credito_valor", { precision: 10, scale: 2 }),
   estornoValor: numeric("estorno_valor", { precision: 10, scale: 2 }),
   estornoEm: timestamp("estorno_em"),
   // Doc 54: atendimento do pacote dado de CORTESIA. Ele não cobra e deixa de ocupar posição na
