@@ -17,6 +17,12 @@ dela fica, com preferências, feriados e termos aceitos.
 limpa. "Apagar a base" nesse pedido NÃO inclui a conta nem as configurações — ela precisa continuar
 entrando, com o app do jeito dela.
 
+Depois, pelo mesmo procedimento, a base da **Ana Raquel**: 34 linhas (3 cadastros, 3 reajustes, 2
+transações, 2 pagamentos e os históricos financeiros), backup em
+`backup-pre-limpeza-ana-2026-10-26` (`br-super-lake-ac5a3vkn`). A conta do Dr. Sócrates (103
+pacientes, 5.758 sessões, 1.737 transações) ficou intacta nas duas vezes — a conferência é por
+conta, não global.
+
 **Decisões que ficam valendo:**
 - **O procedimento virou `scripts/limpar-base-terapeuta.mjs`**, porque vai se repetir. Ele roda em
   ENSAIO por padrão (só conta) e só apaga com `--apagar`; aceita `LIMPAR_EMAIL` para outra conta; e
