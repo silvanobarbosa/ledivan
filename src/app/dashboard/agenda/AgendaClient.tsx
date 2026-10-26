@@ -21,6 +21,7 @@ import { formatoNaData } from "@/lib/vigenciaDoFormato";
 import { tipoDaFalta, tipoDaFaltaPeloRotulo, perguntaDaFalta, COMO_REFAZER } from "@/lib/perguntaFalta";
 import { podeSerCortesia } from "@/lib/cortesia";
 import { useJanela } from "@/lib/useJanela";
+import { mascaraMoeda } from "@/lib/mascaraMoeda";
 
 type PatientLite = { id: string; name: string; status: string; attendanceMode: string | null; attendanceLocation: string | null;
   /** Doc 42: paciente | supervisionado — supervisionado só agenda sessões do tipo supervisão. */
@@ -1203,9 +1204,12 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
               autoFocus
               inputMode="decimal"
               value={valorDaFalta}
-              onChange={(e) => setValorDaFalta(e.target.value)}
+              /* Doc 57: o campo se escreve sozinho — digitou 20000, aparece R$ 200,00. Sem a
+                 máscara, "200" podia ser duzentos ou dois reais, e quem decidia era um parser que
+                 quem digita não vê. */
+              onChange={(e) => setValorDaFalta(mascaraMoeda(e.target.value))}
               onKeyDown={(e) => { if (e.key === "Enter") salvarValorDaFalta(); }}
-              placeholder="200,00"
+              placeholder="R$ 0,00"
               aria-label="Valor da sessão"
               className="w-full mt-3 px-3 py-2 rounded-xl bg-white border border-border outline-none text-sm tabular-nums"
             />
