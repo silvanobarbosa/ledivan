@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@/db";
-import { therapySessions, patients, patientPaymentFormatHistory, blockedSlots, sessoesPuladas, sessionPayments } from "@/db/schema";
+import { therapySessions, patients, patientPaymentFormatHistory, blockedSlots, sessoesPuladas, sessionPayments, patientCredits } from "@/db/schema";
 import { auth } from "@/auth";
 import { canalParaGravar, datasEPuladas, ehMensal, ehOnline, geraRepeticoes, horasAntesParaGravar, pedeLocal, segundoDiaValido } from "@/lib/agendamentoNovo";
 import { and, eq, gte, lte } from "drizzle-orm";
@@ -14,6 +14,7 @@ import { desmarcadasSemReposicao, extraParaGravar } from "@/lib/sessaoExtra";
 import { formatoNaData } from "@/lib/vigenciaDoFormato";
 import { getUserAiClient, SemChaveIA } from "@/lib/ai-client";
 import { decidirDesfazer } from "@/lib/desfazerCobranca";
+import { geralDoPaciente } from "@/lib/geralDoPaciente";
 
 type SessionStatus = "realizada" | "nao_realizada" | "cancelada" | "realocada" | "agendada" | "prof_desmarcou" | "atestado";
 
@@ -422,10 +423,20 @@ export async function desfazerCobrancaDaSessao(
     .where(and(eq(sessionPayments.userId, userId), eq(sessionPayments.cobrancaChave, `extra:${sessionId}`), eq(sessionPayments.status, "paid")))
     .limit(1);
 
-  const irmas = await db
+  /**
+   * As irmãs COM RÓTULO: a elegibilidade do doc 57 é "AVUL ou X/X", e o rótulo é quem diz isso.
+   *
+   * Ele sai do mesmo motor que desenha a célula da agenda, então a sessão que a terapeuta vê como
+   * `2/4` é a mesma que o dinheiro encontra aqui — se eu recalculasse por conta própria, as duas
+   * poderiam discordar, que é o defeito que já custou caro neste app.
+   */
+  const geral = await geralDoPaciente(userId, existing.patientId);
+  const rotuloDe = new Map((geral?.linhas ?? []).flatMap((l) => (l.tipo === "sessao" ? [[l.id, l.rotulo] as const] : [])));
+  const irmas = (await db
     .select({ id: therapySessions.id, date: therapySessions.date, status: therapySessions.status })
     .from(therapySessions)
-    .where(and(eq(therapySessions.userId, userId), eq(therapySessions.patientId, existing.patientId)));
+    .where(and(eq(therapySessions.userId, userId), eq(therapySessions.patientId, existing.patientId))))
+    .map((x) => ({ ...x, rotulo: rotuloDe.get(x.id) ?? null }));
 
   const decisao = decidirDesfazer({
     escolha,
@@ -454,6 +465,27 @@ export async function desfazerCobrancaDaSessao(
       .where(and(eq(sessionPayments.id, decisao.pagamentoId), eq(sessionPayments.userId, userId)));
     await db.update(therapySessions)
       .set({ estornoValor: String(decisao.valor.toFixed(2)), estornoEm: agora })
+      .where(and(eq(therapySessions.id, sessionId), eq(therapySessions.userId, userId)));
+  } else if (decisao.acao === "creditar") {
+    /**
+     * Doc 57: sem próxima sessão elegível, o valor NÃO se perde nem vira estorno — fica como
+     * crédito do paciente, esperando a próxima que tenha o que pagar.
+     *
+     * O pagamento sai da cobrança (que deixa de existir) e vira uma linha de crédito. É a mesma
+     * mecânica de sobra de pagamento que o app já usa desde o doc 36, então o crédito aparece e é
+     * abatido pelos caminhos que já existem — nada de uma segunda maneira de guardar dinheiro.
+     */
+    await db.insert(patientCredits).values({
+      userId,
+      patientId: existing.patientId,
+      valor: String(decisao.valor.toFixed(2)),
+      origemPagamentoId: decisao.pagamentoId,
+    });
+    await db.update(sessionPayments)
+      .set({ estornadoEm: new Date() })
+      .where(and(eq(sessionPayments.id, decisao.pagamentoId), eq(sessionPayments.userId, userId)));
+    await db.update(therapySessions)
+      .set({ creditoValor: String(decisao.valor.toFixed(2)) })
       .where(and(eq(therapySessions.id, sessionId), eq(therapySessions.userId, userId)));
   } else if (decisao.acao === "transferir") {
     // Só a cobrança a que ele pertence muda. Data, valor, forma e quem pagou ficam como estavam —
