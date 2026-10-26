@@ -7,6 +7,39 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-10-26 — Base da Gisele limpa para a próxima rodada de avaliação
+
+**Entregue:** 285 linhas apagadas da conta da Gisele — 197 sessões, 19 transações, 14 cadastros, 10
+pagamentos, 3 horários bloqueados, 3 reajustes e os históricos financeiros dos pacientes. A CONTA
+dela fica, com preferências, feriados e termos aceitos.
+
+**Por quê:** ela monta cenários, usa o app, nós ajustamos, e ela recomeça a avaliação com a base
+limpa. "Apagar a base" nesse pedido NÃO inclui a conta nem as configurações — ela precisa continuar
+entrando, com o app do jeito dela.
+
+**Decisões que ficam valendo:**
+- **O procedimento virou `scripts/limpar-base-terapeuta.mjs`**, porque vai se repetir. Ele roda em
+  ENSAIO por padrão (só conta) e só apaga com `--apagar`; aceita `LIMPAR_EMAIL` para outra conta; e
+  confere no fim que sobrou zero.
+- **Backup ANTES, sempre.** Branch Neon `backup-pre-limpeza-gisele-2026-10-26`
+  (`br-shy-heart-acxkdbst`), ao lado dos de 30/08 e 09/10.
+- **Apagar tabela por tabela, por nome, em vez de confiar no CASCADE.** Uma tabela sem a regra
+  deixaria linhas órfãs — invisíveis em toda tela e eternas no banco.
+
+**Armadilhas:**
+- **O projeto no Neon chama "LividanPlus", com i.** Procurar por "ledivan" não acha, e a primeira
+  busca voltou vazia como se o projeto não existisse. O id é `square-river-49620558`.
+- **`sql(...)` do neon-http só funciona como tagged template.** Para query com parâmetro montada em
+  string é `sql.query(texto, [valores])` — o erro que volta fala de template, não de SQL, e manda
+  procurar no lugar errado.
+
+**Pendente, e não é efeito da limpeza:** a conta da Gisele está **sem senha cadastrada**
+(`password_hash` nulo) — ela entra só pelo Google. Em modo Testing do GCP isso exige o e-mail dela
+na lista de test users, e o app mobile, que faz login por e-mail+senha, não abre. Ver
+[[licao-validar-rodando]] e o caso idêntico da Ana Raquel em `ledivan-estado-set2026`.
+
+---
+
 ## 2026-10-26 — Máscara de dinheiro: uma regra só, em todo campo de valor (#502)
 
 **Entregue:** todo campo de dinheiro do app formata enquanto se digita — lançar pagamento, valor da
