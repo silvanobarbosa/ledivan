@@ -158,6 +158,8 @@ export type LinhaDaGeral =
        * mais cara é "para onde foi o que o paciente pagou?". Então ela diz.
        */
       avisoDoPagamento?: string | null;
+      /** Doc 57: o aviso que fica em cima do botão "Lançar pagamento", não na coluna. */
+      avisoDaCobranca?: string | null;
       /** Valor que a linha mostra. `null` = a sessão é paga pela linha do pacote. */
       valor: number | null;
       /** A cobrança da própria linha (a cada sessão, AVUL). */
@@ -400,16 +402,49 @@ const comoLinha = ({ tipo, ...c }: CobrancaDaGeral): LinhaDaGeral => ({ ...c, ti
  * aparecer mesmo que a sessão também tenha virado gratuita.
  */
 function avisoDoPagamento(
-  s: { estornoValor?: number | string | null; status: string; faltouConta?: boolean | null; extra?: string | null },
+  s: {
+    estornoValor?: number | string | null;
+    estornoEm?: Date | string | null;
+    status: string;
+    faltouConta?: boolean | null;
+    extra?: string | null;
+  },
   formato: string,
 ): string | null {
+  const virouGratuita = s.status === "nao_realizada" && s.faltouConta === false && (formato === "sessao" || s.extra === "avul" || s.extra === "grat");
+
+  // ESTORNO. O texto completo porque as duas coisas aconteceram: a sessão mudou de modalidade E o
+  // dinheiro voltou. Quem lê a linha precisa das duas para entender o saldo do mês.
   const estornado = Number(s.estornoValor);
   if (Number.isFinite(estornado) && estornado > 0) {
-    return `Estorno realizado no valor de ${dinheiroBR(estornado)}`;
+    return `Sessão AVUL, que foi convertida para GRAT - Estorno realizado no valor de ${dinheiroBR(estornado)}`;
   }
-  // A avulsa que voltou a ser gratuita: o "Não" depois de um "Sim", ou o "Não" do próprio avulso.
-  const voltouAGratuita = s.status === "nao_realizada" && s.faltouConta === false && (formato === "gratuito" || formato === "sessao" || !!s.extra);
-  return voltouAGratuita ? "Sessão avulsa que foi convertida para gratuita" : null;
+
+  // CONVERSÃO SIMPLES, sem dinheiro envolvido.
+  if (virouGratuita) return "Sessão AVUL que foi convertida para GRAT";
+
+  /**
+   * O caminho contrário — GRAT que virou AVUL — NÃO tem aviso aqui (doc 57).
+   *
+   * Ele aparece junto do botão "Lançar pagamento", que é onde a terapeuta vai agir: a linha tem
+   * cobrança, e o aviso solto na coluna disputaria espaço com o valor e o botão.
+   *
+   * E o gratuito que respondeu "Não" não ganha aviso NENHUM: nada mudou de lugar, nada foi
+   * convertido, e escrever "convertida para gratuita" numa sessão que sempre foi gratuita era
+   * inventar um evento que não houve — o dono pediu para tirar.
+   */
+  return null;
+}
+
+/**
+ * O aviso que fica em cima do botão "Lançar pagamento" (doc 57).
+ *
+ * Separado do da coluna porque o lugar é outro e a razão também: aqui a sessão TEM cobrança a
+ * lançar, e o texto explica por que uma sessão de paciente gratuito está pedindo dinheiro.
+ */
+export function avisoDaCobranca(s: { status: string; faltouConta?: boolean | null }, formato: string): string | null {
+  const virouAvulsa = formato === "gratuito" && s.status === "nao_realizada" && s.faltouConta === true;
+  return virouAvulsa ? "Sessão GRAT que foi convertida para AVUL" : null;
 }
 
 const dinheiroBR = (n: number) => `R$ ${n.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -472,6 +507,7 @@ export function linhasDaGeral(e: EntradaDaGeral): LinhaDaGeral[] {
       status: s.status,
       faltouConta: s.faltouConta ?? null,
       avisoDoPagamento: avisoDoPagamento(s, formato),
+      avisoDaCobranca: avisoDaCobranca(s, formato),
       rotulo: rotulos.get(s.id) ?? "",
       // GRAT mostra R$ 0,00 SEMPRE, inclusive com status que pausa (documento de 17/09). Vazio e
       // "R$ 0,00" não dizem a mesma coisa: vazio parece dado faltando, e numa tabela de dinheiro

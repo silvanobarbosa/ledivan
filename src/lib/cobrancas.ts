@@ -128,7 +128,7 @@ const dinheiro = (v: number) => Math.round(v * 100) / 100;
 const chaveDoDia = (d: Date | null) =>
   d ? `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}` : "inicio";
 
-type Ordenada = SessaoDaCobranca & { data: Date; derivadaDoGratuito?: boolean };
+type Ordenada = SessaoDaCobranca & { data: Date; derivadaDoGratuito?: boolean; derivadaDoAvulso?: boolean };
 
 function emOrdem(sessoes: SessaoDaCobranca[]): Ordenada[] {
   return sessoes
@@ -189,6 +189,30 @@ function marcarFaltaCobradaNoGratuito(ordenadas: Ordenada[], periodos: PeriodoDe
   // `derivadaDoGratuito` sobrevive só dentro desta leitura: é como a cobrança sabe que o zero dela
   // é de espera, não de defeito.
   return ordenadas.map((s) => (avulsas.has(s.id) ? { ...s, extra: "avul" as const, derivadaDoGratuito: true } : s));
+}
+
+/**
+ * O CAMINHO INVERSO: a sessão AVULSA que a terapeuta decidiu não cobrar vira GRAT (doc 57).
+ *
+ * "Não" na pergunta do avulso não era só deixar de cobrar — o dono pediu que a sessão PASSE a ser
+ * gratuita, na agenda e na guia Geral. Sem isto, ela continuava escrita AVUL numa linha que não
+ * cobrava nada: o rótulo dizia uma coisa e o dinheiro outra.
+ *
+ * Como no gratuito, é DERIVADO da resposta e não gravado — é o que permite desfazer remarcando
+ * "Faltou", que é o que a janela promete. `extra: "grat"` é exatamente o que já significa "sessão
+ * que não cobra e se chama GRAT"; reusá-lo evita uma segunda maneira de dizer a mesma coisa.
+ */
+function marcarFaltaNaoCobradaNoAvulso(ordenadas: Ordenada[], periodos: PeriodoDeVigencia[]): Ordenada[] {
+  const gratuitas = new Set<string>();
+  for (const grupo of separarPorVigencia(ordenadas, periodos)) {
+    const avulso = grupo.periodo.formato === "sessao";
+    for (const s of grupo.sessoes) {
+      const ehAvulsa = avulso ? !ehExtra(s) : s.extra === "avul";
+      if (ehAvulsa && s.status === "nao_realizada" && s.faltouConta === false) gratuitas.add(s.id);
+    }
+  }
+  if (!gratuitas.size) return ordenadas;
+  return ordenadas.map((s) => (gratuitas.has(s.id) ? { ...s, extra: "grat" as const, derivadaDoAvulso: true } : s));
 }
 
 /** Pertence à sequência do pacote? (Pertencer e OCUPAR posição são coisas diferentes — ver `pausa`.) */
@@ -373,7 +397,7 @@ function cobrancasDoPeriodo(periodo: PeriodoDeVigencia, sessoes: Ordenada[], e: 
 /** Todas as cobranças do paciente, em ordem de vencimento. */
 export function cobrancasDoPaciente(e: EntradaDasCobrancas): Cobranca[] {
   const periodos = periodosDeVigencia(e.vigencias, e.reserva);
-  const ordenadas = marcarFaltaCobradaNoGratuito(emOrdem(e.sessoes), periodos);
+  const ordenadas = marcarFaltaNaoCobradaNoAvulso(marcarFaltaCobradaNoGratuito(emOrdem(e.sessoes), periodos), periodos);
   const reservaPreco = Number(e.valorDaSessao) || 0;
 
   const out: Cobranca[] = [];
@@ -423,7 +447,7 @@ export function cobrancasDoPaciente(e: EntradaDasCobrancas): Cobranca[] {
  */
 export function rotulosDasSessoes(e: EntradaDasCobrancas): Map<string, string> {
   const periodos = periodosDeVigencia(e.vigencias, e.reserva);
-  const ordenadas = marcarFaltaCobradaNoGratuito(emOrdem(e.sessoes), periodos);
+  const ordenadas = marcarFaltaNaoCobradaNoAvulso(marcarFaltaCobradaNoGratuito(emOrdem(e.sessoes), periodos), periodos);
   const rotulos = new Map<string, string>(ordenadas.map((s) => [s.id, ""]));
 
   for (const grupo of separarPorVigencia(ordenadas, periodos)) {
