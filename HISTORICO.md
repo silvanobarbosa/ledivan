@@ -7,6 +7,34 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-10-26 — Auditoria de produção zerada (#500)
+
+**Entregue:** `npm audit --omit=dev` devolve **found 0 vulnerabilities**. Eram 23 em 22/10, com 2
+críticas.
+
+**Por quê:** as quatro altas que sobravam eram todas o MESMO pacote — `zod@4.1.11` escondido em
+`@vercel/blob → @vercel/oidc → @vercel/cli-config`, na faixa da GHSA-mrhx-c7xc-m3w5.
+
+**Decisões que ficam valendo:**
+- **`override` prendendo zod em 4.6.7**, a mesma versão que o app já usa. Fica UMA versão na árvore
+  inteira, em vez de duas, e o `@vercel/blob` não é tocado — ele é o caminho de upload de documento
+  e foto do paciente, e não se mexe nele sem necessidade.
+
+**Armadilhas:**
+- **O `fixAvailable` do npm mentiu.** Ele sugeria "corrigir" indo para `@vercel/blob@2.4.0` — uma
+  versão MAIS ANTIGA que a nossa (2.8.2). Conferido: não existe major 3 do pacote. Antes de aceitar
+  um bump semver-major sugerido pela auditoria, olhar `npm view <pkg> versions`.
+- **Build e `tsc` NÃO exercitam dependência aninhada.** O zod trocado só roda quando o blob monta a
+  requisição. A conferência que vale é chamar a função: `put` SEM token percorre a cadeia de
+  credenciais inteira — incluindo o `oidc`/`cli-config`, que é onde o zod vive — e falha com
+  `BlobError` pedindo credencial. Erro do blob, não do zod: o caminho rodou inteiro.
+
+**Não verificável:** servir um arquivo real de ponta a ponta. O único arquivo guardado na base
+pertence à conta da Ana Raquel, e a conta de demonstração não tem nenhum. As três rotas que servem
+arquivo respondem 4xx corretos (nunca 500), o que prova que executam.
+
+---
+
 ## 2026-10-26 — Doc 57: a janela é a do que a sessão É, e o dinheiro tem três destinos (#495–#498)
 
 **Entregue:**
