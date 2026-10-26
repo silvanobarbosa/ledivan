@@ -1,4 +1,5 @@
 "use client";
+import { MoneyInput } from "@/components/MoneyInput";
 
 import { useState } from "react";
 import { Plus, X, Pencil, Trash2 } from "lucide-react";
@@ -49,7 +50,7 @@ export function DespesasSection({ despesas, hoje }: { despesas: DespesaLinha[]; 
       {novo && (
         <form action={criarDespesa} onSubmit={() => { setNovo(false); setRepetir(false); }} className="grid sm:grid-cols-2 gap-3 rounded-2xl bg-white/60 border border-border p-4">
           <div className="sm:col-span-2"><label className="text-xs font-semibold text-foreground/60">Nome da despesa</label><input name="nome" required placeholder="ex: Aluguel da sala" className={inputCls} /></div>
-          <div><label className="text-xs font-semibold text-foreground/60">Valor (R$)</label><input name="valor" inputMode="decimal" required placeholder="0,00" className={inputCls} /></div>
+          <div><label className="text-xs font-semibold text-foreground/60">Valor (R$)</label><MoneyInput name="valor" required className={inputCls} /></div>
           <div><label className="text-xs font-semibold text-foreground/60">Data de vencimento</label><input name="vencimento" type="date" required className={inputCls} /></div>
           <div className="sm:col-span-2"><label className="text-xs font-semibold text-foreground/60">Data de pagamento (se já paga)</label><input name="pagamentoData" type="date" className={inputCls} /></div>
           <div className="sm:col-span-2 rounded-xl bg-white/70 border border-border p-3 space-y-2">
@@ -106,7 +107,7 @@ export function DespesasSection({ despesas, hoje }: { despesas: DespesaLinha[]; 
             <p className="text-sm text-foreground/60">{editando.nome}</p>
             <input type="hidden" name="id" value={editando.id} />
             <div><label className="text-xs font-semibold text-foreground/60">Data de vencimento</label><input name="vencimento" type="date" defaultValue={dataInput(editando.vencimento)} className={inputCls} /></div>
-            <div><label className="text-xs font-semibold text-foreground/60">Valor (R$)</label><input name="valor" inputMode="decimal" defaultValue={Number(editando.valor).toFixed(2).replace(".", ",")} className={inputCls} /></div>
+            <div><label className="text-xs font-semibold text-foreground/60">Valor (R$)</label><MoneyInput name="valor" defaultValue={editando.valor} className={inputCls} /></div>
             <div><label className="text-xs font-semibold text-foreground/60">Data de pagamento (vazio = em aberto)</label><input name="pagamentoData" type="date" defaultValue={dataInput(editando.pagamentoData)} className={inputCls} /></div>
             <button className="w-full bg-primary text-white py-2.5 rounded-xl font-bold">Salvar</button>
           </form>

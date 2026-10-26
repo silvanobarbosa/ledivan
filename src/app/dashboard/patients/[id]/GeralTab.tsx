@@ -9,6 +9,7 @@ import { formatBRL, PAYMENT_METHOD_LABELS, PAYMENT_METHOD_OPTIONS, sessionColorC
 import type { CobrancaNaTela, LinhaNaTela } from "@/lib/geralDoPaciente";
 import { montarMensagemCobranca } from "@/lib/mensagemCobranca";
 import { parseMoedaBR } from "@/lib/money";
+import { mascaraMoeda } from "@/lib/mascaraMoeda";
 import { PARCELAS_CREDITO, metodoDoCredito, rotuloDaParcela } from "@/lib/parcelaCredito";
 import { aplicarCreditoNoLancamento } from "@/lib/credito";
 import { desfazerVencimento, editarVencimento, lancarPagamento, limparEnviosDaCobranca, registrarCobrancaEnviada, removerPagamento } from "./geral-actions";
@@ -453,12 +454,15 @@ function FormularioDeLancamento({ patientId, c, responsavel, responsavelCpf, fec
   // "Valor recebido" já no padrão monetário brasileiro enquanto digita (doc 25): os dígitos são
   // tratados como centavos e formatados em R$. O servidor parseia por `parseMoedaBR`, igual aos
   // outros campos de dinheiro (ver MoneyInput). `valorNum` é derivado para a prévia e o botão.
-  const reaisBRL = (n: number) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
+  // O valor inicial sai da MESMA máscara que o campo usa ao digitar. Com duas formatações, o
+  // campo nascia com um espaço e passava a usar outro na primeira tecla — diferença invisível na
+  // tela, mas é como as duas regras começam a divergir.
+  const comoMascara = (n: number) => mascaraMoeda(String(Math.round(n * 100)));
   // Doc 36: havendo crédito no saldo, ele já abate — o campo pré-preenche com o DINHEIRO que falta
   // depois do crédito, e a sobra (pagar a mais) pode virar crédito novo (o usuário decide).
   const [valor, setValor] = useState(() => {
     const faltaAposCredito = Math.max(0, Math.round((c.falta - Math.min(creditoDisponivel, c.falta)) * 100) / 100);
-    return faltaAposCredito > 0 ? reaisBRL(faltaAposCredito) : "";
+    return faltaAposCredito > 0 ? comoMascara(faltaAposCredito) : "";
   });
   const [quitar, setQuitar] = useState(false);
   const [creditarSobra, setCreditarSobra] = useState(true);
@@ -509,8 +513,11 @@ function FormularioDeLancamento({ patientId, c, responsavel, responsavelCpf, fec
           </p>
           <div>
             <label htmlFor="valor-pg" className="text-[11px] font-semibold text-foreground/60 block">Valor recebido</label>
+            {/* A regra da máscara mora em `mascaraMoeda`, uma só para o app inteiro — ela estava
+                copiada aqui, no MoneyInput e na janela da falta. Três cópias é o caminho para elas
+                divergirem num detalhe de centavo sem ninguém perceber. */}
             <input id="valor-pg" name="valor" inputMode="numeric" required value={valor}
-              onChange={(e) => { const d = e.target.value.replace(/\D/g, ""); setValor(d ? reaisBRL(parseInt(d, 10) / 100) : ""); }}
+              onChange={(e) => setValor(mascaraMoeda(e.target.value))}
               className="w-[130px] px-3 py-2 rounded-lg bg-white border border-border text-sm tabular-nums" />
           </div>
           <div>

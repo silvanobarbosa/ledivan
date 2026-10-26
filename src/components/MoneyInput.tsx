@@ -1,37 +1,38 @@
 "use client";
 
 import { useState } from "react";
+import { mascaraMoeda } from "@/lib/mascaraMoeda";
 import { parseMoedaBR } from "@/lib/money";
 
 /**
- * Campo de dinheiro que já mostra R$ enquanto se digita (dono, 16/09/2026). Trata os dígitos como
- * centavos e formata em pt-BR; envia o texto formatado, que o servidor parseia por `parseMoedaBR`.
+ * Campo de dinheiro que já mostra R$ enquanto se digita (dono, 16/09/2026).
  *
- * Compartilhado (cadastro de paciente e prospecção, doc 19). O `className` entra de fora para o
- * campo herdar o estilo da tela onde está.
+ * A REGRA de formatação mora em `mascaraMoeda`, não aqui. Ela nasceu duplicada: o doc 57 pediu a
+ * máscara na janela do valor da falta, que é um campo CONTROLADO dentro de um modal, e este
+ * componente não servia lá — ele guarda o próprio estado e se identifica por `name`, como campo de
+ * formulário. Duas formas de campo, uma regra só; duas regras seria o caminho para elas divergirem
+ * num detalhe de centavo e ninguém perceber.
+ *
+ * O `className` entra de fora para o campo herdar o estilo da tela onde está.
  */
-export function MoneyInput({ name, defaultValue, placeholder, className }: {
-  name: string; defaultValue?: string | number | null; placeholder?: string; className?: string;
+export function MoneyInput({ name, defaultValue, placeholder, className, required }: {
+  name: string; defaultValue?: string | number | null; placeholder?: string; className?: string; required?: boolean;
 }) {
-  const fmt = (centavos: number) => (centavos / 100).toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
   const inicial = (() => {
     const canon = parseMoedaBR(defaultValue);
-    if (!canon) return "";
-    const centavos = Math.round(Number(canon) * 100);
-    return centavos > 0 ? fmt(centavos) : "";
+    if (!canon || Number(canon) <= 0) return "";
+    return mascaraMoeda(String(Math.round(Number(canon) * 100)));
   })();
   const [val, setVal] = useState(inicial);
   return (
     <input
       name={name}
       inputMode="numeric"
+      required={required}
       value={val}
-      onChange={(e) => {
-        const digitos = e.target.value.replace(/\D/g, "");
-        setVal(digitos ? fmt(parseInt(digitos, 10)) : "");
-      }}
+      onChange={(e) => setVal(mascaraMoeda(e.target.value))}
       className={className}
-      placeholder={placeholder}
+      placeholder={placeholder ?? "R$ 0,00"}
     />
   );
 }

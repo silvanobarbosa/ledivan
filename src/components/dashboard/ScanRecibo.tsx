@@ -4,6 +4,7 @@ import { useState, useRef } from "react";
 import { Loader2, Camera, Sparkles, X, Info } from "lucide-react";
 import { useRouter, usePathname } from "next/navigation";
 import { FLUTUANTE_BAIXO, FUNDO_DA_JANELA, JANELA } from "@/lib/modal";
+import { mascaraMoeda } from "@/lib/mascaraMoeda";
 import { useJanela } from "@/lib/useJanela";
 import { lerReciboTexto } from "@/lib/reciboOcr";
 import { createTransaction } from "@/app/dashboard/transactions/actions";
@@ -173,7 +174,7 @@ export function ScanRecibo({ hasAiKey }: { hasAiKey: boolean }) {
             <div className="grid grid-cols-2 gap-3">
               <div>
                 <label className="text-xs font-semibold text-foreground/60">Valor (R$)</label>
-                <input value={campos.amount} onChange={(e) => setCampos((c) => ({ ...c, amount: e.target.value }))} inputMode="decimal" placeholder="0,00" className={inputCls} />
+                <input value={campos.amount} onChange={(e) => setCampos((c) => ({ ...c, amount: mascaraMoeda(e.target.value) }))} inputMode="numeric" placeholder="R$ 0,00" className={inputCls} />
               </div>
               <div>
                 <label className="text-xs font-semibold text-foreground/60">Data</label>

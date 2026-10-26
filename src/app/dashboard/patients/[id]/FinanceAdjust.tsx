@@ -1,4 +1,5 @@
 "use client";
+import { MoneyInput } from "@/components/MoneyInput";
 
 import { useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
@@ -31,7 +32,7 @@ export function FinanceAdjust({
         {priceHistory.length === 0 ? <p className="text-sm text-foreground/40">Sem histórico.</p> : priceHistory.map((h) => (
           editId === h.id ? (
             <form key={h.id} onSubmit={(e) => { e.preventDefault(); const fd = new FormData(e.currentTarget); start(async () => { await editPriceHistory(h.id, fd); setEditId(null); router.refresh(); }); }} className="flex items-center gap-2 py-1.5">
-              <input name="valor" inputMode="decimal" defaultValue={h.valor} className="w-28 px-2 py-1.5 rounded-lg bg-white border border-border text-sm" />
+              <MoneyInput name="valor" defaultValue={h.valor} className="w-28 px-2 py-1.5 rounded-lg bg-white border border-border text-sm" />
               <input name="dataEfetiva" type="date" defaultValue={h.dataEfetiva.slice(0, 10)} className="px-2 py-1.5 rounded-lg bg-white border border-border text-sm" />
               <button disabled={pending} className="text-[#047857]"><Check className="w-4 h-4" /></button>
               <button type="button" onClick={() => setEditId(null)} className="text-foreground/40"><X className="w-4 h-4" /></button>

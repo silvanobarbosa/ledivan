@@ -22,6 +22,7 @@ import { tipoDaFalta, tipoDaFaltaPeloRotulo, perguntaDaFalta, COMO_REFAZER } fro
 import { podeSerCortesia } from "@/lib/cortesia";
 import { useJanela } from "@/lib/useJanela";
 import { mascaraMoeda } from "@/lib/mascaraMoeda";
+import { MoneyInput } from "@/components/MoneyInput";
 
 type PatientLite = { id: string; name: string; status: string; attendanceMode: string | null; attendanceLocation: string | null;
   /** Doc 42: paciente | supervisionado — supervisionado só agenda sessões do tipo supervisão. */
@@ -1202,7 +1203,7 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
             <p className="text-sm text-foreground/60 mt-1">Ela será lançada como Avulso com este valor.</p>
             <input
               autoFocus
-              inputMode="decimal"
+              inputMode="numeric"
               value={valorDaFalta}
               /* Doc 57: o campo se escreve sozinho — digitou 20000, aparece R$ 200,00. Sem a
                  máscara, "200" podia ser duzentos ou dois reais, e quem decidia era um parser que
@@ -1405,8 +1406,8 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
                     {newCobrada === "sim" && (
                       <div>
                         <label className="text-[11px] font-semibold text-[#92400e]/80">Valor da sessão avulsa (R$)</label>
-                        <input name="valorExtra" inputMode="decimal" required defaultValue={selectedPatient?.sessionFee ? String(selectedPatient.sessionFee).replace(".", ",") : ""}
-                          placeholder="130,00" className="w-full px-3 py-2 rounded-xl bg-white border border-[#fde68a] outline-none text-sm" />
+                        <MoneyInput name="valorExtra" required defaultValue={selectedPatient?.sessionFee ?? null}
+                          className="w-full px-3 py-2 rounded-xl bg-white border border-[#fde68a] outline-none text-sm" />
                       </div>
                     )}
                     <p className="text-[11px] text-[#92400e]/70">Fica fora do pacote: não muda a numeração, a contagem nem o valor da sequência.</p>
