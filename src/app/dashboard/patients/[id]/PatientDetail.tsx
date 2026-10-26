@@ -16,6 +16,7 @@ import { AnexosProntuario } from "./AnexosProntuario";
 import { PatientFeatures } from "./PatientFeatures";
 import { GeralTab } from "./GeralTab";
 import { TabelaAnual } from "./TabelaAnual";
+import { type EstornoAnual } from "@/lib/tabelaAnual";
 import { type VigenciaTaxa } from "@/lib/taxaCartao";
 import type { LinhaNaTela } from "@/lib/geralDoPaciente";
 import { AnamneseTab } from "./AnamneseTab";
@@ -86,7 +87,7 @@ const inputCls = "w-full px-4 py-2.5 rounded-xl bg-white/70 border border-border
 const TABS = ["Geral", "Registros", "Anamnese", "Atividades", "Documentos"] as const;
 
 export function PatientDetail({
-  patient, pagador, payments, statusHistory, records, transcriptionEnabled, risk: _risk, assignments, moodToken, moodLogs, scales, diaryEntries = [], ratings = [], consents = [], contractHistory: _contractHistory = [], finance, sessionStats, recurring, statusEnabled = false, dailyStatus = [], sharedWritings = [], geral = [], cobrancaMessage = null, anamnese = [], activities = [], documentos = [], docCabecalho, creditoDisponivel = 0, vigenciasTaxa = [],
+  patient, pagador, payments, statusHistory, records, transcriptionEnabled, risk: _risk, assignments, moodToken, moodLogs, scales, diaryEntries = [], ratings = [], consents = [], contractHistory: _contractHistory = [], finance, sessionStats, recurring, statusEnabled = false, dailyStatus = [], sharedWritings = [], geral = [], cobrancaMessage = null, anamnese = [], activities = [], documentos = [], docCabecalho, creditoDisponivel = 0, vigenciasTaxa = [], estornos = [],
 }: {
   patient: Patient; pagador: Pagador; sessions: Session[]; payments: Payment[];
   statusHistory: StatusEntry[]; priceHistory: PriceEntry[]; records: RecordEntry[];
@@ -120,6 +121,8 @@ export function PatientDetail({
   cobrancaMessage?: string | null;
   /** Doc 50: vigências de taxa de cartão — a TabelaAnual mostra o recebido LÍQUIDO. */
   vigenciasTaxa?: VigenciaTaxa[];
+  /** Doc 60: o dinheiro devolvido ao paciente, para a tabela anual registrar as duas pontas. */
+  estornos?: EstornoAnual[];
   /** Doc 28: mensagens que o sistema ENVIOU ao paciente por WhatsApp (2º ícone do card). */
 }) {
   const router = useRouter();
@@ -410,7 +413,7 @@ export function PatientDetail({
             responsavelCpf={pagador.cpf} creditoDisponivel={creditoDisponivel}
             cobrar={{ telefone: patient.guardianPhone || patient.phone, nome: patient.guardianName || patient.name, modelo: cobrancaMessage }} />
           {/* GER6: valores recebidos por mês, no MESMO ano escolhido acima (líquido — doc 50) */}
-          <TabelaAnual payments={payments} ano={ano} vigencias={vigenciasTaxa} />
+          <TabelaAnual payments={payments} ano={ano} vigencias={vigenciasTaxa} estornos={estornos} />
         </div>
       )}
 

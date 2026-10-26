@@ -79,6 +79,15 @@ function cobrancaNaTela(
     ids: c.ids,
     parte: c.parte,
     situacao: c.situacao,
+    /**
+     * A cobrança que ainda ESPERA O VALOR (doc 54) precisa chegar à tela dizendo isso.
+     *
+     * Ela era lida pelo motor e descartada aqui, nesta remontagem campo a campo — o mesmo defeito
+     * de `faltouConta` e `estornadoEm` no doc 58. Sem o sinal, o formulário tratava uma cobrança de
+     * R$ 0,00 como qualquer outra e perguntava se o dinheiro digitado deveria virar crédito, em vez
+     * de entender que ele É o valor da sessão.
+     */
+    aguardandoValor: c.aguardandoValor === true,
     vencimento: texto(c.vencimento ?? c.competencia),
     pagamento: c.pagamento ? { ...c.pagamento, data: texto(c.pagamento.data) ?? "", reciboNumero: c.pagamento.reciboNumero ?? null, credito: c.pagamento.credito === true } : null,
     pagamentos: c.pagamentos.map((p) => ({ id: p.id, data: texto(p.data) ?? "", valor: p.valor, pagoPor: p.pagoPor, metodo: p.metodo, recibo: p.recibo === true, nota: p.nota === true, reciboNumero: p.reciboNumero ?? null, credito: p.credito === true })),

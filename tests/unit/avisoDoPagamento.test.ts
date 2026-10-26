@@ -115,3 +115,35 @@ describe("para onde foi o dinheiro", () => {
       .toContain("07/11/26");
   });
 });
+
+/**
+ * O PACIENTE GRATUITO cuja falta foi cobrada e depois desfeita (doc 60).
+ *
+ * Aqui a modalidade AVUL nunca foi GRAVADA: ela é derivada da resposta "sim, cobra" (doc 54) e
+ * desaparece junto com ela. Era o buraco do doc 60 — "a mensagem sobre estorno parou de aparecer":
+ * a sessão voltava a ser um gratuito comum e as três mensagens sumiam, justamente no caso em que
+ * havia dinheiro a explicar. O que não some é a MARCA do dinheiro, gravada na sessão.
+ */
+describe("gratuito que virou AVUL, cobrou e desfez", () => {
+  const gratuitoDesfeito = (extra: Record<string, unknown>) =>
+    linha(base("gratuito", { faltouConta: false, ...extra } as never)).avisoDoPagamento;
+
+  it("estornado: a mensagem volta a aparecer", () => {
+    expect(gratuitoDesfeito({ estornoValor: 50 }))
+      .toBe("Sessão AVUL, que foi convertida para GRAT - Estorno realizado no valor de R$ 50,00");
+  });
+
+  it("transferido: diz para onde o dinheiro foi", () => {
+    expect(gratuitoDesfeito({ transferidoPara: new Date(2026, 10, 7, 11, 0) }))
+      .toBe("Sessão AVUL, que foi convertida para GRAT - este pagamento foi transferido para a data 07/11/26");
+  });
+
+  it("creditado: diz que o valor ficou guardado", () => {
+    expect(gratuitoDesfeito({ creditoValor: 50, pagoEm: new Date(2026, 9, 24) }))
+      .toContain("Possui um crédito de R$ 50,00");
+  });
+
+  it("mas SEM dinheiro nenhum continua sem aviso — nada aconteceu ali (doc 57)", () => {
+    expect(gratuitoDesfeito({})).toBeNull();
+  });
+});
