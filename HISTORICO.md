@@ -7,6 +7,38 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-10-26 — Máscara de dinheiro: uma regra só, em todo campo de valor (#502)
+
+**Entregue:** todo campo de dinheiro do app formata enquanto se digita — lançar pagamento, valor da
+sessão avulsa, despesas, receitas pessoais, transações, ajuste do histórico, escaneamento de recibo.
+
+**Por quê:** era o que sobrava da fila. Mas, ao começar, o problema era maior do que o pedido.
+
+**A mesma regra estava escrita TRÊS vezes:** `MoneyInput` (desde 16/09), `reaisBRL` inline no
+formulário de lançar pagamento, e `mascaraMoeda` — que EU criei no doc 57 sem ter procurado antes
+se já existia. No formulário de pagamento as duas conviviam no mesmo campo: o valor inicial vinha
+de uma, e na primeira tecla passava para a outra.
+
+**Decisões que ficam valendo:**
+- **A regra mora em `mascaraMoeda`** — pura, testada, com teste provando que concorda com o parser
+  que grava. `MoneyInput` delega a ela; campo controlado chama direto. Duas FORMAS de campo
+  (formulário e controlado), uma regra só.
+- **Campo de dinheiro usa `inputMode="numeric"`**, não `decimal`: ele mostra `R$ 1.500,00`, e o
+  teclado certo é o numérico.
+- **Taxa de cartão NÃO leva máscara de moeda.** É porcentagem; pôr "R$" ali troca um erro de
+  leitura por outro.
+
+**Armadilhas:**
+- **Procurar antes de criar.** `MoneyInput` existia desde setembro e fazia exatamente o que eu
+  escrevi de novo. O custo não é a linha duplicada — é que as três tinham diferenças pequenas
+  (só a minha limitava ao `numeric(10,2)`; `style: "currency"` usa espaço não separável), e é assim
+  que duas regras divergem num centavo sem ninguém ver.
+
+**Verificado em produção**, digitando no campo de despesa: `2 → R$ 0,02`, `200 → R$ 2,00`,
+`150000 → R$ 1.500,00`, com teclado numérico.
+
+---
+
 ## 2026-10-26 — Auditoria de produção zerada (#500)
 
 **Entregue:** `npm audit --omit=dev` devolve **found 0 vulnerabilities**. Eram 23 em 22/10, com 2
