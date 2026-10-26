@@ -7,6 +7,49 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-10-26 — Doc 58: o estorno e a transferência, que só pareciam funcionar
+
+**Entregue:** PRs #507, #508, #509, #510 — a janela "esta sessão já possui um pagamento" voltou a
+aparecer no paciente Avulso, o estorno deixou de abater a cobrança seguinte, a lista de cadastros
+parou de mostrar atraso de cobrança que já não existe, a transferência passou a gravar para onde o
+dinheiro foi, e o caixa pareia entrada e saída do estorno.
+
+**Por quê:** uma causa raiz explicava quase tudo. A mesma sessão é cobrada por `sessao:<id>` quando
+o paciente é do formato Avulso e por `extra:<id>` quando é extra/falta cobrada — e a busca do
+pagamento olhava **só `extra:`**. No Avulso, o caso mais comum, o app não achava o dinheiro, não
+perguntava nada, e desfazia a cobrança calado. O pagamento ficava preso a uma cobrança extinta e
+caía na distribuição por vencimento da guia Geral, abatendo a próxima: exatamente o efeito que a
+terapeuta descreveu e que só deveria acontecer ao escolher *transferir*.
+
+**Decisões que ficam valendo:**
+- **A tradução de linha do banco para entrada do motor mora em `entradaDoMotor.ts`, com spread.**
+  `COLUNAS_DA_SESSAO` garantia que toda tela LESSE as mesmas colunas; não bastou, porque a lista de
+  cadastros remontava a sessão campo a campo e `faltouConta` ficava de fora. O dado chegava do banco
+  e se perdia um andar abaixo. Agora um dado novo atravessa sozinho.
+- **A chave da cobrança de destino é a REAL, lida da guia Geral, nunca montada.** Montar era
+  adivinhar, e adivinhar errado soltava o pagamento de novo.
+- **Estorno no caixa tem duas pontas e soma zero** (`estornoNoCaixa.ts`): entrada no dia do
+  pagamento, saída no dia do estorno. Mostrar só a saída tiraria do mês um dinheiro que nunca
+  apareceu nele — a duplicidade ao contrário.
+- **`pagoEm` é derivado do pagamento, não guardado.** O pagamento estornado continua no banco preso
+  à chave da sessão; repetir a data numa coluna seria duplicar um fato que ele já conta.
+
+**Armadilhas:**
+- **As três mensagens do documento já existiam, e tinham teste.** O que faltava era onde guardar o
+  fato: `transferidoPara` e `creditoUsadoEm` não existiam no banco, e `pagoEm` nunca era preenchido.
+  Texto testado não prova que alguém o alimenta.
+- **O defeito era a CONSULTA, não o cálculo.** Nenhum dos 1.109 testes pegaria: eles montam a
+  entrada do motor à mão, sempre completa. Por isso o percurso novo é no navegador
+  (`scripts/e2e-doc58-janela-pagamento.mjs`), e foi conferido com controle negativo — com a busca
+  antiga, ele falha na linha certa.
+- **O nome do paciente na célula da agenda aparece só até o primeiro espaço**, então procurar pelo
+  nome completo no navegador não acha nada.
+
+**Pendente:** nada deste documento. A conferência com dado real rodou contra o banco de produção na
+conta de QA, com o paciente de teste apagado no fim.
+
+---
+
 ## 2026-10-26 — Base da Gisele limpa para a próxima rodada de avaliação
 
 **Entregue:** 285 linhas apagadas da conta da Gisele — 197 sessões, 19 transações, 14 cadastros, 10
