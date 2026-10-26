@@ -802,6 +802,11 @@ export const patientCredits = pgTable("patient_credits", {
   // O pagamento kind="credito" que CONSUMIU este crédito — para reverter se aquele for removido.
   consumidoPagamentoId: uuid("consumido_pagamento_id"),
   consumidoEm: timestamp("consumido_em"),
+  // Doc 59: "este crédito não vai mais sozinho". O crédito passou a ir automaticamente para a
+  // próxima sessão que tem o que pagar — e, sem esta marca, remover a aplicação para pôr o valor
+  // em outra sessão seria impossível: ele voltaria na mesma hora. Posta só quando a pessoa REMOVE
+  // uma aplicação automática; o crédito continua disponível, mas só entra onde ela mandar.
+  naoAuto: boolean("nao_auto").default(false).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (t) => [
   index("patient_credits_patient_idx").on(t.patientId),
@@ -841,6 +846,11 @@ export const sessionPayments = pgTable("session_payments", {
    * Um pagamento estornado NÃO quita nada: ele é ignorado ao casar pagamentos com cobranças.
    */
   estornadoEm: timestamp("estornado_em"),
+  // Doc 59: de qual sessão este pagamento VEIO, quando ele foi transferido. Ao transferir, ele
+  // passa a apontar para o destino — e sem este caminho de volta não haveria como limpar a marca
+  // da origem se o pagamento fosse excluído, que é o que o documento pede ("como se nunca tivesse
+  // existido"). Só a transferência preenche.
+  origemSessaoId: uuid("origem_sessao_id"),
   // "Não haverá diferença de valor" (doc 17): quando a pessoa lança MENOS do que a cobrança e marca
   // esta opção, a cobrança é QUITADA mesmo faltando — a diferença é perdoada, nunca vira "pago em
   // parte". O caixa continua honesto: guarda o valor REALMENTE recebido (`amount`); quem fecha a

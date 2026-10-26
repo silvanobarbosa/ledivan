@@ -11,6 +11,7 @@ import { diaDoFormulario } from "@/lib/trocaDeFormato";
 import { apenasCpf } from "@/lib/recibo";
 import { parseMoedaBR } from "@/lib/money";
 import { aplicarCreditoNoLancamento } from "@/lib/credito";
+import { aplicarCreditosPendentes } from "@/lib/aplicarCreditos";
 
 /**
  * A SESSÃO DE ORIGEM DO CRÉDITO passa a dizer onde ele foi parar (doc 58).
@@ -23,7 +24,7 @@ import { aplicarCreditoNoLancamento } from "@/lib/credito";
  * Silenciosa de propósito: crédito que veio de sobra de pagamento (doc 36), e não de uma sessão
  * convertida, simplesmente não acha sessão para marcar, e está certo.
  */
-async function marcarCreditoUsado(userId: string, origemPagamentoId: string | null, quando: Date) {
+async function marcarCreditoUsado(userId: string, origemPagamentoId: string | null, quando: Date | null) {
   if (!origemPagamentoId) return;
   const [origem] = await db.select({ chave: sessionPayments.cobrancaChave }).from(sessionPayments)
     .where(and(eq(sessionPayments.id, origemPagamentoId), eq(sessionPayments.userId, userId))).limit(1);
@@ -193,6 +194,9 @@ export async function lancarPagamento(entrada: {
     await db.insert(patientCredits).values({ userId, patientId, valor: creditoNovo.toFixed(2), origemPagamentoId: pgCash.id });
   }
 
+  // Sobrou crédito e há outra cobrança aberta? Ele segue sozinho para lá (doc 59).
+  await aplicarCreditosPendentes(userId, patientId);
+
   revalidatePath(`/dashboard/patients/${patientId}`);
   revalidatePath("/dashboard/fechamento");
   revalidatePath("/dashboard/transactions");
@@ -224,7 +228,7 @@ export async function removerPagamento(
   if (!/^[0-9a-f-]{36}$/i.test(pagamentoId)) return { ok: false, error: "Pagamento inválido." };
 
   const [pagamento] = await db
-    .select({ id: sessionPayments.id, linkedTransactionId: sessionPayments.linkedTransactionId })
+    .select({ id: sessionPayments.id, linkedTransactionId: sessionPayments.linkedTransactionId, kind: sessionPayments.kind, chave: sessionPayments.cobrancaChave, origemSessaoId: sessionPayments.origemSessaoId })
     .from(sessionPayments)
     .where(and(eq(sessionPayments.id, pagamentoId), eq(sessionPayments.userId, userId), eq(sessionPayments.patientId, patientId)))
     .limit(1);
@@ -242,8 +246,42 @@ export async function removerPagamento(
   // lançamento de crédito) volta a ficar disponível.
   await db.delete(patientCredits)
     .where(and(eq(patientCredits.userId, userId), eq(patientCredits.origemPagamentoId, pagamentoId), isNull(patientCredits.consumidoEm)));
-  await db.update(patientCredits).set({ consumidoEm: null, consumidoPagamentoId: null })
+  /**
+   * O crédito volta ao saldo — e com `naoAuto`, para não voltar sozinho ao lugar de onde ela
+   * acabou de tirá-lo (doc 59).
+   *
+   * O documento permite mover o crédito "de um lugar para colocar em outro". Sem esta marca, a
+   * aplicação automática o devolveria à mesma cobrança no instante seguinte, e mover seria
+   * impossível. Ele continua disponível; só não anda mais por conta própria.
+   */
+  await db.update(patientCredits).set({ consumidoEm: null, consumidoPagamentoId: null, naoAuto: true })
     .where(and(eq(patientCredits.userId, userId), eq(patientCredits.consumidoPagamentoId, pagamentoId)));
+
+  /**
+   * "COMO SE ELE NUNCA TIVESSE EXISTIDO" (doc 59).
+   *
+   * O pagamento deixa marcas FORA da própria linha: a sessão guarda o estorno dele, o crédito que
+   * ele virou, a data para onde foi transferido e o dia em que o crédito foi usado. Apagar só o
+   * pagamento deixava essas marcas órfãs, e a guia Geral seguia anunciando dinheiro que já não
+   * está em lugar nenhum.
+   *
+   * São DUAS sessões possíveis: a da chave da cobrança (que carrega o id dela) e, quando o
+   * pagamento foi transferido, a de ORIGEM — o pagamento já não aponta para ela, e sem o caminho
+   * de volta a linha antiga continuaria dizendo "transferido para" uma data sem sentido.
+   */
+  const daChave = pagamento.chave?.split(":")[1];
+  const marcadas = [daChave, pagamento.origemSessaoId].filter((id): id is string => !!id && /^[0-9a-f-]{36}$/i.test(id));
+  for (const id of marcadas) {
+    await db.update(therapySessions)
+      .set({ estornoValor: null, estornoEm: null, creditoValor: null, transferidoPara: null, creditoUsadoEm: null })
+      .where(and(eq(therapySessions.id, id), eq(therapySessions.userId, userId)));
+  }
+  // Removeu uma APLICAÇÃO de crédito: a sessão de origem volta a dizer que o crédito espera.
+  if (pagamento.kind === "credito") {
+    const origens = await db.select({ origemPagamentoId: patientCredits.origemPagamentoId }).from(patientCredits)
+      .where(and(eq(patientCredits.userId, userId), eq(patientCredits.patientId, patientId), eq(patientCredits.naoAuto, true)));
+    for (const o of origens) await marcarCreditoUsado(userId, o.origemPagamentoId, null);
+  }
 
   revalidatePath(`/dashboard/patients/${patientId}`);
   revalidatePath("/dashboard/fechamento");

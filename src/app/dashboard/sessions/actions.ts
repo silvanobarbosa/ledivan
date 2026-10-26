@@ -15,6 +15,7 @@ import { formatoNaData } from "@/lib/vigenciaDoFormato";
 import { getUserAiClient, SemChaveIA } from "@/lib/ai-client";
 import { chavesDaCobrancaDaSessao, decidirDesfazer } from "@/lib/desfazerCobranca";
 import { geralDoPaciente } from "@/lib/geralDoPaciente";
+import { aplicarCreditosPendentes } from "@/lib/aplicarCreditos";
 
 type SessionStatus = "realizada" | "nao_realizada" | "cancelada" | "realocada" | "agendada" | "prof_desmarcou" | "atestado";
 
@@ -140,6 +141,7 @@ export async function createRecurring(formData: FormData): Promise<{ ok: boolean
       .where(and(eq(patients.id, patientId), eq(patients.userId, userId)));
   }
   revalidatePath("/dashboard/agenda");
+  await aplicarCreditosPendentes(userId, patientId);
   revalidatePath(`/dashboard/patients/${patientId}`);
   return { ok: true, count: rows.length };
 }
@@ -192,6 +194,7 @@ export async function createSession(formData: FormData) {
     meetingUrl,
   });
 
+  await aplicarCreditosPendentes(userId, patientId);
   revalidatePath(`/dashboard/patients/${patientId}`);
   revalidatePath("/dashboard/agenda");
   redirect(`/dashboard/patients/${patientId}`);
@@ -306,6 +309,7 @@ export async function createSessionFromAgenda(formData: FormData): Promise<{ ok:
   });
 
   revalidatePath("/dashboard/agenda");
+  await aplicarCreditosPendentes(userId, patientId);
   revalidatePath(`/dashboard/patients/${patientId}`);
   return { ok: true };
 }
@@ -331,6 +335,7 @@ export async function updateSession(sessionId: string, formData: FormData): Prom
 
   await db.update(therapySessions).set(patch).where(and(eq(therapySessions.id, sessionId), eq(therapySessions.userId, userId)));
   revalidatePath("/dashboard/agenda");
+  await aplicarCreditosPendentes(userId, existing.patientId);
   revalidatePath(`/dashboard/patients/${existing.patientId}`);
   return { ok: true };
 }
@@ -499,7 +504,7 @@ export async function desfazerCobrancaDaSessao(
     // o documento pede isso em letra, e é o que mantém o histórico honesto: o paciente pagou
     // naquele dia, não neste.
     await db.update(sessionPayments)
-      .set({ cobrancaChave: decisao.novaChave, sessionId: decisao.paraSessaoId })
+      .set({ cobrancaChave: decisao.novaChave, sessionId: decisao.paraSessaoId, origemSessaoId: sessionId })
       .where(and(eq(sessionPayments.id, decisao.pagamentoId), eq(sessionPayments.userId, userId)));
     /**
      * E a sessão de ORIGEM guarda para onde o dinheiro foi (doc 58, item 7).
@@ -519,6 +524,7 @@ export async function desfazerCobrancaDaSessao(
     .where(and(eq(therapySessions.id, sessionId), eq(therapySessions.userId, userId)));
 
   revalidatePath("/dashboard/agenda");
+  await aplicarCreditosPendentes(userId, existing.patientId);
   revalidatePath(`/dashboard/patients/${existing.patientId}`);
   revalidatePath("/dashboard/fechamento");
   return { ok: true };
@@ -560,6 +566,7 @@ export async function updateSessionStatus(sessionId: string, status: SessionStat
 
   // (consumo de pacote é derivado na página do paciente — sem update manual aqui)
   revalidatePath("/dashboard/agenda");
+  await aplicarCreditosPendentes(userId, existing.patientId);
   revalidatePath(`/dashboard/patients/${existing.patientId}`);
 }
 
@@ -593,6 +600,7 @@ export async function definirValorDaFalta(sessionId: string, valor: string): Pro
   if (limpo == null || Number(limpo) <= 0) return { ok: false, error: "Informe um valor maior que zero." };
 
   await db.update(therapySessions).set({ valorExtra: limpo }).where(and(eq(therapySessions.id, sessionId), eq(therapySessions.userId, userId)));
+  await aplicarCreditosPendentes(userId, existing.patientId);
   revalidatePath(`/dashboard/patients/${existing.patientId}`);
   revalidatePath("/dashboard/agenda");
   return { ok: true };
@@ -610,6 +618,7 @@ export async function definirFaltouConta(sessionId: string, conta: boolean): Pro
   if (!existing) return { ok: false, error: "Sessão não encontrada." };
   if (existing.status !== "nao_realizada") return { ok: false, error: "Só vale para sessões com status Faltou." };
   await db.update(therapySessions).set({ faltouConta: conta }).where(and(eq(therapySessions.id, sessionId), eq(therapySessions.userId, userId)));
+  await aplicarCreditosPendentes(userId, existing.patientId);
   revalidatePath(`/dashboard/patients/${existing.patientId}`);
   revalidatePath("/dashboard/agenda");
   return { ok: true };
@@ -667,6 +676,7 @@ export async function deleteSession(sessionId: string) {
   await db.delete(therapySessions).where(and(eq(therapySessions.id, sessionId), eq(therapySessions.userId, session.user.id)));
 
   revalidatePath("/dashboard/agenda");
+  await aplicarCreditosPendentes(session.user.id, existing.patientId);
   revalidatePath(`/dashboard/patients/${existing.patientId}`);
   revalidatePath("/dashboard/reservas");
   revalidatePath("/dashboard");
