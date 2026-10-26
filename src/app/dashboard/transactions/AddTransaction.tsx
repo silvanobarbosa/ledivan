@@ -1,4 +1,5 @@
 "use client";
+import { MoneyInput } from "@/components/MoneyInput";
 
 import { useState } from "react";
 import { Plus, X } from "lucide-react";
@@ -53,7 +54,7 @@ export function AddTransaction({ categories, accounts }: { categories: Cat[]; ac
 
           <div>
             <label className="text-xs font-semibold text-foreground/60">Valor (R$)</label>
-            <input name="amount" inputMode="decimal" required placeholder="0,00" className={inputCls} />
+            <MoneyInput name="amount" required className={inputCls} />
           </div>
           <div>
             <label className="text-xs font-semibold text-foreground/60">Data</label>
