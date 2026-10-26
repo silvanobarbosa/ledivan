@@ -14,12 +14,11 @@ import "server-only";
 import { and, eq, isNull } from "drizzle-orm";
 import { db } from "@/db";
 import { COLUNAS_DA_SESSAO } from "@/lib/colunasDaSessao";
+import { local, pagamentoParaMotor, sessaoParaMotor } from "@/lib/entradaDoMotor";
 import { blockedSlots, cobrancaEnvios, cobrancaVencimentos, sessoesPuladas, patientCredits, patientPackages, patientPackageHistory, patientPaymentFormatHistory, patientPriceHistory, patients, sessionPayments, therapySessions } from "@/db/schema";
-import { horaDeParede } from "./horaLocal";
 import { linhasDaGeral, resumoDaGeral, type CobrancaDaGeral, type EntradaDaGeral, type LinhaDaGeral } from "./guiaGeral";
 import { tamanhosDasSequencias } from "./sequenciaPacote";
 
-const local = (d: Date | string | null | undefined): Date => new Date(horaDeParede(d));
 const dois = (n: number) => String(n).padStart(2, "0");
 const texto = (d: Date | null | undefined): string | null =>
   d ? `${d.getFullYear()}-${dois(d.getMonth() + 1)}-${dois(d.getDate())}T${dois(d.getHours())}:${dois(d.getMinutes())}:00` : null;
@@ -165,7 +164,7 @@ export async function geralDoPaciente(userId: string, patientId: string): Promis
   const entrada: EntradaDaGeral = {
     vigencias: vigencias.map((v) => ({ ...v, desde: local(v.desde), criadoEm: local(v.criadoEm) })),
     reserva: { formato: paciente.paymentFormat, pacoteTipo: paciente.pacoteTipo },
-    sessoes: sessoes.map((s) => ({ ...s, date: local(s.date), online: s.isOnline })),
+    sessoes: sessoes.map(sessaoParaMotor),
     precos: precos.map((p) => ({ valor: Number(p.valor) || 0, desde: local(p.dataEfetiva) })),
     valorDaSessao: Number(paciente.sessionFee) || 0,
     tamanhos: tamanhosDasSequencias(pacotes),
@@ -175,7 +174,7 @@ export async function geralDoPaciente(userId: string, patientId: string): Promis
     diaPagamento: paciente.paymentDay,
     diaPagamento2: paciente.paymentDay2,
     horasAntesPagamento: paciente.horasAntesPagamento,
-    pagamentos: pagamentos.map((p) => ({ id: p.id, valor: p.amount, data: local(p.date), status: p.status, metodo: p.method, pagoPor: p.pagoPor, cobrancaChave: p.cobrancaChave, quita: p.quita, kind: p.kind, recibo: !!p.reciboEmitidoEm, nota: !!p.notaEmitidaEm, reciboNumero: p.reciboNumero })),
+    pagamentos: pagamentos.map(pagamentoParaMotor),
     envios: envios.map((e) => ({ cobrancaChave: e.cobrancaChave, enviadaEm: local(e.enviadaEm), enviadaPor: e.enviadaPor })),
     vencimentos: vencEditados.map((v) => ({ chave: v.cobrancaChave, vencimento: local(v.vencimento) })),
     // As datas que a serie pulou por horario bloqueado: viram a linha "Hor. Bloq.", nunca sessao.
