@@ -77,3 +77,41 @@ describe("o que NÃO ganha aviso nenhum", () => {
     expect(linha(base("mensal", { faltouConta: false })).avisoDoPagamento).toBeNull();
   });
 });
+
+/**
+ * Doc 57: os três destinos do dinheiro quando a sessão AVUL vira GRAT.
+ *
+ * Cada um responde a uma pergunta diferente de quem lê a linha, e por isso cada um tem seu texto:
+ * "voltou para o paciente", "foi para outra sessão", "ficou guardado".
+ */
+describe("para onde foi o dinheiro", () => {
+  const comDinheiro = (extra: Record<string, unknown>) =>
+    linha(base("sessao", { faltouConta: false, ...extra } as never)).avisoDoPagamento;
+
+  it("estornado: voltou para o paciente", () => {
+    expect(comDinheiro({ estornoValor: 150 }))
+      .toBe("Sessão AVUL, que foi convertida para GRAT - Estorno realizado no valor de R$ 150,00");
+  });
+
+  it("transferido: foi para outra sessão, e a data diz qual", () => {
+    expect(comDinheiro({ transferidoPara: new Date(2026, 10, 7, 11, 0) }))
+      .toBe("Sessão AVUL, que foi convertida para GRAT - este pagamento foi transferido para a data 07/11/26");
+  });
+
+  it("creditado: ficou guardado, esperando a próxima a pagar", () => {
+    expect(comDinheiro({ creditoValor: 200, pagoEm: new Date(2026, 9, 24, 11, 0) }))
+      .toBe("Sessão AVUL, que foi convertida para GRAT - Possui um crédito de R$ 200,00 do pago em 24/10/26 que será abatido na próxima sessão a ser paga");
+  });
+
+  it("crédito já usado: a mensagem muda, porque muda a pergunta de quem lê", () => {
+    // Antes é "o que vai acontecer com esse dinheiro?"; depois é "onde ele foi parar?".
+    expect(comDinheiro({ creditoValor: 200, pagoEm: new Date(2026, 9, 24), creditoUsadoEm: new Date(2026, 10, 14, 11, 0) }))
+      .toBe("Crédito desta sessão foi utilizado na sessão do dia 14/11/26");
+  });
+
+  it("a data sai pela hora de PAREDE — não anda um dia por causa de fuso", () => {
+    // Meia-noite é o caso que quebra: lido como UTC num fuso negativo, vira o dia anterior.
+    expect(comDinheiro({ transferidoPara: new Date(2026, 10, 7, 0, 0) }))
+      .toContain("07/11/26");
+  });
+});

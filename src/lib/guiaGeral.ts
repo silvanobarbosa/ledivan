@@ -25,6 +25,7 @@
 import { cobrancasDoPaciente, rotulosDasSessoes, type Cobranca, type EntradaDasCobrancas, type SessaoDaCobranca } from "./cobrancas";
 import { formatoNaData } from "./vigenciaDoFormato";
 import { STATUS_QUE_PAUSAM } from "./therapy";
+import { horaDeParede } from "./horaLocal";
 
 export type PagamentoDaGeral = {
   id: string;
@@ -66,6 +67,14 @@ export type EntradaDaGeral = Omit<EntradaDasCobrancas, "sessoes"> & {
     online?: boolean | null;
     /** Doc 55: valor estornado nesta sessão, quando a cobrança foi desfeita com estorno. */
     estornoValor?: number | string | null;
+    /** Doc 57: valor que virou crédito por não haver próxima sessão elegível. */
+    creditoValor?: number | string | null;
+    /** Doc 57: quando o crédito foi usado — e em qual sessão (a data é a dela). */
+    creditoUsadoEm?: Date | string | null;
+    /** Doc 57: a data da sessão para onde o pagamento foi transferido. */
+    transferidoPara?: Date | string | null;
+    /** Doc 57: a data do pagamento original, que o texto do crédito cita. */
+    pagoEm?: Date | string | null;
   })[];
   pagamentos: PagamentoDaGeral[];
   envios?: EnvioDaGeral[];
@@ -410,7 +419,10 @@ const comoLinha = ({ tipo, ...c }: CobrancaDaGeral): LinhaDaGeral => ({ ...c, ti
 function avisoDoPagamento(
   s: {
     estornoValor?: number | string | null;
-    estornoEm?: Date | string | null;
+    creditoValor?: number | string | null;
+    creditoUsadoEm?: Date | string | null;
+    transferidoPara?: Date | string | null;
+    pagoEm?: Date | string | null;
     status: string;
     faltouConta?: boolean | null;
     extra?: string | null;
@@ -418,28 +430,41 @@ function avisoDoPagamento(
   formato: string,
 ): string | null {
   const virouGratuita = s.status === "nao_realizada" && s.faltouConta === false && (formato === "sessao" || s.extra === "avul" || s.extra === "grat");
+  if (!virouGratuita) return null;
 
-  // ESTORNO. O texto completo porque as duas coisas aconteceram: a sessão mudou de modalidade E o
-  // dinheiro voltou. Quem lê a linha precisa das duas para entender o saldo do mês.
+  const PREFIXO = "Sessão AVUL, que foi convertida para GRAT";
+
+  // ESTORNO: o dinheiro voltou para o paciente.
   const estornado = Number(s.estornoValor);
   if (Number.isFinite(estornado) && estornado > 0) {
-    return `Sessão AVUL, que foi convertida para GRAT - Estorno realizado no valor de ${dinheiroBR(estornado)}`;
+    return `${PREFIXO} - Estorno realizado no valor de ${dinheiroBR(estornado)}`;
+  }
+
+  // TRANSFERIDO: o dinheiro foi para outra sessão, e a data diz qual.
+  if (s.transferidoPara) return `${PREFIXO} - este pagamento foi transferido para a data ${dataCurtaBR(s.transferidoPara)}`;
+
+  /**
+   * CRÉDITO: não havia sessão elegível, então o valor ficou guardado.
+   *
+   * Depois de usado a mensagem MUDA, porque muda a pergunta de quem lê: antes é "o que vai
+   * acontecer com esse dinheiro?"; depois é "onde ele foi parar?".
+   */
+  const credito = Number(s.creditoValor);
+  if (Number.isFinite(credito) && credito > 0) {
+    if (s.creditoUsadoEm) return `Crédito desta sessão foi utilizado na sessão do dia ${dataCurtaBR(s.creditoUsadoEm)}`;
+    return `${PREFIXO} - Possui um crédito de ${dinheiroBR(credito)} do pago em ${dataCurtaBR(s.pagoEm)} que será abatido na próxima sessão a ser paga`;
   }
 
   // CONVERSÃO SIMPLES, sem dinheiro envolvido.
-  if (virouGratuita) return "Sessão AVUL que foi convertida para GRAT";
+  return "Sessão AVUL que foi convertida para GRAT";
+}
 
-  /**
-   * O caminho contrário — GRAT que virou AVUL — NÃO tem aviso aqui (doc 57).
-   *
-   * Ele aparece junto do botão "Lançar pagamento", que é onde a terapeuta vai agir: a linha tem
-   * cobrança, e o aviso solto na coluna disputaria espaço com o valor e o botão.
-   *
-   * E o gratuito que respondeu "Não" não ganha aviso NENHUM: nada mudou de lugar, nada foi
-   * convertido, e escrever "convertida para gratuita" numa sessão que sempre foi gratuita era
-   * inventar um evento que não houve — o dono pediu para tirar.
-   */
-  return null;
+/** `dd/mm/aa` pela hora de PAREDE — formatar no fuso do runtime desloca a data em um dia. */
+function dataCurtaBR(d: Date | string | null | undefined): string {
+  const parede = horaDeParede(d);
+  if (!parede) return "—";
+  const [ano, mes, dia] = parede.slice(0, 10).split("-");
+  return `${dia}/${mes}/${ano.slice(2)}`;
 }
 
 /**
