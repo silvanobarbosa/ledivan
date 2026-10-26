@@ -52,6 +52,27 @@ const emData = (d: Date | string): Date => (d instanceof Date ? d : new Date(d))
  * ainda vai acontecer ou aconteceu: transferir para uma desmarcada só adiaria o mesmo problema, e
  * para uma que também está sendo dispensada criaria um crédito circulando sem destino.
  */
+/**
+ * AS CHAVES DE COBRANÇA QUE PODEM PRENDER DINHEIRO A UMA SESSÃO.
+ *
+ * Uma sessão sozinha é cobrada de duas maneiras, e a chave é diferente em cada uma:
+ *
+ * - `sessao:<id>` — o paciente é do formato "a cada sessão" (Avulso). É a cobrança NORMAL dele.
+ * - `extra:<id>`  — a sessão é extra `avul`, ou é a gratuita que virou cobrada por falta. Essa
+ *   cobrança nasce fora do formato do paciente.
+ *
+ * Procurar só por `extra:` era o defeito do doc 58: no paciente Avulso o pagamento tem chave
+ * `sessao:`, então o app não encontrava o dinheiro, não perguntava nada, e desfazia a cobrança
+ * deixando o pagamento solto. Solto, ele não some — cai na distribuição por vencimento da guia
+ * Geral e vai ABATER a próxima cobrança, que é justamente o que a terapeuta viu acontecer.
+ *
+ * As duas nunca coexistem para a mesma sessão (uma é do formato, a outra é de fora dele), então
+ * procurar pelas duas acha o pagamento sem risco de achar dois.
+ */
+export function chavesDaCobrancaDaSessao(sessionId: string): [string, string] {
+  return [`extra:${sessionId}`, `sessao:${sessionId}`];
+}
+
 /** `AVUL` ou `X/X` — as que têm o que pagar (doc 57). */
 export function recebePagamento(rotulo: string | null | undefined): boolean {
   const r = String(rotulo ?? "").trim().toUpperCase();

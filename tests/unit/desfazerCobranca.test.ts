@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { decidirDesfazer, proximaSessaoParaReceber, recebePagamento, type SessaoNaLinha } from "@/lib/desfazerCobranca";
+import { chavesDaCobrancaDaSessao, decidirDesfazer, proximaSessaoParaReceber, recebePagamento, type SessaoNaLinha } from "@/lib/desfazerCobranca";
 
 /**
  * Desfazer a cobrança de uma sessão que JÁ foi paga (doc 55).
@@ -93,5 +93,24 @@ describe("quem pode receber o pagamento transferido (doc 57)", () => {
       { id: "c", date: d(19), status: "agendada", rotulo: "2/4" },
     ];
     expect(proximaSessaoParaReceber("a", lista)?.id).toBe("c");
+  });
+});
+
+/**
+ * Doc 58: a janela "esta sessão já possui um pagamento" não aparecia sempre.
+ *
+ * O motivo não estava na janela: estava em ONDE o dinheiro era procurado. A busca olhava só a
+ * chave `extra:`, e no paciente Avulso — o caso mais comum — a cobrança da sessão é `sessao:`.
+ * Sem achar o pagamento, o app desfazia a cobrança calado e deixava o valor solto, que a guia
+ * Geral então distribuía para a próxima cobrança.
+ */
+describe("chavesDaCobrancaDaSessao", () => {
+  it("procura pelas DUAS formas de cobrar uma sessão sozinha", () => {
+    expect(chavesDaCobrancaDaSessao("s9")).toEqual(["extra:s9", "sessao:s9"]);
+  });
+
+  it("inclui a chave do formato Avulso, que era a que faltava", () => {
+    // `sessao:<id>` é a cobrança normal de quem paga "a cada sessão" — ver `cobrancas.ts`.
+    expect(chavesDaCobrancaDaSessao("s9")).toContain("sessao:s9");
   });
 });
