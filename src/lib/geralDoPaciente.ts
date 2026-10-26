@@ -128,7 +128,7 @@ export async function geralDoPaciente(userId: string, patientId: string): Promis
   if (!paciente) return null;
 
   const [sessoes, pagamentos, precos, pacotes, vigencias, envios, puladas, pacoteHist, vencEditados] = await Promise.all([
-    db.select({ ...COLUNAS_DA_SESSAO, isOnline: therapySessions.isOnline, estornoValor: therapySessions.estornoValor, estornoEm: therapySessions.estornoEm, creditoValor: therapySessions.creditoValor })
+    db.select({ ...COLUNAS_DA_SESSAO, isOnline: therapySessions.isOnline, estornoValor: therapySessions.estornoValor, estornoEm: therapySessions.estornoEm, creditoValor: therapySessions.creditoValor, transferidoPara: therapySessions.transferidoPara, creditoUsadoEm: therapySessions.creditoUsadoEm })
       .from(therapySessions).where(and(eq(therapySessions.patientId, patientId), eq(therapySessions.userId, userId))),
     db.select({ id: sessionPayments.id, amount: sessionPayments.amount, date: sessionPayments.date, status: sessionPayments.status, method: sessionPayments.method, pagoPor: sessionPayments.pagoPor, cobrancaChave: sessionPayments.cobrancaChave, quita: sessionPayments.quitaDiferenca, kind: sessionPayments.kind, estornadoEm: sessionPayments.estornadoEm, reciboEmitidoEm: sessionPayments.reciboEmitidoEm, notaEmitidaEm: sessionPayments.receiptIssuedAt, reciboNumero: sessionPayments.receiptNumber })
       .from(sessionPayments).where(and(eq(sessionPayments.patientId, patientId), eq(sessionPayments.userId, userId))),
@@ -160,11 +160,26 @@ export async function geralDoPaciente(userId: string, patientId: string): Promis
   ]);
 
   const editados = new Set(vencEditados.map((v) => v.cobrancaChave));
+  // O pagamento estornado de cada sessão — é dele que sai a data que o texto do crédito cita.
+  const pagoQueVirouCredito = new Map<string, Date>();
+  for (const p of pagamentos) {
+    if (!p.estornadoEm || !p.cobrancaChave) continue;
+    const id = p.cobrancaChave.split(":")[1];
+    if (id) pagoQueVirouCredito.set(id, local(p.date));
+  }
 
   const entrada: EntradaDaGeral = {
     vigencias: vigencias.map((v) => ({ ...v, desde: local(v.desde), criadoEm: local(v.criadoEm) })),
     reserva: { formato: paciente.paymentFormat, pacoteTipo: paciente.pacoteTipo },
-    sessoes: sessoes.map(sessaoParaMotor),
+    /**
+     * `pagoEm` é DERIVADO, não guardado: é a data do pagamento que virou crédito nesta sessão.
+     *
+     * O texto do doc 57 cita essa data ("crédito de R$ x,xx do pago em xx/xx/xx") e ela vinha
+     * vazia, porque ninguém preenchia o campo. Guardá-la numa coluna seria repetir no banco um
+     * fato que o pagamento já conta: ele continua lá, marcado como estornado e preso à chave de
+     * cobrança desta sessão.
+     */
+    sessoes: sessoes.map((s) => ({ ...sessaoParaMotor(s), pagoEm: pagoQueVirouCredito.get(s.id) ?? null })),
     precos: precos.map((p) => ({ valor: Number(p.valor) || 0, desde: local(p.dataEfetiva) })),
     valorDaSessao: Number(paciente.sessionFee) || 0,
     tamanhos: tamanhosDasSequencias(pacotes),

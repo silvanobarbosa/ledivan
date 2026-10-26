@@ -4,13 +4,34 @@ import { and, asc, eq, isNull } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { db } from "@/db";
 import { auth } from "@/auth";
-import { cobrancaEnvios, cobrancaVencimentos, financialAccounts, patientCredits, patients, sessionPayments, transactions } from "@/db/schema";
+import { cobrancaEnvios, cobrancaVencimentos, financialAccounts, patientCredits, patients, sessionPayments, therapySessions, transactions } from "@/db/schema";
 import { ensureSessionCategory } from "@/lib/categoriaSessoes";
 import { creditoDisponivel, geralDoPaciente, hojeDeParede } from "@/lib/geralDoPaciente";
 import { diaDoFormulario } from "@/lib/trocaDeFormato";
 import { apenasCpf } from "@/lib/recibo";
 import { parseMoedaBR } from "@/lib/money";
 import { aplicarCreditoNoLancamento } from "@/lib/credito";
+
+/**
+ * A SESSÃO DE ORIGEM DO CRÉDITO passa a dizer onde ele foi parar (doc 58).
+ *
+ * O crédito guarda o pagamento que o gerou; esse pagamento guarda a cobrança; e a cobrança de uma
+ * sessão sozinha carrega o id dela na chave. É esse caminho que liga o crédito de volta à linha da
+ * guia Geral que o anunciou — sem ele, a sessão continuaria prometendo um abatimento que já
+ * aconteceu.
+ *
+ * Silenciosa de propósito: crédito que veio de sobra de pagamento (doc 36), e não de uma sessão
+ * convertida, simplesmente não acha sessão para marcar, e está certo.
+ */
+async function marcarCreditoUsado(userId: string, origemPagamentoId: string | null, quando: Date) {
+  if (!origemPagamentoId) return;
+  const [origem] = await db.select({ chave: sessionPayments.cobrancaChave }).from(sessionPayments)
+    .where(and(eq(sessionPayments.id, origemPagamentoId), eq(sessionPayments.userId, userId))).limit(1);
+  const id = origem?.chave?.split(":")[1];
+  if (!id) return;
+  await db.update(therapySessions).set({ creditoUsadoEm: quando })
+    .where(and(eq(therapySessions.id, id), eq(therapySessions.userId, userId)));
+}
 
 /**
  * "Lançar pagamento" da guia Geral: data, responsável, forma e VALOR.
@@ -133,6 +154,19 @@ export async function lancarPagamento(entrada: {
       pagoPor, pagoPorCpf, cobrancaChave: chave, kind: "credito", linkedTransactionId: null,
     }).returning();
 
+    /**
+     * A SESSÃO QUE RECEBEU o crédito — é a data dela que a sessão de origem vai citar (doc 58).
+     *
+     * A mensagem muda quando o crédito é usado: antes ela diz "possui um crédito que será abatido
+     * na próxima sessão a ser paga"; depois, "crédito desta sessão foi utilizado na sessão do dia
+     * xx/xx/xx". A troca nunca acontecia porque ninguém gravava esse "quando".
+     */
+    const idDaSessaoPaga = /^(sessao|extra):[0-9a-f-]{36}$/i.test(chave) ? chave.split(":")[1] : null;
+    const [sessaoPaga] = idDaSessaoPaga
+      ? await db.select({ date: therapySessions.date }).from(therapySessions)
+          .where(and(eq(therapySessions.id, idDaSessaoPaga), eq(therapySessions.userId, userId))).limit(1)
+      : [];
+
     let restante = creditoAplicado;
     const abertos = await db.select().from(patientCredits)
       .where(and(eq(patientCredits.userId, userId), eq(patientCredits.patientId, patientId), isNull(patientCredits.consumidoEm)))
@@ -142,10 +176,12 @@ export async function lancarPagamento(entrada: {
       const v = Number(c.valor) || 0;
       if (v <= restante + 0.005) {
         await db.update(patientCredits).set({ consumidoEm: date, consumidoPagamentoId: pgCredito.id }).where(eq(patientCredits.id, c.id));
+        await marcarCreditoUsado(userId, c.origemPagamentoId, sessaoPaga?.date ?? date);
         restante = Math.round((restante - v) * 100) / 100;
       } else {
         // Consome só uma PARTE desta linha: marca o pedaço consumido e devolve o resto ao saldo.
         await db.update(patientCredits).set({ valor: restante.toFixed(2), consumidoEm: date, consumidoPagamentoId: pgCredito.id }).where(eq(patientCredits.id, c.id));
+        await marcarCreditoUsado(userId, c.origemPagamentoId, sessaoPaga?.date ?? date);
         await db.insert(patientCredits).values({ userId, patientId, valor: (Math.round((v - restante) * 100) / 100).toFixed(2), origemPagamentoId: c.origemPagamentoId });
         restante = 0;
       }

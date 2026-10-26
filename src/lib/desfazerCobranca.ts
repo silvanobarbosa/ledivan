@@ -41,6 +41,15 @@ export type SessaoNaLinha = {
    * desapareceria dentro de uma cobrança que não existe.
    */
   rotulo?: string | null;
+  /**
+   * A chave da cobrança desta sessão, como a guia Geral a conhece (`sessao:<id>` ou `extra:<id>`).
+   *
+   * Doc 58: a transferência montava sempre `extra:<id>`, e no paciente Avulso a cobrança é
+   * `sessao:<id>`. O pagamento chegava com uma chave que não existia, e a guia Geral o redistribuía
+   * por vencimento — o dinheiro até caía na sessão certa, por coincidência de ordem, mas sem
+   * vínculo: a linha não sabia de onde ele veio, e o recibo não achava a cobrança.
+   */
+  chaveDaCobranca?: string | null;
 };
 
 const emData = (d: Date | string): Date => (d instanceof Date ? d : new Date(d));
@@ -105,7 +114,7 @@ export function proximaSessaoParaReceber(
 export type DecisaoDeDesfazer =
   | { acao: "nada" }
   | { acao: "estornar"; pagamentoId: string; valor: number }
-  | { acao: "transferir"; pagamentoId: string; valor: number; paraSessaoId: string; novaChave: string }
+  | { acao: "transferir"; pagamentoId: string; valor: number; paraSessaoId: string; paraData: Date; novaChave: string }
   /**
    * Doc 57: não há próxima sessão elegível, e o dinheiro NÃO se perde nem vira estorno — fica como
    * crédito, esperando a próxima sessão que tenha o que pagar.
@@ -147,7 +156,15 @@ export function decidirDesfazer(opts: {
     pagamentoId: pagamento.id,
     valor: pagamento.valor,
     paraSessaoId: proxima.id,
-    // A cobrança de uma sessão avulsa/extra é sempre `extra:<id da sessão>` — ver `cobrancas.ts`.
-    novaChave: `extra:${proxima.id}`,
+    // A data da sessão de destino — é ela que a coluna Pagamento mostra na sessão de origem.
+    paraData: emData(proxima.date),
+    /**
+     * A chave REAL da cobrança de destino, não uma montada aqui.
+     *
+     * `extra:<id>` só vale para a sessão extra avulsa; no paciente Avulso a cobrança da sessão é
+     * `sessao:<id>`. Montar a chave era adivinhar, e adivinhar errado soltava o pagamento de novo.
+     * O palpite fica só como último recurso, para o caso de a linha vir sem cobrança.
+     */
+    novaChave: proxima.chaveDaCobranca || `extra:${proxima.id}`,
   };
 }

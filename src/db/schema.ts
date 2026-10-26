@@ -634,6 +634,12 @@ export const therapySessions = pgTable("therapy_sessions", {
   creditoValor: numeric("credito_valor", { precision: 10, scale: 2 }),
   estornoValor: numeric("estorno_valor", { precision: 10, scale: 2 }),
   estornoEm: timestamp("estorno_em"),
+  // Doc 58: a DATA da sessão que recebeu o pagamento transferido. Sem ela a transferência ficava
+  // invisível — a linha esvaziava aqui e o dinheiro aparecia noutro lugar, sem ligar as duas.
+  transferidoPara: timestamp("transferido_para"),
+  // Doc 58: a data da sessão em que o crédito foi abatido. É ela que troca "possui um crédito que
+  // será abatido" por "crédito utilizado na sessão do dia xx/xx/xx".
+  creditoUsadoEm: timestamp("credito_usado_em"),
   // Doc 54: atendimento do pacote dado de CORTESIA. Ele não cobra e deixa de ocupar posição na
   // sequência — a sessão seguinte assume o número que ele teria —, mas continua pertencendo ao
   // pacote e ao grupo de pagamento dele. É o que o separa de `extra: "grat"`, que acontece FORA do
