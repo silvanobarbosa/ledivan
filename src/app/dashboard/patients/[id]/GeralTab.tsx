@@ -381,6 +381,10 @@ function ColunasDoPagamento({ patientId, c, onLancar, cobrar, aviso }: { patient
       <>
         <td className="px-3 py-2">
           <div className="flex flex-col gap-1.5">
+            {/* Doc 60: o aviso da conversão CONTINUA depois de pago. Ele some do lugar em que a
+                terapeuta foi olhar justamente quando ela acabou de agir — e aí a sessão gratuita
+                aparece cobrando dinheiro sem nada que explique por quê. */}
+            {aviso && <div className="text-[11px] text-foreground/50">{aviso}</div>}
             {/* Status "Pago" ocupa a largura da coluna. */}
             <span className={`w-full text-center text-[11px] font-bold px-2 py-0.5 rounded-full ${SITUACAO.pago.cls}`}>Pago</span>
             {/* Quitada recebendo MENOS, com a diferença perdoada ("não haverá diferença de valor").
@@ -467,13 +471,24 @@ function FormularioDeLancamento({ patientId, c, responsavel, responsavelCpf, fec
   const [quitar, setQuitar] = useState(false);
   const [creditarSobra, setCreditarSobra] = useState(true);
   const valorNum = Number(parseMoedaBR(valor) ?? 0) || 0;
+  /**
+   * A COBRANÇA QUE AINDA ESPERA O VALOR (doc 60).
+   *
+   * A falta do paciente gratuito nasce AVUL de R$ 0,00 por desenho (doc 54): o valor é definido
+   * depois. Até aqui, contra uma cobrança de zero, tudo o que a terapeuta digitava era "a mais", e
+   * a tela perguntava se os R$ 50,00 deviam virar crédito no saldo — "se o usuário clicou em
+   * lançar pagamento e não tem nenhum valor digitado, significa que esse valor irá entrar para
+   * essa sessão", respondeu o dono. É o que acontece agora: o valor digitado É o da sessão.
+   */
+  const aguardandoValor = c.aguardandoValor === true && c.falta <= 0.005;
+  const faltaDaCobranca = aguardandoValor ? valorNum : c.falta;
   const { creditoAplicado, fecha } = aplicarCreditoNoLancamento({
-    falta: c.falta, cashRecebido: valorNum, creditoDisponivel, creditarExcedente: creditarSobra,
+    falta: faltaDaCobranca, cashRecebido: valorNum, creditoDisponivel, creditarExcedente: creditarSobra,
   });
   // Ainda falta DEPOIS do dinheiro + crédito aplicado? Então é pagamento parcial (recebeu menos).
-  const diferenca = Math.round((c.falta - valorNum - creditoAplicado) * 100) / 100;
+  const diferenca = Math.round((faltaDaCobranca - valorNum - creditoAplicado) * 100) / 100;
   const aMenos = !fecha && diferenca > 0.005;
-  const sobraCash = Math.round((valorNum - c.falta) * 100) / 100;
+  const sobraCash = Math.round((valorNum - faltaDaCobranca) * 100) / 100;
   const aMais = sobraCash > 0.005;
 
   function enviar(fd: FormData) {

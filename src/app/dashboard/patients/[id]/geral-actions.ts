@@ -89,7 +89,16 @@ export async function lancarPagamento(entrada: {
     .flatMap((l) => (l.tipo === "pagamento" ? [l] : l.tipo === "sessao" && l.cobranca ? [l.cobranca] : []))
     .find((c) => c.chave === chave);
   if (!cobranca) return { ok: false, error: "Cobrança não encontrada." };
-  if (cobranca.situacao === "pago" || cobranca.falta <= 0) return { ok: false, error: "Esta cobrança já está paga." };
+  /**
+   * A COBRANÇA QUE AINDA ESPERA O VALOR é a exceção da recusa (doc 60).
+   *
+   * A falta do paciente gratuito nasce AVUL de R$ 0,00 (doc 54) e o valor vem depois. Ela chegava
+   * aqui com `falta` zero e levava "Esta cobrança já está paga" — numa linha em que ninguém pagou
+   * nada e o botão de lançar estava à mostra. O valor digitado É o da sessão: grava-se nela, e o
+   * pagamento quita o que acabou de nascer.
+   */
+  const aguardandoValor = cobranca.aguardandoValor === true && cobranca.falta <= 0.005;
+  if (!aguardandoValor && (cobranca.situacao === "pago" || cobranca.falta <= 0)) return { ok: false, error: "Esta cobrança já está paga." };
 
   const [paciente] = await db.select({ name: patients.name }).from(patients).where(eq(patients.id, patientId));
 
@@ -100,16 +109,33 @@ export async function lancarPagamento(entrada: {
   if (!(valorNum > 0)) return { ok: false, error: "Informe um valor maior que zero." };
   const amount = valorNum.toFixed(2);
 
+  /**
+   * O valor digitado vira o VALOR DA SESSÃO — a mesma gravação que a janela da agenda faz
+   * (`definirValorDaFalta`), por outra porta. `aguardandoValor` já significa falta do gratuito
+   * considerada cobrada e sem valor; as cláusulas abaixo são a trava de sempre: a sessão tem de
+   * ser deste profissional e continuar sendo essa falta.
+   */
+  const faltaDaCobranca = aguardandoValor ? valorNum : cobranca.falta;
+  if (aguardandoValor && /^extra:[0-9a-f-]{36}$/i.test(chave)) {
+    await db.update(therapySessions).set({ valorExtra: amount })
+      .where(and(
+        eq(therapySessions.id, chave.split(":")[1]),
+        eq(therapySessions.userId, userId),
+        eq(therapySessions.status, "nao_realizada"),
+        eq(therapySessions.faltouConta, true),
+      ));
+  }
+
   // Doc 36: crédito do saldo. O disponível abate automaticamente o que o dinheiro não cobrir; a
   // sobra de dinheiro vira crédito novo SE o usuário pediu. Regra pura em `aplicarCreditoNoLancamento`.
   const disponivel = await creditoDisponivel(userId, patientId);
   const { creditoAplicado, creditoNovo } = aplicarCreditoNoLancamento({
-    falta: cobranca.falta, cashRecebido: valorNum, creditoDisponivel: disponivel,
+    falta: faltaDaCobranca, cashRecebido: valorNum, creditoDisponivel: disponivel,
     creditarExcedente: entrada?.creditarExcedente === true,
   });
 
   // Quitar a diferença só faz sentido quando AINDA falta depois do dinheiro + crédito aplicado.
-  const quita = entrada?.quitarDiferenca === true && valorNum + creditoAplicado < cobranca.falta - 0.005;
+  const quita = entrada?.quitarDiferenca === true && valorNum + creditoAplicado < faltaDaCobranca - 0.005;
   // Meio-dia: a coluna é hora de parede, e meio-dia não troca de dia em fuso nenhum do caminho.
   const date = new Date(`${entrada.data}T12:00:00`);
 
@@ -200,6 +226,8 @@ export async function lancarPagamento(entrada: {
   revalidatePath(`/dashboard/patients/${patientId}`);
   revalidatePath("/dashboard/fechamento");
   revalidatePath("/dashboard/transactions");
+  // O valor da falta pode ter acabado de nascer aqui: a agenda mostra o mesmo número.
+  if (aguardandoValor) revalidatePath("/dashboard/agenda");
   return { ok: true };
 }
 

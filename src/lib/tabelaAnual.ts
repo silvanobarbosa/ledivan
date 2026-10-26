@@ -33,14 +33,35 @@ export function anosComPagamento(pagamentos: PagamentoAnual[]): number[] {
  * Uma linha da tabela anual. `valor` é o total LÍQUIDO do mês — o que entrou de verdade.
  * `formas` detalha por forma de pagamento (doc 53): cada uma com o bruto e, nos cartões, o líquido.
  */
-export type LinhaAnual = { mes: string; valor: number; formas: FormaRecebida[] };
+export type LinhaAnual = { mes: string; valor: number; formas: FormaRecebida[]; estornado: number };
+
+/** O dinheiro que VOLTOU para o paciente, no dia em que voltou (doc 60). */
+export type EstornoAnual = { valor: string | number; data: string | Date };
 
 /**
  * Os doze meses do ano com o total recebido em cada um, mais o total do ano.
  * Doc 50: o recebido entra pelo valor LÍQUIDO (desconta a taxa do cartão vigente na data).
  */
-export function recebidosPorAno(pagamentos: PagamentoAnual[], ano: number, vigencias: VigenciaTaxa[] = []): { meses: LinhaAnual[]; total: number } {
+export function recebidosPorAno(
+  pagamentos: PagamentoAnual[],
+  ano: number,
+  vigencias: VigenciaTaxa[] = [],
+  estornos: EstornoAnual[] = [],
+): { meses: LinhaAnual[]; total: number } {
   const soma = new Array(12).fill(0) as number[];
+  /**
+   * O estorno entra como SAÍDA do mês em que foi feito — não como desconto do mês do pagamento.
+   *
+   * A data importa: pagamento em outubro devolvido em novembro move dinheiro nos dois meses, e
+   * juntar as duas pontas no mesmo mês apagaria os dois fatos de uma vez. É a mesma leitura que
+   * Movimentações faz do mesmo par.
+   */
+  const devolvido = new Array(12).fill(0) as number[];
+  for (const e of estornos) {
+    const d = new Date(e.data);
+    if (Number.isNaN(d.getTime()) || d.getFullYear() !== ano) continue;
+    devolvido[d.getMonth()] += Number(e.valor) || 0;
+  }
   // Doc 53: além do total do mês, a quebra por forma de pagamento. Reusa `recebidoPorForma`,
   // que é a mesma função do Menu Pagamentos — uma só regra decide o que mostra líquido.
   const porMes: PagamentoAnual[][] = Array.from({ length: 12 }, () => []);
@@ -58,7 +79,9 @@ export function recebidosPorAno(pagamentos: PagamentoAnual[], ano: number, vigen
       porMes[i].map((p) => ({ valor: Number(p.amount) || 0, metodo: p.method, data: isoDe(p.date) })),
       vigencias,
     ).formas,
+    estornado: Math.round(devolvido[i] * 100) / 100,
   }));
-  const total = Math.round(meses.reduce((a, m) => a + m.valor, 0) * 100) / 100;
+  // O total do ano é o LÍQUIDO: o que entrou menos o que voltou.
+  const total = Math.round(meses.reduce((a, m) => a + m.valor - m.estornado, 0) * 100) / 100;
   return { meses, total };
 }

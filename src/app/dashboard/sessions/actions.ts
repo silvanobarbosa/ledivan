@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@/db";
-import { therapySessions, patients, patientPaymentFormatHistory, blockedSlots, sessoesPuladas, sessionPayments, patientCredits } from "@/db/schema";
+import { therapySessions, patients, patientPaymentFormatHistory, blockedSlots, sessoesPuladas, sessionPayments, patientCredits, transactions } from "@/db/schema";
 import { auth } from "@/auth";
 import { canalParaGravar, datasEPuladas, ehMensal, ehOnline, geraRepeticoes, horasAntesParaGravar, pedeLocal, segundoDiaValido } from "@/lib/agendamentoNovo";
 import { and, eq, gte, inArray, isNull, lte } from "drizzle-orm";
@@ -335,6 +335,7 @@ export async function updateSession(sessionId: string, formData: FormData): Prom
 
   await db.update(therapySessions).set(patch).where(and(eq(therapySessions.id, sessionId), eq(therapySessions.userId, userId)));
   revalidatePath("/dashboard/agenda");
+  revalidatePath("/dashboard/transactions");
   await aplicarCreditosPendentes(userId, existing.patientId);
   revalidatePath(`/dashboard/patients/${existing.patientId}`);
   return { ok: true };
@@ -428,7 +429,7 @@ export async function desfazerCobrancaDaSessao(
   if (!existing) return { ok: false, error: "Sessão não encontrada." };
 
   const [pg] = await db
-    .select({ id: sessionPayments.id, amount: sessionPayments.amount, cobrancaChave: sessionPayments.cobrancaChave })
+    .select({ id: sessionPayments.id, amount: sessionPayments.amount, cobrancaChave: sessionPayments.cobrancaChave, linkedTransactionId: sessionPayments.linkedTransactionId })
     .from(sessionPayments)
     .where(and(eq(sessionPayments.userId, userId), inArray(sessionPayments.cobrancaChave, chavesDaCobrancaDaSessao(sessionId)), eq(sessionPayments.status, "paid"), isNull(sessionPayments.estornadoEm)))
     .limit(1);
@@ -478,6 +479,24 @@ export async function desfazerCobrancaDaSessao(
     await db.update(therapySessions)
       .set({ estornoValor: String(decisao.valor.toFixed(2)), estornoEm: agora })
       .where(and(eq(therapySessions.id, sessionId), eq(therapySessions.userId, userId)));
+    /**
+     * E o LANÇAMENTO DO CAIXA sai (doc 60).
+     *
+     * O dinheiro voltou para o paciente: ele não entrou. Mantido, a tabela de lançamentos seguia
+     * mostrando uma receita que já não existe, e os Relatórios somando-a — "valores estornados não
+     * devem aparecer nessa área", disse o dono, e o motivo é esse.
+     *
+     * O histórico não se perde: o pagamento continua marcado (`estornadoEm`), e Movimentações
+     * monta as DUAS pontas a partir dele — a entrada no dia em que o paciente pagou e a saída no
+     * dia do estorno. É o mesmo princípio de `removerPagamento`, que já apaga a transação junto:
+     * pagamento e transação são o mesmo fato contado em duas telas.
+     */
+    if (pg?.linkedTransactionId) {
+      await db.delete(transactions)
+        .where(and(eq(transactions.id, pg.linkedTransactionId), eq(transactions.userId, userId)));
+      await db.update(sessionPayments).set({ linkedTransactionId: null })
+        .where(and(eq(sessionPayments.id, decisao.pagamentoId), eq(sessionPayments.userId, userId)));
+    }
   } else if (decisao.acao === "creditar") {
     /**
      * Doc 57: sem próxima sessão elegível, o valor NÃO se perde nem vira estorno — fica como

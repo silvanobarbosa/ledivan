@@ -429,13 +429,31 @@ function avisoDoPagamento(
   },
   formato: string,
 ): string | null {
-  const virouGratuita = s.status === "nao_realizada" && s.faltouConta === false && (formato === "sessao" || s.extra === "avul" || s.extra === "grat");
+  const estornado = Number(s.estornoValor);
+  const creditado = Number(s.creditoValor);
+  /**
+   * O DINHEIRO DESFEITO é prova de que a sessão foi cobrável — e às vezes é a única que sobra.
+   *
+   * No paciente GRATUITO a modalidade AVUL não é gravada: ela é DERIVADA da resposta "sim, cobra"
+   * (doc 54) e vive só dentro da leitura das cobranças. Quando a terapeuta desfaz a cobrança, a
+   * resposta vira "não" e a derivação desaparece — a linha volta a ser um gratuito comum, e as
+   * três mensagens (estorno, transferência, crédito) sumiam com ela, justamente no caso em que
+   * havia dinheiro a explicar. Era o defeito do doc 60: "a mensagem sobre estorno parou de
+   * aparecer".
+   *
+   * A marca do dinheiro não some: ela está gravada na sessão. Por isso ela entra aqui como a
+   * terceira porta — e só ela, porque gratuito que respondeu "Não" sem dinheiro nenhum continua
+   * sem aviso, como o doc 57 mandou.
+   */
+  const dinheiroDesfeito = (Number.isFinite(estornado) && estornado > 0) || (Number.isFinite(creditado) && creditado > 0) || !!s.transferidoPara;
+
+  const virouGratuita = s.status === "nao_realizada" && s.faltouConta === false
+    && (formato === "sessao" || s.extra === "avul" || s.extra === "grat" || dinheiroDesfeito);
   if (!virouGratuita) return null;
 
   const PREFIXO = "Sessão AVUL, que foi convertida para GRAT";
 
   // ESTORNO: o dinheiro voltou para o paciente.
-  const estornado = Number(s.estornoValor);
   if (Number.isFinite(estornado) && estornado > 0) {
     return `${PREFIXO} - Estorno realizado no valor de ${dinheiroBR(estornado)}`;
   }
@@ -449,7 +467,7 @@ function avisoDoPagamento(
    * Depois de usado a mensagem MUDA, porque muda a pergunta de quem lê: antes é "o que vai
    * acontecer com esse dinheiro?"; depois é "onde ele foi parar?".
    */
-  const credito = Number(s.creditoValor);
+  const credito = creditado;
   if (Number.isFinite(credito) && credito > 0) {
     if (s.creditoUsadoEm) return `Crédito desta sessão foi utilizado na sessão do dia ${dataCurtaBR(s.creditoUsadoEm)}`;
     return `${PREFIXO} - Possui um crédito de ${dinheiroBR(credito)} do pago em ${dataCurtaBR(s.pagoEm)} que será abatido na próxima sessão a ser paga`;

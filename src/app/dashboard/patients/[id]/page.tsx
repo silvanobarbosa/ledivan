@@ -227,6 +227,10 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
           packagesList.map((p) => ({ id: p.id, seq: p.seq, sessions: p.sessions })),
         ))}
         payments={JSON.parse(JSON.stringify(paymentsList))}
+        /* Doc 60: o estorno é saída na tabela "Valores recebidos" — a sessão guarda o valor e o dia. */
+        estornos={sessionsList
+          .filter((s) => s.estornoEm && Number(s.estornoValor) > 0)
+          .map((s) => ({ valor: String(s.estornoValor), data: horaDeParede(s.estornoEm) }))}
         statusHistory={JSON.parse(JSON.stringify(statusHist))}
         priceHistory={JSON.parse(JSON.stringify(priceHist))}
         records={JSON.parse(JSON.stringify(recordsList))}
