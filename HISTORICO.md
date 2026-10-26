@@ -7,6 +7,38 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-10-26 — Doc 60: o gratuito que virou AVUL perdia a própria história
+
+**Entregue (#513):** a mensagem do estorno/transferência/crédito volta a aparecer no paciente
+GRATUITO; o aviso "GRAT que foi convertida para AVUL" continua à mostra depois de pago; a cobrança
+que ainda espera o valor deixa de perguntar sobre crédito e passa a aceitar o lançamento — o valor
+digitado vira o VALOR da sessão; o estorno sai da lista de lançamentos e entra na tabela "Valores
+recebidos em xxxx" como saída em vermelho.
+
+**Por quê:** no gratuito a modalidade AVUL não é gravada — é DERIVADA da resposta "sim, cobra"
+(doc 54). Desfeita a cobrança, a derivação some, e com ela sumiam as três mensagens, justamente no
+único caso em que havia dinheiro a explicar.
+
+**Decisões que ficam valendo:**
+- **A marca do dinheiro é a terceira porta do aviso.** Estorno, crédito ou transferência gravados
+  na sessão provam que ela foi cobrável — e é a única prova que sobrevive à derivação. Gratuito que
+  respondeu "Não" sem dinheiro nenhum continua sem aviso (doc 57).
+- **O estorno apaga o lançamento do caixa.** O dinheiro voltou: ele não entrou. O histórico fica no
+  pagamento marcado, de onde Movimentações monta as duas pontas — mesmo princípio de
+  `removerPagamento`, que já apagava a transação junto.
+- **Cobrança de R$ 0,00 que ESPERA valor é lançável.** O valor digitado é gravado na sessão
+  (`valorExtra`), pela mesma regra da janela da agenda, e o pagamento quita o que acabou de nascer.
+
+**Armadilhas:** `aguardandoValor` era lido pelo motor e descartado na remontagem campo a campo de
+`cobrancaNaTela` — a TERCEIRA vez que o mesmo padrão morde (doc 58: `faltouConta` e `estornadoEm`).
+Travar a lista do `SELECT` prova que o dado foi lido, não que ele chegou. E `formatBRL` usa Intl
+pt-BR, que separa "R$" do número com espaço NÃO-QUEBRÁVEL: teste que procura "R$ 50,00" com espaço
+comum reprova texto que está certo na tela.
+
+**Pendente:** nada deste documento.
+
+---
+
 ## 2026-10-26 — Doc 59: o crédito anda sozinho, e o pagamento excluído não deixa rastro
 
 **Entregue:** o crédito que estava esperando vai por conta própria para a próxima sessão AVUL ou
