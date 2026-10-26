@@ -18,7 +18,7 @@ import { BloquearHorario } from "@/components/dashboard/BloquearHorario";
 import { FUNDO_DA_JANELA, JANELA } from "@/lib/modal";
 import { perguntaSeEntraNaSequencia } from "@/lib/sessaoExtra";
 import { formatoNaData } from "@/lib/vigenciaDoFormato";
-import { tipoDaFalta, perguntaDaFalta, COMO_REFAZER } from "@/lib/perguntaFalta";
+import { tipoDaFalta, tipoDaFaltaPeloRotulo, perguntaDaFalta, COMO_REFAZER } from "@/lib/perguntaFalta";
 import { podeSerCortesia } from "@/lib/cortesia";
 import { useJanela } from "@/lib/useJanela";
 
@@ -572,7 +572,12 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
             { formato: pac.paymentFormat ?? "sessao", pacoteTipo: pac.pacoteTipo ?? null },
           ).formato
         : null;
-      setPerguntaFaltou({ id, tipo: tipoDaFalta(formato) });
+      /**
+       * Doc 57: a janela é a do que a sessão É AGORA — o rótulo da célula —, não a do formato do
+       * cadastro. Quem já converteu uma vez (gratuito que virou AVUL) precisa, na segunda, da
+       * pergunta do AVUL; pelo cadastro a janela ofereceria converter o que já está convertido.
+       */
+      setPerguntaFaltou({ id, tipo: tipoDaFaltaPeloRotulo(sess?.codigo, formato) });
     } else changeStatus(id, status);
   };
 

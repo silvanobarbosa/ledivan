@@ -23,14 +23,16 @@ export type PerguntaDaFalta = {
 
 const PERGUNTAS: Record<TipoDaFalta, PerguntaDaFalta> = {
   gratuito: {
-    titulo: "Transformar esta sessão em uma sessão paga?",
+    titulo: "Deseja cobrar esta sessão?",
     explicaSim: "A sessão será lançada como Avulso.",
-    explicaNao: "A sessão seguirá normalmente como gratuita, sem cobrança.",
+    explicaNao: "A sessão seguirá gratuita, sem cobrança.",
   },
   avulso: {
-    titulo: "Cobrar esta sessão?",
-    explicaSim: "A sessão continuará sendo lançada e cobrada como Avulso.",
-    explicaNao: "A sessão passará a ser identificada como Gratuita, e não será gerada nenhuma cobrança.",
+    // Doc 57: "Continuar cobrando" e não "Cobrar". A sessão JÁ é cobrada — a pergunta é se segue
+    // sendo, e o verbo precisa dizer isso, senão "Não" parece não fazer nada.
+    titulo: "Continuar cobrando esta sessão?",
+    explicaSim: "A sessão continuará sendo lançada e cobrada como avulso.",
+    explicaNao: "Esta sessão será convertida para gratuita, sem gerar cobrança.",
   },
   pacote: {
     titulo: "Abater esta sessão do pacote?",
@@ -54,6 +56,26 @@ export function tipoDaFalta(formato: string | null | undefined): TipoDaFalta {
   if (f.includes("grat")) return "gratuito";
   if (f.includes("mensal") || f.includes("quinzen") || f.includes("pacote")) return "pacote";
   return "avulso"; // "sessao", "avulso" e qualquer outro
+}
+
+/**
+ * A pergunta é a do que a sessão É AGORA, não a do formato do cadastro (doc 57).
+ *
+ * "O sistema deverá verificar se o agendamento é GRAT ou AVUL e, dependendo do tipo, abrir a
+ * respectiva janela." A diferença aparece justamente em quem já converteu uma vez: um paciente
+ * gratuito cuja sessão virou AVUL ao responder "Sim" precisa, na segunda vez, da pergunta do
+ * AVUL — "continuar cobrando?" —, não de novo a do gratuito. Pelo formato do cadastro ele seria
+ * sempre gratuito, e a janela ofereceria converter o que já está convertido.
+ *
+ * O rótulo é o que a terapeuta vê na célula da agenda, então a janela passa a concordar com a
+ * tela. `X/4`, `DEVOL 2/4` e afins continuam caindo no pacote; sem rótulo, vale o cadastro.
+ */
+export function tipoDaFaltaPeloRotulo(rotulo: string | null | undefined, formato: string | null | undefined): TipoDaFalta {
+  const r = String(rotulo ?? "").trim().toUpperCase();
+  if (r.startsWith("GRAT")) return "gratuito";
+  if (r.startsWith("AVUL")) return "avulso";
+  if (/\d+\s*\/\s*\d+/.test(r)) return "pacote";
+  return tipoDaFalta(formato);
 }
 
 export function perguntaDaFalta(tipo: TipoDaFalta): PerguntaDaFalta {

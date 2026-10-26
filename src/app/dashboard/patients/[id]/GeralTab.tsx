@@ -362,7 +362,7 @@ function ListaLancamentos({ patientId, pagamentos, total }: { patientId: string;
   );
 }
 
-function ColunasDoPagamento({ patientId, c, onLancar, cobrar }: { patientId: string; c: CobrancaNaTela; onLancar: () => void; cobrar?: CobrarInfo }) {
+function ColunasDoPagamento({ patientId, c, onLancar, cobrar, aviso }: { patientId: string; c: CobrancaNaTela; onLancar: () => void; cobrar?: CobrarInfo; aviso?: string | null }) {
   const pg = c.pagamento;
   // Quem decide a coluna e a SITUACAO, nao a existencia de um pagamento. Desde 18/09 a cobranca
   // carrega o que ja foi recebido mesmo sem estar quitada — e meia entrada nao e "Pago".
@@ -403,6 +403,9 @@ function ColunasDoPagamento({ patientId, c, onLancar, cobrar }: { patientId: str
     <>
       <td className="px-3 py-2">
         <div className="flex flex-col gap-1.5">
+          {/* Doc 57: EM CIMA do botão. É onde a terapeuta vai agir, e o texto explica por que uma
+              sessão de paciente gratuito está pedindo dinheiro. */}
+          {aviso && <div className="text-[11px] text-foreground/50">{aviso}</div>}
           <div className="flex items-center gap-2">
             <button type="button" onClick={onLancar} className="text-xs font-bold text-white bg-primary px-3 py-1.5 rounded-lg hover:opacity-90 whitespace-nowrap print:hidden">
               Lançar pagamento
@@ -710,7 +713,7 @@ export function GeralTab({ patientId, linhas, responsavel, responsavelCpf, cobra
                     {/* Doc 30: o valor da sessão AVULSA (formato "sessao") sai em negrito na tabela de Controle. */}
                     <td className={`px-3 py-2 text-right tabular-nums ${c?.formato === "sessao" ? "font-bold" : ""}`}>{l.valor == null ? "" : formatBRL(l.valor)}</td>
                     {c ? (
-                      <ColunasDoPagamento patientId={patientId} c={c} onLancar={() => setAberta(c.chave)} cobrar={cobrar} />
+                      <ColunasDoPagamento patientId={patientId} c={c} onLancar={() => setAberta(c.chave)} cobrar={cobrar} aviso={l.avisoDaCobranca} />
                     ) : l.avisoDoPagamento ? (
                       /* Doc 55: a sessão deixou de ser cobrada. Linha que esvazia sem explicação,
                          numa tabela de dinheiro, vira dúvida — e a mais cara é "para onde foi o que

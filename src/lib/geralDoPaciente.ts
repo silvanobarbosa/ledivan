@@ -52,7 +52,7 @@ export type CobrancaNaTela = Omit<CobrancaDaGeral, "vencimento" | "competencia" 
 };
 
 export type LinhaNaTela =
-  | { tipo: "sessao"; id: string; data: string; online: boolean; status: string; faltouConta: boolean | null; avisoDoPagamento: string | null; rotulo: string; valor: number | null; cobranca: CobrancaNaTela | null }
+  | { tipo: "sessao"; id: string; data: string; online: boolean; status: string; faltouConta: boolean | null; avisoDoPagamento: string | null; avisoDaCobranca: string | null; rotulo: string; valor: number | null; cobranca: CobrancaNaTela | null }
   | ({ tipo: "pagamento" } & CobrancaNaTela)
   /** Data que a serie pulou por horario bloqueado. Nao e sessao: so ocupa a linha (dona, 19/09). */
   | { tipo: "bloqueio"; data: string };
@@ -100,6 +100,7 @@ function naTela(l: LinhaDaGeral, editados: Set<string>): LinhaNaTela {
     status: l.status,
     faltouConta: l.faltouConta ?? null,
     avisoDoPagamento: l.avisoDoPagamento ?? null,
+    avisoDaCobranca: l.avisoDaCobranca ?? null,
     rotulo: l.rotulo,
     valor: l.valor,
     cobranca: l.cobranca ? cobrancaNaTela({ ...l.cobranca, tipoDeCobranca: l.cobranca.tipo }, editados) : null,
@@ -128,7 +129,7 @@ export async function geralDoPaciente(userId: string, patientId: string): Promis
   if (!paciente) return null;
 
   const [sessoes, pagamentos, precos, pacotes, vigencias, envios, puladas, pacoteHist, vencEditados] = await Promise.all([
-    db.select({ ...COLUNAS_DA_SESSAO, isOnline: therapySessions.isOnline, estornoValor: therapySessions.estornoValor })
+    db.select({ ...COLUNAS_DA_SESSAO, isOnline: therapySessions.isOnline, estornoValor: therapySessions.estornoValor, estornoEm: therapySessions.estornoEm })
       .from(therapySessions).where(and(eq(therapySessions.patientId, patientId), eq(therapySessions.userId, userId))),
     db.select({ id: sessionPayments.id, amount: sessionPayments.amount, date: sessionPayments.date, status: sessionPayments.status, method: sessionPayments.method, pagoPor: sessionPayments.pagoPor, cobrancaChave: sessionPayments.cobrancaChave, quita: sessionPayments.quitaDiferenca, kind: sessionPayments.kind, reciboEmitidoEm: sessionPayments.reciboEmitidoEm, notaEmitidaEm: sessionPayments.receiptIssuedAt, reciboNumero: sessionPayments.receiptNumber })
       .from(sessionPayments).where(and(eq(sessionPayments.patientId, patientId), eq(sessionPayments.userId, userId))),
