@@ -7,6 +7,46 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-10-26 — Doc 59: o crédito anda sozinho, e o pagamento excluído não deixa rastro
+
+**Entregue:** o crédito que estava esperando vai por conta própria para a próxima sessão AVUL ou
+X/X, com a data, a forma e quem pagou do pagamento ORIGINAL; a mensagem da sessão de origem troca
+para "crédito utilizado na sessão do dia"; parcial deixa a diferença em aberto e excedente continua
+disponível; o mesmo crédito nunca é oferecido duas vezes; e excluir um pagamento apaga também as
+marcas que ele deixou nas sessões.
+
+**Por quê:** o crédito nasce de uma sessão que não aconteceu — o paciente JÁ pagou. Não há decisão
+a tomar, só um lugar novo para o dinheiro adiantado. Obrigar a terapeuta a lançar à mão um
+pagamento que já foi feito é pedir que ela repita o que o sistema sabe.
+
+**Decisões que ficam valendo:**
+- **A aplicação é escrita, não derivada.** `aplicarCreditosPendentes` roda depois de qualquer
+  mudança que possa criar onde usar (sessão nova, falta desfeita, pagamento removido) e é chamada
+  de vários pontos de propósito: "passou a haver onde usar" não é um evento do app, é consequência
+  de vários. Sai em uma consulta quando não há crédito, que é o caso comum.
+- **Uma aplicação por vez, recalculando.** Um crédito pode se partir entre duas cobranças e a parte
+  que sobra vira LINHA NOVA — calcular tudo de uma vez exigiria adivinhar o id dela antes de
+  existir.
+- **`naoAuto` existe para a terapeuta poder mandar.** O documento permite mover o crédito "de um
+  lugar para outro"; sem a marca, a aplicação automática o devolveria no instante seguinte e mover
+  seria impossível. Ela só é posta quando a pessoa REMOVE uma aplicação automática.
+- **`origemSessaoId` no pagamento** é o caminho de volta da transferência. Sem ele não havia como
+  saber qual sessão limpar ao excluir o pagamento, e a origem continuaria anunciando para onde foi
+  um dinheiro que já não existe.
+
+**Armadilhas:**
+- **`git checkout -- <arquivo>` depois de um controle negativo apaga o trabalho não commitado
+  daquele arquivo.** Perdi as mudanças de `geral-actions.ts` assim e tive de refazê-las. Commitar
+  ANTES de quebrar o código de propósito, ou guardar cópia.
+- **O pagamento estornado não aparece na guia Geral**, porque o motor o tira do casamento com a
+  cobrança. Logo, não há como excluí-lo pela tela: o percurso que importa é o do pagamento
+  TRANSFERIDO.
+- **O nome do paciente na célula da agenda aparece só até o primeiro espaço.**
+
+**Pendente:** nada deste documento.
+
+---
+
 ## 2026-10-26 — Doc 58: o estorno e a transferência, que só pareciam funcionar
 
 **Entregue:** PRs #507, #508, #509, #510 — a janela "esta sessão já possui um pagamento" voltou a
