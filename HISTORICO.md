@@ -7,6 +7,50 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-10-26 — Doc 57: a janela é a do que a sessão É, e o dinheiro tem três destinos (#495–#498)
+
+**Entregue:**
+- **#495** — a pergunta sai do RÓTULO, não do cadastro; títulos novos; o AVUL dispensado vira GRAT;
+  textos da coluna de pagamento com as siglas da tela.
+- **#496** — máscara de moeda no campo do valor.
+- **#497** — estorno aparece como saída no extrato, e o saldo fecha em zero.
+- **#498** — elegibilidade AVUL/X-X e crédito pendente quando não há próxima.
+
+**Decisões que ficam valendo:**
+- **A janela do "Faltou" é a do RÓTULO da célula, não a do formato do cadastro.** Quem já converteu
+  uma vez (gratuito que virou AVUL) precisa, na segunda, da pergunta do AVUL — pelo cadastro a
+  janela ofereceria converter o que já está convertido.
+- **"Continuar cobrando esta sessão?" e não "Cobrar".** A sessão já é cobrada; com o verbo errado
+  o "Não" parece não fazer nada, e ele converte para gratuita.
+- **O AVUL dispensado PASSA A SER GRAT**, na agenda e na guia Geral. Antes ficava escrito AVUL numa
+  linha que não cobrava nada.
+- **Gratuito que respondeu "Não" não ganha aviso nenhum.** O texto antigo inventava um evento numa
+  sessão que sempre foi gratuita.
+- **Pagamento estornado é MARCADO, não apagado.** O extrato mostra as duas pontas e o saldo fecha em
+  zero. E ele não quita nada — senão, perdida a cobrança, seria redistribuído e pagaria outra sessão.
+- **Só AVUL ou X/X recebem pagamento transferido.** Mandar para uma GRAT faz o crédito desaparecer
+  numa cobrança que não existe. O rótulo vem do mesmo motor que desenha a célula.
+- **Sem próxima elegível, o valor vira CRÉDITO**, não erro nem estorno. Devolver obrigaria a
+  terapeuta a estornar um dinheiro que o paciente não pediu de volta.
+
+**Armadilhas:**
+- **Mostrar a saída do estorno sem manter a entrada tiraria do mês um dinheiro que já não estava
+  lá.** Eu apagava o pagamento; somar a saída por cima dava R$ 400 de buraco onde o certo é zero.
+  É o que o documento chama de "evitando duplicidade", e só aparece fazendo a conta das duas pontas.
+- **Três PRs em paralelo no mesmo arquivo.** Criei #495, #496 e #497 todas a partir de `main` e as
+  três mexiam no mesmo trecho da guia Geral; a quarta rebaseou em cima da errada. Quando a leva toca
+  o mesmo arquivo, empilhar na ordem desde o começo.
+- **`cat > arquivo.py` com acento e rodar depois perde os acentos** (encoding do Windows). Heredoc
+  inline funciona; arquivo intermediário, não.
+
+**Verificado em produção:** célula `AVUL` abre "Continuar cobrando esta sessão?"; célula `2/4` abre
+a do pacote. O roteamento pelo rótulo está valendo.
+
+**Pendente:** os outros campos de dinheiro do app seguem sem máscara (lançar pagamento, valor da
+avulsa no agendamento, despesas). Quem aprender o formato na janela da falta vai estranhar lá.
+
+---
+
 ## 2026-10-24 — zod não era dependência declarada (#492)
 
 **Entregue:** `zod` vira dependência direta em 4.6.7; `nodemailer` 10.1.3 → 10.2.1.
