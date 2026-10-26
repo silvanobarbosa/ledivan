@@ -2,12 +2,13 @@
 
 import { db } from "@/db";
 import { auth } from "@/auth";
-import { despesas, receitasPessoais, patients, transactions, therapySessions } from "@/db/schema";
-import { and, eq, isNotNull } from "drizzle-orm";
+import { despesas, receitasPessoais, patients, sessionPayments, transactions, therapySessions } from "@/db/schema";
+import { and, eq, isNotNull, isNull } from "drizzle-orm";
 import { geralDoPaciente, type LinhaNaTela } from "@/lib/geralDoPaciente";
 import { resolverCobrancas } from "@/lib/resolverCobrancas";
 import { getVigenciasTaxa } from "@/lib/cardFees";
 import { ordenarExtrato, type Movimentacao } from "@/lib/extratoBancario";
+import { movimentosDoEstorno } from "@/lib/estornoNoCaixa";
 
 const dia = (iso: string | Date | null | undefined): string => {
   if (iso == null) return "";
@@ -25,7 +26,7 @@ export async function montarMovimentacoes(): Promise<{ ok: boolean; movs?: Movim
   const userId = session.user.id;
 
   const vigencias = await getVigenciasTaxa(userId);
-  const [despesasRows, receitasRows, cadastros, despesasDoLivro, estornos] = await Promise.all([
+  const [despesasRows, receitasRows, cadastros, despesasDoLivro, estornos, pagamentosDesfeitos] = await Promise.all([
     db.select({ nome: despesas.nome, valor: despesas.valor, vencimento: despesas.vencimento, pagamentoData: despesas.pagamentoData }).from(despesas).where(eq(despesas.userId, userId)),
     db.select({ nome: receitasPessoais.nome, valor: receitasPessoais.valor, recebimento: receitasPessoais.recebimento, recebido: receitasPessoais.recebido }).from(receitasPessoais).where(eq(receitasPessoais.userId, userId)),
     db.select({ id: patients.id, name: patients.name, phone: patients.phone, guardianPhone: patients.guardianPhone, paymentFormat: patients.paymentFormat, registrationNumber: patients.registrationNumber, agendaId: patients.agendaId, status: patients.patientStatus }).from(patients).where(eq(patients.userId, userId)),
@@ -55,6 +56,26 @@ export async function montarMovimentacoes(): Promise<{ ok: boolean; movs?: Movim
       .from(therapySessions)
       .innerJoin(patients, eq(patients.id, therapySessions.patientId))
       .where(and(eq(therapySessions.userId, userId), isNotNull(therapySessions.estornoEm))),
+    /**
+     * OS PAGAMENTOS QUE DEIXARAM DE QUITAR — e que por isso sumiriam do caixa.
+     *
+     * O dinheiro deste mundo entra uma vez só, e a entrada do extrato vinha do CASAMENTO do
+     * pagamento com a cobrança. Quando a cobrança deixa de existir (a sessão virou GRAT), o
+     * pagamento para de casar com qualquer coisa e a entrada evapora — e aí o estorno acima ficaria
+     * tirando do mês um dinheiro que nunca apareceu nele. É a duplicidade ao contrário, e dá o
+     * mesmo resultado errado.
+     *
+     * Então a entrada entra por aqui, no dia em que o paciente pagou de verdade. As duas pontas
+     * aparecem, o saldo fecha em zero, e o histórico continua contando o que aconteceu.
+     *
+     * Vale também quando o valor virou CRÉDITO em vez de estorno: a entrada é a mesma, e não há
+     * saída para parear. O crédito consumido depois entra como `kind="credito"`, que o cálculo de
+     * recebido ignora de propósito — não é dinheiro novo.
+     */
+    db.select({ valor: sessionPayments.amount, data: sessionPayments.date, paciente: patients.name })
+      .from(sessionPayments)
+      .innerJoin(patients, eq(patients.id, sessionPayments.patientId))
+      .where(and(eq(sessionPayments.userId, userId), eq(sessionPayments.status, "paid"), isNotNull(sessionPayments.estornadoEm), isNull(sessionPayments.kind))),
   ]);
 
   const movs: Movimentacao[] = [];
@@ -72,13 +93,12 @@ export async function montarMovimentacoes(): Promise<{ ok: boolean; movs?: Movim
     movs.push({ data: dia(t.data), descricao: t.descricao || "Despesa", tipo: "saida", efetivado: true, bruto: v, liquido: v, temLiquido: false });
   }
 
-  // Estorno → saída, no dia em que o dinheiro voltou. A entrada original continua no extrato,
-  // então as duas pontas aparecem e o saldo fecha em zero.
-  for (const e of estornos) {
-    const v = Number(e.valor) || 0;
-    if (v <= 0) continue;
-    movs.push({ data: dia(e.data), descricao: `Estorno · ${e.paciente}`, tipo: "saida", efetivado: true, bruto: v, liquido: v, temLiquido: false });
-  }
+  // As duas pontas do dinheiro que voltou: a entrada no dia do pagamento, a saída no dia do
+  // estorno. A regra, e o porquê de ela existir, moram em `estornoNoCaixa`.
+  movs.push(...movimentosDoEstorno(
+    pagamentosDesfeitos.map((p) => ({ valor: p.valor, data: dia(p.data), paciente: p.paciente })),
+    estornos.map((e) => ({ valor: e.valor, data: dia(e.data), paciente: e.paciente })),
+  ));
 
   // Receitas pessoais → entrada. Recebida: data de recebimento (verde); prevista: mesma data, sem valor.
   for (const r of receitasRows) {
