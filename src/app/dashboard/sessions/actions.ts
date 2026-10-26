@@ -4,7 +4,7 @@ import { db } from "@/db";
 import { therapySessions, patients, patientPaymentFormatHistory, blockedSlots, sessoesPuladas, sessionPayments, patientCredits } from "@/db/schema";
 import { auth } from "@/auth";
 import { canalParaGravar, datasEPuladas, ehMensal, ehOnline, geraRepeticoes, horasAntesParaGravar, pedeLocal, segundoDiaValido } from "@/lib/agendamentoNovo";
-import { and, eq, gte, lte } from "drizzle-orm";
+import { and, eq, gte, inArray, isNull, lte } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 import { getPreferences } from "@/lib/preferences";
@@ -13,7 +13,7 @@ import { parseMoedaBR } from "@/lib/money";
 import { desmarcadasSemReposicao, extraParaGravar } from "@/lib/sessaoExtra";
 import { formatoNaData } from "@/lib/vigenciaDoFormato";
 import { getUserAiClient, SemChaveIA } from "@/lib/ai-client";
-import { decidirDesfazer } from "@/lib/desfazerCobranca";
+import { chavesDaCobrancaDaSessao, decidirDesfazer } from "@/lib/desfazerCobranca";
 import { geralDoPaciente } from "@/lib/geralDoPaciente";
 
 type SessionStatus = "realizada" | "nao_realizada" | "cancelada" | "realocada" | "agendada" | "prof_desmarcou" | "atestado";
@@ -379,9 +379,14 @@ export async function confirmSession(sessionId: string) {
 /**
  * A sessão tem pagamento lançado? É o que decide se a janela do doc 55 precisa aparecer.
  *
- * O pagamento não aponta para a sessão: ele aponta para a COBRANÇA dela, e a cobrança de uma
- * sessão avulsa é sempre `extra:<id da sessão>` (ver `cobrancas.ts`). Procurar por aí é o que
- * encontra o dinheiro preso àquele atendimento.
+ * O pagamento não aponta para a sessão: ele aponta para a COBRANÇA dela, e a mesma sessão é
+ * cobrada por `sessao:<id>` ou por `extra:<id>` conforme o formato do paciente — ver
+ * `chavesDaCobrancaDaSessao`. Doc 58: procurar só por `extra:` fazia a janela não aparecer no
+ * paciente Avulso, que é o caso mais comum de todos.
+ *
+ * Conta o pagamento PAGO e ainda não estornado. "Pago" porque a pergunta é sobre dinheiro que
+ * entrou; "não estornado" porque um valor já devolvido não pode ser devolvido de novo — e as duas
+ * linhas legadas em `pending`/`overdue` deste banco são cobrança sem dinheiro, não pagamento.
  */
 export async function pagamentoDaSessao(sessionId: string): Promise<{ ok: boolean; valor?: number; error?: string }> {
   const session = await auth();
@@ -390,7 +395,7 @@ export async function pagamentoDaSessao(sessionId: string): Promise<{ ok: boolea
   const [pg] = await db
     .select({ amount: sessionPayments.amount })
     .from(sessionPayments)
-    .where(and(eq(sessionPayments.userId, userId), eq(sessionPayments.cobrancaChave, `extra:${sessionId}`), eq(sessionPayments.status, "paid")))
+    .where(and(eq(sessionPayments.userId, userId), inArray(sessionPayments.cobrancaChave, chavesDaCobrancaDaSessao(sessionId)), eq(sessionPayments.status, "paid"), isNull(sessionPayments.estornadoEm)))
     .limit(1);
   return { ok: true, valor: pg ? Number(pg.amount) || 0 : undefined };
 }
@@ -420,7 +425,7 @@ export async function desfazerCobrancaDaSessao(
   const [pg] = await db
     .select({ id: sessionPayments.id, amount: sessionPayments.amount, cobrancaChave: sessionPayments.cobrancaChave })
     .from(sessionPayments)
-    .where(and(eq(sessionPayments.userId, userId), eq(sessionPayments.cobrancaChave, `extra:${sessionId}`), eq(sessionPayments.status, "paid")))
+    .where(and(eq(sessionPayments.userId, userId), inArray(sessionPayments.cobrancaChave, chavesDaCobrancaDaSessao(sessionId)), eq(sessionPayments.status, "paid"), isNull(sessionPayments.estornadoEm)))
     .limit(1);
 
   /**
