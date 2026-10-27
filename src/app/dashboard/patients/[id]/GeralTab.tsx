@@ -59,7 +59,7 @@ function BotaoCobrar({ patientId, c, cobrar }: { patientId: string; c: CobrancaN
           Sem telefone no cadastro — mensagem copiada. Nao marquei como avisada.
         </span>
       )}
-      <ConfirmarEnvioModal aberto={confirmar.pendente != null} onSim={() => confirmar.resolver(true, registrar)} onNao={() => confirmar.resolver(false, registrar)} />
+      <ConfirmarEnvioModal aberto={confirmar.pendente != null} web={confirmar.web} onSim={() => confirmar.resolver(true, registrar)} onNao={() => confirmar.resolver(false, registrar)} />
     </span>
   );
 }

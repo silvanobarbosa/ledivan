@@ -38,9 +38,11 @@ export const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
-    title: "Caixa",
+    // Doc 63: o grupo chama "Caixa Pessoal" e o primeiro item, "Carteira". A dona lia "Caixa >
+    // Pagamentos" como o lugar de lançar o pagamento de um paciente — que fica no cadastro dele.
+    title: "Caixa Pessoal",
     items: [
-      { icon: Banknote, label: "Pagamentos", href: "/dashboard/pagamentos" },
+      { icon: Banknote, label: "Carteira", href: "/dashboard/pagamentos" },
       // Doc 46: "Visão geral", "Visão financeira" e "Previsão" saíram do menu (as rotas seguem
       // existindo para links diretos / integrações; só não aparecem mais na navegação).
       { icon: ArrowLeftRight, label: "Transações", href: "/dashboard/transactions" },

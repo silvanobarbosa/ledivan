@@ -45,6 +45,8 @@ export type CobrancaResolvida = {
   ultimaSessao?: string | null;
   /** Doc 48: data da última sessão realizada – sequência (realizadas/total) – status DA SESSÃO. */
   ultimaRealizada?: { data: string; status: string; seq: string } | null;
+  /** Doc 63: os dias das sessões que este pacote cobre, em ordem — vão na mensagem de cobrança. */
+  datasDasSessoes?: string[] | null;
 };
 
 /** O dia (YYYY-MM-DD) de um ISO de hora de parede, sem passar por fuso. */
@@ -89,12 +91,35 @@ export function mensagemAvulsa(c: { dataSessao?: string | null; valor: number })
   ].join("\n");
 }
 
+/** `2026-11-09…` → `09/11/26` — o formato curto que a dona usa para listar sessão. */
+const dataCurtaBR = (iso: string | null | undefined): string => {
+  const d = diaDe(iso);
+  if (!d) return "—";
+  const [a, m, dia] = d.split("-");
+  return `${dia}/${m}/${a.slice(2)}`;
+};
+
+/**
+ * "09/11/26, 16/11/26, 23/11/26 e 30/11/26" — as sessões que o pacote cobre (doc 63).
+ *
+ * A dona cobrava um pacote dizendo só a data de INÍCIO dele, e quem recebia não conseguia conferir
+ * o que estava pagando. Vazio quando não se sabe quais sessões são — e aí a mensagem volta a falar
+ * do início, que é o que existe.
+ */
+export function listaDeSessoes(datas: string[] | null | undefined): string {
+  const curtas = (datas ?? []).map(dataCurtaBR).filter((d) => d !== "—");
+  if (curtas.length === 0) return "";
+  if (curtas.length === 1) return curtas[0];
+  return `${curtas.slice(0, -1).join(", ")} e ${curtas[curtas.length - 1]}`;
+}
+
 /** Mensagem de cobrança de um PACOTE, conforme o tipo de vencimento (doc 44). */
 export function mensagemPacote(c: {
   tipoVencimento?: TipoVencimentoPacote;
   vencimento?: string | null;
   primeiraSessao?: string | null;
   ultimaSessao?: string | null;
+  datasDasSessoes?: string[] | null;
   valor: number;
 }): string {
   const fim = "Peço, por gentileza, que me envie o comprovante assim que realizar o pagamento.\n\nQualquer dúvida, estou à disposição!";
@@ -104,8 +129,13 @@ export function mensagemPacote(c: {
   if (c.tipoVencimento === "ultima") {
     return `Olá! Espero que esteja bem!\n\nPassando para lembrar que hoje (${dataBR(c.ultimaSessao)}) finaliza seu pacote, no valor de R$ ${reais(c.valor)}.\n\n${fim}`;
   }
-  // Dia específico (padrão).
-  return `Olá! Espero que esteja bem!\n\nPassando para lembrar que, conforme combinado, o vencimento do seu pacote é hoje (${dataBR(c.vencimento)}), referente ao pacote com a data de início em (${dataBR(c.primeiraSessao)}), no valor de R$ ${reais(c.valor)}.\n\n${fim}`;
+  // Dia específico (padrão). Doc 63: diz QUAIS sessões o pacote cobre; sem saber quais, volta a
+  // falar do início, que é o que existe.
+  const sessoes = listaDeSessoes(c.datasDasSessoes);
+  const referente = sessoes
+    ? `referente às sessões de ${sessoes}`
+    : `referente ao pacote com a data de início em (${dataBR(c.primeiraSessao)})`;
+  return `Olá! Espero que esteja bem!\n\nPassando para lembrar que, conforme combinado, o vencimento do seu pacote é hoje (${dataBR(c.vencimento)}), ${referente}, no valor de R$ ${reais(c.valor)}.\n\n${fim}`;
 }
 
 const fimAtraso = "Peço, por gentileza, que, assim que realizar o pagamento, me envie o comprovante.\n\nSe tiver alguma dúvida, estou à disposição!";

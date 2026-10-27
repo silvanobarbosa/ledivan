@@ -253,6 +253,15 @@ export async function updatePatient(patientId: string, formData: FormData) {
   });
   if (!existing) throw new Error("Paciente não encontrado");
 
+  // Doc 63: a validade do preço conta da vigência do ÚLTIMO reajuste, não do início do tratamento.
+  // Sem isto, salvar o Financeiro de novo por outro motivo recalculava a data do início e devolvia
+  // o paciente à lista de "Reajustes a vencer" já vencido, desfazendo a baixa do reajuste feito.
+  const precosGravados = await db.select({ dataEfetiva: patientPriceHistory.dataEfetiva })
+    .from(patientPriceHistory).where(eq(patientPriceHistory.patientId, patientId));
+  const ultimoReajuste = precosGravados
+    .map((p) => p.dataEfetiva)
+    .reduce<Date | null>((maior, d) => (d && (!maior || d.getTime() > maior.getTime()) ? d : maior), null);
+
   const newFee = num(formData.get("sessionFee"), existing.sessionFee);
   const newStatus = (formData.get("patientStatus") as string) || existing.patientStatus;
   const rec = formData.has("recorrencia") ? recorrenciaOf(formData) : { frequency: existing.frequency || "semanal", timesPerPeriod: existing.timesPerPeriod };
@@ -346,6 +355,7 @@ export async function updatePatient(patientId: string, formData: FormData) {
           formData.get("startedAt") ? new Date(formData.get("startedAt") as string) : existing.startedAt,
           existing.returnedAt,
           formData.get("validadePrecoMeses") ? parseInt(formData.get("validadePrecoMeses") as string) : null,
+          ultimoReajuste,
         )
       : existing.priceReviewDate,
     attendanceMode: (formData.get("attendanceMode") as string) || existing.attendanceMode,
@@ -408,7 +418,7 @@ export async function updatePatient(patientId: string, formData: FormData) {
       const retorno = new Date();
       await db.update(patients).set({
         returnedAt: retorno,
-        priceReviewDate: vencimentoDoPreco(existing.startedAt, retorno, existing.validadePrecoMeses),
+        priceReviewDate: vencimentoDoPreco(existing.startedAt, retorno, existing.validadePrecoMeses, ultimoReajuste),
       }).where(and(eq(patients.id, patientId), eq(patients.userId, session.user.id)));
     }
   }
@@ -454,6 +464,24 @@ export async function updatePatient(patientId: string, formData: FormData) {
     });
     if (linhas.length) {
       await db.insert(patientPaymentFormatHistory).values(linhas.map((l) => ({ patientId, ...l })));
+      /*
+       * Doc 63: o que se salva agora vale A PARTIR da data escolhida — e nada gravado antes pode
+       * contradizer isso depois dela.
+       *
+       * O caso real: a dona cadastrou o paciente, salvou o Financeiro ainda sem a data de Início
+       * (a modalidade nasceu "A cada sessão", valendo de HOJE, porque não havia início de onde
+       * partir) e, quinze segundos depois, corrigiu para Gratuito valendo desde 11/08. Ficaram as
+       * duas: gratuito de 11/08 e, por cima, "a cada sessão" de hoje em diante. O cadastro dizia
+       * Gratuito e a agenda marcava AVUL em toda sessão futura — "paciente gratuito, sem alteração
+       * posterior, aparecendo como avulso".
+       *
+       * Vigência posterior à que acaba de ser declarada é resto de declaração desfeita; sai.
+       */
+      const maisNova = linhas.reduce((m, l) => (l.dataEfetiva.getTime() > m.getTime() ? l.dataEfetiva : m), linhas[0].dataEfetiva);
+      await db.delete(patientPaymentFormatHistory).where(and(
+        eq(patientPaymentFormatHistory.patientId, patientId),
+        gt(patientPaymentFormatHistory.dataEfetiva, maisNova),
+      ));
     }
   }
   // VIGÊNCIA DO TAMANHO DO PACOTE (doc 30): mudar a quantidade de sessões vale só da data em "Vale a

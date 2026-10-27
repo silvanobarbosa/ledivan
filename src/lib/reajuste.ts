@@ -44,9 +44,22 @@ export function cobra(formato: FormatoPagamento | string | null | undefined): bo
  *
  * Retorno é a data em que o paciente voltou a ficar ativo depois de um período inativo.
  */
-export function referenciaDoPreco(inicio: Date | null | undefined, retorno: Date | null | undefined): Date | null {
-  if (retorno && inicio) return retorno.getTime() > inicio.getTime() ? retorno : inicio;
-  return retorno ?? inicio ?? null;
+export function referenciaDoPreco(
+  inicio: Date | null | undefined,
+  retorno: Date | null | undefined,
+  /**
+   * Doc 63: a vigência do ÚLTIMO reajuste de preço, quando existe.
+   *
+   * Sem ela, a conta voltava sempre ao início do tratamento — e qualquer salvamento posterior do
+   * Financeiro (mudar o dia de vencimento, por exemplo) apagava a baixa do reajuste e trazia o
+   * paciente de volta para a lista de "Reajustes a vencer", já vencido. Foi o que a dona viu:
+   * registrou a alteração de valor e o lembrete continuou lá.
+   */
+  ultimoReajuste?: Date | null | undefined,
+): Date | null {
+  const candidatas = [inicio, retorno, ultimoReajuste].filter((d): d is Date => !!d);
+  if (!candidatas.length) return null;
+  return candidatas.reduce((maior, d) => (d.getTime() > maior.getTime() ? d : maior));
 }
 
 /** Quando o preço atual vence. `null` quando falta a referência ou a validade. */
@@ -54,8 +67,10 @@ export function vencimentoDoPreco(
   inicio: Date | null | undefined,
   retorno: Date | null | undefined,
   validadeMeses: number | null | undefined,
+  /** Vigência do último reajuste de preço (doc 63) — manda quando é a data mais recente. */
+  ultimoReajuste?: Date | null | undefined,
 ): Date | null {
-  const base = referenciaDoPreco(inicio, retorno);
+  const base = referenciaDoPreco(inicio, retorno, ultimoReajuste);
   if (!base || !validadeMeses || validadeMeses <= 0) return null;
 
   const d = new Date(base);
@@ -221,7 +236,13 @@ export function eventosDeReajuste(
 // `removivel` (doc 27): a linha ganha lixeira quando é um REAJUSTE (troca de valor/modalidade). A
 // linha de ENTRADA (preço/formato inicial do cadastro) não é removível — é a base do financeiro do
 // paciente, não um reajuste que possa ter sido lançado errado.
-export type LinhaDeHistorico = { data: Date; solicitadoEm: Date | null; texto: string; removivel: boolean };
+// `valor` (doc 63): a mudança de VALOR desta linha, em número, para a tela poder mostrá-la no
+// cabeçalho da vigência — recolhido, o acordeão dizia só "1 alteração", e a dona alterou valor e
+// vigência convencida de que só a vigência tinha sido registrada.
+export type LinhaDeHistorico = {
+  data: Date; solicitadoEm: Date | null; texto: string; removivel: boolean;
+  valor?: { anterior: number | null; novo: number };
+};
 
 /**
  * Qual registro do histórico é a ENTRADA do cadastro — o primeiro preço, o primeiro formato.
@@ -331,21 +352,37 @@ export function historicoDeReajuste(
 
   const out: LinhaDeHistorico[] = [];
   const fDatas = new Set(fDedup.map((f) => f.data.getTime()));
+  // O reajuste de VALOR que cai na mesma vigência de uma troca de modalidade. Ele não vira linha
+  // própria (a linha da modalidade já fala do valor novo), mas precisa dizer de quanto veio: doc 63.
+  const reajustePorData = new Map(linhasDeReajuste(precos).map((l) => [l.data.getTime(), l]));
 
   for (let i = 0; i < fDedup.length; i++) {
     const f = fDedup[i];
     const rot = rotuloDoFormato(f.formato);
     const pago = cobra(f.formato);
     const v = valorNaData(f.data);
+    // Vindo de GRATUITO, o "valor anterior" é R$ 0,00 por não haver preço nenhum — dizer
+    // "R$ 0,00 → R$ 150,00" inventa um reajuste que não houve (doc 16). Só quem já cobrava tem de onde vir.
+    const reajuste = i > 0 && !cobra(fDedup[i - 1].formato) ? undefined : reajustePorData.get(f.data.getTime());
+    // "R$ 450,00 → R$ 500,00" quando o valor MUDOU nesta vigência; só "R$ 500,00" quando ele apenas
+    // acompanha a modalidade nova (preço de entrada, ou o mesmo valor de antes).
+    const dinheiro = v == null ? null
+      : reajuste && reajuste.anterior !== null && reajuste.novo === v ? `${brl(reajuste.anterior)} → ${brl(v)}`
+      : brl(v);
     let texto: string;
     if (i === 0) {
-      texto = pago && v != null ? `${rot} → ${brl(v)}` : rot;
+      texto = pago && dinheiro ? `${rot} → ${dinheiro}` : rot;
     } else {
       const de = rotuloDoFormato(fDedup[i - 1].formato);
-      texto = pago && v != null ? `${de} → ${rot} → ${brl(v)}` : `${de} → ${rot}`;
+      texto = pago && dinheiro ? `${de} → ${rot} → ${dinheiro}` : `${de} → ${rot}`;
     }
     // i === 0 é a modalidade de ENTRADA do cadastro: sem lixeira.
-    out.push({ data: f.data, solicitadoEm: pedidoDe(f.data), texto, removivel: i > 0 });
+    out.push({
+      data: f.data, solicitadoEm: pedidoDe(f.data), texto, removivel: i > 0,
+      ...(pago && reajuste && reajuste.anterior !== null && reajuste.novo === v
+        ? { valor: { anterior: reajuste.anterior, novo: reajuste.novo } }
+        : {}),
+    });
   }
 
   for (const l of linhasDeReajuste(precos)) {
@@ -357,7 +394,10 @@ export function historicoDeReajuste(
     if (fDatas.has(l.data.getTime())) continue;
     const m = modNaData(l.data);
     const prefixo = m ? `${rotuloDoFormato(m)} → ` : "";
-    out.push({ data: l.data, solicitadoEm: pedidoDe(l.data), texto: `${prefixo}${brl(l.anterior)} → ${brl(l.novo)}`, removivel: true });
+    out.push({
+      data: l.data, solicitadoEm: pedidoDe(l.data), texto: `${prefixo}${brl(l.anterior)} → ${brl(l.novo)}`,
+      removivel: true, valor: { anterior: l.anterior, novo: l.novo },
+    });
   }
 
   return out.sort((a, b) => a.data.getTime() - b.data.getTime());

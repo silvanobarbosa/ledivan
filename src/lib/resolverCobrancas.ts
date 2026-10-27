@@ -81,6 +81,8 @@ export function resolverCobrancas(linhas: LinhaNaTela[], p: CadastroParaCobranca
       tipoVencimento: grupo === "pacote" ? tipoVencimentoDe(l.formato, p.paymentFormat) : undefined,
       primeiraSessao: datas[0] ?? null,
       ultimaSessao: datas.length ? datas[datas.length - 1] : null,
+      // Doc 63: a mensagem do pacote lista os dias das sessões cobradas, não só o início.
+      datasDasSessoes: grupo === "pacote" ? datas : null,
       ultimaRealizada,
     });
   }

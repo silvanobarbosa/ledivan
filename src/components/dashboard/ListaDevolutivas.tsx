@@ -98,7 +98,7 @@ export function ListaDevolutivas({ devolutivas, contagem = {} }: { devolutivas: 
       )}
 
       {aviso && <p className="text-xs font-semibold text-[#b45309]">{aviso}</p>}
-      <ConfirmarEnvioModal aberto={confirmar.pendente != null} onSim={() => confirmar.resolver(true, registrar)} onNao={() => confirmar.resolver(false, registrar)} />
+      <ConfirmarEnvioModal aberto={confirmar.pendente != null} web={confirmar.web} onSim={() => confirmar.resolver(true, registrar)} onNao={() => confirmar.resolver(false, registrar)} />
     </section>
   );
 }

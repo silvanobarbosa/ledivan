@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { vencimentosNoDia, mensagemAvulsa, mensagemPacote, mensagemDeCobranca, diaDe, type CobrancaResolvida } from "@/lib/vencimentosDoDia";
+import { vencimentosNoDia, mensagemAvulsa, mensagemPacote, mensagemDeCobranca, listaDeSessoes, diaDe, type CobrancaResolvida } from "@/lib/vencimentosDoDia";
 
 function cob(over: Partial<CobrancaResolvida> & { chave: string }): CobrancaResolvida {
   return { cadastroId: "p", nome: "Fulano", telefone: "11999990000", grupo: "avulsa", vencimento: "2026-10-20T14:00:00", situacao: "em_aberto", valor: 100, falta: 100, enviosTotal: 0, ...over };
@@ -68,5 +68,36 @@ describe("mensagemDeCobranca — atraso (doc 45)", () => {
   it("em aberto (não atrasado) usa a mensagem normal", () => {
     expect(mensagemDeCobranca(cob({ chave: "a", situacao: "em_aberto", dataSessao: "2026-10-20T15:00:00", valor: 100, falta: 100 })))
       .toContain("sessão de hoje");
+  });
+});
+
+describe("doc 63: a mensagem do pacote diz QUAIS sessões ela cobra", () => {
+  const datas = ["2026-11-09T16:00:00", "2026-11-16T16:00:00", "2026-11-23T16:00:00", "2026-11-30T16:00:00"];
+
+  it("lista os dias das sessões, com 'e' antes do último", () => {
+    expect(listaDeSessoes(datas)).toBe("09/11/26, 16/11/26, 23/11/26 e 30/11/26");
+  });
+
+  it("uma sessão só não ganha vírgula nem 'e'", () => {
+    expect(listaDeSessoes(["2026-11-09T16:00:00"])).toBe("09/11/26");
+  });
+
+  it("sem datas, a lista é vazia", () => {
+    expect(listaDeSessoes([])).toBe("");
+    expect(listaDeSessoes(null)).toBe("");
+  });
+
+  it("a cobrança de vencimento em dia fixo traz as sessões no texto", () => {
+    const texto = mensagemPacote({ tipoVencimento: "dia", vencimento: "2026-11-01T00:00:00", primeiraSessao: datas[0], datasDasSessoes: datas, valor: 240 });
+    expect(texto).toContain("o vencimento do seu pacote é hoje (01/11/2026)");
+    expect(texto).toContain("referente às sessões de 09/11/26, 16/11/26, 23/11/26 e 30/11/26");
+    expect(texto).toContain("no valor de R$ 240,00");
+    // O texto velho, que dizia só o início, não pode sobrar junto.
+    expect(texto).not.toContain("data de início");
+  });
+
+  it("sem saber as sessões, volta a falar do início do pacote", () => {
+    const texto = mensagemPacote({ tipoVencimento: "dia", vencimento: "2026-11-01T00:00:00", primeiraSessao: datas[0], datasDasSessoes: [], valor: 240 });
+    expect(texto).toContain("referente ao pacote com a data de início em (09/11/2026)");
   });
 });
