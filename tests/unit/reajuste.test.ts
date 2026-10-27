@@ -322,3 +322,77 @@ describe("acordeão do histórico por data de vigência (doc 35 A1)", () => {
     expect(agruparPorVigencia([] as { vigencia: Date; solicitadoEm: Date | null }[], chaveDia)).toEqual([]);
   });
 });
+
+describe("doc 63: a baixa do reajuste não some no salvamento seguinte", () => {
+  it("a referência do preço é a vigência do último reajuste, quando é a data mais recente", () => {
+    expect(referenciaDoPreco(dia(11, 2, 2025), null, dia(3, 2, 2026))).toEqual(dia(3, 2, 2026));
+  });
+
+  it("sem reajuste gravado, nada muda: vale o início (ou o retorno)", () => {
+    expect(referenciaDoPreco(dia(11, 2, 2025), null, null)).toEqual(dia(11, 2, 2025));
+    expect(referenciaDoPreco(dia(1, 1, 2020), dia(1, 8, 2026), null)).toEqual(dia(1, 8, 2026));
+  });
+
+  it("reajuste anterior ao retorno não puxa a conta para trás", () => {
+    expect(referenciaDoPreco(dia(1, 1, 2020), dia(1, 8, 2026), dia(1, 3, 2024))).toEqual(dia(1, 8, 2026));
+  });
+
+  it("o caso da dona: reajuste em 03/02/2026 com validade de 12 meses vence em 2027, não em 2026", () => {
+    // Antes, salvar o Financeiro de novo recalculava do início (11/02/2025) e o paciente voltava
+    // para a lista de reajustes a vencer, já vencido em 11/02/2026.
+    expect(vencimentoDoPreco(dia(11, 2, 2025), null, 12, dia(3, 2, 2026))).toEqual(dia(3, 2, 2027));
+    expect(vencimentoDoPreco(dia(11, 2, 2025), null, 12, null)).toEqual(dia(11, 2, 2026));
+  });
+});
+
+describe("doc 63: o histórico mostra a alteração de VALOR", () => {
+  const precos = [
+    { valor: 80, dataEfetiva: dia(9, 7, 2025) },
+    { valor: 90, dataEfetiva: dia(8, 7, 2026) },
+  ];
+
+  it("reajuste de valor sozinho traz o número da mudança, não só o texto", () => {
+    const linhas = historicoDeReajuste(precos, [{ formato: "mensal", dataEfetiva: dia(9, 7, 2025) }]);
+    const reajuste = linhas.find((l) => l.data.getTime() === dia(8, 7, 2026).getTime());
+    expect(reajuste?.texto).toBe("Mensal → R$ 80,00 → R$ 90,00");
+    expect(reajuste?.valor).toEqual({ anterior: 80, novo: 90 });
+  });
+
+  it("valor e modalidade na MESMA vigência: a linha diz de quanto veio", () => {
+    // Antes dizia só "Avulso → Mensal → R$ 90,00" e a alteração de valor ficava invisível.
+    const linhas = historicoDeReajuste(precos, [
+      { formato: "sessao", dataEfetiva: dia(9, 7, 2025) },
+      { formato: "mensal", dataEfetiva: dia(8, 7, 2026) },
+    ]);
+    const troca = linhas.find((l) => l.data.getTime() === dia(8, 7, 2026).getTime());
+    expect(troca?.texto).toBe("Avulso → Mensal → R$ 80,00 → R$ 90,00");
+    expect(troca?.valor).toEqual({ anterior: 80, novo: 90 });
+  });
+
+  it("vindo de GRATUITO não há valor anterior: R$ 0,00 → R$ 150,00 seria um reajuste inventado", () => {
+    const linhas = historicoDeReajuste(
+      [{ valor: 0, dataEfetiva: dia(9, 7, 2025) }, { valor: 150, dataEfetiva: dia(8, 7, 2026) }],
+      [{ formato: "gratuito", dataEfetiva: dia(9, 7, 2025) }, { formato: "mensal", dataEfetiva: dia(8, 7, 2026) }],
+    );
+    const troca = linhas.find((l) => l.data.getTime() === dia(8, 7, 2026).getTime());
+    expect(troca?.texto).toBe("Gratuito → Mensal → R$ 150,00");
+    expect(troca?.valor).toBeUndefined();
+  });
+
+  it("o preço de ENTRADA não é reajuste: sem número de mudança", () => {
+    const linhas = historicoDeReajuste(precos, [{ formato: "mensal", dataEfetiva: dia(9, 7, 2025) }]);
+    const entrada = linhas.find((l) => l.data.getTime() === dia(9, 7, 2025).getTime());
+    expect(entrada?.texto).toBe("Mensal → R$ 80,00");
+    expect(entrada?.valor).toBeUndefined();
+  });
+
+  it("troca de modalidade sem mexer no valor continua sem número de mudança", () => {
+    const linhas = historicoDeReajuste(
+      [{ valor: 80, dataEfetiva: dia(9, 7, 2025) }],
+      [{ formato: "mensal", dataEfetiva: dia(9, 7, 2025) }, { formato: "sessao", dataEfetiva: dia(8, 7, 2026) }],
+    );
+    const troca = linhas.find((l) => l.data.getTime() === dia(8, 7, 2026).getTime());
+    expect(troca?.texto).toBe("Mensal → Avulso → R$ 80,00");
+    expect(troca?.valor).toBeUndefined();
+  });
+});

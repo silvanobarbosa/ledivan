@@ -342,7 +342,7 @@ function Aniversariantes({ patients, modeloSalvo, hoje, contagem = {} }: { patie
         </div>
       )}
       {avisoAniv && <p className="text-xs font-semibold text-[#b45309]">{avisoAniv}</p>}
-      <ConfirmarEnvioModal aberto={confirmar.pendente != null} onSim={() => confirmar.resolver(true, registrar)} onNao={() => confirmar.resolver(false, registrar)} />
+      <ConfirmarEnvioModal aberto={confirmar.pendente != null} web={confirmar.web} onSim={() => confirmar.resolver(true, registrar)} onNao={() => confirmar.resolver(false, registrar)} />
 
       <div className="space-y-1.5 border-t border-border pt-3">
         <span className="text-sm font-semibold text-foreground/60">Mensagem única para todos</span>

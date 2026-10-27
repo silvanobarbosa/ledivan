@@ -7,6 +7,46 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-10-27 — Doc 63: a cobrança diz quais sessões, o reajuste não desanda e o gratuito não vira avulso
+
+**Entregue:** a mensagem de cobrança do pacote lista os dias das sessões que ela cobra ("referente às
+sessões de 09/11/26, 16/11/26, 23/11/26 e 30/11/26"); no computador, Cobrar abre o APLICATIVO do
+WhatsApp em vez da página "Abrir app / WhatsApp Web", com a saída pela web guardada na confirmação;
+o histórico de reajuste mostra a alteração de valor com o acordeão recolhido, e a linha que junta
+modalidade e valor diz de quanto o valor veio; a data do próximo reajuste passou a contar da vigência
+do último valor; o segundo menu virou "Caixa Pessoal" com "Carteira" no lugar de "Pagamentos";
+vigência de formato posterior à que acaba de ser declarada deixa de existir.
+
+**Por quê:** três relatos que eram o mesmo tipo de defeito — a tela e o banco discordando.
+(1) "Fiz o registro de alteração de valor e ele não deu baixa no reajuste": a baixa ERA feita, e o
+salvamento seguinte do Financeiro a desfazia, porque a validade era recontada do início do
+tratamento. (2) "Paciente cadastrado como gratuito, sem alteração posterior, aparece como avulso nas
+datas futuras": o cadastro salvo primeiro como "A cada sessão" (ainda sem data de Início, portanto
+valendo de HOJE) e corrigido quinze segundos depois para Gratuito desde agosto deixou as duas
+vigências no banco, e a errada é a que vale de hoje em diante. (3) "Alterei valor e vigência, só
+registrou vigência": estava registrado — só não aparecia sem abrir o acordeão.
+
+**Decisões que ficam valendo:**
+- **A declaração mais nova manda da data dela em diante.** Salvar o formato apaga as vigências
+  posteriores à data escolhida: elas são resto de declaração desfeita. Sem isso, cadastro e motor de
+  cobrança podem dizer coisas diferentes sobre a mesma sessão — e quem o usuário lê é o cadastro.
+- **A validade do preço conta do ÚLTIMO reajuste**, não do início do tratamento (o retorno continua
+  mandando quando é mais recente). Reajuste feito é reajuste feito.
+- **Vindo de Gratuito não existe valor anterior**: "R$ 0,00 → R$ 150,00" seria um reajuste inventado
+  (regra do doc 16, que o cabeçalho novo tinha de respeitar).
+- **O computador abre o aplicativo instalado**, e não existe esquema separado para o WhatsApp
+  Business — quem decide qual abre é o registro do sistema, não o app.
+
+**Armadilhas:** o primeiro ciclo de um pacote nunca vence antes da primeira sessão (regra da dona,
+18/09), então um cenário de teste sem ciclo anterior nasce com o vencimento na sessão e não no dia
+combinado — a mensagem testada seria outra. O tour de boas-vindas é um modal por cima do Dashboard:
+sem dispensá-lo, o clique em "Cobrar" resolve o botão e nunca chega nele. E `innerText` já vem com o
+`text-transform` aplicado — o título do menu chega em CAIXA ALTA.
+
+**Pendente:** uma cadastro em produção (Thais Duarte) tem duas vigências em conflito cuja intenção
+não dá para deduzir — a que ficaria discorda do cadastro. O script de correção não mexe nela de
+propósito; basta a dona salvar o Financeiro dela uma vez para o app reconciliar.
+
 ## 2026-10-27 — Doc 62: o valor é da sessão, o recebido é o que entrou, e a movimentação diz de qual sessão
 
 **Entregue:** o abatimento de crédito mostra a FORMA do dinheiro que o originou ao lado de "Crédito

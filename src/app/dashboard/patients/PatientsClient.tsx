@@ -7,6 +7,7 @@ import { numeroDoWhatsapp } from "@/lib/telefoneWhatsapp";
 import { formatBRL, patientStatusColor } from "@/lib/therapy";
 import { rotuloFinanceiro, ROTULO_SITUACAO_LISTA, type SituacaoDaLista } from "@/lib/rotulosPaciente";
 import { cobra } from "@/lib/reajuste";
+import { abrirWhatsapp } from "@/lib/whatsappLink";
 
 // Fora do componente DE PROPÓSITO: definido dentro do render, cada tecla digitada na busca
 // criava um tipo novo e o React REMONTAVA os cinco selects (perdendo foco e dropdown aberto).
@@ -214,7 +215,7 @@ export function PatientsClient({ patients, initial }: { patients: PatientCard[];
                 return (
                   <button
                     type="button"
-                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); if (waNum) window.open(`https://wa.me/${waNum}`, "_blank", "noopener"); }}
+                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); if (waNum) abrirWhatsapp(`https://wa.me/${waNum}`); }}
                     disabled={!waNum}
                     title={waNum ? "Enviar mensagem no WhatsApp" : "Paciente sem telefone"}
                     aria-label="Enviar mensagem no WhatsApp"

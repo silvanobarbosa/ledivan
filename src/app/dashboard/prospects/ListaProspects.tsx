@@ -330,7 +330,7 @@ export function ListaProspects({ prospects, contatos }: { prospects: ProspectLin
           {envioMsg && <span className="text-xs text-foreground/60">{envioMsg}</span>}
         </div>
       )}
-      <ConfirmarEnvioModal aberto={confirmarContato.pendente != null} onSim={() => confirmarContato.resolver(true, registrarContato)} onNao={() => confirmarContato.resolver(false, registrarContato)} />
+      <ConfirmarEnvioModal aberto={confirmarContato.pendente != null} web={confirmarContato.web} onSim={() => confirmarContato.resolver(true, registrarContato)} onNao={() => confirmarContato.resolver(false, registrarContato)} />
     </div>
   );
 }

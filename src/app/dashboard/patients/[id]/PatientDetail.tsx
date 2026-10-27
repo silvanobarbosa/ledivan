@@ -31,6 +31,7 @@ import {
 import { Phone, Plus, Pencil, Mic, Loader2, FileText, Repeat, Download, MessageCircle, Send, Mail } from "lucide-react";
 import { MessagePatient } from "@/components/dashboard/MessagePatient";
 import { anosDisponiveis } from "@/lib/filtroDeAno";
+import { abrirWhatsapp } from "@/lib/whatsappLink";
 
 type Patient = {
   id: string; name: string; email: string | null; phone: string | null; guardianName?: string | null; guardianPhone?: string | null;
@@ -252,7 +253,7 @@ export function PatientDetail({
             return (
               <button
                 type="button"
-                onClick={() => waNum && window.open(`https://wa.me/${waNum}`, "_blank", "noopener")}
+                onClick={() => waNum && abrirWhatsapp(`https://wa.me/${waNum}`)}
                 disabled={!waNum}
                 title={waNum ? "Enviar mensagem no WhatsApp" : "Paciente sem telefone"}
                 aria-label="Enviar mensagem no WhatsApp"

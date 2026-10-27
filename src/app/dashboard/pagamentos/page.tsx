@@ -34,7 +34,7 @@ export default async function PagamentosPage({ searchParams }: { searchParams: P
     <div className="max-w-5xl mx-auto space-y-6 pb-20">
       <div>
         <h1 className="text-3xl lg:text-4xl font-display font-bold text-primary flex items-center gap-2">
-          <Banknote className="w-7 h-7" /> Pagamentos
+          <Banknote className="w-7 h-7" /> Carteira
         </h1>
         <p className="text-foreground/50 mt-1 text-justify">Recebimentos por <strong>mês</strong>, por <strong>pessoa atendida</strong> e <strong>total geral</strong>, com acompanhamento dos <strong>valores recebidos</strong> e <strong>cobrança dos pagamentos em aberto</strong>.</p>
       </div>

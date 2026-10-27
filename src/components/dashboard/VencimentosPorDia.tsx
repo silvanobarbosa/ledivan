@@ -161,7 +161,7 @@ export function VencimentosPorDia() {
           </div>
         </>
       )}
-      <ConfirmarEnvioModal aberto={confirmar.pendente != null} onSim={() => confirmar.resolver(true, registrarSeConfirmado)} onNao={() => confirmar.resolver(false, registrarSeConfirmado)} />
+      <ConfirmarEnvioModal aberto={confirmar.pendente != null} web={confirmar.web} onSim={() => confirmar.resolver(true, registrarSeConfirmado)} onNao={() => confirmar.resolver(false, registrarSeConfirmado)} />
     </section>
   );
 }

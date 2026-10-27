@@ -11,6 +11,7 @@ import { idadeEmAnos, idadeEmPalavras } from "@/lib/idade";
 import { agruparPorVigencia, historicoDeReajuste, usaPacote } from "@/lib/reajuste";
 import { horaDeParede } from "@/lib/horaLocal";
 import { MoneyInput as MoneyInputBase } from "@/components/MoneyInput";
+import { abrirWhatsapp } from "@/lib/whatsappLink";
 
 const inputCls = "w-full px-4 py-3 rounded-2xl bg-white/70 border border-border focus:ring-2 focus:ring-accent/20 focus:border-accent outline-none transition";
 const labelCls = "block text-sm font-semibold text-foreground/70 mb-1.5";
@@ -150,7 +151,7 @@ function PhoneInput({ name, defaultValue, label = "Telefone", placeholder = "(00
     let d = val.replace(/\D/g, "");
     if (!d) return;
     if (d.length <= 11) d = "55" + d; // assume Brasil se sem DDI
-    window.open(`https://wa.me/${d}`, "_blank");
+    abrirWhatsapp(`https://wa.me/${d}`);
   };
   return (
     <div>
@@ -754,12 +755,14 @@ export function PatientFormFields({ p, save, tabInicial, contrato, patientId }: 
             //    registros antigos sem ela, cai na data do pedido (`at`).
             type ItemReajuste = {
               vigencia: Date; solicitadoEm: Date | null; descricao: string;
+              /** Doc 63: a mudança de valor desta alteração, quando houve — vai no cabeçalho. */
+              valor?: { anterior: number | null; novo: number };
               lixeira: null | { tipo: "vigencia"; vigencia: Date } | { tipo: "mudanca"; id: string };
             };
             const linhas = historicoDeReajuste(p?.priceHistory ?? [], p?.formatHistory ?? []);
             const itens: ItemReajuste[] = [
               ...linhas.map((l) => ({
-                vigencia: l.data, solicitadoEm: l.solicitadoEm, descricao: l.texto,
+                vigencia: l.data, solicitadoEm: l.solicitadoEm, descricao: l.texto, valor: l.valor,
                 lixeira: l.removivel ? { tipo: "vigencia" as const, vigencia: l.data } : null,
               })),
               ...(p?.reajusteChanges ?? []).map((m) => ({
@@ -777,13 +780,24 @@ export function PatientFormFields({ p, save, tabInicial, contrato, patientId }: 
               <div className="pt-2 border-t border-border">
                 <p className="text-xs font-bold text-foreground/40 uppercase tracking-widest mb-2 mt-3">Histórico de reajuste</p>
                 <div className="space-y-1">
-                  {grupos.map((g) => (
+                  {grupos.map((g) => {
+                    // Doc 63: recolhido, o acordeão dizia só a data e "1 alteração" — a dona alterou
+                    // valor e vigência e concluiu que só a vigência fora registrada. O valor é o que
+                    // ela procura ali, então ele sobe para o cabeçalho; o mais recente da vigência.
+                    const mudouValor = g.itens.find((it) => it.valor)?.valor;
+                    const brl = (v: number) => "R$ " + v.toLocaleString("pt-BR", { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+                    return (
                     <details key={g.chave} className="group rounded-xl bg-surface/60 overflow-hidden">
-                      <summary className="flex items-center gap-2 px-3 py-2 cursor-pointer list-none select-none">
+                      <summary className="flex flex-wrap items-center gap-x-2 gap-y-1 px-3 py-2 cursor-pointer list-none select-none">
                         <ChevronRight className="w-4 h-4 shrink-0 text-foreground/40 transition group-open:rotate-90" />
                         <span className="font-mono text-xs font-bold text-primary">
                           vigência {g.chave.split("-").reverse().join("/")}
                         </span>
+                        {mudouValor && (
+                          <span className="text-[11px] font-bold text-[#047857] tabular-nums">
+                            valor {mudouValor.anterior != null ? `${brl(mudouValor.anterior)} → ` : ""}{brl(mudouValor.novo)}
+                          </span>
+                        )}
                         <span className="text-[11px] text-foreground/40">
                           {g.itens.length} {g.itens.length === 1 ? "alteração" : "alterações"}
                         </span>
@@ -805,7 +819,8 @@ export function PatientFormFields({ p, save, tabInicial, contrato, patientId }: 
                         ))}
                       </ul>
                     </details>
-                  ))}
+                    );
+                  })}
                 </div>
               </div>
             );
