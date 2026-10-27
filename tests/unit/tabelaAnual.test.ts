@@ -50,31 +50,40 @@ describe("recebidos por ano", () => {
 });
 
 /**
- * Doc 53: a tabela anual passa a detalhar por FORMA de pagamento, e o total do mês continua
- * sendo o LÍQUIDO — líquido dos cartões + bruto das demais formas. É a regra do item 3 do doc,
- * expressa em número.
+ * Doc 53/62: a tabela anual detalha o recebimento UM A UM (valor, forma e dia), e o total do mês
+ * continua sendo o LÍQUIDO — líquido dos cartões + bruto das demais formas.
  */
-describe("quebra por forma na tabela anual (doc 53)", () => {
+describe("os recebimentos do mês, um a um (doc 62)", () => {
   const vig: VigenciaTaxa[] = [{ validFrom: "2026-01-01", debito: 1, credito: 2, credito2x: 3, credito3x: 4, credito4x: 5, credito5x: 6 }];
 
-  it("o mês mostra cada forma, e o total soma líquido do cartão + bruto do resto", () => {
+  it("cada pagamento vira uma linha com valor, forma e dia; o total soma o líquido", () => {
     const r = recebidosPorAno([
-      { amount: "100", date: "2026-03-10", status: "paid", method: "credito_5x" }, // 6% -> 94
-      { amount: "100", date: "2026-03-11", status: "paid", method: "pix" },        // sem taxa -> 100
+      { amount: "100", date: "2026-03-10T12:00:00", status: "paid", method: "credito_5x" }, // 6% -> 94
+      { amount: "100", date: "2026-03-11T12:00:00", status: "paid", method: "pix" },        // sem taxa -> 100
     ], 2026, vig);
     const marco = r.meses[2];
     expect(marco.valor).toBe(194);
-    expect(marco.formas.map((f) => f.curto).sort()).toEqual(["Cre 5x", "Pix"]);
-    const cre = marco.formas.find((f) => f.metodo === "credito_5x")!;
-    expect([cre.bruto, cre.liquido, cre.temTaxa]).toEqual([100, 94, true]);
-    const pix = marco.formas.find((f) => f.metodo === "pix")!;
-    expect([pix.bruto, pix.liquido, pix.temTaxa]).toEqual([100, 100, false]);
+    expect(marco.recebimentos.map((x) => [x.valor, x.curto, x.data])).toEqual([
+      [100, "Cre 5x", "10/03/26"],
+      [100, "Pix", "11/03/26"],
+    ]);
+    expect(marco.recebimentos[0]).toMatchObject({ liquido: 94, temTaxa: true });
+    expect(marco.recebimentos[1]).toMatchObject({ liquido: 100, temTaxa: false });
   });
 
-  it("mês sem pagamento vem sem formas — a tela mostra travessão, não lista vazia", () => {
+  it("dois pagamentos no MESMO dia e na mesma forma continuam sendo duas linhas", () => {
+    const r = recebidosPorAno([
+      { amount: "50", date: "2026-10-27T09:00:00", status: "paid", method: "pix" },
+      { amount: "5", date: "2026-10-27T10:00:00", status: "paid", method: "pix" },
+    ], 2026, vig);
+    expect(r.meses[9].recebimentos.map((x) => x.valor)).toEqual([50, 5]);
+    expect(r.total).toBe(55);
+  });
+
+  it("mês sem pagamento vem sem recebimento — a tela mostra travessão, não lista vazia", () => {
     const r = recebidosPorAno([], 2026, vig);
     expect(r.meses[0].valor).toBe(0);
-    expect(r.meses[0].formas).toEqual([]);
+    expect(r.meses[0].recebimentos).toEqual([]);
   });
 
   it("o total do ano continua batendo com a soma dos meses", () => {

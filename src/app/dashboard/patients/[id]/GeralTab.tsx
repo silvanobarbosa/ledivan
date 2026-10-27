@@ -13,7 +13,7 @@ import { mascaraMoeda } from "@/lib/mascaraMoeda";
 import { PARCELAS_CREDITO, metodoDoCredito, rotuloDaParcela } from "@/lib/parcelaCredito";
 import { aplicarCreditoNoLancamento } from "@/lib/credito";
 import { creditoParaAbater, perguntaDoLancamento } from "@/lib/creditoAConfirmar";
-import { desfazerVencimento, editarVencimento, lancarPagamento, limparEnviosDaCobranca, registrarCobrancaEnviada, removerPagamento } from "./geral-actions";
+import { desfazerVencimento, editarValorDaSessao, editarVencimento, lancarPagamento, limparEnviosDaCobranca, registrarCobrancaEnviada, removerPagamento } from "./geral-actions";
 import { marcarEmissao } from "./recibo-actions";
 import { doAno, dataDoAnoControle } from "@/lib/filtroDeAno";
 import { numeroDoWhatsapp } from "@/lib/telefoneWhatsapp";
@@ -87,6 +87,55 @@ const partes = (t: string) => {
  * "· vence dd/mm" com um lápis ao lado; clicar abre um campo de data; salvar grava o override (não
  * mexe no valor nem nas outras cobranças). Editado, aparece o "desfazer", que volta à data calculada.
  */
+/**
+ * O LÁPIS AO LADO DO VALOR DE CADA SESSÃO (doc 62).
+ *
+ * Aparece só onde a sessão tem valor próprio — a cobrança "a cada sessão" e a avulsa. No pacote o
+ * valor é do pacote inteiro, e um lápis ali prometeria uma edição que o motor não leria.
+ */
+function ValorEditavel({ patientId, sessionId, valor }: { patientId: string; sessionId: string; valor: number }) {
+  const router = useRouter();
+  const [pending, start] = useTransition();
+  const [editando, setEditando] = useState(false);
+  const [texto, setTexto] = useState(() => mascaraMoeda(String(Math.round(valor * 100))));
+  const [erro, setErro] = useState<string | null>(null);
+
+  const salvar = () =>
+    start(async () => {
+      const r = await editarValorDaSessao({ patientId, sessionId, valor: texto });
+      if (r.ok) { setEditando(false); setErro(null); router.refresh(); }
+      else setErro(r.error ?? "Não deu para salvar.");
+    });
+
+  if (editando) {
+    return (
+      <span className="inline-flex flex-col items-end gap-0.5 print:hidden" data-testid="editar-valor">
+        <span className="inline-flex items-center gap-1">
+          <input inputMode="numeric" value={texto} autoFocus aria-label="Valor desta sessão"
+            onChange={(e) => setTexto(mascaraMoeda(e.target.value))}
+            onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); salvar(); } if (e.key === "Escape") setEditando(false); }}
+            className="w-[110px] rounded border border-border px-1 py-0.5 text-[11px] bg-white tabular-nums text-right" />
+          <button type="button" onClick={salvar} disabled={pending} aria-label="Salvar valor da sessão" className="text-[#166534] disabled:opacity-50 cursor-pointer">
+            <Check className="w-3.5 h-3.5" />
+          </button>
+          <button type="button" onClick={() => { setEditando(false); setErro(null); }} aria-label="Cancelar" className="text-foreground/40 cursor-pointer">
+            <X className="w-3.5 h-3.5" />
+          </button>
+        </span>
+        {erro && <span className="text-[10px] font-normal text-[#b91c1c]">{erro}</span>}
+      </span>
+    );
+  }
+
+  return (
+    <button type="button" onClick={() => setEditando(true)} title="Editar o valor desta sessão"
+      aria-label="Editar o valor desta sessão"
+      className="text-foreground/30 hover:text-primary transition ml-1 align-middle print:hidden cursor-pointer">
+      <Pencil className="w-3 h-3" />
+    </button>
+  );
+}
+
 function VencimentoEditavel({ patientId, c }: { patientId: string; c: CobrancaNaTela }) {
   const router = useRouter();
   const [pending, start] = useTransition();
@@ -330,7 +379,11 @@ function ListaLancamentos({ patientId, pagamentos, total }: { patientId: string;
   return (
     <div className="text-[11px] text-foreground/55 tabular-nums space-y-2">
       {pagamentos.map((p) => {
-        const forma = p.credito ? "Crédito do saldo" : p.metodo ? PAYMENT_METHOD_LABELS[p.metodo] ?? p.metodo : null;
+        // Doc 62: o abatimento mostra a FORMA junto de "Crédito do saldo" — a forma do dinheiro
+        // que originou o crédito. Só "Crédito do saldo" não diz como o paciente pagou, e é o que
+        // ela confere contra o extrato: "R$ 50,00 · 27/10/26 · Pix · Crédito do saldo".
+        const nomeDaForma = p.metodo ? PAYMENT_METHOD_LABELS[p.metodo] ?? p.metodo : null;
+        const forma = p.credito ? [nomeDaForma, "Crédito do saldo"].filter(Boolean).join(" · ") : nomeDaForma;
         const ehTotal = Math.abs(p.valor - total) < 0.005; // paga o pacote inteiro → oculta o valor
         const linha1 = [ehTotal ? null : formatBRL(p.valor), partes(p.data).data, forma].filter(Boolean).join(" · ");
         return (
@@ -789,7 +842,14 @@ export function GeralTab({ patientId, linhas, responsavel, responsavelCpf, cobra
                     <td className="px-3 py-2 font-semibold tabular-nums text-center">{l.rotulo || "—"}</td>
                     <CelulaStatus status={l.status} />
                     {/* Doc 30: o valor da sessão AVULSA (formato "sessao") sai em negrito na tabela de Controle. */}
-                    <td className={`px-3 py-2 text-right tabular-nums ${c?.formato === "sessao" ? "font-bold" : ""}`}>{l.valor == null ? "" : formatBRL(l.valor)}</td>
+                    <td className={`px-3 py-2 text-right tabular-nums whitespace-nowrap ${c?.formato === "sessao" ? "font-bold" : ""}`}>
+                      {l.valor == null ? "" : formatBRL(l.valor)}
+                      {/* Doc 62: o lápis só onde a sessão tem valor PRÓPRIO — "a cada sessão" e
+                          avulsa. O servidor recusa o resto pela mesma regra; aqui só não ofertamos. */}
+                      {c && (c.chave === `sessao:${l.id}` || c.chave === `extra:${l.id}`) && (
+                        <ValorEditavel patientId={patientId} sessionId={l.id} valor={l.valor ?? 0} />
+                      )}
+                    </td>
                     {c ? (
                       <ColunasDoPagamento patientId={patientId} c={c} onLancar={() => setAberta(c.chave)} cobrar={cobrar} aviso={l.avisoDaCobranca} />
                     ) : l.avisoDoPagamento ? (

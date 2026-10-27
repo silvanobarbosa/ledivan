@@ -53,6 +53,8 @@ async function marcarCreditoUsado(userId: string, origemPagamentoId: string | nu
  */
 
 const METODOS = new Set(["pix", "card", "cash", "transfer", "debito", "credito", "credito_2x", "credito_3x"]);
+/** As formas que a coluna `method` aceita (o enum do banco). */
+type MetodoDePagamento = (typeof sessionPayments.method)["_"]["data"];
 
 export async function lancarPagamento(entrada: {
   patientId: string;
@@ -190,7 +192,7 @@ export async function lancarPagamento(entrada: {
     sessionId: /^(sessao|extra):[0-9a-f-]{36}$/i.test(chave) ? chave.split(":")[1] : null,
     amount,
     date,
-    method: metodo as "pix" | "card" | "cash" | "transfer" | "debito" | "credito" | "credito_2x" | "credito_3x",
+    method: metodo as MetodoDePagamento,
     status: "paid",
     pagoPorCpf,
     pagoPor,
@@ -203,10 +205,33 @@ export async function lancarPagamento(entrada: {
   // quando houve a sobra; não é receita nova). Fecha a cobrança junto com o dinheiro. Depois marca
   // os créditos consumidos (FIFO, partindo a última linha se sobrar saldo nela).
   if (creditoAplicado > 0.005) {
+    const abertos = (await db.select().from(patientCredits)
+      .where(and(eq(patientCredits.userId, userId), eq(patientCredits.patientId, patientId), isNull(patientCredits.consumidoEm)))
+      .orderBy(asc(patientCredits.createdAt)))
+      // Sem o "Sim" deste lançamento, as linhas marcadas não são consumidas — senão o valor que a
+      // conta excluiu sairia do saldo mesmo assim, e o crédito evaporaria sem ter abatido nada.
+      .filter((c) => usarCredito || !c.confirmarAbatimento);
+
+    /**
+     * A FORMA do abatimento é a do dinheiro que ORIGINOU o crédito (doc 62).
+     *
+     * Aqui estava escrito "cash", fixo. A linha aparecia como "Crédito do saldo" e mais nada — e a
+     * dona pediu a forma de pagamento junto dela. Dinheiro não se inventa: o crédito veio de um
+     * pagamento que teve uma forma (o Pix do dia em que ela recebeu), e é essa que vale. Quando o
+     * crédito se parte em linhas de origens diferentes, manda a MAIS ANTIGA — a mesma ordem em que
+     * elas são consumidas logo abaixo. É o que `aplicarCreditosPendentes` já fazia no caminho
+     * automático; só este lançamento à mão ficou para trás.
+     */
+    const [origemDoCredito] = abertos[0]?.origemPagamentoId
+      ? await db.select({ metodo: sessionPayments.method }).from(sessionPayments)
+          .where(and(eq(sessionPayments.id, abertos[0].origemPagamentoId), eq(sessionPayments.userId, userId))).limit(1)
+      : [];
+
     const [pgCredito] = await db.insert(sessionPayments).values({
       userId, patientId,
       sessionId: /^(sessao|extra):[0-9a-f-]{36}$/i.test(chave) ? chave.split(":")[1] : null,
-      amount: creditoAplicado.toFixed(2), date, method: "cash", status: "paid",
+      amount: creditoAplicado.toFixed(2), date,
+      method: (origemDoCredito?.metodo as MetodoDePagamento) ?? "cash", status: "paid",
       pagoPor, pagoPorCpf, cobrancaChave: chave, kind: "credito", linkedTransactionId: null,
     }).returning();
 
@@ -224,12 +249,6 @@ export async function lancarPagamento(entrada: {
       : [];
 
     let restante = creditoAplicado;
-    const abertos = (await db.select().from(patientCredits)
-      .where(and(eq(patientCredits.userId, userId), eq(patientCredits.patientId, patientId), isNull(patientCredits.consumidoEm)))
-      .orderBy(asc(patientCredits.createdAt)))
-      // Sem o "Sim" deste lançamento, as linhas marcadas não são consumidas — senão o valor que a
-      // conta excluiu sairia do saldo mesmo assim, e o crédito evaporaria sem ter abatido nada.
-      .filter((c) => usarCredito || !c.confirmarAbatimento);
     for (const c of abertos) {
       if (restante <= 0.005) break;
       const v = Number(c.valor) || 0;
@@ -519,5 +538,49 @@ export async function desfazerVencimento(entrada: { patientId: string; cobrancaC
   );
 
   revalidatePath(`/dashboard/patients/${patientId}`);
+  return { ok: true };
+}
+
+/**
+ * EDITAR O VALOR DE UMA SESSÃO ESPECÍFICA, pelo lápis na coluna Valor da guia Geral (doc 62).
+ *
+ * Antes, corrigir o valor de UMA sessão obrigava a mexer no preço do cadastro — que vale para
+ * todas, dali em diante — ou a refazer o agendamento. A dona pediu o lápis ao lado de cada valor.
+ *
+ * Só vale onde a sessão TEM valor próprio: as cobranças "a cada sessão" (`sessao:`) e as avulsas
+ * (`extra:`). No pacote, o valor é do pacote inteiro e dividido entre as sessões; gravar um número
+ * aqui não seria lido por ninguém e ficaria escondido no banco esperando para aparecer — foi
+ * exatamente o achado do SuperQA de 22/10 sobre `definirValorDaFalta`. Por isso a checagem é feita
+ * contra a COBRANÇA que o motor produziu, e não contra o formato do cadastro.
+ */
+export async function editarValorDaSessao(entrada: { patientId: string; sessionId: string; valor: string }): Promise<{ ok: boolean; error?: string }> {
+  const session = await auth();
+  if (!session?.user?.id) return { ok: false, error: "Não autorizado" };
+  const userId = session.user.id;
+  const patientId = String(entrada?.patientId ?? "");
+  const sessionId = String(entrada?.sessionId ?? "");
+
+  const alvo = await db.query.therapySessions.findFirst({
+    where: and(eq(therapySessions.id, sessionId), eq(therapySessions.userId, userId), eq(therapySessions.patientId, patientId)),
+  });
+  if (!alvo) return { ok: false, error: "Sessão não encontrada." };
+
+  const limpo = parseMoedaBR(entrada?.valor ?? "");
+  if (limpo == null || Number(limpo) < 0) return { ok: false, error: "Informe um valor válido." };
+
+  const geral = await geralDoPaciente(userId, patientId);
+  const cobranca = geral?.linhas
+    .flatMap((l) => (l.tipo === "sessao" && l.cobranca ? [l.cobranca] : []))
+    .find((c) => c.chave === `sessao:${sessionId}` || c.chave === `extra:${sessionId}`);
+  if (!cobranca) return { ok: false, error: "Esta sessão não tem valor próprio — ela é paga pela cobrança do pacote." };
+
+  await db.update(therapySessions).set({ valorExtra: limpo })
+    .where(and(eq(therapySessions.id, sessionId), eq(therapySessions.userId, userId)));
+  // O valor mudou: o crédito parado pode agora caber nesta cobrança (doc 59).
+  await aplicarCreditosPendentes(userId, patientId);
+
+  revalidatePath(`/dashboard/patients/${patientId}`);
+  revalidatePath("/dashboard/agenda");
+  revalidatePath("/dashboard/transactions");
   return { ok: true };
 }

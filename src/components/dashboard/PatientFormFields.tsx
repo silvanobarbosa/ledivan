@@ -419,11 +419,29 @@ export function PatientFormFields({ p, save, tabInicial, contrato, patientId }: 
   // "Vale a partir de" passou a morar DENTRO da modalidade (doc 16): aparece só quando a troca de
   // formato de um paciente já cadastrado muda o que vale (edição), em cada modalidade (incl. Gratuito).
   const formatoSalvoReal = ehTimingDePacote(p?.paymentFormat) ? p!.paymentFormat! : formatoInicial;
-  const mostraVigencia = !!p && (formatoEfetivo !== formatoSalvoReal || financeiroAlterado);
+  const trocouDeFormato = formatoEfetivo !== formatoSalvoReal;
+  const mostraVigencia = !!p && (trocouDeFormato || financeiroAlterado);
+  /**
+   * TROCA PARA UM FORMATO QUE FECHA POR PERÍODO: a vigência nasce no 1º DIA DO MÊS (doc 62).
+   *
+   * A dona passou um paciente para Mensal no dia 27 e a guia continuou mostrando as quatro sessões
+   * do mês cobradas uma a uma — "altero para mensal e o mesmo está continuando avulso". E estava
+   * certo pela regra: "Vale a partir de" nascia com HOJE, e a regra do dono (15/09) é que a troca
+   * não mexe no que veio antes dela. Só que mês nenhum começa no dia 27: trocar para Mensal no fim
+   * do mês deixava o mês inteiro no formato velho e o novo valendo para zero sessão.
+   *
+   * Então a DATA PADRÃO passa a ser o começo do mês corrente quando o formato novo fecha por
+   * período (Mensal, Quinzenal, 1ª/última do pacote). A regra não mudou e o campo continua ali,
+   * editável — o que mudou é a data que ele oferece primeiro.
+   */
+  const inicioDoMesISO = hojeISO.slice(0, 8) + "01";
+  const padraoVigencia = trocouDeFormato && usaPacote(formatoEfetivo) ? inicioDoMesISO : hojeISO;
   const blocoValeAPartir = mostraVigencia ? (
     <div className="rounded-2xl border border-primary/30 bg-primary/5 px-4 py-3 space-y-2">
       <label className={labelCls} htmlFor="formatoDesde">Vale a partir de</label>
-      <input id="formatoDesde" name="formatoDesde" type="date" defaultValue={hojeISO} className={`${inputCls} sm:max-w-xs`} />
+      {/* `key` remonta o campo quando a data padrão muda: `defaultValue` sozinho não reage, e a
+          data oferecida ficaria parada em "hoje" depois de escolher Mensal. */}
+      <input key={padraoVigencia} id="formatoDesde" name="formatoDesde" type="date" defaultValue={padraoVigencia} className={`${inputCls} sm:max-w-xs`} />
       <p className="text-[10px] text-foreground/60">
         Os atendimentos <strong>antes</strong> desta data continuam com o formato anterior — nada do que
         já foi cobrado, ou deixou de ser, é alterado.
