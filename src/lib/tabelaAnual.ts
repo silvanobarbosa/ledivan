@@ -21,8 +21,10 @@ export type PagamentoAnual = {
   method?: string | null;
   /** null = dinheiro de verdade; "credito" = abatimento do saldo; "pacote" = crédito de pacote. */
   kind?: string | null;
-  /** Preenchido = o dinheiro voltou para o paciente. */
+  /** Preenchido = o pagamento foi desfeito. Virando CRÉDITO, o dinheiro não voltou para ninguém. */
   estornadoEm?: string | Date | null;
+  /** Doc 64: este pagamento gerou um crédito — o valor ficou com o paciente, não voltou. */
+  virouCredito?: boolean;
 };
 
 const isoDe = (d: string | Date): string => (d instanceof Date ? d.toISOString() : String(d));
@@ -40,9 +42,23 @@ const COM_TAXA = new Set(FORMAS_COM_TAXA);
  * - o crédito de PACOTE (`kind="pacote"`), que nunca foi receita.
  *
  * Era a mesma regra que `resolverCobrancas` já aplicava no Menu Pagamentos — aqui ela faltava.
+ *
+ * DOC 64: "valores que são créditos devem aparecer, já que foi um valor que entrou e que em nenhum
+ * momento foi estornado."
+ *
+ * O dinheiro que vira crédito NÃO sai do caixa — ele fica com o paciente e é usado depois. Mas o
+ * app marca o pagamento de origem como estornado (é assim que ele desfaz o vínculo com a cobrança),
+ * e a tabela, lendo só a marca, apagava da vista um dinheiro que entrou e ficou. Era o caso da
+ * Marcela: R$ 50,00 pagos no Pix, convertidos em crédito e usados numa sessão seguinte, e o ano
+ * dela não mostrava esses R$ 50,00 em lugar nenhum.
+ *
+ * Então: estorno QUE VIROU CRÉDITO continua contando, no dia em que o dinheiro entrou. O abatimento
+ * (`kind="credito"`) segue fora — ele é o mesmo dinheiro sendo gasto, e contá-lo de novo dobraria o
+ * mês, que é exatamente o defeito que o doc 62 consertou. Uma entrada, uma contagem.
  */
 export function ehDinheiroRecebido(p: PagamentoAnual): boolean {
-  return p.status === "paid" && !p.estornadoEm && p.kind !== "credito" && p.kind !== "pacote";
+  const saiu = !!p.estornadoEm && !p.virouCredito;
+  return p.status === "paid" && !saiu && p.kind !== "credito" && p.kind !== "pacote";
 }
 
 /** Os anos que têm algum pagamento recebido, do mais recente para o mais antigo. */
@@ -66,6 +82,8 @@ export type RecebimentoAnual = {
   data: string;
   /** Mostra o líquido abaixo (só as formas que descontam taxa). */
   temTaxa: boolean;
+  /** Doc 64: entrou e virou crédito do paciente — a linha diz isso, para a conta fechar na leitura. */
+  virouCredito?: boolean;
 };
 
 /**
@@ -103,6 +121,7 @@ export function recebidosPorAno(
         curto: CURTO.get(metodo) ?? metodo,
         data: ddmmaa(d),
         temTaxa: COM_TAXA.has(metodo),
+        ...(p.estornadoEm && p.virouCredito ? { virouCredito: true } : {}),
       },
     });
   }

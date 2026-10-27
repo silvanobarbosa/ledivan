@@ -6,6 +6,7 @@ import { Plus, X, Pencil, Trash2 } from "lucide-react";
 import { formatBRL } from "@/lib/therapy";
 import { statusDespesa, corDoStatus } from "@/lib/despesaStatus";
 import { criarDespesa, editarDespesa, excluirDespesa } from "./despesas-actions";
+import { deleteTransaction } from "./actions";
 import { ConfirmSubmit } from "@/components/ConfirmSubmit";
 
 export type DespesaLinha = {
@@ -31,12 +32,14 @@ const inputCls = "w-full px-3 py-2 rounded-xl bg-white border border-border focu
 
 /** Quadro de Despesas (doc 50): cadastro (com repetir mensal), edição por lápis, exclusão por lixeira,
  *  cor do valor pelo status (verde paga / preto em aberto / vermelho em atraso). */
-export function DespesasSection({ despesas, hoje }: { despesas: DespesaLinha[]; hoje: string }) {
+export function DespesasSection({ despesas, hoje, rotuloPeriodo }: { despesas: DespesaLinha[]; hoje: string; rotuloPeriodo: string }) {
   const [novo, setNovo] = useState(false);
   const [repetir, setRepetir] = useState(false);
   const [editando, setEditando] = useState<DespesaLinha | null>(null);
 
   const excluir = (id: string) => excluirDespesa(id);
+  // Doc 64: o total geral do quadro, no recorte escolhido no alto da página.
+  const total = Math.round(despesas.reduce((a, d) => a + (Number(d.valor) || 0), 0) * 100) / 100;
 
   return (
     <section className="glass-card rounded-[24px] p-5 space-y-4">
@@ -64,7 +67,7 @@ export function DespesasSection({ despesas, hoje }: { despesas: DespesaLinha[]; 
       )}
 
       {despesas.length === 0 ? (
-        <p className="text-sm text-foreground/40">Nenhuma despesa cadastrada.</p>
+        <p className="text-sm text-foreground/40">Nenhuma despesa no período ({rotuloPeriodo.toLowerCase()}).</p>
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full text-sm min-w-[520px]">
@@ -84,7 +87,14 @@ export function DespesasSection({ despesas, hoje }: { despesas: DespesaLinha[]; 
                     <td className="py-2 text-center tabular-nums">{dataBR(d.pagamentoData)} {!d.doLivro && <button onClick={() => setEditando(d)} title="Editar" className="text-foreground/30 hover:text-primary align-middle"><Pencil className="inline w-3.5 h-3.5" /></button>}</td>
                     <td className="py-2 text-center">
                       {d.doLivro ? (
-                        <span title="Lançada na tabela de lançamentos, abaixo — é lá que ela se edita" className="text-[10px] text-foreground/35">lançamento</span>
+                        /* Doc 64: a tabela de lançamentos saiu, e com ela o único caminho para
+                           apagar uma despesa do livro. A lixeira vem para cá; editar continua não
+                           sendo possível por aqui (o lançamento guarda categoria, forma e conta,
+                           que este quadro não tem). */
+                        <form action={(fd) => deleteTransaction(fd.get("id") as string)} className="inline">
+                          <input type="hidden" name="id" value={d.id} />
+                          <ConfirmSubmit message={`Excluir o lançamento "${d.nome}"? Ele sai do livro e do extrato.`} title="Excluir lançamento" className="text-foreground/30 hover:text-red-600"><Trash2 className="w-4 h-4" /></ConfirmSubmit>
+                        </form>
                       ) : (
                         <form action={(fd) => excluir(fd.get("id") as string)} className="inline">
                           <input type="hidden" name="id" value={d.id} />
@@ -96,6 +106,14 @@ export function DespesasSection({ despesas, hoje }: { despesas: DespesaLinha[]; 
                 );
               })}
             </tbody>
+            <tfoot>
+              <tr className="border-t-2 border-border font-bold">
+                <td className="py-2 text-center text-[11px] uppercase tracking-wide text-foreground/40">Total</td>
+                <td className="py-2 text-xs text-foreground/50">{rotuloPeriodo}</td>
+                <td className="py-2 text-center tabular-nums">{formatBRL(total)}</td>
+                <td /><td />
+              </tr>
+            </tfoot>
           </table>
         </div>
       )}

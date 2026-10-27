@@ -24,6 +24,13 @@ export type Movimentacao = {
   /** Mostra o líquido abaixo do bruto (só pagamento de paciente no cartão). */
   temLiquido: boolean;
   /**
+   * De que ÁREA esta linha é (doc 64): sessão, supervisão, receita pessoal ou despesa.
+   *
+   * É o que o gráfico abaixo do extrato compara. Sai daqui, e não de uma consulta própria, para a
+   * pizza e a lista nunca discordarem: mesma fonte, mesmo recorte, mesmo número.
+   */
+  categoria?: "sessao" | "supervisao" | "receita" | "despesa";
+  /**
    * A sessão a que esta linha pertence (doc 62). Só o par pagamento↔estorno usa: é por ele que o
    * estorno vai parar logo abaixo do pagamento que ele desfez.
    */

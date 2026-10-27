@@ -149,7 +149,9 @@ try {
     !/Valores recebidos[\s\S]{0,400}Total\s*R\$ 50,00/.test(corpoFinal));
 
   // ---- 4. A TELA DE TRANSAÇÕES: o estorno nas Movimentações, e NÃO na lista de lançamentos.
-  await page.goto(`${BASE}/dashboard/transactions`, { waitUntil: "domcontentloaded" });
+  // `periodo=tudo`: desde o doc 64 a tela abre no MÊS ATUAL, e este percurso compara lançamentos
+  // de meses vizinhos (o estorno cai depois da virada do mês).
+  await page.goto(`${BASE}/dashboard/transactions?periodo=tudo`, { waitUntil: "domcontentloaded" });
   await page.waitForLoadState("networkidle");
   await page.waitForTimeout(2500);
   const corpoTx = (await page.innerText("body")).replace(/ /g, " ");

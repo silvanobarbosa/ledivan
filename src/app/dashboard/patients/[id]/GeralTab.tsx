@@ -832,7 +832,9 @@ export function GeralTab({ patientId, linhas, responsavel, responsavelCpf, cobra
               const c = l.cobranca;
               return (
                 <Fragment key={l.id}>
-                  <tr className="border-t border-border" data-sessao={l.id}>
+                  {/* `data-chave` (doc 64): a cobrança embutida na sessão — é por ela que o
+                      "Gerenciar" da Carteira encontra a linha e a destaca. */}
+                  <tr className="border-t border-border" data-sessao={l.id} data-chave={c?.chave}>
                     <td className="px-3 py-2 tabular-nums whitespace-nowrap">
                       <span className="inline-flex items-center gap-1.5">
                         {p.dia} {p.data} {p.hora}

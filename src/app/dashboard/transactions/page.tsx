@@ -8,12 +8,8 @@ import { DespesasSection, type DespesaLinha } from "./DespesasSection";
 import { ReceitasSection, type ReceitaLinha } from "./ReceitasSection";
 import { MovimentacoesSection } from "./MovimentacoesSection";
 import { ExportCSV } from "./ExportCSV";
-import { deleteTransaction } from "./actions";
-import { Trash2 } from "lucide-react";
-import { ConfirmSubmit } from "@/components/ConfirmSubmit";
-import Link from "next/link";
-import { PAYMENT_FORM_LABELS } from "@/lib/finance";
-import { carregarNetter } from "@/lib/receitaLiquida";
+import { FiltroPeriodo } from "./FiltroPeriodo";
+import { dentroDoIntervalo, intervaloDoPeriodo, periodoDaUrl, rotuloDoIntervalo } from "@/lib/periodoFiltro";
 
 export const dynamic = "force-dynamic";
 
@@ -27,17 +23,28 @@ const SOURCE_LABELS: Record<string, string> = {
 export default async function TransactionsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ q?: string; from?: string; to?: string }>;
+  searchParams: Promise<{ q?: string; periodo?: string; de?: string; ate?: string }>;
 }) {
-  const { q, from, to } = await searchParams;
+  const { q, periodo: periodoUrl, de, ate } = await searchParams;
   const session = await auth();
   if (!session?.user?.id) return null;
 
   const userId = session.user.id;
+  /*
+   * Doc 64: o recorte por período, no alto da página, valendo para a tela inteira.
+   *
+   * "Mês atual" é o que vale ao entrar — a dona abre aqui para ver o mês, não a vida toda. O
+   * filtro antigo (Período → Filtrar), que existia só para a tabela de lançamentos lá embaixo,
+   * saiu junto com ela.
+   */
+  const periodo = periodoDaUrl(periodoUrl);
+  const intervalo = intervaloDoPeriodo(periodo, new Date(), de, ate);
+  const rotuloPeriodo = rotuloDoIntervalo(periodo, intervalo);
+
   const conds = [eq(transactions.userId, userId)];
   if (q) conds.push(ilike(transactions.description, `%${q}%`));
-  if (from) { const d = new Date(from); d.setHours(0, 0, 0, 0); conds.push(gte(transactions.date, d)); }
-  if (to) { const d = new Date(to); d.setHours(23, 59, 59, 999); conds.push(lte(transactions.date, d)); }
+  if (intervalo.de) { const d = new Date(`${intervalo.de}T00:00:00`); conds.push(gte(transactions.date, d)); }
+  if (intervalo.ate) { const d = new Date(`${intervalo.ate}T23:59:59`); conds.push(lte(transactions.date, d)); }
 
   const [allTransactions, allCategories, userAccounts, despesasRows, receitasRows, despesasDoLivro] = await Promise.all([
     db.query.transactions.findMany({
@@ -90,37 +97,14 @@ export default async function TransactionsPage({
   const despesasLista: DespesaLinha[] = [
     ...despesasRows.map((d) => ({ id: d.id, nome: d.nome, valor: d.valor, vencimento: d.vencimento.toISOString(), pagamentoData: d.pagamentoData ? d.pagamentoData.toISOString() : null })),
     ...doLivro,
-  ].sort((a, b) => b.vencimento.localeCompare(a.vencimento));
-  const receitasLista: ReceitaLinha[] = receitasRows.map((r) => ({ id: r.id, nome: r.nome, valor: r.valor, recebimento: r.recebimento.toISOString(), recebido: r.recebido }));
-
-  /**
-   * Quais entradas vieram de um pagamento de paciente.
-   *
-   * Elas não se apagam por aqui: o pagamento e a entrada do caixa são o mesmo fato, e apagar só um
-   * lado deixava a guia Geral dizendo "Pago" com o dinheiro fora do caixa. A tela troca a lixeira
-   * pelo caminho certo (dono, 18/09).
-   */
-  const dePagamento = new Map(
-    (await db
-      .select({ transacao: sessionPayments.linkedTransactionId, patientId: sessionPayments.patientId })
-      .from(sessionPayments)
-      .where(and(eq(sessionPayments.userId, userId), isNotNull(sessionPayments.linkedTransactionId))))
-      .map((r) => [r.transacao as string, r.patientId]),
-  );
-
-  const net = await carregarNetter(userId);
-
-  const removeTransaction = async (formData: FormData) => {
-    "use server";
-    await deleteTransaction(formData.get("id") as string);
-  };
-
-  const formatCurrency = (val: string) => {
-    return new Intl.NumberFormat("pt-BR", {
-      style: "currency",
-      currency: "BRL",
-    }).format(parseFloat(val));
-  };
+  ]
+    // Doc 64: o quadro obedece ao recorte do alto da página. A data que manda é a do PAGAMENTO
+    // quando houve, e a do vencimento quando ainda não — a mesma que a linha mostra em destaque.
+    .filter((d) => dentroDoIntervalo(d.pagamentoData ?? d.vencimento, intervalo))
+    .sort((a, b) => b.vencimento.localeCompare(a.vencimento));
+  const receitasLista: ReceitaLinha[] = receitasRows
+    .map((r) => ({ id: r.id, nome: r.nome, valor: r.valor, recebimento: r.recebimento.toISOString(), recebido: r.recebido }))
+    .filter((r) => dentroDoIntervalo(r.recebimento, intervalo));
 
   const formatDate = (date: Date) => {
     return new Intl.DateTimeFormat("pt-BR", {
@@ -156,108 +140,26 @@ export default async function TransactionsPage({
         </div>
       </div>
 
+      {/* Doc 64: o recorte vale para a tela toda e nasce no MÊS ATUAL. */}
+      <FiltroPeriodo periodo={periodo} de={de} ate={ate} />
+
       {/* Despesas + Receitas pessoais + Movimentações/extrato (doc 50) */}
-      <DespesasSection despesas={despesasLista} hoje={hojeISO} />
-      <ReceitasSection receitas={receitasLista} />
-      <MovimentacoesSection />
+      <DespesasSection despesas={despesasLista} hoje={hojeISO} rotuloPeriodo={rotuloPeriodo} />
+      <ReceitasSection receitas={receitasLista} rotuloPeriodo={rotuloPeriodo} />
+      <MovimentacoesSection intervalo={intervalo} rotulo={rotuloPeriodo} />
 
-      {/* Filtro por período (data início/fim) */}
-      <form method="get" className="flex flex-wrap items-center gap-2 glass-card rounded-2xl px-4 py-3">
-        {q && <input type="hidden" name="q" value={q} />}
-        <span className="text-sm font-semibold text-foreground/50">Período:</span>
-        <input type="date" name="from" defaultValue={from || ""} className="text-sm bg-surface border border-border rounded-xl px-3 py-2 outline-none" />
-        <span className="text-foreground/40">→</span>
-        <input type="date" name="to" defaultValue={to || ""} className="text-sm bg-surface border border-border rounded-xl px-3 py-2 outline-none" />
-        <button className="bg-primary text-white text-sm font-bold px-4 py-2 rounded-xl">Filtrar</button>
-        {(from || to) && <a href="/dashboard/transactions" className="text-sm font-semibold text-foreground/50 hover:text-primary px-2">limpar</a>}
-      </form>
+      {/*
+        A TABELA DE LANÇAMENTOS SAIU (doc 64, pedido da dona), e o filtro "Período → Filtrar" que
+        existia só para ela saiu junto.
 
-      <div className="bg-white rounded-[40px] shadow-sm border border-border overflow-hidden">
-        <div className="overflow-x-auto">
-        <table className="w-full min-w-[760px] text-left border-collapse">
-          <thead>
-            <tr className="bg-surface/50 border-b border-border">
-              <th className="p-6 text-xs font-bold text-foreground/40 uppercase tracking-widest">Data</th>
-              <th className="p-6 text-xs font-bold text-foreground/40 uppercase tracking-widest">Descrição</th>
-              <th className="p-6 text-xs font-bold text-foreground/40 uppercase tracking-widest">Categoria</th>
-              <th className="p-6 text-xs font-bold text-foreground/40 uppercase tracking-widest">Origem</th>
-              <th className="p-6 text-xs font-bold text-foreground/40 uppercase tracking-widest">Forma</th>
-              <th className="p-6 text-xs font-bold text-foreground/40 uppercase tracking-widest text-right">Valor</th>
-              <th className="p-6 w-12"></th>
-            </tr>
-          </thead>
-          <tbody>
-            {allTransactions.map((t) => (
-              <tr key={t.id} className="border-b border-border hover:bg-surface/30 transition-colors group">
-                <td className="p-6 text-sm font-medium text-foreground/60">{formatDate(t.date)}</td>
-                <td className="p-6">
-                  <p className="text-sm font-bold text-foreground">{t.description || "Sem descrição"}</p>
-                </td>
-                <td className="p-6">
-                  <span className="px-3 py-1 bg-surface rounded-full text-xs font-bold text-primary border border-primary/10">
-                    {t.category?.name || "Outros"}
-                  </span>
-                </td>
-                <td className="p-6">
-                  <span className={cn(
-                    "px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider",
-                    t.source === "telegram" ? "bg-blue-50 text-blue-600" :
-                    t.source === "scan" ? "bg-accent/20 text-primary" :
-                    t.source === "session_payment" ? "bg-[#f3e8ff] text-primary" : "bg-surface text-foreground/40"
-                  )}>
-                    {SOURCE_LABELS[t.source] || t.source}
-                  </span>
-                </td>
-                <td className="p-6">
-                  {t.method ? (
-                    <span className="text-xs font-semibold text-foreground/60">{PAYMENT_FORM_LABELS[t.method] || t.method}</span>
-                  ) : <span className="text-xs text-foreground/30">—</span>}
-                </td>
-                <td className={cn(
-                  "p-6 text-sm font-bold text-right",
-                  t.type === "income" ? "text-green-600" : "text-red-600"
-                )}>
-                  {t.type === "income" ? "+" : "-"} {formatCurrency(t.amount)}
-                  {(() => {
-                    // Líquido de taxa: só em RECEITA no cartão, quando a taxa foi configurada e desconta algo.
-                    if (t.type !== "income") return null;
-                    const bruto = parseFloat(t.amount);
-                    const liq = net(bruto, t.method, t.date.toISOString());
-                    if (!(liq < bruto)) return null;
-                    return <p className="text-[11px] font-semibold text-foreground/40 mt-0.5">líquido {formatCurrency(liq.toFixed(2))}</p>;
-                  })()}
-                </td>
-                <td className="p-6 text-right">
-                  {dePagamento.has(t.id) ? (
-                    <Link
-                      href={`/dashboard/patients/${dePagamento.get(t.id)}`}
-                      title="Veio de um pagamento de paciente. Para desfazer, use “Remover pagamento” na guia Geral dele — assim os dois saem juntos."
-                      className="text-xs font-semibold text-primary hover:underline whitespace-nowrap"
-                    >
-                      do paciente →
-                    </Link>
-                  ) : (
-                    <form action={removeTransaction}>
-                      <input type="hidden" name="id" value={t.id} />
-                      <ConfirmSubmit message="Excluir este lançamento? Esta ação não pode ser desfeita." title="Excluir" className="opacity-100 lg:opacity-0 lg:group-hover:opacity-100 text-foreground/40 hover:text-red-600 transition p-1">
-                        <Trash2 className="w-4 h-4" />
-                      </ConfirmSubmit>
-                    </form>
-                  )}
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-        </div>
+        O que ela mostrava — despesas, receitas pessoais e pagamentos de pacientes em ordem
+        cronológica — é exatamente o que Movimentações mostra, com o recorte do alto da página.
+        Duas listas do mesmo dinheiro, uma obedecendo a um filtro e a outra a outro, é confusão
+        nova no lugar da que se está consertando.
 
-        {allTransactions.length === 0 && (
-          <div className="p-20 text-center space-y-4">
-            <p className="text-4xl">📭</p>
-            <p className="text-foreground/40 font-medium">Nenhuma transação encontrada {q ? `para "${q}"` : ""}.</p>
-          </div>
-        )}
-      </div>
+        A exclusão de um lançamento do livro, que só existia ali, passou para a lixeira do quadro de
+        Despesas: sem isso, uma despesa lançada no livro ficaria sem nenhum caminho para sair.
+      */}
     </div>
   );
 }

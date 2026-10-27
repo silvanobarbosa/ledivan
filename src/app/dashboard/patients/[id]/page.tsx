@@ -8,7 +8,7 @@
    achados de verdade — eles passam a valer. */
 import { db } from "@/db";
 import { auth } from "@/auth";
-import { users, patients, therapySessions, sessionPayments, patientStatusHistory, patientPriceHistory, patientContractHistory, patientRecords, assignments, moodLogs, scaleApplications, patientPackages, patientDiary, sessionRatings, patientConsents, patientWriting, patientDailyStatus, patientAnamnese, patientActivities, patientDocuments } from "@/db/schema";
+import { users, patients, therapySessions, sessionPayments, patientCredits, patientStatusHistory, patientPriceHistory, patientContractHistory, patientRecords, assignments, moodLogs, scaleApplications, patientPackages, patientDiary, sessionRatings, patientConsents, patientWriting, patientDailyStatus, patientAnamnese, patientActivities, patientDocuments } from "@/db/schema";
 import { and, eq, desc, asc } from "drizzle-orm";
 import { notFound } from "next/navigation";
 import Link from "next/link";
@@ -54,6 +54,18 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
   ]);
 
   const geral = (await geralDoPaciente(userId, id)) ?? { linhas: [], resumo: { saldo: 0, totalPago: 0, totalExigivel: 0, emAberto: 0, emAtraso: 0, nAberto: 0, nAtraso: 0, sessoesEmAberto: 0, sessoesEmAtraso: 0, extrato: [] } };
+  /**
+   * Doc 64: quais pagamentos VIRARAM crédito.
+   *
+   * O app marca o pagamento de origem como estornado para soltá-lo da cobrança, mas esse dinheiro
+   * não voltou para ninguém — ficou com o paciente. "Valores recebidos" precisa saber a diferença
+   * entre o estorno que devolveu e o que virou saldo.
+   */
+  const origensDeCredito = new Set(
+    (await db.select({ origem: patientCredits.origemPagamentoId }).from(patientCredits).where(eq(patientCredits.patientId, id)))
+      .map((c) => c.origem).filter((x): x is string => !!x),
+  );
+
   // Doc 36: saldo de crédito do paciente (sobras guardadas), abatido no próximo pagamento.
   const credito = await creditoDisponivel(userId, id);
   // Doc 61: a parte do saldo que espera um "Sim" a cada lançamento (conversão GRAT→AVUL recusada).
@@ -228,7 +240,7 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
           sessionsList.map((s) => ({ id: s.id, date: horaDeParede(s.date), status: s.status, packageId: s.packageId })),
           packagesList.map((p) => ({ id: p.id, seq: p.seq, sessions: p.sessions })),
         ))}
-        payments={JSON.parse(JSON.stringify(paymentsList))}
+        payments={JSON.parse(JSON.stringify(paymentsList.map((p) => ({ ...p, virouCredito: origensDeCredito.has(p.id) }))))}
         statusHistory={JSON.parse(JSON.stringify(statusHist))}
         priceHistory={JSON.parse(JSON.stringify(priceHist))}
         records={JSON.parse(JSON.stringify(recordsList))}
