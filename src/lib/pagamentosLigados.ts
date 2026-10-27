@@ -44,6 +44,18 @@ export async function apagarPagamentosLigados(userId: string, pagamentoIds: stri
     inArray(patientCredits.origemPagamentoId, alvoIds),
     isNull(patientCredits.consumidoEm),
   ));
+  /**
+   * O crédito cujas DUAS pontas estão saindo some inteiro.
+   *
+   * Ele nasceu de um pagamento que está sendo apagado e foi gasto por outro que também está. Posto
+   * de volta no saldo, viraria dinheiro que o paciente nunca pagou — e ficaria disponível para
+   * abater uma cobrança de verdade. Só volta ao saldo o crédito cuja ORIGEM sobrevive.
+   */
+  await db.delete(patientCredits).where(and(
+    eq(patientCredits.userId, userId),
+    inArray(patientCredits.origemPagamentoId, alvoIds),
+    inArray(patientCredits.consumidoPagamentoId, alvoIds),
+  ));
   await db.update(patientCredits).set({ consumidoEm: null, consumidoPagamentoId: null, naoAuto: true })
     .where(and(eq(patientCredits.userId, userId), inArray(patientCredits.consumidoPagamentoId, alvoIds)));
 
