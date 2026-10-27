@@ -10,6 +10,10 @@ import { getVigenciasTaxa } from "@/lib/cardFees";
 import { ordenarExtrato, type Movimentacao } from "@/lib/extratoBancario";
 import { descricaoDoMovimento, movimentosDoEstorno } from "@/lib/estornoNoCaixa";
 
+/** Doc 64: a área do cadastro — supervisionado conta como supervisão; o resto, como sessão. */
+const areaDoCadastro = (kind: string | null | undefined): "sessao" | "supervisao" =>
+  (kind === "supervisionado" ? "supervisao" : "sessao");
+
 const dia = (iso: string | Date | null | undefined): string => {
   if (iso == null) return "";
   const s = iso instanceof Date ? iso.toISOString() : String(iso);
@@ -29,7 +33,7 @@ export async function montarMovimentacoes(): Promise<{ ok: boolean; movs?: Movim
   const [despesasRows, receitasRows, cadastros, despesasDoLivro, estornos, pagamentosDesfeitos] = await Promise.all([
     db.select({ nome: despesas.nome, valor: despesas.valor, vencimento: despesas.vencimento, pagamentoData: despesas.pagamentoData }).from(despesas).where(eq(despesas.userId, userId)),
     db.select({ nome: receitasPessoais.nome, valor: receitasPessoais.valor, recebimento: receitasPessoais.recebimento, recebido: receitasPessoais.recebido }).from(receitasPessoais).where(eq(receitasPessoais.userId, userId)),
-    db.select({ id: patients.id, name: patients.name, phone: patients.phone, guardianPhone: patients.guardianPhone, paymentFormat: patients.paymentFormat, registrationNumber: patients.registrationNumber, agendaId: patients.agendaId, status: patients.patientStatus }).from(patients).where(eq(patients.userId, userId)),
+    db.select({ id: patients.id, name: patients.name, phone: patients.phone, guardianPhone: patients.guardianPhone, paymentFormat: patients.paymentFormat, registrationNumber: patients.registrationNumber, agendaId: patients.agendaId, status: patients.patientStatus, kind: patients.cadastroKind }).from(patients).where(eq(patients.userId, userId)),
     /**
      * As despesas lançadas no LIVRO (`transactions`), que é onde elas moravam antes deste módulo.
      *
@@ -52,7 +56,7 @@ export async function montarMovimentacoes(): Promise<{ ok: boolean; movs?: Movim
      * saída sozinha tiraria do mês um dinheiro que já não estava lá — a duplicidade que o
      * documento manda evitar.
      */
-    db.select({ valor: therapySessions.estornoValor, data: therapySessions.estornoEm, paciente: patients.name, sessaoId: therapySessions.id, sessaoEm: therapySessions.date })
+    db.select({ valor: therapySessions.estornoValor, data: therapySessions.estornoEm, paciente: patients.name, sessaoId: therapySessions.id, sessaoEm: therapySessions.date, kind: patients.cadastroKind })
       .from(therapySessions)
       .innerJoin(patients, eq(patients.id, therapySessions.patientId))
       .where(and(eq(therapySessions.userId, userId), isNotNull(therapySessions.estornoEm))),
@@ -72,7 +76,7 @@ export async function montarMovimentacoes(): Promise<{ ok: boolean; movs?: Movim
      * saída para parear. O crédito consumido depois entra como `kind="credito"`, que o cálculo de
      * recebido ignora de propósito — não é dinheiro novo.
      */
-    db.select({ valor: sessionPayments.amount, data: sessionPayments.date, paciente: patients.name, sessaoId: therapySessions.id, sessaoEm: therapySessions.date })
+    db.select({ valor: sessionPayments.amount, data: sessionPayments.date, paciente: patients.name, sessaoId: therapySessions.id, sessaoEm: therapySessions.date, kind: patients.cadastroKind })
       .from(sessionPayments)
       .innerJoin(patients, eq(patients.id, sessionPayments.patientId))
       .leftJoin(therapySessions, eq(therapySessions.id, sessionPayments.sessionId))
@@ -85,26 +89,26 @@ export async function montarMovimentacoes(): Promise<{ ok: boolean; movs?: Movim
   for (const d of despesasRows) {
     const v = Number(d.valor) || 0;
     const pago = !!d.pagamentoData;
-    movs.push({ data: dia(pago ? d.pagamentoData : d.vencimento), descricao: d.nome, tipo: "saida", efetivado: pago, bruto: v, liquido: v, temLiquido: false });
+    movs.push({ data: dia(pago ? d.pagamentoData : d.vencimento), descricao: d.nome, tipo: "saida", efetivado: pago, bruto: v, liquido: v, temLiquido: false, categoria: "despesa" });
   }
 
   // Despesa do livro → saída, sempre efetivada: ela é o registro de um gasto que já aconteceu.
   for (const t of despesasDoLivro) {
     const v = Number(t.valor) || 0;
-    movs.push({ data: dia(t.data), descricao: t.descricao || "Despesa", tipo: "saida", efetivado: true, bruto: v, liquido: v, temLiquido: false });
+    movs.push({ data: dia(t.data), descricao: t.descricao || "Despesa", tipo: "saida", efetivado: true, bruto: v, liquido: v, temLiquido: false, categoria: "despesa" });
   }
 
   // As duas pontas do dinheiro que voltou: a entrada no dia do pagamento, a saída no dia do
   // estorno. A regra, e o porquê de ela existir, moram em `estornoNoCaixa`.
   movs.push(...movimentosDoEstorno(
-    pagamentosDesfeitos.map((p) => ({ valor: p.valor, data: dia(p.data), paciente: p.paciente, sessaoId: p.sessaoId, sessaoEm: dia(p.sessaoEm) })),
-    estornos.map((e) => ({ valor: e.valor, data: dia(e.data), paciente: e.paciente, sessaoId: e.sessaoId, sessaoEm: dia(e.sessaoEm) })),
+    pagamentosDesfeitos.map((p) => ({ valor: p.valor, data: dia(p.data), paciente: p.paciente, sessaoId: p.sessaoId, sessaoEm: dia(p.sessaoEm), categoria: areaDoCadastro(p.kind) })),
+    estornos.map((e) => ({ valor: e.valor, data: dia(e.data), paciente: e.paciente, sessaoId: e.sessaoId, sessaoEm: dia(e.sessaoEm), categoria: areaDoCadastro(e.kind) })),
   ));
 
   // Receitas pessoais → entrada. Recebida: data de recebimento (verde); prevista: mesma data, sem valor.
   for (const r of receitasRows) {
     const v = Number(r.valor) || 0;
-    movs.push({ data: dia(r.recebimento), descricao: r.nome, tipo: "entrada", efetivado: r.recebido, bruto: v, liquido: v, temLiquido: false });
+    movs.push({ data: dia(r.recebimento), descricao: r.nome, tipo: "entrada", efetivado: r.recebido, bruto: v, liquido: v, temLiquido: false, categoria: "receita" });
   }
 
   // Pacientes/supervisionados → entrada. Realizado (recebido) pelo líquido (cartão mostra bruto+líquido);
@@ -118,11 +122,12 @@ export async function montarMovimentacoes(): Promise<{ ok: boolean; movs?: Movim
       // Doc 62: a descrição diz O QUE é, DE QUEM e DE QUAL SESSÃO — "Marcela Damaceno" sozinho,
       // repetido quatro vezes no mesmo dia, não deixava conferir linha por linha.
       const sessaoEm = c.primeiraSessao ?? c.vencimento;
+      const area = areaDoCadastro(p.kind);
       if (rec && rec.totalBruto > 0.005) {
-        movs.push({ data: dia(c.pagoEm ?? c.vencimento), descricao: descricaoDoMovimento("Pagamento", c.nome, dia(sessaoEm)), tipo: "entrada", efetivado: true, bruto: rec.totalBruto, liquido: rec.totalLiquido, temLiquido: Math.abs(rec.totalBruto - rec.totalLiquido) > 0.005 });
+        movs.push({ data: dia(c.pagoEm ?? c.vencimento), descricao: descricaoDoMovimento("Pagamento", c.nome, dia(sessaoEm)), tipo: "entrada", efetivado: true, bruto: rec.totalBruto, liquido: rec.totalLiquido, temLiquido: Math.abs(rec.totalBruto - rec.totalLiquido) > 0.005, categoria: area });
       }
       if (c.situacao !== "pago" && c.falta > 0.005) {
-        movs.push({ data: dia(c.vencimento), descricao: descricaoDoMovimento("Previsto", c.nome, dia(sessaoEm)), tipo: "entrada", efetivado: false, bruto: c.falta, liquido: c.falta, temLiquido: false });
+        movs.push({ data: dia(c.vencimento), descricao: descricaoDoMovimento("Previsto", c.nome, dia(sessaoEm)), tipo: "entrada", efetivado: false, bruto: c.falta, liquido: c.falta, temLiquido: false, categoria: area });
       }
     }
   }));

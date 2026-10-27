@@ -4,7 +4,7 @@ import { formatBRL } from "@/lib/therapy";
 import { recebidosPorAno, anosComPagamento } from "@/lib/tabelaAnual";
 import { type VigenciaTaxa } from "@/lib/taxaCartao";
 
-type Pagamento = { id: string; amount: string; date: string; status: string; method?: string | null; kind?: string | null; estornadoEm?: string | null };
+type Pagamento = { id: string; amount: string; date: string; status: string; method?: string | null; kind?: string | null; estornadoEm?: string | null; virouCredito?: boolean };
 
 /**
  * A tabela de valores recebidos por mês, DENTRO do paciente.
@@ -53,6 +53,9 @@ function TabelaDoAno({ payments, ano, vigencias }: { payments: Pagamento[]; ano:
                     {m.recebimentos.map((r, i) => (
                       <span key={i} className="block">
                         <span className="text-[#2563eb]">{formatBRL(r.valor)} {r.curto} {r.data}</span>
+                        {/* Doc 64: o dinheiro entrou e virou crédito do paciente — continua contando
+                            aqui, e é usado depois sem ser contado de novo. */}
+                        {r.virouCredito && <span className="text-[11px] text-foreground/45"> · virou crédito</span>}
                         {r.temTaxa && <span className="block text-[11px] text-[#047857]">Líquido {formatBRL(r.liquido)}</span>}
                       </span>
                     ))}

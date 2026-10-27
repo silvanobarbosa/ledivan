@@ -15,13 +15,18 @@ const inputCls = "w-full px-3 py-2 rounded-xl bg-white border border-border focu
 
 /** Quadro de Receitas pessoais (doc 50): cadastro (com repetir mensal), edição por lápis, exclusão
  *  por lixeira. O chip "Recebido/Previsto" marca a entrada (dirige a cor no extrato). */
-export function ReceitasSection({ receitas }: { receitas: ReceitaLinha[] }) {
+export function ReceitasSection({ receitas, rotuloPeriodo }: { receitas: ReceitaLinha[]; rotuloPeriodo: string }) {
   const [novo, setNovo] = useState(false);
   const [repetir, setRepetir] = useState(false);
   const [editando, setEditando] = useState<ReceitaLinha | null>(null);
   const [pending, start] = useTransition();
 
   const alternarRecebido = (r: ReceitaLinha) => start(() => marcarReceitaRecebida(r.id, !r.recebido));
+  // Doc 64: total geral do quadro no recorte, e o recebido separado do previsto — são dinheiros
+  // diferentes: um está na conta, o outro é promessa.
+  const r2 = (n: number) => Math.round(n * 100) / 100;
+  const total = r2(receitas.reduce((a, r) => a + (Number(r.valor) || 0), 0));
+  const recebido = r2(receitas.filter((r) => r.recebido).reduce((a, r) => a + (Number(r.valor) || 0), 0));
 
   return (
     <section className="glass-card rounded-[24px] p-5 space-y-4">
@@ -50,7 +55,7 @@ export function ReceitasSection({ receitas }: { receitas: ReceitaLinha[] }) {
       )}
 
       {receitas.length === 0 ? (
-        <p className="text-sm text-foreground/40">Nenhuma receita pessoal cadastrada.</p>
+        <p className="text-sm text-foreground/40">Nenhuma receita pessoal no período ({rotuloPeriodo.toLowerCase()}).</p>
       ) : (
         <div className="overflow-x-auto">
           <table className="w-full text-sm min-w-[520px]">
@@ -79,6 +84,16 @@ export function ReceitasSection({ receitas }: { receitas: ReceitaLinha[] }) {
                 </tr>
               ))}
             </tbody>
+            {/* Doc 64: o total geral do quadro no recorte — e quanto dele já foi recebido. */}
+            <tfoot>
+              <tr className="border-t-2 border-border font-bold">
+                <td className="py-2 text-center text-[11px] uppercase tracking-wide text-foreground/40">Total</td>
+                <td className="py-2 text-xs text-foreground/50">{rotuloPeriodo}</td>
+                <td className="py-2 text-center tabular-nums">{formatBRL(total)}</td>
+                <td className="py-2 text-center text-[11px] text-[#047857]">recebido {formatBRL(recebido)}</td>
+                <td />
+              </tr>
+            </tfoot>
           </table>
         </div>
       )}

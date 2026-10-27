@@ -20,7 +20,7 @@ import type { Movimentacao } from "@/lib/extratoBancario";
  * Doc 62: as duas carregam a SESSÃO a que se referem, na descrição ("Pagamento · Fulano · Sessão
  * 28/10/26") e no `par`, que é o que põe o estorno logo abaixo do pagamento que ele desfez.
  */
-export type PagamentoDesfeito = { valor: number | string | null; data: string; paciente: string; sessaoId?: string | null; sessaoEm?: string | null };
+export type PagamentoDesfeito = { valor: number | string | null; data: string; paciente: string; sessaoId?: string | null; sessaoEm?: string | null; categoria?: "sessao" | "supervisao" };
 export type EstornoNoCaixa = PagamentoDesfeito;
 
 /** `2026-10-28…` → `28/10/26`. Vazio quando não há data de sessão. */
@@ -45,6 +45,7 @@ export function movimentosDoEstorno(pagamentos: PagamentoDesfeito[], estornos: E
       descricao: descricaoDoMovimento(tipo === "entrada" ? "Pagamento" : "Estorno", x.paciente, x.sessaoEm),
       tipo, efetivado: true, bruto: v, liquido: v, temLiquido: false,
       par: x.sessaoId ?? null,
+      categoria: x.categoria ?? "sessao",
     });
   };
   for (const p of pagamentos) linha(p, "entrada");

@@ -184,7 +184,9 @@ try {
   console.log("\n— movimentações: descrição com a sessão, estorno logo abaixo —");
   // O estorno do caixa é da SESSÃO (doc 57): ela guarda valor e dia.
   await sql`UPDATE therapy_sessions SET estorno_valor = '50.00', estorno_em = ${diasDepois} WHERE id = ${r2}`;
-  await page.goto(`${BASE}/dashboard/transactions`, { waitUntil: "networkidle" });
+  // `periodo=tudo`: desde o doc 64 a tela abre no MÊS ATUAL, e este percurso compara lançamentos
+  // de meses vizinhos (o estorno cai depois da virada do mês).
+  await page.goto(`${BASE}/dashboard/transactions?periodo=tudo`, { waitUntil: "networkidle" });
   await page.waitForFunction(() => !document.body.innerText.includes("Montando o extrato"), null, { timeout: 30_000 });
   const movs = await page.$$eval("table tbody tr", (trs) =>
     trs.map((tr) => [...tr.querySelectorAll("td")].map((td) => td.innerText.replace(/\s+/g, " ").trim()).join(" | ")));

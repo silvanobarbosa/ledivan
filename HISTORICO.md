@@ -7,6 +7,41 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-10-27 — Doc 64: o crédito volta a contar, a Carteira fecha o mês e Transações passa a ter recorte
+
+**Entregue:** "Valores recebidos" mostra o dinheiro que entrou e virou CRÉDITO (sem contá-lo de novo
+quando o crédito é gasto); na Carteira, vencimento/atrasado/em aberto centralizados, "Pago em" em
+preto, uma linha de total por mês e um botão "Gerenciar" que abre a guia Geral do cadastro já no ANO
+daquela cobrança, com a linha destacada; o quadro "Por cadastro — mês a mês" saiu; em Transações,
+um filtro de período no alto (Mês atual · 6 meses · 12 meses · Tudo · intervalo), com **mês atual**
+ligado ao entrar, totais por área obedecendo ao recorte, a tabela de lançamentos e o filtro dela
+removidos, e uma pizza comparando sessões, supervisões, receitas e despesas pessoais.
+
+**Por quê:** "valores que são créditos devem aparecer, já que foi um valor que entrou e que em
+nenhum momento foi estornado". O app marca o pagamento de origem como estornado para soltá-lo da
+cobrança — mas esse dinheiro não voltou para ninguém, ficou com o paciente. O ano da Marcela não
+mostrava R$ 80,00 que entraram de verdade.
+
+**Decisões que ficam valendo:**
+- **Estorno que virou crédito continua contando; o abatimento, nunca.** Uma entrada, uma contagem.
+  Isto NÃO revê o doc 62: o que ele tirou (o `kind="credito"`) segue fora — é o mesmo dinheiro sendo
+  gasto, e contá-lo de novo dobra o mês.
+- **A pizza e o total saem das MESMAS linhas do extrato**, já recortadas pelo filtro. Uma consulta
+  própria para o gráfico seria uma segunda contagem do mesmo dinheiro, e duas contagens que divergem
+  num detalhe foi exatamente o defeito do doc 62.
+- **O recorte de Transações é de CALENDÁRIO**: "6 meses" vai do dia 1 do mês de seis meses atrás ao
+  último dia do mês corrente. Despesa que vence dia 30 não pode sumir porque hoje é dia 3.
+- **Uma lista por assunto.** A tabela de lançamentos mostrava o mesmo que Movimentações, com outro
+  filtro; a exclusão de um lançamento do livro, que só existia lá, passou para a lixeira do quadro de
+  Despesas — sem isso, ela ficaria sem nenhum caminho para sair.
+
+**Armadilhas:** `credito` como FORMA de pagamento é cartão de crédito, não saldo do paciente — o
+abatimento se reconhece pelo `kind`, nunca pelo método. E o filtro novo quebrou dois percursos
+antigos sem que o app tivesse defeito: eles comparavam lançamentos de meses vizinhos e a tela passou
+a abrir só no mês corrente (agora pedem `?periodo=tudo`).
+
+**Pendente:** nada deste documento.
+
 ## 2026-10-27 — Doc 63: a cobrança diz quais sessões, o reajuste não desanda e o gratuito não vira avulso
 
 **Entregue:** a mensagem de cobrança do pacote lista os dias das sessões que ela cobra ("referente às

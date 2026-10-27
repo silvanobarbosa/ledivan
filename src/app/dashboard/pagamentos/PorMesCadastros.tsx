@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { MessageCircle, Loader2, AlertTriangle, Clock, CheckCircle2 } from "lucide-react";
+import { MessageCircle, Loader2, AlertTriangle, Clock, CheckCircle2, ExternalLink } from "lucide-react";
 import { formatBRL } from "@/lib/therapy";
 import { numeroDoWhatsapp } from "@/lib/telefoneWhatsapp";
 import { mensagemDeCobranca, type CobrancaResolvida } from "@/lib/vencimentosDoDia";
@@ -11,6 +11,28 @@ import { pagamentosPorMesDoAno, registrarCobranca } from "@/app/dashboard/vencim
 import { useConfirmarEnvio, ConfirmarEnvioModal } from "@/components/dashboard/confirmarEnvio";
 
 const dataBR = (iso: string | null | undefined) => { const m = iso ? String(iso).match(/^(\d{4})-(\d{2})-(\d{2})/) : null; return m ? `${m[3]}/${m[2]}/${m[1]}` : "—"; };
+
+/**
+ * O ANO desta cobrança (doc 64) — é com ele que a guia Geral abre no "Gerenciar".
+ *
+ * Vale o ano do PAGAMENTO quando houve pagamento, e o do vencimento quando ainda não houve: é a
+ * data que a dona tem na mão quando clica. Sem nenhuma das duas, o ano corrente.
+ */
+function anoDaCobranca(c: LinhaPagamento): number {
+  const m = String(c.pagoEm ?? c.vencimento ?? "").match(/^(\d{4})/);
+  return m ? Number(m[1]) : new Date().getFullYear();
+}
+
+/** Os totais do mês (doc 64): atrasado, em aberto e pago, somando as cobranças daquele mês. */
+function totaisDoMes(m: MesPagamentos): { atrasado: number; emAberto: number; bruto: number; liquido: number } {
+  const r2 = (n: number) => Math.round(n * 100) / 100;
+  return {
+    atrasado: r2(m.cobrancas.reduce((a, c) => a + c.atrasado, 0)),
+    emAberto: r2(m.cobrancas.reduce((a, c) => a + c.emAberto, 0)),
+    bruto: r2(m.cobrancas.reduce((a, c) => a + (c.recebido?.totalBruto ?? 0), 0)),
+    liquido: r2(m.cobrancas.reduce((a, c) => a + (c.recebido?.totalLiquido ?? 0), 0)),
+  };
+}
 
 /**
  * "Por mês — todos os cadastros" (doc 46): montado pelo motor da guia Geral. Cards de resumo do ano
@@ -93,7 +115,7 @@ export function PorMesCadastros({ year }: { year: number }) {
                     <thead className="text-foreground/50 border-b border-border">
                       {/* Doc 50: "Nome" = id do cadastro; cores atraso vermelho / em aberto preto / pago azul;
                           "Pago" quebrado por forma, com o líquido em verde no débito/crédito. */}
-                      <tr><th className={th}>Nome</th><th className={th}>Vencimento</th><th className={th}>Atrasado</th><th className={th}>Em aberto</th><th className={th}>Pago</th><th className={th} /><th className={th}>Cobranças enviadas</th></tr>
+                      <tr><th className={th}>Nome</th><th className={th}>Vencimento</th><th className={th}>Atrasado</th><th className={th}>Em aberto</th><th className={th}>Pago</th><th className={th} /><th className={th}>Cobranças enviadas</th><th className={th} /></tr>
                     </thead>
                     <tbody className="divide-y divide-border">
                       {m.cobrancas.map((c) => {
@@ -101,10 +123,11 @@ export function PorMesCadastros({ year }: { year: number }) {
                         const formas = c.recebido?.formas ?? [];
                         return (
                           <tr key={c.chave}>
-                            <td className={`${td} font-semibold`}><Link href={`/dashboard/patients/${c.cadastroId}`} className="text-primary hover:underline">{idLabel(c)}</Link></td>
-                            <td className={td}>{dataBR(c.vencimento)}</td>
-                            <td className={`${td} tabular-nums ${c.atrasado > 0 ? "text-[#b91c1c] font-semibold" : "text-foreground/30"}`}>{c.atrasado > 0 ? formatBRL(c.atrasado) : "—"}</td>
-                            <td className={`${td} tabular-nums ${c.emAberto > 0 ? "text-foreground" : "text-foreground/30"}`}>{c.emAberto > 0 ? formatBRL(c.emAberto) : "—"}</td>
+                            <td className={`${td} font-semibold`}><Link href={`/dashboard/patients/${c.cadastroId}?ano=${anoDaCobranca(c)}&cobranca=${encodeURIComponent(c.chave)}`} className="text-primary hover:underline">{idLabel(c)}</Link></td>
+                            {/* Doc 64: vencimento, atrasado e em aberto centralizados — como já eram os títulos. */}
+                            <td className={`${td} text-center`}>{dataBR(c.vencimento)}</td>
+                            <td className={`${td} text-center tabular-nums ${c.atrasado > 0 ? "text-[#b91c1c] font-semibold" : "text-foreground/30"}`}>{c.atrasado > 0 ? formatBRL(c.atrasado) : "—"}</td>
+                            <td className={`${td} text-center tabular-nums ${c.emAberto > 0 ? "text-foreground" : "text-foreground/30"}`}>{c.emAberto > 0 ? formatBRL(c.emAberto) : "—"}</td>
                             <td className={`${td} tabular-nums`}>
                               {formas.length === 0 ? <span className="text-foreground/30">—</span> : (
                                 <div className="space-y-0.5">
@@ -117,11 +140,41 @@ export function PorMesCadastros({ year }: { year: number }) {
                                 </div>
                               )}
                             </td>
-                            <td className={td}>{pago ? <span className="text-[11px] text-[#047857] whitespace-nowrap">Pago em {dataBR(c.pagoEm)}</span> : <button type="button" onClick={() => cobrar(c)} disabled={!numeroDoWhatsapp(c.telefone)} title={numeroDoWhatsapp(c.telefone) ? "Cobrar pelo WhatsApp" : "Cadastro sem telefone"} className="inline-flex items-center gap-1 text-xs font-bold px-3 py-1.5 rounded-full bg-primary/10 text-primary hover:bg-primary/15 transition disabled:opacity-40"><MessageCircle className="w-3.5 h-3.5" /> Cobrar</button>}</td>
+                            {/* Doc 64: "Pago em" em preto — o verde é a cor do líquido, e aqui confundia. */}
+                            <td className={td}>{pago ? <span className="text-[11px] text-foreground whitespace-nowrap">Pago em {dataBR(c.pagoEm)}</span> : <button type="button" onClick={() => cobrar(c)} disabled={!numeroDoWhatsapp(c.telefone)} title={numeroDoWhatsapp(c.telefone) ? "Cobrar pelo WhatsApp" : "Cadastro sem telefone"} className="inline-flex items-center gap-1 text-xs font-bold px-3 py-1.5 rounded-full bg-primary/10 text-primary hover:bg-primary/15 transition disabled:opacity-40"><MessageCircle className="w-3.5 h-3.5" /> Cobrar</button>}</td>
                             <td className={`${td} tabular-nums text-center`}>{pago ? "—" : envios(c)}</td>
+                            {/* Doc 64: Gerenciar leva à guia Geral do cadastro JÁ no ano desta cobrança — a
+                                dona cobrava de 2025 e caía no ano corrente, tendo de trocar na mão. */}
+                            <td className={`${td} text-center`}>
+                              <Link href={`/dashboard/patients/${c.cadastroId}?ano=${anoDaCobranca(c)}&cobranca=${encodeURIComponent(c.chave)}`}
+                                className="inline-flex items-center gap-1 text-xs font-bold px-3 py-1.5 rounded-full bg-surface border border-border text-primary hover:bg-white transition whitespace-nowrap">
+                                <ExternalLink className="w-3.5 h-3.5" /> Gerenciar
+                              </Link>
+                            </td>
                           </tr>
                         );
                       })}
+                      {/* Doc 64: o total do mês, com as mesmas cores das colunas. */}
+                      {(() => {
+                        const t = totaisDoMes(m);
+                        return (
+                          <tr className="bg-surface/40 font-bold">
+                            <td className={`${td} text-foreground/60`}>Total do mês</td>
+                            <td className={`${td} text-center text-foreground/30`}>—</td>
+                            <td className={`${td} text-center tabular-nums ${t.atrasado > 0 ? "text-[#b91c1c]" : "text-foreground/30"}`}>{t.atrasado > 0 ? formatBRL(t.atrasado) : "—"}</td>
+                            <td className={`${td} text-center tabular-nums ${t.emAberto > 0 ? "text-foreground" : "text-foreground/30"}`}>{t.emAberto > 0 ? formatBRL(t.emAberto) : "—"}</td>
+                            <td className={`${td} tabular-nums`}>
+                              {t.bruto > 0 ? (
+                                <>
+                                  <span className="text-[#2563eb]">{formatBRL(t.bruto)}</span>
+                                  {t.liquido < t.bruto && <span className="block text-[11px] text-[#047857] font-semibold">Líquido {formatBRL(t.liquido)}</span>}
+                                </>
+                              ) : <span className="text-foreground/30">—</span>}
+                            </td>
+                            <td className={td} /><td className={td} /><td className={td} />
+                          </tr>
+                        );
+                      })()}
                     </tbody>
                   </table>
                 </div>

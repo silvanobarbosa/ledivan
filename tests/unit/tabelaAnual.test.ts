@@ -1,6 +1,6 @@
 import { type VigenciaTaxa } from "@/lib/taxaCartao";
 import { describe, it, expect } from "vitest";
-import { anosComPagamento, recebidosPorAno } from "@/lib/tabelaAnual";
+import { anosComPagamento, ehDinheiroRecebido, recebidosPorAno } from "@/lib/tabelaAnual";
 
 const pg = (amount: number, date: string, status = "paid") => ({ amount: String(amount), date, status });
 
@@ -93,5 +93,45 @@ describe("os recebimentos do mês, um a um (doc 62)", () => {
     ], 2026, vig);
     expect(r.total).toBe(298);
     expect(r.meses.reduce((a, m) => a + m.valor, 0)).toBeCloseTo(298, 2);
+  });
+});
+
+describe("doc 64: o dinheiro que virou crédito continua sendo dinheiro que entrou", () => {
+  const base = { status: "paid", method: "pix", date: "2026-10-27T11:00:00" };
+
+  it("estorno que virou CRÉDITO continua contando — o valor não voltou para ninguém", () => {
+    expect(ehDinheiroRecebido({ ...base, amount: "50", estornadoEm: "2026-10-27T12:00:00", virouCredito: true })).toBe(true);
+  });
+
+  it("estorno de verdade (o dinheiro voltou) continua fora", () => {
+    expect(ehDinheiroRecebido({ ...base, amount: "50", estornadoEm: "2026-10-27T12:00:00" })).toBe(false);
+  });
+
+  it("o ABATIMENTO do crédito segue fora: é o mesmo dinheiro sendo gasto", () => {
+    expect(ehDinheiroRecebido({ ...base, amount: "50", kind: "credito" })).toBe(false);
+    expect(ehDinheiroRecebido({ ...base, amount: "50", kind: "credito", virouCredito: true })).toBe(false);
+  });
+
+  it("o caso da Marcela: entra uma vez, não duas", () => {
+    // R$ 50 no Pix viram crédito; o crédito é usado numa sessão seguinte (kind="credito").
+    const { total, meses } = recebidosPorAno([
+      { ...base, amount: "50", estornadoEm: "2026-10-27T12:00:00", virouCredito: true },
+      { ...base, amount: "50", kind: "credito" },
+    ], 2026);
+    expect(total).toBe(50);
+    const outubro = meses[9];
+    expect(outubro.recebimentos).toHaveLength(1);
+    expect(outubro.recebimentos[0].virouCredito).toBe(true);
+  });
+
+  it("o ano em que o dinheiro aparece é o da ENTRADA, não o do uso do crédito", () => {
+    const pagos = [
+      { ...base, amount: "280", date: "2026-08-01T11:00:00" },
+      { ...base, amount: "139.99", date: "2026-10-27T11:00:00", kind: "credito" },
+    ];
+    const { total, meses } = recebidosPorAno(pagos, 2026);
+    expect(total).toBe(280);
+    expect(meses[7].recebimentos).toHaveLength(1); // agosto
+    expect(meses[9].recebimentos).toHaveLength(0); // outubro
   });
 });

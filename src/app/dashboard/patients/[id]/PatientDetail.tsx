@@ -3,8 +3,8 @@
 import { idadeEmPalavras } from "@/lib/idade";
 import { rotuloFinanceiro } from "@/lib/rotulosPaciente";
 import { cobra } from "@/lib/reajuste";
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { createRecord } from "../actions";
 import { RegistroItem } from "./RegistroItem";
@@ -55,7 +55,7 @@ type ContractEntry = { id: string; type: string; from: string | null; to: string
 type Finance = { fee: number; balance: number; totalPaid: number; totalDebit: number; atendimentos: number; lastPaymentDate: string | null; lastPaymentAmount: number | null; creditSessions: number; debtSessions: number; nAberto: number; nAtraso: number; emAberto: number; emAtraso: number };
 type LedgerEntry = { id: string; date: string; kind: "pagamento" | "sessao"; desc: string; amount: number; balance: number; payId: string | null };
 type Session = { id: string; date: string; duration: number; fee: string; status: string; notes: string | null; isOnline: boolean; patientSummary: string | null; meetingUrl: string | null; pendingConfirmation: boolean; recurring: boolean; chargeable: boolean; sessionKind?: string };
-type Payment = { id: string; date: string; amount: string; method: string; status: string; linkedTransactionId: string | null };
+type Payment = { id: string; date: string; amount: string; method: string; status: string; linkedTransactionId: string | null; kind?: string | null; estornadoEm?: string | null; virouCredito?: boolean };
 type StatusEntry = { id: string; status: string; date: string };
 type PriceEntry = { id: string; valor: string; dataEfetiva: string };
 type RecordEntry = { id: string; type: string; title: string | null; content: string; createdAt: string };
@@ -132,7 +132,31 @@ export function PatientDetail({
     ...geral.map((l) => (l.tipo === "sessao" || l.tipo === "bloqueio" ? l.data : l.pagamento?.data ?? l.vencimento)),
     ...payments.map((p) => p.date),
   ]);
-  const [ano, setAno] = useState<number | "TODOS">(anosDoPaciente[0]);
+  /*
+   * Doc 64: o "Gerenciar" da Carteira chega aqui com o ANO da cobrança clicada.
+   *
+   * "Se o usuário clicar em Gerenciar num pagamento de 2025, o sistema deve direcioná-lo para a
+   * guia Geral com 2025 selecionado, mesmo que o ano selecionado antes fosse outro." Sem isto a
+   * tela abria no ano corrente e o pagamento procurado não estava em lugar nenhum da tela.
+   */
+  const params = useSearchParams();
+  const anoPedido = Number(params.get("ano"));
+  const cobrancaPedida = params.get("cobranca");
+  const [ano, setAno] = useState<number | "TODOS">(
+    Number.isInteger(anoPedido) && anoPedido > 2000 ? anoPedido : anosDoPaciente[0],
+  );
+
+  // …e leva a tela até a cobrança, destacando-a: o ano certo sem achar a linha ainda é procurar.
+  useEffect(() => {
+    if (!cobrancaPedida) return;
+    const alvo = document.querySelector(`[data-chave="${CSS.escape(cobrancaPedida)}"]`);
+    const destino = alvo ?? document.querySelector('[data-testid="guia-geral"]');
+    destino?.scrollIntoView({ behavior: "smooth", block: "center" });
+    if (!(alvo instanceof HTMLElement)) return;
+    alvo.classList.add("ring-2", "ring-primary", "ring-offset-2");
+    const t = setTimeout(() => alvo.classList.remove("ring-2", "ring-primary", "ring-offset-2"), 4000);
+    return () => clearTimeout(t);
+  }, [cobrancaPedida, ano]);
 
   const [tab, setTab] = useState<(typeof TABS)[number]>("Geral");
   // Vencimento no cabeçalho (doc 28): mensal = "vence dia X"; quinzenal = os dois dias; 1ª/última
