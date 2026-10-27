@@ -68,7 +68,14 @@ const sessao = async (pid, quando, status = "realizada") => {
 
 const nav = await chromium.launch();
 const ctx = await nav.newContext();
-await ctx.addCookies([{ name: "auth-session", value: token, domain: "localhost", path: "/" }]);
+// O domínio do cookie sai do BASE_URL — preso em "localhost", um BASE_URL remoto entrava deslogado
+// e TODAS as verificações reprovavam, parecendo defeito do que foi para o ar.
+//
+// Ainda assim este percurso é LOCAL: a sessão aqui é assinada com o `AUTH0_SECRET` do `.env.local`,
+// que não é o de produção — e ainda bem. Contra ledivan.com.br o cookie é recusado e cai no login.
+// O banco, esse sim, é o de produção (daí os cadastros de teste serem apagados no fim).
+const alvo = new URL(BASE);
+await ctx.addCookies([{ name: "auth-session", value: token, domain: alvo.hostname, path: "/", secure: alvo.protocol === "https:" }]);
 const page = await ctx.newPage();
 const abrir = async (pid) => { await page.goto(`${BASE}/dashboard/patients/${pid}`, { waitUntil: "networkidle" }); };
 
