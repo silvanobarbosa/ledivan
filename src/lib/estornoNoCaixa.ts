@@ -16,17 +16,36 @@ import type { Movimentacao } from "@/lib/extratoBancario";
  * Quando o valor virou CRÉDITO em vez de estorno, só existe a entrada — o dinheiro não voltou para
  * ninguém, ficou com o paciente. O crédito consumido depois entra como `kind="credito"`, que o
  * cálculo de recebido ignora de propósito: não é dinheiro novo.
+ *
+ * Doc 62: as duas carregam a SESSÃO a que se referem, na descrição ("Pagamento · Fulano · Sessão
+ * 28/10/26") e no `par`, que é o que põe o estorno logo abaixo do pagamento que ele desfez.
  */
-export type PagamentoDesfeito = { valor: number | string | null; data: string; paciente: string };
-export type EstornoNoCaixa = { valor: number | string | null; data: string; paciente: string };
+export type PagamentoDesfeito = { valor: number | string | null; data: string; paciente: string; sessaoId?: string | null; sessaoEm?: string | null };
+export type EstornoNoCaixa = PagamentoDesfeito;
+
+/** `2026-10-28…` → `28/10/26`. Vazio quando não há data de sessão. */
+export function sessaoEmBR(iso: string | null | undefined): string {
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(iso ?? ""));
+  return m ? `${m[3]}/${m[2]}/${m[1].slice(2)}` : "";
+}
+
+/** "Pagamento · Fulano · Sessão 28/10/26" — a sessão só entra quando se sabe qual é. */
+export function descricaoDoMovimento(rotulo: string, paciente: string, sessaoEm?: string | null): string {
+  const d = sessaoEmBR(sessaoEm);
+  return [rotulo, paciente, d ? `Sessão ${d}` : null].filter(Boolean).join(" · ");
+}
 
 export function movimentosDoEstorno(pagamentos: PagamentoDesfeito[], estornos: EstornoNoCaixa[]): Movimentacao[] {
   const movs: Movimentacao[] = [];
-  const linha = (x: { valor: number | string | null; data: string; paciente: string }, tipo: "entrada" | "saida"): void => {
+  const linha = (x: PagamentoDesfeito, tipo: "entrada" | "saida"): void => {
     const v = Number(x.valor) || 0;
     if (v <= 0) return;
-    const descricao = tipo === "entrada" ? `Pagamento · ${x.paciente}` : `Estorno · ${x.paciente}`;
-    movs.push({ data: x.data, descricao, tipo, efetivado: true, bruto: v, liquido: v, temLiquido: false });
+    movs.push({
+      data: x.data,
+      descricao: descricaoDoMovimento(tipo === "entrada" ? "Pagamento" : "Estorno", x.paciente, x.sessaoEm),
+      tipo, efetivado: true, bruto: v, liquido: v, temLiquido: false,
+      par: x.sessaoId ?? null,
+    });
   };
   for (const p of pagamentos) linha(p, "entrada");
   for (const e of estornos) linha(e, "saida");

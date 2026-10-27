@@ -11,32 +11,73 @@ export const MESES = [
   "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro",
 ];
 
-import { liquidoDoPagamento, type VigenciaTaxa } from "./taxaCartao";
-import { recebidoPorForma, type FormaRecebida } from "./recebidoPorForma";
+import { liquidoDoPagamento, FORMAS_COM_TAXA, type VigenciaTaxa } from "./taxaCartao";
+import { FORMAS_RECEBIMENTO } from "./recebidoPorForma";
 
-export type PagamentoAnual = { amount: string | number; date: string | Date; status: string; method?: string | null };
+export type PagamentoAnual = {
+  amount: string | number;
+  date: string | Date;
+  status: string;
+  method?: string | null;
+  /** null = dinheiro de verdade; "credito" = abatimento do saldo; "pacote" = crédito de pacote. */
+  kind?: string | null;
+  /** Preenchido = o dinheiro voltou para o paciente. */
+  estornadoEm?: string | Date | null;
+};
 
 const isoDe = (d: string | Date): string => (d instanceof Date ? d.toISOString() : String(d));
+const CURTO = new Map(FORMAS_RECEBIMENTO.map((f) => [f.metodo, f.curto]));
+const COM_TAXA = new Set(FORMAS_COM_TAXA);
+
+/**
+ * DINHEIRO DE VERDADE, E SÓ ELE (doc 62).
+ *
+ * A tabela somava tudo o que tivesse status "paid", e três coisas entravam sem ser receita:
+ *
+ * - o pagamento ESTORNADO, que voltou para o paciente;
+ * - o abatimento de CRÉDITO (`kind="credito"`), que é dinheiro já contado no dia em que entrou —
+ *   contá-lo de novo dobra o mês, e era o que a tela da Marcela mostrava (R$ 110 de R$ 55);
+ * - o crédito de PACOTE (`kind="pacote"`), que nunca foi receita.
+ *
+ * Era a mesma regra que `resolverCobrancas` já aplicava no Menu Pagamentos — aqui ela faltava.
+ */
+export function ehDinheiroRecebido(p: PagamentoAnual): boolean {
+  return p.status === "paid" && !p.estornadoEm && p.kind !== "credito" && p.kind !== "pacote";
+}
 
 /** Os anos que têm algum pagamento recebido, do mais recente para o mais antigo. */
 export function anosComPagamento(pagamentos: PagamentoAnual[]): number[] {
   const anos = new Set<number>();
   for (const p of pagamentos) {
-    if (p.status !== "paid") continue;
+    if (!ehDinheiroRecebido(p)) continue;
     const d = new Date(p.date);
     if (!Number.isNaN(d.getTime())) anos.add(d.getFullYear());
   }
   return [...anos].sort((a, b) => b - a);
 }
 
+/** UM recebimento, como a tabela o lê: "R$ 50,00 Pix 27/10/26". */
+export type RecebimentoAnual = {
+  valor: number;
+  liquido: number;
+  /** Rótulo curto da forma (Pix, Deb, Cre, Din…). */
+  curto: string;
+  /** Data do recebimento em dd/mm/aa. */
+  data: string;
+  /** Mostra o líquido abaixo (só as formas que descontam taxa). */
+  temTaxa: boolean;
+};
+
 /**
  * Uma linha da tabela anual. `valor` é o total LÍQUIDO do mês — o que entrou de verdade.
- * `formas` detalha por forma de pagamento (doc 53): cada uma com o bruto e, nos cartões, o líquido.
+ * `recebimentos` é um por pagamento, na ordem em que entraram (doc 62): o dono pediu os valores
+ * reais, um a um, com a forma e o dia — e não um agregado por forma, que escondia quantos
+ * pagamentos havia e quando cada um caiu.
  */
-export type LinhaAnual = { mes: string; valor: number; formas: FormaRecebida[]; estornado: number };
+export type LinhaAnual = { mes: string; valor: number; recebimentos: RecebimentoAnual[] };
 
-/** O dinheiro que VOLTOU para o paciente, no dia em que voltou (doc 60). */
-export type EstornoAnual = { valor: string | number; data: string | Date };
+const dois = (n: number) => String(n).padStart(2, "0");
+const ddmmaa = (d: Date) => `${dois(d.getDate())}/${dois(d.getMonth() + 1)}/${dois(d.getFullYear() % 100)}`;
 
 /**
  * Os doze meses do ano com o total recebido em cada um, mais o total do ano.
@@ -46,42 +87,34 @@ export function recebidosPorAno(
   pagamentos: PagamentoAnual[],
   ano: number,
   vigencias: VigenciaTaxa[] = [],
-  estornos: EstornoAnual[] = [],
 ): { meses: LinhaAnual[]; total: number } {
-  const soma = new Array(12).fill(0) as number[];
-  /**
-   * O estorno entra como SAÍDA do mês em que foi feito — não como desconto do mês do pagamento.
-   *
-   * A data importa: pagamento em outubro devolvido em novembro move dinheiro nos dois meses, e
-   * juntar as duas pontas no mesmo mês apagaria os dois fatos de uma vez. É a mesma leitura que
-   * Movimentações faz do mesmo par.
-   */
-  const devolvido = new Array(12).fill(0) as number[];
-  for (const e of estornos) {
-    const d = new Date(e.data);
-    if (Number.isNaN(d.getTime()) || d.getFullYear() !== ano) continue;
-    devolvido[d.getMonth()] += Number(e.valor) || 0;
-  }
-  // Doc 53: além do total do mês, a quebra por forma de pagamento. Reusa `recebidoPorForma`,
-  // que é a mesma função do Menu Pagamentos — uma só regra decide o que mostra líquido.
-  const porMes: PagamentoAnual[][] = Array.from({ length: 12 }, () => []);
+  const porMes: { quando: number; r: RecebimentoAnual }[][] = Array.from({ length: 12 }, () => []);
   for (const p of pagamentos) {
-    if (p.status !== "paid") continue;
+    if (!ehDinheiroRecebido(p)) continue;
     const d = new Date(p.date);
     if (Number.isNaN(d.getTime()) || d.getFullYear() !== ano) continue;
-    soma[d.getMonth()] += liquidoDoPagamento(Number(p.amount) || 0, p.method, isoDe(p.date), vigencias);
-    porMes[d.getMonth()].push(p);
+    const metodo = p.method || "pix";
+    const valor = Number(p.amount) || 0;
+    porMes[d.getMonth()].push({
+      quando: d.getTime(),
+      r: {
+        valor,
+        liquido: liquidoDoPagamento(valor, metodo, isoDe(p.date), vigencias),
+        curto: CURTO.get(metodo) ?? metodo,
+        data: ddmmaa(d),
+        temTaxa: COM_TAXA.has(metodo),
+      },
+    });
   }
-  const meses = soma.map((v, i) => ({
-    mes: MESES[i],
-    valor: Math.round(v * 100) / 100,
-    formas: recebidoPorForma(
-      porMes[i].map((p) => ({ valor: Number(p.amount) || 0, metodo: p.method, data: isoDe(p.date) })),
-      vigencias,
-    ).formas,
-    estornado: Math.round(devolvido[i] * 100) / 100,
-  }));
-  // O total do ano é o LÍQUIDO: o que entrou menos o que voltou.
-  const total = Math.round(meses.reduce((a, m) => a + m.valor - m.estornado, 0) * 100) / 100;
+
+  const meses = porMes.map((lista, i) => {
+    const recebimentos = lista.sort((a, b) => a.quando - b.quando).map((x) => x.r);
+    return {
+      mes: MESES[i],
+      valor: Math.round(recebimentos.reduce((a, r) => a + r.liquido, 0) * 100) / 100,
+      recebimentos,
+    };
+  });
+  const total = Math.round(meses.reduce((a, m) => a + m.valor, 0) * 100) / 100;
   return { meses, total };
 }

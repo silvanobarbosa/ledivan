@@ -391,3 +391,38 @@ describe("Faltou — considerar realizada? (doc 45)", () => {
     expect(idsCom).toContain(faltaId);
   });
 });
+
+/**
+ * O VALOR DE UMA SESSÃO ESPECÍFICA (doc 62).
+ *
+ * A dona pediu um lápis ao lado de cada valor na guia Geral. Corrigir UMA sessão exigia mexer no
+ * preço do cadastro, que vale para todas dali em diante — ou refazer o agendamento. Quem guarda o
+ * número é `valorExtra`, a mesma coluna que a sessão avulsa e a falta do gratuito já usavam; o que
+ * mudou é a cobrança "a cada sessão" passar a lê-la.
+ */
+describe("valor informado para UMA sessão (doc 62)", () => {
+  it("manda na cobrança daquela sessão, e só dela", () => {
+    const ss = [sessao(14, 8, { valorExtra: "80.00" }), sessao(21)];
+    const c = cobrancasDoPaciente({ ...base(), sessoes: ss });
+    expect(c.map((x) => [x.valor, x.ids])).toEqual([[80, [ss[0].id]], [130, [ss[1].id]]]);
+  });
+
+  it("zero é um valor informado — a sessão passa a não cobrar nada", () => {
+    const ss = [sessao(14, 8, { valorExtra: "0.00" })];
+    expect(cobrancasDoPaciente({ ...base(), sessoes: ss })[0].valor).toBe(0);
+  });
+
+  it("sem valor informado, continua valendo o preço do período", () => {
+    const ss = [sessao(14, 8, { valorExtra: null })];
+    expect(cobrancasDoPaciente({ ...base(), sessoes: ss })[0].valor).toBe(FEE);
+  });
+
+  it("no PACOTE o valor da sessão não é dela — o pacote cobra o tamanho contratado", () => {
+    const ss = [sessao(1, 8, { valorExtra: "1.00" }), sessao(8), sessao(15), sessao(22)];
+    const c = cobrancasDoPaciente({
+      ...base({ reserva: { formato: "mensal", pacoteTipo: "completo" }, tamanhoPacote: 4 }),
+      sessoes: ss,
+    });
+    expect(c.map((x) => [x.tipo, x.valor])).toEqual([["pacote", FEE * 4]]);
+  });
+});

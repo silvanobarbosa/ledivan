@@ -23,11 +23,40 @@ export type Movimentacao = {
   liquido: number;
   /** Mostra o líquido abaixo do bruto (só pagamento de paciente no cartão). */
   temLiquido: boolean;
+  /**
+   * A sessão a que esta linha pertence (doc 62). Só o par pagamento↔estorno usa: é por ele que o
+   * estorno vai parar logo abaixo do pagamento que ele desfez.
+   */
+  par?: string | null;
 };
 
 const dia = (iso: string | null | undefined): string => String(iso ?? "").slice(0, 10);
 
-/** Ordena as movimentações em ordem cronológica (mais antiga primeiro), como o extrato do doc. */
+/**
+ * Ordena as movimentações em ordem cronológica (mais antiga primeiro), como o extrato do doc.
+ *
+ * Com uma exceção, pedida pelo dono (doc 62): **o estorno fica logo abaixo da sessão referente**.
+ * Dinheiro devolvido semanas depois cai longe do pagamento na ordem do calendário, e as duas pontas
+ * do mesmo fato ficam em telas diferentes — é justamente lendo as duas juntas que se entende que o
+ * mês não recebeu aquele valor. A data de cada linha continua sendo a verdadeira; o que muda é só
+ * onde a saída é desenhada.
+ */
 export function ordenarExtrato(movs: Movimentacao[]): Movimentacao[] {
-  return [...movs].sort((a, b) => dia(a.data).localeCompare(dia(b.data)));
+  const ordenadas = [...movs].sort((a, b) => dia(a.data).localeCompare(dia(b.data)));
+  const estornos = ordenadas.filter((m) => m.tipo === "saida" && m.par);
+  if (!estornos.length) return ordenadas;
+
+  const out = ordenadas.filter((m) => !(m.tipo === "saida" && m.par));
+  // Do fim para o começo: inserir um estorno não desloca a posição dos que ainda faltam colocar.
+  for (const e of [...estornos].reverse()) {
+    const i = out.findIndex((m) => m.tipo === "entrada" && m.par === e.par);
+    // Sem o pagamento correspondente na lista, a saída volta para o lugar dela no calendário.
+    if (i < 0) {
+      const j = out.findIndex((m) => dia(m.data).localeCompare(dia(e.data)) > 0);
+      out.splice(j < 0 ? out.length : j, 0, e);
+      continue;
+    }
+    out.splice(i + 1, 0, e);
+  }
+  return out;
 }

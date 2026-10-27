@@ -231,6 +231,24 @@ function diaDoMes(base: Date, dia: number, somaMeses = 0): Date {
 }
 
 
+/**
+ * O VALOR DE UMA SESSÃO: o informado para ELA, se houver; senão o da tabela de preços.
+ *
+ * `valorExtra` nasceu para a sessão extra avulsa (valor combinado no agendamento) e para a falta do
+ * paciente gratuito (doc 54, lançada depois). O doc 62 fez dele o que o nome já dizia: o valor
+ * DESTA sessão. O lápis na coluna Valor da guia Geral escreve aqui, e a cobrança "a cada sessão"
+ * passa a lê-lo — antes ela só sabia o preço do período, e corrigir uma sessão específica obrigava
+ * a mexer no preço de todas.
+ *
+ * Zero é um valor informado (sessão de cortesia com registro); `null` é a ausência dele.
+ */
+function valorDaSessao(s: { valorExtra?: number | string | null; data: Date }, precos: EntradaDasCobrancas["precos"], reserva: number): number {
+  const informado = Number(s.valorExtra);
+  return s.valorExtra != null && Number.isFinite(informado) && informado >= 0
+    ? informado
+    : precoCobravel(precos, s.data, reserva);
+}
+
 function cobrancasDoPeriodo(periodo: PeriodoDeVigencia, sessoes: Ordenada[], e: EntradaDasCobrancas): Cobranca[] {
   const formato = periodo.formato;
   if (!cobra(formato)) return [];
@@ -245,7 +263,7 @@ function cobrancasDoPeriodo(periodo: PeriodoDeVigencia, sessoes: Ordenada[], e: 
         chave: `sessao:${s.id}`,
         tipo: "sessao" as const,
         formato,
-        valor: dinheiro(precoCobravel(e.precos, s.data, reservaPreco)),
+        valor: dinheiro(valorDaSessao(s, e.precos, reservaPreco)),
         sessoes: 1,
         ids: [s.id],
         vencimento: s.data,
@@ -405,6 +423,11 @@ export function cobrancasDoPaciente(e: EntradaDasCobrancas): Cobranca[] {
   // Extra: não olha o período. É "independente da definição do financeiro".
   for (const s of ordenadas) {
     if (s.extra !== "avul" || STATUS_QUE_PAUSAM.has(s.status)) continue;
+    /**
+     * A extra NÃO passa por `valorDaSessao`: aqui o `valorExtra` nulo significa ZERO, não "sem
+     * valor informado". É a falta do paciente gratuito, que nasce AVUL de R$ 0,00 esperando o
+     * valor (doc 54) — e é esse zero que `aguardandoValor` logo abaixo reconhece.
+     */
     const informado = Number(s.valorExtra);
     const valor = Number.isFinite(informado) && informado >= 0 ? informado : precoCobravel(e.precos, s.data, reservaPreco);
     out.push({

@@ -8,7 +8,7 @@ import { geralDoPaciente, type LinhaNaTela } from "@/lib/geralDoPaciente";
 import { resolverCobrancas } from "@/lib/resolverCobrancas";
 import { getVigenciasTaxa } from "@/lib/cardFees";
 import { ordenarExtrato, type Movimentacao } from "@/lib/extratoBancario";
-import { movimentosDoEstorno } from "@/lib/estornoNoCaixa";
+import { descricaoDoMovimento, movimentosDoEstorno } from "@/lib/estornoNoCaixa";
 
 const dia = (iso: string | Date | null | undefined): string => {
   if (iso == null) return "";
@@ -52,7 +52,7 @@ export async function montarMovimentacoes(): Promise<{ ok: boolean; movs?: Movim
      * saída sozinha tiraria do mês um dinheiro que já não estava lá — a duplicidade que o
      * documento manda evitar.
      */
-    db.select({ valor: therapySessions.estornoValor, data: therapySessions.estornoEm, paciente: patients.name })
+    db.select({ valor: therapySessions.estornoValor, data: therapySessions.estornoEm, paciente: patients.name, sessaoId: therapySessions.id, sessaoEm: therapySessions.date })
       .from(therapySessions)
       .innerJoin(patients, eq(patients.id, therapySessions.patientId))
       .where(and(eq(therapySessions.userId, userId), isNotNull(therapySessions.estornoEm))),
@@ -72,9 +72,10 @@ export async function montarMovimentacoes(): Promise<{ ok: boolean; movs?: Movim
      * saída para parear. O crédito consumido depois entra como `kind="credito"`, que o cálculo de
      * recebido ignora de propósito — não é dinheiro novo.
      */
-    db.select({ valor: sessionPayments.amount, data: sessionPayments.date, paciente: patients.name })
+    db.select({ valor: sessionPayments.amount, data: sessionPayments.date, paciente: patients.name, sessaoId: therapySessions.id, sessaoEm: therapySessions.date })
       .from(sessionPayments)
       .innerJoin(patients, eq(patients.id, sessionPayments.patientId))
+      .leftJoin(therapySessions, eq(therapySessions.id, sessionPayments.sessionId))
       .where(and(eq(sessionPayments.userId, userId), eq(sessionPayments.status, "paid"), isNotNull(sessionPayments.estornadoEm), isNull(sessionPayments.kind))),
   ]);
 
@@ -96,8 +97,8 @@ export async function montarMovimentacoes(): Promise<{ ok: boolean; movs?: Movim
   // As duas pontas do dinheiro que voltou: a entrada no dia do pagamento, a saída no dia do
   // estorno. A regra, e o porquê de ela existir, moram em `estornoNoCaixa`.
   movs.push(...movimentosDoEstorno(
-    pagamentosDesfeitos.map((p) => ({ valor: p.valor, data: dia(p.data), paciente: p.paciente })),
-    estornos.map((e) => ({ valor: e.valor, data: dia(e.data), paciente: e.paciente })),
+    pagamentosDesfeitos.map((p) => ({ valor: p.valor, data: dia(p.data), paciente: p.paciente, sessaoId: p.sessaoId, sessaoEm: dia(p.sessaoEm) })),
+    estornos.map((e) => ({ valor: e.valor, data: dia(e.data), paciente: e.paciente, sessaoId: e.sessaoId, sessaoEm: dia(e.sessaoEm) })),
   ));
 
   // Receitas pessoais → entrada. Recebida: data de recebimento (verde); prevista: mesma data, sem valor.
@@ -114,11 +115,14 @@ export async function montarMovimentacoes(): Promise<{ ok: boolean; movs?: Movim
     if (!geral) return;
     for (const c of resolverCobrancas(geral.linhas as LinhaNaTela[], p, vigencias)) {
       const rec = c.recebido;
+      // Doc 62: a descrição diz O QUE é, DE QUEM e DE QUAL SESSÃO — "Marcela Damaceno" sozinho,
+      // repetido quatro vezes no mesmo dia, não deixava conferir linha por linha.
+      const sessaoEm = c.primeiraSessao ?? c.vencimento;
       if (rec && rec.totalBruto > 0.005) {
-        movs.push({ data: dia(c.pagoEm ?? c.vencimento), descricao: c.nome, tipo: "entrada", efetivado: true, bruto: rec.totalBruto, liquido: rec.totalLiquido, temLiquido: Math.abs(rec.totalBruto - rec.totalLiquido) > 0.005 });
+        movs.push({ data: dia(c.pagoEm ?? c.vencimento), descricao: descricaoDoMovimento("Pagamento", c.nome, dia(sessaoEm)), tipo: "entrada", efetivado: true, bruto: rec.totalBruto, liquido: rec.totalLiquido, temLiquido: Math.abs(rec.totalBruto - rec.totalLiquido) > 0.005 });
       }
       if (c.situacao !== "pago" && c.falta > 0.005) {
-        movs.push({ data: dia(c.vencimento), descricao: c.nome, tipo: "entrada", efetivado: false, bruto: c.falta, liquido: c.falta, temLiquido: false });
+        movs.push({ data: dia(c.vencimento), descricao: descricaoDoMovimento("Previsto", c.nome, dia(sessaoEm)), tipo: "entrada", efetivado: false, bruto: c.falta, liquido: c.falta, temLiquido: false });
       }
     }
   }));
