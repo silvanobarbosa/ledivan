@@ -7,6 +7,45 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-10-27 — Doc 61: o crédito pede licença, e o agendamento apagado leva o dinheiro junto
+
+**Entregue (#515):** a conversão de uma sessão GRAT em AVUL pergunta, havendo saldo, "Este cadastro
+possui um crédito de R$ XX,XX. Deseja utilizá-lo agora?"; dito "Não", o saldo fica inteiro e parado,
+e cada "Lançar pagamento" volta a perguntar até o crédito acabar; um lançamento coberto pelo saldo
+pode ser confirmado sem dinheiro; excluir agendamento, sessão ou pagamento leva junto tudo o que
+estava preso a eles — e os órfãos antigos foram limpos em produção.
+
+**Por quê:** o crédito andava sozinho desde o doc 59, e está certo — ele vem de uma sessão que não
+aconteceu e que o paciente já pagou. Mas na conversão GRAT→AVUL a terapeuta precisa escolher, e
+escolher ANTES: é nesse instante que o dinheiro se move. E a exclusão: `session_id` é
+`ON DELETE SET NULL`, então o pagamento sobrevivia à sessão com a chave de uma cobrança que não
+existe mais — a guia Geral o redistribuía por vencimento e ele ia abater a PRÓXIMA cobrança do
+paciente. Eram 7 assim, todos da Marcela, R$ 255.
+
+**Decisões que ficam valendo:**
+- **`confirmar_abatimento` é marca separada de `nao_auto`.** `nao_auto` só diz "não vá sozinho" e
+  quem o posta é a remoção de uma aplicação (doc 59), que não pede pergunta nenhuma. O documento
+  proíbe estender a confirmação a outras situações de crédito — reusar a marca faria isso.
+- **A pergunta mora FORA do formulário de lançamento.** É a resposta que decide quanto crédito
+  abate, e o campo "Valor recebido" nasce com o dinheiro que falta DEPOIS do abatimento. Dentro, o
+  número mudaria sozinho na frente de quem digita.
+- **Lançamento só de crédito não entra no caixa.** Sem dinheiro recebido não há transação nem
+  pagamento em dinheiro: o que entra é o abatimento.
+- **Crédito cujas duas pontas saem não volta ao saldo.** Nasceu de um pagamento apagado e foi gasto
+  por outro, também apagado: devolvido, viraria dinheiro que o paciente nunca pagou.
+- **Remover dinheiro leva a aplicação de crédito da mesma cobrança; o contrário, não.** O dinheiro
+  o paciente pagou de verdade, e ela pode estar só movendo o crédito de lugar.
+
+**Armadilhas:** o campo de dinheiro vazio significa "o que falta" no servidor — no lançamento só de
+crédito, exatamente o valor que o crédito acabou de cobrir; o zero precisa ser DITO. E
+`definirValorDaFalta` chama `aplicarCreditosPendentes` no fim: a marca da recusa tem de ser gravada
+ANTES, senão o crédito já foi para a cobrança que acabou de nascer.
+
+**Pendente:** nada deste documento. O branch `backup-doc61-2026-10-27` no Neon guarda o estado de
+antes da limpeza.
+
+---
+
 ## 2026-10-26 — Doc 60: o gratuito que virou AVUL perdia a própria história
 
 **Entregue (#513):** a mensagem do estorno/transferência/crédito volta a aparecer no paciente
