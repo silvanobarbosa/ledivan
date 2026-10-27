@@ -7,6 +7,47 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-10-27 — Doc 62: o valor é da sessão, o recebido é o que entrou, e a movimentação diz de qual sessão
+
+**Entregue:** o abatimento de crédito mostra a FORMA do dinheiro que o originou ao lado de "Crédito
+do saldo"; um lápis ao lado do valor de cada sessão edita aquela sessão; "Valores recebidos em xxxx"
+passou a listar o dinheiro real um por linha (valor, forma, dia) e deixou de somar o estornado e o
+abatimento de crédito; Movimentações diz "Pagamento · Fulano · Sessão dd/mm/aa" e desenha o estorno
+logo abaixo do pagamento que ele desfez; trocar o formato para um que fecha por período passa a
+valer do 1º dia do mês.
+
+**Por quê:** a tela de uma paciente somava R$ 110 onde haviam entrado R$ 55 — o pagamento estornado
+e o abatimento de crédito contavam como receita, e o abatimento é o MESMO dinheiro contado de novo.
+E "altero para mensal e o mesmo está continuando avulso": estava certo pela regra de vigência
+(15/09), mas "Vale a partir de" nascia com HOJE, e mês nenhum começa no dia 27 — o formato novo
+valia para zero sessão do mês.
+
+**Decisões que ficam valendo:**
+- **"Valores recebidos" é só dinheiro REAL.** Isto REVÊ o item 2 do doc 60, que tinha posto o
+  estorno à mostra nesta tabela. O lugar das duas pontas é Movimentações, que conta a entrada e a
+  saída; na tabela do ano, metade do fato vira número errado com cara de certo.
+- **A forma do abatimento é a do pagamento de ORIGEM.** Dinheiro não se inventa: o crédito veio de
+  um pagamento que teve uma forma. Juntando várias origens, manda a mais antiga — a mesma ordem em
+  que elas são consumidas.
+- **`valorExtra` é o valor DAQUELA sessão.** A cobrança "a cada sessão" passou a lê-lo; antes só a
+  avulsa e a falta do gratuito o liam. No pacote não existe valor por sessão, e o lápis não é
+  oferecido — o servidor recusa pela COBRANÇA que o motor produziu, não pelo formato do cadastro.
+- **Na troca para um formato que fecha por período, a vigência nasce no 1º dia do mês.** A regra do
+  dono não mudou (o passado continua intacto); mudou a data que o campo oferece primeiro.
+
+**Armadilhas:** no ramo da sessão EXTRA, `valorExtra` nulo significa ZERO, não "sem valor" — é a
+falta do gratuito esperando o valor (doc 54). Generalizar os dois ramos na mesma função faria a
+avulsa sem valor passar a cobrar o preço do período. E o arnês de e2e saía com código 0 quando uma
+exceção estourava no meio: o `finally` engolia o erro e o script dizia "tudo certo" tendo morrido na
+metade.
+
+**Pendente:** os e2e antigos (guia-geral, quinzena, fragmentacao, sessao-extra, vigencia-formato,
+recibo-nota) não rodam: a sessão de QA guardada expirou e pedem a senha para renovar
+(`e2e-escrita.mjs`). Nada a ver com este bloco. O branch `backup-doc62-2026-10-27` no Neon guarda o
+estado de antes da correção da forma do abatimento (1 registro).
+
+---
+
 ## 2026-10-27 — Doc 61: o crédito pede licença, e o agendamento apagado leva o dinheiro junto
 
 **Entregue (#515):** a conversão de uma sessão GRAT em AVUL pergunta, havendo saldo, "Este cadastro

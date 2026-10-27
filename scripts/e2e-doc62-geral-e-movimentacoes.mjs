@@ -117,10 +117,15 @@ try {
   const r2 = await sessao(recebidos, noMes(9));
   const r3 = await sessao(recebidos, noMes(16));
   // R$ 50 pix (vale), R$ 50 pix estornado (não vale), R$ 5 pix (vale), R$ 50 de crédito (não vale).
+  // O estornado é pago DIAS ANTES dos outros e devolvido DIAS DEPOIS: pela data, a saída cairia no
+  // fim da lista, com os outros pagamentos entre ela e a entrada que ela desfaz. É o que faz a
+  // ordem provar alguma coisa — com as duas pontas no mesmo dia, ela passaria por acaso.
+  const diasAntes = new Date(hoje.getTime() - 6 * 86_400_000);
+  const diasDepois = new Date(hoje.getTime() + 6 * 86_400_000);
   await sql`INSERT INTO session_payments (user_id, patient_id, session_id, amount, date, method, status, cobranca_chave)
             VALUES (${qa.id}, ${recebidos}, ${r1}, '50.00', ${hoje}, 'pix', 'paid', ${"sessao:" + r1})`;
   await sql`INSERT INTO session_payments (user_id, patient_id, session_id, amount, date, method, status, cobranca_chave, estornado_em)
-            VALUES (${qa.id}, ${recebidos}, ${r2}, '50.00', ${hoje}, 'pix', 'paid', ${"sessao:" + r2}, ${hoje})`;
+            VALUES (${qa.id}, ${recebidos}, ${r2}, '50.00', ${diasAntes}, 'pix', 'paid', ${"sessao:" + r2}, ${hoje})`;
   await sql`INSERT INTO session_payments (user_id, patient_id, session_id, amount, date, method, status, cobranca_chave)
             VALUES (${qa.id}, ${recebidos}, ${r3}, '5.00', ${hoje}, 'pix', 'paid', ${"sessao:" + r3})`;
   await sql`INSERT INTO session_payments (user_id, patient_id, session_id, amount, date, method, status, cobranca_chave, kind)
@@ -142,10 +147,36 @@ try {
   check('a linha do crédito diz "PIX · Crédito do saldo"', geral.includes("PIX · Crédito do saldo"),
     geral.split("\n").filter((l) => l.includes("Crédito do saldo")).join(" / "));
 
+  // A checagem acima prova a TELA. Falta o outro lado: quem GRAVA a forma no abatimento.
+  console.log("\n— o abatimento lançado à mão nasce com a forma da origem —");
+  const comSaldo = await paciente(`QA doc62 saldo ${marca}`, "sessao", "100.00");
+  // A sessão JÁ PAGA no débito, e a que está aberta. O crédito nasce daquele pagamento.
+  const sy = await sessao(comSaldo, noMes(13));
+  const sx = await sessao(comSaldo, noMes(20));
+  const [origem] = await sql`
+    INSERT INTO session_payments (user_id, patient_id, session_id, amount, date, method, status, cobranca_chave)
+    VALUES (${qa.id}, ${comSaldo}, ${sy}, '100.00', ${hoje}, 'debito', 'paid', ${"sessao:" + sy}) RETURNING id`;
+  await sql`INSERT INTO patient_credits (user_id, patient_id, valor, origem_pagamento_id)
+            VALUES (${qa.id}, ${comSaldo}, '100.00', ${origem.id})`;
+  await abrir(comSaldo);
+  await page.locator(`tr[data-sessao="${sx}"]`).getByRole("button", { name: "Lançar pagamento" }).click();
+  await page.waitForTimeout(600);
+  await page.getByRole("button", { name: /Confirmar com o crédito/i }).click();
+  await page.waitForTimeout(2500);
+
+  const [abatimento] = await sql`
+    SELECT method, amount FROM session_payments
+    WHERE patient_id = ${comSaldo} AND kind = 'credito' LIMIT 1`;
+  check("o abatimento é gravado com a forma do pagamento de origem",
+    !!abatimento && abatimento.method === "debito", abatimento ? String(abatimento.method) : "não criado");
+  check('e a tela mostra "Cartão de débito · Crédito do saldo"',
+    (await texto(page)).includes("Cartão de débito · Crédito do saldo"),
+    (await texto(page)).split("\n").filter((l) => l.includes("Crédito do saldo")).join(" / "));
+
   // ──────────────────────────────────── 5. MOVIMENTAÇÕES ────────────────────────────────────────
   console.log("\n— movimentações: descrição com a sessão, estorno logo abaixo —");
   // O estorno do caixa é da SESSÃO (doc 57): ela guarda valor e dia.
-  await sql`UPDATE therapy_sessions SET estorno_valor = '50.00', estorno_em = ${hoje} WHERE id = ${r2}`;
+  await sql`UPDATE therapy_sessions SET estorno_valor = '50.00', estorno_em = ${diasDepois} WHERE id = ${r2}`;
   await page.goto(`${BASE}/dashboard/transactions`, { waitUntil: "networkidle" });
   await page.waitForFunction(() => !document.body.innerText.includes("Montando o extrato"), null, { timeout: 30_000 });
   const movs = await page.$$eval("table tbody tr", (trs) =>
@@ -185,6 +216,10 @@ try {
   await abrir(avulso);
   check("quem não trocou de formato segue cobrado a cada sessão",
     (await linhasDaGeral(page)).filter((l) => l.includes("AVUL")).length === 2);
+} catch (e) {
+  // Sem este catch, uma exceção no meio do percurso era engolida pelo `process.exit(0)` do
+  // `finally` logo abaixo: o script morria na metade e dizia "tudo certo".
+  check("o percurso chegou ao fim sem exceção", false, String(e && e.message ? e.message : e).slice(0, 200));
 } finally {
   await nav.close();
   for (const id of criados) {

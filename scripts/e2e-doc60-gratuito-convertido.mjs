@@ -140,8 +140,13 @@ try {
   const corpoFinal = (await page.innerText("body")).replace(/ /g, " ");
   check("a mensagem do estorno aparece na coluna Pagamento (item 1 do doc)",
     corpoFinal.includes("Sessão AVUL, que foi convertida para GRAT - Estorno realizado no valor de R$ 50,00"));
-  check("a tabela de valores recebidos registra a saída (item 2 do doc)",
-    corpoFinal.includes("R$ 50,00 estornado"));
+  // O item 2 do doc 60 pedia a saída à mostra nesta tabela. O doc 62 reviu: "Valores recebidos"
+  // passou a ser só o dinheiro REAL recebido, e o estorno tem o lugar dele em Movimentações, onde
+  // as duas pontas aparecem. O que fica provado aqui é que ele NÃO soma mais no ano.
+  check("o estorno saiu da tabela de valores recebidos (doc 62 revê o item 2 do doc 60)",
+    !corpoFinal.includes("estornado"));
+  check("e o pagamento estornado não conta como recebido",
+    !/Valores recebidos[\s\S]{0,400}Total\s*R\$ 50,00/.test(corpoFinal));
 
   // ---- 4. A TELA DE TRANSAÇÕES: o estorno nas Movimentações, e NÃO na lista de lançamentos.
   await page.goto(`${BASE}/dashboard/transactions`, { waitUntil: "domcontentloaded" });
