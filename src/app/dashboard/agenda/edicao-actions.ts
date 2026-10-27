@@ -3,6 +3,7 @@
 import { and, eq, gte, inArray, lte } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { db } from "@/db";
+import { apagarSessoesComPagamentos } from "@/lib/pagamentosLigados";
 import { auth } from "@/auth";
 import { therapySessions, sessoesPuladas, blockedSlots, sessionPayments, patients, patientPaymentFormatHistory } from "@/db/schema";
 import { formatoNaData } from "@/lib/vigenciaDoFormato";
@@ -207,6 +208,8 @@ export async function salvarEdicao(opts: {
 
   revalidatePath("/dashboard/agenda");
   revalidatePath(`/dashboard/patients/${atual.patientId}`);
+  // O caixa muda junto: a transação do pagamento apagado sai com ele.
+  revalidatePath("/dashboard/transactions");
   return { ok: true, afetadas: alvos.length };
 }
 
@@ -230,9 +233,15 @@ export async function excluirAgendamento(sessionId: string, alcance: string): Pr
     alcance,
   });
 
-  // O `userId` no WHERE de novo: os ids vieram de uma consulta já filtrada, mas a defesa não custa
-  // nada e é a única coisa entre um id trocado e a agenda de outra pessoa.
-  await db.delete(therapySessions).where(and(eq(therapySessions.userId, userId), inArray(therapySessions.id, alvos)));
+  /**
+   * O `userId` no WHERE de novo: os ids vieram de uma consulta já filtrada, mas a defesa não custa
+   * nada e é a única coisa entre um id trocado e a agenda de outra pessoa.
+   *
+   * Doc 61: o agendamento sai com o dinheiro que pendurava nele. Antes o pagamento sobrevivia à
+   * sessão apagada, com a chave de uma cobrança que não existe mais, e a guia Geral o redistribuía
+   * por vencimento — ele ia abater a PRÓXIMA cobrança do paciente sozinho.
+   */
+  await apagarSessoesComPagamentos(userId, alvos);
 
   // Excluir uma SÉRIE leva junto os marcadores de horário PULADO (Hor. Bloq.) dela: senão ficam
   // órfãos na lista de sessões do paciente, em Dados (doc 9, item 3). O BLOQUEIO em si (blockedSlots)

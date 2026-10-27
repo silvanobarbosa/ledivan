@@ -14,8 +14,9 @@ import { desmarcadasSemReposicao, extraParaGravar } from "@/lib/sessaoExtra";
 import { formatoNaData } from "@/lib/vigenciaDoFormato";
 import { getUserAiClient, SemChaveIA } from "@/lib/ai-client";
 import { chavesDaCobrancaDaSessao, decidirDesfazer } from "@/lib/desfazerCobranca";
-import { geralDoPaciente } from "@/lib/geralDoPaciente";
+import { creditoDisponivel, geralDoPaciente } from "@/lib/geralDoPaciente";
 import { aplicarCreditosPendentes } from "@/lib/aplicarCreditos";
+import { apagarSessoesComPagamentos } from "@/lib/pagamentosLigados";
 
 type SessionStatus = "realizada" | "nao_realizada" | "cancelada" | "realocada" | "agendada" | "prof_desmarcou" | "atestado";
 
@@ -379,6 +380,7 @@ export async function confirmSession(sessionId: string) {
   revalidatePath("/dashboard/agenda");
   // a reserva confirmada sai da fila de "a confirmar", e o dashboard conta essa fila
   revalidatePath("/dashboard/reservas");
+  revalidatePath("/dashboard/transactions");
   revalidatePath("/dashboard");
 }
 
@@ -597,7 +599,23 @@ export async function updateSessionStatus(sessionId: string, status: SessionStat
  * Só aceita sessão Faltou com a resposta Sim: fora disso o valor não teria onde aparecer, e gravá-lo
  * deixaria um número escondido esperando para surpreender quando o status mudasse.
  */
-export async function definirValorDaFalta(sessionId: string, valor: string): Promise<{ ok: boolean; error?: string }> {
+/**
+ * O SALDO DE CRÉDITO DO CADASTRO DESTA SESSÃO (doc 61).
+ *
+ * A agenda precisa dele ANTES de converter uma GRAT em AVUL: havendo saldo, a conversão passa a
+ * perguntar "Este cadastro possui um crédito de R$ XX,XX. Deseja utilizá-lo agora?". Sem saldo não
+ * há pergunta nenhuma, e o caminho é o de sempre.
+ */
+export async function saldoDeCreditoDaSessao(sessionId: string): Promise<{ ok: boolean; saldo?: number; error?: string }> {
+  const session = await auth();
+  if (!session?.user?.id) return { ok: false, error: "Não autorizado" };
+  const userId = session.user.id;
+  const existing = await db.query.therapySessions.findFirst({ where: and(eq(therapySessions.id, sessionId), eq(therapySessions.userId, userId)) });
+  if (!existing) return { ok: false, error: "Sessão não encontrada." };
+  return { ok: true, saldo: await creditoDisponivel(userId, existing.patientId) };
+}
+
+export async function definirValorDaFalta(sessionId: string, valor: string, usarCredito?: boolean | null): Promise<{ ok: boolean; error?: string }> {
   const session = await auth();
   if (!session?.user?.id) return { ok: false, error: "Não autorizado" };
   const userId = session.user.id;
@@ -617,6 +635,27 @@ export async function definirValorDaFalta(sessionId: string, valor: string): Pro
   if (existing.extra) return { ok: false, error: "O valor da sessão avulsa é definido no agendamento." };
   const limpo = parseMoedaBR(valor);
   if (limpo == null || Number(limpo) <= 0) return { ok: false, error: "Informe um valor maior que zero." };
+
+  /**
+   * A RESPOSTA SOBRE O CRÉDITO vem antes de o valor existir — e precisa ser gravada antes também.
+   *
+   * Dito "Não", o saldo é marcado: para de andar sozinho (`naoAuto`) e passa a pedir confirmação a
+   * cada lançamento (`confirmarAbatimento`). Se a marca chegasse depois, `aplicarCreditosPendentes`
+   * logo abaixo já teria levado o crédito para a cobrança que acabou de nascer — exatamente o que
+   * ela acabou de recusar.
+   *
+   * Dito "Sim", as marcas saem: o crédito volta a ser o crédito normal da casa, e o abatimento
+   * acontece pela regra de sempre, sem caminho novo nenhum para o dinheiro.
+   */
+  if (usarCredito === true || usarCredito === false) {
+    await db.update(patientCredits)
+      .set({ naoAuto: !usarCredito, confirmarAbatimento: !usarCredito })
+      .where(and(
+        eq(patientCredits.userId, userId),
+        eq(patientCredits.patientId, existing.patientId),
+        isNull(patientCredits.consumidoEm),
+      ));
+  }
 
   await db.update(therapySessions).set({ valorExtra: limpo }).where(and(eq(therapySessions.id, sessionId), eq(therapySessions.userId, userId)));
   await aplicarCreditosPendentes(userId, existing.patientId);
@@ -692,7 +731,9 @@ export async function deleteSession(sessionId: string) {
   });
   if (!existing) return;
 
-  await db.delete(therapySessions).where(and(eq(therapySessions.id, sessionId), eq(therapySessions.userId, session.user.id)));
+  // Doc 61: a sessão sai com o dinheiro que pendurava nela — pagamento, transação do caixa e o
+  // efeito no saldo de crédito. Pagamento sem sessão vira dinheiro solto que abate outra cobrança.
+  await apagarSessoesComPagamentos(session.user.id, [sessionId]);
 
   revalidatePath("/dashboard/agenda");
   await aplicarCreditosPendentes(session.user.id, existing.patientId);

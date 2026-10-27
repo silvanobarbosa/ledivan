@@ -4,7 +4,8 @@ import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
 import { ChevronLeft, ChevronRight, X, Stethoscope, Repeat, Video, AlertTriangle, MapPin, Pencil, CalendarDays, Trash2 } from "lucide-react";
 import { formatBRL, SESSION_STATUS_LABELS, sessionStatusColor, sessionColorClasses, reservaVencida, RISK_LABELS, riskColor, LEGENDA_DA_AGENDA, corDaLegenda, STATUS_OFERECIDOS, STATUS_QUE_PAUSAM, type RiskLevel } from "@/lib/therapy";
-import { updateSessionStatus, confirmSession, createSessionFromAgenda, createRecurring, definirValorDaFalta, pagamentoDaSessao, desfazerCobrancaDaSessao } from "../sessions/actions";
+import { updateSessionStatus, confirmSession, createSessionFromAgenda, createRecurring, definirValorDaFalta, pagamentoDaSessao, desfazerCobrancaDaSessao, saldoDeCreditoDaSessao } from "../sessions/actions";
+import { perguntaDaConversao } from "@/lib/creditoAConfirmar";
 import { HolidaySetup } from "@/components/dashboard/HolidaySetup";
 import { HOLIDAY_STYLE, type Holiday, type HolidayCity } from "@/lib/holidays-style";
 import { geometriaDaFaixa, posicoesDoDia } from "@/lib/agendaLayout";
@@ -473,7 +474,29 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
     if (tipo !== "gratuito") return changeStatus(id, "nao_realizada", undefined, true);
     setValorDaFalta("");
     setErroDoValor(null);
-    changeStatus(id, "nao_realizada", undefined, true, () => setPedeValor({ id }));
+    setUsarCredito(null);
+    /**
+     * Doc 61: havendo SALDO DE CRÉDITO no cadastro, a conversão pergunta antes se ele deve ser
+     * usado agora. A pergunta vem primeiro porque é ela que decide o que acontece com o dinheiro
+     * assim que o valor da sessão existir: respondido "Sim", o saldo abate a cobrança que está
+     * nascendo; respondido "Não", ele fica inteiro e parado, esperando um lançamento futuro.
+     *
+     * Sem saldo não há pergunta nenhuma — é o caminho de sempre, e a maioria dos casos.
+     */
+    changeStatus(id, "nao_realizada", undefined, true, () => {
+      void saldoDeCreditoDaSessao(id).then((r) => {
+        if (r.ok && (r.saldo ?? 0) > 0.005) return setPerguntaCredito({ id, saldo: r.saldo as number });
+        setPedeValor({ id });
+      });
+    });
+  };
+
+  /** A resposta da janela do crédito: segue para o valor, guardando o que ela escolheu. */
+  const responderCredito = (usar: boolean) => {
+    if (!perguntaCredito) return;
+    setUsarCredito(usar);
+    setPedeValor({ id: perguntaCredito.id });
+    setPerguntaCredito(null);
   };
 
   /**
@@ -521,7 +544,7 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
     if (!pedeValor) return;
     setErroDoValor(null);
     startTransition(async () => {
-      const r = await definirValorDaFalta(pedeValor.id, valorDaFalta);
+      const r = await definirValorDaFalta(pedeValor.id, valorDaFalta, usarCredito);
       if (!r.ok) return setErroDoValor(r.error ?? "Não consegui lançar o valor.");
       setPedeValor(null);
       router.refresh();
@@ -544,6 +567,9 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
   const [erroDoDestino, setErroDoDestino] = useState<string | null>(null);
   const [valorDaFalta, setValorDaFalta] = useState("");
   const [erroDoValor, setErroDoValor] = useState<string | null>(null);
+  /** Doc 61: a janela do crédito na conversão GRAT→AVUL, e a resposta que segue para o valor. */
+  const [perguntaCredito, setPerguntaCredito] = useState<{ id: string; saldo: number } | null>(null);
+  const [usarCredito, setUsarCredito] = useState<boolean | null>(null);
 
   /**
    * Escape fecha qualquer uma destas janelas (achado do SuperQA de 22/10). A da falta era a pior:
@@ -556,6 +582,7 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
   const janelaAlcance = useJanela(!!perguntaAlcance, () => setPerguntaAlcance(null));
   const janelaFalta = useJanela(!!perguntaFaltou, () => setPerguntaFaltou(null));
   const janelaValor = useJanela(!!pedeValor, () => setPedeValor(null));
+  const janelaCredito = useJanela(!!perguntaCredito, () => setPerguntaCredito(null));
   const janelaDestino = useJanela(!!pedeDestino, () => setPedeDestino(null));
   const janelaExcluir = useJanela(!!perguntaExcluir, () => { setPerguntaExcluir(null); setQuantos(null); });
   const janelaQ = useJanela(!!perguntaQ, () => setPerguntaQ(null));
@@ -1189,6 +1216,22 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
             </div>
             {erroDoDestino && <p className="text-sm text-red-600 mt-2">{erroDoDestino}</p>}
             <button onClick={() => setPedeDestino(null)} className="w-full py-2 mt-1 text-sm text-foreground/40">Cancelar</button>
+          </div>
+        </div>
+      )}
+
+      {/* Doc 61: o cadastro tem crédito e a sessão está virando AVUL — usar agora ou guardar? */}
+      {perguntaCredito && (
+        <div className={FUNDO_DA_JANELA} onClick={() => setPerguntaCredito(null)}>
+          <div ref={janelaCredito} tabIndex={-1} role="dialog" aria-modal="true" aria-label="Crédito do cadastro" className={`${JANELA} max-w-sm outline-none`} onClick={(e) => e.stopPropagation()}>
+            <p className="text-lg font-display font-bold text-primary">{perguntaDaConversao(perguntaCredito.saldo)}</p>
+            <p className="text-sm text-foreground/60 mt-1">
+              Respondendo <b>Não</b>, o saldo fica guardado — a cada pagamento o sistema pergunta se ele deve ser abatido.
+            </p>
+            <div className="flex gap-2 mt-4">
+              <button disabled={pending} onClick={() => responderCredito(true)} className="flex-1 bg-primary text-white py-2.5 rounded-xl text-sm font-bold disabled:opacity-60">Sim</button>
+              <button disabled={pending} onClick={() => responderCredito(false)} className="flex-1 bg-surface text-foreground/70 py-2.5 rounded-xl text-sm font-bold hover:bg-surface-container disabled:opacity-60">Não</button>
+            </div>
           </div>
         </div>
       )}

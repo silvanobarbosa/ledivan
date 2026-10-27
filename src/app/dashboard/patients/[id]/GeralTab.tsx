@@ -12,6 +12,7 @@ import { parseMoedaBR } from "@/lib/money";
 import { mascaraMoeda } from "@/lib/mascaraMoeda";
 import { PARCELAS_CREDITO, metodoDoCredito, rotuloDaParcela } from "@/lib/parcelaCredito";
 import { aplicarCreditoNoLancamento } from "@/lib/credito";
+import { creditoParaAbater, perguntaDoLancamento } from "@/lib/creditoAConfirmar";
 import { desfazerVencimento, editarVencimento, lancarPagamento, limparEnviosDaCobranca, registrarCobrancaEnviada, removerPagamento } from "./geral-actions";
 import { marcarEmissao } from "./recibo-actions";
 import { doAno, dataDoAnoControle } from "@/lib/filtroDeAno";
@@ -436,7 +437,48 @@ function ColunasDoPagamento({ patientId, c, onLancar, cobrar, aviso }: { patient
   );
 }
 
-function FormularioDeLancamento({ patientId, c, responsavel, responsavelCpf, fechar, creditoDisponivel = 0 }: { patientId: string; c: CobrancaNaTela; responsavel: string; responsavelCpf: string; fechar: () => void; creditoDisponivel?: number }) {
+/**
+ * A PERGUNTA DO ABATIMENTO, ANTES DO FORMULÁRIO (doc 61).
+ *
+ * "Ao clicar em Lançar pagamento, o sistema deverá abrir uma janela: Deseja abater o crédito de
+ * R$ XX,XX deste pagamento?" Ela só aparece sobre o crédito que ficou marcado numa conversão
+ * GRAT→AVUL recusada; o resto do saldo continua abatendo sozinho, como o doc 36 definiu, e o
+ * documento é explícito em não estender esta confirmação a outras situações.
+ *
+ * A pergunta mora FORA do formulário de propósito: é a resposta que decide quanto crédito abate, e
+ * o campo "Valor recebido" nasce pré-preenchido com o dinheiro que falta DEPOIS do abatimento.
+ * Dentro, o formulário teria de nascer com um número e trocá-lo depois — e número que muda sozinho
+ * num campo de dinheiro é o começo de um lançamento errado.
+ *
+ * Respondido "Não", nada se grava: a pergunta volta no próximo lançamento, com o saldo atualizado,
+ * até o crédito acabar.
+ */
+function Lancamento({ patientId, c, responsavel, responsavelCpf, fechar, creditoDisponivel: saldoTotal = 0, creditoAConfirmar = 0 }: { patientId: string; c: CobrancaNaTela; responsavel: string; responsavelCpf: string; fechar: () => void; creditoDisponivel?: number; creditoAConfirmar?: number }) {
+  const [usarCredito, setUsarCredito] = useState<boolean | null>(creditoAConfirmar > 0.005 ? null : false);
+  if (usarCredito === null) {
+    return (
+      <tr>
+        <td colSpan={5} className="px-3 pb-3">
+          <div className="rounded-xl bg-surface/70 border border-border p-3 flex flex-wrap items-center gap-3" data-testid="perguntar-credito">
+            <span className="text-sm font-semibold text-foreground/80">{perguntaDoLancamento(creditoAConfirmar)}</span>
+            <button type="button" onClick={() => setUsarCredito(true)}
+              className="bg-primary text-white px-4 py-1.5 rounded-lg font-bold text-sm">Sim</button>
+            <button type="button" onClick={() => setUsarCredito(false)}
+              className="bg-white border border-border text-foreground/70 px-4 py-1.5 rounded-lg font-bold text-sm">Não</button>
+            <button type="button" onClick={fechar} className="text-[11px] text-foreground/40 ml-auto">Cancelar</button>
+          </div>
+        </td>
+      </tr>
+    );
+  }
+  return (
+    <FormularioDeLancamento patientId={patientId} c={c} responsavel={responsavel} responsavelCpf={responsavelCpf}
+      fechar={fechar} usarCredito={usarCredito} saldoTotal={saldoTotal}
+      creditoDisponivel={creditoParaAbater({ disponivel: saldoTotal, aConfirmar: creditoAConfirmar, usar: usarCredito })} />
+  );
+}
+
+function FormularioDeLancamento({ patientId, c, responsavel, responsavelCpf, fechar, creditoDisponivel = 0, saldoTotal = 0, usarCredito = false }: { patientId: string; c: CobrancaNaTela; responsavel: string; responsavelCpf: string; fechar: () => void; creditoDisponivel?: number; saldoTotal?: number; usarCredito?: boolean }) {
   const router = useRouter();
   const [pending, start] = useTransition();
   const [erro, setErro] = useState<string | null>(null);
@@ -490,6 +532,13 @@ function FormularioDeLancamento({ patientId, c, responsavel, responsavelCpf, fec
   const aMenos = !fecha && diferenca > 0.005;
   const sobraCash = Math.round((valorNum - faltaDaCobranca) * 100) / 100;
   const aMais = sobraCash > 0.005;
+  /**
+   * O CRÉDITO COBRE TUDO: não há dinheiro a receber, e o botão confirma assim mesmo (doc 61).
+   *
+   * Antes o campo era obrigatório e nascia vazio justamente neste caso — a cobrança quitada pelo
+   * saldo não tinha como ser lançada, e o crédito que ela pediu para usar ficava preso.
+   */
+  const soCredito = valorNum <= 0.005 && creditoAplicado > 0.005 && !aguardandoValor;
 
   function enviar(fd: FormData) {
     setErro(null);
@@ -501,9 +550,12 @@ function FormularioDeLancamento({ patientId, c, responsavel, responsavelCpf, fec
         pagoPor: String(fd.get("pagoPor") ?? ""),
         pagoPorCpf: String(fd.get("pagoPorCpf") ?? ""),
         metodo: String(fd.get("metodo") ?? ""),
-        valor: String(fd.get("valor") ?? ""),
+        // Só crédito: o campo fica vazio, e vazio significaria "o que falta" no servidor — que é
+        // justamente o valor que o crédito acabou de cobrir. O zero precisa ser dito (doc 61).
+        valor: soCredito ? "0" : String(fd.get("valor") ?? ""),
         quitarDiferenca: aMenos && quitar,
         creditarExcedente: aMais && creditarSobra,
+        usarCredito,
       });
       if (r.ok) { fechar(); router.refresh(); }
       else setErro(r.error ?? "Não foi possível lançar.");
@@ -531,7 +583,7 @@ function FormularioDeLancamento({ patientId, c, responsavel, responsavelCpf, fec
             {/* A regra da máscara mora em `mascaraMoeda`, uma só para o app inteiro — ela estava
                 copiada aqui, no MoneyInput e na janela da falta. Três cópias é o caminho para elas
                 divergirem num detalhe de centavo sem ninguém perceber. */}
-            <input id="valor-pg" name="valor" inputMode="numeric" required value={valor}
+            <input id="valor-pg" name="valor" inputMode="numeric" required={!soCredito} value={valor}
               onChange={(e) => setValor(mascaraMoeda(e.target.value))}
               className="w-[130px] px-3 py-2 rounded-lg bg-white border border-border text-sm tabular-nums" />
           </div>
@@ -576,14 +628,18 @@ function FormularioDeLancamento({ patientId, c, responsavel, responsavelCpf, fec
           )}
           <input type="hidden" name="metodo" value={formaBase === "credito" ? metodoDoCredito(parcelas) : formaBase} />
           <button disabled={pending} className="bg-primary text-white px-4 py-2 rounded-lg font-bold text-sm disabled:opacity-60">
-            {pending ? "Salvando…" : `Confirmar ${formatBRL(valorNum)}`}
+            {pending ? "Salvando…" : soCredito ? `Confirmar com o crédito (${formatBRL(creditoAplicado)})` : `Confirmar ${formatBRL(valorNum)}`}
           </button>
 
           {/* Doc 36: crédito do saldo disponível — abatido automaticamente nesta cobrança. */}
-          {creditoDisponivel > 0.005 && (
+          {/* Doc 61: o saldo mostrado é o INTEIRO, mesmo quando a resposta foi "Não". Mostrar só o
+              que abate aqui faria o crédito recusado sumir da tela — e ele continua do paciente. */}
+          {Math.max(saldoTotal, creditoDisponivel) > 0.005 && (
             <p className="sm:col-span-7 text-[11px] text-[#047857]">
-              Crédito no saldo: <b>{formatBRL(creditoDisponivel)}</b>
-              {creditoAplicado > 0.005 ? <> — <b>{formatBRL(creditoAplicado)}</b> será aplicado nesta cobrança.</> : " (não necessário aqui)."}
+              Crédito no saldo: <b>{formatBRL(Math.max(saldoTotal, creditoDisponivel))}</b>
+              {creditoAplicado > 0.005
+                ? <> — <b>{formatBRL(creditoAplicado)}</b> será aplicado nesta cobrança.</>
+                : usarCredito ? " (não necessário aqui)." : " — não será abatido neste pagamento."}
             </p>
           )}
 
@@ -626,7 +682,7 @@ function FormularioDeLancamento({ patientId, c, responsavel, responsavelCpf, fec
   );
 }
 
-export function GeralTab({ patientId, linhas, responsavel, responsavelCpf, cobrar, ano, creditoDisponivel = 0 }: { patientId: string; linhas: LinhaNaTela[]; responsavel: string; responsavelCpf?: string | null; cobrar?: CobrarInfo; ano: number | "TODOS"; creditoDisponivel?: number }) {
+export function GeralTab({ patientId, linhas, responsavel, responsavelCpf, cobrar, ano, creditoDisponivel = 0, creditoAConfirmar = 0 }: { patientId: string; linhas: LinhaNaTela[]; responsavel: string; responsavelCpf?: string | null; cobrar?: CobrarInfo; ano: number | "TODOS"; creditoDisponivel?: number; creditoAConfirmar?: number }) {
   const [aberta, setAberta] = useState<string | null>(null);
 
   // O filtro de ano é o MESMO da tabela de pagamentos (documento de 17/09): uma escolha só, e as
@@ -694,7 +750,7 @@ export function GeralTab({ patientId, linhas, responsavel, responsavelCpf, cobra
                       </td>
                       <ColunasDoPagamento patientId={patientId} c={l} onLancar={() => setAberta(l.chave)} cobrar={cobrar} />
                     </tr>
-                    {aberta === l.chave && <FormularioDeLancamento patientId={patientId} c={l} responsavel={responsavel} responsavelCpf={responsavelCpf ?? ""} fechar={() => setAberta(null)} creditoDisponivel={creditoDisponivel} />}
+                    {aberta === l.chave && <Lancamento patientId={patientId} c={l} responsavel={responsavel} responsavelCpf={responsavelCpf ?? ""} fechar={() => setAberta(null)} creditoDisponivel={creditoDisponivel} creditoAConfirmar={creditoAConfirmar} />}
                   </Fragment>
                 );
               }
@@ -745,7 +801,7 @@ export function GeralTab({ patientId, linhas, responsavel, responsavelCpf, cobra
                       <td />
                     )}
                   </tr>
-                  {c && aberta === c.chave && <FormularioDeLancamento patientId={patientId} c={c} responsavel={responsavel} responsavelCpf={responsavelCpf ?? ""} fechar={() => setAberta(null)} creditoDisponivel={creditoDisponivel} />}
+                  {c && aberta === c.chave && <Lancamento patientId={patientId} c={c} responsavel={responsavel} responsavelCpf={responsavelCpf ?? ""} fechar={() => setAberta(null)} creditoDisponivel={creditoDisponivel} creditoAConfirmar={creditoAConfirmar} />}
                 </Fragment>
               );
             })}

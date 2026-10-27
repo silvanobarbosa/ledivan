@@ -807,6 +807,19 @@ export const patientCredits = pgTable("patient_credits", {
   // em outra sessão seria impossível: ele voltaria na mesma hora. Posta só quando a pessoa REMOVE
   // uma aplicação automática; o crédito continua disponível, mas só entra onde ela mandar.
   naoAuto: boolean("nao_auto").default(false).notNull(),
+  /**
+   * Doc 61: este crédito só entra num pagamento se a terapeuta DISSER que sim, a cada lançamento.
+   *
+   * Nasce quando ela converte uma sessão GRAT em AVUL tendo saldo e responde "Não" à pergunta
+   * "deseja utilizá-lo agora?". O saldo continua inteiro e disponível — o que muda é que ele parou
+   * de andar sozinho: a pergunta volta em cada "Lançar pagamento" até o crédito acabar.
+   *
+   * É uma marca separada de `naoAuto` de propósito. `naoAuto` só diz "não vá sozinho", e quem o
+   * posta é a REMOÇÃO de uma aplicação (doc 59) — um caso que não pede pergunta nenhuma. O
+   * documento é explícito em não estender a confirmação "a outras situações de utilização de
+   * crédito que já possuam regras próprias", e reusar a mesma marca faria exatamente isso.
+   */
+  confirmarAbatimento: boolean("confirmar_abatimento").default(false).notNull(),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (t) => [
   index("patient_credits_patient_idx").on(t.patientId),

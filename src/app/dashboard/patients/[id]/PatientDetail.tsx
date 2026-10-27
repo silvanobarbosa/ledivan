@@ -87,7 +87,7 @@ const inputCls = "w-full px-4 py-2.5 rounded-xl bg-white/70 border border-border
 const TABS = ["Geral", "Registros", "Anamnese", "Atividades", "Documentos"] as const;
 
 export function PatientDetail({
-  patient, pagador, payments, statusHistory, records, transcriptionEnabled, risk: _risk, assignments, moodToken, moodLogs, scales, diaryEntries = [], ratings = [], consents = [], contractHistory: _contractHistory = [], finance, sessionStats, recurring, statusEnabled = false, dailyStatus = [], sharedWritings = [], geral = [], cobrancaMessage = null, anamnese = [], activities = [], documentos = [], docCabecalho, creditoDisponivel = 0, vigenciasTaxa = [], estornos = [],
+  patient, pagador, payments, statusHistory, records, transcriptionEnabled, risk: _risk, assignments, moodToken, moodLogs, scales, diaryEntries = [], ratings = [], consents = [], contractHistory: _contractHistory = [], finance, sessionStats, recurring, statusEnabled = false, dailyStatus = [], sharedWritings = [], geral = [], cobrancaMessage = null, anamnese = [], activities = [], documentos = [], docCabecalho, creditoDisponivel = 0, creditoAConfirmar = 0, vigenciasTaxa = [], estornos = [],
 }: {
   patient: Patient; pagador: Pagador; sessions: Session[]; payments: Payment[];
   statusHistory: StatusEntry[]; priceHistory: PriceEntry[]; records: RecordEntry[];
@@ -96,6 +96,8 @@ export function PatientDetail({
   documentos?: DocumentoSalvo[];
   docCabecalho?: CabecalhoDoc;
   creditoDisponivel?: number;
+  /** Doc 61: a parte do saldo que só abate com um "Sim" explícito em cada lançamento. */
+  creditoAConfirmar?: number;
   contractHistory?: ContractEntry[];
   finance: Finance;
   ledger?: LedgerEntry[];
@@ -410,7 +412,7 @@ export function PatientDetail({
             <p className="text-sm text-foreground/60">Ano: {ano === "TODOS" ? "Todos" : ano}</p>
           </div>
           <GeralTab patientId={patient.id} linhas={geral} ano={ano} responsavel={pagador.nome}
-            responsavelCpf={pagador.cpf} creditoDisponivel={creditoDisponivel}
+            responsavelCpf={pagador.cpf} creditoDisponivel={creditoDisponivel} creditoAConfirmar={creditoAConfirmar}
             cobrar={{ telefone: patient.guardianPhone || patient.phone, nome: patient.guardianName || patient.name, modelo: cobrancaMessage }} />
           {/* GER6: valores recebidos por mês, no MESMO ano escolhido acima (líquido — doc 50) */}
           <TabelaAnual payments={payments} ano={ano} vigencias={vigenciasTaxa} estornos={estornos} />
