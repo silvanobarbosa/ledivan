@@ -6,12 +6,14 @@ import { db } from "@/db";
 import { auth } from "@/auth";
 import { cobrancaEnvios, cobrancaVencimentos, financialAccounts, patientCredits, patients, sessionPayments, therapySessions, transactions } from "@/db/schema";
 import { ensureSessionCategory } from "@/lib/categoriaSessoes";
-import { creditoDisponivel, geralDoPaciente, hojeDeParede } from "@/lib/geralDoPaciente";
+import { creditoAConfirmar, creditoDisponivel, geralDoPaciente, hojeDeParede } from "@/lib/geralDoPaciente";
 import { diaDoFormulario } from "@/lib/trocaDeFormato";
 import { apenasCpf } from "@/lib/recibo";
 import { parseMoedaBR } from "@/lib/money";
 import { aplicarCreditoNoLancamento } from "@/lib/credito";
+import { creditoParaAbater } from "@/lib/creditoAConfirmar";
 import { aplicarCreditosPendentes } from "@/lib/aplicarCreditos";
+import { apagarPagamentosLigados } from "@/lib/pagamentosLigados";
 
 /**
  * A SESSÃO DE ORIGEM DO CRÉDITO passa a dizer onde ele foi parar (doc 58).
@@ -63,6 +65,13 @@ export async function lancarPagamento(entrada: {
   quitarDiferenca?: boolean;
   /** Doc 36: o usuário pediu para guardar a sobra (pagou a mais) como crédito no saldo? */
   creditarExcedente?: boolean;
+  /**
+   * Doc 61: a resposta de "Deseja abater o crédito de R$ XX,XX deste pagamento?".
+   *
+   * Só tem efeito sobre o crédito MARCADO na conversão GRAT→AVUL; o resto do saldo abate como
+   * sempre abateu. Ausente, nada muda — é o caminho de todo lançamento que não vem desse cenário.
+   */
+  usarCredito?: boolean;
 }): Promise<{ ok: boolean; error?: string }> {
   const session = await auth();
   if (!session?.user?.id) return { ok: false, error: "Sessão inválida." };
@@ -106,7 +115,7 @@ export async function lancarPagamento(entrada: {
   // compat com quem só confirma). Tem de ser um número positivo — zerar ou negativar não lança nada.
   const valorInformado = parseMoedaBR(entrada?.valor);
   const valorNum = valorInformado != null ? Number(valorInformado) : cobranca.falta;
-  if (!(valorNum > 0)) return { ok: false, error: "Informe um valor maior que zero." };
+  if (!(valorNum >= 0)) return { ok: false, error: "Informe um valor maior que zero." };
   const amount = valorNum.toFixed(2);
 
   /**
@@ -128,21 +137,41 @@ export async function lancarPagamento(entrada: {
 
   // Doc 36: crédito do saldo. O disponível abate automaticamente o que o dinheiro não cobrir; a
   // sobra de dinheiro vira crédito novo SE o usuário pediu. Regra pura em `aplicarCreditoNoLancamento`.
-  const disponivel = await creditoDisponivel(userId, patientId);
+  // Doc 61: a parte do saldo que espera confirmação só entra com o "Sim" explícito deste
+  // lançamento. A conta é a mesma que a tela usa na prévia (`creditoParaAbater`).
+  const usarCredito = entrada?.usarCredito === true;
+  const aConfirmar = await creditoAConfirmar(userId, patientId);
+  const disponivel = creditoParaAbater({
+    disponivel: await creditoDisponivel(userId, patientId), aConfirmar, usar: usarCredito,
+  });
   const { creditoAplicado, creditoNovo } = aplicarCreditoNoLancamento({
     falta: faltaDaCobranca, cashRecebido: valorNum, creditoDisponivel: disponivel,
     creditarExcedente: entrada?.creditarExcedente === true,
   });
+
+  /**
+   * O LANÇAMENTO QUE É SÓ CRÉDITO (doc 61).
+   *
+   * Quando o saldo cobre a cobrança inteira, não há dinheiro nenhum a receber — e exigir um valor
+   * maior que zero deixava a terapeuta sem saída: o crédito marcado não anda sozinho (foi ela que
+   * pediu), e a única porta para usá-lo é esta. Sem dinheiro não há entrada no caixa nem pagamento
+   * em dinheiro: o que entra é o abatimento, e só ele.
+   */
+  const soCredito = valorNum <= 0.005;
+  if (soCredito && (creditoAplicado <= 0.005 || aguardandoValor)) {
+    return { ok: false, error: "Informe um valor maior que zero." };
+  }
 
   // Quitar a diferença só faz sentido quando AINDA falta depois do dinheiro + crédito aplicado.
   const quita = entrada?.quitarDiferenca === true && valorNum + creditoAplicado < faltaDaCobranca - 0.005;
   // Meio-dia: a coluna é hora de parede, e meio-dia não troca de dia em fuso nenhum do caminho.
   const date = new Date(`${entrada.data}T12:00:00`);
 
-  // Todo pagamento PAGO entra no caixa — mesma regra do "Registrar pagamento".
-  const categoryId = await ensureSessionCategory(userId);
-  const account = await db.query.financialAccounts.findFirst({ where: eq(financialAccounts.userId, userId) });
-  const [tx] = await db.insert(transactions).values({
+  // Todo pagamento PAGO entra no caixa — mesma regra do "Registrar pagamento". Sem dinheiro
+  // recebido (lançamento só de crédito) não há o que entrar: nem transação, nem pagamento.
+  const categoryId = soCredito ? null : await ensureSessionCategory(userId);
+  const account = soCredito ? null : await db.query.financialAccounts.findFirst({ where: eq(financialAccounts.userId, userId) });
+  const [tx] = soCredito ? [null] : await db.insert(transactions).values({
     userId,
     accountId: account?.id ?? null,
     amount,
@@ -154,7 +183,7 @@ export async function lancarPagamento(entrada: {
     method: metodo, // doc 49: forma (débito/crédito) vai para o caixa calcular o líquido
   }).returning();
 
-  const [pgCash] = await db.insert(sessionPayments).values({
+  const [pgCash] = soCredito ? [null] : await db.insert(sessionPayments).values({
     userId,
     patientId,
     // Cobrança de UMA sessão: preenche o vínculo que a agenda usa para tirar o "pagamento atrasado".
@@ -167,7 +196,7 @@ export async function lancarPagamento(entrada: {
     pagoPor,
     cobrancaChave: chave,
     quitaDiferenca: quita,
-    linkedTransactionId: tx.id,
+    linkedTransactionId: tx?.id ?? null,
   }).returning();
 
   // CRÉDITO APLICADO: entra como um pagamento `kind="credito"` SEM transação (o dinheiro já entrou
@@ -195,9 +224,12 @@ export async function lancarPagamento(entrada: {
       : [];
 
     let restante = creditoAplicado;
-    const abertos = await db.select().from(patientCredits)
+    const abertos = (await db.select().from(patientCredits)
       .where(and(eq(patientCredits.userId, userId), eq(patientCredits.patientId, patientId), isNull(patientCredits.consumidoEm)))
-      .orderBy(asc(patientCredits.createdAt));
+      .orderBy(asc(patientCredits.createdAt)))
+      // Sem o "Sim" deste lançamento, as linhas marcadas não são consumidas — senão o valor que a
+      // conta excluiu sairia do saldo mesmo assim, e o crédito evaporaria sem ter abatido nada.
+      .filter((c) => usarCredito || !c.confirmarAbatimento);
     for (const c of abertos) {
       if (restante <= 0.005) break;
       const v = Number(c.valor) || 0;
@@ -209,14 +241,20 @@ export async function lancarPagamento(entrada: {
         // Consome só uma PARTE desta linha: marca o pedaço consumido e devolve o resto ao saldo.
         await db.update(patientCredits).set({ valor: restante.toFixed(2), consumidoEm: date, consumidoPagamentoId: pgCredito.id }).where(eq(patientCredits.id, c.id));
         await marcarCreditoUsado(userId, c.origemPagamentoId, sessaoPaga?.date ?? date);
-        await db.insert(patientCredits).values({ userId, patientId, valor: (Math.round((v - restante) * 100) / 100).toFixed(2), origemPagamentoId: c.origemPagamentoId });
+        // O RESTO HERDA AS MARCAS da linha que se partiu: um crédito usado pela metade continua
+        // sendo o mesmo crédito. É o que faz a pergunta voltar com o saldo atualizado, em vez de
+        // a diferença virar saldo livre e abater sozinha no lançamento seguinte (doc 61).
+        await db.insert(patientCredits).values({
+          userId, patientId, valor: (Math.round((v - restante) * 100) / 100).toFixed(2),
+          origemPagamentoId: c.origemPagamentoId, naoAuto: c.naoAuto, confirmarAbatimento: c.confirmarAbatimento,
+        });
         restante = 0;
       }
     }
   }
 
   // CRÉDITO NOVO: a sobra de dinheiro que o usuário pediu para guardar.
-  if (creditoNovo > 0.005) {
+  if (creditoNovo > 0.005 && pgCash) {
     await db.insert(patientCredits).values({ userId, patientId, valor: creditoNovo.toFixed(2), origemPagamentoId: pgCash.id });
   }
 
@@ -304,8 +342,34 @@ export async function removerPagamento(
       .set({ estornoValor: null, estornoEm: null, creditoValor: null, transferidoPara: null, creditoUsadoEm: null })
       .where(and(eq(therapySessions.id, id), eq(therapySessions.userId, userId)));
   }
+  /**
+   * "TODO PAGAMENTO LIGADO A ELE DEVE SER EXCLUÍDO" (doc 61).
+   *
+   * Uma cobrança pode ter sido fechada por DOIS lançamentos: o dinheiro e o crédito do saldo que
+   * completou o que faltava. Removido o dinheiro, o lançamento de crédito sozinho deixava a
+   * cobrança meio paga por um abatimento que já não completa nada — e o saldo preso lá dentro.
+   * Ele sai junto, e o crédito volta a ficar disponível (com `naoAuto`, pela mesma razão de cima).
+   *
+   * Só nesta direção. Remover a APLICAÇÃO DE CRÉDITO não toca no dinheiro: aquele o paciente pagou
+   * de verdade, e a terapeuta pode estar só movendo o crédito de lugar (doc 59).
+   */
+  let saiuAplicacaoDeCredito = pagamento.kind === "credito";
+  if (pagamento.kind !== "credito" && pagamento.chave) {
+    const ligados = await db.select({ id: sessionPayments.id }).from(sessionPayments)
+      .where(and(
+        eq(sessionPayments.userId, userId),
+        eq(sessionPayments.patientId, patientId),
+        eq(sessionPayments.cobrancaChave, pagamento.chave),
+        eq(sessionPayments.kind, "credito"),
+      ));
+    if (ligados.length) {
+      await apagarPagamentosLigados(userId, ligados.map((l) => l.id));
+      saiuAplicacaoDeCredito = true;
+    }
+  }
+
   // Removeu uma APLICAÇÃO de crédito: a sessão de origem volta a dizer que o crédito espera.
-  if (pagamento.kind === "credito") {
+  if (saiuAplicacaoDeCredito) {
     const origens = await db.select({ origemPagamentoId: patientCredits.origemPagamentoId }).from(patientCredits)
       .where(and(eq(patientCredits.userId, userId), eq(patientCredits.patientId, patientId), eq(patientCredits.naoAuto, true)));
     for (const o of origens) await marcarCreditoUsado(userId, o.origemPagamentoId, null);

@@ -218,3 +218,21 @@ export async function creditoDisponivel(userId: string, patientId: string): Prom
     .where(and(eq(patientCredits.userId, userId), eq(patientCredits.patientId, patientId), isNull(patientCredits.consumidoEm)));
   return Math.round(rows.reduce((s, r) => s + (Number(r.valor) || 0), 0) * 100) / 100;
 }
+
+/**
+ * A PARTE DO SALDO QUE ESPERA UM "SIM" (doc 61).
+ *
+ * Subconjunto do disponível acima, nunca um segundo saldo: é o mesmo dinheiro, marcado na conversão
+ * GRAT→AVUL em que a terapeuta respondeu que não queria usá-lo naquele momento. Enquanto sobrar
+ * algum, cada "Lançar pagamento" volta a perguntar.
+ */
+export async function creditoAConfirmar(userId: string, patientId: string): Promise<number> {
+  const rows = await db.select({ valor: patientCredits.valor }).from(patientCredits)
+    .where(and(
+      eq(patientCredits.userId, userId),
+      eq(patientCredits.patientId, patientId),
+      isNull(patientCredits.consumidoEm),
+      eq(patientCredits.confirmarAbatimento, true),
+    ));
+  return Math.round(rows.reduce((s, r) => s + (Number(r.valor) || 0), 0) * 100) / 100;
+}
