@@ -5,9 +5,7 @@ import { revalidatePath } from "next/cache";
 import { db } from "@/db";
 import { apagarSessoesComPagamentos } from "@/lib/pagamentosLigados";
 import { auth } from "@/auth";
-import { therapySessions, sessoesPuladas, blockedSlots, sessionPayments, patients, patientPaymentFormatHistory } from "@/db/schema";
-import { formatoNaData } from "@/lib/vigenciaDoFormato";
-import { extraParaGravar } from "@/lib/sessaoExtra";
+import { therapySessions, sessoesPuladas, blockedSlots, sessionPayments, patients } from "@/db/schema";
 import { podeSerCortesia } from "@/lib/cortesia";
 import {
   deslocamento,
@@ -59,10 +57,6 @@ export async function salvarEdicao(opts: {
   location?: string;
   confirmChannel?: string;
   confirmLeadHours?: string;
-  /** Doc 52: a sessão entra ou não na sequência do pacote. "sim" | "nao" | undefined (não mexer). */
-  naSequencia?: string;
-  cobrada?: string;
-  valorExtra?: string;
   /** Doc 54: "Este atendimento será uma cortesia". Vale só para ESTA sessão, nunca para o bloco. */
   cortesia?: boolean;
 }): Promise<Resultado> {
@@ -121,32 +115,12 @@ export async function salvarEdicao(opts: {
   }
 
   /**
-   * Doc 52: a sequência do pacote também pode ser decidida ao EDITAR, não só ao criar.
+   * Doc 65: a janela "Alterar quais?" não decide mais se a sessão entra na SEQUÊNCIA DO PACOTE.
    *
-   * Só vale para ESTA sessão, mesmo quando o alcance pega as próximas: "entra ou não na
-   * sequência" é uma propriedade do agendamento avulso que foi encaixado, não do bloco. Aplicar
-   * ao bloco inteiro transformaria uma correção pontual numa mudança financeira em série.
-   *
-   * O formato é o VIGENTE NA DATA da sessão, como no resto da agenda.
+   * A pergunta existia aqui desde o doc 52 e saiu a pedido do dono: ela é uma decisão de dinheiro
+   * (a sessão vira AVUL/GRAT fora do pacote) numa janela que trata de data e horário, e pegava
+   * carona em toda troca de horário. Quem decide isso é o agendamento, ao criar a sessão.
    */
-  let extraDaSessao: { extra: "avul" | "grat" | null; valorExtra: string | null } | null = null;
-  if (opts.naSequencia !== undefined) {
-    const vigencias = await db
-      .select({ formato: patientPaymentFormatHistory.formato, pacoteTipo: patientPaymentFormatHistory.pacoteTipo,
-                desde: patientPaymentFormatHistory.dataEfetiva, criadoEm: patientPaymentFormatHistory.dataCriacao })
-      .from(patientPaymentFormatHistory)
-      .where(eq(patientPaymentFormatHistory.patientId, atual.patientId));
-    const paciente = await db.query.patients.findFirst({ where: eq(patients.id, atual.patientId) });
-    const formato = formatoNaData(vigencias, novaData ?? atual.date, {
-      formato: paciente?.paymentFormat ?? "sessao", pacoteTipo: paciente?.pacoteTipo ?? null,
-    }).formato;
-    const r = extraParaGravar({
-      formato, sessionKind: atual.sessionKind ?? undefined,
-      naSequencia: opts.naSequencia, cobrada: opts.cobrada ?? null, valor: opts.valorExtra ?? null,
-    });
-    if (!r.ok) return { ok: false, error: r.error };
-    extraDaSessao = { extra: r.extra, valorExtra: r.valorExtra };
-  }
 
   /**
    * Doc 54: a CORTESIA é só da sessão editada, e é CONFERIDA ANTES DE QUALQUER ESCRITA.
@@ -155,29 +129,19 @@ export async function salvarEdicao(opts: {
    * não sobre o combinado do paciente. Aplicá-la ao bloco dispensaria o pagamento de meses
    * inteiros com um clique, e o alcance "este e os próximos" existe para mudar horário, não preço.
    *
-   * O gate do formato é o mesmo da tela (`podeSerCortesia`), refeito aqui com o formato VIGENTE NA
-   * DATA: tela é conveniência, servidor é fronteira. Ele fica aqui em cima, junto das outras
-   * recusas, porque recusar DEPOIS de gravar deixava data, horário e modalidade já alterados no
-   * banco enquanto a tela dizia que nada foi salvo (achado do SuperQA de 22/10) — é a regra que
-   * este arquivo já declara: conferir tudo antes de escrever qualquer coisa.
+   * O gate é o mesmo da tela (`podeSerCortesia`): tela é conveniência, servidor é fronteira. Ele
+   * fica aqui em cima, junto das outras recusas, porque recusar DEPOIS de gravar deixava data,
+   * horário e modalidade já alterados no banco enquanto a tela dizia que nada foi salvo (achado do
+   * SuperQA de 22/10) — é a regra que este arquivo já declara: conferir tudo antes de escrever
+   * qualquer coisa. Doc 65: o gate passou a ser só a devolutiva, e por isso não precisa mais do
+   * formato vigente na data.
    */
   let cortesiaAGravar: boolean | null = null;
   if (opts.cortesia !== undefined) {
-    const vigenciasC = await db
-      .select({ formato: patientPaymentFormatHistory.formato, pacoteTipo: patientPaymentFormatHistory.pacoteTipo,
-                desde: patientPaymentFormatHistory.dataEfetiva, criadoEm: patientPaymentFormatHistory.dataCriacao })
-      .from(patientPaymentFormatHistory)
-      .where(eq(patientPaymentFormatHistory.patientId, atual.patientId));
-    const pacienteC = await db.query.patients.findFirst({
-      where: and(eq(patients.id, atual.patientId), eq(patients.userId, userId)),
-    });
-    const periodo = formatoNaData(vigenciasC, novaData ?? atual.date, {
-      formato: pacienteC?.paymentFormat ?? "sessao", pacoteTipo: pacienteC?.pacoteTipo ?? null,
-    });
     // Desmarcar a cortesia é sempre permitido — senão uma troca de formato deixaria a sessão presa
     // em GRAT, sem nenhuma tela capaz de tirá-la de lá.
-    if (opts.cortesia && !podeSerCortesia({ formato: periodo.formato, pacoteTipo: periodo.pacoteTipo, sessionKind: atual.sessionKind, extra: atual.extra })) {
-      return { ok: false, error: "Cortesia só vale em sessão do pacote completo mensal ou quinzenal." };
+    if (opts.cortesia && !podeSerCortesia({ sessionKind: atual.sessionKind })) {
+      return { ok: false, error: "A devolutiva tem a escolha dela: cobrar ou abater do pacote." };
     }
     cortesiaAGravar = opts.cortesia;
   }
@@ -196,13 +160,6 @@ export async function salvarEdicao(opts: {
   if (cortesiaAGravar !== null) {
     await db.update(therapySessions)
       .set({ cortesia: cortesiaAGravar })
-      .where(and(eq(therapySessions.id, atual.id), eq(therapySessions.userId, userId)));
-  }
-
-  // A sequência é da sessão editada, nunca do bloco — ver o comentário acima.
-  if (extraDaSessao) {
-    await db.update(therapySessions)
-      .set({ extra: extraDaSessao.extra, valorExtra: extraDaSessao.valorExtra })
       .where(and(eq(therapySessions.id, atual.id), eq(therapySessions.userId, userId)));
   }
 

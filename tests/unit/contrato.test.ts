@@ -94,7 +94,7 @@ describe("montarContrato", () => {
   it("5.3/5.4 falam em PROFISSIONAL, não ANALISTA", () => {
     const t = c(base);
     expect(t).toContain("por parte do PROFISSIONAL");
-    expect(t).toContain("5.4. Faltas do Profissional: Caso o PROFISSIONAL precise desmarcar");
+    expect(t).toContain("5.4. Faltas do Profissional: Caso o PROFISSIONAL precise cancelar");
     expect(t).not.toContain("por parte da ANALISTA");
   });
 
@@ -105,9 +105,11 @@ describe("montarContrato", () => {
     expect(t).toContain("CPF: 987.654.321-00");
     expect(t).not.toContain("Nome do Responsável 2");
   });
-  it("maior de 18 SEM responsável: o próprio paciente é o Responsável; R2 não aparece", () => {
+  it("maior de 18 SEM responsável: o próprio paciente contrata, sob o rótulo Nome; R2 não aparece", () => {
     const t = c({ ...base, pacienteNascimento: new Date(1990, 0, 1), responsavelNome: null, responsavelCpf: null });
-    expect(t).toContain("Nome do Responsável: João Silva");
+    // Doc 65: sem responsável, quem contrata é o paciente — e chamá-lo de "responsável por si
+    // mesmo" é a linha que fazia a dona desconfiar do documento.
+    expect(t).toContain("CONTRATANTE(S):\nNome: João Silva");
     expect(t).not.toContain("Nome do Responsável 2");
   });
   it("maior de 18 COM responsável: responsável no 1, paciente no 2", () => {

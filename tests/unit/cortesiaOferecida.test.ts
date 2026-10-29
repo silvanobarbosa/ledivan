@@ -1,30 +1,27 @@
 import { describe, expect, it } from "vitest";
 import { podeSerCortesia } from "@/lib/cortesia";
 
-describe("podeSerCortesia — onde a pergunta aparece (doc 54, item 03)", () => {
-  it("mensal e quinzenal com pacote completo", () => {
-    expect(podeSerCortesia({ formato: "mensal", pacoteTipo: "completo" })).toBe(true);
-    expect(podeSerCortesia({ formato: "quinzenal", pacoteTipo: "completo" })).toBe(true);
+/**
+ * Doc 65 (dono, 28/10/2026): a cortesia é oferecida em TODO agendamento.
+ *
+ * O recorte do doc 54 (só mensal/quinzenal em pacote completo) e o do SuperQA de 22/10 (fora das
+ * extras) foram substituídos pelo pedido do dono: a pergunta aparece nos três financeiros e
+ * também no gratuito. O que o SuperQA apontou continua valendo como exigência — a escolha tem de
+ * fazer efeito —, e é por isso que `cobrancas` passou a não cobrar a extra marcada como cortesia
+ * (ver cortesiaNoAvulsoEGratuito.test.ts).
+ */
+describe("podeSerCortesia — onde a pergunta aparece (doc 65)", () => {
+  it("o financeiro não entra mais na conta: a consulta comum sempre oferece", () => {
+    expect(podeSerCortesia({ sessionKind: "consulta" })).toBe(true);
+    expect(podeSerCortesia({ sessionKind: null })).toBe(true);
   });
 
-  it("pacote sem tipo informado é COMPLETO, como no motor de cobranças", () => {
-    expect(podeSerCortesia({ formato: "mensal", pacoteTipo: null })).toBe(true);
+  it("devolutiva fica de fora: ela já tem a própria escolha de cobrar ou abater do pacote", () => {
+    expect(podeSerCortesia({ sessionKind: "devolutiva" })).toBe(false);
   });
 
-  it("fracionado fica de fora — o mês é a unidade dele, não há sequência fechada", () => {
-    expect(podeSerCortesia({ formato: "mensal", pacoteTipo: "fragmentado" })).toBe(false);
-    expect(podeSerCortesia({ formato: "quinzenal", pacoteTipo: "fragmentado" })).toBe(false);
-  });
-
-  it("quem não fecha por pacote não tem vaga a abrir", () => {
-    for (const formato of ["sessao", "avulso", "gratuito", "primeira_pacote", "ultima_pacote", ""]) {
-      expect(podeSerCortesia({ formato, pacoteTipo: "completo" })).toBe(false);
-    }
-    expect(podeSerCortesia({ formato: null })).toBe(false);
-  });
-
-  it("devolutiva fica de fora: ela já tem a própria escolha de abater do pacote", () => {
-    expect(podeSerCortesia({ formato: "mensal", pacoteTipo: "completo", sessionKind: "devolutiva" })).toBe(false);
-    expect(podeSerCortesia({ formato: "mensal", pacoteTipo: "completo", sessionKind: "consulta" })).toBe(true);
+  it("sessão sem tipo informado é consulta comum, e oferece", () => {
+    expect(podeSerCortesia({})).toBe(true);
+    expect(podeSerCortesia({ sessionKind: undefined })).toBe(true);
   });
 });

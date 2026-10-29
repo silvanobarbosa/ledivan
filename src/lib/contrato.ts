@@ -80,6 +80,20 @@ II – Cancelamento ou solicitação de remarcação ${neg("fora do prazo mínim
   `
 Nessas situações, poderá ser cobrado o valor correspondente à sessão agendada. Não haverá cobrança quando o cancelamento ocorrer dentro do prazo estabelecido ou quando houver acordo entre as partes para a dispensa da cobrança.`;
 
+/**
+ * A cláusula 5.4 — FALTA DO PROFISSIONAL (doc 65, texto do dono).
+ *
+ * O texto anterior prometia reposição OBRIGATÓRIA em horário "mutuamente combinado" — uma
+ * obrigação que a terapeuta não tem como garantir quando não há horário em comum. O novo diz o que
+ * de fato acontece: oferece-se a reposição; não dando, a sessão não é cobrada, e se já foi paga o
+ * valor vira CRÉDITO para o próximo atendimento (que é o mecanismo que o app já tem).
+ *
+ * `quem` é a outra parte: o paciente no contrato de atendimento, o SUPERVISIONANDO no de
+ * supervisão — o mesmo ajuste que as cláusulas 5.2 e 6 já fazem nos dois modelos.
+ */
+const faltaDoProfissional = (quem: string) =>
+  `5.4. Faltas do Profissional: Caso o PROFISSIONAL precise cancelar uma sessão por motivo de força maior, deverá oferecer ao ${quem} a possibilidade de reposição do atendimento, em data e horário acordados entre ambas as partes. Caso a reposição não seja possível, a sessão não será cobrada ou, se já tiver sido paga, o valor correspondente será convertido em crédito para o próximo atendimento.`;
+
 /** Remove os marcadores de negrito — para comparar/afirmar sobre o texto puro. */
 export function textoLimpo(s: string): string {
   return s.split(AUTO_L).join("").split(AUTO_R).join("");
@@ -236,20 +250,24 @@ export function montarContrato(d: DadosDoContrato): string {
    */
   const idade = idadeNum(d.pacienteNascimento);
   const temResponsavel = !!(d.responsavelNome && d.responsavelNome.trim());
-  let r1Nome: string | null, r1Cpf: string | null, r1Email: string | null;
-  let r2Nome: string | null, r2Cpf: string | null, r2Email: string | null;
-  if (idade != null && idade >= 18) {
-    if (temResponsavel) {
-      r1Nome = d.responsavelNome; r1Cpf = d.responsavelCpf; r1Email = d.responsavelEmail ?? null;
-      r2Nome = d.pacienteNome; r2Cpf = d.pacienteCpf; r2Email = d.pacienteEmail ?? null;
-    } else {
-      r1Nome = d.pacienteNome; r1Cpf = d.pacienteCpf; r1Email = d.pacienteEmail ?? null;
-      r2Nome = null; r2Cpf = null; r2Email = null;
-    }
-  } else {
-    r1Nome = d.responsavelNome; r1Cpf = d.responsavelCpf; r1Email = d.responsavelEmail ?? null;
-    r2Nome = null; r2Cpf = null; r2Email = null;
-  }
+  /**
+   * Doc 65: SEM responsável no cadastro, quem contrata é o PRÓPRIO paciente — inclusive quando a
+   * data de nascimento não foi preenchida.
+   *
+   * Antes, idade desconhecida caía no mesmo caminho do menor de idade: o contrato ia buscar um
+   * responsável que não existe, e o bloco CONTRATANTE saía VAZIO, com a linha da assinatura em
+   * branco. Era o contrato "sem nome completo, CPF, endereço, telefone e e-mail" que a dona
+   * recebeu — os dados estavam preenchidos no cadastro, só não tinham para onde ir.
+   */
+  const contratanteEhOPaciente = !temResponsavel;
+  const r1Nome = contratanteEhOPaciente ? d.pacienteNome : d.responsavelNome;
+  const r1Cpf = contratanteEhOPaciente ? d.pacienteCpf : d.responsavelCpf;
+  const r1Email = (contratanteEhOPaciente ? d.pacienteEmail : d.responsavelEmail) ?? null;
+  // O paciente MAIOR DE IDADE que tem responsável cadastrado assina também, como Contratante 2.
+  const assinaTambem = temResponsavel && idade != null && idade >= 18;
+  const r2Nome = assinaTambem ? d.pacienteNome : null;
+  const r2Cpf = assinaTambem ? d.pacienteCpf : null;
+  const r2Email = assinaTambem ? d.pacienteEmail ?? null : null;
 
   // Doc 41: campo da guia dados vazio → a LINHA sai do contrato; volta quando a informação é
   // cadastrada. Vale só para a identificação do CONTRATANTE e do PACIENTE (dados do cadastro). O
@@ -259,15 +277,22 @@ export function montarContrato(d: DadosDoContrato): string {
   const telefoneR1 = d.responsavelTelefone?.trim() ? d.responsavelTelefone : d.pacienteTelefone;
   const blocoResponsavel = (nome: string | null, cpf: string | null, tel: string | null, email: string | null, rotuloNome: string) =>
     Lopt(rotuloNome, nome) + Lopt("CPF", cpf) + Lopt("Endereço", d.pacienteEndereco) + Lopt("Telefone", tel) + Lopt("E-mail", email);
-  const contratanteBloco = blocoResponsavel(r1Nome, r1Cpf, telefoneR1, r1Email, "Nome do Responsável").trimEnd();
+  // Quando quem contrata é o próprio paciente, o rótulo é "Nome": chamá-lo de responsável por si
+  // mesmo é o tipo de linha que faz a pessoa desconfiar do documento inteiro.
+  const contratanteBloco = blocoResponsavel(r1Nome, r1Cpf, telefoneR1, r1Email, contratanteEhOPaciente ? "Nome" : "Nome do Responsável").trimEnd();
   const contratante2Bloco = r2Nome && r2Nome.trim()
     ? blocoResponsavel(r2Nome, r2Cpf, d.pacienteTelefone, r2Email, "Nome do Responsável 2").trimEnd()
     : "";
-  // PACIENTE: idade/nascimento só quando há data de nascimento.
+  // PACIENTE: idade/nascimento só quando há data de nascimento. Doc 65: CPF, endereço, telefone e
+  // e-mail também identificam o paciente, e cada um só aparece se estiver preenchido no cadastro.
   const pacienteBloco = (
     Lopt("Nome", d.pacienteNome) +
     (d.pacienteNascimento ? `Data de Nascimento: ${nascimentoTxt}\n` : "") +
-    (idadeNumero != null ? `Idade: ${idadeTxt} anos\n` : "")
+    (idadeNumero != null ? `Idade: ${idadeTxt} anos\n` : "") +
+    Lopt("CPF", d.pacienteCpf) +
+    Lopt("Endereço", d.pacienteEndereco) +
+    Lopt("Telefone", d.pacienteTelefone) +
+    Lopt("E-mail", d.pacienteEmail)
   ).trimEnd();
 
   return `CONTRATO DE PRESTAÇÃO DE SERVIÇOS DE ${m.titulo}
@@ -309,7 +334,7 @@ ${linha42}${linha43}
 5.1. Reserva do Horário: ${m.reserva}, o pagamento remunera a reserva exclusiva do tempo e do espaço clínico colocados à disposição do paciente.
 5.2. Faltas do Paciente: As sessões em que o paciente não comparecer e não realizar o cancelamento prévio do agendamento serão cobradas normalmente, independentemente do motivo da ausência (saúde, viagens, imprevistos ou compromissos escolares). A cobrança será desconsiderada mediante apresentação de atestado médico.
 5.3. Reagendamento: Havendo disponibilidade de agenda por parte do PROFISSIONAL, poderá ser oferecido um horário alternativo na mesma semana, sem que isso constitua obrigação contratual.
-5.4. Faltas do Profissional: Caso o PROFISSIONAL precise desmarcar por motivo de força maior, a sessão não será cobrada ou será obrigatoriamente reposta em horário mutuamente combinado.
+${faltaDoProfissional("paciente")}
 5.5. Recessos e Feriados: Não haverá cobrança de sessões que coincidirem com recessos previstos e comunicados previamente (ex: Férias de Julho/Dezembro) ou feriados em que o consultório não funcione.
 
 6. DO SIGILO PROFISSIONAL E SESSÕES DE ORIENTAÇÃO DE PAIS
@@ -380,13 +405,20 @@ export function montarContratoSupervisao(d: DadosDoContrato): string {
   // Campo vazio da guia dados sai do contrato; volta ao ser cadastrado (doc 41/42).
   const Lopt = (label: string, raw: string | number | null | undefined) =>
     raw != null && String(raw).trim() !== "" ? `${label}: ${neg(String(raw).trim())}\n` : "";
-  // CONTRATANTE = responsável; telefone cai no do paciente quando o do responsável falta.
+  // CONTRATANTE = responsável; sem responsável cadastrado, é o próprio supervisionando (doc 65 —
+  // a supervisão quase nunca tem responsável, e o bloco saía vazio junto com a assinatura).
+  // Telefone cai no do paciente quando o do responsável falta.
+  const temResponsavel = !!(d.responsavelNome && d.responsavelNome.trim());
+  const contratanteNome = temResponsavel ? d.responsavelNome : d.pacienteNome;
+  const contratanteCpf = temResponsavel ? d.responsavelCpf : d.pacienteCpf;
+  const contratanteEmail = (temResponsavel ? d.responsavelEmail : d.pacienteEmail) ?? null;
   const telContratante = d.responsavelTelefone?.trim() ? d.responsavelTelefone : d.pacienteTelefone;
   const contratanteBloco = (
-    Lopt("Nome do Responsável", d.responsavelNome) +
-    Lopt("CPF", d.responsavelCpf) +
+    Lopt(temResponsavel ? "Nome do Responsável" : "Nome", contratanteNome) +
+    Lopt("CPF", contratanteCpf) +
     Lopt("Endereço", d.pacienteEndereco) +
-    Lopt("Telefone", telContratante)
+    Lopt("Telefone", telContratante) +
+    Lopt("E-mail", contratanteEmail)
   ).trimEnd();
   // SUPERVISIONANDO = a própria pessoa cadastrada.
   const nascimentoTxt = d.pacienteNascimento ? neg(dataBR(d.pacienteNascimento)) : null;
@@ -394,7 +426,11 @@ export function montarContratoSupervisao(d: DadosDoContrato): string {
   const supervisionandoBloco = (
     Lopt("Nome", d.pacienteNome) +
     (nascimentoTxt ? `Data de Nascimento: ${nascimentoTxt}\n` : "") +
-    (idadeNumero != null ? `Idade: ${neg(String(idadeNumero))} anos\n` : "")
+    (idadeNumero != null ? `Idade: ${neg(String(idadeNumero))} anos\n` : "") +
+    Lopt("CPF", d.pacienteCpf) +
+    Lopt("Endereço", d.pacienteEndereco) +
+    Lopt("Telefone", d.pacienteTelefone) +
+    Lopt("E-mail", d.pacienteEmail)
   ).trimEnd();
 
   return `CONTRATO DE PRESTAÇÃO DE SERVIÇOS DE SUPERVISÃO CLÍNICA
@@ -432,7 +468,7 @@ ${linha42}
 5.1. Reserva do Horário: Na supervisão clínica, o pagamento remunera a reserva exclusiva do tempo e do espaço profissional colocados à disposição do SUPERVISIONANDO.
 5.2. Faltas do SUPERVISIONANDO: As sessões em que o SUPERVISIONANDO não comparecer e não realizar o cancelamento prévio do agendamento serão cobradas normalmente, independentemente do motivo da ausência, salvo acordo diverso entre as partes.
 5.3. Reagendamento: Havendo disponibilidade de agenda por parte do PROFISSIONAL, poderá ser oferecido um horário alternativo na mesma semana, sem que isso constitua obrigação contratual.
-5.4. Faltas do Profissional: Caso o PROFISSIONAL precise desmarcar por motivo de força maior, a sessão não será cobrada ou será obrigatoriamente reposta em horário mutuamente combinado.
+${faltaDoProfissional("SUPERVISIONANDO")}
 5.5. Recessos e Feriados: Não haverá cobrança de sessões que coincidirem com recessos previstos e comunicados previamente (ex: Férias de Julho/Dezembro) ou feriados em que o consultório não funcione.
 
 6. DO SIGILO PROFISSIONAL E DA CONFIDENCIALIDADE
@@ -460,5 +496,5 @@ ${ou(d.analistaNome, "NOME DO PROFISSIONAL")} — ${m.assinatura}
 
 
 _______________________________________
-${ou(d.responsavelNome, "NOME DO CONTRATANTE")} — Contratante / Responsável Legal`;
+${ou(contratanteNome, "NOME DO CONTRATANTE")} — Contratante / Responsável Legal`;
 }

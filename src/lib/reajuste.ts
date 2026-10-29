@@ -387,8 +387,16 @@ export function historicoDeReajuste(
 
   for (const l of linhasDeReajuste(precos)) {
     if (l.anterior === null) {
-      // Preço de ENTRADA (sem modalidade no histórico): sem lixeira.
-      if (fDedup.length === 0 && l.novo > 0) out.push({ data: l.data, solicitadoEm: pedidoDe(l.data), texto: `Preço inicial → ${brl(l.novo)}`, removivel: false });
+      /**
+       * Preço de ENTRADA: sem lixeira — é a base do financeiro, não um reajuste.
+       *
+       * Doc 65: ele aparece sempre que a vigência dele NÃO é a de uma troca de modalidade (quando
+       * as datas coincidem, a linha da modalidade já diz o valor). Antes a condição era não haver
+       * histórico de modalidade nenhum — e quem cadastrou valor e modalidade em dias diferentes
+       * ficava com o preço de entrada invisível na tela e vivo no banco. Era o "esta área não está
+       * cadastrando corretamente as mudanças": a mudança estava gravada, só não tinha linha.
+       */
+      if (!fDatas.has(l.data.getTime()) && l.novo > 0) out.push({ data: l.data, solicitadoEm: pedidoDe(l.data), texto: `Preço inicial → ${brl(l.novo)}`, removivel: false });
       continue;
     }
     if (fDatas.has(l.data.getTime())) continue;

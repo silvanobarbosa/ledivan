@@ -1197,8 +1197,21 @@ export async function apagarReajuste(patientId: string, vigenciaISO: string): Pr
    */
   const entradaPreco = entradaDoHistorico(precos);
   const entradaFormato = entradaDoHistorico(formatos);
-  const precoIds = precos.filter((p) => p.dataEfetiva.getTime() === t && p.id !== entradaPreco).map((p) => p.id);
   const formatoIds = formatos.filter((f) => f.dataEfetiva.getTime() === t && f.id !== entradaFormato).map((f) => f.id);
+  /**
+   * Doc 65: quando a MODALIDADE desta vigência está sendo apagada, o preço gravado na MESMA
+   * vigência vai junto, mesmo sendo o primeiro preço do cadastro.
+   *
+   * Os dois foram salvos no mesmo gesto — "mudar para Avulso, R$ 50,00" —, e desfazer a modalidade
+   * sem desfazer o preço deixava um preço órfão: a paciente voltava a ser Gratuita e continuava
+   * com R$ 50,00 no cadastro, invisível no histórico (porque não havia reajuste a mostrar) e bem
+   * visível no cabeçalho da guia Geral. Era exatamente o que a dona relatou.
+   *
+   * A proteção da ENTRADA continua de pé onde ela quer dizer alguma coisa: apagar um reajuste de
+   * uma data em que não houve troca de modalidade nunca leva o preço-base junto, porque esse preço
+   * está noutra vigência e não entra neste filtro.
+   */
+  const precoIds = precos.filter((p) => p.dataEfetiva.getTime() === t && (p.id !== entradaPreco || formatoIds.length > 0)).map((p) => p.id);
 
   if (!precoIds.length && !formatoIds.length) {
     // Nada removível nessa vigência (ou é a entrada): não apaga, e não finge que apagou.
@@ -1218,6 +1231,11 @@ export async function apagarReajuste(patientId: string, vigenciaISO: string): Pr
     if (ultimo) {
       patch.sessionFee = ultimo.valor;
       patch.priceReviewDate = vencimentoDoPreco(ultimo.dataEfetiva, null, paciente.validadePrecoMeses);
+    } else {
+      // Não sobrou preço nenhum: o cadastro vai a zero. Deixar o valor antigo seria manter no
+      // cadastro um preço que o histórico já não tem como explicar (doc 65).
+      patch.sessionFee = "0";
+      patch.priceReviewDate = null;
     }
   }
   if (formatoIds.length) {

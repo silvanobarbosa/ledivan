@@ -11,9 +11,8 @@ import { PorMesCadastros } from "./PorMesCadastros";
  * de cobrança, com crédito e estorno tratados. Duas tabelas com o mesmo nome e contas diferentes é
  * o começo de toda desconfiança.
  */
-export function PagamentosClient({ year }: { year: number }) {
+export function PagamentosClient({ year, anos }: { year: number; anos: number[] }) {
   const router = useRouter();
-  const yearOpts = [year - 1, year, year + 1];
 
   return (
     <div className="space-y-6">
@@ -21,7 +20,8 @@ export function PagamentosClient({ year }: { year: number }) {
         <div className="flex items-center gap-2">
           <span className="text-sm text-foreground/50">Ano:</span>
           <select value={year} onChange={(e) => router.push(`/dashboard/pagamentos?year=${e.target.value}`)} className="px-3 py-1.5 rounded-xl bg-surface border border-border text-sm outline-none">
-            {yearOpts.map((y) => <option key={y} value={y}>{y}</option>)}
+            {/* Doc 65: a lista inteira de anos já cadastrados, vinda do servidor. */}
+            {anos.map((y) => <option key={y} value={y}>{y}</option>)}
           </select>
         </div>
       </div>
