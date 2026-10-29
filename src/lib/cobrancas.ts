@@ -424,6 +424,15 @@ export function cobrancasDoPaciente(e: EntradaDasCobrancas): Cobranca[] {
   for (const s of ordenadas) {
     if (s.extra !== "avul" || STATUS_QUE_PAUSAM.has(s.status)) continue;
     /**
+     * Doc 65: a extra marcada como CORTESIA não cobra.
+     *
+     * Até aqui a cortesia só tinha efeito dentro do pacote e na cobrança a cada sessão, e por isso
+     * o checkbox tinha sido escondido das extras (SuperQA, 22/10): ele não mudava nada. O dono
+     * pediu a pergunta de volta em todo agendamento — então ela passa a valer também aqui, que é
+     * onde mora a cobrança da sessão extra e a da falta cobrada do paciente gratuito.
+     */
+    if (ehCortesia(s)) continue;
+    /**
      * A extra NÃO passa por `valorDaSessao`: aqui o `valorExtra` nulo significa ZERO, não "sem
      * valor informado". É a falta do paciente gratuito, que nasce AVUL de R$ 0,00 esperando o
      * valor (doc 54) — e é esse zero que `aguardandoValor` logo abaixo reconhece.

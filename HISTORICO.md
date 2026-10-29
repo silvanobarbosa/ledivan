@@ -7,6 +7,60 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-10-28 — Doc 65: contrato que identifica as partes, cortesia em todo agendamento e o preço órfão
+
+**Entregue:** o cabeçalho da guia Geral diz "Gratuito" em vez do preço guardado quando o financeiro
+não cobra; apagar a troca de modalidade passa a levar junto o preço gravado na MESMA vigência, e o
+histórico de reajuste mostra o preço de entrada que tem vigência própria; o contrato identifica
+CONTRATANTE e PACIENTE com nome, CPF, endereço, telefone e e-mail (cada um só se preenchido), e
+assina com o nome mesmo sem data de nascimento e sem responsável; cláusula 5.4 nova (reposição e,
+não havendo, crédito); "Autoconhecimento" na queixa principal; a janela "Alterar quais?" perdeu a
+escolha de sequência do pacote; "Este atendimento será uma cortesia" aparece em todo agendamento
+(avulso, mensal, quinzenal, gratuito e extra) e passa a ter efeito também nas extras; o seletor de
+ano da Carteira lista todos os anos já cadastrados. PR #521.
+
+**Por quê:** cinco dos oito itens vinham do mesmo lugar — a tela mostrando uma coisa e o banco
+guardando outra. A paciente "gratuita com R$ 50,00 de valor da sessão" tinha, de fato, um preço de
+50 vivo no banco: ao apagar a vigência do Avulso, só a MODALIDADE foi embora, porque o preço era o
+primeiro da tabela e a proteção da entrada o segurava. Esse mesmo preço não aparecia no histórico
+("esta área não está cadastrando as mudanças"): a linha do preço de entrada só era desenhada quando
+o cadastro não tinha histórico de modalidade nenhum. E o contrato "sem nome, CPF, endereço" era
+cadastro SEM data de nascimento: idade desconhecida caía no caminho do menor de idade, o contrato ia
+buscar um responsável que não existe, e o bloco do contratante saía vazio junto com a assinatura.
+
+**Decisões que ficam valendo:**
+- **Cortesia = esta sessão não é cobrada**, em qualquer financeiro. Substitui o recorte do doc 54
+  (só mensal/quinzenal em pacote completo) e o do SuperQA de 22/10 (fora das extras). A exigência
+  daquele achado continua: a escolha oferecida tem de fazer efeito — por isso a extra marcada como
+  cortesia deixou de gerar cobrança.
+- **A sequência do pacote se decide ao CRIAR o agendamento, não ao editar.** A pergunta saiu da
+  janela "Alterar quais?" (e o caminho dela, do servidor): é decisão de dinheiro pegando carona
+  numa troca de horário.
+- **Sem responsável cadastrado, quem contrata é o próprio paciente** — e o rótulo passa a ser
+  "Nome", não "Nome do Responsável".
+- **Apagar a modalidade de uma vigência leva o preço da mesma vigência.** Os dois foram salvos no
+  mesmo gesto; desfazer um sem o outro é o que cria o preço órfão.
+
+**Armadilhas:**
+- A proteção "a ENTRADA nunca é apagada" é por TABELA. Num cadastro que trocou de gratuito para
+  avulso uma vez só, o preço daquela troca É o primeiro preço — e a proteção, pensada para o
+  preço-base, segurava justamente o que precisava sair.
+- O histórico de reajuste podia estar certo no banco e mudo na tela. Ao investigar "não está
+  gravando", conferir primeiro se existe LINHA para o registro.
+- **O percurso de navegador tem de rodar contra o BUILD, não contra `npm run dev`.** No servidor de
+  desenvolvimento o fast refresh recarrega a tela de editar cadastro em laço — 14 carregamentos do
+  documento em 8 segundos, medido em 29/10, com o mesmo código de `main`. No build é 1. Durante o
+  laço, todo clique estoura o tempo sobre um elemento que o próprio log do Playwright diz estar
+  visível, e a leitura da tela pega a página só com o menu dentro. Não é defeito do produto; é a
+  razão de meia dúzia de "falhas" que não existiam.
+- Na agenda, `button[title^="nome"]` não casa com o cartão: use `getByTitle`.
+
+**Pendente:** a paciente **Meyla** tem um preço com vigência **23/07/1925** (erro de digitação do
+ano, provavelmente 2025). Como a vigência é anterior a tudo, o preço vale sempre e nada quebra —
+mas a data aparece no histórico. Correção é da dona, no cadastro.
+
+---
+
 ## 2026-10-27 — Doc 64: o crédito volta a contar, a Carteira fecha o mês e Transações passa a ter recorte
 
 **Entregue:** "Valores recebidos" mostra o dinheiro que entrou e virou CRÉDITO (sem contá-lo de novo

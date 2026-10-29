@@ -14,6 +14,7 @@ export const QUEIXAS = [
   "Estresse / Burnout",
   "Relacionamento / Casal",
   "Autoestima",
+  "Autoconhecimento",
   "Trauma / TEPT",
   "Fobia",
   "Transtorno Alimentar",

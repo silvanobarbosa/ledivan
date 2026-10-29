@@ -6,24 +6,22 @@ import { maisRecenteDoHistorico } from "@/lib/reajuste";
  * Achados do SuperQA sobre o lote do doc 54 (22/10/2026).
  */
 
-describe("cortesia não é oferecida em sessão que já está FORA do pacote", () => {
+describe("cortesia: a escolha oferecida tem de fazer efeito", () => {
   /**
-   * A cortesia abre uma vaga DENTRO da sequência numerada. Uma sessão extra (`avul`/`grat`) já
-   * acontece fora dela: marcar cortesia ali não tira posição nenhuma, e a avulsa continua sendo
-   * cobrada pelo caminho das extras. O checkbox aparecia e não fazia nada — promessa falsa, que é
-   * pior do que não oferecer.
+   * O achado era este: o checkbox aparecia na sessão EXTRA e não mudava nada — a avulsa continuava
+   * sendo cobrada pelo caminho das extras. Na época a correção foi esconder a pergunta.
+   *
+   * Doc 65 trouxe a pergunta de volta em todo agendamento, a pedido do dono. A exigência do achado
+   * continua valendo, e passou a ser cumprida do outro lado: a extra marcada como cortesia não
+   * gera cobrança (ver cortesiaNoAvulsoEGratuito.test.ts). O que não pode voltar é a pergunta sem
+   * efeito.
    */
-  it("avulsa encaixada: a pergunta não aparece", () => {
-    expect(podeSerCortesia({ formato: "mensal", pacoteTipo: "completo", extra: "avul" })).toBe(false);
+  it("a pergunta aparece em toda consulta, inclusive na extra", () => {
+    expect(podeSerCortesia({ sessionKind: "consulta" })).toBe(true);
   });
 
-  it("extra gratuita: também não — ela já não cobra", () => {
-    expect(podeSerCortesia({ formato: "mensal", pacoteTipo: "completo", extra: "grat" })).toBe(false);
-  });
-
-  it("sessão comum do pacote continua oferecendo", () => {
-    expect(podeSerCortesia({ formato: "mensal", pacoteTipo: "completo", extra: null })).toBe(true);
-    expect(podeSerCortesia({ formato: "quinzenal", pacoteTipo: "completo" })).toBe(true);
+  it("a devolutiva segue de fora: ela já tem a escolha dela", () => {
+    expect(podeSerCortesia({ sessionKind: "devolutiva" })).toBe(false);
   });
 });
 

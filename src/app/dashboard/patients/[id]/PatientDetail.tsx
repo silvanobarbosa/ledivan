@@ -393,8 +393,13 @@ export function PatientDetail({
         <div id="controle-print" className="space-y-4">
           {/* GER4: cabeçalho do Controle — valor da sessão + próximo reajuste */}
           <div className="glass-card rounded-[24px] p-5 flex flex-wrap items-center justify-between gap-3">
+            {/* Doc 65: no financeiro GRATUITO o cabeçalho diz "Gratuito", não o preço guardado.
+                O cadastro continua lembrando o último valor combinado (é o que volta se a dona
+                trocar o formato de novo), mas mostrá-lo aqui dizia que a sessão custa R$ 50,00
+                numa tela que não cobra nada — a paciente que ela viu, com a vigência do avulso já
+                apagada. A linha logo abaixo do nome já segue a mesma regra. */}
             <div>
-              <p className="text-2xl font-display font-bold text-primary">{formatBRL(patient.sessionFee)}</p>
+              <p className="text-2xl font-display font-bold text-primary">{cobra(patient.paymentFormat) ? formatBRL(patient.sessionFee) : "Gratuito"}</p>
               <p className="text-xs text-foreground/50">Valor da sessão</p>
             </div>
             {patient.priceReviewDate && (
