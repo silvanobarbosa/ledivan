@@ -7,6 +7,27 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-10-29 — Doc 53: inativar um cadastro não apaga o rótulo da agenda
+
+**Entregue:** as sessões de um cadastro inativo voltam a mostrar GRAT, AVUL e a posição x/x na
+célula da agenda (PR #522).
+
+**Por quê:** a terapeuta inativa quem parou de atender e continua precisando ler a agenda antiga —
+que é história e não mudou. O rótulo sumia na hora da inativação, inclusive em sessões de anos
+anteriores.
+
+**Decisões que ficam valendo:** o rótulo é calculado sobre TODOS os cadastros, inclusive inativos;
+quem continua sem inativo é só a lista de quem se pode AGENDAR. São duas perguntas diferentes e
+estavam sendo respondidas pela mesma busca.
+
+**Armadilhas:** o rótulo é resolvido no servidor, paciente a paciente — então qualquer filtro na
+busca de pacientes apaga a segunda linha da célula em silêncio, sem erro nenhum. A célula só cai no
+formato do cadastro como reserva, e esse também não chega para o inativo.
+
+**Pendente:** nada deste bloco.
+
+---
+
 ## 2026-10-28 — Doc 65: contrato que identifica as partes, cortesia em todo agendamento e o preço órfão
 
 **Entregue:** o cabeçalho da guia Geral diz "Gratuito" em vez do preço guardado quando o financeiro

@@ -1,7 +1,7 @@
 import { db } from "@/db";
 import { auth } from "@/auth";
 import { blockedSlots, patientPackages, patientPackageHistory, patientPaymentFormatHistory, patients, sessionPayments, therapySessions, users } from "@/db/schema";
-import { and, eq, gte, inArray, isNotNull, ne } from "drizzle-orm";
+import { and, eq, gte, inArray, isNotNull } from "drizzle-orm";
 import { AgendaClient } from "./AgendaClient";
 import { COLUNAS_DA_SESSAO_COM_PACIENTE } from "@/lib/colunasDaSessao";
 import { riskFromSessions } from "@/lib/therapy";
@@ -23,14 +23,14 @@ export default async function AgendaPage() {
   // agendamento de 2024, por exemplo, era salvo mas nunca aparecia porque caía fora da janela.
   const windowStart = new Date(); windowStart.setDate(windowStart.getDate() - 120);
 
-  const [list, pats, bloqueios, me] = await Promise.all([
+  const [list, todosPats, bloqueios, me] = await Promise.all([
     db.query.therapySessions.findMany({
       where: eq(therapySessions.userId, session.user.id),
       columns: { id: true, patientId: true, date: true, duration: true, status: true, isOnline: true, meetingUrl: true, meetingOpenedAt: true, guestJoinedAt: true, meetingEndedAt: true, pendingConfirmation: true, patientConfirmedAt: true, rescheduleRequestedAt: true, patientArrivedAt: true, location: true, recurring: true, recurrenceFreq: true, sessionKind: true, packageId: true, abaterDoPacote: true, cortesia: true, extra: true, espelhoSoAnterior: true },
       with: { patient: { columns: { name: true, agendaId: true, registrationNumber: true } } },
     }),
     db.query.patients.findMany({
-      where: and(eq(patients.userId, session.user.id), ne(patients.patientStatus, "inativo")),
+      where: eq(patients.userId, session.user.id),
       columns: { id: true, name: true, patientStatus: true, cadastroKind: true, attendanceMode: true, attendanceLocation: true, birthDate: true, priceReviewDate: true, paymentFormat: true, pacoteTipo: true, horasAntesPagamento: true, agendaId: true, registrationNumber: true, frequency: true, timesPerPeriod: true, sessionsInPacket: true, sessionFee: true },
       orderBy: [patients.name],
     }),
@@ -41,6 +41,14 @@ export default async function AgendaPage() {
       .where(and(eq(blockedSlots.userId, session.user.id), gte(blockedSlots.date, windowStart))),
     db.query.users.findFirst({ where: eq(users.id, session.user.id) }),
   ]);
+
+  // Doc 53: o cadastro INATIVO continua na conta do rótulo.
+  //
+  // A busca acima trazia só os não-inativos, e o rótulo da célula (GRAT, AVUL, 1/4) é calculado
+  // paciente a paciente — então inativar um cadastro apagava o código das sessões dele, inclusive
+  // das antigas, que são história e não mudaram. Agora a varredura é sobre TODOS; a lista que a
+  // tela usa para ESCOLHER quem agendar é que continua sem inativo.
+  const pats = todosPats.filter((p) => p.patientStatus !== "inativo");
 
   // Numeração 1/N do pacote (derivada por data) — sobre TODAS as sessões do pacote, não só a janela.
   const [pkgSessions, pkgs] = await Promise.all([
@@ -70,8 +78,8 @@ export default async function AgendaPage() {
   // mais recentes bastam para a janela de "Novo atendimento" nao virar uma lista).
   const desmarcadasPorPaciente = new Map<string, { id: string; data: string }[]>();
   const vigenciasPorPaciente = new Map<string, { formato: string; pacoteTipo: string | null; desde: string; criadoEm: string }[]>();
-  if (pats.length) {
-    const ids = pats.map((x) => x.id);
+  if (todosPats.length) {
+    const ids = todosPats.map((x) => x.id);
     const [todas, contratos, vigencias, pacoteHist] = await Promise.all([
       db.select(COLUNAS_DA_SESSAO_COM_PACIENTE)
         .from(therapySessions)
@@ -88,7 +96,7 @@ export default async function AgendaPage() {
         .where(inArray(patientPackageHistory.patientId, ids)),
     ]);
     comAgendamento = pacientesComAgendamento(todas);
-    for (const paciente of pats) {
+    for (const paciente of todosPats) {
       const esperando = desmarcadasSemReposicao(todas.filter((x) => x.patientId === paciente.id)).slice(0, 5);
       if (esperando.length) {
         desmarcadasPorPaciente.set(paciente.id, esperando.map((x) => ({ id: x.id, data: horaDeParede(x.date) })));
