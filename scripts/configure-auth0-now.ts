@@ -66,7 +66,7 @@ async function setupGiselePassword() {
   log('\n👤 Configurando senha para Gisele...', COLORS.blue);
 
   const email = 'giselebarrossantos@gmail.com';
-  const password = 'Gisele2024!'; // Senha temporária
+  const password = process.env.RESET_PASSWORD /* sanitizado */; // Senha temporária
 
   try {
     // Buscar usuária Gisele
@@ -177,7 +177,7 @@ async function main() {
 
   log('3. Fazer login com:', COLORS.blue);
   log('   Email: giselebarrossantos@gmail.com', COLORS.bright);
-  log('   Senha: Gisele2024!\n', COLORS.bright);
+  log('   Senha: SANITIZADO_USE_ENV\n', COLORS.bright);
 
   log('📌 NOTAS IMPORTANTES:', COLORS.yellow + COLORS.bright);
   log('• Esta é uma configuração de desenvolvimento');

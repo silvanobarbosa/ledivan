@@ -13,7 +13,7 @@ import bcrypt from "bcryptjs";
 
 const GISELE_EMAIL = "giselebarrossantos@gmail.com";
 const CORRECT_NAME = "Gisele Barros Santos"; // Nome correto
-const SECURE_PASSWORD = "Gisele2024!Ledivan"; // Senha temporária mais segura
+const SECURE_PASSWORD = process.env.SECURE_PASSWORD /* sanitizado */; // Senha temporária mais segura
 
 async function fixGiseleData() {
   console.log("🔧 Corrigindo dados da Gisele...\n");
