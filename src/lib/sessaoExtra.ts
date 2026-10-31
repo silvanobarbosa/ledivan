@@ -65,6 +65,34 @@ export function pacientesComAgendamento(sessoes: { patientId: string }[]): Set<s
   return new Set(sessoes.map((s) => s.patientId));
 }
 
+/** Uma sessão que PERTENCE à sequência do pacote. Mesma regra do motor (`entraNoPacote`). */
+export function entraNaSequenciaDoPacote(s: {
+  extra?: string | null;
+  sessionKind?: string | null;
+  abaterDoPacote?: boolean | null;
+}): boolean {
+  if (s.extra === "avul" || s.extra === "grat") return false;
+  if (s.sessionKind === "devolutiva") return !!s.abaterDoPacote;
+  return true;
+}
+
+/**
+ * Quem já COMEÇOU a sequência do pacote — e não apenas "já tem algum agendamento".
+ *
+ * É o que decide entre "Iniciar à sequência do pacote" e "Adicionar à sequência do pacote" (doc
+ * 68). A diferença não é cosmética: um paciente cujo único agendamento foi uma extra avulsa, ou
+ * uma devolutiva que não abate, **não tem sequência nenhuma** — oferecer "adicionar a" uma
+ * sequência que não existe descreve errado o que o botão vai fazer.
+ */
+export function pacientesComSequencia(sessoes: {
+  patientId: string;
+  extra?: string | null;
+  sessionKind?: string | null;
+  abaterDoPacote?: boolean | null;
+}[]): Set<string> {
+  return new Set(sessoes.filter(entraNaSequenciaDoPacote).map((s) => s.patientId));
+}
+
 /**
  * As sessões desmarcadas que ainda não foram repostas — as que podem receber uma reposição.
  *

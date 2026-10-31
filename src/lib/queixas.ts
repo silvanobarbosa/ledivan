@@ -2,24 +2,31 @@
 // se não estiver na lista, o terapeuta usa "Outro" e o valor é gravado como texto livre.
 // O filtro do dashboard agrupa por esta lista (valores fora dela caem em "Outro").
 
+/**
+ * Doc 68: em ORDEM ALFABÉTICA. A lista cresceu item a item, na ordem em que cada um foi
+ * pedido, e procurar "Sono" no meio de vinte linhas sem ordem é procurar duas vezes.
+ *
+ * A ordenação ignora acento de propósito: por código, "Dependência" cairia depois de
+ * "Transtorno", que não é onde ninguém procura.
+ */
 export const QUEIXAS = [
-  "Depressão",
   "Ansiedade",
-  "Transtorno de Pânico",
-  "Borderline (TPB)",
+  "Autoconhecimento",
+  "Autoestima",
   "Bipolaridade",
+  "Borderline (TPB)",
+  "Dependência / Uso de substâncias",
+  "Depressão",
+  "Estresse / Burnout",
+  "Fobia",
+  "Luto",
+  "Relacionamento / Casal",
+  "Sono",
   "TDAH",
   "TOC",
-  "Luto",
-  "Estresse / Burnout",
-  "Relacionamento / Casal",
-  "Autoestima",
-  "Autoconhecimento",
-  "Trauma / TEPT",
-  "Fobia",
   "Transtorno Alimentar",
-  "Dependência / Uso de substâncias",
-  "Sono",
+  "Transtorno de Pânico",
+  "Trauma / TEPT",
 ] as const;
 
 export type Queixa = (typeof QUEIXAS)[number];

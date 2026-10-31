@@ -542,6 +542,13 @@ function FormularioDeLancamento({ patientId, c, responsavel, responsavelCpf, fec
    * CPF memorizado do outro pagador deixa de valer e o campo esvazia — repetir o CPF errado no
    * recibo é pior do que sair sem CPF nenhum.
    */
+  /**
+   * Doc 68: a diferença fica nesta cobrança (padrão) ou rola para o próximo pacote.
+   *
+   * Nasce em "fica" porque é o destino que não surpreende: lançar menos e ver a cobrança fechada
+   * como "Paga", com o saldo em outro lugar, é o que confunde — e era o único comportamento.
+   */
+  const [diferencaFica, setDiferencaFica] = useState(true);
   const [nome, setNome] = useState(responsavel);
   const [cpf, setCpf] = useState(responsavelCpf);
   const [formaBase, setFormaBase] = useState("pix");
@@ -607,6 +614,7 @@ function FormularioDeLancamento({ patientId, c, responsavel, responsavelCpf, fec
         // justamente o valor que o crédito acabou de cobrir. O zero precisa ser dito (doc 61).
         valor: soCredito ? "0" : String(fd.get("valor") ?? ""),
         quitarDiferenca: aMenos && quitar,
+        diferencaOutraData: aMenos && !quitar && diferencaFica,
         creditarExcedente: aMais && creditarSobra,
         usarCredito,
       });
@@ -709,6 +717,24 @@ function FormularioDeLancamento({ patientId, c, responsavel, responsavelCpf, fec
                 <input type="checkbox" checked={quitar} onChange={(e) => setQuitar(e.target.checked)} />
                 Não haverá diferença de valor
               </label>
+              {/* Doc 68: e, quando a diferença CONTINUA existindo, para onde ela vai.
+                  São destinos opostos: rolando, esta cobrança fecha e o saldo some para o pacote
+                  seguinte — e com ela some o botão de lançar o resto. Ficando, ela espera aqui. */}
+              {!quitar && (
+                <div className="w-full flex flex-wrap items-center gap-2 pt-1">
+                  <span className="text-foreground/60">E a diferença?</span>
+                  <div className="inline-flex rounded-lg overflow-hidden border border-border">
+                    <button type="button" onClick={() => setDiferencaFica(true)}
+                      className={`px-3 py-1 font-bold transition ${diferencaFica ? "bg-[#92400e] text-white" : "bg-white text-foreground/60 hover:bg-surface"}`}>
+                      Será lançada em outra data
+                    </button>
+                    <button type="button" onClick={() => setDiferencaFica(false)}
+                      className={`px-3 py-1 font-bold transition border-l border-border ${!diferencaFica ? "bg-[#92400e] text-white" : "bg-white text-foreground/60 hover:bg-surface"}`}>
+                      Jogar para o próximo pacote
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           )}
           {/* Recebeu MAIS: o usuário DECIDE se a sobra vira crédito no saldo. Doc 38: o checkbox

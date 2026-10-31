@@ -40,6 +40,8 @@ export type PagamentoDaGeral = {
    * que o total. A diferença é perdoada — a cobrança fica "paga", nunca "em parte".
    */
   quita?: boolean | null;
+  /** Doc 68: a diferença deste lançamento FICA nesta cobrança, em vez de rolar para o próximo. */
+  ficaNaCobranca?: boolean | null;
   /** `pacote` = crédito de pacote (não emite recibo). */
   kind?: string | null;
   /**
@@ -256,6 +258,14 @@ function casarPagamentos(cobrancas: Cobranca[], pagamentos: PagamentoDaGeral[], 
 
   // As cobranças que um pagamento mandou QUITAR mesmo sem o valor fechar (diferença perdoada).
   const quitadas = new Set<string>();
+  /**
+   * Doc 68: cobranças cujo pagamento disse "a diferença será lançada em outra data".
+   *
+   * Elas NÃO rolam para o próximo pacote. A diferença fica aqui, a cobrança continua em aberto e
+   * o botão "Lançar pagamento" segue na tela para o segundo lançamento — que é o pedido. Rolando,
+   * a cobrança ficava "Paga" e o botão sumia, sem haver como lançar o resto onde ele é devido.
+   */
+  const ficamOndeEstao = new Set<string>();
 
   // 1. Os que dizem a qual cobrança pertencem.
   const semChave: typeof pagos = [];
@@ -266,6 +276,7 @@ function casarPagamentos(cobrancas: Cobranca[], pagamentos: PagamentoDaGeral[], 
       ultimo.set(p.cobrancaChave, l);
       empilhaPg(p.cobrancaChave, l);
       if (p.quita) quitadas.add(p.cobrancaChave);
+      if (p.ficaNaCobranca) ficamOndeEstao.add(p.cobrancaChave);
     } else {
       semChave.push(p);
     }
@@ -335,7 +346,7 @@ function casarPagamentos(cobrancas: Cobranca[], pagamentos: PagamentoDaGeral[], 
       // cobrança (não vira arrasto); avulso/a-cada-sessão não participam do carry do pacote.
       const ehPacote = c.tipo === "pacote" || c.tipo === "quinzena";
       const parcial = receb > TOLERANCIA && faltaEfetiva > TOLERANCIA;
-      if (!perdoada && ehPacote && parcial && encerrada && haProxima) {
+      if (!perdoada && !ficamOndeEstao.has(c.chave) && ehPacote && parcial && encerrada && haProxima) {
         transferidoPorChave.set(c.chave, faltaEfetiva);
         arrasto = faltaEfetiva; // rola para a próxima
       } else {

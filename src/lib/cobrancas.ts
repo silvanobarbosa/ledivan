@@ -492,6 +492,15 @@ export function rotulosDasSessoes(e: EntradaDasCobrancas): Map<string, string> {
       : new Map();
 
     for (const s of grupo.sessoes) {
+      /**
+       * A DEVOLUTIVA se chama DEVOL, mesmo quando é cobrada à parte.
+       *
+       * Doc 68: a devolutiva cobrada passou a ser gravada como extra avulsa — é o que lhe dá valor
+       * próprio e vencimento no horário dela. Sem esta linha ANTES do `extra`, a célula passaria a
+       * escrever AVUL numa devolutiva, e a terapeuta perderia de vista o que aquele horário é.
+       * O rótulo responde "que sessão é esta?"; `extra` responde "como ela cobra".
+       */
+      if (s.sessionKind === "devolutiva" && s.extra === "avul") { rotulos.set(s.id, "DEVOL"); continue; }
       if (s.extra === "avul") { rotulos.set(s.id, "AVUL"); continue; }
       if (s.extra === "grat") { rotulos.set(s.id, "GRAT"); continue; }
       if (formato === "sessao" && devolutivaGratuita(s)) { rotulos.set(s.id, "GRAT"); continue; }

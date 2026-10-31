@@ -65,6 +65,11 @@ export async function lancarPagamento(entrada: {
   metodo: string;
   valor?: string | null;
   quitarDiferenca?: boolean;
+  /**
+   * Doc 68: a diferença FICA nesta cobrança, esperando outro lançamento, em vez de rolar para o
+   * próximo pacote. Ver a coluna `diferencaOutraData` no schema.
+   */
+  diferencaOutraData?: boolean;
   /** Doc 36: o usuário pediu para guardar a sobra (pagou a mais) como crédito no saldo? */
   creditarExcedente?: boolean;
   /**
@@ -198,6 +203,8 @@ export async function lancarPagamento(entrada: {
     pagoPor,
     cobrancaChave: chave,
     quitaDiferenca: quita,
+    // Só faz sentido quando sobra diferença — e nunca junto de "não haverá diferença de valor".
+    diferencaOutraData: !quita && entrada?.diferencaOutraData === true && valorNum + creditoAplicado < faltaDaCobranca - 0.005,
     linkedTransactionId: tx?.id ?? null,
   }).returning();
 

@@ -11,6 +11,7 @@ import { getPreferences } from "@/lib/preferences";
 import { createMeetLink } from "@/lib/googleCalendar";
 import { parseMoedaBR } from "@/lib/money";
 import { desmarcadasSemReposicao, extraParaGravar } from "@/lib/sessaoExtra";
+import { devolutivaParaGravar } from "@/lib/quadroDaDevolutiva";
 import { formatoNaData } from "@/lib/vigenciaDoFormato";
 import { getUserAiClient, SemChaveIA } from "@/lib/ai-client";
 import { chavesDaCobrancaDaSessao, decidirDesfazer } from "@/lib/desfazerCobranca";
@@ -246,6 +247,23 @@ export async function createSessionFromAgenda(formData: FormData): Promise<{ ok:
   if (!extraDaSessao.ok) return { ok: false, error: extraDaSessao.error };
 
   /**
+   * Doc 68: a DEVOLUTIVA tem as perguntas dela, e elas recusam em vez de adivinhar.
+   *
+   * Cobrada, ela nasce como extra AVULSA com valor próprio — é o que a faz vencer no horário do
+   * atendimento, que foi o pedido. Não cobrada, a escolha é só sobre ocupar ou não posição na
+   * sequência. A regra mora em `lib/quadroDaDevolutiva`; aqui é a fronteira, que confere de novo.
+   */
+  const ehDevolutiva = (formData.get("sessionKind") as string) === "devolutiva";
+  const devolutiva = ehDevolutiva
+    ? devolutivaParaGravar({
+        escolha: (formData.get("devolutivaEscolha") as string || null) as never,
+        valor: formData.get("valorDevolutiva") as string | null,
+        abatimento: (formData.get("devolutivaAbatimento") as string || null) as never,
+      })
+    : null;
+  if (devolutiva && !devolutiva.ok) return { ok: false, error: devolutiva.error };
+
+  /**
    * Doc 67: a CORTESIA deixou de ter botão — nem aqui nem no editar. A dona passou a usar
    * "não adicionar à sequência" + "Não (GRAT)", que é a mesma consequência em dinheiro. A coluna
    * `cortesia` continua existindo e sendo LIDA pelo motor: as sessões já marcadas seguem GRAT.
@@ -292,7 +310,7 @@ export async function createSessionFromAgenda(formData: FormData): Promise<{ ok:
     duration,
     fee: patient.sessionFee,
     status: ((formData.get("status") as string) || "agendada") as SessionStatus,
-    chargeable: formData.get("chargeable") !== "false",
+    chargeable: devolutiva?.ok ? devolutiva.chargeable : formData.get("chargeable") !== "false",
     isOnline,
     // Misto também tem encontro presencial, e por isso também guarda o local.
     location: pedeLocal(extras.modality ?? (isOnline ? "online" : "presencial"))
@@ -301,9 +319,9 @@ export async function createSessionFromAgenda(formData: FormData): Promise<{ ok:
     pendingConfirmation: formData.get("reserva") === "true",
     sessionKind: (formData.get("sessionKind") as string) === "devolutiva" ? "devolutiva" : "consulta",
     // Devolutiva marcada para abater: não cobra, mas ocupa posição na sequência do pacote.
-    abaterDoPacote: formData.get("abaterDoPacote") === "true",
-    extra: extraDaSessao.extra,
-    valorExtra: extraDaSessao.valorExtra,
+    abaterDoPacote: devolutiva?.ok ? devolutiva.abaterDoPacote : formData.get("abaterDoPacote") === "true",
+    extra: devolutiva?.ok ? devolutiva.extra : extraDaSessao.extra,
+    valorExtra: devolutiva?.ok ? devolutiva.valorExtra : extraDaSessao.valorExtra,
     repoeSessaoId,
     // O mensal não gera as sessões seguintes, mas GUARDA que é mensal: é o que põe o (M) na
     // célula e o que diz, no fim do mês, quem ainda não marcou o mês que vem.

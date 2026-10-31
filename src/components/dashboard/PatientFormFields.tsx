@@ -510,8 +510,11 @@ export function PatientFormFields({ p, save, tabInicial, contrato, patientId }: 
             defaultValue={p?.horasAntesPagamento} placeholder="ex: 24"
           />
         </div>
-        {blocoValeAPartir}
+        {/* Doc 68: "Vale a partir de" vem DEPOIS do próximo reajuste. A data responde "a partir
+            de quando vale o que acabei de mexer", e só faz sentido depois de a pessoa ter mexido —
+            lê-la antes é responder uma pergunta que ainda não foi feita. */}
         <div className="sm:max-w-sm">{proximoReajuste}</div>
+        {blocoValeAPartir}
       </div>
     ),
     // Mensal: Valor · Qtd do pacote · Pacote · Dia de pagamento (+ 1ª/última) · Vale a partir de · Reajuste.
@@ -533,8 +536,11 @@ export function PatientFormFields({ p, save, tabInicial, contrato, patientId }: 
             <input name="paymentDay" type="number" min={1} max={31} defaultValue={p?.paymentDay ?? ""} className={inputCls} placeholder="ex: 5" />
           </div>
         )}
-        {blocoValeAPartir}
+        {/* Doc 68: "Vale a partir de" vem DEPOIS do próximo reajuste. A data responde "a partir
+            de quando vale o que acabei de mexer", e só faz sentido depois de a pessoa ter mexido —
+            lê-la antes é responder uma pergunta que ainda não foi feita. */}
         <div className="sm:max-w-sm">{proximoReajuste}</div>
+        {blocoValeAPartir}
       </div>
     ),
     // Quinzenal: Valor · Qtd do pacote · Pacote · Dias de pagamento (1ª/2ª) · Vale a partir de · Reajuste.
@@ -555,8 +561,11 @@ export function PatientFormFields({ p, save, tabInicial, contrato, patientId }: 
             <input name="paymentDay2" type="number" min={1} max={31} defaultValue={p?.paymentDay2 ?? ""} className={inputCls} placeholder="ex: 20" />
           </div>
         </div>
-        {blocoValeAPartir}
+        {/* Doc 68: "Vale a partir de" vem DEPOIS do próximo reajuste. A data responde "a partir
+            de quando vale o que acabei de mexer", e só faz sentido depois de a pessoa ter mexido —
+            lê-la antes é responder uma pergunta que ainda não foi feita. */}
         <div className="sm:max-w-sm">{proximoReajuste}</div>
+        {blocoValeAPartir}
       </div>
     ),
   };

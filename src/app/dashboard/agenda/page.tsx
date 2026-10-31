@@ -9,7 +9,7 @@ import { parseLocations } from "@/lib/locations";
 import { parseHolidayCities, holidaysByDate } from "@/lib/holidays";
 import { derivePackageLabels } from "@/lib/packages";
 import { tamanhosDasSequencias } from "@/lib/sequenciaPacote";
-import { desmarcadasSemReposicao, pacientesComAgendamento } from "@/lib/sessaoExtra";
+import { desmarcadasSemReposicao, pacientesComSequencia } from "@/lib/sessaoExtra";
 import { rotulosDasSessoes } from "@/lib/cobrancas";
 import { horaDeParede, horaDeParedeOuNulo } from "@/lib/horaLocal";
 import { pagamentoAtrasado } from "@/lib/pagamentoSessao";
@@ -95,7 +95,9 @@ export default async function AgendaPage() {
         .from(patientPackageHistory)
         .where(inArray(patientPackageHistory.patientId, ids)),
     ]);
-    comAgendamento = pacientesComAgendamento(todas);
+    // Doc 68: quem já COMEÇOU a sequência — não quem tem qualquer agendamento. Ver a nota em
+    // `pacientesComSequencia`.
+    comAgendamento = pacientesComSequencia(todas);
     for (const paciente of todosPats) {
       const esperando = desmarcadasSemReposicao(todas.filter((x) => x.patientId === paciente.id)).slice(0, 5);
       if (esperando.length) {

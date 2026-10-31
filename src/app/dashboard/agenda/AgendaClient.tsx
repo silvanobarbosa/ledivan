@@ -18,6 +18,7 @@ import { contarAlcance, excluirAgendamento, reagendarRecorrencia, salvarEdicao }
 import { BloquearHorario } from "@/components/dashboard/BloquearHorario";
 import { FUNDO_DA_JANELA, JANELA } from "@/lib/modal";
 import { blocoDoAgendamento, camposDaEscolha, escolhaEfetiva, type EscolhaDoAgendamento } from "@/lib/opcoesDoAgendamento";
+import { OPCOES_DA_DEVOLUTIVA, OPCOES_DO_ABATIMENTO, TITULO_DA_DEVOLUTIVA, type AbatimentoDaDevolutiva, type EscolhaDaDevolutiva } from "@/lib/quadroDaDevolutiva";
 import { formatoNaData } from "@/lib/vigenciaDoFormato";
 import { tipoDaFalta, tipoDaFaltaPeloRotulo, perguntaDaFalta, COMO_REFAZER } from "@/lib/perguntaFalta";
 import { useJanela } from "@/lib/useJanela";
@@ -196,6 +197,9 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
   // Doc 66: o que se escolhe ao marcar — seguir normal, ficar fora da sequência, ou ser cortesia.
   const [newEscolha, setNewEscolha] = useState<EscolhaDoAgendamento>("normal");
   const [newCobrada, setNewCobrada] = useState("");
+  // Doc 68: as duas perguntas da devolutiva. `null` = ainda não escolheu; o servidor recusa assim.
+  const [newDevolutiva, setNewDevolutiva] = useState<EscolhaDaDevolutiva>(null);
+  const [newAbatimento, setNewAbatimento] = useState<AbatimentoDaDevolutiva>(null);
   // Doc 9, item 6 — "abater do pacote": a sessão inserida PREENCHE uma desmarcada do mês em vez de
   // criar uma vaga nova. Ocupa a posição que ficou aberta, de modo que nada atravessa para o mês
   // seguinte e o total do pacote não muda. "" = não preenche nenhuma (entra como sessão a mais).
@@ -216,6 +220,8 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
     setNewKind("consulta");
     setNewFreq("pontual");
     setNewEscolha("normal");
+    setNewDevolutiva(null);
+    setNewAbatimento(null);
     setNewCobrada("");
     setNewError(null);
     setShowNew(true);
@@ -1180,6 +1186,10 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
           <div ref={janelaAlcance} tabIndex={-1} role="dialog" aria-modal="true" aria-label="Alterar quais agendamentos" className={`${JANELA} max-w-sm outline-none`} onClick={(e) => e.stopPropagation()}>
             <p className="text-lg font-display font-bold text-primary">Alterar quais?</p>
             <p className="text-sm text-foreground/70">Deseja alterar apenas este agendamento ou este e também os próximos?</p>
+            {/* Doc 68: o alcance vale para data, horário e companhia — o STATUS é sempre só desta
+                sessão. Sem dizer isso aqui, "este e os próximos" parece prometer marcar presença
+                no bloco inteiro. */}
+            <p className="text-xs text-foreground/50">Lembrando que o status definido será aplicado apenas neste.</p>
             <div className="space-y-2">
               <button disabled={pending} onClick={() => aplicarEdicao("apenas_esta")} className="w-full bg-primary text-white py-2.5 rounded-xl font-bold disabled:opacity-60">
                 Apenas este
@@ -1418,24 +1428,54 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
               </select>
             </div>
 
+            {/* Doc 68: a devolutiva ganha o MESMO quadro da sequência, com as perguntas dela.
+                Eram duas caixinhas soltas ("Cobrar esta devolutiva" / "Abater do pacote") cuja
+                combinação ninguém sabia descrever — marcar as duas, ou nenhuma, produzia estados
+                sem nome. Agora é uma escolha de cada vez. A regra mora em `lib/devolutiva`. */}
             {newKind === "devolutiva" && (
-              <label className="flex items-center gap-2 text-sm cursor-pointer rounded-xl bg-[#f3e8ff] px-3 py-2">
-                <input type="checkbox" name="chargeable" checked={newCharge} onChange={(e) => setNewCharge(e.target.checked)} value="true" className="accent-primary w-4 h-4" />
-                Cobrar esta devolutiva
-              </label>
-            )}
-            {/* Sem cobrar marcado explicitamente => envia false (a devolutiva pode ser cortesia). */}
-            {newKind === "devolutiva" && !newCharge && <input type="hidden" name="chargeable" value="false" />}
+              <div className="rounded-xl bg-[#f3e8ff] px-3 py-2.5 space-y-2" data-testid="quadro-devolutiva">
+                <p className="text-xs font-semibold text-[#6b21a8]">{TITULO_DA_DEVOLUTIVA}</p>
+                <div className="grid grid-cols-2 gap-2">
+                  {OPCOES_DA_DEVOLUTIVA.map((o) => (
+                    <button key={o.valor} type="button" onClick={() => { setNewDevolutiva(o.valor); setNewAbatimento(null); }}
+                      className={`py-2 px-2 rounded-xl text-xs font-bold transition ${newDevolutiva === o.valor ? "bg-[#6b21a8] text-white" : "bg-white text-foreground/70 hover:bg-surface-container"}`}>
+                      {o.rotulo}
+                    </button>
+                  ))}
+                </div>
 
-            {/* Abater do pacote: não cobra, mas OCUPA uma posição na sequência. A devolutiva comum
-                acontece fora do pacote, e contá-la roubaria uma consulta do paciente. */}
-            {newKind === "devolutiva" && (
-              <label className="flex items-center gap-2 text-sm cursor-pointer rounded-xl bg-[#f3e8ff] px-3 py-2">
-                <input type="checkbox" checked={newAbater} onChange={(e) => setNewAbater(e.target.checked)} className="accent-primary w-4 h-4" />
-                Abater do pacote (não cobra, mas conta como sessão)
-              </label>
+                {newDevolutiva === "cobrar" && (
+                  <div>
+                    <label className="text-[11px] font-semibold text-[#6b21a8]/80">Valor da devolutiva (R$)</label>
+                    <MoneyInput name="valorDevolutiva" required defaultValue={selectedPatient?.sessionFee ?? null}
+                      className="w-full px-3 py-2 rounded-xl bg-white border border-[#e9d5ff] outline-none text-sm" />
+                    <p className="text-[11px] text-[#6b21a8]/70 mt-1">Vence no dia e horário deste atendimento.</p>
+                  </div>
+                )}
+
+                {newDevolutiva === "nao_cobrar" && (
+                  <>
+                    <p className="text-xs font-semibold text-[#6b21a8]">E quanto à sequência do pacote?</p>
+                    <div className="grid grid-cols-2 gap-2">
+                      {OPCOES_DO_ABATIMENTO.map((o) => (
+                        <button key={o.valor} type="button" onClick={() => setNewAbatimento(o.valor)}
+                          className={`py-2 px-2 rounded-xl text-xs font-bold transition ${newAbatimento === o.valor ? "bg-[#6b21a8] text-white" : "bg-white text-foreground/70 hover:bg-surface-container"}`}>
+                          {o.rotulo}
+                        </button>
+                      ))}
+                    </div>
+                    <p className="text-[11px] text-[#6b21a8]/70">
+                      {newAbatimento === "abater"
+                        ? "Ocupa uma posição: a sequência avança."
+                        : "Não ocupa posição: a sequência não avança, como numa desmarcada."}
+                    </p>
+                  </>
+                )}
+
+                <input type="hidden" name="devolutivaEscolha" value={newDevolutiva ?? ""} />
+                <input type="hidden" name="devolutivaAbatimento" value={newAbatimento ?? ""} />
+              </div>
             )}
-            <input type="hidden" name="abaterDoPacote" value={newKind === "devolutiva" && newAbater ? "true" : "false"} />
 
             {/* Regra do dono (15/09/2026): sessão inserida entre as do pacote pode ficar FORA da
                 sequência. Fora, não muda numeração, contagem nem valor do pacote.
