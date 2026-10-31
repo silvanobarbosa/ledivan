@@ -22,6 +22,7 @@ import { horaDeParede } from "@/lib/horaLocal";
 import { creditoAConfirmar, creditoDisponivel, geralDoPaciente } from "@/lib/geralDoPaciente";
 import { getVigenciasTaxa } from "@/lib/cardFees";
 import { descricaoValida } from "@/lib/recibo";
+import { pagadorSugerido } from "@/lib/pagadorSugerido";
 
 export default async function PatientPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -150,19 +151,26 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
   const lastPay = paidPayments.slice().sort((a, b) => new Date(horaDeParede(b.date)).getTime() - new Date(horaDeParede(a.date)).getTime())[0];
 
   /**
-   * Quem "Lançar pagamento" sugere — nome e CPF já preenchidos (documento de 17/09).
+   * Quem "Lançar pagamento" sugere — nome e CPF já preenchidos (documento de 17/09; doc 66).
    *
    * A sugestão sai do ÚLTIMO pagamento que disse quem pagou, e não de uma coluna nova no paciente:
    * quem paga é fato de cada pagamento, e guardar de novo no cadastro criaria duas verdades. Sem
-   * pagamento anterior, vale o cadastro — responsável se houver, senão o próprio paciente.
+   * pagamento anterior, vale o cadastro. A REGRA do par mora em `pagadorSugerido`, que garante o
+   * que faltava: o nome e o CPF são sempre da MESMA pessoa.
    */
   const ultimoComPagador = paidPayments
     .slice()
     .sort((a, b) => new Date(horaDeParede(b.date)).getTime() - new Date(horaDeParede(a.date)).getTime())
     .find((p) => (p.pagoPor || "").trim());
-  const pagadorSugerido = ultimoComPagador
-    ? { nome: ultimoComPagador.pagoPor ?? "", cpf: ultimoComPagador.pagoPorCpf ?? "" }
-    : { nome: patient.guardianName || patient.name, cpf: patient.guardianCpf || patient.cpf || "" };
+  const pagador = pagadorSugerido(
+    {
+      pacienteNome: patient.name,
+      pacienteCpf: patient.cpf,
+      responsavelNome: patient.guardianName,
+      responsavelCpf: patient.guardianCpf,
+    },
+    ultimoComPagador ? { nome: ultimoComPagador.pagoPor, cpf: ultimoComPagador.pagoPorCpf } : null,
+  );
   const finance = {
     fee,
     balance,
@@ -234,7 +242,7 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
 
       <PatientDetail
         patient={JSON.parse(JSON.stringify(patient))}
-        pagador={pagadorSugerido}
+        pagador={pagador}
         sessions={JSON.parse(JSON.stringify(sessionsList))}
         packageLabels={Object.fromEntries(derivePackageLabels(
           sessionsList.map((s) => ({ id: s.id, date: horaDeParede(s.date), status: s.status, packageId: s.packageId })),

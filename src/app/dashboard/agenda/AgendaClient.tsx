@@ -17,10 +17,9 @@ import { CAMPOS_EDITAVEIS } from "@/lib/editarAgendamento";
 import { contarAlcance, excluirAgendamento, reagendarRecorrencia, salvarEdicao } from "./edicao-actions";
 import { BloquearHorario } from "@/components/dashboard/BloquearHorario";
 import { FUNDO_DA_JANELA, JANELA } from "@/lib/modal";
-import { perguntaSeEntraNaSequencia } from "@/lib/sessaoExtra";
+import { blocoDoAgendamento, camposDaEscolha, escolhaEfetiva, type EscolhaDoAgendamento } from "@/lib/opcoesDoAgendamento";
 import { formatoNaData } from "@/lib/vigenciaDoFormato";
 import { tipoDaFalta, tipoDaFaltaPeloRotulo, perguntaDaFalta, COMO_REFAZER } from "@/lib/perguntaFalta";
-import { podeSerCortesia } from "@/lib/cortesia";
 import { useJanela } from "@/lib/useJanela";
 import { mascaraMoeda } from "@/lib/mascaraMoeda";
 import { MoneyInput } from "@/components/MoneyInput";
@@ -161,8 +160,8 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
   const [newKind, setNewKind] = useState("consulta");
   const [newCharge, setNewCharge] = useState(true);
   const [newError, setNewError] = useState<string | null>(null);
-  // Sessão inserida num paciente de pacote: soma à sequência ou fica fora (AVUL/GRAT).
-  const [newNaSequencia, setNewNaSequencia] = useState("sim");
+  // Doc 66: o que se escolhe ao marcar — seguir normal, ficar fora da sequência, ou ser cortesia.
+  const [newEscolha, setNewEscolha] = useState<EscolhaDoAgendamento>("normal");
   const [newCobrada, setNewCobrada] = useState("");
   // Doc 9, item 6 — "abater do pacote": a sessão inserida PREENCHE uma desmarcada do mês em vez de
   // criar uma vaga nova. Ocupa a posição que ficou aberta, de modo que nada atravessa para o mês
@@ -183,7 +182,7 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
     setNewCanal("nenhum");
     setNewKind("consulta");
     setNewFreq("pontual");
-    setNewNaSequencia("sim");
+    setNewEscolha("normal");
     setNewCobrada("");
     setNewError(null);
     setShowNew(true);
@@ -248,10 +247,15 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
   // A pergunta "entra na sequência do pacote?" vale também na RECORRÊNCIA (doc 9, item 4): é como a
   // 2ª série do paciente escolhe ser Avulso/Gratuito, independente do pacote já existente. Antes só
   // o agendamento único perguntava (`!newRecorrente`), e por isso a recorrência caía sempre no pacote.
-  /** Doc 65: a cortesia é oferecida em qualquer financeiro; só a devolutiva fica de fora. */
-  const ofereceCortesia = !!selected && podeSerCortesia({ sessionKind: selected.sessionKind });
 
-  const perguntaSequencia = perguntaSeEntraNaSequencia({ formato: formatoNaDataNova, sessionKind: newKind }, jaTemSequencia);
+  /**
+   * Doc 66: o bloco de escolhas do Novo atendimento. A regra de QUAIS opções mora em
+   * `blocoDoAgendamento`; aqui só se desenha o que ela devolve.
+   */
+  const blocoNovo = blocoDoAgendamento({ formato: formatoNaDataNova, sessionKind: newKind, jaTemSequencia, emSerie: newRecorrente });
+  /** A escolha marcada pode ter deixado de existir (trocar a repetição muda o bloco). */
+  const escolhaNova = escolhaEfetiva(blocoNovo, newEscolha);
+  const campoEscolha = camposDaEscolha(escolhaNova);
   // Doc 22: ao ADICIONAR à sequência do pacote, a sessão SEMPRE preenche uma desmarcada — nunca
   // acrescenta uma a mais. Então a escolha "é uma sessão a mais" saiu, e a primeira desmarcada já
   // vem marcada por padrão (o profissional ainda pode escolher outra da lista).
@@ -345,8 +349,6 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
   }
   /** A edição preenchida, esperando a pessoa dizer o alcance. */
   const [perguntaAlcance, setPerguntaAlcance] = useState<Record<string, string> | null>(null);
-  // Doc 54: "Este atendimento será uma cortesia" — marcado no editar, aplicado só a esta sessão.
-  const [editCortesia, setEditCortesia] = useState(false);
   /** A exclusão, esperando o alcance. `null` quando ninguém pediu para excluir. */
   const [perguntaExcluir, setPerguntaExcluir] = useState<{ id: string; passo: "inicio" | "proximos" } | null>(null);
   const [quantos, setQuantos] = useState<{ mesmosDias: number; todas: number } | null>(null);
@@ -372,18 +374,6 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
       const dur = campos.duration ? Number(campos.duration) : selected.duration;
       if (!avisaColisao(colisaoDeHorario(ini, dur, selected.id))) return;
     }
-    /**
-     * CORTESIA salva direto, sem perguntar o alcance (doc 55).
-     *
-     * A pergunta "alterar quais?" existe porque mexer na data de uma sessão de uma série é
-     * ambíguo. Cortesia não é: o checkbox já diz "ESTE atendimento", e dar cortesia a um bloco
-     * inteiro dispensaria o pagamento de meses com um clique — coisa que o servidor recusa de
-     * qualquer jeito, porque a cortesia só é aplicada à sessão editada.
-     *
-     * Então a janela só teria uma resposta certa, e perguntar algo com uma resposta certa é
-     * cobrar um clique por nada. Segue direto pelo mesmo caminho do "Apenas este".
-     */
-    if (mudouACortesia) return aplicarEdicao("apenas_esta", campos);
     setPerguntaAlcance(campos);
   }
 
@@ -400,7 +390,6 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
         location: dados.location,
         confirmChannel: dados.confirmChannel,
         confirmLeadHours: dados.confirmLeadHours,
-        ...(mudouACortesia ? { cortesia: editCortesia } : {}),
       });
       setPerguntaAlcance(null);
       if (!r.ok) return setEditErro(r.error ?? "Não consegui salvar.");
@@ -549,9 +538,6 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
    * Escape fecha qualquer uma destas janelas (achado do SuperQA de 22/10). A da falta era a pior:
    * ela só oferece Sim e Não, as duas com consequência em dinheiro, e não tinha saída pelo teclado.
    */
-  /** A cortesia foi marcada ou desmarcada nesta edição? É o que dispensa a pergunta do alcance. */
-  const mudouACortesia = ofereceCortesia && editCortesia !== !!selected?.cortesia;
-
   const janelaSessao = useJanela(!!selected, () => setSelected(null));
   const janelaAlcance = useJanela(!!perguntaAlcance, () => setPerguntaAlcance(null));
   const janelaFalta = useJanela(!!perguntaFaltou, () => setPerguntaFaltou(null));
@@ -947,7 +933,7 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
             {!editing ? (
               <div className="flex items-center gap-3">
                 <button
-                  onClick={() => { setEditing(true); setEditErro(null); setEditCortesia(!!selected.cortesia); setEditModalidade(selected.isOnline ? "online" : "presencial"); setEditCanal("nenhum"); setRecFreq(selected.recurrenceFreq === "quinzenal" ? "quinzenal" : "semanal"); setRecUntil(""); setRecSegDia(""); setRecSegHora(""); }}
+                  onClick={() => { setEditing(true); setEditErro(null); setEditModalidade(selected.isOnline ? "online" : "presencial"); setEditCanal("nenhum"); setRecFreq(selected.recurrenceFreq === "quinzenal" ? "quinzenal" : "semanal"); setRecUntil(""); setRecSegDia(""); setRecSegHora(""); }}
                   className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary hover:underline"
                 >
                   <Pencil className="w-4 h-4" /> Editar agendamento
@@ -961,17 +947,9 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
                  repetição ficam de fora de propósito: trocar isso não é editar o agendamento, é
                  outro agendamento — e o lote pediu que ficassem inativos. */
               <form action={submitEdit} className="rounded-xl bg-surface/60 border border-border p-3 space-y-2">
-                {/* Doc 54: acima da data e hora, como ele pediu. A sessão vira GRAT na agenda e na
-                    guia Geral, deixa de ocupar posição na sequência — a seguinte assume o número
-                    dela — e continua no grupo de pagamento do pacote. */}
-                {ofereceCortesia && (
-                  <label className="flex items-start gap-2 rounded-xl bg-[#ecfdf5] border border-[#a7f3d0] px-3 py-2 cursor-pointer">
-                    <input type="checkbox" checked={editCortesia} onChange={(e) => setEditCortesia(e.target.checked)} className="mt-0.5 accent-[#047857]" />
-                    {/* Doc 55: só o título. A explicação embaixo repetia o que a própria escolha
-                        já ensina no uso, e enchia o formulário de edição. */}
-                    <span className="text-xs font-bold text-[#047857]">Este atendimento será uma cortesia</span>
-                  </label>
-                )}
+                {/* Doc 66: "Este atendimento será uma cortesia" saiu daqui. A cortesia passou a
+                    ser decidida ao CRIAR o agendamento — ver `blocoDoAgendamento`. As sessões já
+                    marcadas continuam cortesia: o que saiu foi o controle, não o dado. */}
                 <div className="grid grid-cols-2 gap-2">
                   <div>
                     <label className="text-xs font-semibold text-foreground/60">Data e horário</label>
@@ -1375,28 +1353,33 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
             <input type="hidden" name="abaterDoPacote" value={newKind === "devolutiva" && newAbater ? "true" : "false"} />
 
             {/* Regra do dono (15/09/2026): sessão inserida entre as do pacote pode ficar FORA da
-                sequência. Fora, não muda numeração, contagem nem valor do pacote. */}
-            {perguntaSequencia && (
+                sequência. Fora, não muda numeração, contagem nem valor do pacote.
+                Doc 66: a cortesia entrou aqui, ao lado delas, e saiu do editar agendamento. */}
+            {blocoNovo && (
               <div className="rounded-xl bg-[#fef3c7] px-3 py-2.5 space-y-2" data-testid="pergunta-sequencia">
-                <p className="text-xs font-semibold text-[#92400e]">Sequência do pacote</p>
+                {blocoNovo.titulo && <p className="text-xs font-semibold text-[#92400e]">{blocoNovo.titulo}</p>}
                 <div className="grid grid-cols-2 gap-2">
-                  {[{ v: "sim", r: "Adicionar à sequência do pacote" }, { v: "nao", r: "Não adicionar à sequência do pacote" }].map((o) => (
-                    <button key={o.v} type="button" onClick={() => setNewNaSequencia(o.v)}
-                      className={`py-2 px-2 rounded-xl text-xs font-bold transition ${newNaSequencia === o.v ? "bg-[#92400e] text-white" : "bg-white text-foreground/70 hover:bg-surface-container"}`}>
-                      {o.r}
+                  {blocoNovo.opcoes.map((o) => (
+                    <button key={o.valor} type="button" onClick={() => setNewEscolha(o.valor)}
+                      className={`py-2 px-2 rounded-xl text-xs font-bold transition ${escolhaNova === o.valor ? "bg-[#92400e] text-white" : "bg-white text-foreground/70 hover:bg-surface-container"}`}>
+                      {o.rotulo}
                     </button>
                   ))}
                 </div>
-                <input type="hidden" name="naSequencia" value={newNaSequencia} />
+                <input type="hidden" name="naSequencia" value={campoEscolha.naSequencia} />
+                <input type="hidden" name="cortesia" value={campoEscolha.cortesia ? "true" : "false"} />
+                {escolhaNova === "cortesia" && (
+                  <p className="text-[11px] text-[#92400e]/70">Não será cobrada e aparece como GRAT. Continua no pacote, mas não ocupa posição na sequência — a seguinte assume o número dela.</p>
+                )}
                 {/* Doc 36: "abater do pacote" segue acontecendo (a sessão preenche uma desmarcada
                     em aberto, ocupando a posição — nada atravessa para o mês seguinte e o total não
                     muda), MAS não se pergunta mais QUAL desmarcada: a sessão específica não importa,
                     só que ela participa da sequência. Preenche a primeira em aberto, sem UI. Só no
                     agendamento único — uma série é o próprio ritmo, não uma reposição. */}
-                {newNaSequencia === "sim" && !newRecorrente && (selectedPatient?.desmarcadas?.length ?? 0) > 0 && (
+                {escolhaNova === "normal" && !newRecorrente && (selectedPatient?.desmarcadas?.length ?? 0) > 0 && (
                   <input type="hidden" name="repoeSessaoId" value={repoeEfetivo} />
                 )}
-                {newNaSequencia === "nao" && (
+                {escolhaNova === "fora" && (
                   <>
                     <p className="text-xs font-semibold text-[#92400e]">Esta sessão será cobrada?</p>
                     <div className="grid grid-cols-2 gap-2">

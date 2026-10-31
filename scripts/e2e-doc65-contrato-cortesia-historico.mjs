@@ -12,8 +12,8 @@
 //   5. A cláusula 5.4 é a nova (reposição; não dando, vira crédito).
 //   6. "Autoconhecimento" está na queixa principal.
 //   7. A janela "Alterar quais?" não tem mais a escolha de sequência do pacote.
-//   8. "Este atendimento será uma cortesia" aparece ao editar agendamento de AVULSO, QUINZENAL e
-//      GRATUITO — não só do mensal.
+//   8. (saiu — revertido pelo doc 66: a cortesia é escolhida ao CRIAR o agendamento, e as
+//      verificações dela vivem em `e2e-doc66-cortesia-no-agendamento.mjs`.)
 //   9. O seletor de ano da Carteira lista TODOS os anos, não três.
 //
 // Uso: npm run build && npm start, depois node scripts/e2e-doc65-contrato-cortesia-historico.mjs
@@ -221,14 +221,17 @@ try {
   const opcoes = await page.locator('select[name="queixaPrincipal"] option').allInnerTexts().catch(() => []);
   check("Autoconhecimento está na lista", opcoes.includes("Autoconhecimento"), opcoes.join(" | ").slice(0, 200));
 
-  // ───────────── 7+8. A AGENDA: janela de alcance e cortesia ─────────────
-  console.log("\n— agenda: alcance da edição e cortesia —");
+  // ───────────── 7. A AGENDA: a janela de alcance ─────────────
+  //
+  // O item 8 do doc 65 (a cortesia oferecida em todo agendamento, no EDITAR) foi revertido pelo
+  // doc 66: ela passou a ser escolhida ao CRIAR. As verificações dela saíram daqui e vivem em
+  // `e2e-doc66-cortesia-no-agendamento.mjs` — o item 7, a janela "Alterar quais?", continua sendo
+  // deste documento e continua aqui.
+  console.log("\n— agenda: alcance da edição —");
   const nomeMensal = `QA doc65 mensal ${marca}`;
   const mensal = await paciente(nomeMensal, "mensal", "200.00");
   await sessao(mensal, estaSemana(0));
   if (await abrirEdicao(nomeMensal)) {
-    const antesDeSalvar = await texto(page);
-    check("o checkbox de cortesia aparece no mensal", antesDeSalvar.includes("Este atendimento será uma cortesia"));
     await page.getByRole("button", { name: /^Salvar/i }).first().click();
     await page.waitForTimeout(800);
     const janela = await texto(page);
@@ -241,19 +244,6 @@ try {
     await page.locator('[aria-label="Alterar quais agendamentos"] button:has-text("Cancelar")').first().click();
   } else {
     check("a sessão do mensal abriu na agenda", false);
-  }
-
-  for (const [rotulo, formato, extra] of [["avulso", "sessao", null], ["quinzenal", "quinzenal", null], ["gratuito", "gratuito", null], ["extra AVUL", "mensal", "avul"]]) {
-    const nome = `QA doc65 ${rotulo.replace(/\s/g, "")} ${marca}`;
-    const pid = await paciente(nome, formato, formato === "gratuito" ? "0.00" : "150.00");
-    await sessao(pid, estaSemana(1), { extra });
-    if (await abrirEdicao(nome)) {
-      const corpo = await texto(page);
-      check(`o checkbox de cortesia aparece no ${rotulo}`, corpo.includes("Este atendimento será uma cortesia"));
-      await page.keyboard.press("Escape");
-    } else {
-      check(`a sessão do ${rotulo} abriu na agenda`, false);
-    }
   }
 
   // ───────────── 9. O SELETOR DE ANO DA CARTEIRA ─────────────

@@ -6,7 +6,6 @@ import { db } from "@/db";
 import { apagarSessoesComPagamentos } from "@/lib/pagamentosLigados";
 import { auth } from "@/auth";
 import { therapySessions, sessoesPuladas, blockedSlots, sessionPayments, patients } from "@/db/schema";
-import { podeSerCortesia } from "@/lib/cortesia";
 import {
   deslocamento,
   horarioOcupado,
@@ -57,8 +56,6 @@ export async function salvarEdicao(opts: {
   location?: string;
   confirmChannel?: string;
   confirmLeadHours?: string;
-  /** Doc 54: "Este atendimento será uma cortesia". Vale só para ESTA sessão, nunca para o bloco. */
-  cortesia?: boolean;
 }): Promise<Resultado> {
   const session = await auth();
   if (!session?.user?.id) return { ok: false, error: "Sessão inválida." };
@@ -123,28 +120,16 @@ export async function salvarEdicao(opts: {
    */
 
   /**
-   * Doc 54: a CORTESIA é só da sessão editada, e é CONFERIDA ANTES DE QUALQUER ESCRITA.
+   * Doc 66: a CORTESIA saiu daqui.
    *
-   * Dar cortesia é uma decisão sobre um atendimento — "este atendimento" é o que o checkbox diz —,
-   * não sobre o combinado do paciente. Aplicá-la ao bloco dispensaria o pagamento de meses
-   * inteiros com um clique, e o alcance "este e os próximos" existe para mudar horário, não preço.
+   * Ela esteve nesta janela do doc 54 ao doc 65 e o dono a moveu para o Novo atendimento, junto da
+   * escolha da sequência. O motivo é o mesmo que já tinha tirado a sequência do pacote daqui: é
+   * uma decisão de DINHEIRO pegando carona numa troca de horário.
    *
-   * O gate é o mesmo da tela (`podeSerCortesia`): tela é conveniência, servidor é fronteira. Ele
-   * fica aqui em cima, junto das outras recusas, porque recusar DEPOIS de gravar deixava data,
-   * horário e modalidade já alterados no banco enquanto a tela dizia que nada foi salvo (achado do
-   * SuperQA de 22/10) — é a regra que este arquivo já declara: conferir tudo antes de escrever
-   * qualquer coisa. Doc 65: o gate passou a ser só a devolutiva, e por isso não precisa mais do
-   * formato vigente na data.
+   * As sessões já marcadas continuam cortesia — o que saiu foi o controle, não o dado, e o motor
+   * de cobranças segue lendo a coluna. Sem tela que desmarque: para desfazer, apaga-se o
+   * agendamento e marca-se de novo.
    */
-  let cortesiaAGravar: boolean | null = null;
-  if (opts.cortesia !== undefined) {
-    // Desmarcar a cortesia é sempre permitido — senão uma troca de formato deixaria a sessão presa
-    // em GRAT, sem nenhuma tela capaz de tirá-la de lá.
-    if (opts.cortesia && !podeSerCortesia({ sessionKind: atual.sessionKind })) {
-      return { ok: false, error: "A devolutiva tem a escolha dela: cobrar ou abater do pacote." };
-    }
-    cortesiaAGravar = opts.cortesia;
-  }
 
   const porId = new Map(novas.map((n) => [n.id, n.data]));
   for (const id of alvos) {
@@ -155,12 +140,6 @@ export async function salvarEdicao(opts: {
       .update(therapySessions)
       .set(data ? { ...mudancas, date: data } : mudancas)
       .where(and(eq(therapySessions.id, id), eq(therapySessions.userId, userId)));
-  }
-
-  if (cortesiaAGravar !== null) {
-    await db.update(therapySessions)
-      .set({ cortesia: cortesiaAGravar })
-      .where(and(eq(therapySessions.id, atual.id), eq(therapySessions.userId, userId)));
   }
 
   revalidatePath("/dashboard/agenda");

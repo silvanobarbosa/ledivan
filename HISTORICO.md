@@ -7,6 +7,37 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-10-31 — Doc 66: a cortesia se decide ao marcar, e o pagador deixa de misturar duas pessoas
+
+**Entregue:** "Sessão Cortesia" passa a ser escolhida na janela de Novo atendimento, ao lado da
+sequência do pacote, e saiu do Editar agendamento; "Lançar pagamento" traz o responsável cadastrado
+(na falta dele, o paciente) com o CPF DAQUELA pessoa (PR #523).
+
+**Por quê:** a cortesia no editar era decisão de dinheiro pegando carona numa troca de horário — o
+mesmo motivo que já tinha tirado a sequência do pacote daquela janela no doc 65. E o formulário de
+pagamento calculava o CPF como `guardianCpf || cpf`, independente de quem estava no campo do nome:
+cadastro com responsável sem CPF e paciente com CPF mostrava o nome de um ao lado do CPF do outro.
+Um cadastro da base estava exatamente assim.
+
+**Decisões que ficam valendo:** cortesia é de UM atendimento — a série não a oferece, porque marcar
+um bloco dispensaria meses de pagamento num clique (é o que o servidor do doc 54 já recusava).
+Cortesia e "não adicionar à sequência" são destinos diferentes e continuam sendo duas opções: a de
+fora SAI do pacote (vira AVUL/GRAT independente); a cortesia CONTINUA no pacote e no grupo de
+pagamento, só não ocupa posição nem cobra. Nome e CPF do pagador são sempre da MESMA pessoa; CPF em
+branco é o cadastro dizendo que não sabe, não permissão para usar o do outro.
+
+**Armadilhas:** a escolha é estado da janela e sobrevive a mudanças feitas depois dela — marcar
+cortesia e então trocar a repetição para semanal criaria uma série de cortesias que ninguém pediu.
+Quem não está mais no bloco volta ao padrão (`escolhaEfetiva`). E os percursos de navegador que
+usam "hoje + N dias" reprovam sozinhos conforme o dia da semana: numa sexta, hoje+2 cai na semana
+seguinte e o cartão não está na grade. Agora eles marcam pelo DIA DA SEMANA. Corrigido também no
+percurso do doc 53, que tinha o mesmo defeito.
+
+**Pendente:** sem tela que desmarque uma cortesia — para desfazer, apaga-se o agendamento e marca-se
+de novo. Decisão do dono.
+
+---
+
 ## 2026-10-29 — Doc 53: inativar um cadastro não apaga o rótulo da agenda
 
 **Entregue:** as sessões de um cadastro inativo voltam a mostrar GRAT, AVUL e a posição x/x na

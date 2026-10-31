@@ -11,6 +11,7 @@ import { getPreferences } from "@/lib/preferences";
 import { createMeetLink } from "@/lib/googleCalendar";
 import { parseMoedaBR } from "@/lib/money";
 import { desmarcadasSemReposicao, extraParaGravar } from "@/lib/sessaoExtra";
+import { podeSerCortesia } from "@/lib/cortesia";
 import { formatoNaData } from "@/lib/vigenciaDoFormato";
 import { getUserAiClient, SemChaveIA } from "@/lib/ai-client";
 import { chavesDaCobrancaDaSessao, decidirDesfazer } from "@/lib/desfazerCobranca";
@@ -246,6 +247,18 @@ export async function createSessionFromAgenda(formData: FormData): Promise<{ ok:
   if (!extraDaSessao.ok) return { ok: false, error: extraDaSessao.error };
 
   /**
+   * Doc 66: CORTESIA, escolhida aqui no agendamento (antes era no editar).
+   *
+   * Tela é conveniência, servidor é fronteira: o gate é conferido de novo, e a devolutiva continua
+   * de fora porque já tem as escolhas dela. A cortesia NÃO mexe no `extra` — ela continua no
+   * pacote e no grupo de pagamento, só não ocupa posição nem cobra (doc 54).
+   */
+  const cortesia = formData.get("cortesia") === "true";
+  if (cortesia && !podeSerCortesia({ sessionKind: formData.get("sessionKind") as string })) {
+    return { ok: false, error: "A devolutiva tem a escolha dela: cobrar ou abater do pacote." };
+  }
+
+  /**
    * Qual desmarcada esta sessao repoe (documento de 17/09).
    *
    * O id vem do formulario, entao a checagem e no servidor: tem de ser uma sessao DESTE paciente,
@@ -298,6 +311,7 @@ export async function createSessionFromAgenda(formData: FormData): Promise<{ ok:
     abaterDoPacote: formData.get("abaterDoPacote") === "true",
     extra: extraDaSessao.extra,
     valorExtra: extraDaSessao.valorExtra,
+    cortesia,
     repoeSessaoId,
     // O mensal não gera as sessões seguintes, mas GUARDA que é mensal: é o que põe o (M) na
     // célula e o que diz, no fim do mês, quem ainda não marcou o mês que vem.
