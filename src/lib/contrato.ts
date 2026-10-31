@@ -275,11 +275,17 @@ export function montarContrato(d: DadosDoContrato): string {
   const Lopt = (label: string, raw: string | number | null | undefined) =>
     raw != null && String(raw).trim() !== "" ? `${label}: ${neg(String(raw).trim())}\n` : "";
   const telefoneR1 = d.responsavelTelefone?.trim() ? d.responsavelTelefone : d.pacienteTelefone;
-  const blocoResponsavel = (nome: string | null, cpf: string | null, tel: string | null, email: string | null, rotuloNome: string) =>
-    Lopt(rotuloNome, nome) + Lopt("CPF", cpf) + Lopt("Endereço", d.pacienteEndereco) + Lopt("Telefone", tel) + Lopt("E-mail", email);
+  const blocoResponsavel = (nome: string | null, cpf: string | null, tel: string | null, email: string | null, rotuloNome: string, nascimento = false) =>
+    Lopt(rotuloNome, nome) +
+    // Doc 70: quando quem contrata É o paciente, a data de nascimento vem logo abaixo do nome —
+    // ela identifica a pessoa, e nesse contrato não existe um bloco PACIENTE separado para guardá-la.
+    (nascimento && d.pacienteNascimento ? `Data de Nascimento: ${nascimentoTxt}\n` : "") +
+    Lopt("CPF", cpf) + Lopt("Endereço", d.pacienteEndereco) + Lopt("Telefone", tel) + Lopt("E-mail", email);
   // Quando quem contrata é o próprio paciente, o rótulo é "Nome": chamá-lo de responsável por si
   // mesmo é o tipo de linha que faz a pessoa desconfiar do documento inteiro.
-  const contratanteBloco = blocoResponsavel(r1Nome, r1Cpf, telefoneR1, r1Email, contratanteEhOPaciente ? "Nome" : "Nome do Responsável").trimEnd();
+  const contratanteBloco = blocoResponsavel(
+    r1Nome, r1Cpf, telefoneR1, r1Email, contratanteEhOPaciente ? "Nome" : "Nome do Responsável", contratanteEhOPaciente,
+  ).trimEnd();
   const contratante2Bloco = r2Nome && r2Nome.trim()
     ? blocoResponsavel(r2Nome, r2Cpf, d.pacienteTelefone, r2Email, "Nome do Responsável 2").trimEnd()
     : "";
@@ -288,7 +294,9 @@ export function montarContrato(d: DadosDoContrato): string {
   const pacienteBloco = (
     Lopt("Nome", d.pacienteNome) +
     (d.pacienteNascimento ? `Data de Nascimento: ${nascimentoTxt}\n` : "") +
-    (idadeNumero != null ? `Idade: ${idadeTxt} anos\n` : "") +
+    // Doc 70: a IDADE saiu do contrato. Ela é a data de nascimento contada, e um documento
+    // impresso hoje com "Idade: 12 anos" fica errado no próximo aniversário: a data não
+    // envelhece, o número sim.
     Lopt("CPF", d.pacienteCpf) +
     Lopt("Endereço", d.pacienteEndereco) +
     Lopt("Telefone", d.pacienteTelefone) +
@@ -308,21 +316,21 @@ Plataforma utilizada para atendimentos online: ${plataformaProf}
 Telefone: ${telefoneProf}
 E-mail: ${emailProf}
 
-CONTRATANTE(S):
+${contratanteEhOPaciente ? "CONTRATANTE/ PACIENTE:" : "CONTRATANTE(S):"}
 ${contratanteBloco}${contratante2Bloco ? `
 
 ${contratante2Bloco}` : ""}
-
+${contratanteEhOPaciente ? "" : `
 PACIENTE:
 ${pacienteBloco}
-
+`}
 2. DO OBJETO DO CONTRATO
 2.1. O presente instrumento tem por objeto ${m.objeto}.
 2.2. Por se tratar de um processo ${m.processo}, a prestação de serviços é de meio, e não de fim, dependendo do engajamento do paciente e da sustentação do enquadre pelos seus responsáveis.
 
 3. DO ENQUADRE CLÍNICO E HORÁRIOS
 3.1. Frequência e Duração: As sessões terão a duração de ${duracaoTxt}, ${frequenciaTxt}.
-3.2. Pontualidade: O horário reservado pertence exclusivamente ao paciente. Atrasos por parte do paciente/responsáveis não implicarão na prorrogação do tempo da sessão.
+3.2. Pontualidade: O horário reservado pertence exclusivamente ao paciente. Atrasos por parte do paciente não implicarão na prorrogação do tempo da sessão.
 
 4. DOS HONORÁRIOS, FORMA DE PAGAMENTO E REAJUSTE
 ${d.formatoPagamento === "gratuito"
@@ -426,7 +434,6 @@ export function montarContratoSupervisao(d: DadosDoContrato): string {
   const supervisionandoBloco = (
     Lopt("Nome", d.pacienteNome) +
     (nascimentoTxt ? `Data de Nascimento: ${nascimentoTxt}\n` : "") +
-    (idadeNumero != null ? `Idade: ${neg(String(idadeNumero))} anos\n` : "") +
     Lopt("CPF", d.pacienteCpf) +
     Lopt("Endereço", d.pacienteEndereco) +
     Lopt("Telefone", d.pacienteTelefone) +

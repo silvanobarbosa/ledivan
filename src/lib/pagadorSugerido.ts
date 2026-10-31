@@ -40,10 +40,38 @@ export function cpfCadastradoDe(nome: string, c: CadastroDoPagador): string {
 }
 
 /**
+ * O NOME COMPLETO, quando o que chegou foi só o primeiro.
+ *
+ * Doc 70 (dona, 31/10): "existem lançamentos que não estão aparecendo o nome completo — por
+ * exemplo a paciente Renata". A memória do último pagador repete o que foi digitado uma vez, e o
+ * que foi digitado uma vez pode ter sido "Renata".
+ *
+ * Medido na base antes de escrever a regra, e o número mudou o desenho: dos 12 pagadores gravados
+ * com uma palavra só, **dez têm o cadastro assim** — o responsável chama-se "Gabriela" e pronto.
+ * Nesses não há nome completo a buscar, e inventar sobrenome seria pior que o sintoma. O caso da
+ * dona é o décimo primeiro: o pagador é a própria paciente, e o cadastro TEM o nome inteiro.
+ *
+ * Então a regra é estreita: só completa quando o que foi digitado é exatamente o começo de UM dos
+ * dois nomes do cadastro. Começando os dois (mãe e filha "Ana"), não dá para saber qual — e aí
+ * fica como está, porque errar o nome de quem pagou é pior do que mostrá-lo curto.
+ */
+export function nomeCompletoDoCadastro(nome: string, c: CadastroDoPagador): string {
+  const dito = limpo(nome);
+  if (!dito || dito.includes(" ")) return dito;
+
+  const comecaCom = (completo: string) => {
+    const alvo = limpo(completo);
+    return !!alvo && alvo.toLowerCase().startsWith(`${dito.toLowerCase()} `);
+  };
+  const candidatos = [limpo(c.responsavelNome), limpo(c.pacienteNome)].filter(comecaCom);
+  return candidatos.length === 1 ? candidatos[0] : dito;
+}
+
+/**
  * @param ultimo o último pagamento que disse quem pagou, se houver.
  */
 export function pagadorSugerido(c: CadastroDoPagador, ultimo?: { nome?: string | null; cpf?: string | null } | null): Pagador {
-  const doUltimo = limpo(ultimo?.nome);
+  const doUltimo = nomeCompletoDoCadastro(limpo(ultimo?.nome ?? ""), c);
   if (doUltimo) return { nome: doUltimo, cpf: limpo(ultimo?.cpf) || cpfCadastradoDe(doUltimo, c) };
 
   const responsavel = limpo(c.responsavelNome);

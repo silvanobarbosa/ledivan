@@ -7,6 +7,80 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-10-31 — Doc 70: contrato de quem contrata por si, nome do pagador e sequência que não começa no gratuito
+
+**Entregue:** contrato com cabeçalho "CONTRATANTE/ PACIENTE" e sem bloco repetido quando não há
+responsável; idade fora do contrato; cláusula 3.2 sem "/responsáveis"; lançamento de pagamento com
+o nome completo; devolutiva de paciente gratuito sem a pergunta da sequência; "Iniciar" (e não
+"Adicionar") à sequência para quem veio do gratuito; card "Sessões agendadas" contando o que está
+sem status; e a numeração 1/5 da Caroline corrigida (PR #535).
+
+**Decisões que ficam valendo:**
+
+- **A idade não entra em documento assinado.** Ela é a data de nascimento contada, e envelhece
+  depois de o papel ser impresso. A data fica; o número, não.
+- **Nome de pagador só se completa quando é inequívoco.** Medido: dos 12 pagadores gravados com
+  uma palavra só, DEZ têm o cadastro assim — o responsável chama-se "Gabriela" e acabou. Inventar
+  sobrenome seria pior que o sintoma. Se os dois nomes do cadastro começam igual (mãe e filha
+  "Ana"), fica como está.
+- **Gratuito não tem sequência de pacote.** Nem para perguntar sobre abatimento, nem para contar
+  como começo de sequência. A primeira do pacote é a primeira DEPOIS da troca de formato.
+- **Vigência nova cancela vigência posterior** (tamanho do pacote). Salvar "N a partir do dia D" é
+  dizer que de D em diante são N; o que estava marcado para depois de D contradiz isso e sai. Quem
+  quiser programar uma mudança futura salva a futura por último.
+
+**Armadilhas:**
+
+1. **A paciente Caroline não era bug de cálculo, era dado.** Quinze minutos de experimentação
+   deixaram seis vigências de tamanho, e a órfã "5 a partir de 31/10" ficou sendo a mais recente:
+   o cadastro dizia 2 e a agenda numerava 1/5. Antes de culpar o motor, olhe o histórico.
+2. **O `sql` cru do Neon serializa data pelo FUSO da máquina.** Uma data de nascimento inserida
+   como `Date.UTC(1990,0,1)` chega ao banco como 31/12/1989 22:00. Em percurso, data de nascimento
+   vai como meia-noite LOCAL.
+3. **"Não adicionar à sequência" contém "adicionar à sequência".** Procurar o verbo no texto da
+   caixa acusa inocente; o que muda é o rótulo do PRIMEIRO botão.
+4. **A Gisele estava usando o app enquanto eu media.** Duas leituras do motor com horas de
+   diferença acusaram cobranças mudadas que não eram minhas — 182 sessões criadas por ela em três
+   horas. Duas leituras SEGUIDAS é o que separa o próprio código do movimento da base.
+
+**Pendente (do dono, não meu):** dez cadastros têm o responsável com só o primeiro nome
+("Gabriela", "Hugo", "Elaine", "Rosana", "Irupe", "Juliana", "Jucileia", "Nice", "Jane", "Thalia").
+Enquanto o cadastro não tiver o nome inteiro, o lançamento não tem de onde tirá-lo.
+
+---
+
+## 2026-10-31 — Doc 69: bloqueio que repete, vigência sempre à vista e o preço sobre o pacote certo
+
+**Entregue:** "Repetir até" na janela de bloquear horário (semanal, pulando o que tem paciente);
+"Vale a partir de" sempre visível em paciente já cadastrado; e a pergunta "o novo valor vale sobre
+o pacote vigente ou o próximo a iniciar?" no reajuste de quem paga por pacote (PR #534).
+
+**Decisões que ficam valendo:**
+
+- **O passado não se repreciﬁca.** Faixa de preço SEM resposta gravada (tudo o que é anterior ao
+  doc 69) mantém a conta de sempre: preço da competência × tamanho contratado. A soma sessão a
+  sessão vale só quando alguém respondeu "pacote vigente". Medido: aplicar a conta nova a todo o
+  histórico mexia em **216 cobranças antigas, muitas já pagas**.
+- **Nulo tem significado.** `patient_price_history.aplica_em` nasceu SEM default de propósito —
+  nulo é "ninguém respondeu". A migração 0034 com `DEFAULT 'vigente'` preenchia as linhas antigas
+  e apagava essa distinção; foi corrigida antes de o código subir.
+- **"Vale a partir de" é dado de leitura, não só de escrita.** Escondê-lo depois de salvar (doc 37)
+  obrigava a alterar algo para conferir a data — pedir que se arrisque uma edição para LER.
+
+**Armadilhas:**
+
+1. **A hora de parede mora nos campos UTC.** A coluna é `timestamp` sem fuso e o Drizzle a lê como
+   UTC: `getHours()` só acerta num servidor em UTC, que é como a Vercel roda. Em qualquer outro
+   fuso a janela de bloqueio errava três horas — oferecia como livre um horário ocupado. Leitura e
+   escrita passam a usar os campos UTC, e os percursos rodam com `TZ=UTC`.
+2. **`EXTRACT(HOUR FROM date)` lê a coluna em UTC.** Uma limpeza de percurso por hora não apaga
+   nada e não reclama — e a corrida seguinte encontra o horário ocupado.
+3. **"Desbloquear os marcados" casa com `/Bloquear os marcados/`.** `exact: true`.
+4. **`carregar()` limpa o recado.** Escrever o aviso antes de recarregar é escrever numa tela que
+   vai ser apagada.
+
+---
+
 ## 2026-10-31 — A voz passa a AGIR: anotar, reservar e cancelar
 
 **Entregue:** por voz, três verbos — "anota na Marcela: dormiu melhor", "marca a Marcela amanhã às

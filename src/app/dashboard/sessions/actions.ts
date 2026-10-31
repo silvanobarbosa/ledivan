@@ -237,8 +237,9 @@ export async function createSessionFromAgenda(formData: FormData): Promise<{ ok:
     .select({ formato: patientPaymentFormatHistory.formato, pacoteTipo: patientPaymentFormatHistory.pacoteTipo, desde: patientPaymentFormatHistory.dataEfetiva, criadoEm: patientPaymentFormatHistory.dataCriacao })
     .from(patientPaymentFormatHistory)
     .where(eq(patientPaymentFormatHistory.patientId, patientId));
+  const formatoDaSessao = formatoNaData(vigencias, date, { formato: patient.paymentFormat, pacoteTipo: patient.pacoteTipo }).formato;
   const extraDaSessao = extraParaGravar({
-    formato: formatoNaData(vigencias, date, { formato: patient.paymentFormat, pacoteTipo: patient.pacoteTipo }).formato,
+    formato: formatoDaSessao,
     sessionKind: formData.get("sessionKind") as string,
     naSequencia: formData.get("naSequencia") as string | null,
     cobrada: formData.get("cobrada") as string | null,
@@ -259,6 +260,9 @@ export async function createSessionFromAgenda(formData: FormData): Promise<{ ok:
         escolha: (formData.get("devolutivaEscolha") as string || null) as never,
         valor: formData.get("valorDevolutiva") as string | null,
         abatimento: (formData.get("devolutivaAbatimento") as string || null) as never,
+        // Doc 70: no gratuito não há sequência de pacote, então a segunda pergunta não é feita —
+        // e a fronteira não pode exigir a resposta de uma pergunta que a tela não mostrou.
+        semSequencia: formatoDaSessao === "gratuito",
       })
     : null;
   if (devolutiva && !devolutiva.ok) return { ok: false, error: devolutiva.error };

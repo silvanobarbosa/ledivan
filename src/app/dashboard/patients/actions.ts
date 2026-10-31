@@ -555,6 +555,21 @@ export async function updatePatient(patientId: string, formData: FormData) {
       if (!temHist && antigoTamanho && antigoTamanho >= 1) {
         rows.push({ patientId, tamanho: antigoTamanho, dataEfetiva: existing.startedAt ?? existing.createdAt });
       }
+      /**
+       * Doc 70: a vigência nova CANCELA qualquer vigência posterior a ela.
+       *
+       * O caso medido (Caroline, 31/10): a terapeuta experimentou tamanhos durante quinze minutos
+       * — 4, depois 2, depois 5 valendo de hoje, depois 2 valendo de 2024. Cada salvamento só
+       * acrescentava uma linha, e a linha "5 a partir de 31/10" ficou sendo a mais recente. O
+       * cadastro dizia 2 e a agenda numerava 1/5 — duas verdades sobre a mesma coisa, e a tela
+       * mostrando a que a pessoa não consegue ver.
+       *
+       * Salvar "N a partir do dia D" é dizer que de D em diante são N. O que estava marcado para
+       * depois de D contradiz isso e sai. (Quem quiser mesmo programar uma mudança futura salva a
+       * futura POR ÚLTIMO, que é a ordem em que as duas frases não se contradizem.)
+       */
+      await db.delete(patientPackageHistory)
+        .where(and(eq(patientPackageHistory.patientId, patientId), gt(patientPackageHistory.dataEfetiva, desde)));
       rows.push({ patientId, tamanho: novoTamanho, dataEfetiva: desde });
       await db.insert(patientPackageHistory).values(rows);
     }

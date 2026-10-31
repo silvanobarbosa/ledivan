@@ -84,13 +84,36 @@ export function entraNaSequenciaDoPacote(s: {
  * uma devolutiva que não abate, **não tem sequência nenhuma** — oferecer "adicionar a" uma
  * sequência que não existe descreve errado o que o botão vai fazer.
  */
-export function pacientesComSequencia(sessoes: {
-  patientId: string;
-  extra?: string | null;
-  sessionKind?: string | null;
-  abaterDoPacote?: boolean | null;
-}[]): Set<string> {
-  return new Set(sessoes.filter(entraNaSequenciaDoPacote).map((s) => s.patientId));
+export function pacientesComSequencia(
+  sessoes: {
+    patientId: string;
+    date?: Date | string | null;
+    extra?: string | null;
+    sessionKind?: string | null;
+    abaterDoPacote?: boolean | null;
+  }[],
+  /**
+   * Doc 70: o formato daquele DIA usava pacote?
+   *
+   * Sem esta pergunta, o atendimento feito enquanto o paciente era GRATUITO contava como começo de
+   * sequência — e quem acabou de passar de gratuito para mensal via "Adicionar à sequência do
+   * pacote" sem ter nenhuma. Gratuito não tem sequência: a primeira do pacote é a primeira depois
+   * da troca, e o verbo tem de dizer isso.
+   *
+   * Ausente, todas contam — é o comportamento de quem chama sem saber as vigências.
+   */
+  usaPacoteNaData?: (patientId: string, data: Date) => boolean,
+): Set<string> {
+  return new Set(
+    sessoes
+      .filter(entraNaSequenciaDoPacote)
+      .filter((s) => {
+        if (!usaPacoteNaData) return true;
+        const d = s.date instanceof Date ? s.date : s.date ? new Date(s.date) : null;
+        return !!d && !Number.isNaN(d.getTime()) && usaPacoteNaData(s.patientId, d);
+      })
+      .map((s) => s.patientId),
+  );
 }
 
 /**

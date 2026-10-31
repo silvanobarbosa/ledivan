@@ -48,9 +48,12 @@ describe("montarContrato", () => {
     expect(psi).toContain("sigilo ético e analítico");
     expect(psi).toContain("8. DO ENCERRAMENTO E ALTA ANALÍTICA");
   });
-  it("calcula idade da data de nascimento", () => {
+  // Doc 70: a IDADE saiu do contrato — ela é a data de nascimento contada, e envelhece sozinha
+  // depois de o documento impresso ser assinado. A data fica; o número, não.
+  it("mostra a data de nascimento e NÃO mostra idade", () => {
     const t = c({ ...base, pacienteNascimento: new Date(2010, 0, 1) });
-    expect(t).toMatch(/Idade: 1[0-9] anos/);
+    expect(t).toContain("Data de Nascimento: 01/01/2010");
+    expect(t).not.toMatch(/Idade:/);
   });
 
   // Doc 28 — título, objeto (2.1/2.2), reserva (5.1) e assinatura pela FORMAÇÃO.
@@ -109,8 +112,14 @@ describe("montarContrato", () => {
     const t = c({ ...base, pacienteNascimento: new Date(1990, 0, 1), responsavelNome: null, responsavelCpf: null });
     // Doc 65: sem responsável, quem contrata é o paciente — e chamá-lo de "responsável por si
     // mesmo" é a linha que fazia a dona desconfiar do documento.
-    expect(t).toContain("CONTRATANTE(S):\nNome: João Silva");
+    // Doc 70: sem responsável não há duas partes para separar — o cabeçalho diz
+    // "CONTRATANTE/ PACIENTE" e o bloco PACIENTE, que repetiria a mesma pessoa, some.
+    expect(t).toContain("CONTRATANTE/ PACIENTE:\nNome: João Silva");
+    expect(t).not.toContain("CONTRATANTE(S):");
+    expect(t).not.toContain("\nPACIENTE:");
     expect(t).not.toContain("Nome do Responsável 2");
+    // E a data de nascimento vem logo abaixo do nome, que é onde ela identifica a pessoa.
+    expect(t).toContain("Nome: João Silva\nData de Nascimento: 01/01/1990");
   });
   it("maior de 18 COM responsável: responsável no 1, paciente no 2", () => {
     const t = c({ ...base, pacienteNascimento: new Date(1990, 0, 1) });
