@@ -29,6 +29,28 @@ export class SemChaveIA extends Error {
 export type UserAi = { openai: OpenAI; chatModel: string };
 
 /**
+ * O gateway da casa — `ia.reverblabs.com.br`.
+ *
+ * Uma porta só para a frota: o modelo leve e o pesado rodam na nossa VPS ou atrás dela, e o
+ * ouvido (Whisper) também. O app guarda a chave DO GATEWAY, não a de um provedor — é o que a
+ * regra da casa pede, e é o que mantém o áudio clínico dentro da nossa infraestrutura.
+ *
+ * `null` quando não está configurado: o chamador cai na reserva em vez de quebrar.
+ */
+export function casaAi(): { openai: OpenAI; sttModel: string; chatModel: string } | null {
+  const baseURL = process.env.REVERBLABS_AI_BASE_URL;
+  const apiKey = process.env.REVERBLABS_AI_KEY;
+  if (!baseURL || !apiKey) return null;
+  return {
+    openai: new OpenAI({ baseURL, apiKey }),
+    sttModel: "rl-stt",
+    // HEAVY, não leve: a evolução vira texto que a terapeuta assina e o paciente carrega. Modelo
+    // pequeno erra com fluência, e aqui o erro é invisível — é a regra §3 da casa.
+    chatModel: "rl-heavy",
+  };
+}
+
+/**
  * Monta o cliente de IA do terapeuta `userId`. Lança `SemChaveIA` se ele não cadastrou chave —
  * o chamador decide como mostrar isso (mensagem amigável, não 500 genérico).
  */

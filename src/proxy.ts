@@ -104,6 +104,19 @@ export default async function proxy(req: NextRequest) {
   }
 
   if (!session) {
+    /**
+     * API responde 401; PÁGINA é que redireciona para o login.
+     *
+     * O redirect servia aos dois, e para a API era errado de um jeito caro: um 307 PRESERVA o
+     * método e o corpo, então um POST sem sessão era reenviado ao handler de LOGIN. Um corpo
+     * JSON voltava com "Email e senha são obrigatórios" (resposta de outra rota, confundindo
+     * quem chamou) e um corpo multipart derrubava o handler num 500, porque o login tenta lê-lo
+     * como JSON. Nenhum cliente de API consegue agir sobre isso — e nenhuma requisição deveria
+     * ser entregue a um handler que não é o dela.
+     */
+    if (pathname.startsWith("/api/")) {
+      return NextResponse.json({ ok: false, error: "Não autorizado" }, { status: 401 });
+    }
     return NextResponse.redirect(new URL("/auth/login", req.nextUrl));
   }
   return NextResponse.next();
