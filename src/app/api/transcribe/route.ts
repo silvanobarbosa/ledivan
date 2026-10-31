@@ -8,7 +8,7 @@ import { getPreferences } from "@/lib/preferences";
 import { rateLimit } from "@/lib/rateLimit";
 import { decryptSecret } from "@/lib/crypto";
 import { casaAi } from "@/lib/ai-client";
-import { audioAceitavel, dicaDeNomes, escolherMotor, TETO_DO_AUDIO } from "@/lib/transcricao";
+import { audioAceitavel, dicaDeNomes, ordemDosMotores, TETO_DO_AUDIO, type MotorDeAudio } from "@/lib/transcricao";
 
 // Reserva: a chave do próprio terapeuta, quando o gateway da casa não está configurado ou caiu.
 // Ver `lib/transcricao.ts` para a ordem e o porquê.
@@ -82,55 +82,79 @@ export async function POST(req: NextRequest) {
     .from(users).where(eq(users.id, userId)).limit(1);
   const cfg = me?.provider ? PROVIDERS[me.provider] : undefined;
   const casa = casaAi();
-  const motor = escolherMotor({ casaDisponivel: !!casa, terapeutaTemChave: !!(cfg && me?.keyEnc) });
-  if (!motor) {
-    return NextResponse.json({ ok: false, error: "A transcrição está indisponível. Cadastre sua chave de IA em Configurações ou fale com o suporte." }, { status: 400 });
+  const motores = ordemDosMotores({
+    optouPelaCasa: !!prefs.iaDaCasa,
+    casaConfigurada: !!casa,
+    terapeutaTemChave: !!(cfg && me?.keyEnc),
+  });
+  if (!motores.length) {
+    return NextResponse.json({ ok: false, error: "Cadastre sua chave de IA em Configurações para usar a transcrição." }, { status: 400 });
   }
 
-  let openai: OpenAI;
-  let sttModel: string;
-  let chatModel: string;
-  if (motor === "casa") {
-    ({ openai, sttModel, chatModel } = casa!);
-  } else {
-    try { openai = new OpenAI({ apiKey: decryptSecret(me!.keyEnc!), ...(cfg!.baseURL ? { baseURL: cfg!.baseURL } : {}) }); }
-    catch { return NextResponse.json({ ok: false, error: "Não foi possível ler sua chave de IA. Cadastre novamente." }, { status: 500 }); }
-    sttModel = cfg!.stt;
-    chatModel = cfg!.chat;
-  }
+  /** Monta o cliente daquele motor. `null` quando a chave guardada não pôde ser lida. */
+  const clienteDe = (motor: MotorDeAudio) => {
+    if (motor === "casa") {
+      // Teto de tempo próprio: VPS pendurada não pode consumir o orçamento inteiro da rota e
+      // deixar a reserva sem tempo de rodar.
+      return { openai: new OpenAI({ baseURL: process.env.REVERBLABS_AI_BASE_URL, apiKey: process.env.REVERBLABS_AI_KEY, timeout: 150_000 }), stt: casa!.sttModel, chat: casa!.chatModel };
+    }
+    try {
+      return { openai: new OpenAI({ apiKey: decryptSecret(me!.keyEnc!), ...(cfg!.baseURL ? { baseURL: cfg!.baseURL } : {}) }), stt: cfg!.stt, chat: cfg!.chat };
+    } catch { return null; }
+  };
+
+  const nomes = dicaDeNomes([patient.name, patient.guardianName]);
+  let conteudo: string | null = null;
+  let ultimoErro: unknown = null;
 
   try {
-    const transcription = await openai.audio.transcriptions.create({
-      file,
-      model: sttModel,
-      language: "pt",
-      // Os nomes DESTA sessão, para o modelo não precisar adivinhá-los. Ver `dicaDeNomes`.
-      prompt: dicaDeNomes([patient.name, patient.guardianName]),
-    });
+    /**
+     * Tenta os motores NA ORDEM, e a reserva só entra se o primeiro falhar DE VERDADE — é o que
+     * faltava na primeira versão, que escolhia um motor só e morria com ele.
+     */
+    for (const motor of motores) {
+      const c = clienteDe(motor);
+      if (!c) { ultimoErro = new Error("chave ilegível"); continue; }
+      try {
+        const transcription = await c.openai.audio.transcriptions.create({
+          file,
+          model: c.stt,
+          language: "pt",
+          // Os nomes DESTA sessão, para o modelo não precisar adivinhá-los. Ver `dicaDeNomes`.
+          prompt: nomes,
+        });
 
-    const draft = await openai.chat.completions.create({
-      model: chatModel,
-      messages: [
-        {
-          role: "system",
-          content:
-            "Você é um assistente clínico para terapeutas. A partir da transcrição de uma sessão de terapia, escreva uma EVOLUÇÃO clínica concisa, objetiva e profissional em português (3ª pessoa). Não invente informações que não estejam na transcrição. Estruture em: queixa/tema, intervenções, evolução/observações e encaminhamentos quando houver.",
-        },
-        { role: "user", content: transcription.text },
-      ],
-    });
+        const draft = await c.openai.chat.completions.create({
+          model: c.chat,
+          messages: [
+            {
+              role: "system",
+              content:
+                "Você é um assistente clínico para terapeutas. A partir da transcrição de uma sessão de terapia, escreva uma EVOLUÇÃO clínica concisa, objetiva e profissional em português (3ª pessoa). Não invente informações que não estejam na transcrição. Estruture em: queixa/tema, intervenções, evolução/observações e encaminhamentos quando houver.",
+            },
+            { role: "user", content: transcription.text },
+          ],
+        });
+        conteudo = draft.choices[0].message.content?.trim() || transcription.text;
+        break;
+      } catch (e) {
+        // Guarda e tenta o próximo. Nada foi gravado ainda, então repetir é seguro.
+        ultimoErro = e;
+        console.error(`Transcrição falhou no motor ${motor}:`, e);
+      }
+    }
 
-    const content = draft.choices[0].message.content?.trim() || transcription.text;
+    if (conteudo == null) throw ultimoErro ?? new Error("nenhum motor respondeu");
 
     await db.insert(patientRecords).values({
       userId,
       patientId,
       type: "evolucao",
       title: "Evolução (IA)",
-      content,
+      content: conteudo,
     });
 
-    return NextResponse.json({ ok: true, content });
+    return NextResponse.json({ ok: true, content: conteudo });
   } catch (e) {
     console.error("Erro na transcrição:", e);
     return NextResponse.json({ ok: false, error: "Falha ao transcrever. Tente um áudio menor (até 25MB)." }, { status: 500 });

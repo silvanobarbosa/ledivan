@@ -1,18 +1,30 @@
 import { describe, it, expect } from "vitest";
-import { audioAceitavel, dicaDeNomes, escolherMotor, TETO_DO_AUDIO } from "@/lib/transcricao";
+import { audioAceitavel, dicaDeNomes, ordemDosMotores, TETO_DO_AUDIO } from "@/lib/transcricao";
 
 describe("onde o áudio da sessão é ouvido", () => {
-  it("a casa vem primeiro: é o único motor em que o áudio do paciente não sai da nossa infra", () => {
-    expect(escolherMotor({ casaDisponivel: true, terapeutaTemChave: true })).toBe("casa");
-    expect(escolherMotor({ casaDisponivel: true, terapeutaTemChave: false })).toBe("casa");
+  it("o padrão é a chave DELA: o app não depende da nossa VPS", () => {
+    expect(ordemDosMotores({ optouPelaCasa: false, casaConfigurada: true, terapeutaTemChave: true })).toEqual(["byok"]);
   });
 
-  it("sem a casa, a chave dela segura o recurso de pé", () => {
-    expect(escolherMotor({ casaDisponivel: false, terapeutaTemChave: true })).toBe("byok");
+  it("a casa só entra quando ELA liga — estar configurada não basta", () => {
+    expect(ordemDosMotores({ optouPelaCasa: false, casaConfigurada: true, terapeutaTemChave: false })).toEqual([]);
   });
 
-  it("sem nenhum dos dois, recusa — nunca escolhe um motor que não existe", () => {
-    expect(escolherMotor({ casaDisponivel: false, terapeutaTemChave: false })).toBeNull();
+  it("ligada a casa, a chave dela fica de reserva NA MESMA chamada", () => {
+    expect(ordemDosMotores({ optouPelaCasa: true, casaConfigurada: true, terapeutaTemChave: true })).toEqual(["casa", "byok"]);
+  });
+
+  it("ligada a casa sem chave dela, vai só a casa — e ela sabe que ficou sem reserva", () => {
+    expect(ordemDosMotores({ optouPelaCasa: true, casaConfigurada: true, terapeutaTemChave: false })).toEqual(["casa"]);
+  });
+
+  it("ligada a casa num ambiente sem gateway, cai na chave dela", () => {
+    expect(ordemDosMotores({ optouPelaCasa: true, casaConfigurada: false, terapeutaTemChave: true })).toEqual(["byok"]);
+  });
+
+  it("sem nada, lista vazia — nunca escolhe um motor que não existe", () => {
+    expect(ordemDosMotores({ optouPelaCasa: true, casaConfigurada: false, terapeutaTemChave: false })).toEqual([]);
+    expect(ordemDosMotores({ optouPelaCasa: false, casaConfigurada: false, terapeutaTemChave: false })).toEqual([]);
   });
 });
 

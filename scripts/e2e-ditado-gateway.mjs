@@ -45,14 +45,37 @@ try {
   // Elas moram num JSON na coluna `preferences`, não numa coluna própria.
   const [u] = await sql`SELECT preferences FROM "user" WHERE id = ${qa.id}`;
   prefsAntes = u?.preferences ?? null;
-  const prefs = { ...(prefsAntes ? JSON.parse(prefsAntes) : {}), transcriptionEnabled: true };
-  await sql`UPDATE "user" SET preferences = ${JSON.stringify(prefs)} WHERE id = ${qa.id}`;
+  const base = prefsAntes ? JSON.parse(prefsAntes) : {};
+  const porPrefs = async (patch) =>
+    sql`UPDATE "user" SET preferences = ${JSON.stringify({ ...base, transcriptionEnabled: true, ...patch })} WHERE id = ${qa.id}`;
+
+  /**
+   * O CONTROLE DA AUTONOMIA, e é o mais importante deste percurso.
+   *
+   * Sem a terapeuta LIGAR a IA da casa, o app não pode usar a nossa VPS — mesmo com o gateway
+   * configurado no ambiente, como está aqui. O Ledivan tem de funcionar sem ela
+   * (`PENDENCIAS.md`: "hub/apps NÃO dependem dela"). Sem opt-in e sem chave dela: recusa.
+   */
+  await porPrefs({ iaDaCasa: false });
 
   const [p] = await sql`
     INSERT INTO patients (user_id, name, payment_format, session_fee, patient_status, payment_day, sessions_in_packet, started_at)
     VALUES (${qa.id}, ${NOME}, 'sessao', '100.00', 'ativo', 10, 4, now())
     RETURNING id`;
   criados.push(p.id);
+
+  {
+    const fdC = new FormData();
+    fdC.append("audio", new Blob([Buffer.alloc(5000)], { type: "audio/wav" }), "c.wav");
+    fdC.append("patientId", p.id);
+    fdC.append("consent", "true");
+    const r = await fetch(`${BASE}/api/transcribe`, { method: "POST", headers: { cookie: `auth-session=${token}` }, body: fdC });
+    const j = await r.json().catch(() => ({}));
+    check("sem a terapeuta ligar, o app NÃO usa a nossa VPS", r.status === 400 && /Cadastre sua chave/.test(j.error ?? ""), `${r.status} ${j.error ?? ""}`);
+  }
+
+  // Agora ela liga a IA da casa — é opt-in dela, não padrão nosso.
+  await porPrefs({ iaDaCasa: true });
 
   // A VOZ da casa gera a fala.
   const t0 = Date.now();

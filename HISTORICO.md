@@ -7,6 +7,29 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-10-31 — A IA da casa vira opção; a chave da terapeuta volta a ser o chão
+
+**Entregue:** a transcrição usa a chave da terapeuta por padrão. A IA da casa virou um opt-in
+("Usar a IA do Le'Divan") nas Configurações, e quando ligada a chave dela fica como reserva REAL,
+acionada na mesma requisição se a VPS não responder (PR #526).
+
+**Por quê:** o bloco anterior pôs o Ledivan em cima da nossa VPS por padrão, contra a regra já
+escrita em `docs/PENDENCIAS.md` ("VPS única é ponto único de falha; hub/apps NÃO dependem dela").
+O dono cobrou a regra.
+
+**Decisões que ficam valendo:** a dependência da VPS é ESCOLHA da terapeuta, nunca padrão do app.
+E a promessa na tela acompanha a escolha: o cartão dizia "o Le'Divan não utiliza uma chave própria"
+e isso deixou de ser verdade com a IA da casa ligada — agora o texto muda junto.
+
+**Armadilhas:** o failover anterior era de papel. Ele perguntava se o gateway estava CONFIGURADO,
+não se estava RESPONDENDO, então nunca caía para a reserva. **Configuração não é disponibilidade.**
+A ordem dos motores agora é uma LISTA tentada de fato, com teto de tempo próprio para a VPS, senão
+uma VPS pendurada consome o orçamento da rota e deixa a reserva sem tempo de rodar.
+
+**Pendente:** nada deste bloco.
+
+---
+
 ## 2026-10-31 — O ditado da evolução passa a ser ouvido pela casa
 
 **Entregue:** `/api/transcribe` fala com o gateway da casa (`rl-stt`, Whisper na nossa VPS) em vez
