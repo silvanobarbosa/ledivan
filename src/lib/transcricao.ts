@@ -1,18 +1,19 @@
 /**
  * ONDE O ÁUDIO DA SESSÃO É OUVIDO.
  *
- * Até aqui a transcrição era só BYOK: a terapeuta cadastrava a chave DELA e o áudio ia para a
- * OpenAI ou a Groq. A razão escrita na época era boa — o app não carrega chave de provedor, e
- * chave compartilhada que morre derruba o recurso (foi o que aconteceu no Kardec).
+ * Duas fontes possíveis, e a ORDEM entre elas é uma regra da casa, não uma preferência de custo:
  *
- * O que mudou: a casa passou a ter ouvido próprio. O gateway (`ia.reverblabs.com.br`) roda um
- * Whisper na nossa VPS, e com ele o áudio clínico **não sai da nossa infraestrutura** — não chega
- * à OpenAI, não chega a ninguém. Isso é melhor que BYOK para o dado do paciente, não só mais
- * barato. O app continua sem chave de PROVEDOR: ele tem chave do gateway, que é da casa.
+ *  - **a chave da terapeuta (BYOK)** é o CHÃO. O Ledivan tem de funcionar sozinho — `PENDENCIAS.md`
+ *    é explícito: "VPS única é ponto único de falha; hub/apps NÃO dependem dela". Por isso o
+ *    caminho padrão não passa pela nossa infraestrutura.
+ *  - **a IA da casa** (gateway → Whisper na VPS) é um BÔNUS que a terapeuta LIGA. Ali o áudio não
+ *    sai da nossa infraestrutura e não custa nada a ela — mas é escolha dela assumir essa
+ *    dependência, não nossa impô-la.
  *
- * A objeção antiga continua de pé e por isso a reserva continua existindo: **a casa primeiro, a
- * chave dela depois**. Gateway fora do ar com chave cadastrada = transcreve pela chave dela.
- * Nenhum dos dois = recusa com mensagem clara, nunca 500 genérico.
+ * Ligada a casa, ela vem primeiro e a chave da terapeuta fica de reserva REAL: se a VPS não
+ * responder, a transcrição cai para a chave dela na mesma requisição. A primeira versão disto
+ * tinha failover de papel — perguntava se o gateway estava CONFIGURADO, não se estava
+ * respondendo, e portanto nunca caía. Configuração não é disponibilidade.
  *
  * Funções puras.
  */
@@ -20,13 +21,21 @@
 export type MotorDeAudio = "casa" | "byok";
 
 /**
- * Qual motor usar. A ordem é deliberada e não é preferência de custo: o de casa é o único em que
- * o áudio do paciente não atravessa a internet até um terceiro.
+ * Os motores a tentar, NA ORDEM. Lista vazia = não há como transcrever.
+ *
+ * Devolve uma lista, e não um motor só, porque a reserva precisa existir no momento da chamada:
+ * é tentando que se descobre que a VPS não responde.
  */
-export function escolherMotor(o: { casaDisponivel: boolean; terapeutaTemChave: boolean }): MotorDeAudio | null {
-  if (o.casaDisponivel) return "casa";
-  if (o.terapeutaTemChave) return "byok";
-  return null;
+export function ordemDosMotores(o: {
+  /** A terapeuta ligou "usar a IA da casa" nas Configurações. */
+  optouPelaCasa: boolean;
+  /** O gateway está configurado neste ambiente. */
+  casaConfigurada: boolean;
+  terapeutaTemChave: boolean;
+}): MotorDeAudio[] {
+  const casa: MotorDeAudio[] = o.optouPelaCasa && o.casaConfigurada ? ["casa"] : [];
+  const byok: MotorDeAudio[] = o.terapeutaTemChave ? ["byok"] : [];
+  return [...casa, ...byok];
 }
 
 /**
