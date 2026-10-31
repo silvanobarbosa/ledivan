@@ -24,6 +24,14 @@ import { FLUTUANTE_DIVA, FUNDO_DA_JANELA, JANELA } from "@/lib/modal";
 
 const CHAVE_DISPENSAS = "ledivan_diva_dispensas";
 const CHAVE_DIA = "ledivan_diva_dia";
+/**
+ * O aviso de que a VOZ ficou pronta. Uma vez por pessoa, e só.
+ *
+ * Recurso novo que ninguém sabe que existe é recurso que não existe — e o microfone do Divã não
+ * se anuncia sozinho. O aviso abre o Divã na primeira visita depois de a função entrar no ar,
+ * mesmo para quem já tinha dispensado a pergunta do dia, e some para sempre ao ser lido.
+ */
+const CHAVE_AVISO_VOZ = "ledivan_diva_aviso_voz";
 
 const leNumero = (chave: string): number => {
   try { return Number(localStorage.getItem(chave) ?? "0") || 0; } catch { return 0; }
@@ -40,6 +48,7 @@ export function Diva({ estado, podeOuvir }: { estado: EstadoDoDiva; podeOuvir: b
   const [fala, setFala] = useState<string | null>(null);
   const [sugestao, setSugestao] = useState<TarefaDoDiva | null>(null);
   const [erro, setErro] = useState<string | null>(null);
+  const [avisoDaVoz, setAvisoDaVoz] = useState(false);
   const gravador = useRef<MediaRecorder | null>(null);
   const pedacos = useRef<Blob[]>([]);
   const router = useRouter();
@@ -56,6 +65,18 @@ export function Diva({ estado, podeOuvir }: { estado: EstadoDoDiva; podeOuvir: b
        * acabou de pedir é atrapalhar justamente quem foi atendido.
        */
       if (/[?&](novo|bloquear)=1/.test(window.location.search)) return;
+
+      // O aviso da voz vem primeiro e vale uma abertura própria, independente da pergunta do dia.
+      const jaViuOAviso = localStorage.getItem(CHAVE_AVISO_VOZ) === "1";
+      if (!jaViuOAviso) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect -- anunciar o recurso novo é o efeito desejado
+        setAvisoDaVoz(true);
+        // eslint-disable-next-line react-hooks/set-state-in-effect -- idem
+        setAberto(true);
+        grava(CHAVE_DIA, hojeISO());
+        return;
+      }
+
       if (localStorage.getItem(CHAVE_DIA) === hojeISO()) return;
       grava(CHAVE_DIA, hojeISO());
       if (abreSozinho(leNumero(CHAVE_DISPENSAS))) {
@@ -77,6 +98,8 @@ export function Diva({ estado, podeOuvir }: { estado: EstadoDoDiva; podeOuvir: b
     setErro(null);
     setGravando(false);
     pararGravador();
+    // Fechar a janela já conta como ter lido o aviso: ele não volta a perseguir ninguém.
+    if (avisoDaVoz) { grava(CHAVE_AVISO_VOZ, "1"); setAvisoDaVoz(false); }
     // Escolher uma tarefa zera a contagem: ali ele provou que serve.
     grava(CHAVE_DISPENSAS, escolheu ? "0" : String(leNumero(CHAVE_DISPENSAS) + 1));
   }
@@ -164,6 +187,39 @@ export function Diva({ estado, podeOuvir }: { estado: EstadoDoDiva; podeOuvir: b
                 <X className="w-4 h-4" />
               </button>
             </div>
+
+            {/* O ANÚNCIO da voz: uma vez por pessoa, e com o caminho inteiro escrito. Quem não
+                tem chave de IA recebe o passo que falta, não um "indisponível". */}
+            {avisoDaVoz && (
+              <div className="rounded-2xl border border-[#a7f3d0] bg-[#ecfdf5] px-4 py-3 space-y-2">
+                <p className="text-sm font-bold text-[#047857] flex items-center gap-2">
+                  <Mic className="w-4 h-4 shrink-0" /> Novidade: agora você pode FALAR comigo
+                </p>
+                {podeOuvir ? (
+                  <ol className="text-xs text-[#065f46] space-y-1 list-decimal pl-4">
+                    <li>Toque em <strong>Falar com o Divã</strong>, aqui embaixo.</li>
+                    <li>Diga o que quer — por exemplo: <em>“quem está devendo?”</em>, <em>“quero marcar um atendimento”</em>, <em>“me mostra a agenda de hoje”</em>.</li>
+                    <li>Toque de novo para enviar. Eu mostro o que entendi e <strong>você confirma</strong> antes de eu abrir a tela.</li>
+                  </ol>
+                ) : (
+                  <>
+                    <p className="text-xs text-[#065f46]">
+                      Falta um passo: a escuta usa a <strong>sua</strong> conta de IA. Em{" "}
+                      <strong>Ajustes → IA da transcrição</strong> há um caminho <strong>gratuito</strong> (Groq,
+                      sem cartão) com o passo a passo. Depois de colar a chave, o microfone aparece aqui.
+                    </p>
+                    <button type="button" onClick={() => ir({ rota: "/dashboard/settings" })}
+                      className="inline-flex items-center gap-1 rounded-xl bg-[#047857] px-3 py-1.5 text-xs font-bold text-white">
+                      Abrir os Ajustes <ChevronRight className="w-3.5 h-3.5" />
+                    </button>
+                  </>
+                )}
+                <button type="button" onClick={() => { grava(CHAVE_AVISO_VOZ, "1"); setAvisoDaVoz(false); }}
+                  className="text-[11px] font-semibold text-[#047857] underline">
+                  Entendi, não mostrar de novo
+                </button>
+              </div>
+            )}
 
             {/* O que espera por ela. Só aparece o que existe — ver `avisosDoDiva`. */}
             {avisos.length > 0 && (

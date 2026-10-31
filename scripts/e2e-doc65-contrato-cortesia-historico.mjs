@@ -87,7 +87,7 @@ const nav = await chromium.launch();
 const ctx = await nav.newContext({ viewport: { width: 1440, height: 1100 } });
 const alvo = new URL(BASE);
 await ctx.addCookies([{ name: "auth-session", value: token, domain: alvo.hostname, path: "/", secure: alvo.protocol === "https:" }]);
-await ctx.addInitScript(() => { try { localStorage.setItem("ledivan_onboarded_v3", "1"); localStorage.setItem("ledivan_diva_dia", new Date().toISOString().slice(0, 10)); } catch { /* sem localStorage */ } });
+await ctx.addInitScript(() => { try { localStorage.setItem("ledivan_onboarded_v3", "1"); localStorage.setItem("ledivan_diva_dia", new Date().toISOString().slice(0, 10)); localStorage.setItem("ledivan_diva_aviso_voz", "1"); } catch { /* sem localStorage */ } });
 const page = await ctx.newPage();
 page.setDefaultNavigationTimeout(120000);
 page.setDefaultTimeout(30000);
