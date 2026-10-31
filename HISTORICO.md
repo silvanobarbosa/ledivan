@@ -7,6 +7,44 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-10-31 — Doc 68: a devolutiva ganha perguntas próprias e a diferença ganha destino
+
+**Entregue:** "Iniciar à sequência do pacote" só vira "Adicionar" quando a sequência existe de
+verdade; "Vale a partir de" foi para baixo do próximo reajuste; a devolutiva ganhou o quadro
+"Como esta devolutiva deve ser considerada?" (cobrar com valor próprio · não cobrar, abatendo ou
+não); a diferença em aberto passou a escolher entre ficar nesta cobrança ou rolar para o próximo
+pacote; a queixa principal está em ordem alfabética; e a janela "Alterar quais?" avisa que o status
+vale só para aquele agendamento (PR #531).
+
+**Por quê:** pedido do dono, doc 68.
+
+**Decisões que ficam valendo:**
+
+- **A devolutiva COBRADA é uma extra avulsa.** Não é detalhe de implementação: é o que lhe dá
+  valor próprio e vencimento no instante do atendimento, que foi o pedido. O caminho já existia,
+  testado; inventar um segundo seria criar uma segunda verdade sobre dinheiro. Em compensação, o
+  rótulo da célula precisou de uma linha nova: devolutiva continua sendo DEVOL, nunca AVUL.
+- **A diferença nasce FICANDO na cobrança.** Rolar fecha a cobrança como "Paga" e leva o saldo
+  embora, junto com o botão de lançar o resto — era o único comportamento e era o que confundia.
+- **"Iniciar" × "Adicionar" olha a SEQUÊNCIA, não o calendário.** Um paciente cujo único
+  agendamento foi uma extra avulsa, ou uma devolutiva que não abate, não tem sequência nenhuma.
+
+**Armadilhas:**
+
+1. **Sobrescrevi um arquivo que já existia** — `src/lib/devolutiva.ts` tinha as regras do lembrete
+   de devolutiva do doc 9, e a minha regra nova entrou por cima. O `tsc` pegou na hora, mas a
+   lição é anterior: conferir se o nome já está tomado antes de escrever. A regra nova virou
+   `quadroDaDevolutiva.ts`.
+2. **`drizzle-kit generate` é interativo e não roda aqui** (pergunta sobre renomeações). A migração
+   0033 foi escrita à mão, com a entrada no journal e o snapshot corrigido. Fica registrado que os
+   snapshots deste repo já estavam defasados do schema antes disso.
+3. **Nome de botão que é prefixo de outro** quebra o percurso: "Cobrar devolutiva" casa dentro de
+   "Não cobrar devolutiva". Correspondência exata.
+
+**Pendente:** nada deste bloco.
+
+---
+
 ## 2026-10-31 — O Divã nasce: ícone flutuante, catálogo de tarefas e escuta
 
 **Entregue:** o Divã — ícone flutuante em toda tela do painel, a pergunta "o que deseja fazer?" na

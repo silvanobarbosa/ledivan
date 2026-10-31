@@ -869,6 +869,18 @@ export const sessionPayments = pgTable("session_payments", {
   // parte". O caixa continua honesto: guarda o valor REALMENTE recebido (`amount`); quem fecha a
   // cobrança é esta marca, lida por `guiaGeral.casarPagamentos`.
   quitaDiferenca: boolean("quita_diferenca").default(false),
+  /**
+   * Doc 68: "a diferença será lançada em outra data".
+   *
+   * Pagando MENOS do que a cobrança pede, a diferença tem dois destinos possíveis e eles são
+   * opostos: ou ela ROLA para o próximo pacote (comportamento antigo, que fecha esta cobrança e
+   * leva o saldo adiante) ou ela FICA aqui, esperando um segundo lançamento. Ficando, a cobrança
+   * continua em aberto e o botão "Lançar pagamento" segue na tela — que é o que o documento pede.
+   *
+   * Marca no PAGAMENTO, e não na cobrança, pela mesma razão do `quitaDiferenca` ao lado: quem
+   * decide é quem está lançando, no momento em que lança.
+   */
+  diferencaOutraData: boolean("diferenca_outra_data").default(false),
   // VINCULO OPCIONAL com o financeiro: se preenchido, este pagamento gerou uma transacao de receita.
   linkedTransactionId: uuid("linked_transaction_id").references(() => transactions.id, { onDelete: "set null" }),
   // Receita Saúde (recibo eletrônico da RF, emissão manual no app): controle de emissão por pagamento.
