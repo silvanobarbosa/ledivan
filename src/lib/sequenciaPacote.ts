@@ -202,9 +202,24 @@ export function posicoesDaSequencia(
     if (usaVigencia) {
       const ativa = vigs.filter((v) => v.desde.getTime() <= s.data.getTime()).pop();
       if (ativa && ativa.desde.getTime() > ultimaVig) {
-        if (!(sequencia === 0 && posicao === 1)) sequencia += 1; // não cria sequência vazia no começo
-        posicao = 1;
-        total = ativa.tamanho;
+        /**
+         * Só reinicia se o tamanho MUDOU de verdade.
+         *
+         * A vigência existe para dizer "o pacote passou a ser de N" — e salvar o MESMO tamanho de
+         * novo não é um pacote novo. Antes bastava alcançar a data: o pacote em curso era partido
+         * ao meio e o toco virava um pacote inteiro, cobrado como tal. A paciente Ana Eduarda
+         * (31/10/2026) tinha "8 a partir de 01/10" com o cadastro já em 8: três sessões viraram
+         * uma cobrança de oito, R$ 640,00 a mais, e todos os vencimentos seguintes andaram junto.
+         * Outros cinco cadastros da base estavam na mesma situação, alguns desde 2024.
+         *
+         * `ultimaVig` é atualizado nos dois caminhos — a vigência foi vista; o que muda é se ela
+         * teve efeito.
+         */
+        if (ativa.tamanho !== total) {
+          if (!(sequencia === 0 && posicao === 1)) sequencia += 1; // não cria sequência vazia no começo
+          posicao = 1;
+          total = ativa.tamanho;
+        }
         ultimaVig = ativa.desde.getTime();
       }
     }

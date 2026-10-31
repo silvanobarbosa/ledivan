@@ -7,6 +7,30 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-10-31 — Vigência de tamanho que não muda tamanho partia o pacote no meio
+
+**Entregue:** a sequência do pacote só reinicia quando o tamanho MUDA de verdade (PR #528).
+
+**Por quê:** a paciente Ana Eduarda (da Gisele) tinha a vigência "8 sessões a partir de
+01/10/2026" com o cadastro já dizendo 8. O motor reiniciava a sequência ao ALCANÇAR a data, sem
+comparar com o tamanho em vigor: o pacote em curso era partido, e o toco de 3 sessões virava uma
+cobrança de pacote inteiro. R$ 720,00 por 3 sessões, e todos os vencimentos seguintes deslocados.
+
+**Decisões que ficam valendo:** salvar o mesmo tamanho de novo não é um pacote novo. A vigência
+existe para dizer "o pacote passou a ser de N".
+
+**Armadilhas:** 6 cadastros da base têm vigência de tamanho que não muda nada (5 da Ana Raquel,
+desde 2024), mas só 1 tinha cobrança quebrada — nos outros a vigência cai no começo da história,
+onde o corte não tem o que partir. Medir o raio no motor, não contando linhas no banco.
+
+**Como foi conferido:** o motor rodado sobre os 141 cadastros da base, antes e depois, comparando
+cobrança a cobrança. Mudou 1 paciente, −R$ 640,00. E o último pagamento lançado dela está na
+sequência 19, enquanto a correção só mexe da 20 em diante: nenhum dinheiro já lançado se move.
+
+**Pendente:** nada deste bloco.
+
+---
+
 ## 2026-10-31 — BYOK é o único caminho da transcrição
 
 **Entregue:** a IA da casa saiu do Ledivan inteira — do código, da tela e das variáveis de
