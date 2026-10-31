@@ -1,3 +1,4 @@
+import { patientPriceHistory } from "@/db/schema";
 import { horaDeParede } from "@/lib/horaLocal";
 
 /**
@@ -64,4 +65,22 @@ export function pagamentoParaMotor<
     nota: !!p.notaEmitidaEm,
     reciboNumero: p.reciboNumero ?? null,
   };
+}
+
+/**
+ * AS COLUNAS DO PREÇO que o motor lê — num lugar só, pelo mesmo motivo das colunas da sessão.
+ *
+ * Três telas montam a lista de preços do motor (a guia Geral, a lista de cadastros e o Fechamento).
+ * Quando o doc 69 acrescentou `aplica_em`, acrescentá-la em duas e esquecer a terceira daria o
+ * sintoma clássico: a mesma paciente com dois valores de pacote dependendo da tela que se abre.
+ */
+export const COLUNAS_DO_PRECO = {
+  valor: patientPriceHistory.valor,
+  dataEfetiva: patientPriceHistory.dataEfetiva,
+  aplicaEm: patientPriceHistory.aplicaEm,
+} as const;
+
+/** A linha de preço virando faixa do motor. `aplicaEm` ausente = `vigente` (o comportamento antigo). */
+export function precoParaMotor(p: { valor: string | number; dataEfetiva: Date | string; aplicaEm?: string | null }) {
+  return { valor: Number(p.valor) || 0, desde: local(p.dataEfetiva), aplicaEm: p.aplicaEm ?? null };
 }

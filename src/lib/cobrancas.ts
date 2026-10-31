@@ -37,7 +37,7 @@
  */
 
 import { codigoDaSessao } from "./celulaDaAgenda";
-import { precoCobravel, type PrecoVigente } from "./preco";
+import { faixasDaSequencia, precoCobravel, valorDoPacote, valorPorSessao, type PrecoVigente } from "./preco";
 import { cobra, usaPacote } from "./reajuste";
 import { posicoesDaSequencia, todasAsSequencias } from "./sequenciaPacote";
 import { STATUS_QUE_PAUSAM } from "./therapy";
@@ -282,8 +282,15 @@ function cobrancasDoPeriodo(periodo: PeriodoDeVigencia, sessoes: Ordenada[], e: 
     if (!inicio) continue;
     const naAbertura = formato === "primeira_pacote";
     const competencia = naAbertura ? inicio : seq.fechouEm;
-    const unitario = precoCobravel(e.precos, competencia ?? inicio, reservaPreco);
-    const valor = dinheiro(unitario * seq.total);
+    /**
+     * Doc 69: o pacote é somado SESSÃO A SESSÃO, cada uma pelo preço que valia no dia dela — e a
+     * faixa marcada "próximo pacote a iniciar" não entra num pacote que já tinha começado.
+     *
+     * Sem faixa nova dentro da sequência, a soma dá o mesmo que a multiplicação antiga dava.
+     */
+    const faixas = faixasDaSequencia(e.precos, inicio);
+    const datasDaSequencia = doPacote.filter((s) => seq.ids.includes(s.id)).map((s) => s.date);
+    const valor = dinheiro(valorDoPacote(e.precos, { inicio, competencia: competencia ?? inicio, datas: datasDaSequencia, total: seq.total }, reservaPreco));
     // "Última do pacote" vence na última sessão que OCUPOU posição — a falta não abatida e a
     // cortesia estão no grupo, mas não são o fim do pacote. Sem este filtro o vencimento andava
     // para a data delas, mudando a data de uma cobrança que já existia.
@@ -361,8 +368,18 @@ function cobrancasDoPeriodo(periodo: PeriodoDeVigencia, sessoes: Ordenada[], e: 
          * a quinzena passou a pedir uma sessão a mais do que pedia antes de elas pausarem. No
          * mensal isso não aparecia, porque lá o pacote sempre cobrou o tamanho contratado.
          */
-        const cobraveis = metade.ids.filter((s) => !s.pausa).length;
+        const aCobrar = metade.ids.filter((s) => !s.pausa);
+        const cobraveis = aCobrar.length;
         if (!cobraveis) continue;
+        /**
+         * Doc 69: cada sessão da quinzena pelo preço do dia dela — mas só quando o reajuste trouxe
+         * a resposta "pacote vigente". Sem resposta gravada (tudo o que é anterior ao doc 69), a
+         * conta de sempre: o preço da competência pelas sessões cobráveis.
+         */
+        const unitario = precoCobravel(faixas, competencia ?? inicio, reservaPreco);
+        const valorDaMetade =
+          valorPorSessao(e.precos, { inicio, competencia: competencia ?? inicio, datas: aCobrar.map((s) => s.date) }, reservaPreco)
+          ?? unitario * cobraveis;
         /**
          * Doc 24 (dono, 09/10): cada quinzena vence na SUA data — a 1ª quinzena no 1º dia combinado,
          * a 2ª quinzena no 2º dia —, no mês da primeira sessão da quinzena. É a recorrência quinzenal
@@ -382,7 +399,7 @@ function cobrancasDoPeriodo(periodo: PeriodoDeVigencia, sessoes: Ordenada[], e: 
           ids: metade.ids.map((s) => s.id),
           chave: `quinzena:${chavePeriodo}:${seq.sequencia}:${metade.parte}`,
           tipo: "quinzena",
-          valor: dinheiro(unitario * cobraveis),
+          valor: dinheiro(valorDaMetade),
           vencimento,
           posicao: "antes",
           parte: metade.parte,

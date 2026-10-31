@@ -8,10 +8,28 @@
 
 const emData = (d: Date | string): Date => (d instanceof Date ? d : new Date(d));
 
+/**
+ * Doc 69 — a resposta de "Aplicar sobre o pacote vigente ou o próximo a iniciar?".
+ *
+ * `vigente` (o padrão, e o que sempre aconteceu): o valor novo vale da data dele, mesmo que o
+ * pacote esteja no meio — e então aquele pacote sai com DOIS valores, as sessões de antes pelo
+ * preço antigo e as de depois pelo novo.
+ *
+ * `proximo_pacote`: o pacote que já tinha começado fica inteiro no preço antigo, e o valor novo
+ * começa a valer no pacote seguinte.
+ *
+ * O porquê de existirem as duas (dono, 31/10): a data que se põe em "Vale a partir de" é a data em
+ * que o paciente foi AVISADO do aumento. Se ele quebra o pacote vigente em dois valores ou não
+ * "depende da resposta" dele — e essa é uma conversa que o app não tem como adivinhar.
+ */
+export type AplicacaoDoPreco = "vigente" | "proximo_pacote";
+
 export type PrecoVigente = {
   valor: number;
   /** A partir de quando aquele valor passou a valer. */
   desde: Date | string;
+  /** Como ele entra num pacote já começado. Ausente = `vigente`, que é o comportamento antigo. */
+  aplicaEm?: AplicacaoDoPreco | string | null;
 };
 
 /**
@@ -58,4 +76,100 @@ export function precoCobravel(historico: PrecoVigente[], quando: Date, reserva =
   if (p > 0) return p;
   const r = Number(reserva);
   return Number.isFinite(r) && r > 0 ? r : p;
+}
+
+const inicioDoDia = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate());
+
+/**
+ * AS FAIXAS QUE VALEM PARA UMA SEQUÊNCIA que começou naquele dia.
+ *
+ * Tira do caminho as faixas marcadas "próximo pacote a iniciar" que nasceram DEPOIS de a sequência
+ * começar: elas não entram num pacote já em andamento. A faixa que começa no mesmo dia da primeira
+ * sessão entra — esse pacote é justamente "o próximo a iniciar".
+ *
+ * A comparação é por DIA: a faixa é gravada à meia-noite e a sessão tem hora, e comparar os dois
+ * instantes faria a sessão das 8h do próprio dia cair na faixa anterior.
+ */
+export function faixasDaSequencia(historico: PrecoVigente[], inicio: Date): PrecoVigente[] {
+  const comecou = inicioDoDia(inicio).getTime();
+  return historico.filter((h) => {
+    if (h.aplicaEm !== "proximo_pacote") return true;
+    const desde = emData(h.desde);
+    return !Number.isNaN(desde.getTime()) && inicioDoDia(desde).getTime() <= comecou;
+  });
+}
+
+/**
+ * O VALOR DE UM PACOTE — somando sessão a sessão, cada uma pelo preço que valia no dia dela.
+ *
+ * Antes era `preço da competência × tamanho contratado`, e por isso um reajuste no meio do pacote
+ * reprecificava o pacote inteiro, inclusive as sessões que já tinham acontecido pelo valor antigo.
+ * Somando por sessão, o pacote sai com dois valores quando a faixa começa no meio dele — que é o
+ * que o dono descreveu para a resposta "vigente".
+ *
+ * Quando nenhuma faixa começa dentro da sequência, a soma dá exatamente o que a multiplicação dava.
+ *
+ * Quem paga o tamanho CONTRATADO continua pagando o tamanho contratado: as posições sem sessão
+ * (sequência ainda aberta) entram pelo preço da competência, não somem da conta.
+ */
+export function valorDoPacote(
+  historico: PrecoVigente[],
+  opts: { inicio: Date; competencia: Date; datas: Date[]; total: number },
+  reserva = 0,
+): number {
+  const faixas = faixasDaSequencia(historico, opts.inicio);
+  const total = Math.max(0, Math.floor(opts.total));
+
+  /**
+   * O PASSADO NÃO SE REPRECIFICA.
+   *
+   * Partir o pacote sessão a sessão é a resposta "vigente" — e resposta é coisa que só existe a
+   * partir do doc 69. Medido na base real antes de soltar isto: aplicar a soma a todas as faixas
+   * já gravadas mexia em **216 cobranças antigas**, muitas delas já pagas, trocando o valor de
+   * recibo que o paciente tem na mão. A regra do dono é explícita desde 15/09 — "o sistema nunca
+   * deve apagar, criar ou modificar cobranças passadas".
+   *
+   * Então: faixa SEM resposta gravada (tudo o que existia antes) mantém a conta de sempre, o preço
+   * da competência pelo tamanho contratado. A soma por sessão vale quando alguma faixa que começa
+   * DENTRO da sequência traz a resposta "vigente", dada por quem salvou o reajuste sabendo o que
+   * estava escolhendo.
+   */
+  const comecou = inicioDoDia(opts.inicio).getTime();
+  const ateQuando = opts.competencia.getTime();
+  const partiuNoMeio = faixas.some((h) => {
+    if (h.aplicaEm !== "vigente") return false;
+    const desde = emData(h.desde);
+    return !Number.isNaN(desde.getTime()) && inicioDoDia(desde).getTime() > comecou && desde.getTime() <= ateQuando;
+  });
+  if (!partiuNoMeio) return precoCobravel(faixas, opts.competencia, reserva) * total;
+
+  const datas = [...opts.datas].sort((a, b) => a.getTime() - b.getTime());
+  let soma = 0;
+  for (let i = 0; i < total; i++) {
+    soma += precoCobravel(faixas, datas[i] ?? opts.competencia, reserva);
+  }
+  return soma;
+}
+
+/**
+ * O mesmo julgamento, para a QUINZENA — que cobra as sessões que caíram nela, e não o contratado.
+ *
+ * Devolve `null` quando nenhuma faixa respondida parte a sequência no meio: aí quem chama mantém a
+ * conta de sempre (preço da competência × sessões cobráveis), e nenhuma cobrança antiga se mexe.
+ */
+export function valorPorSessao(
+  historico: PrecoVigente[],
+  opts: { inicio: Date; competencia: Date; datas: Date[] },
+  reserva = 0,
+): number | null {
+  const faixas = faixasDaSequencia(historico, opts.inicio);
+  const comecou = inicioDoDia(opts.inicio).getTime();
+  const ateQuando = opts.competencia.getTime();
+  const partiuNoMeio = faixas.some((h) => {
+    if (h.aplicaEm !== "vigente") return false;
+    const desde = emData(h.desde);
+    return !Number.isNaN(desde.getTime()) && inicioDoDia(desde).getTime() > comecou && desde.getTime() <= ateQuando;
+  });
+  if (!partiuNoMeio) return null;
+  return opts.datas.reduce((soma, d) => soma + precoCobravel(faixas, d, reserva), 0);
 }

@@ -6,7 +6,7 @@ import { db } from "@/db";
 import { auth } from "@/auth";
 import { blockedSlots, therapySessions, sessoesPuladas } from "@/db/schema";
 import { remanejamento } from "@/lib/remanejamento";
-import { emRotulo, horariosLivres, notaParaGravar } from "@/lib/bloqueioDeHorario";
+import { datasDaRepeticao, emRotulo, horariosLivres, notaParaGravar } from "@/lib/bloqueioDeHorario";
 
 /**
  * Bloquear e desbloquear horário.
@@ -33,6 +33,19 @@ const diaInteiro = (iso: string) => {
 };
 
 /**
+ * O MESMO DIA, em hora de PAREDE — que é o que as colunas guardam.
+ *
+ * A coluna é `timestamp` sem fuso, e o Drizzle monta a data lendo-a como UTC (ver `lib/horaLocal`).
+ * Comparar com um limite montado em hora local acerta na Vercel, onde o processo roda em UTC, e
+ * erra em qualquer outro fuso — três horas de deslocamento, calado.
+ */
+const diaDeParede = (iso: string) => {
+  const [a, m, d] = iso.split("-").map(Number);
+  if (!a || !m || !d) return null;
+  return { inicio: new Date(Date.UTC(a, m - 1, d)), fim: new Date(Date.UTC(a, m - 1, d + 1)) };
+};
+
+/**
  * Os horários daquele dia que não têm nada marcado — nem paciente, nem bloqueio anterior.
  *
  * É o que a janela oferece para marcar. Devolve também o que já está bloqueado, para a mesma janela
@@ -45,7 +58,7 @@ export async function horariosDoDia(dataISO: string): Promise<{
   const session = await auth();
   if (!session?.user?.id) return { livres: [], bloqueados: [] };
 
-  const dia = diaInteiro(dataISO);
+  const dia = diaDeParede(dataISO);
   if (!dia) return { livres: [], bloqueados: [] };
 
   const [sessoes, bloqueios] = await Promise.all([
@@ -59,7 +72,8 @@ export async function horariosDoDia(dataISO: string): Promise<{
       .where(and(eq(blockedSlots.userId, session.user.id), gte(blockedSlots.date, dia.inicio), lt(blockedSlots.date, dia.fim))),
   ]);
 
-  const emMinutos = (d: Date) => d.getHours() * 60 + d.getMinutes();
+  // Hora de parede: ela mora nos campos UTC do objeto que o Drizzle monta.
+  const emMinutos = (d: Date) => d.getUTCHours() * 60 + d.getUTCMinutes();
 
   return {
     livres: horariosLivres({
@@ -76,13 +90,23 @@ export async function horariosDoDia(dataISO: string): Promise<{
   };
 }
 
-/** Bloqueia os horários marcados, cada um com o seu texto. */
+/**
+ * Bloqueia os horários marcados, cada um com o seu texto.
+ *
+ * Com "repetir até", o mesmo conjunto de horários é bloqueado no MESMO dia da semana, de sete em
+ * sete dias, até o limite (doc 69). Nas semanas seguintes a grade não é a mesma de hoje: o que já
+ * tem paciente ou já está bloqueado é PULADO, nunca sobrescrito — bloquear em cima de um
+ * atendimento marcado seria esconder o paciente atrás de uma célula preta. Quantos foram pulados
+ * volta para a tela dizer.
+ */
 export async function bloquearHorarios(
   dataISO: string,
   horarios: { inicio: number; nota?: string | null }[],
-): Promise<Resultado> {
+  repetirAteISO?: string | null,
+): Promise<Resultado & { bloqueados?: number; pulados?: number }> {
   const session = await auth();
   if (!session?.user?.id) return { ok: false, error: "Sessão inválida." };
+  const userId = session.user.id;
 
   const dia = diaInteiro(dataISO);
   if (!dia) return { ok: false, error: "Data inválida." };
@@ -95,17 +119,72 @@ export async function bloquearHorarios(
 
   if (limpos.length === 0) return { ok: false, error: "Escolha ao menos um horário." };
 
-  await db.insert(blockedSlots).values(
-    limpos.map((h) => ({
-      userId: session.user!.id as string,
-      date: new Date(dia.inicio.getFullYear(), dia.inicio.getMonth(), dia.inicio.getDate(), Math.floor(h.inicio / 60), h.inicio % 60, 0, 0),
-      duration: 60,
-      note: notaParaGravar(h.nota),
-    })),
-  );
+  const ate = repetirAteISO ? diaInteiro(repetirAteISO) : null;
+  const datas = datasDaRepeticao(dia.inicio, ate?.inicio ?? null);
+
+  /**
+   * A HORA DE PAREDE MORA NOS CAMPOS UTC — medido aqui, custou um percurso.
+   *
+   * A coluna é `timestamp` sem fuso e guarda hora de parede; o Drizzle com `neon-http` lê "14:00"
+   * e monta a data como 14:00**Z**. Em produção o processo roda em UTC e `getHours()` devolve a
+   * hora certa por coincidência — em qualquer outro fuso ele devolve a hora deslocada, e a
+   * conferência de choque passa a comparar 11h com 14h e não encontra nada. Ver `lib/horaLocal`.
+   *
+   * Então lemos e escrevemos pelos campos UTC: a resposta fica igual em qualquer fuso de servidor.
+   */
+  const emMinutosDeParede = (d: Date) => d.getUTCHours() * 60 + d.getUTCMinutes();
+  const paredeEm = (base: Date, minutos = 0) =>
+    new Date(Date.UTC(base.getFullYear(), base.getMonth(), base.getDate(), Math.floor(minutos / 60), minutos % 60, 0, 0));
+  const inicioDaJanela = paredeEm(datas[0]);
+  const fimDaJanela = new Date(paredeEm(datas[datas.length - 1]).getTime() + 24 * 60 * 60 * 1000);
+
+  // O que já ocupa a janela inteira. Uma consulta só: uma por semana seria o mesmo trabalho em
+  // dezenas de idas ao banco.
+  const [sessoes, bloqueios] = await Promise.all([
+    db
+      .select({ date: therapySessions.date, duration: therapySessions.duration })
+      .from(therapySessions)
+      .where(and(eq(therapySessions.userId, userId), gte(therapySessions.date, inicioDaJanela), lt(therapySessions.date, fimDaJanela))),
+    db
+      .select({ date: blockedSlots.date, duration: blockedSlots.duration })
+      .from(blockedSlots)
+      .where(and(eq(blockedSlots.userId, userId), gte(blockedSlots.date, inicioDaJanela), lt(blockedSlots.date, fimDaJanela))),
+  ]);
+
+  const chaveDoDia = (d: Date) => `${d.getUTCFullYear()}-${d.getUTCMonth()}-${d.getUTCDate()}`;
+  const ocupadosPorDia = new Map<string, { de: number; ate: number }[]>();
+  for (const o of [...sessoes, ...bloqueios]) {
+    const inicio = emMinutosDeParede(o.date);
+    const chave = chaveDoDia(o.date);
+    const lista = ocupadosPorDia.get(chave) ?? [];
+    lista.push({ de: inicio, ate: inicio + Math.max(1, o.duration) });
+    ocupadosPorDia.set(chave, lista);
+  }
+
+  const aGravar: { userId: string; date: Date; duration: number; note: string | null }[] = [];
+  let pulados = 0;
+  for (const data of datas) {
+    const chave = chaveDoDia(paredeEm(data));
+    const ocupados = ocupadosPorDia.get(chave) ?? [];
+    for (const h of limpos) {
+      const fim = h.inicio + 60;
+      if (ocupados.some((o) => h.inicio < o.ate && o.de < fim)) {
+        pulados++;
+        continue;
+      }
+      // Dois horários iguais na mesma repetição não existem, mas o que acabou de entrar na lista
+      // passa a ocupar o dia — senão a conferência olharia só o banco de antes.
+      ocupados.push({ de: h.inicio, ate: fim });
+      aGravar.push({ userId, date: paredeEm(data, h.inicio), duration: 60, note: notaParaGravar(h.nota) });
+    }
+    ocupadosPorDia.set(chave, ocupados);
+  }
+
+  if (aGravar.length === 0) return { ok: false, error: "Esses horários já estão ocupados." };
+  await db.insert(blockedSlots).values(aGravar);
 
   revalidatePath("/dashboard/agenda");
-  return { ok: true };
+  return { ok: true, bloqueados: aGravar.length, pulados };
 }
 
 /** Desbloqueia. Só apaga o que é de quem pediu. */

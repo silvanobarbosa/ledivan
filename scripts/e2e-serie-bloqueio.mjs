@@ -32,6 +32,9 @@ if (!qa) { console.log("conta de QA não encontrada."); process.exit(1); }
 
 const nav = await chromium.launch();
 const ctx = await nav.newContext({ viewport: { width: 1440, height: 1100 }, storageState: "_visual/.sessao-qa.json" });
+// Janelas que se abrem sozinhas (onboarding, a pergunta do dia do Divã, o aviso da voz) cobrem a
+// agenda e interceptam o clique. Os outros percursos já desligam as três; este tinha ficado para trás.
+await ctx.addInitScript(() => { try { localStorage.setItem("ledivan_onboarded_v3", "1"); localStorage.setItem("ledivan_diva_dia", new Date().toISOString().slice(0, 10)); localStorage.setItem("ledivan_diva_aviso_voz", "1"); } catch { /* sem localStorage */ } });
 const page = await ctx.newPage();
 const erros = [];
 page.on("console", (m) => { if (m.type() === "error") erros.push(m.text().slice(0, 160)); });

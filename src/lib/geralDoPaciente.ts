@@ -14,7 +14,7 @@ import "server-only";
 import { and, eq, isNull } from "drizzle-orm";
 import { db } from "@/db";
 import { COLUNAS_DA_SESSAO } from "@/lib/colunasDaSessao";
-import { local, pagamentoParaMotor, sessaoParaMotor } from "@/lib/entradaDoMotor";
+import { COLUNAS_DO_PRECO, local, pagamentoParaMotor, precoParaMotor, sessaoParaMotor } from "@/lib/entradaDoMotor";
 import { blockedSlots, cobrancaEnvios, cobrancaVencimentos, sessoesPuladas, patientCredits, patientPackages, patientPackageHistory, patientPaymentFormatHistory, patientPriceHistory, patients, sessionPayments, therapySessions } from "@/db/schema";
 import { linhasDaGeral, resumoDaGeral, type CobrancaDaGeral, type EntradaDaGeral, type LinhaDaGeral } from "./guiaGeral";
 import { tamanhosDasSequencias } from "./sequenciaPacote";
@@ -141,7 +141,7 @@ export async function geralDoPaciente(userId: string, patientId: string): Promis
       .from(therapySessions).where(and(eq(therapySessions.patientId, patientId), eq(therapySessions.userId, userId))),
     db.select({ id: sessionPayments.id, amount: sessionPayments.amount, date: sessionPayments.date, status: sessionPayments.status, method: sessionPayments.method, pagoPor: sessionPayments.pagoPor, cobrancaChave: sessionPayments.cobrancaChave, quita: sessionPayments.quitaDiferenca, ficaNaCobranca: sessionPayments.diferencaOutraData, kind: sessionPayments.kind, estornadoEm: sessionPayments.estornadoEm, reciboEmitidoEm: sessionPayments.reciboEmitidoEm, notaEmitidaEm: sessionPayments.receiptIssuedAt, reciboNumero: sessionPayments.receiptNumber })
       .from(sessionPayments).where(and(eq(sessionPayments.patientId, patientId), eq(sessionPayments.userId, userId))),
-    db.select({ valor: patientPriceHistory.valor, dataEfetiva: patientPriceHistory.dataEfetiva })
+    db.select(COLUNAS_DO_PRECO)
       .from(patientPriceHistory).where(eq(patientPriceHistory.patientId, patientId)),
     db.select({ seq: patientPackages.seq, sessions: patientPackages.sessions })
       .from(patientPackages).where(and(eq(patientPackages.patientId, patientId), eq(patientPackages.userId, userId))),
@@ -189,7 +189,7 @@ export async function geralDoPaciente(userId: string, patientId: string): Promis
      * cobrança desta sessão.
      */
     sessoes: sessoes.map((s) => ({ ...sessaoParaMotor(s), pagoEm: pagoQueVirouCredito.get(s.id) ?? null })),
-    precos: precos.map((p) => ({ valor: Number(p.valor) || 0, desde: local(p.dataEfetiva) })),
+    precos: precos.map(precoParaMotor),
     valorDaSessao: Number(paciente.sessionFee) || 0,
     tamanhos: tamanhosDasSequencias(pacotes),
     tamanhoPacote: paciente.sessionsInPacket,

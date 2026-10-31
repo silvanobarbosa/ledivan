@@ -481,7 +481,15 @@ export async function updatePatient(patientId: string, formData: FormData) {
       formatoDesde: formData.get("formatoDesde") as string | null,
       hoje: new Date(),
     });
-    await db.insert(patientPriceHistory).values({ patientId, valor: newFee, dataEfetiva: efetiva });
+    /**
+     * Doc 69: a resposta de "aplicar sobre o pacote vigente ou o próximo a iniciar?".
+     *
+     * A pergunta só aparece para quem paga por pacote; de qualquer outro lugar vem vazio, e vazio é
+     * `vigente` — o comportamento que sempre existiu. Um valor estranho vindo por requisição
+     * forjada também cai em `vigente`, nunca num estado que o motor não saiba ler.
+     */
+    const aplicaEm = formData.get("aplicaPrecoEm") === "proximo_pacote" ? "proximo_pacote" : "vigente";
+    await db.insert(patientPriceHistory).values({ patientId, valor: newFee, dataEfetiva: efetiva, aplicaEm });
     // Doc 21: alterar o VALOR da sessão = reajuste feito → o paciente sai da lista de reajustes,
     // independentemente da data em "Vale a partir de". O próximo lembrete conta da data efetiva do
     // preço novo + a validade (sem validade, não há próximo lembrete). O update principal acima só
