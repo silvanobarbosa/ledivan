@@ -1,4 +1,4 @@
-import { patientPriceHistory } from "@/db/schema";
+import { patientPriceHistory, sessionPayments } from "@/db/schema";
 import { horaDeParede } from "@/lib/horaLocal";
 
 /**
@@ -31,6 +31,27 @@ export function sessaoParaMotor<T extends { date: Date | string; isOnline?: bool
   return { ...s, date: local(s.date), online: s.isOnline };
 }
 
+/**
+ * AS COLUNAS DO PAGAMENTO que o motor lê — num lugar só, pelo mesmo motivo das colunas da sessão.
+ *
+ * Doc 71: a guia Geral lia `diferenca_outra_data` e a lista de cadastros não — então a mesma
+ * cobrança parcial ficava "em aberto" numa tela e "paga" na outra. Com a lista aqui, acrescentar
+ * um dado do dinheiro é mexer num lugar só, e nenhuma tela fica para trás em silêncio.
+ */
+export const COLUNAS_DO_PAGAMENTO = {
+  id: sessionPayments.id,
+  amount: sessionPayments.amount,
+  date: sessionPayments.date,
+  status: sessionPayments.status,
+  method: sessionPayments.method,
+  pagoPor: sessionPayments.pagoPor,
+  cobrancaChave: sessionPayments.cobrancaChave,
+  quita: sessionPayments.quitaDiferenca,
+  ficaNaCobranca: sessionPayments.diferencaOutraData,
+  kind: sessionPayments.kind,
+  estornadoEm: sessionPayments.estornadoEm,
+} as const;
+
 /** O mesmo do lado do dinheiro. `estornadoEm` é o que impede o estornado de quitar cobrança. */
 export function pagamentoParaMotor<
   T extends {
@@ -42,6 +63,8 @@ export function pagamentoParaMotor<
     pagoPor?: string | null;
     cobrancaChave?: string | null;
     quita?: boolean | null;
+    /** Doc 68: "a diferença será lançada em outra data" — ela NÃO rola para o pacote seguinte. */
+    ficaNaCobranca?: boolean | null;
     kind?: string | null;
     estornadoEm?: Date | string | null;
     reciboEmitidoEm?: Date | string | null;
@@ -58,6 +81,9 @@ export function pagamentoParaMotor<
     pagoPor: p.pagoPor ?? null,
     cobrancaChave: p.cobrancaChave ?? null,
     quita: p.quita ?? null,
+    // Doc 71: esta linha faltava. A coluna era lida do banco e morria aqui, e a diferença marcada
+    // para ficar rolava assim mesmo para o pacote seguinte — o motor nunca soube da marca.
+    ficaNaCobranca: p.ficaNaCobranca ?? null,
     kind: p.kind ?? null,
     // Nulo quando não houve estorno — e é o nulo que deixa o pagamento quitar normalmente.
     estornadoEm: p.estornadoEm ? local(p.estornadoEm) : null,

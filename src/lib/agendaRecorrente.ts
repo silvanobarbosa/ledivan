@@ -52,3 +52,38 @@ export function agendaRecorrente(sessoes: SessaoRecorrente[]): AgendaRecorrente 
 
   return { day: DIAS[vencedor.dow], time: vencedor.hora, until };
 }
+
+/**
+ * Os slots do COMBINADO — a mesma apuração da frase acima, para a LISTA de cadastros (doc 71).
+ *
+ * A lista contava os pares dia+hora DISTINTOS das sessões recorrentes futuras e chamava dois pares
+ * de "Semanal 2x". Uma remarcação isolada bastava: a Yngrid, com oito sessões na segunda e UMA
+ * sessão solta na terça, aparecia como "Semanal 2x · Segunda 20:00, Terça 17:00" na lista enquanto
+ * a ficha dela dizia "segunda 20:00". Duas telas, duas leituras da mesma agenda.
+ *
+ * Agora é uma só: vale o que se REPETE. `quantos` vem da frequência gravada — 1x na semana pede um
+ * slot, 2x pede dois —, e não do número de pares que apareceram. Empate no número de ocorrências é
+ * decidido pelo mais recente, como na frase.
+ */
+export function slotsRecorrentes(sessoes: SessaoRecorrente[], quantos = 1): { dia: string; hora: string }[] {
+  const contagem = new Map<string, { n: number; maisRecente: number; dow: number; hora: string }>();
+  for (const s of sessoes) {
+    const d = emData(s.date);
+    if (!d) continue;
+    const hora = `${doisDigitos(d.getHours())}:${doisDigitos(d.getMinutes())}`;
+    const chave = `${d.getDay()}|${hora}`;
+    const atual = contagem.get(chave);
+    if (atual) {
+      atual.n += 1;
+      atual.maisRecente = Math.max(atual.maisRecente, d.getTime());
+    } else {
+      contagem.set(chave, { n: 1, maisRecente: d.getTime(), dow: d.getDay(), hora });
+    }
+  }
+
+  return [...contagem.values()]
+    .sort((a, b) => b.n - a.n || b.maisRecente - a.maisRecente)
+    .slice(0, Math.max(1, quantos))
+    .sort((a, b) => a.dow - b.dow || a.hora.localeCompare(b.hora))
+    .map((s) => ({ dia: DIAS[s.dow], hora: s.hora }));
+}

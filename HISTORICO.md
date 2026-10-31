@@ -7,6 +7,45 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-10-31 — Doc 71: cortesia no financeiro avulso, a frequência que é o combinado e a diferença que fica
+
+**Entregue:** o quadro "Esta sessão será cortesia" (Sim/Não) no agendamento de quem paga a cada
+sessão — o "Sim" lança GRAT na agenda e no financeiro; a lista de cadastros deixou de chamar de
+"Semanal 2x" quem tem um atendimento remarcado para outro dia; e "Será lançada em outra data"
+voltou a segurar a diferença na própria cobrança.
+
+**Decisões que ficam valendo:**
+
+- **Quem paga a cada sessão tem a porta dele para não cobrar.** No pacote, o "Não (GRAT)" do "não
+  adicionar à sequência" já fazia esse papel (doc 67) — no avulso não havia sequência, e com ela
+  não havia porta nenhuma. O padrão é "Não": marcar sem olhar o quadro produz o que sempre produziu.
+- **A cortesia não tira a sessão da sequência.** Dentro do pacote ela pausa a numeração (doc 54);
+  no avulso simplesmente não gera cobrança. Quem decide isso é o motor, não o formulário.
+- **Quantos horários tem o combinado é a FREQUÊNCIA quem diz, não a agenda.** `semanal2x` pede dois
+  slots; `semanal`, um. Contar pares distintos fazia uma remarcação isolada virar um segundo
+  horário semanal que não existe. Lista e ficha passam a ler a agenda pela mesma regra
+  (`slotsRecorrentes`), que é a do doc 67: vale o que se repete.
+
+**Armadilhas:**
+
+1. **O dado se perdeu na TRAVESSIA, não no motor.** "Será lançada em outra data" gravava certo no
+   banco e o motor tinha a regra certa — mas `pagamentoParaMotor` remontava o pagamento campo a
+   campo e não levava `ficaNaCobranca` junto. Os testes do motor passavam; a tela rolava a
+   diferença assim mesmo. É a terceira vez que esta família de defeito aparece (doc 58,
+   doc 69): agora as colunas do pagamento moram em `COLUNAS_DO_PAGAMENTO`, num lugar só — e a
+   lista de cadastros, que nem lia a coluna, passou a ler.
+2. **O percurso rodou contra o build VELHO e eu quase acreditei nele.** O `npm start` novo morreu
+   com a porta ocupada (`EADDRINUSE`) e a conferência de saúde respondeu pelo processo antigo: o
+   percurso reprovava uma correção que já estava feita. Conferir o log de quem subiu é parte de
+   subir.
+3. **O `sql` cru do Neon serializa a data pelo fuso da MÁQUINA; o Drizzle, não.** O percurso do doc
+   69 inseria a sessão que deveria ocupar as 14:00 com `Date.UTC`, e ela chegava ao banco às 11:00
+   — o bloqueio não tinha com o que colidir e o percurso acusava o app. Para inserir por aquele
+   caminho, a data é LOCAL. (Mesma pedra do doc 70, outro campo.)
+4. **"R$ 300,00 na tela" não é "cobrança de R$ 300,00".** A primeira assertiva lia o corpo inteiro
+   da página e pegava o resumo (R$ 400 devidos − R$ 100 recebidos), que estava certo. Assertiva de
+   dinheiro mira na linha, não na tela.
+
 ## 2026-10-31 — Doc 70: contrato de quem contrata por si, nome do pagador e sequência que não começa no gratuito
 
 **Entregue:** contrato com cabeçalho "CONTRATANTE/ PACIENTE" e sem bloco repetido quando não há

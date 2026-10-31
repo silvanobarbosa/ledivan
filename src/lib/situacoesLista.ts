@@ -13,7 +13,7 @@ import "server-only";
 import { and, eq, inArray } from "drizzle-orm";
 import { db } from "@/db";
 import { COLUNAS_DA_SESSAO_COM_PACIENTE } from "@/lib/colunasDaSessao";
-import { COLUNAS_DO_PRECO, local, pagamentoParaMotor, precoParaMotor, sessaoParaMotor } from "@/lib/entradaDoMotor";
+import { COLUNAS_DO_PAGAMENTO, COLUNAS_DO_PRECO, local, pagamentoParaMotor, precoParaMotor, sessaoParaMotor } from "@/lib/entradaDoMotor";
 import { cobrancaVencimentos, patientPackages, patientPackageHistory, patientPaymentFormatHistory, patientPriceHistory, sessionPayments, therapySessions } from "@/db/schema";
 import { resumoDaGeral, type EntradaDaGeral } from "./guiaGeral";
 import { hojeDeParede } from "./geralDoPaciente";
@@ -53,7 +53,7 @@ export async function situacoesDaLista(userId: string, pacientes: PacienteParaSi
   const [sessoes, pagamentos, precos, vigencias, pacotes, pacoteHist, vencEditados] = await Promise.all([
     db.select({ ...COLUNAS_DA_SESSAO_COM_PACIENTE, isOnline: therapySessions.isOnline })
       .from(therapySessions).where(eq(therapySessions.userId, userId)),
-    db.select({ id: sessionPayments.id, patientId: sessionPayments.patientId, amount: sessionPayments.amount, date: sessionPayments.date, status: sessionPayments.status, method: sessionPayments.method, pagoPor: sessionPayments.pagoPor, cobrancaChave: sessionPayments.cobrancaChave, kind: sessionPayments.kind, quita: sessionPayments.quitaDiferenca, estornadoEm: sessionPayments.estornadoEm })
+    db.select({ ...COLUNAS_DO_PAGAMENTO, patientId: sessionPayments.patientId })
       .from(sessionPayments).where(eq(sessionPayments.userId, userId)),
     db.select({ patientId: patientPriceHistory.patientId, ...COLUNAS_DO_PRECO })
       .from(patientPriceHistory).where(inArray(patientPriceHistory.patientId, ids)),

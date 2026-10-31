@@ -1512,6 +1512,10 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
                   ))}
                 </div>
                 <input type="hidden" name="naSequencia" value={campoEscolha.naSequencia} />
+                {/* Doc 71: no financeiro a cada sessão o quadro pergunta a cortesia, e é por aqui
+                    que a resposta chega ao servidor. Nos demais formatos vai "nao" — a cortesia não
+                    é oferecida ali (o "Não (GRAT)" faz o mesmo papel, doc 67). */}
+                <input type="hidden" name="cortesia" value={campoEscolha.cortesia} />
                 {/* Doc 36: "abater do pacote" segue acontecendo (a sessão preenche uma desmarcada
                     em aberto, ocupando a posição — nada atravessa para o mês seguinte e o total não
                     muda), MAS não se pergunta mais QUAL desmarcada: a sessão específica não importa,
