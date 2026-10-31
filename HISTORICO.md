@@ -7,6 +7,46 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-10-31 — O ditado da evolução passa a ser ouvido pela casa
+
+**Entregue:** `/api/transcribe` fala com o gateway da casa (`rl-stt`, Whisper na nossa VPS) em vez
+da chave da terapeuta; a chave dela continua como RESERVA. A transcrição recebe os nomes próprios
+da sessão como dica, e o rascunho da evolução passou a sair do tier HEAVY (PR #525).
+
+**Por quê:** o áudio clínico deixava a nossa infraestrutura e ia para a OpenAI/Groq, pago pela
+terapeuta. Com o ouvido da casa ele não sai daqui e não custa nada. O recurso também estava
+bloqueado para quem nunca cadastrou chave — que é a maioria.
+
+**Decisões que ficam valendo:** a ordem é casa → chave dela → recusa explicada; nunca 500 genérico.
+A dica de nomes leva SÓ os nomes desta sessão — a lista inteira de pacientes empurraria o nome de
+um para dentro do prontuário de outro. O rascunho é HEAVY porque vira texto que a terapeuta assina.
+
+**Armadilhas:** o Next 16 TRUNCA o corpo acima do teto em vez de recusar, e aí o `formData()`
+estoura num 500 cru depois do upload inteiro — a mesma armadilha do Portal com Server Action de 1
+MB. Agora o teto é conferido pelo `Content-Length` antes de ler o corpo. E o ouvido roda em CPU: ~1x
+o tempo real com o modelo quente, mas a PRIMEIRA transcrição depois de uma hora ociosa demora
+várias vezes mais, porque o modelo recarrega.
+
+**Pendente:** o Divã (assistente que pergunta "o que deseja fazer?", ouve e fala) — ícone em
+`Downloads/Design sem nome_20261031_084050_0000.png`, ainda não construído.
+
+## 2026-10-31 — Requisição sem sessão numa API devolvia 500, não 401
+
+**Entregue:** o `proxy.ts` responde 401 em JSON nas rotas `/api/`; o redirect para o login ficou
+só para as páginas (PR #525).
+
+**Por quê:** o redirect era 307, que PRESERVA método e corpo — então um POST sem sessão era
+reenviado ao handler de LOGIN. Corpo JSON voltava com "Email e senha são obrigatórios" (resposta de
+outra rota) e corpo multipart derrubava o login num 500, porque ele tenta ler o corpo como JSON.
+
+**Decisões que ficam valendo:** página redireciona, API responde. Nenhuma requisição deve ser
+entregue a um handler que não é o dela.
+
+**Armadilhas:** o sintoma aparecia como "a transcrição dá 500", bem longe da causa. Foi o percurso
+de navegador que o pegou, com um controle de autenticação que parecia burocracia.
+
+---
+
 ## 2026-10-31 — Doc 66: a cortesia se decide ao marcar, e o pagador deixa de misturar duas pessoas
 
 **Entregue:** "Sessão Cortesia" passa a ser escolhida na janela de Novo atendimento, ao lado da

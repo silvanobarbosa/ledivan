@@ -1,6 +1,18 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  /**
+   * O corpo da requisição vai até 25 MB — que é o que a transcrição PROMETE.
+   *
+   * O teto padrão do Next 16 é 10 MB, e acima dele o corpo chega TRUNCADO: o `FormData` não
+   * fecha, e a rota morre num 500 cru depois de a terapeuta ter esperado o upload inteiro. Era a
+   * mesma armadilha do Portal (Server Action com teto de 1 MB e foto de celular de 3 MB): o teto
+   * silencioso de um lado e a promessa do outro. Agora os dois dizem 25 MB, e quem passa disso
+   * recebe um 400 explicado em `lib/transcricao`.
+   */
+  experimental: {
+    proxyClientMaxBodySize: 25 * 1024 * 1024,
+  },
   images: {
     remotePatterns: [
       {
