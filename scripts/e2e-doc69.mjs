@@ -59,14 +59,15 @@ const proximaSegunda = (() => {
 const maisSemanas = (base, n) => { const d = new Date(base); d.setDate(d.getDate() + 7 * n); return d; };
 
 /**
- * O instante que o banco guarda para uma hora de PAREDE.
+ * O instante que o banco guarda para uma hora de PAREDE — pelo caminho do `sql` CRU.
  *
- * A coluna é timestamp sem fuso e guarda a hora como ela é lida na tela; o app monta e lê esse
- * valor pelos campos UTC (ver `lib/horaLocal`). Inserir aqui com `new Date(ano, mês, dia, 14)`
- * grava o instante LOCAL da máquina — e o percurso passa a depender de o servidor estar no mesmo
- * fuso que ela. Com `Date.UTC`, a sessão nasce às 14:00 de parede em qualquer fuso.
+ * A coluna é timestamp sem fuso e guarda a hora como a tela a lê. O app, por Drizzle, monta e lê
+ * esse valor pelos campos UTC (ver `lib/horaLocal`); o tag `sql` cru do mesmo pacote faz o
+ * CONTRÁRIO — serializa a data pelo fuso da MÁQUINA. Medido: `Date.UTC(...14h)` inserido por aqui
+ * chega ao banco como `11:00` numa máquina em UTC−3, e a sessão que deveria ocupar as 14:00 não
+ * ocupava nada. Então, para inserir por este caminho, a data é LOCAL.
  */
-const parede = (base, hora) => new Date(Date.UTC(base.getFullYear(), base.getMonth(), base.getDate(), hora, 0, 0, 0));
+const parede = (base, hora) => new Date(base.getFullYear(), base.getMonth(), base.getDate(), hora, 0, 0, 0);
 
 const paciente = async (nome, formato, fee, agendaId) => {
   const [p] = await sql`

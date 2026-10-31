@@ -12,6 +12,7 @@ import { createMeetLink } from "@/lib/googleCalendar";
 import { parseMoedaBR } from "@/lib/money";
 import { desmarcadasSemReposicao, extraParaGravar } from "@/lib/sessaoExtra";
 import { devolutivaParaGravar } from "@/lib/quadroDaDevolutiva";
+import { podeSerCortesia } from "@/lib/cortesia";
 import { formatoNaData } from "@/lib/vigenciaDoFormato";
 import { getUserAiClient, SemChaveIA } from "@/lib/ai-client";
 import { chavesDaCobrancaDaSessao, decidirDesfazer } from "@/lib/desfazerCobranca";
@@ -80,6 +81,11 @@ export async function createRecurring(formData: FormData): Promise<{ ok: boolean
   });
   if (!extraSerie.ok) return { ok: false, error: extraSerie.error };
 
+  // Doc 71: a cortesia do financeiro a cada sessão (ver `blocoDoAgendamento`). A fronteira confere
+  // o gate de novo — o formulário manda o campo, mas quem decide se ele vale é o servidor.
+  const cortesiaDaSerie = formData.get("cortesia") === "sim"
+    && podeSerCortesia({ sessionKind: formData.get("sessionKind") as string });
+
   /**
    * A serie PULA horario bloqueado (dona, 18/09).
    *
@@ -116,6 +122,9 @@ export async function createRecurring(formData: FormData): Promise<{ ok: boolean
     pendingConfirmation: true, recurring: true, recurrenceFreq: freq, recurrenceUntil: until,
     // Mesma marca de fora-do-pacote do agendamento único: a série inteira herda a escolha.
     extra: extraSerie.extra, valorExtra: extraSerie.valorExtra,
+    // Doc 71: e a cortesia também — quem combinou uma série de cortesia combinou a série, não uma
+    // sessão dela. Mesmo critério da marca acima.
+    cortesia: cortesiaDaSerie,
   }));
   if (!rows.length) return { ok: false, error: "Nenhuma data gerada." };
   await db.insert(therapySessions).values(rows);
@@ -268,10 +277,15 @@ export async function createSessionFromAgenda(formData: FormData): Promise<{ ok:
   if (devolutiva && !devolutiva.ok) return { ok: false, error: devolutiva.error };
 
   /**
-   * Doc 67: a CORTESIA deixou de ter botão — nem aqui nem no editar. A dona passou a usar
-   * "não adicionar à sequência" + "Não (GRAT)", que é a mesma consequência em dinheiro. A coluna
-   * `cortesia` continua existindo e sendo LIDA pelo motor: as sessões já marcadas seguem GRAT.
+   * Doc 67: a CORTESIA deixou de ter botão NO PACOTE — a dona passou a usar "não adicionar à
+   * sequência" + "Não (GRAT)", que é a mesma consequência em dinheiro.
+   *
+   * Doc 71: ela voltou a ter botão em QUEM PAGA A CADA SESSÃO, onde não existe sequência e, por
+   * isso, não existia a outra porta. Quais formatos oferecem a pergunta é assunto de
+   * `blocoDoAgendamento`; aqui é a fronteira, que só aceita o que o gate permite.
    */
+  const cortesia = formData.get("cortesia") === "sim"
+    && podeSerCortesia({ sessionKind: formData.get("sessionKind") as string });
 
   /**
    * Qual desmarcada esta sessao repoe (documento de 17/09).
@@ -324,6 +338,7 @@ export async function createSessionFromAgenda(formData: FormData): Promise<{ ok:
     sessionKind: (formData.get("sessionKind") as string) === "devolutiva" ? "devolutiva" : "consulta",
     // Devolutiva marcada para abater: não cobra, mas ocupa posição na sequência do pacote.
     abaterDoPacote: devolutiva?.ok ? devolutiva.abaterDoPacote : formData.get("abaterDoPacote") === "true",
+    cortesia,
     extra: devolutiva?.ok ? devolutiva.extra : extraDaSessao.extra,
     valorExtra: devolutiva?.ok ? devolutiva.valorExtra : extraDaSessao.valorExtra,
     repoeSessaoId,

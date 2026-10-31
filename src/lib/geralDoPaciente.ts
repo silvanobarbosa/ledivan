@@ -14,7 +14,7 @@ import "server-only";
 import { and, eq, isNull } from "drizzle-orm";
 import { db } from "@/db";
 import { COLUNAS_DA_SESSAO } from "@/lib/colunasDaSessao";
-import { COLUNAS_DO_PRECO, local, pagamentoParaMotor, precoParaMotor, sessaoParaMotor } from "@/lib/entradaDoMotor";
+import { COLUNAS_DO_PAGAMENTO, COLUNAS_DO_PRECO, local, pagamentoParaMotor, precoParaMotor, sessaoParaMotor } from "@/lib/entradaDoMotor";
 import { blockedSlots, cobrancaEnvios, cobrancaVencimentos, sessoesPuladas, patientCredits, patientPackages, patientPackageHistory, patientPaymentFormatHistory, patientPriceHistory, patients, sessionPayments, therapySessions } from "@/db/schema";
 import { linhasDaGeral, resumoDaGeral, type CobrancaDaGeral, type EntradaDaGeral, type LinhaDaGeral } from "./guiaGeral";
 import { tamanhosDasSequencias } from "./sequenciaPacote";
@@ -139,7 +139,7 @@ export async function geralDoPaciente(userId: string, patientId: string): Promis
   const [sessoes, pagamentos, precos, pacotes, vigencias, envios, puladas, pacoteHist, vencEditados] = await Promise.all([
     db.select({ ...COLUNAS_DA_SESSAO, isOnline: therapySessions.isOnline, estornoValor: therapySessions.estornoValor, estornoEm: therapySessions.estornoEm, creditoValor: therapySessions.creditoValor, transferidoPara: therapySessions.transferidoPara, creditoUsadoEm: therapySessions.creditoUsadoEm })
       .from(therapySessions).where(and(eq(therapySessions.patientId, patientId), eq(therapySessions.userId, userId))),
-    db.select({ id: sessionPayments.id, amount: sessionPayments.amount, date: sessionPayments.date, status: sessionPayments.status, method: sessionPayments.method, pagoPor: sessionPayments.pagoPor, cobrancaChave: sessionPayments.cobrancaChave, quita: sessionPayments.quitaDiferenca, ficaNaCobranca: sessionPayments.diferencaOutraData, kind: sessionPayments.kind, estornadoEm: sessionPayments.estornadoEm, reciboEmitidoEm: sessionPayments.reciboEmitidoEm, notaEmitidaEm: sessionPayments.receiptIssuedAt, reciboNumero: sessionPayments.receiptNumber })
+    db.select({ ...COLUNAS_DO_PAGAMENTO, reciboEmitidoEm: sessionPayments.reciboEmitidoEm, notaEmitidaEm: sessionPayments.receiptIssuedAt, reciboNumero: sessionPayments.receiptNumber })
       .from(sessionPayments).where(and(eq(sessionPayments.patientId, patientId), eq(sessionPayments.userId, userId))),
     db.select(COLUNAS_DO_PRECO)
       .from(patientPriceHistory).where(eq(patientPriceHistory.patientId, patientId)),

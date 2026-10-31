@@ -7,6 +7,9 @@ import { Plus } from "lucide-react";
 import { PatientsClient } from "./PatientsClient";
 import { situacoesDaLista } from "@/lib/situacoesLista";
 import { rotuloFrequenciaReal } from "@/lib/rotulosPaciente";
+import { slotsRecorrentes } from "@/lib/agendaRecorrente";
+import { ehSemanal2x } from "@/lib/agendamentoNovo";
+import { horaDeParede } from "@/lib/horaLocal";
 
 export default async function PatientsPage({ searchParams }: { searchParams: Promise<{ status?: string; tipo?: string; dia?: string; tag?: string }> }) {
   const sp = await searchParams;
@@ -42,7 +45,8 @@ export default async function PatientsPage({ searchParams }: { searchParams: Pro
       .groupBy(therapySessions.patientId),
     // Frequência REAL (doc 9, #14): vem da AGENDA, igual ao dia/hora acima, não do campo do cadastro
     // (que ficava obsoleto e mostrava mensal como semanal). As sessões de recorrência futuras dizem a
-    // frequência e os dia/hora distintos (1 slot = 1x, 2 slots = 2x).
+    // frequência; quantos horários ela tem é a própria frequência quem diz (doc 71), não a contagem
+    // de pares distintos — ver `slotsRecorrentes`.
     db.select({ pid: therapySessions.patientId, date: therapySessions.date, freq: therapySessions.recurrenceFreq })
       .from(therapySessions)
       .where(and(
@@ -60,22 +64,31 @@ export default async function PatientsPage({ searchParams }: { searchParams: Pro
       return [r.pid, { dia: DIAS[d.getDay()], hora: `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}` }];
     }),
   );
-  // Frequência REAL por paciente, derivada das sessões de recorrência futuras (doc 9, #14): a
-  // frequência (mensal/quinzenal/semanal) e os slots dia/hora DISTINTOS. 2 slots distintos = Semanal 2x.
-  const recPorPaciente = new Map<string, { freq: string | null; slots: { dia: string; hora: string }[] }>();
+  /**
+   * Frequência REAL por paciente, derivada das sessões de recorrência futuras (doc 9, #14).
+   *
+   * Doc 71: quantos horários o combinado tem é a FREQUÊNCIA quem diz (`semanal2x` → dois), não a
+   * contagem de pares distintos que apareceram na agenda. Um atendimento remarcado para outro dia
+   * é um par a mais e fazia a lista anunciar um segundo horário semanal que não existe — a Yngrid,
+   * semanal na segunda, virava "Semanal 2x · Segunda 20:00, Terça 17:00" por causa de UMA sessão.
+   * Quais slots valem é `slotsRecorrentes`, a mesma apuração da frase da ficha.
+   *
+   * As datas passam por `horaDeParede` antes de virar dia+hora: a coluna guarda hora de parede e o
+   * Drizzle a entrega nos campos UTC do objeto (ver `lib/horaLocal`). Sem isso, a lista acerta no
+   * servidor da Vercel (que roda em UTC) e erra em qualquer outro fuso.
+   */
+  const recPorPaciente = new Map<string, { freq: string | null; datas: Date[] }>();
   for (const r of recorrentes) {
-    const d = new Date(r.date);
-    const slot = { dia: DIAS[d.getDay()], hora: `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}` };
-    const atual = recPorPaciente.get(r.pid) ?? { freq: r.freq, slots: [] };
-    if (!atual.slots.some((s) => s.dia === slot.dia && s.hora === slot.hora)) atual.slots.push(slot);
+    const atual = recPorPaciente.get(r.pid) ?? { freq: r.freq, datas: [] };
+    atual.datas.push(new Date(horaDeParede(r.date)));
     recPorPaciente.set(r.pid, atual);
   }
-  const DIA_ORDEM = (dia: string) => DIAS.indexOf(dia);
   const labelFrequencia = (pid: string, fallbackFreq: string | null): string => {
     const rec = recPorPaciente.get(pid);
     if (!rec) return rotuloFrequenciaReal(null, []); // sem recorrência futura
-    const slots = rec.slots.slice().sort((a, b) => DIA_ORDEM(a.dia) - DIA_ORDEM(b.dia) || a.hora.localeCompare(b.hora));
-    return rotuloFrequenciaReal(rec.freq ?? fallbackFreq, slots);
+    const freq = rec.freq ?? fallbackFreq;
+    const slots = slotsRecorrentes(rec.datas.map((date) => ({ date })), ehSemanal2x(freq) ? 2 : 1);
+    return rotuloFrequenciaReal(freq, slots);
   };
 
   const paidMap = new Map(paysByPatient.map((r) => [r.pid, parseFloat(r.total || "0")]));

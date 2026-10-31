@@ -30,8 +30,9 @@ describe("doc 67 — o quadro do Novo atendimento", () => {
     }
   });
 
-  it("quem NÃO fecha por pacote não tem quadro nenhum", () => {
-    expect(blocoDoAgendamento({ formato: "sessao", jaTemSequencia: true })).toBeNull();
+  // Doc 71 SUPERA esta regra para quem paga A CADA SESSÃO: ali passou a existir um quadro, o da
+  // cortesia (ver `doc71.test.ts`). O gratuito continua sem quadro nenhum — ele já não cobra.
+  it("o gratuito não tem quadro nenhum", () => {
     expect(blocoDoAgendamento({ formato: "gratuito", jaTemSequencia: true })).toBeNull();
   });
 
@@ -55,8 +56,9 @@ describe("doc 67 — o quadro do Novo atendimento", () => {
   });
 
   it("'fora' é o que sai do pacote, e é o que o servidor lê", () => {
-    expect(camposDaEscolha("fora")).toEqual({ naSequencia: "nao" });
-    expect(camposDaEscolha("normal")).toEqual({ naSequencia: "sim" });
+    // Doc 71 acrescentou `cortesia` ao formulário; o que esta regra diz continua sendo a sequência.
+    expect(camposDaEscolha("fora").naSequencia).toBe("nao");
+    expect(camposDaEscolha("normal").naSequencia).toBe("sim");
   });
 });
 
