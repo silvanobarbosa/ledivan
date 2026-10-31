@@ -150,7 +150,24 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
   useEffect(() => {
     if (jaAbriuPeloDiva.current || paramsDaUrl.get("novo") !== "1") return;
     jaAbriuPeloDiva.current = true;
-    openNew();
+
+    /**
+     * O Divã pode mandar o paciente e o quando junto (`&paciente=&quando=`): foi uma reserva
+     * ditada, já conferida por ela na prévia. A janela abre PREENCHIDA e ela aperta Agendar.
+     *
+     * Reservar não é gravado por voz de propósito: as perguntas desta janela — sequência do
+     * pacote, modalidade, devolutiva — têm consequência em dinheiro, e pulá-las por atalho
+     * desfaria o que os docs 67 e 68 acabaram de desenhar.
+     */
+    const quandoDito = paramsDaUrl.get("quando");
+    const data = quandoDito ? new Date(quandoDito) : null;
+    openNew(data && !Number.isNaN(data.getTime()) ? data : undefined, data && !Number.isNaN(data.getTime()) ? data.getHours() : undefined, data?.getMinutes() ?? 0);
+    const pacienteDito = paramsDaUrl.get("paciente");
+    if (pacienteDito && patients.some((p) => p.id === pacienteDito)) {
+      setNewPatient(pacienteDito);
+      const alvo = patients.find((p) => p.id === pacienteDito);
+      setNewKind(alvo?.cadastroKind === "supervisionado" ? "supervisao" : "consulta");
+    }
     window.history.replaceState(null, "", "/dashboard/agenda");
     // openNew é estável o bastante para este disparo único de montagem.
     // eslint-disable-next-line react-hooks/exhaustive-deps
