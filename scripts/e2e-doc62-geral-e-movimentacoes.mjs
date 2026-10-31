@@ -68,6 +68,8 @@ const sessao = async (pid, quando, status = "realizada") => {
 
 const nav = await chromium.launch();
 const ctx = await nav.newContext();
+// O Divã abre sozinho na primeira visita do dia e cobriria o percurso: marca o dia como visto.
+await ctx.addInitScript(() => { try { localStorage.setItem("ledivan_onboarded_v3", "1"); localStorage.setItem("ledivan_diva_dia", new Date().toISOString().slice(0, 10)); } catch { /* sem localStorage */ } });
 // O domínio do cookie sai do BASE_URL — preso em "localhost", um BASE_URL remoto entrava deslogado
 // e TODAS as verificações reprovavam, parecendo defeito do que foi para o ar.
 //

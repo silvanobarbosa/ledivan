@@ -82,7 +82,7 @@ const nav = await chromium.launch();
 const ctx = await nav.newContext({ viewport: { width: 1440, height: 1100 } });
 const alvo = new URL(BASE);
 await ctx.addCookies([{ name: "auth-session", value: token, domain: alvo.hostname, path: "/", secure: alvo.protocol === "https:" }]);
-await ctx.addInitScript(() => { try { localStorage.setItem("ledivan_onboarded_v3", "1"); } catch { /* sem localStorage */ } });
+await ctx.addInitScript(() => { try { localStorage.setItem("ledivan_onboarded_v3", "1"); localStorage.setItem("ledivan_diva_dia", new Date().toISOString().slice(0, 10)); } catch { /* sem localStorage */ } });
 const page = await ctx.newPage();
 page.setDefaultNavigationTimeout(120000);
 page.setDefaultTimeout(30000);
@@ -159,77 +159,13 @@ try {
     check(`${quem}: o CPF é o DAQUELA pessoa`, cpf === cpfEsperado, `"${cpf}"`);
   }
 
-  // ── itens 2 e 3: o quadro de escolhas do Novo atendimento ───────────────────────────────────
-  const avulsoNovo = await paciente(`QA doc66 avulso ${marca}`, "sessao", "90.00", { agendaId: `A66${marca.slice(-3)}` });
-  if (await abrirNovo(`A66${marca.slice(-3)}`, semana(2, 16))) {
-    const op = await opcoesDoBloco();
-    check("avulso, 1º agendamento: Sessão Avulsa e Sessão Cortesia", op.join(" | ") === "Sessão Avulsa | Sessão Cortesia", op.join(" | ") || "sem quadro");
-  } else check("avulso, 1º agendamento: abriu o Novo atendimento", false);
-
-  const pacoteNovo = await paciente(`QA doc66 pacote ${marca}`, "mensal", "400.00", { agendaId: `P66${marca.slice(-3)}` });
-  if (await abrirNovo(`P66${marca.slice(-3)}`, semana(2, 17))) {
-    const op = await opcoesDoBloco();
-    check("pacote, 1º agendamento: Iniciar à sequência e Sessão Cortesia",
-      op.join(" | ") === "Iniciar à sequência do pacote | Sessão Cortesia", op.join(" | ") || "sem quadro");
-  } else check("pacote, 1º agendamento: abriu o Novo atendimento", false);
-
-  // O mesmo paciente de pacote, agora COM sequência: as três opções.
-  const pacoteComSeq = await paciente(`QA doc66 pacote2 ${marca}`, "mensal", "400.00", { agendaId: `Q66${marca.slice(-3)}` });
-  await sessao(pacoteComSeq, semanaPassada());
-  if (await abrirNovo(`Q66${marca.slice(-3)}`, semana(3, 16))) {
-    const op = await opcoesDoBloco();
-    check("pacote, demais agendamentos: adicionar, não adicionar e cortesia",
-      op.join(" | ") === "Adicionar à sequência do pacote | Não adicionar à sequência do pacote | Sessão Cortesia",
-      op.join(" | ") || "sem quadro");
-  } else check("pacote, demais agendamentos: abriu o Novo atendimento", false);
-
-  // ── item 4: marcar a cortesia grava GRAT e não ocupa posição ────────────────────────────────
-  if (await abrirNovo(`Q66${marca.slice(-3)}`, semana(3, 15))) {
-    await page.locator('[data-testid="pergunta-sequencia"] button:has-text("Sessão Cortesia")').first().click();
-    await page.waitForTimeout(300);
-    await page.getByRole("button", { name: /^Agendar$/ }).first().click();
-    await page.waitForTimeout(2500);
-    const gravadas = await sql`
-      SELECT cortesia, extra FROM therapy_sessions
-      WHERE patient_id = ${pacoteComSeq} AND date >= ${semana(3, 15)} ORDER BY date LIMIT 1`;
-    check("cortesia marcada no agendamento foi gravada", gravadas[0]?.cortesia === true, JSON.stringify(gravadas[0] ?? null));
-    // A cortesia NÃO sai do pacote: quem sai é "não adicionar à sequência", e esse grava `extra`.
-    check("a cortesia continua no pacote (sem marca de extra)", gravadas[0]?.extra == null, String(gravadas[0]?.extra));
-
-    await ir(`${BASE}/dashboard/agenda`);
-    const cel = await rotulo(`QA doc66 pacote2 ${marca}`);
-    check("a sessão de cortesia aparece como GRAT na agenda", (cel ?? "").includes("GRAT"), cel ?? "sem cartão");
-
-    await ir(`${BASE}/dashboard/patients/${pacoteComSeq}?guia=geral`);
-    const corpo = await texto();
-    check("e aparece como GRAT na guia Geral também", corpo.includes("GRAT"), corpo.slice(0, 120).replace(/\s+/g, " "));
-    /**
-     * O controle negativo: "GRAT" na página inteira provaria pouco se ele estivesse no menu ou num
-     * rodapé. Um paciente de pacote SEM cortesia nenhuma não pode ter a palavra em lugar nenhum.
-     */
-    await ir(`${BASE}/dashboard/patients/${pacoteNovo}?guia=geral`);
-    const semCortesia = await texto();
-    check("o controle: cadastro sem cortesia não diz GRAT em lugar nenhum", !semCortesia.includes("GRAT"));
-  } else check("marcar a cortesia: abriu o Novo atendimento", false);
-
-  // ── item 5: a cortesia saiu do Editar agendamento ───────────────────────────────────────────
-  const antiga = await paciente(`QA doc66 editar ${marca}`, "sessao", "80.00", { agendaId: `E66${marca.slice(-3)}` });
-  await sessao(antiga, semana(4, 16));
-  await ir(`${BASE}/dashboard/agenda`);
-  const card = page.getByTitle(`QA doc66 editar ${marca}`, { exact: false }).first();
-  await card.waitFor({ timeout: 45000 }).catch(() => {});
-  if (await card.count()) {
-    await card.click();
-    await page.waitForTimeout(500);
-    const editar = page.getByRole("button", { name: /Editar agendamento/i }).first();
-    if (await editar.count()) {
-      await editar.click();
-      await page.waitForTimeout(600);
-      const corpo = await texto();
-      check("o Editar agendamento não oferece mais a cortesia", !corpo.includes("Este atendimento será uma cortesia"));
-      check("e continua oferecendo o que é dele (data e horário)", corpo.includes("Data e horário"));
-    } else check("o Editar agendamento não oferece mais a cortesia", false, "botão Editar não encontrado");
-  } else check("o Editar agendamento não oferece mais a cortesia", false, "cartão não encontrado");
+  /**
+   * Os itens 2 a 5 (o botão "Sessão Cortesia" no Novo atendimento e a sua saída do editar) foram
+   * REVERTIDOS pelo doc 67: o quadro voltou a oferecer só adicionar/não adicionar, porque "já
+   * temos a opção GRAT no não adicionar à sequência". As verificações do quadro vivem agora em
+   * `e2e-doc67.mjs`. O que continua sendo deste documento é o item 1 (acima) e o item 6 (abaixo),
+   * que guarda o dado antigo.
+   */
 
   // ── item 6: quem JÁ era cortesia continua GRAT ──────────────────────────────────────────────
   const jaEra = await paciente(`QA doc66 ja cortesia ${marca}`, "sessao", "70.00", { agendaId: `J66${marca.slice(-3)}` });
@@ -237,7 +173,6 @@ try {
   await ir(`${BASE}/dashboard/agenda`);
   const celAntiga = await rotulo(`QA doc66 ja cortesia ${marca}`);
   check("a sessão que já era cortesia continua GRAT", (celAntiga ?? "").includes("GRAT"), celAntiga ?? "sem cartão");
-  void avulsoNovo;
 } catch (e) {
   check("o percurso chegou ao fim sem exceção", false, String(e && e.message ? e.message : e).slice(0, 300));
 } finally {

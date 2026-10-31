@@ -83,7 +83,7 @@ const alvo = new URL(BASE);
 await ctx.addCookies([{ name: "auth-session", value: token, domain: alvo.hostname, path: "/", secure: alvo.protocol === "https:" }]);
 // O tour de boas-vindas é um modal por cima do Dashboard: sem dispensá-lo, o clique em "Cobrar"
 // resolve o botão e nunca chega nele. Marca a chave que o próprio tour grava ao fechar.
-await ctx.addInitScript(() => { try { localStorage.setItem("ledivan_onboarded_v3", "1"); } catch { /* sem localStorage */ } });
+await ctx.addInitScript(() => { try { localStorage.setItem("ledivan_onboarded_v3", "1"); localStorage.setItem("ledivan_diva_dia", new Date().toISOString().slice(0, 10)); } catch { /* sem localStorage */ } });
 const page = await ctx.newPage();
 // Aba nova aberta pelo app (o caminho da WEB). No computador NÃO deve abrir nenhuma.
 let abasNovas = 0;

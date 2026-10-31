@@ -5,6 +5,8 @@ import { BottomNavBar } from "@/components/dashboard/BottomNavBar";
 import { OnboardingTour } from "@/components/dashboard/OnboardingTour";
 import { AreaTint } from "@/components/dashboard/AreaTint";
 import { HelpButton } from "@/components/dashboard/HelpButton";
+import { Diva } from "@/components/dashboard/Diva";
+import { estadoDoDiva } from "@/lib/divaEstado";
 import { HeaderUser } from "@/components/dashboard/HeaderUser";
 import { photoSrc } from "@/lib/photo";
 import Image from "next/image";
@@ -34,6 +36,15 @@ export default async function DashboardLayout({
   }
   const isAdmin = isAdminUser(user);
   const isDemo = !!user?.isDemo;
+
+  /**
+   * O Divã precisa do estado real para ter o que dizer. A conta varre os cadastros ativos, então
+   * ela é tolerante a falha: se der errado, o Divã abre mesmo assim, só sem a lista do que espera
+   * por ela. Um assistente que derruba a página inteira do consultório não é um assistente.
+   */
+  const estadoDiva = session?.user?.id
+    ? await estadoDoDiva(session.user.id).catch(() => null)
+    : null;
 
   // Impressão: esta área é `h-screen overflow-hidden` com o conteúdo rolando numa div. Sem
   // soltar essas travas, imprimir corta tudo na primeira página — e o menu, o cabeçalho e a
@@ -89,6 +100,10 @@ export default async function DashboardLayout({
 
       <BottomNavBar />
       <ScanRecibo hasAiKey={!!user?.aiKeyEnc} />
+      <Diva
+        estado={estadoDiva ?? { sessoesHoje: 0, cobrancasEmAtraso: 0, valorEmAtraso: 0, semProximoAgendamento: 0, reajustesAVencer: 0 }}
+        podeOuvir={!!user?.aiKeyEnc}
+      />
       <OnboardingTour />
     </div>
   );
