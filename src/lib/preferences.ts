@@ -19,9 +19,6 @@ export type Integrations = {
 
 export type UserPreferences = {
   transcriptionEnabled?: boolean; // habilita transcrição de sessão por IA (opt-in do terapeuta)
-  // Usar a IA da casa (gateway) na transcrição, em vez da chave própria. Opt-in: o padrão é a
-  // chave dela, para o app não depender da nossa VPS (ver lib/transcricao).
-  iaDaCasa?: boolean;
   meetingProvider?: "jitsi" | "meet"; // provedor de vídeo para sessões online
   bookingAutoConfirm?: boolean; // agendamento público entra automático (true) ou requer confirmação (false)
   integrations?: Integrations;

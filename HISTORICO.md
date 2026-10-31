@@ -7,6 +7,30 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-10-31 — BYOK é o único caminho da transcrição
+
+**Entregue:** a IA da casa saiu do Ledivan inteira — do código, da tela e das variáveis de
+ambiente da Vercel. A transcrição usa a chave da própria terapeuta, e só (PR #527).
+
+**Por quê:** decisão do dono. O Ledivan não depende de infraestrutura nossa, e opção que não deve
+existir não deve ficar "disponível mas desligada" — ela volta sozinha na próxima distração.
+
+**Decisões que ficam valendo:** não reintroduzir o gateway na transcrição sem o dono pedir. O que
+ficou do episódio e não depende de motor nenhum: a dica de nomes próprios (o app sabe o nome, o
+modelo não precisa adivinhar), o teto conferido pelo `Content-Length` antes de ler o corpo, e o 401
+nas rotas de API.
+
+**Armadilhas:** `src/lib/ai-draft.ts` (rascunho de mensagem ao paciente, em `/dashboard/mensagens`)
+JÁ falava com o gateway antes deste episódio — ele só estava mudo porque as variáveis não existiam
+em produção. **Criar as variáveis ligou esse recurso sem ninguém pedir**, e removê-las o desligou
+de volta. Variável de ambiente não configura um recurso: ela pode LIGAR outro, em silêncio, do
+outro lado do app. Procure todos os leitores antes de criar uma.
+
+**Pendente:** `ai-draft.ts` continua no código, desligado. Se o recurso for para ficar, precisa de
+um caminho que não passe pela nossa VPS — decisão do dono.
+
+---
+
 ## 2026-10-31 — A IA da casa vira opção; a chave da terapeuta volta a ser o chão
 
 **Entregue:** a transcrição usa a chave da terapeuta por padrão. A IA da casa virou um opt-in

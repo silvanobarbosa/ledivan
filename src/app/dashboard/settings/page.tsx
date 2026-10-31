@@ -229,8 +229,7 @@ export default async function SettingsPage() {
 
           <TranscriptionToggle initial={!!prefs.transcriptionEnabled} />
 
-          <AiKeyCard configured={!!user.aiKeyEnc} provider={user.aiProvider}
-            iaDaCasa={!!prefs.iaDaCasa} casaDisponivel={!!process.env.REVERBLABS_AI_BASE_URL && !!process.env.REVERBLABS_AI_KEY} />
+          <AiKeyCard configured={!!user.aiKeyEnc} provider={user.aiProvider} />
 
           <FeaturesCard initial={{ modes: prefs.features ?? {}, timerShow: !!prefs.timerShowToPatient }} />
 
