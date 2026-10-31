@@ -2,11 +2,13 @@ import { NextRequest, NextResponse } from "next/server";
 import OpenAI from "openai";
 import { auth } from "@/auth";
 import { db } from "@/db";
-import { users } from "@/db/schema";
-import { eq } from "drizzle-orm";
+import { patients, therapySessions, users } from "@/db/schema";
+import { and, eq, gte, ne } from "drizzle-orm";
 import { rateLimit } from "@/lib/rateLimit";
 import { decryptSecret } from "@/lib/crypto";
 import { tarefaDaFala, TAREFAS } from "@/lib/diva";
+import { previaDoComando } from "@/lib/previaDoComando";
+import { horaDeParede } from "@/lib/horaLocal";
 import { audioAceitavel, TETO_DO_AUDIO } from "@/lib/transcricao";
 
 /**
@@ -65,21 +67,72 @@ export async function POST(req: NextRequest) {
   try { apiKey = decryptSecret(me.keyEnc); }
   catch { return NextResponse.json({ ok: false, error: "Não foi possível ler sua chave de IA. Cadastre novamente." }, { status: 500 }); }
 
+  const meusPacientes = await db.select({ id: patients.id, nome: patients.name })
+    .from(patients)
+    .where(and(eq(patients.userId, userId), ne(patients.patientStatus, "inativo")));
+
   try {
     const openai = new OpenAI({ apiKey, timeout: 45_000, ...(cfg.baseURL ? { baseURL: cfg.baseURL } : {}) });
     const r = await openai.audio.transcriptions.create({
       file,
       model: cfg.stt,
       language: "pt",
-      // A dica é o VOCABULÁRIO do próprio Divã: ele erra menos no que ele mesmo sabe fazer.
-      prompt: `Comandos possíveis: ${TAREFAS.map((t) => t.rotulo).join("; ")}.`,
+      /**
+       * A dica: o vocabulário do Divã MAIS os nomes dos pacientes dela.
+       *
+       * Sem os nomes, "Kleber" virou "PB Er" (medido em 31/10) e nenhum comando achava ninguém.
+       * Mandar a lista aqui é legítimo — e é o oposto do que vale na transcrição de SESSÃO, onde
+       * a lista inteira empurraria o nome de um paciente para dentro do prontuário de outro. Aqui
+       * não se escreve o que foi dito: ESCOLHE-SE de um conjunto fechado, e a dica só ajuda a
+       * escolher certo. Limitada a 80 nomes para não estourar o campo.
+       */
+      prompt: `Verbos: anotar, anota, marcar, marca, agendar, cancelar, cancela, desmarcar. Comandos: ${TAREFAS.map((t) => t.rotulo).join("; ")}. Pacientes: ${meusPacientes.slice(0, 80).map((p) => p.nome).join(", ")}.`,
     });
 
     const fala = (r.text ?? "").trim();
-    const tarefa = tarefaDaFala(fala);
+
+    /**
+     * COMANDO vem antes de NAVEGAÇÃO.
+     *
+     * "marca a Marcela quinta às 16h" contém "marcar", que no catálogo de navegação abre a janela
+     * de novo atendimento. Mas ela disse mais do que isso: disse quem e quando. Ler primeiro o
+     * comando é o que separa "abrir a tela" de "chegar com a tela preenchida".
+     *
+     * Nada é escrito aqui. A prévia diz o que foi entendido e o que falta; quem executa são as
+     * ações, depois de ela confirmar na tela.
+     */
+    const agora = new Date();
+    const futuras = await db.select({ id: therapySessions.id, patientId: therapySessions.patientId, date: therapySessions.date })
+      .from(therapySessions)
+      .where(and(eq(therapySessions.userId, userId), gte(therapySessions.date, agora), ne(therapySessions.status, "cancelada")));
+    /**
+     * `horaDeParede` ANTES de virar Date — como no resto do app.
+     *
+     * A coluna é hora de parede e o driver a devolve como se fosse UTC: lida crua, uma sessão das
+     * 15h aparecia como 12h na confirmação (medido em 31/10). Num cartão cujo trabalho é ela
+     * reconhecer o atendimento antes de cancelá-lo, mostrar a hora errada é pior do que não
+     * mostrar nada. Ver [[licao-meia-noite-vira-dia-anterior]].
+     */
+    const porPaciente = new Map<string, { id: string; quando: Date }[]>();
+    const paraParede = futuras
+      .map((s) => ({ id: s.id, patientId: s.patientId, quando: new Date(horaDeParede(s.date)) }))
+      .sort((a, b) => a.quando.getTime() - b.quando.getTime());
+    for (const s of paraParede) {
+      const lista = porPaciente.get(s.patientId) ?? [];
+      lista.push({ id: s.id, quando: s.quando });
+      porPaciente.set(s.patientId, lista);
+    }
+
+    const comando = previaDoComando(fala, meusPacientes, {
+      agora,
+      sessoesDoPaciente: (id) => porPaciente.get(id) ?? [],
+    });
+
+    const tarefa = comando ? null : tarefaDaFala(fala);
     return NextResponse.json({
       ok: true,
       fala,
+      comando,
       tarefa: tarefa ? { id: tarefa.id, rotulo: tarefa.rotulo, rota: tarefa.rota, dica: tarefa.dica ?? null } : null,
     });
   } catch (e) {

@@ -7,6 +7,44 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-10-31 — A voz passa a AGIR: anotar, reservar e cancelar
+
+**Entregue:** por voz, três verbos — "anota na Marcela: dormiu melhor", "marca a Marcela amanhã às
+16h", "cancela a sessão do Kleber amanhã". Nenhum deles escreve sem ela ver e tocar (PR #533).
+
+**Decisões que ficam valendo:**
+
+- **O Divã NUNCA escolhe o paciente sozinho.** Medido na base real: o primeiro nome não identifica
+  ninguém — duas Thais, duas Fernandas, e uma **Eloá** e uma **Eloah**, homófonas. Nenhuma
+  transcrição separa essas duas; só perguntar resolve. Não reconheceu, oferece a lista.
+- **Reservar não grava por voz.** Preenche a janela de Novo atendimento e ela aperta Agendar —
+  senão as perguntas de sequência do pacote e modalidade seriam puladas por atalho.
+- **As ações recebem IDS, nunca nomes.** Quem resolve o paciente e a sessão é a prévia, uma vez.
+  Dois lugares decidindo quem é o paciente é um lugar a mais para errar.
+- **A data é lida por parser determinístico.** Pedir data a modelo é acertar quase sempre — e
+  "quase sempre" numa agenda é marcar alguém no dia errado de vez em quando, sem ninguém ver.
+  Sem hora, não há reserva: horário presumido é sessão na hora errada.
+
+**Armadilhas (todas pegas pelo percurso falando de verdade):**
+
+1. **A transcrição escreve PONTO onde se fala dois-pontos.** "anota na Marcela: dormiu melhor" sai
+   como "Anota na Marcela. Dormiu melhor" — lendo só os dois-pontos, toda anotação ditada ficava
+   sem conteúdo.
+2. **Ela come o artigo:** "marca a Marcela" sai "Marca Marcela".
+3. **A dica do Whisper precisa dos NOMES e dos VERBOS.** Sem os nomes, "Kleber" virou "PB Er" e
+   nenhum comando achava ninguém; sem os verbos, "cancela" virou "Ansela". **A cura é a dica,
+   nunca afrouxar o casamento dos verbos** — tolerar letra trocada ali faria "marcar" virar
+   "desmarcar" algum dia, e esse é o pior erro que esta voz pode cometer.
+4. **Repeti a lição do fuso:** a sessão das 15h aparecia como 12h no cartão de confirmação, porque
+   li a coluna sem `horaDeParede`. Num cartão cujo trabalho é ela reconhecer o atendimento antes de
+   cancelá-lo, hora errada é pior que hora nenhuma.
+
+**Pendente:** não encadeia comandos, não entende duração, e a anotação por voz vai para o
+prontuário como "Anotação por voz" — sem o gate de consentimento, por ser nota dela e não
+transcrição de sessão.
+
+---
+
 ## 2026-10-31 — A voz do Divã foi PROVADA, e o app anuncia que ela existe
 
 **Entregue:** o aviso único, na abertura, de que já dá para falar com o Divã — com o passo a passo

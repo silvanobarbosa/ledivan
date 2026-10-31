@@ -6,6 +6,7 @@ import Image from "next/image";
 import { Mic, Square, X, ChevronRight, Loader2 } from "lucide-react";
 import { abreSozinho, avisosDoDiva, TAREFAS, type EstadoDoDiva, type TarefaDoDiva } from "@/lib/diva";
 import { useJanela } from "@/lib/useJanela";
+import { anotarPorVoz, cancelarPorVoz } from "@/app/dashboard/diva-actions";
 import { FLUTUANTE_DIVA, FUNDO_DA_JANELA, JANELA } from "@/lib/modal";
 
 /**
@@ -41,6 +42,22 @@ const grava = (chave: string, valor: string) => {
 };
 const hojeISO = () => new Date().toISOString().slice(0, 10);
 
+type PacienteNaTela = { id: string; nome: string };
+type PreviaNaTela = {
+  acao: "anotar" | "reservar" | "cancelar";
+  paciente: { tipo: "um"; paciente: PacienteNaTela } | { tipo: "varios"; candidatos: PacienteNaTela[] } | { tipo: "nenhum" };
+  quando: { iso: string; porExtenso: string } | null;
+  texto: string;
+  sessoes?: { id: string; porExtenso: string }[];
+  faltando: string[];
+};
+
+const VERBO: Record<PreviaNaTela["acao"], string> = {
+  anotar: "Anotar no prontuário",
+  reservar: "Marcar atendimento",
+  cancelar: "Cancelar atendimento",
+};
+
 export function Diva({ estado, podeOuvir }: { estado: EstadoDoDiva; podeOuvir: boolean }) {
   const [aberto, setAberto] = useState(false);
   const [gravando, setGravando] = useState(false);
@@ -49,6 +66,9 @@ export function Diva({ estado, podeOuvir }: { estado: EstadoDoDiva; podeOuvir: b
   const [sugestao, setSugestao] = useState<TarefaDoDiva | null>(null);
   const [erro, setErro] = useState<string | null>(null);
   const [avisoDaVoz, setAvisoDaVoz] = useState(false);
+  /** A prévia do comando ditado: o que ele entendeu, esperando o toque dela. */
+  const [comando, setComando] = useState<PreviaNaTela | null>(null);
+  const [executando, setExecutando] = useState(false);
   const gravador = useRef<MediaRecorder | null>(null);
   const pedacos = useRef<Blob[]>([]);
   const router = useRouter();
@@ -95,6 +115,7 @@ export function Diva({ estado, podeOuvir }: { estado: EstadoDoDiva; podeOuvir: b
     setAberto(false);
     setFala(null);
     setSugestao(null);
+    setComando(null);
     setErro(null);
     setGravando(false);
     pararGravador();
@@ -109,10 +130,57 @@ export function Diva({ estado, podeOuvir }: { estado: EstadoDoDiva; podeOuvir: b
     router.push(tarefa.rota);
   }
 
+  /** Ela escolheu entre os homônimos: a prévia é refeita com o paciente resolvido. */
+  function escolherPaciente(p: PacienteNaTela) {
+    setComando((c) => (c ? { ...c, paciente: { tipo: "um", paciente: p }, faltando: c.faltando.filter((f) => !/paciente/i.test(f)) } : c));
+  }
+  function escolherSessao(id: string) {
+    setComando((c) => (c ? { ...c, sessoes: c.sessoes?.filter((s) => s.id === id), faltando: c.faltando.filter((f) => !/atendimento nesse dia/i.test(f)) } : c));
+  }
+
+  /**
+   * O TOQUE que executa. Daqui para baixo alguma coisa acontece de verdade — e só chega aqui o
+   * que ela leu na tela e confirmou.
+   */
+  function confirmarComando() {
+    if (!comando || comando.paciente.tipo !== "um" || comando.faltando.length) return;
+    const paciente = comando.paciente.paciente;
+
+    if (comando.acao === "reservar" && comando.quando) {
+      // Reservar não escreve por voz: leva à janela preenchida, e ela aperta Agendar.
+      fechar(true);
+      router.push(`/dashboard/agenda?novo=1&paciente=${paciente.id}&quando=${encodeURIComponent(comando.quando.iso)}`);
+      return;
+    }
+
+    setExecutando(true);
+    setErro(null);
+    void (async () => {
+      try {
+        if (comando.acao === "anotar") {
+          const r = await anotarPorVoz(paciente.id, comando.texto);
+          if (!r.ok) { setErro(r.error ?? "Não consegui anotar."); return; }
+          fechar(true);
+          router.push(`/dashboard/patients/${paciente.id}`);
+          return;
+        }
+        const alvo = comando.sessoes?.[0];
+        if (!alvo) { setErro("Não sei qual atendimento cancelar."); return; }
+        const r = await cancelarPorVoz(alvo.id);
+        if (!r.ok) { setErro(r.error ?? "Não consegui cancelar."); return; }
+        fechar(true);
+        router.push("/dashboard/agenda");
+      } finally {
+        setExecutando(false);
+      }
+    })();
+  }
+
   async function falar() {
     setErro(null);
     setFala(null);
     setSugestao(null);
+    setComando(null);
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const mr = new MediaRecorder(stream);
@@ -130,8 +198,9 @@ export function Diva({ estado, podeOuvir }: { estado: EstadoDoDiva; podeOuvir: b
           const j = await r.json();
           if (!j.ok) { setErro(j.error ?? "Não consegui ouvir."); return; }
           setFala(j.fala || null);
+          setComando(j.comando ?? null);
           setSugestao(j.tarefa ?? null);
-          if (!j.tarefa) setErro("Entendi o que você disse, mas não sei fazer isso. Escolha abaixo.");
+          if (!j.tarefa && !j.comando) setErro("Entendi o que você disse, mas não sei fazer isso. Escolha abaixo.");
         } catch {
           setErro("Erro de rede ao ouvir.");
         } finally {
@@ -251,6 +320,87 @@ export function Diva({ estado, podeOuvir }: { estado: EstadoDoDiva; podeOuvir: b
                 {gravando && <p className="text-[11px] text-center text-foreground/50">Pode falar. Clique de novo quando terminar.</p>}
                 {fala && <p className="text-xs text-foreground/60">Você disse: <span className="italic">“{fala}”</span></p>}
                 {/* A confirmação é obrigatória: o Divã nunca sai andando sozinho com o que ouviu. */}
+                {/* A PRÉVIA do comando: o que ele entendeu, por extenso, antes de qualquer escrita.
+                    Nome COMPLETO do paciente e data por extenso de propósito — é aqui que um
+                    engano tem de saltar aos olhos, porque depois do toque a coisa aconteceu. */}
+                {comando && (
+                  <div className="rounded-xl border border-[#c7d2fe] bg-[#eef2ff] px-3 py-2.5 space-y-2">
+                    <p className="text-xs font-bold text-[#4338ca]">{VERBO[comando.acao]}</p>
+
+                    {comando.paciente.tipo === "um" && (
+                      <p className="text-sm font-semibold text-foreground/80">{comando.paciente.paciente.nome}</p>
+                    )}
+
+                    {/* Homônimas: o Divã NÃO escolhe. Na base real há Thais Alves e Thais Duarte,
+                        e uma Eloá e uma Eloah — nenhuma transcrição separa essas duas. */}
+                    {comando.paciente.tipo === "varios" && (
+                      <div className="space-y-1">
+                        <p className="text-xs text-[#4338ca]">Qual delas?</p>
+                        {comando.paciente.candidatos.map((c) => (
+                          <button key={c.id} type="button" onClick={() => escolherPaciente(c)}
+                            className="flex w-full items-center justify-between gap-2 rounded-lg bg-white px-3 py-2 text-left text-sm hover:bg-surface transition">
+                            <span>{c.nome}</span>
+                            <ChevronRight className="w-4 h-4 opacity-40" />
+                          </button>
+                        ))}
+                      </div>
+                    )}
+
+                    {comando.acao === "anotar" && comando.texto && (
+                      <p className="text-xs text-foreground/70 bg-white rounded-lg px-3 py-2">“{comando.texto}”</p>
+                    )}
+
+                    {comando.acao === "reservar" && comando.quando && (
+                      <p className="text-sm text-foreground/80">{comando.quando.porExtenso}</p>
+                    )}
+
+                    {comando.acao === "cancelar" && (comando.sessoes?.length ?? 0) > 0 && (
+                      (comando.sessoes?.length ?? 0) === 1 ? (
+                        <p className="text-sm text-foreground/80">{comando.sessoes![0].porExtenso}</p>
+                      ) : (
+                        <div className="space-y-1">
+                          <p className="text-xs text-[#4338ca]">Qual atendimento?</p>
+                          {comando.sessoes!.map((x) => (
+                            <button key={x.id} type="button" onClick={() => escolherSessao(x.id)}
+                              className="flex w-full items-center justify-between gap-2 rounded-lg bg-white px-3 py-2 text-left text-sm hover:bg-surface transition">
+                              <span>{x.porExtenso}</span>
+                              <ChevronRight className="w-4 h-4 opacity-40" />
+                            </button>
+                          ))}
+                        </div>
+                      )
+                    )}
+
+                    {comando.faltando.length > 0 && (
+                      <p className="text-xs text-[#92400e]">{comando.faltando[0]}</p>
+                    )}
+
+                    {/* Não reconheceu o nome? Isso acontece — nome curto some na transcrição ("Thais"
+                        virou "Taz" no teste). O certo é NÃO adivinhar, e o útil é dar a saída: a
+                        lista de cadastros, onde ela acha e segue. Beco sem saída é o que faz a
+                        pessoa desistir do recurso. */}
+                    {comando.paciente.tipo === "nenhum" && (
+                      <button type="button" onClick={() => ir({ rota: "/dashboard/patients" })}
+                        className="flex w-full items-center justify-between gap-2 rounded-lg bg-white px-3 py-2 text-left text-sm hover:bg-surface transition">
+                        <span>Escolher o paciente na lista</span>
+                        <ChevronRight className="w-4 h-4 opacity-40" />
+                      </button>
+                    )}
+
+                    {comando.paciente.tipo === "um" && comando.faltando.length === 0 && (
+                      <button type="button" onClick={confirmarComando} disabled={executando}
+                        className={`flex w-full items-center justify-center gap-2 rounded-xl py-2.5 text-sm font-bold text-white transition disabled:opacity-60 ${
+                          comando.acao === "cancelar" ? "bg-[#b91c1c]" : "bg-[#4338ca]"
+                        }`}>
+                        {executando ? <><Loader2 className="w-4 h-4 animate-spin" /> Fazendo…</>
+                          : comando.acao === "reservar" ? "Abrir o agendamento preenchido"
+                          : comando.acao === "cancelar" ? "Confirmar o cancelamento"
+                          : "Confirmar a anotação"}
+                      </button>
+                    )}
+                  </div>
+                )}
+
                 {sugestao && (
                   <button type="button" onClick={() => ir(sugestao)}
                     className="flex w-full items-center justify-between gap-2 rounded-xl bg-[#ecfdf5] border border-[#a7f3d0] px-3 py-2.5 text-left">
