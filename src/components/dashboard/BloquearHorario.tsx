@@ -1,7 +1,7 @@
 "use client";
 
-import { useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
+import { useCallback, useEffect, useRef, useState, useTransition } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Lock, X } from "lucide-react";
 import { bloquearHorarios, desbloquearHorarios, horariosDoDia, remanejarAgenda } from "@/app/dashboard/agenda/bloqueio-actions";
 import { TEXTO_PADRAO_DO_BLOQUEIO } from "@/lib/bloqueioDeHorario";
@@ -53,10 +53,22 @@ export function BloquearHorario() {
     setCarregando(false);
   }
 
-  function abrir() {
+  const abrir = useCallback(() => {
     setAberto(true);
     void carregar(data);
-  }
+    // `carregar` é recriada a cada render e não muda de comportamento; prendê-la aqui causaria laço.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data]);
+
+  /** O Divã leva até aqui com a janela já aberta (`?bloquear=1`). Ver a nota em `AgendaClient`. */
+  const params = useSearchParams();
+  const jaAbriu = useRef(false);
+  useEffect(() => {
+    if (jaAbriu.current || params.get("bloquear") !== "1") return;
+    jaAbriu.current = true;
+    abrir();
+    window.history.replaceState(null, "", "/dashboard/agenda");
+  }, [params, abrir]);
 
   const algumMarcado = Object.values(marcados).some(Boolean);
   /** Todos os livres do dia estão marcados? É o estado do "bloquear todos". */

@@ -7,6 +7,47 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-10-31 — O Divã nasce: ícone flutuante, catálogo de tarefas e escuta
+
+**Entregue:** o Divã — ícone flutuante em toda tela do painel, a pergunta "o que deseja fazer?" na
+primeira visita do dia, um catálogo FECHADO de tarefas que leva à tela certa já aberta, o estado
+real do consultório, e a escuta por voz para quem tem chave de IA (PR #530).
+
+**Por quê:** pedido do dono. O ícone não existia — e eu tinha fechado a mensagem anterior com
+"Pronto para novas demandas!", dando a entender que existia.
+
+**Decisões que ficam valendo:**
+
+- **O catálogo é fechado.** Toda tarefa aponta para uma rota que existe, e há teste que o prova.
+- **O modelo OUVE, o app DECIDE.** A fala vira texto no provedor DELA (Whisper) e o texto vira
+  tarefa por correspondência determinística sobre um vocabulário fechado — nenhum modelo escolhe
+  ação, calcula número ou resolve paciente. Não entendeu, pergunta. E a tela sempre confirma antes
+  de levar a algum lugar.
+- **Todo número sai dos motores**, nunca do modelo: o atraso vem do mesmo `geralDoPaciente` da
+  guia Geral, para o Divã jamais discordar da tela para onde ele manda.
+- **Ele é do consultório, não da clínica.** A fronteira está no vocabulário (nenhum dito casa com
+  pergunta de conduta), não num aviso de prompt, e está dita na própria janela.
+- **A pergunta da abertura é dispensável:** três dispensas seguidas e ela para de abrir sozinha.
+  Escolher uma tarefa zera a contagem.
+- **A escuta é BYOK**, a mesma chave da transcrição: o Ledivan não depende da nossa VPS. Sem chave,
+  o Divã abre inteiro, só não ouve. O áudio do comando não é gravado.
+
+**Armadilhas:**
+
+1. **Botão flutuante novo colide com os que já existem.** Já havia dois no mesmo canto, e a
+   convenção de alturas mora em `lib/modal.ts` justamente por isso. O print mostrou a colisão que o
+   teste não via; agora há verificação de sobreposição no percurso.
+2. **Um modal que abre sozinho quebra todos os percursos antigos.** Sete deles passaram a marcar
+   `ledivan_diva_dia` no `localStorage`, como já faziam com o tutorial.
+3. **Chegar com a janela certa aberta exige a rota aceitar isso.** `?novo=1` e `?bloquear=1` foram
+   implementados — oferecer no catálogo um caminho que só abre a tela e deixa o resto por conta de
+   quem pediu ajuda seria não ajudar.
+
+**Pendente:** o Divã ainda não PREENCHE campos (ex.: "marcar a Marcela quinta 16h" abre a janela,
+mas não escolhe a paciente nem a data). O passo seguinte é extrair nome e data da fala.
+
+---
+
 ## 2026-10-31 — Doc 67: o salvar que não salvava, e dez acertos de tela
 
 **Entregue:** "Bloquear todos os horários" na janela de bloqueio; a "Agenda recorrente" descreve o

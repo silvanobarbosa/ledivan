@@ -1,7 +1,7 @@
 "use client";
 
-import { useRef, useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useRef, useState, useTransition } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { ChevronLeft, ChevronRight, X, Stethoscope, Repeat, Video, AlertTriangle, MapPin, Pencil, CalendarDays, Trash2 , ChevronDown } from "lucide-react";
 import { formatBRL, SESSION_STATUS_LABELS, sessionStatusColor, sessionColorClasses, reservaVencida, RISK_LABELS, riskColor, LEGENDA_DA_AGENDA, corDaLegenda, STATUS_OFERECIDOS, STATUS_QUE_PAUSAM, type RiskLevel } from "@/lib/therapy";
 import { updateSessionStatus, confirmSession, createSessionFromAgenda, createRecurring, definirValorDaFalta, pagamentoDaSessao, desfazerCobrancaDaSessao, saldoDeCreditoDaSessao } from "../sessions/actions";
@@ -136,6 +136,25 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
       recorrente: s.recurring,
     });
   };
+  /**
+   * O Divã leva até aqui com a janela JÁ ABERTA (`?novo=1`).
+   *
+   * É o que separa "levar à tela certa" de "levar à tela". Sem isto, o catálogo do Divã ofereceria
+   * "marcar um atendimento" e entregaria a grade da semana, deixando o próximo passo por conta de
+   * quem acabou de pedir ajuda. Roda uma vez, e o parâmetro sai da URL para não reabrir a janela a
+   * cada voltar do navegador.
+   */
+  const paramsDaUrl = useSearchParams();
+  const jaAbriuPeloDiva = useRef(false);
+  useEffect(() => {
+    if (jaAbriuPeloDiva.current || paramsDaUrl.get("novo") !== "1") return;
+    jaAbriuPeloDiva.current = true;
+    openNew();
+    window.history.replaceState(null, "", "/dashboard/agenda");
+    // openNew é estável o bastante para este disparo único de montagem.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [paramsDaUrl]);
+
   const [weekStart, setWeekStart] = useState(() => startOfWeek(new Date()));
   // "Escolher data": o input de data é sr-only; clicar o rótulo nem sempre abre o calendário nativo
   // (sobretudo no mobile). showPicker() abre direto, sob o gesto do clique. Fallback: foco no input.
