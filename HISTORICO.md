@@ -7,6 +7,30 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-10-31 — A voz do Divã foi PROVADA, e o app anuncia que ela existe
+
+**Entregue:** o aviso único, na abertura, de que já dá para falar com o Divã — com o passo a passo
+para quem tem chave e o caminho gratuito para quem não tem (PR #532).
+
+**Por quê:** a escuta tinha ido ao ar no PR #530 sem ninguém saber que existia. Recurso novo que
+não se anuncia é recurso que não existe.
+
+**Armadilha que eu mesmo criei e quase passei adiante:** eu havia entregue a voz sem NUNCA tê-la
+rodado de ponta a ponta. O percurso só provava que a rota recusa sem sessão e explica sem chave —
+a conta de QA não tem chave de provedor, então o caminho real nunca tinha sido exercido. Rodei:
+emprestei a chave Groq do cofre para a conta de QA, falei três frases pela voz da casa, mandei para
+a rota do app e devolvi a conta como estava. **Transcrição exata nas três, tarefa certa nas três,
+0,4 a 0,7 segundo.** Antes disso eu não podia dizer que funcionava — e quase disse.
+
+**Segunda vez que algo que abre sozinho quebra os percursos.** O anúncio abre ANTES da marca do
+dia, então os nove percursos precisaram da marca dele também. Qualquer coisa nova que se abra
+sozinha entra na lista de chaves do `localStorage` que os percursos marcam.
+
+**Pendente:** a voz só NAVEGA. Anotar no paciente, cancelar e reservar agenda por voz — o destino
+que o dono descreveu — exige extrair quem e quando da fala, e isso ainda não existe.
+
+---
+
 ## 2026-10-31 — Doc 68: a devolutiva ganha perguntas próprias e a diferença ganha destino
 
 **Entregue:** "Iniciar à sequência do pacote" só vira "Adicionar" quando a sequência existe de

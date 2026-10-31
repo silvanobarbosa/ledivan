@@ -54,7 +54,32 @@ const ir = async (url) => {
 };
 
 try {
+  /**
+   * ───────── 0. o ANÚNCIO da voz ─────────
+   *
+   * Vale uma abertura própria: recurso novo que ninguém sabe que existe é recurso que não existe.
+   * Aparece uma vez por pessoa, mesmo para quem já dispensou a pergunta do dia três vezes.
+   */
   await ir(`${BASE}/dashboard`);
+  await page.waitForTimeout(1200);
+  const janelaDoAviso = page.locator('[role="dialog"][aria-label="Divã"]').first();
+  check("na primeira visita, o Divã abre sozinho para anunciar a voz", await janelaDoAviso.count() > 0);
+  if (await janelaDoAviso.count()) {
+    const t = await janelaDoAviso.innerText();
+    check("o anúncio diz que dá para FALAR com ele", /agora você pode falar comigo/i.test(t), t.slice(0, 60).replace(/\s+/g, " "));
+    check("e ensina o caminho", /Ajustes|Falar com o Divã/i.test(t));
+    await janelaDoAviso.getByRole("button", { name: /não mostrar de novo/i }).click();
+    await page.waitForTimeout(400);
+    check("'Entendi' tira o anúncio da tela", !/agora você pode falar comigo/i.test(await page.innerText("body")));
+    await page.keyboard.press("Escape");
+    await page.waitForTimeout(300);
+  }
+
+  // Lido o anúncio, o Divã volta a ser discreto.
+  await ir(`${BASE}/dashboard`);
+  await page.waitForTimeout(1000);
+  check("depois de lido, ele não abre sozinho de novo no mesmo dia",
+    await page.locator('[role="dialog"][aria-label="Divã"]').count() === 0);
 
   // ───────── 1. o ícone ─────────
   const icone = page.getByRole("button", { name: /Abrir o Divã/i }).first();
