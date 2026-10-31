@@ -106,7 +106,14 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
   }
   const sessionStats = {
     reservadas: sessionsList.filter((s) => s.pendingConfirmation && new Date(horaDeParede(s.date)).getTime() >= nowMs).length,
-    agendadasFuturas: sessionsList.filter((s) => s.status === "agendada" && new Date(horaDeParede(s.date)).getTime() >= nowMs).length,
+    /**
+     * Doc 70: "deve exibir a quantidade de sessões que estão agendadas porém SEM STATUS DEFINIDO".
+     *
+     * A conta era das futuras, e por isso o atendimento que já aconteceu e ficou sem desfecho
+     * sumia do card — justamente o que a terapeuta precisa ver para ir lá fechar. O que ela
+     * procura não é "o que vem pela frente", é "o que está pendente de resposta".
+     */
+    agendadasFuturas: sessionsList.filter((s) => s.status === "agendada").length,
     realizadasCount: realizadas.length,
     realizadasPorMes,
     lastRealizada: lastRealizada ? new Date(lastRealizada).toISOString() : null,

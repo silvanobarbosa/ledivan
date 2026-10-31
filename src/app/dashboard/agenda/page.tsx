@@ -11,6 +11,8 @@ import { derivePackageLabels } from "@/lib/packages";
 import { tamanhosDasSequencias } from "@/lib/sequenciaPacote";
 import { desmarcadasSemReposicao, pacientesComSequencia } from "@/lib/sessaoExtra";
 import { rotulosDasSessoes } from "@/lib/cobrancas";
+import { cobra, usaPacote } from "@/lib/reajuste";
+import { formatoNaData } from "@/lib/vigenciaDoFormato";
 import { horaDeParede, horaDeParedeOuNulo } from "@/lib/horaLocal";
 import { pagamentoAtrasado } from "@/lib/pagamentoSessao";
 
@@ -97,7 +99,25 @@ export default async function AgendaPage() {
     ]);
     // Doc 68: quem já COMEÇOU a sequência — não quem tem qualquer agendamento. Ver a nota em
     // `pacientesComSequencia`.
-    comAgendamento = pacientesComSequencia(todas);
+    //
+    // Doc 70: e a sequência só começa num período que USA PACOTE. O que foi atendido enquanto o
+    // paciente era gratuito não inicia sequência nenhuma, então quem acabou de virar mensal ou
+    // quinzenal vê "Iniciar", e não "Adicionar" a algo que não existe.
+    const porPacienteVig = new Map<string, { formato: string; pacoteTipo: string | null; desde: Date; criadoEm: Date | null }[]>();
+    for (const v of vigencias) {
+      const lista = porPacienteVig.get(v.patientId) ?? [];
+      lista.push({ formato: v.formato, pacoteTipo: v.pacoteTipo, desde: new Date(horaDeParede(v.desde)), criadoEm: v.criadoEm ? new Date(horaDeParede(v.criadoEm)) : null });
+      porPacienteVig.set(v.patientId, lista);
+    }
+    const reservaDoPaciente = new Map(todosPats.map((x) => [x.id, { formato: x.paymentFormat, pacoteTipo: x.pacoteTipo }] as const));
+    comAgendamento = pacientesComSequencia(
+      todas.map((x) => ({ ...x, date: new Date(horaDeParede(x.date as Date)) })),
+      (patientId, data) => {
+        const reserva = reservaDoPaciente.get(patientId) ?? { formato: null, pacoteTipo: null };
+        const f = formatoNaData(porPacienteVig.get(patientId) ?? [], data, reserva).formato;
+        return cobra(f) && usaPacote(f);
+      },
+    );
     for (const paciente of todosPats) {
       const esperando = desmarcadasSemReposicao(todas.filter((x) => x.patientId === paciente.id)).slice(0, 5);
       if (esperando.length) {

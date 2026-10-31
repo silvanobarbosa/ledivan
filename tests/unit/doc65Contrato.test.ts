@@ -49,7 +49,8 @@ describe("doc 65 — sem responsável, quem contrata é o próprio paciente", ()
 
   it("sem data de nascimento e sem responsável, o contratante é o paciente", () => {
     const t = c(semNascimento);
-    const bloco = t.slice(t.indexOf("CONTRATANTE(S):"), t.indexOf("PACIENTE:"));
+    // Doc 70: o cabeçalho passou a ser "CONTRATANTE/ PACIENTE:" quando são a mesma pessoa.
+    const bloco = t.slice(t.indexOf("CONTRATANTE/ PACIENTE:"), t.indexOf("2. DO OBJETO"));
     expect(bloco).toContain("Nome: Ana Cardoso");
     expect(bloco).toContain("CPF: 995.637.340-69");
     expect(bloco).toContain("Telefone: (11) 94974-6672");

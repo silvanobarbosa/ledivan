@@ -9,6 +9,7 @@ import { ensureSessionCategory } from "@/lib/categoriaSessoes";
 import { creditoAConfirmar, creditoDisponivel, geralDoPaciente, hojeDeParede } from "@/lib/geralDoPaciente";
 import { diaDoFormulario } from "@/lib/trocaDeFormato";
 import { apenasCpf } from "@/lib/recibo";
+import { nomeCompletoDoCadastro } from "@/lib/pagadorSugerido";
 import { parseMoedaBR } from "@/lib/money";
 import { aplicarCreditoNoLancamento } from "@/lib/credito";
 import { creditoParaAbater } from "@/lib/creditoAConfirmar";
@@ -87,7 +88,9 @@ export async function lancarPagamento(entrada: {
   const patientId = String(entrada?.patientId ?? "");
   const chave = String(entrada?.cobrancaChave ?? "").slice(0, 200);
   const metodo = String(entrada?.metodo ?? "");
-  const pagoPor = String(entrada?.pagoPor ?? "").trim().slice(0, 120);
+  // Doc 70: o nome entra COMPLETO quando o cadastro o conhece inteiro — digitar "Renata" numa
+  // tela e gravar "Renata" é o que faz o lançamento (e o recibo que sai dele) sair pela metade.
+  const pagoPorDigitado = String(entrada?.pagoPor ?? "").trim().slice(0, 120);
   // CPF é opcional por decisão do dono: quem paga nem sempre quer informar, e o recibo sai sem a
   // linha quando ele falta. Guardado só em dígitos (`apenasCpf`); a pontuação entra na hora de imprimir.
   const pagoPorCpf = apenasCpf(entrada?.pagoPorCpf);
@@ -95,7 +98,7 @@ export async function lancarPagamento(entrada: {
 
   if (!/^[0-9a-f-]{36}$/i.test(patientId)) return { ok: false, error: "Paciente inválido." };
   if (!dia) return { ok: false, error: "Informe a data do pagamento." };
-  if (!pagoPor) return { ok: false, error: "Informe quem pagou." };
+  if (!pagoPorDigitado) return { ok: false, error: "Informe quem pagou." };
   if (!METODOS.has(metodo)) return { ok: false, error: "Escolha a forma de pagamento." };
 
   const geral = await geralDoPaciente(userId, patientId);
@@ -116,7 +119,17 @@ export async function lancarPagamento(entrada: {
   const aguardandoValor = cobranca.aguardandoValor === true && cobranca.falta <= 0.005;
   if (!aguardandoValor && (cobranca.situacao === "pago" || cobranca.falta <= 0)) return { ok: false, error: "Esta cobrança já está paga." };
 
-  const [paciente] = await db.select({ name: patients.name }).from(patients).where(eq(patients.id, patientId));
+  const [paciente] = await db
+    .select({ name: patients.name, guardianName: patients.guardianName })
+    .from(patients)
+    .where(eq(patients.id, patientId));
+
+  // Doc 70: "Renata" vira "Renata Magalhães Nascimento Silabi" quando o cadastro conhece o nome
+  // inteiro e não há a quem mais ele possa pertencer. A regra mora em `pagadorSugerido`.
+  const pagoPor = nomeCompletoDoCadastro(pagoPorDigitado, {
+    pacienteNome: paciente?.name ?? "",
+    responsavelNome: paciente?.guardianName ?? null,
+  });
 
   // Valor: o que a pessoa digitou (pt-BR), caindo no que falta quando o campo vem vazio (retro-
   // compat com quem só confirma). Tem de ser um número positivo — zerar ou negativar não lança nada.

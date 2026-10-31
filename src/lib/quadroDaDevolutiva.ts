@@ -57,6 +57,13 @@ export function devolutivaParaGravar(o: {
   escolha: EscolhaDaDevolutiva;
   valor?: string | null;
   abatimento?: AbatimentoDaDevolutiva;
+  /**
+   * Doc 70: o paciente está num formato SEM sequência de pacote (gratuito)?
+   *
+   * Então a segunda pergunta não existe — não há sequência para abater, e pedir que se escolha
+   * entre "abater" e "não abater" é pedir uma decisão sobre uma coisa que não está lá.
+   */
+  semSequencia?: boolean;
 }): DevolutivaAGravar {
   if (o.escolha === "cobrar") {
     const valor = parseMoedaBR(o.valor);
@@ -66,6 +73,7 @@ export function devolutivaParaGravar(o: {
   }
 
   if (o.escolha === "nao_cobrar") {
+    if (o.semSequencia) return { ok: true, chargeable: false, abaterDoPacote: false, extra: null, valorExtra: null };
     if (o.abatimento !== "abater" && o.abatimento !== "nao_abater") {
       return { ok: false, error: "Diga se esta devolutiva abate da sequência do pacote." };
     }

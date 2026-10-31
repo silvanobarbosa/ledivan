@@ -1470,7 +1470,9 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
                   </div>
                 )}
 
-                {newDevolutiva === "nao_cobrar" && (
+                {/* Doc 70: no GRATUITO a pergunta da sequência não aparece — "agendamentos com
+                    financeiro gratuito não seguem uma sequência". Nos demais formatos, segue igual. */}
+                {newDevolutiva === "nao_cobrar" && formatoNaDataNova !== "gratuito" && (
                   <>
                     <p className="text-xs font-semibold text-[#6b21a8]">E quanto à sequência do pacote?</p>
                     <div className="grid grid-cols-2 gap-2">
