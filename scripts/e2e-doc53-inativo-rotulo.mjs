@@ -42,7 +42,19 @@ const token = await new jose.SignJWT({ userId: qa.id })
 const marca = Date.now().toString().slice(-6);
 const criados = [];
 const hoje = (() => { const d = new Date(); d.setHours(11, 0, 0, 0); return d; })();
-const estaSemana = (somaDias = 0) => { const d = new Date(hoje); d.setDate(d.getDate() + somaDias); d.setHours(16, 0, 0, 0); return d; };
+/**
+ * Um dia DESTA semana, pelo dia da semana — não por "hoje + N".
+ *
+ * A agenda abre na semana corrente, e "hoje + 2" numa sexta-feira cai na semana seguinte: o cartão
+ * existe no banco e não está na grade. O percurso passava de segunda a quarta e reprovava sozinho
+ * na sexta (31/10), sem defeito nenhum no app.
+ */
+const semana = (diaDaSemana, hora = 16) => {
+  const d = new Date(hoje);
+  d.setDate(d.getDate() - d.getDay() + diaDaSemana);
+  d.setHours(hora, 0, 0, 0);
+  return d;
+};
 
 const paciente = async (nome, formato, fee, agendaId) => {
   const [p] = await sql`
@@ -91,9 +103,9 @@ try {
   const gratuito = await paciente(`QA doc53 gratuito ${marca}`, "gratuito", "0", `G53${marca.slice(-3)}`);
   const avulso = await paciente(`QA doc53 avulso ${marca}`, "sessao", "90.00", `A53${marca.slice(-3)}`);
   const pacote = await paciente(`QA doc53 pacote ${marca}`, "mensal", "400.00", `P53${marca.slice(-3)}`);
-  await sessao(gratuito, estaSemana(0));
-  await sessao(avulso, estaSemana(1));
-  await sessao(pacote, estaSemana(2));
+  await sessao(gratuito, semana(2, 16));
+  await sessao(avulso, semana(3, 16));
+  await sessao(pacote, semana(4, 16));
 
   await ir(`${BASE}/dashboard/agenda`);
   const antes = {
