@@ -10,6 +10,7 @@ import { QUEIXAS } from "@/lib/queixas";
 import { idadeEmAnos, idadeEmPalavras } from "@/lib/idade";
 import { agruparPorVigencia, historicoDeReajuste, usaPacote } from "@/lib/reajuste";
 import { horaDeParede } from "@/lib/horaLocal";
+import { parseMoedaBR } from "@/lib/money";
 import { MoneyInput as MoneyInputBase } from "@/components/MoneyInput";
 import { abrirWhatsapp } from "@/lib/whatsappLink";
 
@@ -248,7 +249,7 @@ function NascimentoEIdade({ name, defaultValue, value, onChange }: { name: strin
 
 // MoneyInput agora é compartilhado (cadastro + prospecção, doc 19) — ver src/components/MoneyInput.
 // Aqui ele herda o `inputCls` desta tela.
-function MoneyInput(props: { name: string; defaultValue?: string | number | null; placeholder?: string }) {
+function MoneyInput(props: { name: string; defaultValue?: string | number | null; placeholder?: string; onValueChange?: (valor: string) => void }) {
   return <MoneyInputBase {...props} className={inputCls} />;
 }
 
@@ -328,13 +329,15 @@ export function PatientFormFields({ p, save, tabInicial, contrato, patientId }: 
   // nos cálculos — some só na interface). Para saber quando o save terminou, o form passa por
   // useActionState: a cada salvamento o tick avança e zeramos o "mexeu nesta edição". O campo volta
   // a aparecer só numa nova alteração financeira. Vale para TODAS as modalidades (o bloco é um só).
+  /** Doc 69: o VALOR mudou nesta edição? É o que faz a pergunta do pacote aparecer. */
+  const [valorAlterado, setValorAlterado] = useState(false);
   const [savedTick, formAction] = useActionState(
     async (prev: number, fd: FormData) => { if (save) await save(fd); return prev + 1; },
     0,
   );
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- reset pós-save é o próprio efeito desejado
-    if (savedTick > 0) setFinanceiroAlterado(false);
+    if (savedTick > 0) { setFinanceiroAlterado(false); setValorAlterado(false); }
   }, [savedTick]);
   /**
    * Doc 67: o STATUS é controlado — senão ele volta a "Ativo" depois de salvar.
@@ -395,7 +398,13 @@ export function PatientFormFields({ p, save, tabInicial, contrato, patientId }: 
   );
 
   const valorDaSessao = (
-    <div><label className={labelCls}>Valor da sessão</label><MoneyInput name="sessionFee" defaultValue={p?.sessionFee} placeholder="R$ 0,00" /></div>
+    <div>
+      <label className={labelCls}>Valor da sessão</label>
+      <MoneyInput
+        name="sessionFee" defaultValue={p?.sessionFee} placeholder="R$ 0,00"
+        onValueChange={(v) => setValorAlterado(parseMoedaBR(v) !== parseMoedaBR(p?.sessionFee ?? null))}
+      />
+    </div>
   );
 
   const proximoReajuste = (
@@ -439,7 +448,19 @@ export function PatientFormFields({ p, save, tabInicial, contrato, patientId }: 
   // formato de um paciente já cadastrado muda o que vale (edição), em cada modalidade (incl. Gratuito).
   const formatoSalvoReal = ehTimingDePacote(p?.paymentFormat) ? p!.paymentFormat! : formatoInicial;
   const trocouDeFormato = formatoEfetivo !== formatoSalvoReal;
-  const mostraVigencia = !!p && (trocouDeFormato || financeiroAlterado);
+  /**
+   * Doc 69: o campo é SEMPRE visível num paciente já cadastrado.
+   *
+   * O doc 37 mandou escondê-lo depois de salvar, e a consequência apareceu no uso: a data a partir
+   * da qual o valor vale é o dado que explica a cobrança daquele paciente, e ele ficava guardado
+   * num lugar que a tela não mostrava — "ele não deixa visível depois de salvar". Quem precisava
+   * conferir tinha de mexer em alguma coisa só para o campo reaparecer, que é pedir para a pessoa
+   * arriscar uma alteração a fim de LER um dado.
+   *
+   * Escondido continua apenas no cadastro novo (sem `p`), onde não existe vigência gravada ainda.
+   */
+  const mudouAlgoNoFinanceiro = trocouDeFormato || financeiroAlterado;
+  const mostraVigencia = !!p;
   /**
    * TROCA PARA UM FORMATO QUE FECHA POR PERÍODO: a vigência nasce no 1º DIA DO MÊS (doc 62).
    *
@@ -454,7 +475,19 @@ export function PatientFormFields({ p, save, tabInicial, contrato, patientId }: 
    * editável — o que mudou é a data que ele oferece primeiro.
    */
   const inicioDoMesISO = hojeISO.slice(0, 8) + "01";
-  const padraoVigencia = trocouDeFormato && usaPacote(formatoEfetivo) ? inicioDoMesISO : hojeISO;
+  /**
+   * A data GRAVADA — a do último preço. É ela que o campo mostra quando nada foi alterado nesta
+   * edição; propor "hoje" para quem só abriu a tela seria mostrar uma data que não é a que vale.
+   */
+  const vigenciaSalvaISO = (() => {
+    const precos = (p?.priceHistory ?? []).filter((h) => !!h.dataEfetiva);
+    if (!precos.length) return p?.startedAt ? dateVal(p.startedAt) : "";
+    const ultima = precos.reduce((maior, h) => (new Date(h.dataEfetiva) > new Date(maior.dataEfetiva) ? h : maior));
+    return dateVal(ultima.dataEfetiva);
+  })();
+  const padraoVigencia = mudouAlgoNoFinanceiro
+    ? (trocouDeFormato && usaPacote(formatoEfetivo) ? inicioDoMesISO : hojeISO)
+    : vigenciaSalvaISO || hojeISO;
   const blocoValeAPartir = mostraVigencia ? (
     <div className="rounded-2xl border border-primary/30 bg-primary/5 px-4 py-3 space-y-2">
       <label className={labelCls} htmlFor="formatoDesde">Vale a partir de</label>
@@ -466,9 +499,32 @@ export function PatientFormFields({ p, save, tabInicial, contrato, patientId }: 
           preenchido com uma data padrão, e tratar essa data como "alteração" faria todo salvamento
           mover o próximo reajuste — que é exatamente o defeito que o doc 63 consertou. */}
       <input type="hidden" name="vigenciaEditada" value={vigenciaEditada ? "true" : "false"} />
+      {/**
+        * Doc 69: mudou o VALOR de quem paga por pacote? Então falta uma resposta que o app não tem
+        * como adivinhar — a data acima é a data em que o paciente foi AVISADO do aumento, e se ela
+        * parte o pacote em andamento em dois valores "depende da resposta" dele.
+        */}
+      {valorAlterado && usaPacote(formatoEfetivo) && (
+        <fieldset className="space-y-1.5 pt-1">
+          <legend className={labelCls}>O novo valor vale sobre</legend>
+          {[
+            { v: "vigente", r: "O pacote vigente", ajuda: "Vale já na próxima sessão, mesmo com o pacote no meio — esse pacote sai com dois valores." },
+            { v: "proximo_pacote", r: "O próximo pacote a iniciar", ajuda: "O pacote em andamento fica inteiro no valor antigo; o novo começa no pacote seguinte." },
+          ].map((o) => (
+            <label key={o.v} className="flex items-start gap-2 text-xs cursor-pointer">
+              <input type="radio" name="aplicaPrecoEm" value={o.v} defaultChecked={o.v === "vigente"} className="mt-0.5" />
+              <span>
+                <span className="font-semibold">{o.r}</span>
+                <span className="block text-[10px] text-foreground/60">{o.ajuda}</span>
+              </span>
+            </label>
+          ))}
+        </fieldset>
+      )}
       <p className="text-[10px] text-foreground/60">
-        Os atendimentos <strong>antes</strong> desta data continuam com o formato anterior — nada do que
-        já foi cobrado, ou deixou de ser, é alterado.
+        {mudouAlgoNoFinanceiro
+          ? "Os atendimentos antes desta data continuam com o formato anterior — nada do que já foi cobrado, ou deixou de ser, é alterado."
+          : "É a data a partir da qual o valor atual vale. Mudá-la aqui corrige a vigência gravada; os atendimentos anteriores continuam como estão."}
       </p>
     </div>
   ) : null;

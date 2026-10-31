@@ -39,12 +39,16 @@ export function BloquearHorario() {
   const [paraLiberar, setParaLiberar] = useState<Record<string, boolean>>({});
   const [carregando, setCarregando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
+  /** Doc 69: repetir o mesmo conjunto de horários, toda semana, até esta data. Vazio = só o dia. */
+  const [repetirAte, setRepetirAte] = useState("");
+  const [recado, setRecado] = useState<string | null>(null);
   const [pendente, comecar] = useTransition();
   const router = useRouter();
 
   async function carregar(dia: string) {
     setCarregando(true);
     setErro(null);
+    setRecado(null);
     setMarcados({});
     setParaLiberar({});
     const r = await horariosDoDia(dia);
@@ -82,9 +86,18 @@ export function BloquearHorario() {
       .filter((h) => marcados[h.inicio])
       .map((h) => ({ inicio: h.inicio, nota: notas[h.inicio] ?? "" }));
     comecar(async () => {
-      const r = await bloquearHorarios(data, escolhidos);
+      const r = await bloquearHorarios(data, escolhidos, repetirAte || null);
       if (!r.ok) return setErro(r.error ?? "Não consegui bloquear.");
+      // Numa repetição, o que foi pulado precisa aparecer: a pessoa pediu dez semanas e pode ter
+      // recebido oito, e descobrir isso olhando a agenda semana a semana não é descobrir.
+      const quantos = r.bloqueados ?? 0;
+      const aviso =
+        `${quantos} ${quantos === 1 ? "horário bloqueado" : "horários bloqueados"}` +
+        (r.pulados ? ` · ${r.pulados} ${r.pulados === 1 ? "já estava ocupado" : "já estavam ocupados"} e ${r.pulados === 1 ? "foi pulado" : "foram pulados"}.` : ".");
+      // O recado vai DEPOIS de recarregar: `carregar` limpa a tela, e escrevê-lo antes é escrever
+      // numa tela que vai ser apagada em seguida.
       await carregar(data);
+      setRecado(aviso);
       router.refresh();
     });
   }
@@ -154,6 +167,23 @@ export function BloquearHorario() {
               />
             </label>
 
+            {/* Doc 69: supervisão, curso e férias não são de um dia só. A repetição é semanal e no
+                mesmo dia da semana — é assim que esses compromissos existem. */}
+            <label className="block">
+              <span className="text-xs font-bold uppercase tracking-widest text-foreground/40">Repetir até (opcional)</span>
+              <input
+                type="date"
+                value={repetirAte}
+                min={data}
+                onChange={(e) => setRepetirAte(e.target.value)}
+                className="mt-1 w-full px-4 py-2.5 rounded-xl bg-surface border border-border outline-none text-sm"
+              />
+              <span className="mt-1 block text-[10px] text-foreground/55">
+                Em branco, bloqueia só neste dia. Com uma data, repete os mesmos horários toda semana, no
+                mesmo dia da semana, até lá — pulando o que já tiver paciente.
+              </span>
+            </label>
+
             {carregando && <p className="text-sm text-foreground/50">Vendo o que está livre…</p>}
 
             {!carregando && bloqueados.length > 0 && (
@@ -206,6 +236,7 @@ export function BloquearHorario() {
                         <input
                           type="checkbox"
                           checked={!!marcados[h.inicio]}
+                          aria-label={`Bloquear as ${h.rotulo}`}
                           onChange={(e) => setMarcados((p) => ({ ...p, [h.inicio]: e.target.checked }))}
                         />
                         <span className="text-sm font-semibold tabular-nums w-12">{h.rotulo}</span>
@@ -226,6 +257,7 @@ export function BloquearHorario() {
             )}
 
             {erro && <p className="text-sm text-red-600">{erro}</p>}
+            {recado && <p className="text-sm text-primary font-semibold">{recado}</p>}
 
             <button
               type="button"

@@ -552,6 +552,11 @@ export const patientPriceHistory = pgTable("patient_price_history", {
   patientId: uuid("patient_id").references(() => patients.id, { onDelete: "cascade" }).notNull(),
   valor: numeric("valor", { precision: 10, scale: 2 }).notNull(),
   dataEfetiva: timestamp("data_efetiva").notNull(), // quando o novo preco passa a valer
+  // Doc 69: como este valor entra num pacote JÁ COMEÇADO. "vigente" vale da data, partindo o
+  // pacote em dois valores; "proximo_pacote" deixa o pacote em andamento inteiro no preço antigo.
+  // NULO é o estado das linhas anteriores ao doc 69 — "ninguém respondeu" —, e é ele que mantém as
+  // cobranças já existentes como estão. Sem default: nulo tem significado próprio. Ver `lib/preco.ts`.
+  aplicaEm: text("aplica_em"),
   dataCriacao: timestamp("data_criacao").defaultNow().notNull(),
 });
 

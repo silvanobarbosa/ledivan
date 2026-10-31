@@ -13,7 +13,7 @@ import "server-only";
 import { and, eq, inArray } from "drizzle-orm";
 import { db } from "@/db";
 import { COLUNAS_DA_SESSAO_COM_PACIENTE } from "@/lib/colunasDaSessao";
-import { local, pagamentoParaMotor, sessaoParaMotor } from "@/lib/entradaDoMotor";
+import { COLUNAS_DO_PRECO, local, pagamentoParaMotor, precoParaMotor, sessaoParaMotor } from "@/lib/entradaDoMotor";
 import { cobrancaVencimentos, patientPackages, patientPackageHistory, patientPaymentFormatHistory, patientPriceHistory, sessionPayments, therapySessions } from "@/db/schema";
 import { resumoDaGeral, type EntradaDaGeral } from "./guiaGeral";
 import { hojeDeParede } from "./geralDoPaciente";
@@ -55,7 +55,7 @@ export async function situacoesDaLista(userId: string, pacientes: PacienteParaSi
       .from(therapySessions).where(eq(therapySessions.userId, userId)),
     db.select({ id: sessionPayments.id, patientId: sessionPayments.patientId, amount: sessionPayments.amount, date: sessionPayments.date, status: sessionPayments.status, method: sessionPayments.method, pagoPor: sessionPayments.pagoPor, cobrancaChave: sessionPayments.cobrancaChave, kind: sessionPayments.kind, quita: sessionPayments.quitaDiferenca, estornadoEm: sessionPayments.estornadoEm })
       .from(sessionPayments).where(eq(sessionPayments.userId, userId)),
-    db.select({ patientId: patientPriceHistory.patientId, valor: patientPriceHistory.valor, dataEfetiva: patientPriceHistory.dataEfetiva })
+    db.select({ patientId: patientPriceHistory.patientId, ...COLUNAS_DO_PRECO })
       .from(patientPriceHistory).where(inArray(patientPriceHistory.patientId, ids)),
     db.select({ patientId: patientPaymentFormatHistory.patientId, formato: patientPaymentFormatHistory.formato, pacoteTipo: patientPaymentFormatHistory.pacoteTipo, desde: patientPaymentFormatHistory.dataEfetiva, criadoEm: patientPaymentFormatHistory.dataCriacao })
       .from(patientPaymentFormatHistory).where(inArray(patientPaymentFormatHistory.patientId, ids)),
@@ -87,7 +87,7 @@ export async function situacoesDaLista(userId: string, pacientes: PacienteParaSi
       vigencias: (porPaciente.vigencias.get(p.id) ?? []).map((v) => ({ formato: v.formato, pacoteTipo: v.pacoteTipo, desde: local(v.desde), criadoEm: local(v.criadoEm) })),
       reserva: { formato: p.paymentFormat, pacoteTipo: p.pacoteTipo },
       sessoes: (porPaciente.sessoes.get(p.id) ?? []).map(sessaoParaMotor),
-      precos: (porPaciente.precos.get(p.id) ?? []).map((x) => ({ valor: Number(x.valor) || 0, desde: local(x.dataEfetiva) })),
+      precos: (porPaciente.precos.get(p.id) ?? []).map(precoParaMotor),
       valorDaSessao: Number(p.sessionFee) || 0,
       tamanhos: tamanhosDasSequencias(porPaciente.pacotes.get(p.id) ?? []),
       tamanhoPacote: p.sessionsInPacket,

@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { COLUNAS_DO_PRECO, precoParaMotor } from "@/lib/entradaDoMotor";
 import { and, eq, inArray, ne } from "drizzle-orm";
 import { CalendarCheck, ChevronLeft, ChevronRight } from "lucide-react";
 import { db } from "@/db";
@@ -93,11 +94,7 @@ export default async function FechamentoPage({
     // terapeuta, que é o que separa uma agenda da outra.
     ids.length > 0
       ? db
-          .select({
-            patientId: patientPriceHistory.patientId,
-            valor: patientPriceHistory.valor,
-            dataEfetiva: patientPriceHistory.dataEfetiva,
-          })
+          .select({ patientId: patientPriceHistory.patientId, ...COLUNAS_DO_PRECO })
           .from(patientPriceHistory)
           .where(inArray(patientPriceHistory.patientId, ids))
       : Promise.resolve([]),
@@ -130,12 +127,9 @@ export default async function FechamentoPage({
   for (const s of sessoes) {
     sessoesPor.set(s.patientId, [...(sessoesPor.get(s.patientId) ?? []), s]);
   }
-  const precosPor = new Map<string, { valor: number; desde: Date }[]>();
+  const precosPor = new Map<string, ReturnType<typeof precoParaMotor>[]>();
   for (const p of precos) {
-    precosPor.set(p.patientId, [
-      ...(precosPor.get(p.patientId) ?? []),
-      { valor: Number(p.valor) || 0, desde: p.dataEfetiva },
-    ]);
+    precosPor.set(p.patientId, [...(precosPor.get(p.patientId) ?? []), precoParaMotor(p)]);
   }
   const pagos = pagamentos.map((p) => ({
     pacienteId: p.patientId,

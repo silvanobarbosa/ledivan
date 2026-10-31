@@ -84,3 +84,38 @@ export function notaParaGravar(nota?: string | null): string | null {
   const limpo = (nota ?? "").trim().slice(0, 120);
   return limpo || null;
 }
+
+/**
+ * Teto da repetição: um ano de semanas.
+ *
+ * Existe porque a data do "repetir até" é digitada, e um ano errado ("2126") viraria cinco mil
+ * linhas no banco sem ninguém ter pedido. O teto não é uma regra de produto — é o que impede um
+ * engano de digitação de virar estrago.
+ */
+export const TETO_DA_REPETICAO = 53;
+
+/**
+ * AS DATAS DE UMA REPETIÇÃO SEMANAL — do dia escolhido até o limite, de sete em sete.
+ *
+ * O que a dona pediu é "repetir até": a supervisão da quarta-feira, o curso que vai até dezembro.
+ * A repetição é SEMANAL e no MESMO dia da semana, porque é assim que esses compromissos existem;
+ * não há mês nem quinzena aqui, e inventar essas opções seria oferecer escolha onde não há caso.
+ *
+ * Sem limite — ou com limite anterior ao dia escolhido — devolve só o próprio dia. Bloquear uma
+ * vez continua sendo o caso comum, e ele não pode depender de preencher mais um campo.
+ *
+ * Função pura.
+ */
+export function datasDaRepeticao(inicio: Date, ate: Date | null): Date[] {
+  const dia = new Date(inicio.getFullYear(), inicio.getMonth(), inicio.getDate());
+  if (!ate || Number.isNaN(ate.getTime())) return [dia];
+
+  const limite = new Date(ate.getFullYear(), ate.getMonth(), ate.getDate());
+  if (limite.getTime() < dia.getTime()) return [dia];
+
+  const datas: Date[] = [];
+  for (let d = dia; d.getTime() <= limite.getTime() && datas.length < TETO_DA_REPETICAO; d = new Date(d.getFullYear(), d.getMonth(), d.getDate() + 7)) {
+    datas.push(d);
+  }
+  return datas;
+}

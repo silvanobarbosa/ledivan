@@ -15,8 +15,10 @@ import { parseMoedaBR } from "@/lib/money";
  *
  * O `className` entra de fora para o campo herdar o estilo da tela onde está.
  */
-export function MoneyInput({ name, defaultValue, placeholder, className, required }: {
+export function MoneyInput({ name, defaultValue, placeholder, className, required, onValueChange }: {
   name: string; defaultValue?: string | number | null; placeholder?: string; className?: string; required?: boolean;
+  /** Avisa quem está de fora a cada tecla — o formulário precisa saber se o VALOR mudou (doc 69). */
+  onValueChange?: (valor: string) => void;
 }) {
   const inicial = (() => {
     const canon = parseMoedaBR(defaultValue);
@@ -30,7 +32,11 @@ export function MoneyInput({ name, defaultValue, placeholder, className, require
       inputMode="numeric"
       required={required}
       value={val}
-      onChange={(e) => setVal(mascaraMoeda(e.target.value))}
+      onChange={(e) => {
+        const v = mascaraMoeda(e.target.value);
+        setVal(v);
+        onValueChange?.(v);
+      }}
       className={className}
       placeholder={placeholder ?? "R$ 0,00"}
     />

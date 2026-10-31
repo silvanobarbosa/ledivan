@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { emRotulo, horariosLivres, notaParaGravar, textoDoBloqueio, TEXTO_PADRAO_DO_BLOQUEIO } from "@/lib/bloqueioDeHorario";
+import { datasDaRepeticao, emRotulo, horariosLivres, notaParaGravar, textoDoBloqueio, TETO_DA_REPETICAO, TEXTO_PADRAO_DO_BLOQUEIO } from "@/lib/bloqueioDeHorario";
 
 const livres = (ocupados: { inicio: number; duracao: number }[], extra = {}) =>
   horariosLivres({ ocupados, primeiraHora: 6, ultimaHora: 21, ...extra }).map((h) => h.rotulo);
@@ -91,5 +91,39 @@ describe("o rótulo do horário", () => {
   it("escreve com dois dígitos", () => {
     expect(emRotulo(hora(6))).toBe("06:00");
     expect(emRotulo(hora(14, 30))).toBe("14:30");
+  });
+});
+
+describe("doc 69 — repetir o bloqueio até uma data", () => {
+  // Uma quarta-feira.
+  const QUARTA = new Date(2026, 10, 4);
+
+  it("sem limite, é só o próprio dia — bloquear uma vez não pode depender de mais um campo", () => {
+    expect(datasDaRepeticao(QUARTA, null)).toHaveLength(1);
+  });
+
+  it("repete de sete em sete, no mesmo dia da semana", () => {
+    const datas = datasDaRepeticao(QUARTA, new Date(2026, 10, 25));
+    expect(datas.map((d) => d.getDate())).toEqual([4, 11, 18, 25]);
+    expect(new Set(datas.map((d) => d.getDay()))).toEqual(new Set([3]));
+  });
+
+  it("o limite entra quando cai no dia certo, e não entra quando cai no meio da semana", () => {
+    expect(datasDaRepeticao(QUARTA, new Date(2026, 10, 24)).map((d) => d.getDate())).toEqual([4, 11, 18]);
+  });
+
+  it("limite antes do dia escolhido não apaga o bloqueio do dia", () => {
+    expect(datasDaRepeticao(QUARTA, new Date(2026, 9, 1))).toHaveLength(1);
+  });
+
+  it("ano digitado errado não vira cinco mil linhas no banco", () => {
+    expect(datasDaRepeticao(QUARTA, new Date(2126, 0, 1))).toHaveLength(TETO_DA_REPETICAO);
+  });
+
+  it("atravessa a virada do mês e do ano sem perder o dia da semana", () => {
+    const datas = datasDaRepeticao(new Date(2026, 11, 23), new Date(2027, 0, 13));
+    expect(datas.map((d) => `${d.getDate()}/${d.getMonth() + 1}/${d.getFullYear()}`)).toEqual([
+      "23/12/2026", "30/12/2026", "6/1/2027", "13/1/2027",
+    ]);
   });
 });
