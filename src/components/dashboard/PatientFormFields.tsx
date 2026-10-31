@@ -281,10 +281,11 @@ function Secao({ show, children }: { show: string; children: ReactNode }) {
  * Agora um clique envia tudo. A guia Contrato fica FORA deste form (não entra no cadastro). No
  * CADASTRO (`save` ausente) o form único é o da página-pai, então aqui vira passthrough.
  */
-function Formulario({ save, children }: { save?: SaveAction; children: ReactNode }) {
+function Formulario({ save, children, guia }: { save?: SaveAction; children: ReactNode; guia?: string }) {
   if (!save) return <>{children}</>;
   return (
     <form action={save} className="space-y-5">
+      <input type="hidden" name="voltarPara" value={guia ?? "dados"} />
       {children}
       <div className="pt-1">
         <SubmitButton pendingLabel="Salvando…" className="inline-flex items-center justify-center gap-2 bg-primary text-white py-3 px-6 rounded-2xl font-bold shadow-lg shadow-primary/20 hover:scale-[1.01] transition">
@@ -335,6 +336,23 @@ export function PatientFormFields({ p, save, tabInicial, contrato, patientId }: 
     // eslint-disable-next-line react-hooks/set-state-in-effect -- reset pós-save é o próprio efeito desejado
     if (savedTick > 0) setFinanceiroAlterado(false);
   }, [savedTick]);
+  /**
+   * Doc 67: o STATUS é controlado — senão ele volta a "Ativo" depois de salvar.
+   *
+   * O formulário é enviado por Server Action, e o React RESETA o form quando ela termina: todo
+   * campo não controlado volta ao `defaultValue` que estava no DOM, que é o valor ANTIGO. O banco
+   * ficava com "inativo" e a tela dizia "ativo" — "ele salva, porém o campo volta a ser exibido
+   * como ativo, e isso não pode acontecer". Campo controlado não é afetado pelo reset, e o efeito
+   * reencosta no valor que o servidor devolveu.
+   */
+  const [status, setStatus] = useState(p?.patientStatus || "ativo");
+  /** A pessoa mexeu em "Vale a partir de" nesta edição? Ver o campo oculto `vigenciaEditada`. */
+  const [vigenciaEditada, setVigenciaEditada] = useState(false);
+  useEffect(() => {
+    // eslint-disable-next-line react-hooks/set-state-in-effect -- reencostar no que o servidor devolveu é o efeito desejado
+    if (p?.patientStatus) setStatus(p.patientStatus);
+  }, [p?.patientStatus]);
+
   // Hoje no fuso de quem preenche, no formato do <input type="date">.
   const hojeISO = (() => { const d = new Date(); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; })();
   const [pacote, setPacote] = useState(p?.pacoteTipo || "completo");
@@ -442,7 +460,12 @@ export function PatientFormFields({ p, save, tabInicial, contrato, patientId }: 
       <label className={labelCls} htmlFor="formatoDesde">Vale a partir de</label>
       {/* `key` remonta o campo quando a data padrão muda: `defaultValue` sozinho não reage, e a
           data oferecida ficaria parada em "hoje" depois de escolher Mensal. */}
-      <input key={padraoVigencia} id="formatoDesde" name="formatoDesde" type="date" defaultValue={padraoVigencia} className={`${inputCls} sm:max-w-xs`} />
+      <input key={padraoVigencia} id="formatoDesde" name="formatoDesde" type="date" defaultValue={padraoVigencia}
+        onChange={() => setVigenciaEditada(true)} className={`${inputCls} sm:max-w-xs`} />
+      {/* Doc 67: só uma MEXIDA DELIBERADA nesta data corrige a vigência gravada. O campo chega
+          preenchido com uma data padrão, e tratar essa data como "alteração" faria todo salvamento
+          mover o próximo reajuste — que é exatamente o defeito que o doc 63 consertou. */}
+      <input type="hidden" name="vigenciaEditada" value={vigenciaEditada ? "true" : "false"} />
       <p className="text-[10px] text-foreground/60">
         Os atendimentos <strong>antes</strong> desta data continuam com o formato anterior — nada do que
         já foi cobrado, ou deixou de ser, é alterado.
@@ -560,7 +583,11 @@ export function PatientFormFields({ p, save, tabInicial, contrato, patientId }: 
       {/* Doc 35 (A2): Dados + Financeiro num form só, UM Salvar envia tudo. Contrato fica fora.
           Doc 37: na edição o form passa pelo formAction (useActionState) para zerar "Vale a partir de"
           depois de salvar; no cadastro (sem save) o Formulario é passthrough e o form é o da página. */}
-      <Formulario save={save ? formAction : undefined}>
+      {/* Doc 67: a guia aberta viaja junto com o salvar.
+          Depois de gravar, o servidor devolve uma página NOVA (redirect) para que a tela mostre o
+          que foi salvo — sem isso o React reseta o formulário e os campos voltam ao valor antigo.
+          Levar a guia evita que o redirect jogue a pessoa de volta em "Dados" a cada salvamento. */}
+      <Formulario save={save ? formAction : undefined} guia={tab}>
       {/* DADOS: pessoais → cônjuge → responsável/emergência → devolutiva → escola */}
       <Secao show={show("dados")}>
         <Card title="Dados pessoais">
@@ -596,11 +623,11 @@ export function PatientFormFields({ p, save, tabInicial, contrato, patientId }: 
             {/* Só Ativo/Inativo (dono, 16/09/2026). Prospect/Pausado saíram da lista — mas, se o
                 paciente JÁ está num deles (veio da prospecção), a opção é mantida para não virar Ativo
                 sozinho ao salvar. Prospect segue sendo definido no fluxo de prospecção, não aqui. */}
-            <select name="patientStatus" className={inputCls} defaultValue={p?.patientStatus || "ativo"}>
+            <select name="patientStatus" className={inputCls} value={status} onChange={(e) => setStatus(e.target.value)}>
               <option value="ativo">Ativo</option>
               <option value="inativo">Inativo</option>
-              {p?.patientStatus && !["ativo", "inativo"].includes(p.patientStatus) && (
-                <option value={p.patientStatus}>{ROTULO_STATUS[p.patientStatus] ?? p.patientStatus}</option>
+              {!["ativo", "inativo"].includes(status) && (
+                <option value={status}>{ROTULO_STATUS[status] ?? status}</option>
               )}
             </select>
           </div>

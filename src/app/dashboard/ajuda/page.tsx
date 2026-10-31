@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react";
 import {
   Sparkles, Search, LayoutDashboard, Users, CalendarDays, Video, Activity, HeartHandshake,
-  Wallet, BarChart3, Trophy, Megaphone, UserPlus, Settings, FileText, Shield, MessageCircle,
+  Wallet, BarChart3, Trophy, Megaphone, UserPlus, Settings, FileText, Shield, MessageCircle, Mic,
 } from "lucide-react";
 
 type Guide = { id: string; icon: typeof Users; title: string; items: { q: string; a: string }[] };
@@ -65,6 +65,18 @@ const GUIDES: Guide[] = [
       { q: "O que tem no prontuário?", a: "É o cenário completo de cada consulta, da mais recente para a mais antiga: data e status da sessão, se foi cobrada/paga, se houve tarefa, e as anotações de evolução. Junta tudo o que também sai no Prontuário PDF." },
       { q: "Exportar o prontuário", a: "No topo do paciente, botão 'Prontuário PDF' → Imprimir/Salvar PDF." },
       { q: "Emitir recibo", a: "No paciente → aba Financeiro → no Fluxo financeiro, clique em 'recibo' no pagamento desejado → Imprimir/Salvar PDF." },
+    ],
+  },
+  {
+    id: "transcricao", icon: Mic, title: "Transcrever a sessão por IA",
+    items: [
+      { q: "O que esse recurso faz?", a: "Você envia o áudio de uma sessão e o Le'Divan devolve um RASCUNHO de evolução no prontuário daquele paciente. É um rascunho: você revisa e ajusta antes de usar. O áudio não fica guardado." },
+      { q: "Não tenho conta de IA. Tem um jeito grátis?", a: "Tem. A Groq oferece plano gratuito que já cobre a transcrição, sem pedir cartão. Abra console.groq.com/keys, crie a conta (dá para entrar com Google), clique em 'Create API Key', dê um nome qualquer e COPIE A CHAVE NA HORA — ela começa com gsk_ e só aparece uma vez. Depois cole em Ajustes → IA da transcrição, com o provedor Groq escolhido." },
+      { q: "Como habilitar, passo a passo", a: "1) Ajustes → 'IA da transcrição': escolha o provedor, cole a chave e clique em Salvar chave. 2) Ainda nos Ajustes, ligue a chave 'Transcrição de sessão por IA'. 3) Pronto: o botão aparece no paciente." },
+      { q: "Como uso no dia a dia?", a: "Abra o paciente → guia Registros → 'Transcrever sessão (IA)'. Escolha o arquivo de áudio (até 25 MB), marque a confirmação de que o paciente consentiu e clique em 'Gerar evolução'. O rascunho entra no prontuário." },
+      { q: "Preciso do consentimento do paciente?", a: "Sim, e o app exige: a confirmação é marcada em tela a cada uso. Sem ela, o envio é recusado." },
+      { q: "E se der erro?", a: "'Cadastre sua chave de IA' = falta a chave nos Ajustes. 'Áudio grande demais' = o arquivo passa de 25 MB; grave em qualidade menor ou divida em partes. 'Não foi possível ler sua chave' = cadastre a chave de novo." },
+      { q: "A OpenAI também serve?", a: "Serve, e funciona igual — a chave sai de platform.openai.com/api-keys. A diferença é que lá o uso é pago por consumo." },
     ],
   },
   {

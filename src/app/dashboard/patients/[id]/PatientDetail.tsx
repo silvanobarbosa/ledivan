@@ -52,7 +52,7 @@ type Patient = {
 /** Nome e CPF que o formulário de pagamento já traz preenchidos (ver `pagadorSugerido` na página). */
 type Pagador = { nome: string; cpf: string };
 type ContractEntry = { id: string; type: string; from: string | null; to: string | null; description: string | null; date: string };
-type Finance = { fee: number; balance: number; totalPaid: number; totalDebit: number; atendimentos: number; lastPaymentDate: string | null; lastPaymentAmount: number | null; creditSessions: number; debtSessions: number; nAberto: number; nAtraso: number; emAberto: number; emAtraso: number };
+type Finance = { fee: number; balance: number; totalPaid: number; totalRecebido?: number; totalDebit: number; atendimentos: number; lastPaymentDate: string | null; lastPaymentAmount: number | null; creditSessions: number; debtSessions: number; nAberto: number; nAtraso: number; emAberto: number; emAtraso: number };
 type LedgerEntry = { id: string; date: string; kind: "pagamento" | "sessao"; desc: string; amount: number; balance: number; payId: string | null };
 type Session = { id: string; date: string; duration: number; fee: string; status: string; notes: string | null; isOnline: boolean; patientSummary: string | null; meetingUrl: string | null; pendingConfirmation: boolean; recurring: boolean; chargeable: boolean; sessionKind?: string };
 type Payment = { id: string; date: string; amount: string; method: string; status: string; linkedTransactionId: string | null; kind?: string | null; estornadoEm?: string | null; virouCredito?: boolean };
@@ -327,7 +327,7 @@ export function PatientDetail({
 
       {/* Cards: sessões agendadas · em atraso. A caixinha "Em aberto" saiu a pedido do dono (doc 9):
           o número não comunicava o que media. Os outros indicadores ficam. */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
         <Link href="/dashboard/agenda" className="glass-card rounded-[20px] p-4 hover:shadow-md transition">
           <p className="text-2xl font-display font-bold text-primary">{sessionStats.agendadasFuturas}</p>
           <p className="text-xs text-foreground/50">Sessões agendadas</p>
@@ -337,6 +337,14 @@ export function PatientDetail({
           <p className={`text-2xl font-display font-bold ${finance.nAtraso > 0 ? "text-[#b91c1c]" : "text-primary"}`}>{finance.nAtraso}</p>
           <p className="text-xs text-foreground/50">Em atraso</p>
           <p className="text-[10px] text-foreground/40">{finance.emAtraso > 0 ? `${formatBRL(finance.emAtraso.toFixed(2))} · vencida` : "—"}</p>
+        </button>
+        {/* Doc 67: ao lado do Em atraso, o total geral RECEBIDO — tudo que já entrou, em todos os
+            anos. É a pergunta "quanto este paciente já me pagou", que nenhum dos outros responde. */}
+        <button onClick={() => setTab("Geral")} title="Soma de todos os pagamentos lançados para este paciente, em todos os anos."
+          className="glass-card rounded-[20px] p-4 text-left border border-transparent transition hover:shadow-md">
+          <p className="text-2xl font-display font-bold text-primary">{formatBRL((finance.totalRecebido ?? 0).toFixed(2))}</p>
+          <p className="text-xs text-foreground/50">Total geral</p>
+          <p className="text-[10px] text-foreground/40">recebido em todos os anos</p>
         </button>
       </div>
 

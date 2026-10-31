@@ -2,7 +2,7 @@
 
 import { useRef, useState, useTransition } from "react";
 import { useRouter } from "next/navigation";
-import { ChevronLeft, ChevronRight, X, Stethoscope, Repeat, Video, AlertTriangle, MapPin, Pencil, CalendarDays, Trash2 } from "lucide-react";
+import { ChevronLeft, ChevronRight, X, Stethoscope, Repeat, Video, AlertTriangle, MapPin, Pencil, CalendarDays, Trash2 , ChevronDown } from "lucide-react";
 import { formatBRL, SESSION_STATUS_LABELS, sessionStatusColor, sessionColorClasses, reservaVencida, RISK_LABELS, riskColor, LEGENDA_DA_AGENDA, corDaLegenda, STATUS_OFERECIDOS, STATUS_QUE_PAUSAM, type RiskLevel } from "@/lib/therapy";
 import { updateSessionStatus, confirmSession, createSessionFromAgenda, createRecurring, definirValorDaFalta, pagamentoDaSessao, desfazerCobrancaDaSessao, saldoDeCreditoDaSessao } from "../sessions/actions";
 import { perguntaDaConversao } from "@/lib/creditoAConfirmar";
@@ -45,6 +45,20 @@ type PatientLite = { id: string; name: string; status: string; attendanceMode: s
 type LocationLite = { name: string; address: string };
 
 type SessionStatus = "realizada" | "nao_realizada" | "cancelada" | "realocada" | "agendada" | "prof_desmarcou" | "atestado";
+/** O botão de entrar na sala — o mesmo em cima (editando) e embaixo (vendo). */
+function EntrarNaSala({ sessao }: { sessao: { id: string; meetingUrl: string | null } }) {
+  const meet = sessao.meetingUrl?.includes("meet.google.com");
+  return (
+    <a
+      href={meet ? sessao.meetingUrl! : `/dashboard/sala/${sessao.id}`}
+      {...(meet ? { target: "_blank", rel: "noreferrer" } : {})}
+      className="flex items-center justify-center gap-2 w-full rounded-xl bg-primary text-white py-2.5 text-sm font-bold hover:bg-primary-container transition"
+    >
+      <Video className="w-4 h-4" /> {meet ? "Entrar no Google Meet" : "Entrar como anfitrião"}
+    </a>
+  );
+}
+
 type AgendaSession = { id: string; date: string; duration: number; status: string; patientName: string; isOnline: boolean; risk: string; meetingUrl: string | null; meetingOpenedAt: string | null; guestJoinedAt: string | null; meetingEndedAt: string | null; pendingConfirmation: boolean; patientConfirmed: boolean; rescheduleRequested: boolean; patientArrived: boolean; location: string | null; recurring: boolean; recurrenceFreq?: string | null; patientId?: string; sessionKind?: string; cortesia?: boolean; extra?: string | null; pkg?: { seq: number; index: number; total: number } | null; pagamentoAtrasado?: boolean; abaterDoPacote?: boolean; codigo?: string | null; espelhoSoAnterior?: boolean; agendaId?: string | null; registro?: number | null };
 
 const blockColor = (s: AgendaSession, vencida: boolean) => sessionColorClasses(s.status, s.pendingConfirmation, s.recurring, vencida);
@@ -252,7 +266,7 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
    * Doc 66: o bloco de escolhas do Novo atendimento. A regra de QUAIS opções mora em
    * `blocoDoAgendamento`; aqui só se desenha o que ela devolve.
    */
-  const blocoNovo = blocoDoAgendamento({ formato: formatoNaDataNova, sessionKind: newKind, jaTemSequencia, emSerie: newRecorrente });
+  const blocoNovo = blocoDoAgendamento({ formato: formatoNaDataNova, sessionKind: newKind, jaTemSequencia });
   /** A escolha marcada pode ter deixado de existir (trocar a repetição muda o bloco). */
   const escolhaNova = escolhaEfetiva(blocoNovo, newEscolha);
   const campoEscolha = camposDaEscolha(escolhaNova);
@@ -339,14 +353,16 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
   const [recUntil, setRecUntil] = useState("");
   const [recSegDia, setRecSegDia] = useState<string>("");
   const [recSegHora, setRecSegHora] = useState("");
-  function aplicarRecorrencia(id: string) {
-    if (!recUntil) return setEditErro("Informe até quando repetir.");
-    startTransition(async () => {
-      const r = await reagendarRecorrencia(id, { freq: recFreq, until: recUntil, segundoDia: recSegDia === "" ? null : Number(recSegDia), segundoHorario: recSegHora || null });
-      if (!r.ok) return setEditErro(r.error ?? "Não consegui alterar a recorrência.");
-      setEditErro(null); setEditing(false); setSelected(null); router.refresh();
-    });
-  }
+  /**
+   * Doc 67: o STATUS entra no mesmo Salvar.
+   *
+   * Em edição, clicar num status apenas o SELECIONA; quem grava é o botão Salvar, junto de data,
+   * duração, modalidade e lembrete. Antes era preciso salvar os campos, voltar e só então mexer no
+   * status — duas idas para uma decisão só.
+   */
+  const [editStatus, setEditStatus] = useState<SessionStatus | null>(null);
+  /** Doc 67: a área de recorrência nasce FECHADA e só abre a pedido. */
+  const [recAberta, setRecAberta] = useState(false);
   /** A edição preenchida, esperando a pessoa dizer o alcance. */
   const [perguntaAlcance, setPerguntaAlcance] = useState<Record<string, string> | null>(null);
   /** A exclusão, esperando o alcance. `null` quando ninguém pediu para excluir. */
@@ -393,7 +409,31 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
       });
       setPerguntaAlcance(null);
       if (!r.ok) return setEditErro(r.error ?? "Não consegui salvar.");
+
+      /**
+       * Doc 67: UM Salvar grava tudo — campos, recorrência e status.
+       *
+       * A ordem é deliberada. Os campos primeiro, porque a recorrência recria as sessões seguintes
+       * a partir desta data e precisa da data já corrigida. O status por último, porque "Faltou"
+       * abre uma janela própria (cobrar ou não) e ela tem de aparecer sobre um agendamento que já
+       * está salvo — perguntar antes deixaria a resposta pendurada num estado que ainda pode falhar.
+       */
+      if (recAberta && recUntil) {
+        const rr = await reagendarRecorrencia(selected.id, {
+          freq: recFreq, until: recUntil,
+          segundoDia: recSegDia === "" ? null : Number(recSegDia),
+          segundoHorario: recSegHora || null,
+        });
+        if (!rr.ok) return setEditErro(rr.error ?? "Não consegui alterar a recorrência.");
+      }
+
       setEditing(false);
+      if (editStatus && editStatus !== selected.status) {
+        // `pickStatus` guarda os fluxos da falta e do crédito; aqui só se escolhe o momento.
+        pickStatus(selected.id, editStatus);
+        router.refresh();
+        return;
+      }
       setSelected(null);
       router.refresh();
     });
@@ -933,7 +973,7 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
             {!editing ? (
               <div className="flex items-center gap-3">
                 <button
-                  onClick={() => { setEditing(true); setEditErro(null); setEditModalidade(selected.isOnline ? "online" : "presencial"); setEditCanal("nenhum"); setRecFreq(selected.recurrenceFreq === "quinzenal" ? "quinzenal" : "semanal"); setRecUntil(""); setRecSegDia(""); setRecSegHora(""); }}
+                  onClick={() => { setEditing(true); setEditErro(null); setEditModalidade(selected.isOnline ? "online" : "presencial"); setEditCanal("nenhum"); setRecFreq(selected.recurrenceFreq === "quinzenal" ? "quinzenal" : "semanal"); setRecUntil(""); setRecSegDia(""); setRecSegHora(""); setRecAberta(false); setEditStatus(selected.status as SessionStatus); }}
                   className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary hover:underline"
                 >
                   <Pencil className="w-4 h-4" /> Editar agendamento
@@ -946,7 +986,7 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
               /* Só data/hora, duração, modalidade e lembrete são editáveis. Paciente, tipo e
                  repetição ficam de fora de propósito: trocar isso não é editar o agendamento, é
                  outro agendamento — e o lote pediu que ficassem inativos. */
-              <form action={submitEdit} className="rounded-xl bg-surface/60 border border-border p-3 space-y-2">
+              <form id="form-edicao-agendamento" action={submitEdit} className="rounded-xl bg-surface/60 border border-border p-3 space-y-2">
                 {/* Doc 66: "Este atendimento será uma cortesia" saiu daqui. A cortesia passou a
                     ser decidida ao CRIAR o agendamento — ver `blocoDoAgendamento`. As sessões já
                     marcadas continuam cortesia: o que saiu foi o controle, não o dado. */}
@@ -960,6 +1000,9 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
                     <input name="duration" type="number" min={5} defaultValue={selected.duration} className="w-full px-3 py-2 rounded-xl bg-white border border-border outline-none text-sm" />
                   </div>
                 </div>
+
+                {/* Doc 67: acima da modalidade da sessão, como ele pediu. */}
+                {selected.isOnline && <EntrarNaSala sessao={selected} />}
 
                 <div>
                   <label className="text-xs font-semibold text-foreground/60">Modalidade</label>
@@ -993,11 +1036,9 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
                 </div>
 
                 {editErro && <p className="text-sm text-red-600">{editErro}</p>}
-
-                <div className="flex gap-2">
-                  <button disabled={pending} className="flex-1 bg-primary text-white py-2 rounded-xl text-sm font-bold disabled:opacity-60">Salvar</button>
-                  <button type="button" onClick={() => { setEditing(false); setEditErro(null); }} className="px-3 py-2 rounded-xl text-sm text-foreground/50">Cancelar</button>
-                </div>
+                {/* Doc 67: Salvar e Cancelar saíram daqui e foram para BAIXO do status — um clique
+                    grava data, horário, duração, modalidade, lembrete, recorrência e status. O
+                    botão continua sendo o submit DESTE form, por `form={ID_DO_FORM_DA_EDICAO}`. */}
               </form>
             )}
 
@@ -1005,9 +1046,22 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
                 futuro (as realizadas, faltas, canceladas, pagas e encaixes avulsos ficam intactos). */}
             {editing && selected.recurring && (
               <div className="rounded-xl bg-[#eef2ff] border border-[#c7d2fe] p-3 space-y-2">
-                <p className="text-xs font-bold text-[#4338ca] uppercase tracking-wide">Alterar recorrência</p>
+                {/* Doc 67: nasce FECHADA. Mudar a recorrência é raro e recria as sessões seguintes;
+                    deixar o painel aberto em toda edição de horário convidava ao engano. */}
+                <button
+                  type="button"
+                  onClick={() => setRecAberta((v) => !v)}
+                  aria-expanded={recAberta}
+                  className="flex w-full items-center justify-between gap-2 text-left"
+                >
+                  <span className="text-xs font-bold text-[#4338ca] uppercase tracking-wide">Alterar recorrência</span>
+                  <ChevronDown className={`w-4 h-4 text-[#4338ca] transition ${recAberta ? "rotate-180" : ""}`} />
+                </button>
+                {recAberta && (<>
                 <p className="text-[11px] text-foreground/60">Recria as próximas sessões desta série a partir desta data. Não mexe no passado, nas realizadas, nas pagas nem nos encaixes avulsos. Diferença de valor por frequência é ajustada no Financeiro.</p>
-                <div className="grid grid-cols-2 gap-2">
+                {/* `items-end` alinha os campos pela base: "Frequência do atendimento" quebra em
+                    duas linhas e empurrava o "Repetir até" para cima (doc 67). */}
+                <div className="grid grid-cols-2 gap-2 items-end">
                   <div>
                     <label className="text-xs font-semibold text-foreground/60">Frequência do atendimento</label>
                     <select value={recFreq} onChange={(e) => setRecFreq(e.target.value)} className="w-full px-3 py-2 rounded-xl bg-white border border-border outline-none text-sm">
@@ -1036,23 +1090,14 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
                     </div>
                   </div>
                 )}
-                <button type="button" disabled={pending} onClick={() => aplicarRecorrencia(selected.id)} className="w-full bg-[#4338ca] text-white py-2 rounded-xl text-sm font-bold disabled:opacity-60">
-                  Aplicar nova recorrência
-                </button>
+                {/* Doc 67: o "Aplicar nova recorrência" saiu — quem aplica é o Salvar lá embaixo. */}
+                </>)}
               </div>
             )}
 
-            {selected.isOnline && (
-              selected.meetingUrl?.includes("meet.google.com") ? (
-                <a href={selected.meetingUrl} target="_blank" rel="noreferrer" className="flex items-center justify-center gap-2 w-full rounded-xl bg-primary text-white py-2.5 text-sm font-bold hover:bg-primary-container transition">
-                  <Video className="w-4 h-4" /> Entrar no Google Meet
-                </a>
-              ) : (
-                <a href={`/dashboard/sala/${selected.id}`} className="flex items-center justify-center gap-2 w-full rounded-xl bg-primary text-white py-2.5 text-sm font-bold hover:bg-primary-container transition">
-                  <Video className="w-4 h-4" /> Entrar como anfitrião
-                </a>
-              )
-            )}
+            {/* Doc 67: no modo de EDIÇÃO este botão sobe para cima da modalidade (fica logo abaixo
+                dos campos, dentro do form). Fora da edição ele continua aqui. */}
+            {!editing && selected.isOnline && <EntrarNaSala sessao={selected} />}
             {/* Registro da reunião */}
             {(selected.meetingOpenedAt || selected.guestJoinedAt || selected.meetingEndedAt) && (
               <div className="rounded-xl bg-surface/60 border border-border p-3 text-xs text-foreground/60 space-y-1">
@@ -1069,21 +1114,42 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
             )}
             <div>
               <p className="text-xs font-bold text-foreground/40 uppercase tracking-widest mb-2">Status</p>
+              {/* Doc 67: EDITANDO, o status apenas se SELECIONA — quem grava é o Salvar abaixo,
+                  junto do resto. Fora da edição ele continua agindo no clique, que é o caminho
+                  rápido do dia a dia ("a paciente faltou", um toque). */}
               <div className="grid grid-cols-2 gap-2">
-                {(STATUS_OFERECIDOS as readonly SessionStatus[]).map((st) => (
-                  <button
-                    key={st}
-                    disabled={pending}
-                    onClick={() => pickStatus(selected.id, st)}
-                    className={`py-2 rounded-xl text-xs font-bold transition ${
-                      selected.status === st ? `${sessionStatusColor(st)} ring-2 ring-primary/30` : "bg-surface text-foreground/60 hover:bg-surface-container"
-                    }`}
-                  >
-                    {SESSION_STATUS_LABELS[st]}
-                  </button>
-                ))}
+                {(STATUS_OFERECIDOS as readonly SessionStatus[]).map((st) => {
+                  const marcado = editing ? editStatus === st : selected.status === st;
+                  return (
+                    <button
+                      key={st}
+                      type="button"
+                      disabled={pending}
+                      onClick={() => (editing ? setEditStatus(st) : pickStatus(selected.id, st))}
+                      className={`py-2 rounded-xl text-xs font-bold transition ${
+                        marcado ? `${sessionStatusColor(st)} ring-2 ring-primary/30` : "bg-surface text-foreground/60 hover:bg-surface-container"
+                      }`}
+                    >
+                      {SESSION_STATUS_LABELS[st]}
+                    </button>
+                  );
+                })}
               </div>
             </div>
+
+            {/* Doc 67: o rodapé da edição — um Salvar para data, horário, duração, modalidade,
+                lembrete, recorrência e status. Os botões ficam FORA do form e o alcançam por
+                `form=`, que é o que permite desenhá-los aqui embaixo sem quebrar o submit. */}
+            {editing && (
+              <div className="flex gap-2">
+                <button form="form-edicao-agendamento" disabled={pending} className="flex-1 bg-primary text-white py-2.5 rounded-xl text-sm font-bold disabled:opacity-60">
+                  Salvar
+                </button>
+                <button type="button" onClick={() => { setEditing(false); setEditErro(null); }} className="px-4 py-2.5 rounded-xl text-sm text-foreground/50">
+                  Cancelar
+                </button>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -1354,7 +1420,8 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
 
             {/* Regra do dono (15/09/2026): sessão inserida entre as do pacote pode ficar FORA da
                 sequência. Fora, não muda numeração, contagem nem valor do pacote.
-                Doc 66: a cortesia entrou aqui, ao lado delas, e saiu do editar agendamento. */}
+                Doc 67: a cortesia saiu daqui — "já temos a opção GRAT no botão não adicionar". E no
+                PRIMEIRO agendamento o verbo muda para "Iniciar": não há sequência para adicionar a. */}
             {blocoNovo && (
               <div className="rounded-xl bg-[#fef3c7] px-3 py-2.5 space-y-2" data-testid="pergunta-sequencia">
                 {blocoNovo.titulo && <p className="text-xs font-semibold text-[#92400e]">{blocoNovo.titulo}</p>}
@@ -1367,10 +1434,6 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
                   ))}
                 </div>
                 <input type="hidden" name="naSequencia" value={campoEscolha.naSequencia} />
-                <input type="hidden" name="cortesia" value={campoEscolha.cortesia ? "true" : "false"} />
-                {escolhaNova === "cortesia" && (
-                  <p className="text-[11px] text-[#92400e]/70">Não será cobrada e aparece como GRAT. Continua no pacote, mas não ocupa posição na sequência — a seguinte assume o número dela.</p>
-                )}
                 {/* Doc 36: "abater do pacote" segue acontecendo (a sessão preenche uma desmarcada
                     em aberto, ocupando a posição — nada atravessa para o mês seguinte e o total não
                     muda), MAS não se pergunta mais QUAL desmarcada: a sessão específica não importa,

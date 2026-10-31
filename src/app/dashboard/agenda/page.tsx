@@ -122,22 +122,32 @@ export default async function AgendaPage() {
     }
   }
 
-  // Pagamento atrasado: só marca, não faz. Quem paga a cada sessão tem um prazo ("pagar até X
-  // horas antes"); passado o prazo sem pagamento, a agenda avisa o profissional — que decide
-  // atender assim mesmo ou cancelar a sessão. O sistema não cancela nada sozinho.
+  /**
+   * Pagamento atrasado: só marca, não faz. Passado o limite sem pagamento, a agenda avisa o
+   * profissional — que decide atender assim mesmo ou cancelar. O sistema não cancela nada sozinho.
+   *
+   * Doc 67: duas portas estavam fechadas e o dono abriu as duas.
+   *  - quem paga a cada sessão e NÃO preencheu "pagar até" ficava de fora, porque o filtro exigia
+   *    a antecedência. Sem ela, o limite é o horário da própria sessão (`limiteDoPagamento`);
+   *  - a sessão marcada como AVUL por fora da guia Financeiro (as janelas "Esta sessão será
+   *    cobrada? Sim (AVUL)") pertence a um paciente que pode ser mensal — e por isso nunca entrava
+   *    nesta conta, por mais vencida que estivesse. Agora ela entra pela marca da SESSÃO.
+   */
   const agora = new Date();
-  const porSessao = new Map(pats.filter((x) => x.paymentFormat === "sessao" && x.horasAntesPagamento).map((x) => [x.id, x.horasAntesPagamento as number]));
+  const horasDoPaciente = new Map(todosPats.map((x) => [x.id, x.horasAntesPagamento ?? null] as const));
+  const pagaPorSessao = new Set(todosPats.filter((x) => x.paymentFormat === "sessao").map((x) => x.id));
   const atrasadas = new Set<string>();
-  if (porSessao.size) {
+  {
     const pagos = await db.select({ sessionId: sessionPayments.sessionId })
       .from(sessionPayments)
       .where(and(eq(sessionPayments.userId, session.user.id), eq(sessionPayments.status, "paid")));
     const pagas = new Set(pagos.map((x) => x.sessionId).filter(Boolean) as string[]);
     for (const s of list) {
       if ((s.date as Date) < windowStart) continue; // atraso só na janela recente
-      const horas = porSessao.get(s.patientId);
-      if (!horas) continue;
-      if (pagamentoAtrasado({ agora, dataSessao: s.date as Date, horasAntes: horas, pago: pagas.has(s.id), status: s.status })) {
+      // A sessão cobra "na hora dela"? Pelo formato do paciente, ou por ela ser uma extra AVUL.
+      const cobraNaSessao = s.extra === "avul" || (!s.extra && pagaPorSessao.has(s.patientId));
+      if (!cobraNaSessao) continue;
+      if (pagamentoAtrasado({ agora, dataSessao: s.date as Date, horasAntes: horasDoPaciente.get(s.patientId) ?? null, pago: pagas.has(s.id), status: s.status })) {
         atrasadas.add(s.id);
       }
     }

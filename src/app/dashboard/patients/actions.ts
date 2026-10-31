@@ -256,7 +256,7 @@ export async function updatePatient(patientId: string, formData: FormData) {
   // Doc 63: a validade do preço conta da vigência do ÚLTIMO reajuste, não do início do tratamento.
   // Sem isto, salvar o Financeiro de novo por outro motivo recalculava a data do início e devolvia
   // o paciente à lista de "Reajustes a vencer" já vencido, desfazendo a baixa do reajuste feito.
-  const precosGravados = await db.select({ dataEfetiva: patientPriceHistory.dataEfetiva })
+  const precosGravados = await db.select({ id: patientPriceHistory.id, valor: patientPriceHistory.valor, dataEfetiva: patientPriceHistory.dataEfetiva })
     .from(patientPriceHistory).where(eq(patientPriceHistory.patientId, patientId));
   const ultimoReajuste = precosGravados
     .map((p) => p.dataEfetiva)
@@ -422,6 +422,53 @@ export async function updatePatient(patientId: string, formData: FormData) {
       }).where(and(eq(patients.id, patientId), eq(patients.userId, session.user.id)));
     }
   }
+  /**
+   * Doc 67: mudar SÓ a data de vigência também é uma alteração, e precisa ser salva.
+   *
+   * Todo este bloco só rodava quando o VALOR mudava. Quem reabria o Financeiro, mantinha o preço e
+   * corrigia a vigência de 01/02 para 01/04 via a tela aceitar e não gravar nada — "qualquer
+   * alteração que for realizada deve ser salva", nas palavras do dono.
+   *
+   * Valor novo continua criando uma vigência nova (é um reajuste). Só a data mudou: a vigência
+   * MAIS RECENTE é corrigida no lugar, senão nasceria um segundo reajuste do mesmo valor.
+   *
+   * CUIDADO (doc 63): o campo "Vale a partir de" chega SEMPRE preenchido, com uma data padrão.
+   * Tratar a presença dele como alteração faz todo salvamento mover a data do próximo reajuste e
+   * devolve à lista de "reajustes a vencer" quem acabou de reajustar. Por isso quem manda é o
+   * `vigenciaEditada`, que a tela só liga quando a pessoa mexe no campo.
+   */
+  const precoMaisRecente = precosGravados
+    .slice()
+    .sort((a, b) => (a.dataEfetiva?.getTime() ?? 0) - (b.dataEfetiva?.getTime() ?? 0))
+    .pop();
+  /**
+   * A data vem do mesmo lugar que `dataDoPreco` lê: "Vale a partir de" (`formatoDesde`) é o campo
+   * que a tela realmente envia — `dataEfetiva` existe na assinatura mas nenhum formulário o manda.
+   * Ler só o primeiro deixava a correção muda, que é o defeito que ela veio consertar.
+   */
+  const efetivaBruta = (formData.get("dataEfetiva") as string | null) || (formData.get("formatoDesde") as string | null);
+  const efetivaPedida = efetivaBruta ? new Date(`${efetivaBruta}T00:00:00`) : null;
+  const mesmoDia = (a?: Date | null, b?: Date | null) =>
+    !!a && !!b && a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
+  const soAVigenciaMudou =
+    formData.get("vigenciaEditada") === "true" &&
+    newFee === existing.sessionFee &&
+    !!efetivaPedida && !Number.isNaN(efetivaPedida.getTime()) &&
+    !!precoMaisRecente && !mesmoDia(efetivaPedida, precoMaisRecente.dataEfetiva);
+
+  if (soAVigenciaMudou && precoMaisRecente) {
+    const validade = formData.has("validadePrecoMeses")
+      ? (formData.get("validadePrecoMeses") ? parseInt(formData.get("validadePrecoMeses") as string) : null)
+      : existing.validadePrecoMeses;
+    await db.update(patientPriceHistory)
+      .set({ dataEfetiva: efetivaPedida! })
+      .where(eq(patientPriceHistory.id, precoMaisRecente.id));
+    // O próximo lembrete conta da vigência: mudando ela, a data do próximo reajuste muda junto.
+    await db.update(patients)
+      .set({ priceReviewDate: vencimentoDoPreco(efetivaPedida!, null, validade) })
+      .where(and(eq(patients.id, patientId), eq(patients.userId, session.user.id)));
+  }
+
   if (newFee !== existing.sessionFee) {
     // O preço novo vale da mesma data da troca de formato, quando houve troca — senão as sessões
     // entre a troca e hoje ficavam no preço antigo (R$ 0 de quem era gratuito). Ver `dataDoPreco`.
@@ -556,6 +603,23 @@ export async function updatePatient(patientId: string, formData: FormData) {
   revalidatePath(`/dashboard/patients/${patientId}/edit`);
   revalidatePath("/dashboard/patients");
   revalidatePath("/dashboard/agenda");
+
+  /**
+   * Doc 67: volta para a MESMA tela, por navegação nova.
+   *
+   * "Ao clicar em salvar da área Dados, todas as informações devem permanecer com a alteração
+   * salva sendo exibida." Não permaneciam: o React RESETA o formulário quando a Server Action
+   * termina, e cada campo não controlado volta ao `defaultValue` que estava no DOM — o valor
+   * ANTIGO. O banco gravava "inativo" e a tela voltava a "ativo".
+   *
+   * `revalidatePath` sozinho não resolvia, porque o reset acontece antes de a tela receber os
+   * dados novos. Uma navegação devolve a página inteira já com o que foi salvo, e vale para TODOS
+   * os campos, não só o status. A guia aberta vem no formulário para a pessoa não ser jogada de
+   * volta em "Dados" a cada salvamento.
+   */
+  const guia = (formData.get("voltarPara") as string | null) || "dados";
+  const destino = ["financeiro", "contrato"].includes(guia) ? `?guia=${guia}` : "";
+  redirect(`/dashboard/patients/${patientId}/edit${destino}`);
 }
 
 // Ajuste: Incluir Pacote → cria um pacote numerado (P1, P2, ...) com N sessões.

@@ -23,6 +23,7 @@ import { creditoAConfirmar, creditoDisponivel, geralDoPaciente } from "@/lib/ger
 import { getVigenciasTaxa } from "@/lib/cardFees";
 import { descricaoValida } from "@/lib/recibo";
 import { pagadorSugerido } from "@/lib/pagadorSugerido";
+import { agendaRecorrente } from "@/lib/agendaRecorrente";
 
 export default async function PatientPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
@@ -122,15 +123,12 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
   });
   const openPkgs = packages.filter((p) => p.remaining > 0);
 
-  // Agenda recorrente (a partir das reservas recurring futuras)
-  const DOW = ["domingo", "segunda", "terça", "quarta", "quinta", "sexta", "sábado"];
-  const recSessions = sessionsList.filter((s) => s.recurring && new Date(horaDeParede(s.date)).getTime() >= nowMs).sort((a, b) => new Date(horaDeParede(a.date)).getTime() - new Date(horaDeParede(b.date)).getTime());
-  let recurring: { day: string; time: string; until: string | null } | null = null;
-  if (recSessions.length) {
-    const d = new Date(recSessions[0].date as unknown as string);
-    const untilMax = recSessions.map((s) => s.recurrenceUntil ? new Date(s.recurrenceUntil as unknown as string).getTime() : 0).sort((a, b) => b - a)[0];
-    recurring = { day: DOW[d.getDay()], time: d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" }), until: untilMax ? new Date(untilMax).toISOString() : null };
-  }
+  // Agenda recorrente: o COMBINADO, não a próxima sessão. A regra mora em `agendaRecorrente`,
+  // que escolhe o dia+hora que mais se repete — assim uma remarcação isolada não vira a regra.
+  const recSessions = sessionsList.filter((s) => s.recurring && new Date(horaDeParede(s.date)).getTime() >= nowMs);
+  const recurring = agendaRecorrente(
+    recSessions.map((s) => ({ date: new Date(horaDeParede(s.date)), recurrenceUntil: s.recurrenceUntil })),
+  );
 
   // --- Saldo ÚNICO: o mesmo motor da guia Geral (dono, 15/09/2026) ---
   // Antes o saldo daqui descontava o `fee` de cada sessão realizada e ignorava formato, pacote e
@@ -175,6 +173,13 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
     fee,
     balance,
     totalPaid,
+    /**
+     * Doc 67: o total geral RECEBIDO — a soma de tudo que foi pago, em todos os anos.
+     *
+     * Sai dos pagamentos, não do resumo da Geral: aquele responde "quanto está quitado do que é
+     * exigível", que é outra pergunta e muda com o recorte de período.
+     */
+    totalRecebido: paidPayments.reduce((a, p) => a + (parseFloat(p.amount ?? "0") || 0), 0),
     totalDebit,
     atendimentos: sessionsList.filter((s) => s.status === "realizada").length,
     lastPaymentDate: lastPay ? (horaDeParede(lastPay.date)) : null,

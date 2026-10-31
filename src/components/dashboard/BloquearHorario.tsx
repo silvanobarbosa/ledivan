@@ -59,6 +59,10 @@ export function BloquearHorario() {
   }
 
   const algumMarcado = Object.values(marcados).some(Boolean);
+  /** Todos os livres do dia estão marcados? É o estado do "bloquear todos". */
+  const todosMarcados = livres.length > 0 && livres.every((h) => marcados[h.inicio]);
+  const marcarTodos = (ligar: boolean) =>
+    setMarcados(ligar ? Object.fromEntries(livres.map((h) => [h.inicio, true])) : {});
   const algumParaLiberar = Object.values(paraLiberar).some(Boolean);
 
   function bloquear() {
@@ -171,7 +175,20 @@ export function BloquearHorario() {
                 {livres.length === 0 ? (
                   <p className="text-sm text-foreground/50">Nenhum horário livre neste dia.</p>
                 ) : (
-                  livres.map((h) => (
+                  <>
+                  {/* Doc 67: acima do primeiro horário, marcar o dia inteiro de uma vez. Dia de
+                      congresso ou de férias é o caso comum, e marcar quinze caixas à mão para
+                      isso é trabalho que o app devia poupar. */}
+                  <label className="flex items-center gap-2 rounded-xl bg-secondary-container/25 px-3 py-2 cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={todosMarcados}
+                      onChange={(e) => marcarTodos(e.target.checked)}
+                    />
+                    <span className="text-sm font-bold text-primary">Bloquear todos os horários</span>
+                    <span className="text-xs text-foreground/45">({livres.length} livres)</span>
+                  </label>
+                  {livres.map((h) => (
                     <div key={h.inicio} className="flex items-center gap-2">
                       <label className="flex items-center gap-2 shrink-0 cursor-pointer">
                         <input
@@ -190,7 +207,8 @@ export function BloquearHorario() {
                         className="flex-1 min-w-0 px-3 py-1.5 rounded-lg bg-surface border border-border outline-none text-sm"
                       />
                     </div>
-                  ))
+                  ))}
+                  </>
                 )}
               </section>
             )}

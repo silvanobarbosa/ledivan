@@ -5,36 +5,34 @@ import { podeSerCortesia } from "@/lib/cortesia";
 
 const rotulos = (o: Parameters<typeof blocoDoAgendamento>[0]) => blocoDoAgendamento(o)?.opcoes.map((x) => x.rotulo) ?? null;
 
-describe("doc 66 — o bloco do Novo atendimento", () => {
-  it("no avulso oferece Sessão Avulsa e Sessão Cortesia, desde o primeiro agendamento", () => {
-    expect(rotulos({ formato: "sessao", jaTemSequencia: false })).toEqual(["Sessão Avulsa", "Sessão Cortesia"]);
-    expect(rotulos({ formato: "sessao", jaTemSequencia: true })).toEqual(["Sessão Avulsa", "Sessão Cortesia"]);
-  });
-
-  it("no pacote, o PRIMEIRO agendamento oferece iniciar a sequência ou cortesia", () => {
-    for (const formato of ["mensal", "quinzenal"]) {
-      expect(rotulos({ formato, jaTemSequencia: false })).toEqual(["Iniciar à sequência do pacote", "Sessão Cortesia"]);
-    }
-  });
-
-  it("no pacote, os DEMAIS agendamentos mantêm adicionar/não adicionar e ganham a cortesia", () => {
-    expect(rotulos({ formato: "mensal", jaTemSequencia: true })).toEqual([
-      "Adicionar à sequência do pacote",
+describe("doc 67 — o quadro do Novo atendimento", () => {
+  it("no PRIMEIRO agendamento o verbo é 'Iniciar': não há sequência para adicionar a", () => {
+    expect(rotulos({ formato: "mensal", jaTemSequencia: false })).toEqual([
+      "Iniciar à sequência do pacote",
       "Não adicionar à sequência do pacote",
-      "Sessão Cortesia",
     ]);
   });
 
-  it("a primeira opção é sempre a que já vem marcada", () => {
+  it("nos demais, 'Adicionar' — e nada mais muda", () => {
+    expect(rotulos({ formato: "quinzenal", jaTemSequencia: true })).toEqual([
+      "Adicionar à sequência do pacote",
+      "Não adicionar à sequência do pacote",
+    ]);
+  });
+
+  it("não há botão de cortesia: 'já temos a opção GRAT no não adicionar' (dono)", () => {
     for (const ctx of [
-      { formato: "sessao", jaTemSequencia: false },
       { formato: "mensal", jaTemSequencia: false },
+      { formato: "mensal", jaTemSequencia: true },
       { formato: "quinzenal", jaTemSequencia: true },
     ]) {
-      const bloco = blocoDoAgendamento(ctx)!;
-      expect(bloco.padrao).toBe(bloco.opcoes[0].valor);
-      expect(bloco.padrao).toBe("normal");
+      expect(rotulos(ctx)?.some((r) => /cortesia/i.test(r))).toBe(false);
     }
+  });
+
+  it("quem NÃO fecha por pacote não tem quadro nenhum", () => {
+    expect(blocoDoAgendamento({ formato: "sessao", jaTemSequencia: true })).toBeNull();
+    expect(blocoDoAgendamento({ formato: "gratuito", jaTemSequencia: true })).toBeNull();
   });
 
   it("a devolutiva fica de fora: ela já tem as perguntas dela", () => {
@@ -42,35 +40,23 @@ describe("doc 66 — o bloco do Novo atendimento", () => {
     expect(podeSerCortesia({ sessionKind: "devolutiva" })).toBe(false);
   });
 
-  it("o financeiro que não cobra fica de fora: cortesia ali não diria nada", () => {
-    expect(blocoDoAgendamento({ formato: "gratuito", jaTemSequencia: true })).toBeNull();
+  it("a primeira opção é sempre a que já vem marcada", () => {
+    for (const ctx of [{ formato: "mensal", jaTemSequencia: false }, { formato: "quinzenal", jaTemSequencia: true }]) {
+      const bloco = blocoDoAgendamento(ctx)!;
+      expect(bloco.padrao).toBe(bloco.opcoes[0].valor);
+      expect(bloco.padrao).toBe("normal");
+    }
   });
 
-  it("a SÉRIE não oferece cortesia: ela é de um atendimento, não de um bloco de meses", () => {
-    expect(rotulos({ formato: "sessao", emSerie: true, jaTemSequencia: true })).toBeNull();
-    expect(rotulos({ formato: "mensal", emSerie: true, jaTemSequencia: false })).toBeNull();
-    // Na série de quem já tem sequência, a escolha de entrar ou não entrar continua (doc 9).
-    expect(rotulos({ formato: "mensal", emSerie: true, jaTemSequencia: true })).toEqual([
-      "Adicionar à sequência do pacote",
-      "Não adicionar à sequência do pacote",
-    ]);
+  it("uma escolha que deixou de existir volta ao padrão", () => {
+    const bloco = blocoDoAgendamento({ formato: "mensal", jaTemSequencia: true });
+    expect(escolhaEfetiva(bloco, "fora")).toBe("fora");
+    expect(escolhaEfetiva(null, "fora")).toBe("normal");
   });
 
-  it("trocar para série depois de marcar cortesia volta ao padrão — não nasce série de cortesias", () => {
-    const serie = blocoDoAgendamento({ formato: "mensal", jaTemSequencia: true, emSerie: true });
-    expect(escolhaEfetiva(serie, "cortesia")).toBe("normal");
-    expect(escolhaEfetiva(serie, "fora")).toBe("fora");
-    expect(escolhaEfetiva(null, "cortesia")).toBe("normal");
-    const avulso = blocoDoAgendamento({ formato: "sessao", jaTemSequencia: true });
-    expect(escolhaEfetiva(avulso, "cortesia")).toBe("cortesia");
-    // "fora" não existe no avulso: não há sequência da qual sair.
-    expect(escolhaEfetiva(avulso, "fora")).toBe("normal");
-  });
-
-  it("a cortesia NÃO sai do pacote — quem sai é 'não adicionar à sequência'", () => {
-    expect(camposDaEscolha("cortesia")).toEqual({ naSequencia: "sim", cortesia: true });
-    expect(camposDaEscolha("fora")).toEqual({ naSequencia: "nao", cortesia: false });
-    expect(camposDaEscolha("normal")).toEqual({ naSequencia: "sim", cortesia: false });
+  it("'fora' é o que sai do pacote, e é o que o servidor lê", () => {
+    expect(camposDaEscolha("fora")).toEqual({ naSequencia: "nao" });
+    expect(camposDaEscolha("normal")).toEqual({ naSequencia: "sim" });
   });
 });
 
