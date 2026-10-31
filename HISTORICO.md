@@ -7,6 +7,44 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-10-31 — Doc 67: o salvar que não salvava, e dez acertos de tela
+
+**Entregue:** "Bloquear todos os horários" na janela de bloqueio; a "Agenda recorrente" descreve o
+COMBINADO em vez da última sessão remarcada; card "Total geral" com tudo que o paciente já pagou;
+no Novo atendimento o 1º agendamento diz "Iniciar à sequência" e a cortesia saiu dos dois momentos;
+mudar só a data de vigência passa a ser salva; a janela de editar agendamento salva TUDO de uma vez
+(campos, recorrência e status) com os botões abaixo do status, o anfitrião acima da modalidade e a
+recorrência oculta até pedirem; o status Inativo para de voltar a Ativo depois de salvo; e a sessão
+avulsa passa a vencer no horário dela também na AGENDA (PR #529). Mais a orientação à terapeuta
+sobre como habilitar a transcrição, com um caminho GRATUITO (Groq).
+
+**Por quê:** pedido do dono, doc 67.
+
+**Decisões que ficam valendo:** a cortesia não tem mais botão em lugar nenhum — "já temos a opção
+GRAT no não adicionar à sequência". A coluna continua existindo e sendo lida: sessão já marcada
+segue GRAT. Editando, o status apenas se SELECIONA; fora da edição, o clique continua agindo na
+hora, que é o caminho rápido do dia a dia.
+
+**Armadilhas:**
+
+1. **O React RESETA o formulário quando a Server Action termina.** Todo campo não controlado volta
+   ao `defaultValue` que estava no DOM — o valor ANTIGO. O banco gravava "inativo" e a tela voltava
+   a "ativo". `revalidatePath` não resolve: o reset acontece antes de os dados novos chegarem. Cura:
+   o salvar termina em `redirect` para a mesma tela, e isso vale para TODOS os campos.
+2. **Campo com valor padrão não é campo alterado.** "Vale a partir de" chega sempre preenchido;
+   tratar a presença dele como alteração fazia todo salvamento mover a data do próximo reajuste —
+   exatamente o defeito que o doc 63 tinha consertado, e que meu primeiro recorte trouxe de volta.
+   Quem manda é um marcador que a tela só liga quando a pessoa MEXE no campo.
+3. **O nome do campo da vigência é `formatoDesde`, não `dataEfetiva`** — este último existe na
+   assinatura e nenhum formulário o envia.
+4. **O limite do ATRASO não é o mesmo prazo do AVISO.** Sem "pagar até", o aviso ao paciente
+   continua sem prazo (senão o app escreveria a quem ninguém mandou), mas o atraso passa a ser o
+   horário da própria sessão.
+
+**Pendente:** nada deste bloco.
+
+---
+
 ## 2026-10-31 — Vigência de tamanho que não muda tamanho partia o pacote no meio
 
 **Entregue:** a sequência do pacote só reinicia quando o tamanho MUDA de verdade (PR #528).

@@ -48,6 +48,25 @@ export function deveAvisar(opts: {
 }
 
 /**
+ * Até quando o pagamento DESTA sessão podia ser feito — para efeito de ATRASO.
+ *
+ * Difere do `prazoDoPagamento` de propósito, e a diferença é o doc 67: sem "pagar até"
+ * preenchido, o limite é **o horário da própria sessão**, não "não há limite". Era por isso que a
+ * sessão avulsa de quem não combinou antecedência nunca aparecia em atraso.
+ *
+ * O `prazoDoPagamento` continua devolvendo `null` nesse caso porque ele responde outra pergunta —
+ * "quando mandar o lembrete ao paciente?" —, e passar a mandar lembrete a quem nunca combinou
+ * prazo seria escrever para paciente que ninguém pediu para escrever. Mesma régua da guia Geral
+ * (`limiteDaCobranca`): a antecedência só move o limite para TRÁS.
+ */
+export function limiteDoPagamento(dataSessao: Date | string, horasAntes: number | null | undefined): Date | null {
+  const d = dataSessao instanceof Date ? dataSessao : new Date(dataSessao);
+  if (Number.isNaN(d.getTime())) return null;
+  const horas = Number(horasAntes);
+  return Number.isFinite(horas) && horas > 0 ? new Date(d.getTime() - horas * 60 * 60 * 1000) : d;
+}
+
+/**
  * A sessão está com pagamento atrasado?
  *
  * Atrasado é só isto: o prazo passou e o pagamento não entrou. Serve para a agenda avisar o
@@ -62,7 +81,7 @@ export function pagamentoAtrasado(opts: {
 }): boolean {
   if (opts.pago) return false;
   if (opts.status && ["cancelada", "realocada", "falta"].includes(opts.status)) return false;
-  const prazo = prazoDoPagamento(opts.dataSessao, opts.horasAntes);
+  const prazo = limiteDoPagamento(opts.dataSessao, opts.horasAntes);
   if (!prazo) return false;
   return opts.agora.getTime() > prazo.getTime();
 }
