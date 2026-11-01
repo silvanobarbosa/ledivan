@@ -176,7 +176,8 @@ try {
     await page.waitForTimeout(1800);
     const t2 = semNbsp(await page.locator("table").first().innerText());
     check("e volta à tela com o rótulo do documento",
-      /Motivo para o valor não entrar como crédito: Era gorjeta/.test(t2),
+      // Doc 73 renomeou o rótulo ("Motivo pelo qual o valor a mais não entrou como crédito").
+      /Motivo pelo qual o valor a mais não entrou como crédito: Era gorjeta/.test(t2),
       (t2.match(/Motivo para[^\n]*/) ?? ["—"])[0]);
   } else check("a sobra", false, "sem cobrança aberta para lançar");
 

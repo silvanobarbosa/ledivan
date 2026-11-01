@@ -19,6 +19,8 @@ import { moedaOuPadrao } from "@/lib/money";
 import { occurrencesByCount, weekdayIndex, type LockFreq } from "@/lib/recurrence";
 import { pushToPatient } from "@/lib/push";
 import { normalizeCadastroKind } from "@/lib/cadastro";
+import { geralDoPaciente } from "@/lib/geralDoPaciente";
+import { vigenciaDoProximoPacote } from "@/lib/pacoteIntocado";
 
 // Envia mensagem ao paciente pelo canal escolhido (WhatsApp do Ledivan, Telegram ou e-mail).
 export async function sendPatientMessage(patientId: string, channel: string, text: string): Promise<{ ok: boolean; error?: string }> {
@@ -242,6 +244,37 @@ export async function createPatient(formData: FormData) {
   revalidatePath("/dashboard/agenda");
   // Salvou só os Dados → leva para o cadastro na guia Financeiro, para completar quando quiser.
   redirect(financeiroTocado ? `/dashboard/patients/${created.id}` : `/dashboard/patients/${created.id}/edit?guia=financeiro`);
+}
+
+/**
+ * A vigência a gravar quando a resposta foi "próximo pacote a iniciar" (doc 73).
+ *
+ * Pega as sequências pelo MESMO motor da guia Geral — contar pacote por conta própria aqui seria
+ * uma segunda verdade sobre onde um pacote começa. A regra em si (qual pacote está intocado) mora
+ * em `pacoteIntocado.ts` e é testada lá.
+ *
+ * Qualquer tropeço devolve a data escolhida: empurrar a vigência é uma correção, não uma
+ * obrigação — e um erro de leitura não pode impedir a terapeuta de salvar um reajuste.
+ */
+async function vigenciaDoProximoPacoteDoPaciente(userId: string, patientId: string, escolhida: Date): Promise<Date> {
+  try {
+    const geral = await geralDoPaciente(userId, patientId);
+    if (!geral) return escolhida;
+    const sessoes = new Map(
+      geral.linhas.flatMap((l) => (l.tipo === "sessao" ? [[l.id, { data: l.data, status: l.status }] as const] : [])),
+    );
+    const paraRegra = geral.linhas.flatMap((l, i) =>
+      l.tipo === "pagamento" && l.tipoDeCobranca === "pacote"
+        ? l.ids.flatMap((id) => {
+            const s = sessoes.get(id);
+            return s ? [{ date: new Date(s.data), status: s.status, sequencia: i }] : [];
+          })
+        : [],
+    );
+    return paraRegra.length ? vigenciaDoProximoPacote(escolhida, paraRegra) : escolhida;
+  } catch {
+    return escolhida;
+  }
 }
 
 export async function updatePatient(patientId: string, formData: FormData) {
@@ -489,7 +522,19 @@ export async function updatePatient(patientId: string, formData: FormData) {
      * forjada também cai em `vigente`, nunca num estado que o motor não saiba ler.
      */
     const aplicaEm = formData.get("aplicaPrecoEm") === "proximo_pacote" ? "proximo_pacote" : "vigente";
-    await db.insert(patientPriceHistory).values({ patientId, valor: newFee, dataEfetiva: efetiva, aplicaEm });
+    /**
+     * Doc 73: "próximo pacote a iniciar" é o primeiro pacote SEM NENHUM STATUS LANÇADO — não a
+     * data digitada.
+     *
+     * Medido na base: com "Vale a partir de" retroativo (01/08/2025), o valor novo caía em
+     * pacotes de meses atrás, já acontecidos e já pagos. A vigência é CONGELADA aqui, na hora de
+     * salvar, e não avaliada pelo motor: viva, a regra escorregaria para a frente a cada status
+     * novo e o reajuste nunca entraria em vigor.
+     */
+    const efetivaFinal = aplicaEm === "proximo_pacote"
+      ? await vigenciaDoProximoPacoteDoPaciente(session.user.id, patientId, efetiva)
+      : efetiva;
+    await db.insert(patientPriceHistory).values({ patientId, valor: newFee, dataEfetiva: efetivaFinal, aplicaEm });
     // Doc 21: alterar o VALOR da sessão = reajuste feito → o paciente sai da lista de reajustes,
     // independentemente da data em "Vale a partir de". O próximo lembrete conta da data efetiva do
     // preço novo + a validade (sem validade, não há próximo lembrete). O update principal acima só
@@ -498,7 +543,8 @@ export async function updatePatient(patientId: string, formData: FormData) {
       ? (formData.get("validadePrecoMeses") ? parseInt(formData.get("validadePrecoMeses") as string) : null)
       : existing.validadePrecoMeses;
     await db.update(patients)
-      .set({ priceReviewDate: vencimentoDoPreco(efetiva, null, validadeAtual) })
+      // Conta da data GRAVADA (doc 73): empurrada para o próximo pacote, é dela que o prazo corre.
+      .set({ priceReviewDate: vencimentoDoPreco(efetivaFinal, null, validadeAtual) })
       .where(and(eq(patients.id, patientId), eq(patients.userId, session.user.id)));
   }
   // VIGÊNCIA DO FORMATO (dono, 15/09/2026): a troca vale a partir da data escolhida no formulário e

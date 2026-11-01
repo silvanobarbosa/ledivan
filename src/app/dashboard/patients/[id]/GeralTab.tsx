@@ -435,7 +435,7 @@ function MotivoDoLancamento({ c }: { c: CobrancaNaTela }) {
     <span className="block text-[11px] text-[#92400e]/80">
       Valor original {formatBRL(c.valor)}
       {semCredito && (
-        <span className="block whitespace-pre-line">Motivo para o valor não entrar como crédito: {semCredito}</span>
+        <span className="block whitespace-pre-line">Motivo pelo qual o valor a mais não entrou como crédito: {semCredito}</span>
       )}
       {semDiferenca && (
         <span className="block whitespace-pre-line">Motivo para não ser cobrado a diferença do valor: {semDiferenca}</span>
@@ -804,7 +804,7 @@ function FormularioDeLancamento({ patientId, c, responsavel, responsavelCpf, fec
               {/* Doc 72: o "Não" abre o campo do porquê (opcional). */}
               {!creditarSobra && (
                 <label className="w-full block">
-                  <span className="text-foreground/60 block mb-0.5">Motivo para o valor não entrar como crédito: <span className="text-foreground/40">(preenchimento opcional)</span></span>
+                  <span className="text-foreground/60 block mb-0.5">Motivo pelo qual o valor a mais não entrou como crédito: <span className="text-foreground/40">(preenchimento opcional)</span></span>
                   <textarea name="motivoSemCredito" rows={2} maxLength={500} value={motivoSemCredito}
                     onChange={(e) => setMotivoSemCredito(e.target.value)}
                     className="w-full px-3 py-2 rounded-lg bg-white border border-border text-[11px]" />

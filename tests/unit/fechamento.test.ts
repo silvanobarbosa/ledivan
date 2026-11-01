@@ -39,8 +39,19 @@ describe("o preço que valia naquele mês", () => {
     expect(precoNoMes([], 2026, 7)).toBe(0);
   });
 
-  it("mês anterior ao primeiro preço também é zero", () => {
-    expect(precoNoMes(historico, 2024, 5)).toBe(0);
+  /**
+   * Doc 73 SUPERA o comportamento antigo (devolvia zero, ou o valor do CADASTRO quando havia
+   * reserva). Medido na base real: um pacote de janeiro/2025, fechado e pago por R$ 200, aparecia
+   * valendo R$ 260 porque a terapeuta reajustou o valor em agosto — o cadastro é o preço de HOJE
+   * e estava respondendo pelo passado. Havendo histórico, quem responde pelo que veio antes dele
+   * é a faixa mais antiga: o preço de entrada do tratamento, que é um fato gravado.
+   */
+  it("mês anterior ao primeiro preço vale o preço de ENTRADA, não o de hoje nem zero", () => {
+    expect(precoNoMes(historico, 2024, 5)).toBe(150);
+  });
+
+  it("e sem histórico nenhum continua zero — não há de onde tirar preço", () => {
+    expect(precoNoMes([], 2024, 5)).toBe(0);
   });
 });
 

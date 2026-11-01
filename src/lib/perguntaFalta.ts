@@ -38,8 +38,10 @@ const PERGUNTAS: Record<TipoDaFalta, PerguntaDaFalta> = {
     titulo: "Abater esta sessão do pacote?",
     // Doc 55: o texto antigo falava em "abater" e "contagem", que é a palavra do sistema. Estes
     // dizem o que acontece com a NUMERAÇÃO — que é o que ela vê na célula e na tabela.
-    explicaSim: "A sessão será contabilizada como utilizada no pacote, avançando a numeração das sessões.",
-    explicaNao: "A sessão não será contabilizada como utilizada no pacote. A numeração das sessões seguintes será mantida, sem consumir uma sessão do pacote.",
+    // Doc 73: o dono encurtou os dois. Dizem o mesmo em uma linha — texto que ninguém lê não
+    // explica nada.
+    explicaSim: "A sessão será abatida do pacote, avançando a numeração.",
+    explicaNao: "A sessão não será abatida, mantendo a numeração para o próximo atendimento.",
   },
 };
 

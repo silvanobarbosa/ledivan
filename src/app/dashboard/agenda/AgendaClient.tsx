@@ -432,7 +432,22 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
       const dur = campos.duration ? Number(campos.duration) : selected.duration;
       if (!avisaColisao(colisaoDeHorario(ini, dur, selected.id))) return;
     }
-    setPerguntaAlcance(campos);
+    /**
+     * Doc 73: a janela "Alterar quais?" só aparece quando HÁ próximas sessões.
+     *
+     * Sem elas a pergunta não tem duas respostas — "apenas este" e "este e os próximos" fazem a
+     * mesma coisa, e a terapeuta leva um clique a mais para escolher entre o mesmo e o mesmo.
+     * `contarAlcance` devolve quantas sessões dali para a frente o alcance pega, incluindo esta:
+     * 1 (ou 0, se algo falhar na leitura) significa que não há próximas.
+     */
+    void contarAlcance(selected.id)
+      .then((n) => {
+        if ((n?.todas ?? 0) <= 1) aplicarEdicao("apenas_esta", campos);
+        else setPerguntaAlcance(campos);
+      })
+      // Falhou a contagem? Pergunta, como sempre perguntou. Errar para o lado de perguntar é o
+      // lado seguro: o outro mexe em sessões que ninguém mandou mexer.
+      .catch(() => setPerguntaAlcance(campos));
   }
 
   function aplicarEdicao(alcance: string, campos?: Record<string, string>) {
@@ -1543,7 +1558,14 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
                           className="w-full px-3 py-2 rounded-xl bg-white border border-[#fde68a] outline-none text-sm" />
                       </div>
                     )}
-                    <p className="text-[11px] text-[#92400e]/70">Fica fora do pacote: não muda a numeração, a contagem nem o valor da sequência.</p>
+                    {/* Doc 73: o texto passa a dizer o que ACONTECE, e não o que não acontece.
+                        "Fica fora do pacote: não muda a numeração, a contagem nem o valor" era a
+                        mesma frase nas duas respostas — e elas produzem coisas diferentes. */}
+                    <p className="text-[11px] text-[#92400e]/70">
+                      {newCobrada === "sim"
+                        ? "Acrescenta uma sessão avulsa ao pacote, cobrada separadamente."
+                        : "Acrescenta uma sessão extra gratuita."}
+                    </p>
                   </>
                 )}
               </div>
