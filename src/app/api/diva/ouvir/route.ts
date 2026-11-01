@@ -9,7 +9,7 @@ import { decryptSecret } from "@/lib/crypto";
 import { tarefaDaFala, TAREFAS } from "@/lib/diva";
 import { previaDoComando } from "@/lib/previaDoComando";
 import { horaDeParede } from "@/lib/horaLocal";
-import { audioAceitavel, TETO_DO_AUDIO } from "@/lib/transcricao";
+import { audioAceitavel, dicaQueCabe, TETO_DO_AUDIO } from "@/lib/transcricao";
 
 /**
  * O OUVIDO DO DIVÃ.
@@ -71,6 +71,33 @@ export async function POST(req: NextRequest) {
     .from(patients)
     .where(and(eq(patients.userId, userId), ne(patients.patientStatus, "inativo")));
 
+  /**
+   * As sessões futuras vêm ANTES de transcrever (doc do dia 01/11).
+   *
+   * Elas já eram necessárias depois, para a prévia do comando. Lidas aqui, servem também para
+   * ORDENAR a dica: quem tem atendimento marcado é quem ela vai nomear, e a dica tem teto —
+   * quando precisa cortar, corta os nomes menos prováveis.
+   */
+  const agora = new Date();
+  const futuras = await db.select({ id: therapySessions.id, patientId: therapySessions.patientId, date: therapySessions.date })
+    .from(therapySessions)
+    .where(and(eq(therapySessions.userId, userId), gte(therapySessions.date, agora), ne(therapySessions.status, "cancelada")));
+
+  /**
+   * A ORDEM dos nomes na dica: primeiro quem tem atendimento marcado, do mais próximo ao mais
+   * distante; depois os demais. Quando a dica não couber inteira, é a cauda que cai — e a cauda
+   * passa a ser quem ela tinha menos chance de nomear.
+   */
+  const proximaDe = new Map<string, number>();
+  for (const f of futuras) {
+    const t = new Date(f.date).getTime();
+    const atual = proximaDe.get(f.patientId);
+    if (atual == null || t < atual) proximaDe.set(f.patientId, t);
+  }
+  const nomesParaADica = [...meusPacientes]
+    .sort((a, b) => (proximaDe.get(a.id) ?? Infinity) - (proximaDe.get(b.id) ?? Infinity))
+    .map((p) => p.nome);
+
   try {
     const openai = new OpenAI({ apiKey, timeout: 45_000, ...(cfg.baseURL ? { baseURL: cfg.baseURL } : {}) });
     const r = await openai.audio.transcriptions.create({
@@ -84,9 +111,16 @@ export async function POST(req: NextRequest) {
        * Mandar a lista aqui é legítimo — e é o oposto do que vale na transcrição de SESSÃO, onde
        * a lista inteira empurraria o nome de um paciente para dentro do prontuário de outro. Aqui
        * não se escreve o que foi dito: ESCOLHE-SE de um conjunto fechado, e a dica só ajuda a
-       * escolher certo. Limitada a 80 nomes para não estourar o campo.
+       * escolher certo.
+       *
+       * O corte é por CARACTERES, não por quantidade de nomes: era "80 nomes", que não tem
+       * relação com o que o provedor mede. Com 32 pacientes a dica passou de 1.200 caracteres e o
+       * Groq passou a recusar TODO comando de voz com 400 (medido em 01/11). Ver `dicaQueCabe`.
        */
-      prompt: `Verbos: anotar, anota, marcar, marca, agendar, cancelar, cancela, desmarcar. Comandos: ${TAREFAS.map((t) => t.rotulo).join("; ")}. Pacientes: ${meusPacientes.slice(0, 80).map((p) => p.nome).join(", ")}.`,
+      prompt: dicaQueCabe(
+        `Verbos: anotar, anota, marcar, marca, agendar, cancelar, cancela, desmarcar. Comandos: ${TAREFAS.map((t) => t.rotulo).join("; ")}.`,
+        nomesParaADica,
+      ),
     });
 
     const fala = (r.text ?? "").trim();
@@ -101,10 +135,7 @@ export async function POST(req: NextRequest) {
      * Nada é escrito aqui. A prévia diz o que foi entendido e o que falta; quem executa são as
      * ações, depois de ela confirmar na tela.
      */
-    const agora = new Date();
-    const futuras = await db.select({ id: therapySessions.id, patientId: therapySessions.patientId, date: therapySessions.date })
-      .from(therapySessions)
-      .where(and(eq(therapySessions.userId, userId), gte(therapySessions.date, agora), ne(therapySessions.status, "cancelada")));
+
     /**
      * `horaDeParede` ANTES de virar Date — como no resto do app.
      *
@@ -137,6 +168,20 @@ export async function POST(req: NextRequest) {
     });
   } catch (e) {
     console.error("Divã não conseguiu ouvir:", e);
-    return NextResponse.json({ ok: false, error: "Não consegui ouvir agora. Tente de novo." }, { status: 500 });
+    /**
+     * O MOTIVO, quando o provedor diz qual — e quando ele é acionável por ela.
+     *
+     * "Não consegui ouvir agora" escondeu por dias um 400 de dica longa demais: a terapeuta
+     * achou que era o celular. Chave recusada e limite de uso são coisas que ELA resolve, e
+     * dizer qual é poupa a viagem inteira. O resto continua genérico: detalhe de provedor na
+     * tela não ajuda ninguém e pode vazar informação da conta.
+     */
+    const status = (e as { status?: number })?.status;
+    const erro = status === 401 || status === 403
+      ? "Sua chave de IA foi recusada pelo provedor. Confira em Ajustes."
+      : status === 429
+        ? "Seu provedor de IA está limitando os pedidos agora. Tente em alguns minutos."
+        : "Não consegui ouvir agora. Tente de novo.";
+    return NextResponse.json({ ok: false, error: erro }, { status: 500 });
   }
 }

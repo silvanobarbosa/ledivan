@@ -29,6 +29,42 @@ export function dicaDeNomes(nomes: (string | null | undefined)[]): string | unde
   return `Nomes próprios que podem aparecer: ${limpos.join(", ")}.`;
 }
 
+/**
+ * O TETO DA DICA — em CARACTERES, porque é assim que o provedor conta.
+ *
+ * Medido em 01/11, com a chave da terapeuta: o Groq recusa com
+ * `prompt length must be 896 characters or fewer`. O limite do Whisper é descrito como 224
+ * tokens, e 896 é exatamente 224 × 4 — a mesma régua serve para os dois provedores.
+ *
+ * Foi este teto que quebrou o Divã da Gisele: a dica leva os nomes dos pacientes dela, a lista
+ * cresceu para 32, a dica passou de 1.200 caracteres e TODO comando de voz passou a falhar com
+ * 400 — que a tela mostrava como "Não consegui ouvir agora". O corte era por QUANTIDADE de nomes
+ * (80), que não tem relação nenhuma com o que o provedor mede.
+ */
+export const TETO_DA_DICA = 896;
+
+/**
+ * A dica cortada para caber: a base inteira mais quantos nomes couberem, na ordem recebida.
+ *
+ * Quem chama manda os nomes na ordem de importância — os primeiros sobrevivem ao corte. Sem
+ * nenhum nome, devolve só a base; se nem a base couber, ela é truncada, porque mandar um pedaço
+ * de dica é melhor do que derrubar a transcrição inteira.
+ */
+export function dicaQueCabe(base: string, nomes: (string | null | undefined)[], teto = TETO_DA_DICA): string {
+  const limpa = base.trim();
+  if (limpa.length >= teto) return limpa.slice(0, teto);
+  const limpos = [...new Set(nomes.map((n) => (n ?? "").trim()).filter(Boolean))];
+  if (!limpos.length) return limpa;
+
+  const cabem: string[] = [];
+  for (const nome of limpos) {
+    const tentativa = `${limpa} Pacientes: ${[...cabem, nome].join(", ")}.`;
+    if (tentativa.length > teto) break;
+    cabem.push(nome);
+  }
+  return cabem.length ? `${limpa} Pacientes: ${cabem.join(", ")}.` : limpa;
+}
+
 /** Teto do arquivo. O mesmo 25 MB que os provedores aceitam, conferido ANTES de subir. */
 export const TETO_DO_AUDIO = 25 * 1024 * 1024;
 
