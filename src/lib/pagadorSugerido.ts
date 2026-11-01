@@ -11,10 +11,15 @@
  * (Giulia / Elaine, medido em 31/10), e um recibo emitido daí atribui a alguém um pagamento que
  * não é dela.
  *
- * A memória do último pagador continua valendo (documento de 17/09): quem paga é fato de cada
- * pagamento, e a terapeuta digitou aquilo uma vez. O que mudou é que, quando esse pagamento não
- * guardou CPF, o CPF vem do cadastro DAQUELA pessoa — comparando o nome — em vez de vir de
- * qualquer um dos dois.
+ * Doc 72 (dono): "uma vez que é alterado o nome do responsável do pagamento, esta alteração deve
+ * ser registrada apenas para o registro alterado". A MEMÓRIA DO ÚLTIMO PAGADOR ACABA AQUI — ela
+ * valia desde 17/09 e era o que fazia a troca vazar: trocar o nome num lançamento (o avô pagou
+ * aquele) passava a propor o avô em todos os seguintes, e a troca de uma vez virava a regra da
+ * casa sem ninguém ter pedido. O lançamento guarda quem pagou, como sempre guardou; o que deixa
+ * de existir é ele mandar no próximo.
+ *
+ * O par proposto passa a sair SEMPRE do cadastro: responsável, se houver; senão o paciente. Nome e
+ * CPF da mesma pessoa, que é a regra do doc 66.
  *
  * Função pura.
  */
@@ -68,12 +73,13 @@ export function nomeCompletoDoCadastro(nome: string, c: CadastroDoPagador): stri
 }
 
 /**
- * @param ultimo o último pagamento que disse quem pagou, se houver.
+ * O par proposto no "Lançar pagamento". Sai do CADASTRO — ver o porquê no topo do arquivo.
+ *
+ * O segundo argumento continua existindo e continua ignorado de propósito: tirá-lo da assinatura
+ * obrigaria a mexer em quem chama só para calar o parâmetro, e deixá-lo nomeado é o que conta,
+ * para quem leia a chamada, que o último pagamento NÃO manda aqui (doc 72).
  */
-export function pagadorSugerido(c: CadastroDoPagador, ultimo?: { nome?: string | null; cpf?: string | null } | null): Pagador {
-  const doUltimo = nomeCompletoDoCadastro(limpo(ultimo?.nome ?? ""), c);
-  if (doUltimo) return { nome: doUltimo, cpf: limpo(ultimo?.cpf) || cpfCadastradoDe(doUltimo, c) };
-
+export function pagadorSugerido(c: CadastroDoPagador, _ultimo?: { nome?: string | null; cpf?: string | null } | null): Pagador {
   const responsavel = limpo(c.responsavelNome);
   // Há responsável cadastrado: o par é dele. CPF em branco é o cadastro dizendo que não sabe —
   // NÃO é permissão para usar o CPF do paciente.

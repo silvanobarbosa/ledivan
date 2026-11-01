@@ -3,8 +3,8 @@
 //   1. Bloquear horário com "Repetir até": repete no mesmo dia da semana, de sete em sete, e PULA
 //      o horário que já tem paciente em vez de escrever por cima dele.
 //   2. "Vale a partir de" aparece ao ABRIR o Financeiro, sem mexer em nada — e mostra a data gravada.
-//   3. Mudar o valor de quem paga por pacote faz nascer a pergunta "o novo valor vale sobre", e a
-//      resposta é gravada em `patient_price_history.aplica_em`.
+//   3. Mudar o valor de quem paga por pacote faz nascer a pergunta sobre qual pacote aplicar (o
+//      texto é o do doc 72), e a resposta é gravada em `patient_price_history.aplica_em`.
 //   4. Respondendo "o próximo pacote a iniciar", o pacote EM ANDAMENTO não muda de valor.
 //
 // Uso: npm run build && TZ=UTC npm start, depois node scripts/e2e-doc69.mjs
@@ -201,8 +201,11 @@ try {
     check("mudar o valor faz nascer a pergunta 'o novo valor vale sobre'", apareceu === 2, `${apareceu} opção(ões)`);
     if (apareceu === 2) {
       const corpo = await texto();
+      // Doc 72 trocou os rótulos pelos do documento do dono ("Pacote em andamento" / "Próximo
+      // pacote a iniciar") e pôs a pergunta inteira na legenda.
       check("a pergunta explica o que cada resposta faz",
-        /pacote vigente/i.test(corpo) && /próximo pacote a iniciar/i.test(corpo));
+        /meio de um pacote em andamento/i.test(corpo) && /Pacote em andamento/i.test(corpo)
+        && /Próximo pacote a iniciar/i.test(corpo));
       await page.locator('input[name="aplicaPrecoEm"][value="proximo_pacote"]').check();
       await campoData.fill(iso(new Date()));
       await page.getByRole("button", { name: /^Salvar/i }).first().click();

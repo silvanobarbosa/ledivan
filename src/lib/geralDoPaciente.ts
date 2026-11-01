@@ -38,10 +38,10 @@ export type CobrancaNaTela = Omit<CobrancaDaGeral, "vencimento" | "competencia" 
   vencimento: string | null;
   /** Doc 31: o vencimento desta cobrança foi EDITADO à mão (há override). A tela mostra o "desfazer". */
   vencimentoEditado: boolean;
-  pagamento: { id: string; data: string; metodo: string | null; pagoPor: string | null; recibo: boolean; nota: boolean; reciboNumero: string | null; credito: boolean } | null;
+  pagamento: { id: string; data: string; metodo: string | null; pagoPor: string | null; recibo: boolean; nota: boolean; reciboNumero: string | null; credito: boolean; motivoSemCredito?: string | null; motivoSemDiferenca?: string | null } | null;
   /** Cada lançamento desta cobrança (doc 21/28): id (remover), data (hora de parede), valor, quem
    *  pagou, método e se já teve recibo/nota emitidos (p/ os controles por lançamento). */
-  pagamentos: { id: string; data: string; valor: number; pagoPor: string | null; metodo: string | null; recibo: boolean; nota: boolean; reciboNumero: string | null; credito: boolean }[];
+  pagamentos: { id: string; data: string; valor: number; pagoPor: string | null; metodo: string | null; recibo: boolean; nota: boolean; reciboNumero: string | null; credito: boolean; motivoSemCredito: string | null; motivoSemDiferenca: string | null }[];
   /**
    * Os avisos daquela cobranca (`data` = hora de parede). `total` e `datas` trazem o historico
    * inteiro: cada clique em "Cobrar" e um aviso, e o documento de 17/09 pede que nenhum substitua
@@ -90,7 +90,9 @@ function cobrancaNaTela(
     aguardandoValor: c.aguardandoValor === true,
     vencimento: texto(c.vencimento ?? c.competencia),
     pagamento: c.pagamento ? { ...c.pagamento, data: texto(c.pagamento.data) ?? "", reciboNumero: c.pagamento.reciboNumero ?? null, credito: c.pagamento.credito === true } : null,
-    pagamentos: c.pagamentos.map((p) => ({ id: p.id, data: texto(p.data) ?? "", valor: p.valor, pagoPor: p.pagoPor, metodo: p.metodo, recibo: p.recibo === true, nota: p.nota === true, reciboNumero: p.reciboNumero ?? null, credito: p.credito === true })),
+    // Doc 71/72: tudo o que a tela mostra atravessa AQUI. Esquecer um campo nesta remontagem é o
+    // defeito que já apareceu três vezes — o dado chega do banco e morre na travessia.
+    pagamentos: c.pagamentos.map((p) => ({ id: p.id, data: texto(p.data) ?? "", valor: p.valor, pagoPor: p.pagoPor, metodo: p.metodo, recibo: p.recibo === true, nota: p.nota === true, reciboNumero: p.reciboNumero ?? null, credito: p.credito === true, motivoSemCredito: p.motivoSemCredito ?? null, motivoSemDiferenca: p.motivoSemDiferenca ?? null })),
     envio: c.envio
       ? { data: texto(c.envio.data) ?? "", por: c.envio.por, total: c.envio.total, datas: c.envio.datas.map((d) => texto(d) ?? "") }
       : null,

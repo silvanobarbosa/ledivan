@@ -417,6 +417,33 @@ function ListaLancamentos({ patientId, pagamentos, total }: { patientId: string;
   );
 }
 
+/**
+ * A EXPLICAÇÃO DO LANÇAMENTO (doc 72) — por que a sobra não virou crédito, ou por que a diferença
+ * não foi cobrada.
+ *
+ * Mostra o VALOR ORIGINAL da cobrança junto do texto. É o dado que a tela perdia: quando a
+ * diferença é perdoada, a coluna Valor passa a mostrar o que entrou, e o valor combinado some.
+ *
+ * Pega o primeiro lançamento que trouxe cada motivo — são decisões de UM lançamento, e um
+ * lançamento nunca tem as duas (ou recebeu a mais, ou recebeu a menos).
+ */
+function MotivoDoLancamento({ c }: { c: CobrancaNaTela }) {
+  const semCredito = c.pagamentos.find((p) => (p.motivoSemCredito ?? "").trim())?.motivoSemCredito?.trim();
+  const semDiferenca = c.pagamentos.find((p) => (p.motivoSemDiferenca ?? "").trim())?.motivoSemDiferenca?.trim();
+  if (!semCredito && !semDiferenca) return null;
+  return (
+    <span className="block text-[11px] text-[#92400e]/80">
+      Valor original {formatBRL(c.valor)}
+      {semCredito && (
+        <span className="block whitespace-pre-line">Motivo para o valor não entrar como crédito: {semCredito}</span>
+      )}
+      {semDiferenca && (
+        <span className="block whitespace-pre-line">Motivo para não ser cobrado a diferença do valor: {semDiferenca}</span>
+      )}
+    </span>
+  );
+}
+
 function ColunasDoPagamento({ patientId, c, onLancar, cobrar, aviso }: { patientId: string; c: CobrancaNaTela; onLancar: () => void; cobrar?: CobrarInfo; aviso?: string | null }) {
   const pg = c.pagamento;
   // Quem decide a coluna e a SITUACAO, nao a existencia de um pagamento. Desde 18/09 a cobranca
@@ -430,7 +457,7 @@ function ColunasDoPagamento({ patientId, c, onLancar, cobrar, aviso }: { patient
     // representante, com o valor da cobrança (que o ListaLancamentos oculta por ser o total).
     const lancamentos = c.pagamentos.length
       ? c.pagamentos
-      : [{ id: pg.id, data: pg.data, valor: c.valor, pagoPor: pg.pagoPor, metodo: pg.metodo, recibo: pg.recibo, nota: pg.nota, reciboNumero: pg.reciboNumero, credito: pg.credito }];
+      : [{ id: pg.id, data: pg.data, valor: c.valor, pagoPor: pg.pagoPor, metodo: pg.metodo, recibo: pg.recibo, nota: pg.nota, reciboNumero: pg.reciboNumero, credito: pg.credito, motivoSemCredito: pg.motivoSemCredito ?? null, motivoSemDiferenca: pg.motivoSemDiferenca ?? null }];
     return (
       <>
         <td className="px-3 py-2">
@@ -572,6 +599,15 @@ function FormularioDeLancamento({ patientId, c, responsavel, responsavelCpf, fec
   });
   const [quitar, setQuitar] = useState(false);
   const [creditarSobra, setCreditarSobra] = useState(true);
+  /**
+   * Doc 72: por que a sobra não virou crédito, e por que a diferença não foi cobrada.
+   *
+   * Preenchimento OPCIONAL — a resposta Sim/Não continua valendo sozinha. O campo existe porque as
+   * duas respostas mexem dinheiro de lugar sem deixar rastro: meses depois a linha mostra um
+   * recebido que não bate com a cobrança, e não há onde ler o combinado que explicou a diferença.
+   */
+  const [motivoSemCredito, setMotivoSemCredito] = useState("");
+  const [motivoSemDiferenca, setMotivoSemDiferenca] = useState("");
   const valorNum = Number(parseMoedaBR(valor) ?? 0) || 0;
   /**
    * A COBRANÇA QUE AINDA ESPERA O VALOR (doc 60).
@@ -616,6 +652,10 @@ function FormularioDeLancamento({ patientId, c, responsavel, responsavelCpf, fec
         quitarDiferenca: aMenos && quitar,
         diferencaOutraData: aMenos && !quitar && diferencaFica,
         creditarExcedente: aMais && creditarSobra,
+        // Cada motivo só acompanha a decisão que ele explica. Mandar o outro gravaria uma
+        // justificativa pendurada numa escolha que não foi feita.
+        motivoSemCredito: aMais && !creditarSobra ? motivoSemCredito : "",
+        motivoSemDiferenca: aMenos && quitar ? motivoSemDiferenca : "",
         usarCredito,
       });
       if (r.ok) { fechar(); router.refresh(); }
@@ -717,6 +757,15 @@ function FormularioDeLancamento({ patientId, c, responsavel, responsavelCpf, fec
                 <input type="checkbox" checked={quitar} onChange={(e) => setQuitar(e.target.checked)} />
                 Não haverá diferença de valor
               </label>
+              {/* Doc 72: perdoar a diferença abre o campo do porquê (opcional). */}
+              {quitar && (
+                <label className="w-full block pt-1">
+                  <span className="text-foreground/60 block mb-0.5">Motivo para não haver diferença de valor: <span className="text-foreground/40">(preenchimento opcional)</span></span>
+                  <textarea name="motivoSemDiferenca" rows={2} maxLength={500} value={motivoSemDiferenca}
+                    onChange={(e) => setMotivoSemDiferenca(e.target.value)}
+                    className="w-full px-3 py-2 rounded-lg bg-white border border-border text-[11px]" />
+                </label>
+              )}
               {/* Doc 68: e, quando a diferença CONTINUA existindo, para onde ela vai.
                   São destinos opostos: rolando, esta cobrança fecha e o saldo some para o pacote
                   seguinte — e com ela some o botão de lançar o resto. Ficando, ela espera aqui. */}
@@ -752,6 +801,15 @@ function FormularioDeLancamento({ patientId, c, responsavel, responsavelCpf, fec
                   Não
                 </button>
               </div>
+              {/* Doc 72: o "Não" abre o campo do porquê (opcional). */}
+              {!creditarSobra && (
+                <label className="w-full block">
+                  <span className="text-foreground/60 block mb-0.5">Motivo para o valor não entrar como crédito: <span className="text-foreground/40">(preenchimento opcional)</span></span>
+                  <textarea name="motivoSemCredito" rows={2} maxLength={500} value={motivoSemCredito}
+                    onChange={(e) => setMotivoSemCredito(e.target.value)}
+                    className="w-full px-3 py-2 rounded-lg bg-white border border-border text-[11px]" />
+                </label>
+              )}
             </div>
           )}
           {erro && <p className="sm:col-span-7 text-xs text-[#b91c1c]">{erro}</p>}
@@ -810,14 +868,26 @@ export function GeralTab({ patientId, linhas, responsavel, responsavelCpf, cobra
                             (o detalhe por data saiu; a quinzena exibe apenas a data de vencimento). */}
                         <span className="block text-[11px] text-foreground/50">{l.sessoes} {l.sessoes === 1 ? "sessão" : "sessões"}<VencimentoEditavel patientId={patientId} c={l} /></span>
                         {/* Doc 22: diferença de um pacote anterior que foi somada a este. */}
+                        {/* Doc 72: o texto do dono, em DUAS linhas — a conta explicada embaixo,
+                            em vez de um parêntese no fim de uma linha só. */}
                         {l.arrastoRecebido > 0 && (
-                          <span className="block text-[11px] text-[#92400e]/80">inclui {formatBRL(l.arrastoRecebido)} de diferença do pacote anterior ({formatBRL(l.valorBase)} + {formatBRL(l.arrastoRecebido)})</span>
+                          <span className="block text-[11px] text-[#92400e]/80">
+                            Incluído {formatBRL(l.arrastoRecebido)} da diferença do pacote anterior
+                            <span className="block">(Este pacote é {formatBRL(l.valorBase)} + {formatBRL(l.arrastoRecebido)} que faltou do pacote anterior)</span>
+                          </span>
                         )}
                         {/* Doc 22: pacote encerrado cuja diferença rolou para a próxima cobrança.
                             Doc 33: mostra também a conta — (valor da cobrança − valor transferido). */}
                         {l.transferido > 0 && (
-                          <span className="block text-[11px] text-[#92400e]/80">{formatBRL(l.transferido)} transferido para a próxima cobrança do pacote ({formatBRL(l.valor)} − {formatBRL(l.transferido)})</span>
+                          <span className="block text-[11px] text-[#92400e]/80">
+                            {formatBRL(l.transferido)} transferido para a próxima cobrança do pacote
+                            <span className="block">(Este era {formatBRL(l.valor)} − {formatBRL(l.transferido)} Transferido para o próximo pagamento)</span>
+                          </span>
                         )}
+                        {/* Doc 72: a explicação escrita no lançamento — com o valor ORIGINAL da
+                            cobrança ao lado. Sem ele, a coluna Valor mostra o recebido e o
+                            combinado que gerou a diferença fica sem referência nenhuma. */}
+                        <MotivoDoLancamento c={l} />
                       </td>
                       {/* Doc 21: havendo pagamento, a coluna Valor mostra o que foi EFETIVAMENTE pago
                           (e, abaixo, o previsto quando ainda falta). Sem pagamento, mostra o previsto. */}

@@ -886,6 +886,20 @@ export const sessionPayments = pgTable("session_payments", {
    * decide é quem está lançando, no momento em que lança.
    */
   diferencaOutraData: boolean("diferenca_outra_data").default(false),
+  /**
+   * Doc 72: POR QUE a sobra não virou crédito, e por que a diferença não foi cobrada.
+   *
+   * Duas respostas Sim/Não do lançamento mudam dinheiro de lugar sem deixar explicação: "a sobra
+   * entra como crédito?" (Não) e "não haverá diferença de valor" (sim, perdoa). Meses depois, a
+   * linha mostra um valor que não bate com a cobrança e ninguém sabe por quê. O campo é OPCIONAL —
+   * quem não quiser escrever continua lançando como sempre —, e o texto é livre, com as quebras de
+   * linha preservadas na tela.
+   *
+   * São dois campos, e não um só, porque são duas decisões opostas e um lançamento nunca tem as
+   * duas: ou recebeu a mais, ou recebeu a menos.
+   */
+  motivoSemCredito: text("motivo_sem_credito"),
+  motivoSemDiferenca: text("motivo_sem_diferenca"),
   // VINCULO OPCIONAL com o financeiro: se preenchido, este pagamento gerou uma transacao de receita.
   linkedTransactionId: uuid("linked_transaction_id").references(() => transactions.id, { onDelete: "set null" }),
   // Receita Saúde (recibo eletrônico da RF, emissão manual no app): controle de emissão por pagamento.
