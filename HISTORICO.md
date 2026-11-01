@@ -7,6 +7,33 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-11-01 — Doc 74: o "próximo pacote" é pela data de INÍCIO e cai no primeiro SEM pagamento
+
+**Entregue:** a identificação do pacote que recebe o reajuste em "próximo pacote a iniciar" passa
+a ser por data de início + ausência de PAGAMENTO lançado. Mais os exemplos do documento travados
+em teste.
+
+**Por quê:** o documento descreve a regra inteira do reajuste em pacotes. Rodei os exemplos dele
+no motor ANTES de mexer: 260/260 antes, 270/280 na opção 1, 260/280 na opção 2, e 270 com R$ 10 em
+aberto no pacote já pago — **todos já batiam** (docs 69, 72 e 73). O documento confirma o desenho;
+o que ele muda é um critério.
+
+**Decisões que ficam valendo:**
+
+- **O pacote é identificado pela DATA DE INÍCIO**, nunca pelo vencimento nem pelas datas soltas
+  das sessões. Um pacote começado em agosto fica inteiro no valor antigo mesmo tendo sessões em
+  setembro — é o exemplo do próprio dono.
+- **O que desqualifica um pacote é PAGAMENTO, não status.** Supera o doc 73, que tinha lido
+  "status lançado": um pacote com sessões realizadas mas sem dinheiro lançado ainda recebe o valor
+  novo. Mexer onde já entrou dinheiro é que não se faz.
+- **A regra continua congelada ao salvar.** Viva no motor, escorregaria a cada pagamento novo e o
+  reajuste nunca entraria em vigor.
+
+**Medido antes de subir:** 0 cobranças diferentes de 2.219 — a mudança só afeta reajustes salvos
+daqui para a frente.
+
+---
+
 ## 2026-11-01 — INCIDENTE: o Divã parou de ouvir porque a lista de pacientes cresceu
 
 **Entregue:** a dica mandada ao Whisper passa a ser cortada por CARACTERES, com os nomes ordenados

@@ -260,18 +260,24 @@ async function vigenciaDoProximoPacoteDoPaciente(userId: string, patientId: stri
   try {
     const geral = await geralDoPaciente(userId, patientId);
     if (!geral) return escolhida;
-    const sessoes = new Map(
-      geral.linhas.flatMap((l) => (l.tipo === "sessao" ? [[l.id, { data: l.data, status: l.status }] as const] : [])),
+    const dataDaSessao = new Map(
+      geral.linhas.flatMap((l) => (l.tipo === "sessao" ? [[l.id, l.data] as const] : [])),
     );
-    const paraRegra = geral.linhas.flatMap((l, i) =>
-      l.tipo === "pagamento" && l.tipoDeCobranca === "pacote"
-        ? l.ids.flatMap((id) => {
-            const s = sessoes.get(id);
-            return s ? [{ date: new Date(s.data), status: s.status, sequencia: i }] : [];
-          })
-        : [],
-    );
-    return paraRegra.length ? vigenciaDoProximoPacote(escolhida, paraRegra) : escolhida;
+    /**
+     * Cada pacote vira { sequência, INÍCIO, tem pagamento? } — os três dados que a regra do doc 74
+     * usa. O início é a PRIMEIRA sessão do pacote, nunca o vencimento: o documento é explícito em
+     * que um pacote começado em agosto fica no valor antigo mesmo tendo sessões em setembro.
+     */
+    const pacotes = geral.linhas.flatMap((l, i) => {
+      if (l.tipo !== "pagamento" || l.tipoDeCobranca !== "pacote") return [];
+      const datas = l.ids.flatMap((id) => {
+        const d = dataDaSessao.get(id);
+        return d ? [new Date(d).getTime()] : [];
+      });
+      if (!datas.length) return [];
+      return [{ sequencia: i, inicio: new Date(Math.min(...datas)), temPagamento: l.pagamentos.length > 0 }];
+    });
+    return pacotes.length ? vigenciaDoProximoPacote(escolhida, pacotes) : escolhida;
   } catch {
     return escolhida;
   }
