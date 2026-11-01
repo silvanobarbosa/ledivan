@@ -26,6 +26,7 @@ import { PixCard } from "./PixCard";
 import { TaxasCard } from "./TaxasCard";
 import { listarVigenciasTaxa } from "./taxas-actions";
 import { AiKeyCard } from "./AiKeyCard";
+import { ImportarCard } from "./ImportarCard";
 import { hasGoogleAccount, hasCalendarScope } from "@/lib/googleCalendar";
 
 export const dynamic = "force-dynamic";
@@ -230,6 +231,9 @@ export default async function SettingsPage() {
           <TranscriptionToggle initial={!!prefs.transcriptionEnabled} />
 
           <AiKeyCard configured={!!user.aiKeyEnc} provider={user.aiProvider} />
+
+          {/* Doc do dono (01/11): a planilha padrão de importação, com conferência antes de gravar. */}
+          <ImportarCard />
 
           <FeaturesCard initial={{ modes: prefs.features ?? {}, timerShow: !!prefs.timerShowToPatient }} />
 

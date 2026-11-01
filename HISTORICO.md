@@ -7,6 +7,47 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-11-01 — Importar dados de outro sistema por planilha
+
+**Entregue:** em Ajustes, "Importar dados de outro sistema": baixa a planilha modelo (gerada pelo
+app), envia preenchida, **vê o que foi entendido** e só então confirma. Três abas — Pacientes,
+Agenda e Pagamentos.
+
+**Por quê:** quem chega de outro sistema chega com uma lista. Digitar tudo de novo é o que faz
+desistir na primeira semana.
+
+**Decisões que ficam valendo:**
+
+- **O modelo é GERADO pelo app, do mesmo contrato que o leitor usa** (`importarPlanilha.ts`).
+  Arquivo fixo subido à parte poderia divergir do leitor, e o sintoma seria o pior possível: a
+  planilha que o próprio app entregou voltando recusada.
+- **As abas de dados saem só com o cabeçalho.** Linha de exemplo dentro delas seria importada
+  junto com os dados de verdade. Os exemplos moram na aba "Leia-me", onde não há o que importar;
+  a ajuda de cada coluna vai como comentário do cabeçalho.
+- **Conferir e gravar são duas portas, e a segunda confere de novo.** A tela é onde ela decide,
+  não onde o dado é validado — mandar de volta as linhas já normalizadas deixaria o cliente
+  escolher o que entra no banco. O mesmo arquivo sobe duas vezes, de propósito.
+- **Linha com problema fica de fora; o resto entra.** Recusar a planilha inteira por uma célula é
+  o que faz a pessoa desistir da migração.
+- **Pagamento importado é HISTÓRICO**: entra sem `cobrancaChave` (o motor encaixa pela ordem de
+  vencimento, caminho que já existia) e **sem lançamento no Caixa** — dinheiro que entrou antes
+  de o Ledivan existir para ela não é faturamento de hoje.
+- **O valor do paciente nasce como preço de ENTRADA** (faixa em `patient_price_history` na data
+  de início), nunca como reajuste — senão o cadastro voltaria a responder pelo passado, que é o
+  defeito que o doc 73 consertou.
+- **Reenviar não duplica.** Paciente por nome, atendimento por paciente+instante, pagamento por
+  paciente+dia+valor. A conferência diz quantos serão pulados antes de confirmar.
+
+**Armadilha:**
+
+1. **`XLSX.readFile`/`writeFile` não existem em ESM** sem a ponte de `fs` ligada. Passar pelo
+   buffer dispensa a ponte e funciona igual.
+
+**Conferência:** `importarPlanilha` (22 testes) + percurso `e2e-importar` (18 verificações no app
+de verdade, incluindo "nada é gravado antes de confirmar" e o reenvio que não duplica).
+
+---
+
 ## 2026-11-01 — Doc 74: o "próximo pacote" é pela data de INÍCIO e cai no primeiro SEM pagamento
 
 **Entregue:** a identificação do pacote que recebe o reajuste em "próximo pacote a iniciar" passa
