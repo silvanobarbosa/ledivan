@@ -18,6 +18,7 @@ import { contarAlcance, excluirAgendamento, reagendarRecorrencia, salvarEdicao }
 import { BloquearHorario } from "@/components/dashboard/BloquearHorario";
 import { FUNDO_DA_JANELA, JANELA } from "@/lib/modal";
 import { blocoDoAgendamento, camposDaEscolha, escolhaEfetiva, type EscolhaDoAgendamento } from "@/lib/opcoesDoAgendamento";
+import { perguntaDaAbrangencia, type Abrangencia } from "@/lib/abrangenciaDaSerie";
 import { OPCOES_DA_DEVOLUTIVA, OPCOES_DO_ABATIMENTO, TITULO_DA_DEVOLUTIVA, type AbatimentoDaDevolutiva, type EscolhaDaDevolutiva } from "@/lib/quadroDaDevolutiva";
 import { formatoNaData } from "@/lib/vigenciaDoFormato";
 import { tipoDaFalta, tipoDaFaltaPeloRotulo, perguntaDaFalta, COMO_REFAZER } from "@/lib/perguntaFalta";
@@ -273,10 +274,25 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
     setNewError(null);
     const ini = newDate ? new Date(newDate).getTime() : NaN;
     if (!avisaColisao(colisaoDeHorario(ini, 50))) return;
+    /**
+     * Doc 73: marcar uma SÉRIE como gratuita, avulsa ou cortesia é outro combinado que marcar só
+     * a primeira sessão dela — e o app decidia sozinho, aplicando a todas. Quando a escolha muda
+     * o que a sessão é, a série para aqui e pergunta.
+     */
+    if (perguntaDaAbrangencia({ recorrente: newRecorrente, escolha: escolhaNova, cobrada: newCobrada })) {
+      setPerguntaSerie(formData);
+      return;
+    }
+    gravarNovo(formData);
+  }
+
+  /** O envio de verdade. `abrangencia` só existe quando a pergunta acima foi feita. */
+  function gravarNovo(formData: FormData, abrangencia?: Abrangencia) {
+    if (abrangencia) formData.set("abrangencia", abrangencia);
     startTransition(async () => {
       const res = newRecorrente ? await createRecurring(formData) : await createSessionFromAgenda(formData);
-      if (res.ok) { setShowNew(false); setNewFreq("pontual"); router.refresh(); }
-      else setNewError(res.error || "Falha ao agendar.");
+      if (res.ok) { setShowNew(false); setNewFreq("pontual"); setPerguntaSerie(null); router.refresh(); }
+      else { setPerguntaSerie(null); setNewError(res.error || "Falha ao agendar."); }
     });
   }
   const selectedPatient = patients.find((p) => p.id === newPatient);
@@ -407,6 +423,11 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
   const [recAberta, setRecAberta] = useState(false);
   /** A edição preenchida, esperando a pessoa dizer o alcance. */
   const [perguntaAlcance, setPerguntaAlcance] = useState<Record<string, string> | null>(null);
+  /**
+   * Doc 73: a SÉRIE preenchida, esperando a pessoa dizer se a marca (gratuita, avulsa ou
+   * cortesia) vale para todas as sessões ou só para a primeira.
+   */
+  const [perguntaSerie, setPerguntaSerie] = useState<FormData | null>(null);
   /** A exclusão, esperando o alcance. `null` quando ninguém pediu para excluir. */
   const [perguntaExcluir, setPerguntaExcluir] = useState<{ id: string; passo: "inicio" | "proximos" } | null>(null);
   const [quantos, setQuantos] = useState<{ mesmosDias: number; todas: number } | null>(null);
@@ -637,6 +658,9 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
    */
   const janelaSessao = useJanela(!!selected, () => setSelected(null));
   const janelaAlcance = useJanela(!!perguntaAlcance, () => setPerguntaAlcance(null));
+  // Doc 73: Escape fecha também a pergunta da série — ela decide se um ritmo inteiro nasce de
+  // graça, e janela sem saída pelo teclado foi achado do SuperQA.
+  const janelaSerie = useJanela(!!perguntaSerie, () => setPerguntaSerie(null));
   const janelaFalta = useJanela(!!perguntaFaltou, () => setPerguntaFaltou(null));
   const janelaValor = useJanela(!!pedeValor, () => setPedeValor(null));
   const janelaCredito = useJanela(!!perguntaCredito, () => setPerguntaCredito(null));
@@ -1684,6 +1708,33 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
           </form>
         </div>
       )}
+
+      {/* Doc 73: a marca vale para a SÉRIE ou só para esta sessão? A pergunta (e as palavras dela)
+          mora em `abrangenciaDaSerie.ts` — ela muda conforme a escolha foi gratuita, avulsa ou
+          cortesia, porque as três produzem combinados diferentes. */}
+      {perguntaSerie && (() => {
+        const q = perguntaDaAbrangencia({ recorrente: newRecorrente, escolha: escolhaNova, cobrada: newCobrada });
+        if (!q) return null;
+        return (
+          <div className={FUNDO_DA_JANELA} onClick={() => setPerguntaSerie(null)}>
+            <div ref={janelaSerie} tabIndex={-1} role="dialog" aria-modal="true" aria-label="Abrangência da sequência"
+              data-testid="pergunta-abrangencia" className={`${JANELA} max-w-sm outline-none`} onClick={(e) => e.stopPropagation()}>
+              <p className="text-sm text-foreground/80">{q.titulo}</p>
+              <div className="space-y-2">
+                <button disabled={pending} onClick={() => gravarNovo(perguntaSerie, "todas")}
+                  className="w-full bg-primary text-white py-2.5 rounded-xl font-bold disabled:opacity-60">
+                  {q.todas}
+                </button>
+                <button disabled={pending} onClick={() => gravarNovo(perguntaSerie, "apenas_esta")}
+                  className="w-full bg-surface text-foreground/70 py-2.5 rounded-xl font-bold hover:bg-surface-container disabled:opacity-60">
+                  {q.apenasEsta}
+                </button>
+                <button onClick={() => setPerguntaSerie(null)} className="w-full py-2 text-sm text-foreground/40">Cancelar</button>
+              </div>
+            </div>
+          </div>
+        );
+      })()}
     </div>
   );
 }
