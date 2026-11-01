@@ -7,6 +7,45 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-11-01 — Doc 73 (itens 1–6): o reajuste parou de mexer no passado
+
+**Entregue:** o pacote anterior à primeira faixa de preço deixou de ser reprecificado pelo valor do
+cadastro; "próximo pacote a iniciar" passa a congelar a vigência no começo do primeiro pacote sem
+nenhum status lançado; a janela "Alterar quais?" só aparece quando há próximas sessões; e quatro
+textos do dono (pergunta do pacote, AVUL, GRAT e o rótulo do motivo do crédito).
+
+**Por quê:** o dono escolheu "próximo pacote a iniciar" com vigência 01/08/2025 e viu valores
+ANTERIORES a essa data mudarem (paciente Roberta, usuária ana). Medido antes de mexer: o pacote de
+janeiro/2025, fechado e pago em R$ 200, aparecia valendo R$ 260.
+
+**Decisões que ficam valendo:**
+
+- **O cadastro NÃO responde pelo passado.** Sem faixa que alcance a data, quem responde é a faixa
+  MAIS ANTIGA — o preço de entrada do tratamento, que é um fato gravado. O `session_fee` do
+  cadastro é o preço de hoje e muda a cada reajuste; usá-lo para trás reprecificava o histórico
+  inteiro, em qualquer formato. (Antes: devolvia a reserva, ou zero sem reserva.)
+- **"Próximo pacote a iniciar" é o primeiro pacote SEM status lançado**, e a resposta é CONGELADA
+  ao salvar, não avaliada pelo motor. Viva, a regra escorregaria para a frente a cada status novo
+  e o reajuste nunca entraria em vigor. Empurra a vigência, nunca puxa para trás: data mais à
+  frente é escolha da terapeuta e vale.
+- **`agendada` (ou vazio) é "nada lançado".** Qualquer outro status — inclusive cancelada e
+  atestado — é alguém já tendo mexido naquele pacote.
+
+**Armadilhas:**
+
+1. **O alcance da edição é `apenas_esta`, não `apenas_este`.** O parâmetro é `string`: o typecheck
+   não pega, e a edição aplicaria um alcance que não existe, em silêncio.
+2. **O quadro amarelo da sequência tem `data-testid` próprio.** Ler `[role="dialog"]` no percurso
+   pegava outro elemento e as assertivas passavam vazias.
+
+**Medido antes de subir:** 8 cobranças alteradas de 2.189 — todas da Roberta, todas correções
+(cada pacote fechado passou a valer exatamente o que foi pago, falta zero).
+
+**Pendente:** itens 7 e 8 do documento — as janelas "todas as sessões desta sequência ou apenas
+esta?" ao salvar série com AVUL/GRAT/cortesia e "repetir até".
+
+---
+
 ## 2026-11-01 — Doc 72: a regra do reajuste, o porquê escrito no lançamento e o pagador que não vaza
 
 **Entregue:** a pergunta do reajuste (doc 69) passa a aparecer SÓ quando a data da vigência cai no

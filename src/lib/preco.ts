@@ -64,7 +64,26 @@ export function precoNaData(historico: PrecoVigente[], quando: Date, reserva = 0
     .sort((a, b) => a.desde.getTime() - b.desde.getTime());
 
   if (validos.length > 0) return validos[validos.length - 1].valor;
-  // Sem faixa que alcance a data: o valor do cadastro. Zero aqui apagaria a cobrança em silêncio.
+
+  /**
+   * NENHUMA FAIXA ALCANÇA ESTA DATA — e o cadastro NÃO pode responder por ela (doc 73).
+   *
+   * O valor do cadastro é o preço de HOJE. Usá-lo para um atendimento anterior à primeira faixa
+   * fazia o passado ser reprecificado a cada reajuste: na base real, um pacote de janeiro/2025
+   * fechado e pago por R$ 200 aparecia valendo R$ 260 porque a terapeuta reajustou o valor em
+   * agosto. Era o defeito que o dono descreveu como "todos os valores anteriores a esta data
+   * estão sendo alterados".
+   *
+   * Havendo histórico, quem responde pelo que veio antes dele é a faixa MAIS ANTIGA — o preço de
+   * entrada do tratamento. Ela é um fato gravado; o cadastro muda toda vez que alguém reajusta.
+   */
+  const anteriores = historico
+    .map((h) => ({ valor: Number(h.valor), desde: emData(h.desde) }))
+    .filter((h) => Number.isFinite(h.valor) && h.valor > 0 && !Number.isNaN(h.desde.getTime()))
+    .sort((a, b) => a.desde.getTime() - b.desde.getTime());
+  if (anteriores.length > 0) return anteriores[0].valor;
+
+  // Sem histórico NENHUM, só resta o cadastro. Zero aqui apagaria a cobrança em silêncio.
   const r = Number(reserva);
   return Number.isFinite(r) && r > 0 ? r : 0;
 }

@@ -60,7 +60,8 @@ describe("perguntaDaFalta — cada tipo tem a SUA pergunta", () => {
     const p = perguntaDaFalta("pacote");
     expect(p.titulo).toContain("Abater");
     expect(p.explicaSim).toContain("avançando a numeração");
-    expect(p.explicaNao).toContain("sem consumir uma sessão do pacote");
+    // Doc 73 encurtou os dois textos; o que eles precisam dizer continua sendo a NUMERAÇÃO.
+    expect(p.explicaNao).toContain("mantendo a numeração");
   });
 
   it("toda pergunta explica o Sim E o Não — nenhuma deixa metade no escuro", () => {
