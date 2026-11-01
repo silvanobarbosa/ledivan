@@ -50,6 +50,9 @@ export const COLUNAS_DO_PAGAMENTO = {
   ficaNaCobranca: sessionPayments.diferencaOutraData,
   kind: sessionPayments.kind,
   estornadoEm: sessionPayments.estornadoEm,
+  // Doc 72: por que a sobra não virou crédito / por que a diferença não foi cobrada.
+  motivoSemCredito: sessionPayments.motivoSemCredito,
+  motivoSemDiferenca: sessionPayments.motivoSemDiferenca,
 } as const;
 
 /** O mesmo do lado do dinheiro. `estornadoEm` é o que impede o estornado de quitar cobrança. */
@@ -67,6 +70,9 @@ export function pagamentoParaMotor<
     ficaNaCobranca?: boolean | null;
     kind?: string | null;
     estornadoEm?: Date | string | null;
+    /** Doc 72: a explicação escrita no lançamento. Texto livre, só para a tela. */
+    motivoSemCredito?: string | null;
+    motivoSemDiferenca?: string | null;
     reciboEmitidoEm?: Date | string | null;
     notaEmitidaEm?: Date | string | null;
     reciboNumero?: string | null;
@@ -87,6 +93,8 @@ export function pagamentoParaMotor<
     kind: p.kind ?? null,
     // Nulo quando não houve estorno — e é o nulo que deixa o pagamento quitar normalmente.
     estornadoEm: p.estornadoEm ? local(p.estornadoEm) : null,
+    motivoSemCredito: p.motivoSemCredito ?? null,
+    motivoSemDiferenca: p.motivoSemDiferenca ?? null,
     recibo: !!p.reciboEmitidoEm,
     nota: !!p.notaEmitidaEm,
     reciboNumero: p.reciboNumero ?? null,
@@ -104,9 +112,17 @@ export const COLUNAS_DO_PRECO = {
   valor: patientPriceHistory.valor,
   dataEfetiva: patientPriceHistory.dataEfetiva,
   aplicaEm: patientPriceHistory.aplicaEm,
+  // Doc 72: QUANDO o reajuste foi registrado (não de quando ele vale). É por ela que a guia Geral
+  // sabe quais pagamentos já existiam quando o valor mudou.
+  criadoEm: patientPriceHistory.dataCriacao,
 } as const;
 
 /** A linha de preço virando faixa do motor. `aplicaEm` ausente = `vigente` (o comportamento antigo). */
-export function precoParaMotor(p: { valor: string | number; dataEfetiva: Date | string; aplicaEm?: string | null }) {
-  return { valor: Number(p.valor) || 0, desde: local(p.dataEfetiva), aplicaEm: p.aplicaEm ?? null };
+export function precoParaMotor(p: { valor: string | number; dataEfetiva: Date | string; aplicaEm?: string | null; criadoEm?: Date | string | null }) {
+  return {
+    valor: Number(p.valor) || 0,
+    desde: local(p.dataEfetiva),
+    aplicaEm: p.aplicaEm ?? null,
+    criadoEm: p.criadoEm ? local(p.criadoEm) : null,
+  };
 }

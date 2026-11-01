@@ -89,20 +89,18 @@ describe("doc 66 — quem o Lançar pagamento já traz preenchido", () => {
     expect(pagadorSugerido({ ...giulia, responsavelNome: "   " }).nome).toBe("Giulia Pereira Silva de Araujo");
   });
 
-  it("o último pagador continua sendo lembrado (17/09)", () => {
+  // Doc 72 SUPERA a memória do último pagador (17/09): "uma vez que é alterado o nome do
+  // responsável do pagamento, esta alteração deve ser registrada apenas para o registro alterado".
+  it("o último pagador NÃO é mais lembrado — a troca fica no lançamento dela (doc 72)", () => {
     expect(pagadorSugerido(giulia, { nome: "Avó Marta", cpf: "333.333.333-33" })).toEqual({
-      nome: "Avó Marta",
-      cpf: "333.333.333-33",
+      nome: "Elaine",
+      cpf: "",
     });
   });
 
-  it("último pagamento sem CPF: busca o CPF DAQUELA pessoa no cadastro, não o de qualquer um", () => {
-    expect(pagadorSugerido(giulia, { nome: "Elaine", cpf: null })).toEqual({ nome: "Elaine", cpf: "" });
-    expect(pagadorSugerido(giulia, { nome: "Giulia Pereira Silva de Araujo", cpf: "" })).toEqual({
-      nome: "Giulia Pereira Silva de Araujo",
-      cpf: "111.111.111-11",
-    });
-    expect(pagadorSugerido(giulia, { nome: "Avó Marta", cpf: null })).toEqual({ nome: "Avó Marta", cpf: "" });
+  it("o CPF continua saindo do cadastro DAQUELA pessoa, nunca do outro", () => {
+    expect(cpfCadastradoDe("Elaine", giulia)).toBe("");
+    expect(cpfCadastradoDe("Giulia Pereira Silva de Araujo", giulia)).toBe("111.111.111-11");
   });
 
   it("a busca do CPF por nome ignora caixa e espaço nas pontas", () => {

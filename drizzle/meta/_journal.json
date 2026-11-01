@@ -246,6 +246,13 @@
       "when": 1793720000000,
       "tag": "0034_preco_do_pacote",
       "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "7",
+      "when": 1793980000000,
+      "tag": "0035_motivo_do_lancamento",
+      "breakpoints": true
     }
   ]
 }

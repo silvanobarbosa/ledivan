@@ -30,6 +30,12 @@ export type PrecoVigente = {
   desde: Date | string;
   /** Como ele entra num pacote já começado. Ausente = `vigente`, que é o comportamento antigo. */
   aplicaEm?: AplicacaoDoPreco | string | null;
+  /**
+   * Doc 72: quando o reajuste foi REGISTRADO — que é outra data de "a partir de quando ele vale".
+   * A vigência pode ser retroativa; o registro não. É por ela que se sabe quais pagamentos já
+   * existiam na hora em que o valor mudou.
+   */
+  criadoEm?: Date | string | null;
 };
 
 /**
@@ -112,6 +118,39 @@ export function faixasDaSequencia(historico: PrecoVigente[], inicio: Date): Prec
  * Quem paga o tamanho CONTRATADO continua pagando o tamanho contratado: as posições sem sessão
  * (sequência ainda aberta) entram pelo preço da competência, não somem da conta.
  */
+/**
+ * A FAIXA QUE PARTIU ESTA SEQUÊNCIA NO MEIO — a data dela, ou `null`.
+ *
+ * É o reajuste respondido "pacote vigente" que começou DEPOIS da primeira sessão do pacote e já
+ * alcança a competência. Quem pergunta é o valor do pacote (parte sessão a sessão) e, desde o doc
+ * 72, também a guia Geral: uma diferença que só existe por causa do reajuste NÃO rola para o
+ * pacote seguinte, ela fica em aberto onde nasceu.
+ *
+ * Uma regra só para as duas perguntas, de propósito. Duas cópias divergiriam num detalhe e as
+ * telas discordariam em silêncio.
+ */
+export function faixaQuePartiuASequencia(
+  historico: PrecoVigente[],
+  opts: { inicio: Date; competencia: Date },
+): Date | null {
+  const faixas = faixasDaSequencia(historico, opts.inicio);
+  const comecou = inicioDoDia(opts.inicio).getTime();
+  const ateQuando = opts.competencia.getTime();
+  const partiram = faixas
+    .filter((h) => {
+      if (h.aplicaEm !== "vigente") return false;
+      const desde = emData(h.desde);
+      return !Number.isNaN(desde.getTime()) && inicioDoDia(desde).getTime() > comecou && desde.getTime() <= ateQuando;
+    })
+    // A data devolvida é a do REGISTRO, não a da vigência: "Vale a partir de" pode ser retroativo,
+    // e é o registro que separa o que já estava pago de quando o valor mudou. Sem registro gravado
+    // (histórico antigo), vale a própria vigência.
+    .map((h) => emData(h.criadoEm ?? h.desde))
+    .filter((d) => !Number.isNaN(d.getTime()))
+    .sort((a, b) => a.getTime() - b.getTime());
+  return partiram[0] ?? null;
+}
+
 export function valorDoPacote(
   historico: PrecoVigente[],
   opts: { inicio: Date; competencia: Date; datas: Date[]; total: number },
@@ -134,13 +173,7 @@ export function valorDoPacote(
    * DENTRO da sequência traz a resposta "vigente", dada por quem salvou o reajuste sabendo o que
    * estava escolhendo.
    */
-  const comecou = inicioDoDia(opts.inicio).getTime();
-  const ateQuando = opts.competencia.getTime();
-  const partiuNoMeio = faixas.some((h) => {
-    if (h.aplicaEm !== "vigente") return false;
-    const desde = emData(h.desde);
-    return !Number.isNaN(desde.getTime()) && inicioDoDia(desde).getTime() > comecou && desde.getTime() <= ateQuando;
-  });
+  const partiuNoMeio = !!faixaQuePartiuASequencia(historico, { inicio: opts.inicio, competencia: opts.competencia });
   if (!partiuNoMeio) return precoCobravel(faixas, opts.competencia, reserva) * total;
 
   const datas = [...opts.datas].sort((a, b) => a.getTime() - b.getTime());
@@ -163,13 +196,7 @@ export function valorPorSessao(
   reserva = 0,
 ): number | null {
   const faixas = faixasDaSequencia(historico, opts.inicio);
-  const comecou = inicioDoDia(opts.inicio).getTime();
-  const ateQuando = opts.competencia.getTime();
-  const partiuNoMeio = faixas.some((h) => {
-    if (h.aplicaEm !== "vigente") return false;
-    const desde = emData(h.desde);
-    return !Number.isNaN(desde.getTime()) && inicioDoDia(desde).getTime() > comecou && desde.getTime() <= ateQuando;
-  });
+  const partiuNoMeio = !!faixaQuePartiuASequencia(historico, { inicio: opts.inicio, competencia: opts.competencia });
   if (!partiuNoMeio) return null;
   return opts.datas.reduce((soma, d) => soma + precoCobravel(faixas, d, reserva), 0);
 }

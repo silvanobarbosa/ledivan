@@ -7,6 +7,54 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-11-01 — Doc 72: a regra do reajuste, o porquê escrito no lançamento e o pagador que não vaza
+
+**Entregue:** a pergunta do reajuste (doc 69) passa a aparecer SÓ quando a data da vigência cai no
+meio de um pacote, com o texto do documento; a diferença criada por um reajuste fica em aberto na
+própria cobrança em vez de rolar para o pacote seguinte; os dois textos do pacote (transferido e
+diferença herdada) saem em duas linhas; "Não" na sobra e "Não haverá diferença de valor" abrem um
+campo opcional de motivo, exibido na guia Geral junto do VALOR ORIGINAL da cobrança; e trocar quem
+pagou num lançamento vale só para aquele lançamento.
+
+**Por quê:** dois documentos do dono. O da regra de reajuste é, em quase tudo, o que o doc 69 já
+fazia — medido antes de mexer: o motor preserva o valor pago, recalcula o pacote e mostra a
+diferença. O que faltava era o DESTINO dessa diferença e a condição da pergunta. O outro documento
+vem do uso: três respostas Sim/Não mudavam dinheiro de lugar sem deixar explicação nenhuma na tela.
+
+**Decisões que ficam valendo:**
+
+- **Diferença que nasce de REAJUSTE não rola para o pacote seguinte.** O documento é explícito —
+  "apresentar essa diferença como valor em aberto… não gerar automaticamente uma nova cobrança".
+  Rolando, a cobrança ficava "Paga" e o saldo aparecia noutro pacote. O recorte é estreito: só
+  quando TODOS os lançamentos daquela cobrança são anteriores ao REGISTRO do reajuste. Quem já
+  pagou a menos antes dele continua rolando como sempre.
+- **"Vale a partir de" e "quando o reajuste foi feito" são datas diferentes.** A vigência pode ser
+  retroativa; o registro (`data_criacao`) não. É o registro que separa o que já estava pago, e é
+  por isso que ele entrou no motor (`criadoEm` em `COLUNAS_DO_PRECO`).
+- **A sugestão de quem paga sai do CADASTRO, não do último pagamento.** Supera a memória do
+  pagador (17/09): trocar o nome num lançamento passava a propor aquele nome em todos os
+  seguintes, e o dono pediu que a troca ficasse "apenas para o registro alterado".
+- **Motivo é opcional e nunca muda conta.** Ele explica a decisão; quem decide continua sendo o
+  Sim/Não. Cada motivo só é gravado junto da escolha que ele explica — formulário manda o que
+  estiver na tela, e o outro campo viraria justificativa de uma escolha que ninguém fez.
+
+**Armadilhas:**
+
+1. **A cobrança do pacote é LINHA PRÓPRIA na guia Geral; a sessão não aponta para ela.** A primeira
+   derivação das janelas dos pacotes leu `sessao.cobranca` e veio vazia em tudo — a pergunta do
+   reajuste simplesmente não nascia, sem erro nenhum. O caminho é id da sessão → data, e os ids
+   vêm da linha de pagamento.
+2. **`Intl` separa o R$ do número com espaço NÃO-QUEBRÁVEL.** Escrever um espaço comum no
+   `replace` do percurso não troca nada — e a assertiva reprova um texto que está certo. É a
+   segunda vez; agora a troca está escrita na forma com barra invertida, que se enxerga no diff.
+3. **Heredoc do shell come a barra invertida.** Escrever o escape do U+00A0 por `python <<'EOF'`
+   gravou o caractere literal no arquivo — inclusive nesta linha, na primeira tentativa. Para
+   escape em arquivo, Write/Edit; não heredoc.
+
+**Medido antes de subir:** 2.171 cobranças da base real, **0 diferentes** do código anterior.
+
+---
+
 ## 2026-10-31 — Doc 71: cortesia no financeiro avulso, a frequência que é o combinado e a diferença que fica
 
 **Entregue:** o quadro "Esta sessão será cortesia" (Sim/Não) no agendamento de quem paga a cada

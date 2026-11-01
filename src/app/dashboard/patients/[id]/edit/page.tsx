@@ -12,6 +12,8 @@ import { montarContrato, montarContratoSupervisao } from "@/lib/contrato";
 import { enquadreDaAgenda } from "@/lib/enquadreContrato";
 import { horaDeParede } from "@/lib/horaLocal";
 import { ContratoImpresso } from "@/components/ContratoImpresso";
+import { geralDoPaciente } from "@/lib/geralDoPaciente";
+import { janelasDosPacotes } from "@/lib/pacoteNaData";
 
 export default async function EditPatientPage({ params, searchParams }: { params: Promise<{ id: string }>; searchParams?: Promise<{ guia?: string }> }) {
   const { id } = await params;
@@ -41,6 +43,30 @@ export default async function EditPatientPage({ params, searchParams }: { params
   const reajusteChanges = await db.select({ id: patientReajusteChanges.id, campo: patientReajusteChanges.campo, de: patientReajusteChanges.de, para: patientReajusteChanges.para, at: patientReajusteChanges.at, vigencia: patientReajusteChanges.vigencia })
     .from(patientReajusteChanges)
     .where(eq(patientReajusteChanges.patientId, id));
+
+  /**
+   * Doc 72: as janelas dos pacotes — de quando até quando cada um correu.
+   *
+   * É o que decide se a pergunta do reajuste (doc 69) tem ou não motivo para aparecer: só há
+   * escolha quando a data da vigência cai DENTRO de um pacote. Sai do mesmo motor da guia Geral,
+   * e não de uma conta própria aqui: duas contas para a mesma pergunta discordam em silêncio.
+   */
+  const geral = await geralDoPaciente(session.user.id, id);
+  // A cobrança do pacote é LINHA PRÓPRIA na guia Geral e carrega os ids das sessões dela — não é a
+  // sessão que aponta para o pacote. Daí o caminho ser id da sessão → data, e não o contrário.
+  const dataDaSessao = new Map(
+    (geral?.linhas ?? []).flatMap((l) => (l.tipo === "sessao" ? [[l.id, l.data] as const] : [])),
+  );
+  const pacotesEmAndamento = janelasDosPacotes(
+    (geral?.linhas ?? []).flatMap((l) =>
+      l.tipo === "pagamento" && l.tipoDeCobranca === "pacote"
+        ? l.ids.flatMap((sid) => {
+            const data = dataDaSessao.get(sid);
+            return data ? [{ data, chave: l.chave }] : [];
+          })
+        : [],
+    ),
+  );
 
   const save = updatePatient.bind(null, id);
   const remove = deletePatient.bind(null, id);
@@ -111,6 +137,7 @@ export default async function EditPatientPage({ params, searchParams }: { params
           sessionFee: patient.sessionFee, frequency: patient.frequency, timesPerPeriod: patient.timesPerPeriod, paymentFormat: patient.paymentFormat, sessionsInPacket: patient.sessionsInPacket, paymentDay: patient.paymentDay, priceReviewDate: iso(patient.priceReviewDate),
           horasAntesPagamento: patient.horasAntesPagamento, validadePrecoMeses: patient.validadePrecoMeses,
           pacoteTipo: patient.pacoteTipo, semanasNoMes: patient.semanasNoMes, paymentDay2: patient.paymentDay2,
+          pacotesEmAndamento,
           priceHistory: priceHistory.map((h) => ({ valor: h.valor, dataEfetiva: (h.dataEfetiva as Date).toISOString(), dataCriacao: (h.dataCriacao as Date | null)?.toISOString() ?? null })),
           formatHistory: formatHistory.map((h) => ({ formato: h.formato, dataEfetiva: (h.dataEfetiva as Date).toISOString(), dataCriacao: (h.dataCriacao as Date | null)?.toISOString() ?? null })),
           reajusteChanges: reajusteChanges.map((c) => ({ id: c.id, campo: c.campo, de: c.de, para: c.para, at: (c.at as Date).toISOString(), vigencia: (c.vigencia as Date | null)?.toISOString() ?? null })),

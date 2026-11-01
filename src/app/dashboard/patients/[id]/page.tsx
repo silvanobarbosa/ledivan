@@ -156,26 +156,19 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
   const lastPay = paidPayments.slice().sort((a, b) => new Date(horaDeParede(b.date)).getTime() - new Date(horaDeParede(a.date)).getTime())[0];
 
   /**
-   * Quem "Lançar pagamento" sugere — nome e CPF já preenchidos (documento de 17/09; doc 66).
+   * Quem "Lançar pagamento" sugere — nome e CPF já preenchidos (doc 66; doc 72).
    *
-   * A sugestão sai do ÚLTIMO pagamento que disse quem pagou, e não de uma coluna nova no paciente:
-   * quem paga é fato de cada pagamento, e guardar de novo no cadastro criaria duas verdades. Sem
-   * pagamento anterior, vale o cadastro. A REGRA do par mora em `pagadorSugerido`, que garante o
-   * que faltava: o nome e o CPF são sempre da MESMA pessoa.
+   * Sai do CADASTRO, não do último pagamento: trocar o nome num lançamento (o avô pagou aquele)
+   * passava a propor o avô em todos os seguintes, e o dono pediu que a troca ficasse "apenas para
+   * o registro alterado". A REGRA do par mora em `pagadorSugerido`, que garante o nome e o CPF da
+   * MESMA pessoa.
    */
-  const ultimoComPagador = paidPayments
-    .slice()
-    .sort((a, b) => new Date(horaDeParede(b.date)).getTime() - new Date(horaDeParede(a.date)).getTime())
-    .find((p) => (p.pagoPor || "").trim());
-  const pagador = pagadorSugerido(
-    {
-      pacienteNome: patient.name,
-      pacienteCpf: patient.cpf,
-      responsavelNome: patient.guardianName,
-      responsavelCpf: patient.guardianCpf,
-    },
-    ultimoComPagador ? { nome: ultimoComPagador.pagoPor, cpf: ultimoComPagador.pagoPorCpf } : null,
-  );
+  const pagador = pagadorSugerido({
+    pacienteNome: patient.name,
+    pacienteCpf: patient.cpf,
+    responsavelNome: patient.guardianName,
+    responsavelCpf: patient.guardianCpf,
+  });
   const finance = {
     fee,
     balance,

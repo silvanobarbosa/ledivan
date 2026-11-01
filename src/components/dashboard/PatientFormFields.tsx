@@ -13,6 +13,7 @@ import { horaDeParede } from "@/lib/horaLocal";
 import { parseMoedaBR } from "@/lib/money";
 import { MoneyInput as MoneyInputBase } from "@/components/MoneyInput";
 import { abrirWhatsapp } from "@/lib/whatsappLink";
+import { pacoteEmAndamentoEm, type JanelaDoPacote } from "@/lib/pacoteNaData";
 
 const inputCls = "w-full px-4 py-3 rounded-2xl bg-white/70 border border-border focus:ring-2 focus:ring-accent/20 focus:border-accent outline-none transition";
 const labelCls = "block text-sm font-semibold text-foreground/70 mb-1.5";
@@ -33,6 +34,8 @@ export type PatientFormData = {
   attendanceMode?: string | null; attendanceLocation?: string | null; attendanceDay?: string | null; attendanceTime?: string | null;
   sessionFee?: string | null; frequency?: string | null; timesPerPeriod?: number | null; paymentFormat?: string | null; sessionsInPacket?: number | null; paymentDay?: number | null; priceReviewDate?: string | null;
   horasAntesPagamento?: number | null; validadePrecoMeses?: number | null; pacoteTipo?: string | null; semanasNoMes?: number | null; paymentDay2?: number | null;
+  /** Doc 72: de quando até quando correu cada pacote — decide se a pergunta do reajuste aparece. */
+  pacotesEmAndamento?: JanelaDoPacote[];
   priceHistory?: { valor: string; dataEfetiva: string }[];
   formatHistory?: { formato: string; dataEfetiva: string }[];
   reajusteChanges?: { id: string; campo: string; de: string | null; para: string | null; at: string; vigencia?: string | null }[];
@@ -351,6 +354,12 @@ export function PatientFormFields({ p, save, tabInicial, contrato, patientId }: 
   const [status, setStatus] = useState(p?.patientStatus || "ativo");
   /** A pessoa mexeu em "Vale a partir de" nesta edição? Ver o campo oculto `vigenciaEditada`. */
   const [vigenciaEditada, setVigenciaEditada] = useState(false);
+  /**
+   * A data que está NO CAMPO agora (doc 72). O campo é não-controlado — quem manda nele é
+   * `defaultValue` + `key` —, e a pergunta do reajuste depende da data escolhida, não da proposta.
+   * `null` = ninguém digitou ainda, e aí vale a proposta.
+   */
+  const [vigenciaDigitada, setVigenciaDigitada] = useState<string | null>(null);
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- reencostar no que o servidor devolveu é o efeito desejado
     if (p?.patientStatus) setStatus(p.patientStatus);
@@ -494,7 +503,7 @@ export function PatientFormFields({ p, save, tabInicial, contrato, patientId }: 
       {/* `key` remonta o campo quando a data padrão muda: `defaultValue` sozinho não reage, e a
           data oferecida ficaria parada em "hoje" depois de escolher Mensal. */}
       <input key={padraoVigencia} id="formatoDesde" name="formatoDesde" type="date" defaultValue={padraoVigencia}
-        onChange={() => setVigenciaEditada(true)} className={`${inputCls} sm:max-w-xs`} />
+        onChange={(e) => { setVigenciaEditada(true); setVigenciaDigitada(e.target.value); }} className={`${inputCls} sm:max-w-xs`} />
       {/* Doc 67: só uma MEXIDA DELIBERADA nesta data corrige a vigência gravada. O campo chega
           preenchido com uma data padrão, e tratar essa data como "alteração" faria todo salvamento
           mover o próximo reajuste — que é exatamente o defeito que o doc 63 consertou. */}
@@ -504,12 +513,16 @@ export function PatientFormFields({ p, save, tabInicial, contrato, patientId }: 
         * como adivinhar — a data acima é a data em que o paciente foi AVISADO do aumento, e se ela
         * parte o pacote em andamento em dois valores "depende da resposta" dele.
         */}
-      {valorAlterado && usaPacote(formatoEfetivo) && (
+      {/**
+        * Doc 72: e só quando a data cai DENTRO de um pacote. Sem pacote partido ao meio as duas
+        * respostas dão o mesmo resultado, e perguntar faria decidir algo que não existe.
+        */}
+      {valorAlterado && usaPacote(formatoEfetivo) && pacoteEmAndamentoEm(p?.pacotesEmAndamento ?? [], vigenciaDigitada ?? padraoVigencia) && (
         <fieldset className="space-y-1.5 pt-1">
-          <legend className={labelCls}>O novo valor vale sobre</legend>
+          <legend className={labelCls}>Esta data de vigência está no meio de um pacote em andamento. Sobre qual pacote deseja aplicar o novo valor?</legend>
           {[
-            { v: "vigente", r: "O pacote vigente", ajuda: "Vale já na próxima sessão, mesmo com o pacote no meio — esse pacote sai com dois valores." },
-            { v: "proximo_pacote", r: "O próximo pacote a iniciar", ajuda: "O pacote em andamento fica inteiro no valor antigo; o novo começa no pacote seguinte." },
+            { v: "vigente", r: "Pacote em andamento", ajuda: "O novo valor vale a partir da próxima sessão; as anteriores ficam no valor antigo e o total deste pacote é recalculado." },
+            { v: "proximo_pacote", r: "Próximo pacote a iniciar", ajuda: "O pacote em andamento fica inteiro no valor antigo; o novo valor só vale quando um novo pacote começar." },
           ].map((o) => (
             <label key={o.v} className="flex items-start gap-2 text-xs cursor-pointer">
               <input type="radio" name="aplicaPrecoEm" value={o.v} defaultChecked={o.v === "vigente"} className="mt-0.5" />

@@ -50,6 +50,9 @@ export type PagamentoDaGeral = {
    * com um dinheiro que já voltou.
    */
   estornadoEm?: Date | string | null;
+  /** Doc 72: por que a sobra não virou crédito / por que a diferença não foi cobrada. Texto livre. */
+  motivoSemCredito?: string | null;
+  motivoSemDiferenca?: string | null;
   /** Documento já emitido para este pagamento (17/09). Só o fato interessa aqui, não a hora. */
   recibo?: boolean;
   nota?: boolean;
@@ -112,6 +115,13 @@ export type PagamentoLancado = {
   reciboNumero?: string | null;
   /** Doc 36: este lançamento é crédito do saldo (kind="credito"), não dinheiro novo. */
   credito?: boolean;
+  /**
+   * Doc 72: a explicação que a terapeuta escreveu ao decidir não creditar a sobra, ou não cobrar a
+   * diferença. A tela a mostra junto do valor original — é ela que explica, meses depois, por que
+   * o recebido não bate com a cobrança.
+   */
+  motivoSemCredito?: string | null;
+  motivoSemDiferenca?: string | null;
 };
 
 /** Marca de "avisada ao paciente" que a tela pinta ao lado da cobrança. */
@@ -246,6 +256,7 @@ function casarPagamentos(cobrancas: Cobranca[], pagamentos: PagamentoDaGeral[], 
   const lancado = (p: (typeof pagos)[number]): PagamentoLancado => ({
     id: p.id, data: p.data, valor: p.valor, metodo: p.metodo, pagoPor: p.pagoPor,
     recibo: p.recibo === true, nota: p.nota === true, reciboNumero: p.reciboNumero ?? null, credito: p.kind === "credito",
+    motivoSemCredito: p.motivoSemCredito ?? null, motivoSemDiferenca: p.motivoSemDiferenca ?? null,
   });
   const empilhadoEm = new Map<string, Set<string>>();
   const empilhaPg = (chave: string, p: PagamentoLancado) => {
@@ -346,7 +357,24 @@ function casarPagamentos(cobrancas: Cobranca[], pagamentos: PagamentoDaGeral[], 
       // cobrança (não vira arrasto); avulso/a-cada-sessão não participam do carry do pacote.
       const ehPacote = c.tipo === "pacote" || c.tipo === "quinzena";
       const parcial = receb > TOLERANCIA && faltaEfetiva > TOLERANCIA;
-      if (!perdoada && !ficamOndeEstao.has(c.chave) && ehPacote && parcial && encerrada && haProxima) {
+      /**
+       * A DIFERENÇA QUE NASCEU DE UM REAJUSTE NÃO ROLA (doc 72).
+       *
+       * O pacote foi pago por inteiro e só depois a profissional reajustou o valor com a resposta
+       * "pacote em andamento". Pela regra antiga isso é um pacote "parcial", e a falta rolava para
+       * o seguinte — que é exatamente o que o documento proíbe: "apresentar essa diferença como
+       * valor em aberto, permitindo que o profissional visualize o saldo adicional a receber… não
+       * gerar automaticamente uma nova cobrança". Rolando, a cobrança ficava "Paga", o saldo
+       * aparecia noutro pacote e ninguém via o que ainda havia a receber ali.
+       *
+       * O recorte é estreito: só quando TODOS os lançamentos desta cobrança são anteriores ao
+       * reajuste. Quem já pagou a menos antes dele continua rolando como sempre rolou.
+       */
+      const reajuste = c.reprecificadoEm ? emData(c.reprecificadoEm) : null;
+      const lancados = listaPorChave.get(c.chave) ?? [];
+      const faltaVeioDoReajuste = !!reajuste && lancados.length > 0
+        && lancados.every((p) => emData(p.data).getTime() < reajuste.getTime());
+      if (!perdoada && !faltaVeioDoReajuste && !ficamOndeEstao.has(c.chave) && ehPacote && parcial && encerrada && haProxima) {
         transferidoPorChave.set(c.chave, faltaEfetiva);
         arrasto = faltaEfetiva; // rola para a próxima
       } else {

@@ -11,7 +11,9 @@ describe("doc 70 — o nome do pagador sai completo", () => {
     expect(nomeCompletoDoCadastro("Renata", cadastro)).toBe("Renata Magalhães Nascimento Silabi");
   });
 
-  it("e a memória do último pagamento também sai completa", () => {
+  // Doc 72 tirou a memória do último pagador da sugestão; o nome completo continua vindo — agora
+  // do cadastro, que é de onde a sugestão passou a sair.
+  it("e a sugestão do formulário sai completa", () => {
     expect(pagadorSugerido(cadastro, { nome: "Renata", cpf: null }).nome).toBe("Renata Magalhães Nascimento Silabi");
   });
 

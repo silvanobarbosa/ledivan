@@ -74,6 +74,12 @@ export async function lancarPagamento(entrada: {
   /** Doc 36: o usuário pediu para guardar a sobra (pagou a mais) como crédito no saldo? */
   creditarExcedente?: boolean;
   /**
+   * Doc 72: as explicações OPCIONAIS das duas decisões que mexem dinheiro de lugar — a sobra que
+   * não vira crédito e a diferença que não é cobrada. Texto livre, guardado só para a tela.
+   */
+  motivoSemCredito?: string | null;
+  motivoSemDiferenca?: string | null;
+  /**
    * Doc 61: a resposta de "Deseja abater o crédito de R$ XX,XX deste pagamento?".
    *
    * Só tem efeito sobre o crédito MARCADO na conversão GRAT→AVUL; o resto do saldo abate como
@@ -184,6 +190,17 @@ export async function lancarPagamento(entrada: {
 
   // Quitar a diferença só faz sentido quando AINDA falta depois do dinheiro + crédito aplicado.
   const quita = entrada?.quitarDiferenca === true && valorNum + creditoAplicado < faltaDaCobranca - 0.005;
+  /**
+   * Doc 72: cada motivo só é gravado JUNTO DA DECISÃO QUE ELE EXPLICA.
+   *
+   * O texto chega de um formulário, e formulário manda o que estiver na tela. Gravar o motivo da
+   * sobra num lançamento que não teve sobra — ou o da diferença num que a cobriu inteira — poria
+   * na guia Geral uma justificativa para uma escolha que ninguém fez.
+   */
+  const texto = (v: unknown) => String(v ?? "").trim().slice(0, 500);
+  const sobrou = valorNum - faltaDaCobranca > 0.005;
+  const motivoSemCredito = sobrou && entrada?.creditarExcedente !== true ? texto(entrada?.motivoSemCredito) : "";
+  const motivoSemDiferenca = quita ? texto(entrada?.motivoSemDiferenca) : "";
   // Meio-dia: a coluna é hora de parede, e meio-dia não troca de dia em fuso nenhum do caminho.
   const date = new Date(`${entrada.data}T12:00:00`);
 
@@ -216,6 +233,8 @@ export async function lancarPagamento(entrada: {
     pagoPor,
     cobrancaChave: chave,
     quitaDiferenca: quita,
+    motivoSemCredito: motivoSemCredito || null,
+    motivoSemDiferenca: motivoSemDiferenca || null,
     // Só faz sentido quando sobra diferença — e nunca junto de "não haverá diferença de valor".
     diferencaOutraData: !quita && entrada?.diferencaOutraData === true && valorNum + creditoAplicado < faltaDaCobranca - 0.005,
     linkedTransactionId: tx?.id ?? null,

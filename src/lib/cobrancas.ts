@@ -37,7 +37,7 @@
  */
 
 import { codigoDaSessao } from "./celulaDaAgenda";
-import { faixasDaSequencia, precoCobravel, valorDoPacote, valorPorSessao, type PrecoVigente } from "./preco";
+import { faixaQuePartiuASequencia, faixasDaSequencia, precoCobravel, valorDoPacote, valorPorSessao, type PrecoVigente } from "./preco";
 import { cobra, usaPacote } from "./reajuste";
 import { posicoesDaSequencia, todasAsSequencias } from "./sequenciaPacote";
 import { STATUS_QUE_PAUSAM } from "./therapy";
@@ -95,6 +95,16 @@ export type Cobranca = {
    * lançar o valor na própria sessão; alarmar nela seria gritar pelo que o app acabou de pedir.
    */
   aguardandoValor?: boolean;
+  /**
+   * Doc 72: a data do reajuste que PARTIU este pacote no meio (resposta "pacote em andamento"),
+   * quando houve um.
+   *
+   * A guia Geral precisa dela para saber de onde veio a diferença. Um pacote pago por inteiro e
+   * reajustado depois passa a faltar dinheiro — e essa falta não pode rolar para o pacote
+   * seguinte, porque o documento pede o contrário: "apresentar essa diferença como valor em
+   * aberto… não gerar automaticamente uma nova cobrança".
+   */
+  reprecificadoEm?: Date | null;
 };
 
 export type EntradaDasCobrancas = {
@@ -424,6 +434,7 @@ function cobrancasDoPeriodo(periodo: PeriodoDeVigencia, sessoes: Ordenada[], e: 
       valor,
       vencimento,
       posicao: formato === "ultima_pacote" ? "depois" : "antes",
+      reprecificadoEm: faixaQuePartiuASequencia(e.precos, { inicio, competencia: competencia ?? inicio }),
     });
   }
   return out;
