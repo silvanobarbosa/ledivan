@@ -7,6 +7,41 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-11-01 — O Divã passa a lançar pagamento por voz (PR #543)
+
+**Entregue:** `pagar` vira a 4ª ação da voz, e a fala incompleta passa a avisar que só navega.
+
+**Por quê:** a terapeuta ditou "dar entrada em um pagamento para a paciente Talita". O Whisper
+acertou, o Divã entendeu — e nada foi lançado. Não era falha: `AcaoDaFala` eram três e pagamento
+só existia no catálogo de NAVEGAÇÃO. O app rebaixou um pedido completo a "abrir a tela", **sem
+dizer**, e ela saiu achando que tinha lançado.
+
+**Decisões que ficam valendo:**
+
+- **A voz não grava dinheiro.** `pagar` segue `reservar`: abre o lançamento preenchido e ela
+  aperta. O lançamento carrega escolhas com consequência em dinheiro — qual cobrança quita, quem
+  pagou, a sobra, a diferença — e nenhuma delas é da voz.
+- **Só dígito vira valor.** "trezentos reais" não é lido: devolve `null` e a tela pede. Vírgula é
+  decimal, ponto é milhar.
+- **"Cartão" sozinho não escolhe forma.** Crédito e débito mudam o líquido no caixa (doc 49);
+  adivinhar entre os dois é adivinhar dinheiro. A palavra só sai da frase para não virar nome.
+- **A cobrança alvo é a mais antiga em aberto** — a mesma ordem do motor — e aparece na prévia
+  por extenso antes do toque. Não é chute escondido: é escolha mostrada.
+- **`soLeva`**: tarefa cujo rótulo é um verbo que ESCREVE leva uma linha dizendo que a voz só
+  navega. O modo de falha caro não é o app errar, é o app deixar a pessoa achar que aconteceu.
+
+**Armadilhas:**
+
+- As cobranças só podem ser lidas DEPOIS de saber de quem — por isso a prévia roda duas vezes: a
+  primeira passada é pura e diz o nome; só então `geralDoPaciente` roda, para um paciente e não
+  para os trinta, a cada comando de voz.
+- Abrir a linha certa com `useEffect` + `setState` quebra o lint (`set-state-in-effect`) e faz o
+  formulário piscar. O certo é derivar no render (o padrão "ajustar estado quando a prop muda").
+- No percurso Playwright, o Divã **abre sozinho** em perfil novo e cobre a tela: o clique resolve
+  o botão e nunca chega. Dispensar pelo `localStorage` antes de navegar.
+
+**Pendente:** nada deste bloco.
+
 ## 2026-11-01 — Importar dados de outro sistema por planilha
 
 **Entregue:** em Ajustes, "Importar dados de outro sistema": baixa a planilha modelo (gerada pelo
