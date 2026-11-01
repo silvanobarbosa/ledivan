@@ -7,6 +7,74 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-11-01 — Importar dados de outro sistema por planilha
+
+**Entregue:** em Ajustes, "Importar dados de outro sistema": baixa a planilha modelo (gerada pelo
+app), envia preenchida, **vê o que foi entendido** e só então confirma. Três abas — Pacientes,
+Agenda e Pagamentos.
+
+**Por quê:** quem chega de outro sistema chega com uma lista. Digitar tudo de novo é o que faz
+desistir na primeira semana.
+
+**Decisões que ficam valendo:**
+
+- **O modelo é GERADO pelo app, do mesmo contrato que o leitor usa** (`importarPlanilha.ts`).
+  Arquivo fixo subido à parte poderia divergir do leitor, e o sintoma seria o pior possível: a
+  planilha que o próprio app entregou voltando recusada.
+- **As abas de dados saem só com o cabeçalho.** Linha de exemplo dentro delas seria importada
+  junto com os dados de verdade. Os exemplos moram na aba "Leia-me", onde não há o que importar;
+  a ajuda de cada coluna vai como comentário do cabeçalho.
+- **Conferir e gravar são duas portas, e a segunda confere de novo.** A tela é onde ela decide,
+  não onde o dado é validado — mandar de volta as linhas já normalizadas deixaria o cliente
+  escolher o que entra no banco. O mesmo arquivo sobe duas vezes, de propósito.
+- **Linha com problema fica de fora; o resto entra.** Recusar a planilha inteira por uma célula é
+  o que faz a pessoa desistir da migração.
+- **Pagamento importado é HISTÓRICO**: entra sem `cobrancaChave` (o motor encaixa pela ordem de
+  vencimento, caminho que já existia) e **sem lançamento no Caixa** — dinheiro que entrou antes
+  de o Ledivan existir para ela não é faturamento de hoje.
+- **O valor do paciente nasce como preço de ENTRADA** (faixa em `patient_price_history` na data
+  de início), nunca como reajuste — senão o cadastro voltaria a responder pelo passado, que é o
+  defeito que o doc 73 consertou.
+- **Reenviar não duplica.** Paciente por nome, atendimento por paciente+instante, pagamento por
+  paciente+dia+valor. A conferência diz quantos serão pulados antes de confirmar.
+
+**Armadilha:**
+
+1. **`XLSX.readFile`/`writeFile` não existem em ESM** sem a ponte de `fs` ligada. Passar pelo
+   buffer dispensa a ponte e funciona igual.
+
+**Conferência:** `importarPlanilha` (22 testes) + percurso `e2e-importar` (18 verificações no app
+de verdade, incluindo "nada é gravado antes de confirmar" e o reenvio que não duplica).
+
+---
+
+## 2026-11-01 — Doc 74: o "próximo pacote" é pela data de INÍCIO e cai no primeiro SEM pagamento
+
+**Entregue:** a identificação do pacote que recebe o reajuste em "próximo pacote a iniciar" passa
+a ser por data de início + ausência de PAGAMENTO lançado. Mais os exemplos do documento travados
+em teste.
+
+**Por quê:** o documento descreve a regra inteira do reajuste em pacotes. Rodei os exemplos dele
+no motor ANTES de mexer: 260/260 antes, 270/280 na opção 1, 260/280 na opção 2, e 270 com R$ 10 em
+aberto no pacote já pago — **todos já batiam** (docs 69, 72 e 73). O documento confirma o desenho;
+o que ele muda é um critério.
+
+**Decisões que ficam valendo:**
+
+- **O pacote é identificado pela DATA DE INÍCIO**, nunca pelo vencimento nem pelas datas soltas
+  das sessões. Um pacote começado em agosto fica inteiro no valor antigo mesmo tendo sessões em
+  setembro — é o exemplo do próprio dono.
+- **O que desqualifica um pacote é PAGAMENTO, não status.** Supera o doc 73, que tinha lido
+  "status lançado": um pacote com sessões realizadas mas sem dinheiro lançado ainda recebe o valor
+  novo. Mexer onde já entrou dinheiro é que não se faz.
+- **A regra continua congelada ao salvar.** Viva no motor, escorregaria a cada pagamento novo e o
+  reajuste nunca entraria em vigor.
+
+**Medido antes de subir:** 0 cobranças diferentes de 2.219 — a mudança só afeta reajustes salvos
+daqui para a frente.
+
+---
+
 ## 2026-11-01 — INCIDENTE: o Divã parou de ouvir porque a lista de pacientes cresceu
 
 **Entregue:** a dica mandada ao Whisper passa a ser cortada por CARACTERES, com os nomes ordenados

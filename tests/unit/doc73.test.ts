@@ -1,6 +1,5 @@
 import { describe, it, expect } from "vitest";
 import { precoNaData, precoNoMes, precoCobravel } from "@/lib/preco";
-import { inicioDoPacoteIntocado, vigenciaDoProximoPacote, semStatusLancado } from "@/lib/pacoteIntocado";
 import { perguntaDaFalta } from "@/lib/perguntaFalta";
 
 /**
@@ -46,55 +45,10 @@ describe("doc 73 — o cadastro não responde pelo passado", () => {
   });
 });
 
-describe("doc 73 — 'próximo pacote a iniciar' é o pacote SEM status lançado", () => {
-  const s = (dia: number, mes: number, sequencia: number, status?: string) =>
-    ({ date: new Date(2026, mes, dia), status, sequencia });
-
-  it("acha o primeiro pacote em que nada foi lançado", () => {
-    const sessoes = [
-      s(5, 0, 0, "realizada"), s(12, 0, 0, "realizada"),
-      s(19, 0, 1, "realizada"), s(26, 0, 1, "cancelada"),
-      s(2, 1, 2), s(9, 1, 2),
-      s(16, 1, 3), s(23, 1, 3),
-    ];
-    expect(inicioDoPacoteIntocado(sessoes)).toEqual(new Date(2026, 1, 2));
-  });
-
-  it("UM status lançado basta para o pacote não ser mais 'o próximo a iniciar'", () => {
-    const sessoes = [s(2, 1, 2), s(9, 1, 2, "nao_realizada"), s(16, 1, 3), s(23, 1, 3)];
-    expect(inicioDoPacoteIntocado(sessoes)).toEqual(new Date(2026, 1, 16));
-  });
-
-  it("todos os pacotes já tocados: não há próximo conhecido", () => {
-    expect(inicioDoPacoteIntocado([s(5, 0, 0, "realizada"), s(12, 0, 0, "atestado")])).toBeNull();
-    expect(inicioDoPacoteIntocado([])).toBeNull();
-  });
-
-  it("'agendada' e status vazio são a mesma coisa: nada lançado", () => {
-    expect(semStatusLancado("agendada")).toBe(true);
-    expect(semStatusLancado(null)).toBe(true);
-    expect(semStatusLancado("")).toBe(true);
-    expect(semStatusLancado("realizada")).toBe(false);
-    expect(semStatusLancado("prof_desmarcou")).toBe(false);
-  });
-
-  it("a vigência é EMPURRADA para o começo do pacote intocado", () => {
-    // O caso do dono: ele digita 01/08, retroativo, e o pacote intocado começa em fevereiro/2026.
-    const sessoes = [s(5, 0, 0, "realizada"), s(2, 1, 1), s(9, 1, 1)];
-    expect(vigenciaDoProximoPacote(new Date(2025, 7, 1), sessoes)).toEqual(new Date(2026, 1, 2));
-  });
-
-  it("mas NUNCA para trás — data mais à frente é escolha dela, e vale", () => {
-    const sessoes = [s(5, 0, 0, "realizada"), s(2, 1, 1), s(9, 1, 1)];
-    const láNaFrente = new Date(2026, 5, 1);
-    expect(vigenciaDoProximoPacote(láNaFrente, sessoes)).toEqual(láNaFrente);
-  });
-
-  it("sem pacote intocado, fica a data escolhida", () => {
-    const escolhida = new Date(2026, 0, 20);
-    expect(vigenciaDoProximoPacote(escolhida, [s(5, 0, 0, "realizada")])).toEqual(escolhida);
-  });
-});
+// O bloco que ficava aqui — "'próximo pacote a iniciar' é o pacote SEM status lançado" — foi
+// SUPERADO pelo doc 74, que é explícito: o pacote é identificado pela DATA DE INÍCIO e o que o
+// desqualifica é PAGAMENTO lançado, não status. A regra nova e os exemplos do documento estão
+// em `doc74.test.ts`.
 
 describe("doc 73 — os textos que o dono reescreveu", () => {
   it("a pergunta do pacote explica em uma linha", () => {
