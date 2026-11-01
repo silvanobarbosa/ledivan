@@ -18,6 +18,7 @@ import { getUserAiClient, SemChaveIA } from "@/lib/ai-client";
 import { chavesDaCobrancaDaSessao, decidirDesfazer } from "@/lib/desfazerCobranca";
 import { creditoDisponivel, geralDoPaciente } from "@/lib/geralDoPaciente";
 import { aplicarCreditosPendentes } from "@/lib/aplicarCreditos";
+import { abrangenciaValida, marcasDaSessao } from "@/lib/abrangenciaDaSerie";
 import { apagarSessoesComPagamentos } from "@/lib/pagamentosLigados";
 
 type SessionStatus = "realizada" | "nao_realizada" | "cancelada" | "realocada" | "agendada" | "prof_desmarcou" | "atestado";
@@ -115,16 +116,26 @@ export async function createRecurring(formData: FormData): Promise<{ ok: boolean
     return { ok: false, error: "Todas as datas dessa repetiç\u00e3o caem em horário bloqueado." };
   }
 
-  const rows: typeof therapySessions.$inferInsert[] = datas.map((quando) => ({
+  /**
+   * Doc 73: a escolha vale para a SÉRIE INTEIRA ou só para a primeira sessão dela.
+   *
+   * Até aqui a série inteira herdava a marca sem ninguém perguntar — quem combinava UMA cortesia
+   * dentro de um ritmo semanal saía com o ritmo inteiro de graça. A fronteira normaliza: campo
+   * ausente ou estranho é `todas`, que é o que o app sempre fez.
+   */
+  const abrangencia = abrangenciaValida(formData.get("abrangencia"));
+  const rows: typeof therapySessions.$inferInsert[] = datas.map((quando, i) => ({
     userId, patientId, date: quando, duration, fee: patient.sessionFee,
     status: "agendada" as const, chargeable: true, isOnline, location,
     modality: extras.modality, confirmChannel: extras.confirmChannel, confirmLeadHours: extras.confirmLeadHours,
     pendingConfirmation: true, recurring: true, recurrenceFreq: freq, recurrenceUntil: until,
-    // Mesma marca de fora-do-pacote do agendamento único: a série inteira herda a escolha.
-    extra: extraSerie.extra, valorExtra: extraSerie.valorExtra,
-    // Doc 71: e a cortesia também — quem combinou uma série de cortesia combinou a série, não uma
-    // sessão dela. Mesmo critério da marca acima.
-    cortesia: cortesiaDaSerie,
+    // Doc 73: `todas` repete a escolha (o de sempre); `apenas_esta` deixa a marca na primeira e
+    // devolve as outras ao ritmo normal. A regra mora em `abrangenciaDaSerie.ts`.
+    ...marcasDaSessao({
+      indice: i,
+      abrangencia,
+      escolhido: { extra: extraSerie.extra ?? null, valorExtra: extraSerie.valorExtra ?? null, cortesia: cortesiaDaSerie },
+    }),
   }));
   if (!rows.length) return { ok: false, error: "Nenhuma data gerada." };
   await db.insert(therapySessions).values(rows);

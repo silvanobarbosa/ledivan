@@ -90,4 +90,9 @@ correções — cada pacote fechado passou a valer exatamente o que foi pago, co
 
 ## Estado
 
-Itens 1 a 6 entregues. Itens 7 e 8 (as janelas da série) ficaram para a leva seguinte.
+Documento FECHADO. Itens 1 a 6 no PR #539; itens 7 e 8 na leva seguinte.
+
+Sobre 7 e 8, a decisão do dono ao liberar a segunda leva: **"sem alterar os dados do financeiro,
+apenas da guia geral e agenda"**. A entrega respeita isso — a escolha decide com que marca cada
+sessão NASCE (`therapy_sessions`), e nada é escrito em preço, histórico de preço ou pagamento.
+Medido: **0 cobranças diferentes** de 2.208 na base real.

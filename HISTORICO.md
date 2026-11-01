@@ -7,6 +7,43 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-11-01 — Doc 73 (itens 7 e 8): a série pergunta se a marca é de todas ou só desta
+
+**Entregue:** ao salvar uma SÉRIE marcada como gratuita, avulsa ou cortesia, o app pergunta se a
+marca vale para todas as sessões da sequência ou só para a primeira. "Apenas esta" deixa a marca na
+primeira e devolve as demais ao ritmo normal.
+
+**Por quê:** a série inteira herdava a escolha sem ninguém perguntar. Quem combinava UMA cortesia
+dentro de um ritmo semanal saía com o ritmo inteiro de graça — e só descobria depois, na cobrança
+que não veio.
+
+**Decisões que ficam valendo:**
+
+- **Isto é agenda e guia Geral, não financeiro** (dono, ao liberar a leva). A escolha decide com
+  que marca cada sessão NASCE; nada é escrito em preço, histórico de preço ou pagamento. Cobrança
+  segue sendo consequência da sessão. Medido: 0 cobranças diferentes de 2.208.
+- **Sem `extra`, a sessão volta a ocupar posição na sequência** — é o que o documento chama de "o
+  restante segue a sequência". E sem `cortesia` ela volta a ser cobrada como qualquer atendimento
+  daquele financeiro, que em quem paga a cada sessão é exatamente a avulsa pedida.
+- **A pergunta só existe havendo SÉRIE e escolha que muda o que a sessão é.** Agendamento único
+  não tem "todas"; série normal não tem o que perguntar. Campo ausente = `todas`, que é o que o
+  app sempre fez — pedido antigo em trânsito não muda de comportamento.
+
+**Armadilhas (todas do percurso, nenhuma do app):**
+
+1. **Janela de segundo nível tem de vir DEPOIS no DOM.** A nova nascia antes do "Novo atendimento"
+   e o fundo dele cobria os botões: visíveis, habilitados e inclicáveis. `elementFromPoint` no
+   centro do botão foi o que mostrou.
+2. **O app pergunta por `window.confirm` quando o horário já tem agendamento**, e o Playwright
+   descarta diálogos por padrão — o descarte abortava o salvamento em silêncio, e o percurso
+   acusava o app por um "não" que ele mesmo tinha dado.
+3. **O servidor pula slot já ocupado por QUALQUER paciente.** Com todos os casos no horário
+   padrão, do segundo em diante não sobrava data e nada era gravado. Cada caso no seu horário.
+4. **A primeira sessão da série nasce hoje, num horário que já passou.** Filtrar por
+   `date >= now()` descartava justamente a que carrega a marca.
+
+---
+
 ## 2026-11-01 — Doc 73 (itens 1–6): o reajuste parou de mexer no passado
 
 **Entregue:** o pacote anterior à primeira faixa de preço deixou de ser reprecificado pelo valor do
