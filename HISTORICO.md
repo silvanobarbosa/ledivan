@@ -7,6 +7,41 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-11-01 — INCIDENTE: o Divã parou de ouvir porque a lista de pacientes cresceu
+
+**Entregue:** a dica mandada ao Whisper passa a ser cortada por CARACTERES, com os nomes ordenados
+por quem tem atendimento marcado; e um erro de chave recusada ou limite de uso chega à tela
+dizendo o que é, em vez de "não consegui ouvir".
+
+**Por quê:** a Gisele relatou que o comando de voz parou de funcionar no celular ("funcionava
+antes"). Não era o celular. A dica leva os nomes dos pacientes dela; a lista chegou a **32 ativos**
+e a dica a **1.191 caracteres**. O Groq recusa acima de 896:
+`prompt length must be 896 characters or fewer, but provided prompt contains 1206 characters`.
+Resultado: **todo** comando de voz dela falhava com 400, e o `catch` da rota mostrava
+"Não consegui ouvir agora" — um sintoma que não aponta para lugar nenhum.
+
+**Decisões que ficam valendo:**
+
+- **O teto da dica é em CARACTERES (896), não em número de nomes.** O corte era "80 nomes", que
+  não tem relação com o que o provedor mede. 896 = 224 tokens × 4, a mesma régua para Groq e
+  OpenAI.
+- **Quando a dica não couber, cai a CAUDA** — e a cauda passou a ser quem ela tem menos chance de
+  nomear: a ordem é por atendimento marcado mais próximo. Medido: 21 dos 32 nomes entram.
+- **Erro de provedor que a terapeuta resolve chega à tela nomeado** (chave recusada, limite de
+  uso). O resto continua genérico: detalhe de provedor na tela não ajuda e pode vazar dado da
+  conta.
+
+**Armadilha:**
+
+1. **Hipótese plausível não é causa.** O arquivo é enviado sempre como `fala.webm`, seja qual for
+   o que o navegador gravou, e o iPhone grava `audio/mp4` — parecia o culpado. Medido com o mesmo
+   áudio e dois nomes: o Groq aceita os dois. O defeito era outro.
+
+**Diagnóstico que fica:** `scripts/conferir-diva-dica.mjs` mede a dica de cada terapeuta com chave
+cadastrada e confirma com o provedor. O estouro aparece antes de alguém perder o comando de voz.
+
+---
+
 ## 2026-11-01 — Doc 73 (itens 7 e 8): a série pergunta se a marca é de todas ou só desta
 
 **Entregue:** ao salvar uma SÉRIE marcada como gratuita, avulsa ou cortesia, o app pergunta se a
