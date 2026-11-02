@@ -666,11 +666,22 @@ function FormularioDeLancamento({ patientId, c, responsavel, responsavelCpf, fec
   return (
     <tr>
       <td colSpan={5} className="px-3 pb-3">
-        <form action={enviar} className="rounded-xl bg-surface/70 border border-border p-3 grid gap-2 sm:grid-cols-[auto_auto_1fr_auto_auto_auto_auto] items-end" data-testid="lancar-pagamento">
+        {/*
+          * Doc 75: o lançamento ENVOLVE em vez de alargar a tabela.
+          *
+          * Eram sete colunas de grade (`sm:grid-cols-[auto_auto_1fr_auto_auto_auto_auto]`) com
+          * campos de largura fixa dentro de um `<td>` — e uma tabela se dimensiona pelo conteúdo.
+          * A soma das sete passava da largura do cartão, a tabela crescia por baixo do
+          * `overflow-x-auto` e a janela aparecia cortada: "conteúdo da janela está cortando".
+          * Em flex com `flex-wrap` os campos descem de linha quando não cabem, e a largura máxima
+          * do formulário volta a ser a do cartão. Ver [[licao-rolagem-lateral-nao-e-do-culpado]]:
+          * o culpado não é o campo largo, é o ancestral que nunca encolhe.
+          */}
+        <form action={enviar} className="rounded-xl bg-surface/70 border border-border p-3 flex flex-wrap gap-2 items-end" data-testid="lancar-pagamento">
           {/* O que ESTA cobrança cobre — para não confundir com "o valor do mês": cada cobrança é a
               sua sequência/sessões, e um mês pode ter mais de uma (ex.: pacote + sessões avulsas). */}
           {/* Doc 22: um X fecha, no canto superior ESQUERDO, ao lado do resumo (o "Cancelar" saiu). */}
-          <p className="sm:col-span-7 text-[11px] text-foreground/60 -mb-1 flex items-start gap-2">
+          <p className="basis-full text-[11px] text-foreground/60 -mb-1 flex items-start gap-2">
             <button type="button" onClick={fechar} aria-label="Fechar" title="Fechar"
               className="text-foreground/50 hover:text-foreground shrink-0 -mt-0.5"><X className="w-4 h-4" /></button>
             <span>
@@ -692,11 +703,12 @@ function FormularioDeLancamento({ patientId, c, responsavel, responsavelCpf, fec
             <label className="text-[11px] font-semibold text-foreground/60 block">Data do pagamento</label>
             <input name="data" type="date" required defaultValue={hojeISO()} className="px-3 py-2 rounded-lg bg-white border border-border text-sm" />
           </div>
-          <div>
+          {/* O único campo que CRESCE com a sobra (era a coluna `1fr` da grade). */}
+          <div className="flex-1 min-w-[180px]">
             <label className="text-[11px] font-semibold text-foreground/60 block">Responsável pelo pagamento</label>
             <input name="pagoPor" required value={nome}
               onChange={(e) => { setNome(e.target.value); setCpf(e.target.value.trim().toLowerCase() === responsavel.trim().toLowerCase() ? responsavelCpf : ""); }}
-              className="w-full px-3 py-2 rounded-lg bg-white border border-border text-sm" />
+              className="w-full min-w-[180px] px-3 py-2 rounded-lg bg-white border border-border text-sm" />
           </div>
           <div>
             <label htmlFor="pagoPorCpf" className="text-[11px] font-semibold text-foreground/60 block">
@@ -736,7 +748,7 @@ function FormularioDeLancamento({ patientId, c, responsavel, responsavelCpf, fec
           {/* Doc 61: o saldo mostrado é o INTEIRO, mesmo quando a resposta foi "Não". Mostrar só o
               que abate aqui faria o crédito recusado sumir da tela — e ele continua do paciente. */}
           {Math.max(saldoTotal, creditoDisponivel) > 0.005 && (
-            <p className="sm:col-span-7 text-[11px] text-[#047857]">
+            <p className="basis-full text-[11px] text-[#047857]">
               Crédito no saldo: <b>{formatBRL(Math.max(saldoTotal, creditoDisponivel))}</b>
               {creditoAplicado > 0.005
                 ? <> — <b>{formatBRL(creditoAplicado)}</b> será aplicado nesta cobrança.</>
@@ -747,7 +759,7 @@ function FormularioDeLancamento({ patientId, c, responsavel, responsavelCpf, fec
           {/* Recebeu MENOS: por padrão a diferença fica em aberto; a pessoa pode optar por perdoá-la
               (doc 17 — nunca "pago em parte"). */}
           {aMenos && (
-            <div className="sm:col-span-7 text-[11px] flex flex-wrap items-center gap-x-3 gap-y-1">
+            <div className="basis-full text-[11px] flex flex-wrap items-center gap-x-3 gap-y-1">
               {quitar ? (
                 <span className="text-foreground/60">Diferença de <b>{formatBRL(diferenca)}</b> será desconsiderada — cobrança quitada.</span>
               ) : (
@@ -789,7 +801,7 @@ function FormularioDeLancamento({ patientId, c, responsavel, responsavelCpf, fec
           {/* Recebeu MAIS: o usuário DECIDE se a sobra vira crédito no saldo. Doc 38: o checkbox
               confundia — virou pergunta com Sim/Não explícito. */}
           {aMais && (
-            <div className="sm:col-span-7 text-[11px] flex flex-wrap items-center gap-2">
+            <div className="basis-full text-[11px] flex flex-wrap items-center gap-2">
               <span className="text-foreground/70">{formatBRL(sobraCash)} a mais entram como crédito no saldo?</span>
               <div className="inline-flex rounded-lg overflow-hidden border border-border">
                 <button type="button" onClick={() => setCreditarSobra(true)}
@@ -812,7 +824,7 @@ function FormularioDeLancamento({ patientId, c, responsavel, responsavelCpf, fec
               )}
             </div>
           )}
-          {erro && <p className="sm:col-span-7 text-xs text-[#b91c1c]">{erro}</p>}
+          {erro && <p className="basis-full text-xs text-[#b91c1c]">{erro}</p>}
         </form>
       </td>
     </tr>

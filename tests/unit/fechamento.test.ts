@@ -248,7 +248,15 @@ describe("a linha do paciente", () => {
     expect(l.saldo).toBe(0);
   });
 
-  it("quem pagou a mais aparece como pagou a mais, e não como quitado", () => {
+  /**
+   * Doc 75: saldo negativo, por si, NÃO é pagar a mais — e isso mudou este teste.
+   *
+   * Ele nasceu para provar que quem pagou além não aparecia como quitado, e o sinal usado era o
+   * saldo. Medido na base, esse sinal acusava nove pacientes quando duas tinham pago a mais: o
+   * resto pagou vários pacotes dentro do mês, ou um pacote adiantado que ainda não fechou. O que
+   * distingue pagar a mais é a resposta "não entra como crédito no saldo", gravada na sobra.
+   */
+  it("saldo negativo SEM sobra marcada é quitado — pagar adiantado não é pagar a mais", () => {
     const l = linhaDoFechamento({
       paciente: { id: "p4", nome: "Davi", formato: "sessao" },
       sessoes: [sessao(4)],
@@ -257,8 +265,21 @@ describe("a linha do paciente", () => {
       ano: 2026,
       mes: 7,
     });
-    expect(l.situacao).toBe("pago_a_mais");
     expect(l.saldo).toBe(-300);
+    expect(l.situacao).toBe("pago");
+  });
+
+  it("com a sobra MARCADA, aparece como pagou a mais — e pelo valor da sobra", () => {
+    const l = linhaDoFechamento({
+      paciente: { id: "p4", nome: "Davi", formato: "sessao" },
+      sessoes: [sessao(4)],
+      precos,
+      pagamentos: [{ pacienteId: "p4", valor: 500, data: new Date(2026, 7, 15), status: "paid", excedenteSemCredito: 300 }],
+      ano: 2026,
+      mes: 7,
+    });
+    expect(l.situacao).toBe("pago_a_mais");
+    expect(l.excedenteSemCredito).toBe(300);
   });
 
   it("gratuito nunca tem valor, mesmo com sessões", () => {

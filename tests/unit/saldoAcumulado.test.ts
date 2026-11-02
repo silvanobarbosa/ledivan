@@ -65,12 +65,16 @@ describe("o saldo é a posição real, não a foto do mês", () => {
     expect(l.saldo).toBe(200);
   });
 
-  it("quem pagou adiantado aparece com crédito, e não como devedor no mês seguinte", () => {
+  it("quem pagou adiantado NÃO é devedor — e também não pagou a mais (doc 75)", () => {
+    // O saldo negativo continua sendo a posição certa: ela adiantou R$ 200. O que mudou é a palavra
+    // — "pagou a mais" passou a exigir a sobra marcada como "não entra como crédito", e adiantar um
+    // pacote não é isso. Sem dívida e sem sobra marcada, a leitura é: quitado.
     const sessoes = [s(5, 8), s(12, 8), s(19, 8), s(26, 8)];
     const pagamentos = [{ pacienteId: "p1", valor: 1000, data: new Date(2026, 7, 1), status: "paid" }];
     const l = linhaDoFechamento({ paciente, sessoes, precos, pagamentos, ano: 2026, mes: 7 });
     expect(l.saldo).toBe(-200);
-    expect(l.situacao).toBe("pago_a_mais");
+    expect(l.situacao).not.toBe("a_receber");
+    expect(l.situacao).toBe("pago");
   });
 
   it("olhar um mês ANTIGO mostra a posição daquela época, não a de hoje", () => {

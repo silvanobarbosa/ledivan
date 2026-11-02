@@ -82,6 +82,51 @@ export function vencimentoDoPreco(
   return d;
 }
 
+/**
+ * Doc 75: um campo que sai do VAZIO foi PREENCHIDO — não alterado.
+ *
+ * O histórico de configuração do Financeiro (doc 33 F15) gravava uma linha por campo cujo valor
+ * tivesse mudado, e "mudou" incluía o nada virar alguma coisa. Medido na base: 202 das 219 linhas
+ * eram `— → valor`. Quem preenchia o Financeiro pela primeira vez colhia quatro "alterações" na
+ * mesma vigência — pacote, sessões, reajuste, vencimento — sem ter alterado nada: era o cadastro
+ * nascendo. É o mesmo defeito que o doc 16 já tinha nomeado no preço: "R$ 0,00 → R$ 150,00 inventa
+ * um reajuste que não houve".
+ *
+ * Limpar um campo (`12 → —`) continua sendo alteração: havia um valor e ele deixou de existir.
+ *
+ * Vale nas DUAS pontas — não grava linha nova e não mostra as que já estão gravadas —, porque as
+ * 202 linhas antigas já poluem o acordeão de quem usa o app hoje. Nenhuma é apagada.
+ */
+export function ehAlteracaoDeCampo(m: { de?: string | null; para?: string | null }): boolean {
+  const vazio = (v?: string | null) => v == null || v === "";
+  if (vazio(m.de)) return false;
+  return m.de !== m.para;
+}
+
+/**
+ * Doc 75: de que data corre o PRAZO do próximo reajuste.
+ *
+ * `dataEfetiva` responde outra pergunta — de quando o valor novo vale no dinheiro. Com a resposta
+ * "aplicar no próximo pacote a iniciar" (doc 69/73) ela é empurrada para o início desse pacote, e o
+ * lembrete de reajuste vinha sendo contado dali: 12 meses sobre uma data meses à frente adiavam o
+ * reajuste inteiro. O dono apontou isso nas datas da Patricia, da Thayná e da Celani.
+ *
+ * `vigenciaDeclarada` é o que a pessoa digitou em "Vale a partir de", e é dela que o prazo corre.
+ * Nula significa "as duas datas são a mesma" — o caso comum e o estado de todas as linhas
+ * anteriores a este doc.
+ */
+export function vigenciaDoReajuste(
+  registro: { dataEfetiva: Date | string | null | undefined; vigenciaDeclarada?: Date | string | null } | null | undefined,
+): Date | null {
+  if (!registro) return null;
+  const comoData = (d: Date | string | null | undefined): Date | null => {
+    if (!d) return null;
+    const x = d instanceof Date ? d : new Date(d);
+    return Number.isNaN(x.getTime()) ? null : x;
+  };
+  return comoData(registro.vigenciaDeclarada) ?? comoData(registro.dataEfetiva);
+}
+
 /** Quantos dias faltam para o reajuste. Negativo = já venceu. */
 export function diasParaReajuste(vencimento: Date | null, hoje: Date = new Date()): number | null {
   if (!vencimento) return null;

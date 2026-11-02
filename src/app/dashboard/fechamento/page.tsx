@@ -87,6 +87,10 @@ export default async function FechamentoPage({
         date: sessionPayments.date,
         status: sessionPayments.status,
         method: sessionPayments.method,
+        // Doc 75: é esta coluna que diz "pagou a mais". Esquecê-la aqui não quebra nada e não
+        // aparece em teste de tipo: a tela simplesmente deixa de acusar quem pagou a mais.
+        // Ver [[licao-lista-de-colunas-copiada]].
+        excedenteSemCredito: sessionPayments.excedenteSemCredito,
       })
       .from(sessionPayments)
       .where(eq(sessionPayments.userId, userId)),
@@ -137,6 +141,7 @@ export default async function FechamentoPage({
     data: p.date,
     status: p.status,
     metodo: p.method,
+    excedenteSemCredito: p.excedenteSemCredito,
   }));
   const taxaVigencias = await getVigenciasTaxa(userId);
 
@@ -315,9 +320,16 @@ function Situacao({ linha }: { linha: LinhaDoFechamento }) {
   if (linha.situacao === "sem_cobranca" || linha.situacao === "sem_sessoes") {
     return <span className={`text-xs ${classe}`}>{texto}</span>;
   }
+  /**
+   * Doc 75: em "pagou a mais", o número é a SOBRA marcada — não o saldo.
+   *
+   * O saldo acumulado fica negativo também em quem pagou um pacote adiantado, e mostrá-lo aqui
+   * diria "pagou a mais R$ 940,00" de quem pagou exatamente o combinado.
+   */
+  const valor = linha.situacao === "pago_a_mais" ? linha.excedenteSemCredito : Math.abs(linha.saldo);
   return (
     <span className={`tabular-nums ${classe}`}>
-      {reais(Math.abs(linha.saldo))} <span className="text-xs font-normal">{texto}</span>
+      {reais(valor)} <span className="text-xs font-normal">{texto}</span>
     </span>
   );
 }
