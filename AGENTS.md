@@ -46,6 +46,33 @@ espaço, invisível) e imagem em lazy nem chega a ser pedida. Uma comparação a
 apareceu um ícone 404 vivo em produção que a captura cega não mostrava:
 `node scripts/visual-imagens.mjs` lista imagem quebrada com o status HTTP.
 
+# Teste de LIMITE neste repo: três motores, nesta ordem
+
+Dois bugs seguidos (01 e 02/11/2026) passaram por testes verdes porque os testes mediam a coisa
+errada: a dica mandada ao Whisper estourava o teto do provedor, e os oito testes dela usavam
+`"Paciente 00 xxxx"` — ASCII puro, num app de terapeuta brasileira. Em português, byte ≠
+caractere. Quem escolhe os exemplos escolhe os que já tem na cabeça, e o bug mora no exemplo que
+não ocorreu a ninguém.
+
+**1 · Exemplo** (`tests/unit/*.test.ts`) — "com ESTA entrada, sai AQUILO". Continua necessário:
+é o que documenta a regra. Só não basta.
+
+**2 · Propriedade** (`fast-check`, `tests/unit/*.props.test.ts`) — a máquina escolhe as entradas,
+mil por asserção, e ENCOLHE a que quebra até o menor caso. Use em tudo que tem LIMITE, CORTE,
+TRUNCAGEM ou FORMATAÇÃO. Os geradores que parecem com a produção estão em `tests/geradores.ts`
+(nomes com acento, cedilha, apóstrofo, hífen, emoji) — use-os em vez de inventar `"xxx"`.
+A propriedade se escreve na **unidade de quem cobra o limite**: escrita na unidade errada, ela
+fica verde sobre uma mentira, que foi exatamente o que aconteceu.
+
+**3 · Mutação** (`npm run test:mutation`) — estraga o código de propósito e vê se algum teste
+fica vermelho. Responde o que cobertura não responde: *a suíte NOTARIA se isto estivesse errado?*
+Escopado aos motores puros de voz e limite; leva ~70s, **não é gate de CI**. Rode ao mexer neles.
+A catraca (`break: 80`) sobe conforme a suíte melhora e nunca desce.
+
+**Teste de tamanho usa a cardinalidade da produção**, não 2 itens: lista que cresce é onde o teto
+estoura. E quando o percurso depende da tela ou do banco, o lugar do teste é um harness em
+`scripts/e2e-*.mjs`, rodando o app de verdade.
+
 # Onde paramos
 
 Antes de propor trabalho neste repo, leia o `HISTORICO.md` da raiz. Ele traz o que já foi

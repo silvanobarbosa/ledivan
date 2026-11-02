@@ -64,3 +64,4 @@ backups/
 
 # Entrada crua dos documentos do dono (o PDF vai versionado dentro de docs/pedidos/NNN-*/)
 docs/pedidos/_entrada/
+reports/
