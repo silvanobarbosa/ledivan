@@ -7,6 +7,7 @@ import { Mic, Square, X, ChevronRight, Loader2 } from "lucide-react";
 import { abreSozinho, avisosDoDiva, TAREFAS, type EstadoDoDiva, type TarefaDoDiva } from "@/lib/diva";
 import { useJanela } from "@/lib/useJanela";
 import { anotarPorVoz, cancelarPorVoz } from "@/app/dashboard/diva-actions";
+import type { ReciboDaVoz } from "@/lib/reciboDaVoz";
 import { FLUTUANTE_DIVA, FUNDO_DA_JANELA, JANELA } from "@/lib/modal";
 
 /**
@@ -75,6 +76,14 @@ export function Diva({ estado, podeOuvir }: { estado: EstadoDoDiva; podeOuvir: b
   /** A prévia do comando ditado: o que ele entendeu, esperando o toque dela. */
   const [comando, setComando] = useState<PreviaNaTela | null>(null);
   const [executando, setExecutando] = useState(false);
+  /**
+   * O RECIBO: o que foi executado, lido de volta do banco. Enquanto ele está na tela, o Divã NÃO
+   * se fecha e não navega sozinho — a prova de que algo aconteceu não pode durar menos do que o
+   * tempo de ler. Quem sai da tela é ela, pelo botão.
+   */
+  const [recibo, setRecibo] = useState<{ recibo: ReciboDaVoz; rota: string } | null>(null);
+  /** O motivo técnico da falha de escuta, quando o servidor manda um. Para ler ou printar. */
+  const [motivo, setMotivo] = useState<string | null>(null);
   const gravador = useRef<MediaRecorder | null>(null);
   const pedacos = useRef<Blob[]>([]);
   const router = useRouter();
@@ -123,6 +132,8 @@ export function Diva({ estado, podeOuvir }: { estado: EstadoDoDiva; podeOuvir: b
     setSugestao(null);
     setComando(null);
     setErro(null);
+    setMotivo(null);
+    setRecibo(null);
     setGravando(false);
     pararGravador();
     // Fechar a janela já conta como ter lido o aviso: ele não volta a perseguir ninguém.
@@ -185,17 +196,17 @@ export function Diva({ estado, podeOuvir }: { estado: EstadoDoDiva; podeOuvir: b
       try {
         if (comando.acao === "anotar") {
           const r = await anotarPorVoz(paciente.id, comando.texto);
-          if (!r.ok) { setErro(r.error ?? "Não consegui anotar."); return; }
-          fechar(true);
-          router.push(`/dashboard/patients/${paciente.id}`);
+          if (!r.ok || !r.recibo) { setErro(r.error ?? "Não consegui anotar."); return; }
+          setComando(null);
+          setRecibo({ recibo: r.recibo, rota: `/dashboard/patients/${paciente.id}` });
           return;
         }
         const alvo = comando.sessoes?.[0];
         if (!alvo) { setErro("Não sei qual atendimento cancelar."); return; }
         const r = await cancelarPorVoz(alvo.id);
-        if (!r.ok) { setErro(r.error ?? "Não consegui cancelar."); return; }
-        fechar(true);
-        router.push("/dashboard/agenda");
+        if (!r.ok || !r.recibo) { setErro(r.error ?? "Não consegui cancelar."); return; }
+        setComando(null);
+        setRecibo({ recibo: r.recibo, rota: "/dashboard/agenda" });
       } finally {
         setExecutando(false);
       }
@@ -204,6 +215,8 @@ export function Diva({ estado, podeOuvir }: { estado: EstadoDoDiva; podeOuvir: b
 
   async function falar() {
     setErro(null);
+    setMotivo(null);
+    setRecibo(null);
     setFala(null);
     setSugestao(null);
     setComando(null);
@@ -219,16 +232,34 @@ export function Diva({ estado, podeOuvir }: { estado: EstadoDoDiva; podeOuvir: b
         setOuvindo(true);
         try {
           const fd = new FormData();
-          fd.append("audio", blob, "fala.webm");
+          /**
+           * A extensão acompanha o que o gravador entregou. O Chrome grava webm; o Safari do
+           * iPhone grava mp4. Os provedores farejam o conteúdo (medido em 02/11: WAV enviado como
+           * `.webm` transcreve), mas um arquivo SEM extensão é recusado com 400 — então o nome
+           * nunca fica sem uma.
+           */
+          const tipo = (blob.type.split(";")[0] || "").split("/")[1] || "webm";
+          fd.append("audio", blob, `fala.${tipo}`);
           const r = await fetch("/api/diva/ouvir", { method: "POST", body: fd });
-          const j = await r.json();
-          if (!j.ok) { setErro(j.error ?? "Não consegui ouvir."); return; }
+          /**
+           * A resposta pode não ser JSON — 413 da plataforma, 504 de tempo, página de erro no
+           * caminho. "Erro de rede" para tudo foi o que deixou a terapeuta dois dias sem saber se
+           * o problema era o celular dela. O status, quando é isso, aparece como motivo.
+           */
+          const j = await r.json().catch(() => null);
+          if (!j) {
+            setErro("Não consegui ouvir agora. Tente de novo.");
+            setMotivo(`resposta ${r.status} sem JSON`);
+            return;
+          }
+          if (!j.ok) { setErro(j.error ?? "Não consegui ouvir."); setMotivo(j.motivo ?? null); return; }
           setFala(j.fala || null);
           setComando(j.comando ?? null);
           setSugestao(j.tarefa ?? null);
           if (!j.tarefa && !j.comando) setErro("Entendi o que você disse, mas não sei fazer isso. Escolha abaixo.");
-        } catch {
+        } catch (e) {
           setErro("Erro de rede ao ouvir.");
+          setMotivo(e instanceof Error ? e.message.slice(0, 180) : null);
         } finally {
           setOuvindo(false);
         }
@@ -433,6 +464,37 @@ export function Diva({ estado, podeOuvir }: { estado: EstadoDoDiva; podeOuvir: b
                           : "Confirmar a anotação"}
                       </button>
                     )}
+
+                    {/* Reservar e pagar NÃO gravam por voz. Dizer isso aqui é o mesmo conserto do
+                        `soLeva` das tarefas: o rótulo é um verbo, e sem esta linha ela sai achando
+                        que já aconteceu. Ver [[licao-rebaixamento-silencioso]]. */}
+                    {comando.paciente.tipo === "um" && comando.faltando.length === 0
+                      && (comando.acao === "reservar" || comando.acao === "pagar") && (
+                      <p className="text-[11px] text-[#4338ca]">
+                        Nada é gravado agora: a tela abre preenchida e quem confirma é você.
+                      </p>
+                    )}
+                  </div>
+                )}
+
+                {/* O RECIBO: o comando que foi executado e o que ficou gravado, lido do banco.
+                    Pedido do dono (02/11) — "mostre o comando executado, provando que fez". A
+                    janela fica aberta até ela mandar; navegar na hora fazia a prova aparecer e
+                    desaparecer no mesmo instante. */}
+                {recibo && (
+                  <div className="rounded-xl border border-[#a7f3d0] bg-[#ecfdf5] px-3 py-2.5 space-y-2" data-testid="recibo-da-voz">
+                    <p className="text-xs font-bold text-[#047857]">Feito: {recibo.recibo.comando}</p>
+                    <p className="text-sm font-semibold text-foreground/80">{recibo.recibo.paciente}</p>
+                    <p className="text-xs text-foreground/70 bg-white rounded-lg px-3 py-2">{recibo.recibo.gravado}</p>
+                    <p className="text-[11px] text-foreground/50">
+                      {recibo.recibo.quando} · registro {recibo.recibo.id.slice(0, 8)}
+                    </p>
+                    <button type="button"
+                      onClick={() => { const r = recibo.rota; fechar(true); router.push(r); }}
+                      className="flex w-full items-center justify-between gap-2 rounded-xl bg-[#047857] px-3 py-2 text-left text-sm font-bold text-white">
+                      <span>Conferir</span>
+                      <ChevronRight className="w-4 h-4" />
+                    </button>
                   </div>
                 )}
 
@@ -454,6 +516,14 @@ export function Diva({ estado, podeOuvir }: { estado: EstadoDoDiva; podeOuvir: b
                   </div>
                 )}
                 {erro && <p className="text-xs text-red-600">{erro}</p>}
+                {/* O MOTIVO técnico, miúdo e selecionável. Não é para ela resolver: é para ela
+                    conseguir dizer o que apareceu — a conta é free e a Vercel não guarda log de
+                    runtime que a gente possa ler depois. Ver `falhaDaEscuta`. */}
+                {motivo && (
+                  <p className="text-[11px] text-foreground/40 select-all" data-testid="motivo-da-falha">
+                    Detalhe para o suporte: {motivo}
+                  </p>
+                )}
               </div>
             )}
 
