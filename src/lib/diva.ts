@@ -25,6 +25,18 @@ export type TarefaDoDiva = {
   /** Uma linha de ajuda, quando o rótulo sozinho não basta. */
   dica?: string;
   /**
+   * O rótulo é um verbo que ESCREVE alguma coisa, e a voz, aqui, só abre a tela.
+   *
+   * Existe por um caso real (01/11): ela ditou "dar entrada em um pagamento para a paciente
+   * Talita", o Divã entendeu, mostrou um botão verde "Lançar um pagamento", levou-a à tela — e
+   * nada foi lançado. O app não errou; ele rebaixou um pedido completo a uma navegação **sem
+   * dizer**, e ela saiu achando que tinha lançado.
+   *
+   * Uma fala COMPLETA (verbo + paciente + valor) vira comando e nem passa por aqui. Isto é para
+   * a fala incompleta: a tela diz, em uma linha, que o preenchimento é lá.
+   */
+  soLeva?: boolean;
+  /**
    * O que reconhecer na fala. Minúsculas e sem acento — a comparação normaliza os dois lados.
    * Pensados como a terapeuta fala, não como o menu se chama ("quem me deve", "quem ta devendo").
    */
@@ -50,12 +62,14 @@ export const TAREFAS: TarefaDoDiva[] = [
     rotulo: "Bloquear um horário",
     rota: "/dashboard/agenda?bloquear=1",
     dica: "Para congresso, férias ou um dia que não vai atender.",
+    soLeva: true,
     ditos: ["bloquear", "bloquear horario", "bloquear o dia", "nao vou atender", "ferias", "congresso"],
   },
   {
     id: "lancar-pagamento",
     rotulo: "Lançar um pagamento",
     rota: "/dashboard/pagamentos",
+    soLeva: true,
     ditos: ["lancar pagamento", "lancar", "receber", "recebi", "pagamento", "pagou", "dar baixa", "baixa"],
   },
   {
@@ -69,12 +83,14 @@ export const TAREFAS: TarefaDoDiva[] = [
     rotulo: "Emitir um recibo",
     rota: "/dashboard/pagamentos",
     dica: "No pagamento desejado, clique em recibo.",
+    soLeva: true,
     ditos: ["recibo", "emitir recibo", "nota", "comprovante"],
   },
   {
     id: "novo-paciente",
     rotulo: "Cadastrar um paciente",
     rota: "/dashboard/patients/new",
+    soLeva: true,
     ditos: ["cadastrar", "novo paciente", "cadastrar paciente", "paciente novo", "incluir paciente"],
   },
   {
@@ -94,6 +110,7 @@ export const TAREFAS: TarefaDoDiva[] = [
     rotulo: "Escrever a evolução de uma sessão",
     rota: "/dashboard/patients",
     dica: "Abra o paciente e vá na guia Registros.",
+    soLeva: true,
     ditos: ["evolucao", "escrever evolucao", "registro", "anotar", "anotacao", "transcrever", "transcrever sessao"],
   },
   {

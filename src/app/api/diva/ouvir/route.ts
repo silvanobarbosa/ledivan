@@ -7,7 +7,8 @@ import { and, eq, gte, ne } from "drizzle-orm";
 import { rateLimit } from "@/lib/rateLimit";
 import { decryptSecret } from "@/lib/crypto";
 import { tarefaDaFala, TAREFAS } from "@/lib/diva";
-import { previaDoComando } from "@/lib/previaDoComando";
+import { previaDoComando, type CobrancaParaPagar } from "@/lib/previaDoComando";
+import { geralDoPaciente } from "@/lib/geralDoPaciente";
 import { horaDeParede } from "@/lib/horaLocal";
 import { audioAceitavel, dicaQueCabe, TETO_DO_AUDIO } from "@/lib/transcricao";
 
@@ -118,7 +119,7 @@ export async function POST(req: NextRequest) {
        * Groq passou a recusar TODO comando de voz com 400 (medido em 01/11). Ver `dicaQueCabe`.
        */
       prompt: dicaQueCabe(
-        `Verbos: anotar, anota, marcar, marca, agendar, cancelar, cancela, desmarcar. Comandos: ${TAREFAS.map((t) => t.rotulo).join("; ")}.`,
+        `Verbos: anotar, anota, marcar, marca, agendar, cancelar, cancela, desmarcar, lançar pagamento, dar baixa, recebi, pagou, pix. Comandos: ${TAREFAS.map((t) => t.rotulo).join("; ")}.`,
         nomesParaADica,
       ),
     });
@@ -154,17 +155,41 @@ export async function POST(req: NextRequest) {
       porPaciente.set(s.patientId, lista);
     }
 
-    const comando = previaDoComando(fala, meusPacientes, {
-      agora,
-      sessoesDoPaciente: (id) => porPaciente.get(id) ?? [],
-    });
+    const opcoes = { agora, sessoesDoPaciente: (id: string) => porPaciente.get(id) ?? [] };
+    let comando = previaDoComando(fala, meusPacientes, opcoes);
+
+    /**
+     * AS COBRANÇAS vêm depois de saber de QUEM — e por isso a leitura roda duas vezes.
+     *
+     * `geralDoPaciente` é o motor inteiro da guia Geral; rodá-lo para os 30 pacientes dela a cada
+     * comando de voz seria pagar trinta vezes por um dado que só interessa de um. A primeira
+     * passada (pura, sem banco) diz quem ela nomeou; só então o motor roda, para esse um.
+     */
+    if (comando?.acao === "pagar" && comando.paciente.tipo === "um") {
+      const alvo = comando.paciente.paciente.id;
+      const geral = await geralDoPaciente(userId, alvo);
+      const cobrancas: CobrancaParaPagar[] = (geral?.linhas ?? [])
+        .flatMap((l) => (l.tipo === "pagamento" ? [l] : l.tipo === "sessao" && l.cobranca ? [l.cobranca] : []))
+        .map((c) => {
+          const vencimento = c.vencimento ? new Date(horaDeParede(c.vencimento)) : null;
+          return {
+            chave: c.chave,
+            vencimento,
+            falta: Number(c.falta) || 0,
+            ano: vencimento ? vencimento.getFullYear() : agora.getFullYear(),
+          };
+        });
+      comando = previaDoComando(fala, meusPacientes, { ...opcoes, cobrancasDoPaciente: () => cobrancas });
+    }
 
     const tarefa = comando ? null : tarefaDaFala(fala);
     return NextResponse.json({
       ok: true,
       fala,
       comando,
-      tarefa: tarefa ? { id: tarefa.id, rotulo: tarefa.rotulo, rota: tarefa.rota, dica: tarefa.dica ?? null } : null,
+      tarefa: tarefa
+        ? { id: tarefa.id, rotulo: tarefa.rotulo, rota: tarefa.rota, dica: tarefa.dica ?? null, soLeva: tarefa.soLeva ?? false }
+        : null,
     });
   } catch (e) {
     console.error("Divã não conseguiu ouvir:", e);

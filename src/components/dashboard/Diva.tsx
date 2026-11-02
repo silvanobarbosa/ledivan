@@ -44,10 +44,13 @@ const hojeISO = () => new Date().toISOString().slice(0, 10);
 
 type PacienteNaTela = { id: string; nome: string };
 type PreviaNaTela = {
-  acao: "anotar" | "reservar" | "cancelar";
+  acao: "anotar" | "reservar" | "cancelar" | "pagar";
   paciente: { tipo: "um"; paciente: PacienteNaTela } | { tipo: "varios"; candidatos: PacienteNaTela[] } | { tipo: "nenhum" };
   quando: { iso: string; porExtenso: string } | null;
   texto: string;
+  valor: number | null;
+  forma: string | null;
+  cobranca?: { chave: string; porExtenso: string; falta: number; ano: number } | null;
   sessoes?: { id: string; porExtenso: string }[];
   faltando: string[];
 };
@@ -56,7 +59,10 @@ const VERBO: Record<PreviaNaTela["acao"], string> = {
   anotar: "Anotar no prontuário",
   reservar: "Marcar atendimento",
   cancelar: "Cancelar atendimento",
+  pagar: "Lançar pagamento",
 };
+
+const reais = (n: number) => n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
 export function Diva({ estado, podeOuvir }: { estado: EstadoDoDiva; podeOuvir: boolean }) {
   const [aberto, setAberto] = useState(false);
@@ -145,6 +151,26 @@ export function Diva({ estado, podeOuvir }: { estado: EstadoDoDiva; podeOuvir: b
   function confirmarComando() {
     if (!comando || comando.paciente.tipo !== "um" || comando.faltando.length) return;
     const paciente = comando.paciente.paciente;
+
+    /**
+     * PAGAR não escreve por voz, pelo mesmo motivo que reservar não escreve.
+     *
+     * O lançamento carrega escolhas com consequência em dinheiro — a cobrança que ele quita, quem
+     * pagou, a forma, o que fazer com a sobra e com a diferença. A voz leva a tela até ali, com a
+     * cobrança certa aberta e o valor preenchido; quem aperta "Lançar pagamento" é ela.
+     */
+    if (comando.acao === "pagar" && comando.cobranca && comando.valor != null) {
+      const q = new URLSearchParams({
+        ano: String(comando.cobranca.ano),
+        cobranca: comando.cobranca.chave,
+        pagar: "1",
+        valor: comando.valor.toFixed(2),
+      });
+      if (comando.forma) q.set("forma", comando.forma);
+      fechar(true);
+      router.push(`/dashboard/patients/${paciente.id}?${q.toString()}`);
+      return;
+    }
 
     if (comando.acao === "reservar" && comando.quando) {
       // Reservar não escreve por voz: leva à janela preenchida, e ela aperta Agendar.
@@ -371,6 +397,14 @@ export function Diva({ estado, podeOuvir }: { estado: EstadoDoDiva; podeOuvir: b
                       )
                     )}
 
+                    {/* PAGAR: o valor e a cobrança que ele vai quitar, antes de a tela abrir. */}
+                    {comando.acao === "pagar" && comando.valor != null && (
+                      <p className="text-sm font-bold text-foreground/80">{reais(comando.valor)}</p>
+                    )}
+                    {comando.acao === "pagar" && comando.cobranca && (
+                      <p className="text-xs text-foreground/60">{comando.cobranca.porExtenso}</p>
+                    )}
+
                     {comando.faltando.length > 0 && (
                       <p className="text-xs text-[#92400e]">{comando.faltando[0]}</p>
                     )}
@@ -395,6 +429,7 @@ export function Diva({ estado, podeOuvir }: { estado: EstadoDoDiva; podeOuvir: b
                         {executando ? <><Loader2 className="w-4 h-4 animate-spin" /> Fazendo…</>
                           : comando.acao === "reservar" ? "Abrir o agendamento preenchido"
                           : comando.acao === "cancelar" ? "Confirmar o cancelamento"
+                          : comando.acao === "pagar" ? "Abrir o lançamento preenchido"
                           : "Confirmar a anotação"}
                       </button>
                     )}
@@ -402,11 +437,21 @@ export function Diva({ estado, podeOuvir }: { estado: EstadoDoDiva; podeOuvir: b
                 )}
 
                 {sugestao && (
-                  <button type="button" onClick={() => ir(sugestao)}
-                    className="flex w-full items-center justify-between gap-2 rounded-xl bg-[#ecfdf5] border border-[#a7f3d0] px-3 py-2.5 text-left">
-                    <span className="text-sm font-bold text-[#047857]">{sugestao.rotulo}</span>
-                    <ChevronRight className="w-4 h-4 text-[#047857]" />
-                  </button>
+                  <div className="space-y-1">
+                    <button type="button" onClick={() => ir(sugestao)}
+                      className="flex w-full items-center justify-between gap-2 rounded-xl bg-[#ecfdf5] border border-[#a7f3d0] px-3 py-2.5 text-left">
+                      <span className="text-sm font-bold text-[#047857]">{sugestao.rotulo}</span>
+                      <ChevronRight className="w-4 h-4 text-[#047857]" />
+                    </button>
+                    {/* O rótulo é um verbo, mas aqui ele só NAVEGA. Dizer isso é o conserto do
+                        caso de 01/11: ela ditou um pagamento, foi levada à tela e saiu achando
+                        que tinha lançado. Ver `soLeva` em `lib/diva.ts`. */}
+                    {sugestao.soLeva && (
+                      <p className="text-[11px] text-foreground/50 px-1">
+                        Por voz eu te levo até a tela — o preenchimento é lá.
+                      </p>
+                    )}
+                  </div>
                 )}
                 {erro && <p className="text-xs text-red-600">{erro}</p>}
               </div>
