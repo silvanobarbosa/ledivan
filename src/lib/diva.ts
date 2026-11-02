@@ -66,9 +66,22 @@ export const TAREFAS: TarefaDoDiva[] = [
     ditos: ["bloquear", "bloquear horario", "bloquear o dia", "nao vou atender", "ferias", "congresso"],
   },
   {
+    /**
+     * NÃO É NA CARTEIRA QUE SE LANÇA.
+     *
+     * Esta tarefa levava a `/dashboard/pagamentos` — a tela chamada **Carteira**, que mostra
+     * recebimentos por mês e não tem onde lançar nada. O rótulo prometia um verbo e entregava uma
+     * tela de leitura: a terapeuta chegava lá e não conseguia fazer o que tinha pedido (relato do
+     * dono, 02/11: "não vai pro local correto onde manualmente é feito o lançamento").
+     *
+     * O lançamento manual mora na FICHA DO PACIENTE, guia Geral, na linha da cobrança. Como esta
+     * tarefa não sabe de qual paciente se trata — se soubesse, teria virado comando e o Divã já
+     * teria lançado —, ela leva à lista de pacientes e diz o caminho.
+     */
     id: "lancar-pagamento",
     rotulo: "Lançar um pagamento",
-    rota: "/dashboard/pagamentos",
+    rota: "/dashboard/patients",
+    dica: "Escolha o paciente: o lançamento fica na ficha dele, guia Geral, na linha da cobrança. Ou diga “lança o pagamento da Fulana, 400 reais” que eu lanço.",
     soLeva: true,
     ditos: ["lancar pagamento", "lancar", "receber", "recebi", "pagamento", "pagou", "dar baixa", "baixa"],
   },

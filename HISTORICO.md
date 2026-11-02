@@ -7,6 +7,30 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-11-02 — O pedido de dinheiro que morria na Carteira
+
+**Entregue:** 11 formas novas de pedir lançamento viram comando, e a tarefa "Lançar um pagamento"
+deixou de levar à Carteira (#550).
+
+**Por quê:** segunda tentativa da terapeuta: "ele recebeu, transcreveu, e foi pra carteira, mas
+não lançou". Como a voz já grava, ir para uma TELA só podia significar que a fala não virou
+comando. Medido: de 20 falas naturais, **8 não viravam comando**, e 5 iam parar em
+`/dashboard/pagamentos` — a tela **Carteira**, que é de leitura. O rótulo prometia um verbo e
+entregava uma tela onde não se lança nada.
+
+**Decisões que ficam valendo:** o lançamento manual mora na ficha do paciente, guia Geral — a
+tarefa de navegação agora leva à lista de pacientes e diz o caminho. O verbo de "dinheiro
+chegando" é lista curta de propósito: "mandou" ficou de fora porque "a Marcela mandou mensagem"
+não é pagamento.
+
+**Armadilhas:** faltava a conjugação curta ("registra" só existia como "registrar"), o substantivo
+("faz o lançamento"), o verbo sem a palavra pagamento ("lança 400 da Talita") e a forma de
+pagamento como verbo ("pix de 400 da Talita"). **Quem fala não repete o nome do menu.**
+
+**Pendente:** nada deste bloco.
+
+---
+
 ## 2026-11-02 — Motores de teste: propriedade e mutação
 
 **Entregue:** `fast-check` com geradores que parecem com a produção (`tests/geradores.ts`), 5
