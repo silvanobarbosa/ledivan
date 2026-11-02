@@ -57,8 +57,16 @@ conta.
 **Pendente:**
 - Merge do #544 (botão do dono). Pode conflitar no `HISTORICO.md` com o #543, que não está nesta
   branch — as duas entradas são de 01/11 e vão para o topo.
-- Uma vigência com o ano digitado errado na base (1925). Fora do escopo deste documento; é do dono
-  decidir se corrige.
+- Merge do #544.
+
+**Correção fechada depois (mesmo PR):** a vigência com o ano digitado errado — 23/07/**1925** em vez
+de 2025, quatro linhas da Meyla (uma de preço, três de configuração). Que era erro de digitação, a
+própria base provou: o início dela é 23/07/2025 e a vigência do FORMATO, gravada no mesmo
+salvamento, traz 23/07/2025. Corrigido por `corrigir-ano-digitado-errado-doc75.mjs`, que RECUSA
+qualquer linha cujo ano corrigido não seja o ano do início do paciente. Medido antes de aplicar: a
+guia Geral dela em 2025 e 2026 (117 linhas, cobranças e pagamentos) fica IDÊNTICA — o preço de
+entrada vale para o que vem antes dele, então 1925 e 2025-07-23 cobrem as mesmas sessões. Dinheiro
+nenhum mudou.
 
 ## 2026-11-01 — Importar dados de outro sistema por planilha
 
