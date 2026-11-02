@@ -6,7 +6,7 @@ import Image from "next/image";
 import { Mic, Square, X, ChevronRight, Loader2 } from "lucide-react";
 import { abreSozinho, avisosDoDiva, TAREFAS, type EstadoDoDiva, type TarefaDoDiva } from "@/lib/diva";
 import { useJanela } from "@/lib/useJanela";
-import { anotarPorVoz, cancelarPorVoz } from "@/app/dashboard/diva-actions";
+import { anotarPorVoz, cancelarPorVoz, pagarPorVoz } from "@/app/dashboard/diva-actions";
 import type { ReciboDaVoz } from "@/lib/reciboDaVoz";
 import { FLUTUANTE_DIVA, FUNDO_DA_JANELA, JANELA } from "@/lib/modal";
 
@@ -163,26 +163,6 @@ export function Diva({ estado, podeOuvir }: { estado: EstadoDoDiva; podeOuvir: b
     if (!comando || comando.paciente.tipo !== "um" || comando.faltando.length) return;
     const paciente = comando.paciente.paciente;
 
-    /**
-     * PAGAR não escreve por voz, pelo mesmo motivo que reservar não escreve.
-     *
-     * O lançamento carrega escolhas com consequência em dinheiro — a cobrança que ele quita, quem
-     * pagou, a forma, o que fazer com a sobra e com a diferença. A voz leva a tela até ali, com a
-     * cobrança certa aberta e o valor preenchido; quem aperta "Lançar pagamento" é ela.
-     */
-    if (comando.acao === "pagar" && comando.cobranca && comando.valor != null) {
-      const q = new URLSearchParams({
-        ano: String(comando.cobranca.ano),
-        cobranca: comando.cobranca.chave,
-        pagar: "1",
-        valor: comando.valor.toFixed(2),
-      });
-      if (comando.forma) q.set("forma", comando.forma);
-      fechar(true);
-      router.push(`/dashboard/patients/${paciente.id}?${q.toString()}`);
-      return;
-    }
-
     if (comando.acao === "reservar" && comando.quando) {
       // Reservar não escreve por voz: leva à janela preenchida, e ela aperta Agendar.
       fechar(true);
@@ -194,6 +174,30 @@ export function Diva({ estado, podeOuvir }: { estado: EstadoDoDiva; podeOuvir: b
     setErro(null);
     void (async () => {
       try {
+        /**
+         * PAGAR grava, por decisão do dono (02/11) — e grava pelo motor da tela.
+         *
+         * Antes esta ação só NAVEGAVA: levava à carteira com o formulário aberto e preenchido, e
+         * esperava o toque dela. O relato que virou a decisão: "o sistema pediu a confirmação, foi
+         * confirmado, ele abriu a carteira, mas o lançamento não entrou". Quem confirma um pedido
+         * completo considera o pedido feito. Ver `pagarPorVoz`.
+         */
+        if (comando.acao === "pagar") {
+          if (!comando.cobranca || comando.valor == null) { setErro("Não sei qual cobrança pagar."); return; }
+          const r = await pagarPorVoz({
+            patientId: paciente.id,
+            cobrancaChave: comando.cobranca.chave,
+            valor: comando.valor,
+            forma: comando.forma,
+            // A data que ela disse ("em 31/10"). Sem data dita, o servidor usa hoje.
+            dataIso: comando.quando?.iso ?? null,
+          });
+          if (!r.ok || !r.recibo) { setErro(r.error ?? "Não consegui lançar o pagamento."); return; }
+          setComando(null);
+          setRecibo({ recibo: r.recibo, rota: `/dashboard/patients/${paciente.id}` });
+          return;
+        }
+
         if (comando.acao === "anotar") {
           const r = await anotarPorVoz(paciente.id, comando.texto);
           if (!r.ok || !r.recibo) { setErro(r.error ?? "Não consegui anotar."); return; }
@@ -460,16 +464,18 @@ export function Diva({ estado, podeOuvir }: { estado: EstadoDoDiva; podeOuvir: b
                         {executando ? <><Loader2 className="w-4 h-4 animate-spin" /> Fazendo…</>
                           : comando.acao === "reservar" ? "Abrir o agendamento preenchido"
                           : comando.acao === "cancelar" ? "Confirmar o cancelamento"
-                          : comando.acao === "pagar" ? "Abrir o lançamento preenchido"
+                          : comando.acao === "pagar" ? "Confirmar o pagamento"
                           : "Confirmar a anotação"}
                       </button>
                     )}
 
-                    {/* Reservar e pagar NÃO gravam por voz. Dizer isso aqui é o mesmo conserto do
-                        `soLeva` das tarefas: o rótulo é um verbo, e sem esta linha ela sai achando
-                        que já aconteceu. Ver [[licao-rebaixamento-silencioso]]. */}
+                    {/* Reservar NÃO grava por voz (criar sessão pula as perguntas de sequência do
+                        pacote e modalidade, que têm consequência em dinheiro). Dizer isso aqui é o
+                        mesmo conserto do `soLeva` das tarefas: o rótulo é um verbo, e sem esta linha
+                        ela sai achando que já aconteceu. Ver [[licao-rebaixamento-silencioso]].
+                        PAGAR saiu desta lista em 02/11: agora grava e mostra recibo. */}
                     {comando.paciente.tipo === "um" && comando.faltando.length === 0
-                      && (comando.acao === "reservar" || comando.acao === "pagar") && (
+                      && comando.acao === "reservar" && (
                       <p className="text-[11px] text-[#4338ca]">
                         Nada é gravado agora: a tela abre preenchida e quem confirma é você.
                       </p>
