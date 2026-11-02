@@ -6,7 +6,7 @@ import { patients, therapySessions, users } from "@/db/schema";
 import { and, eq, gte, ne } from "drizzle-orm";
 import { rateLimit } from "@/lib/rateLimit";
 import { decryptSecret } from "@/lib/crypto";
-import { tarefaDaFala, TAREFAS } from "@/lib/diva";
+import { BASE_DA_DICA, tarefaDaFala } from "@/lib/diva";
 import { previaDoComando, type CobrancaParaPagar } from "@/lib/previaDoComando";
 import { geralDoPaciente } from "@/lib/geralDoPaciente";
 import { horaDeParede } from "@/lib/horaLocal";
@@ -120,10 +120,7 @@ export async function POST(req: NextRequest) {
        * relação com nada) e por caractere (que ignora o acento valendo 2 bytes); as duas versões
        * derrubaram TODO comando de voz com 400. Ver `dicaQueCabe`.
        */
-      prompt: dicaQueCabe(
-        `Verbos: anotar, anota, marcar, marca, agendar, cancelar, cancela, desmarcar, lançar pagamento, dar baixa, recebi, pagou, pix. Comandos: ${TAREFAS.map((t) => t.rotulo).join("; ")}.`,
-        nomesParaADica,
-      ),
+      prompt: dicaQueCabe(BASE_DA_DICA, nomesParaADica),
     });
 
     const fala = (r.text ?? "").trim();

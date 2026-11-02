@@ -9,11 +9,16 @@ import { config } from "dotenv";
 config({ path: "C:/Users/User/Ledivan Plus/.env.local", quiet: true });
 import { neon } from "@neondatabase/serverless";
 const { decryptSecret } = await import("../src/lib/crypto.ts");
-const { TAREFAS } = await import("../src/lib/diva.ts");
-const { dicaQueCabe, TETO_DA_DICA } = await import("../src/lib/transcricao.ts");
+const { BASE_DA_DICA } = await import("../src/lib/diva.ts");
+const { bytesDe, dicaQueCabe, TETO_DA_DICA } = await import("../src/lib/transcricao.ts");
 
 const sql = neon(process.env.DATABASE_URL);
-const BASE_VERBOS = `Verbos: anotar, anota, marcar, marca, agendar, cancelar, cancela, desmarcar. Comandos: ${TAREFAS.map((t) => t.rotulo).join("; ")}.`;
+/**
+ * A base vem de `BASE_DA_DICA`, a MESMA da rota. Aqui havia uma cópia, que ficou para trás sem os
+ * verbos de pagamento: o diagnostico media uma dica menor que a de produção e dava tudo-certo
+ * enquanto a terapeuta seguia sem conseguir falar (01/11).
+ */
+const BASE_VERBOS = BASE_DA_DICA;
 
 const terapeutas = await sql`SELECT id, email, ai_provider, ai_key_enc FROM "user" WHERE ai_key_enc IS NOT NULL`;
 let falhas = 0;
@@ -24,9 +29,11 @@ for (const t of terapeutas) {
   const nova = dicaQueCabe(BASE_VERBOS, nomes);
   const cabem = (nova.match(/Pacientes: (.*)\.$/)?.[1] ?? "").split(", ").filter(Boolean).length;
   console.log(`${t.email} · ${t.ai_provider} · ${nomes.length} pacientes`);
-  console.log(`   dica ANTIGA: ${antiga.length} chars ${antiga.length > TETO_DA_DICA ? "← ESTOURAVA" : "(cabia)"}`);
-  console.log(`   dica NOVA:   ${nova.length} chars · ${cabem} de ${nomes.length} nomes`);
-  if (nova.length > TETO_DA_DICA) { console.log("   FALHA: a dica nova passou do teto"); falhas++; continue; }
+  // BYTES, nao caracteres: e o que o provedor mede, apesar de a mensagem de erro dele dizer
+  // "characters". Este script media `.length` e por isso aprovou uma dica de 898 bytes (02/11).
+  console.log(`   dica ANTIGA: ${bytesDe(antiga)} bytes ${bytesDe(antiga) > TETO_DA_DICA ? "<- ESTOURAVA" : "(cabia)"}`);
+  console.log(`   dica NOVA:   ${bytesDe(nova)} bytes (${nova.length} chars) · ${cabem} de ${nomes.length} nomes`);
+  if (bytesDe(nova) > TETO_DA_DICA) { console.log("   FALHA: a dica nova passou do teto"); falhas++; continue; }
 
   // A prova de verdade: o provedor aceita? Áudio mínimo, uma chamada.
   const taxa = 8000, n = taxa;
@@ -45,9 +52,20 @@ for (const t of terapeutas) {
   const url = t.ai_provider === "groq"
     ? "https://api.groq.com/openai/v1/audio/transcriptions"
     : "https://api.openai.com/v1/audio/transcriptions";
-  const r = await fetch(url, { method: "POST", headers: { Authorization: `Bearer ${decryptSecret(t.ai_key_enc)}` }, body: fd });
+  /**
+   * Uma conta ruim nao pode matar a conferencia das outras.
+   *
+   * A conta de QA guarda um blob de chave malformado e `decryptSecret` estourava ali, no meio do
+   * laco: o script morria antes de olhar as terapeutas de verdade. Instrumento que para na
+   * primeira sujeira nao mede a frota.
+   */
+  let chave;
+  try { chave = decryptSecret(t.ai_key_enc); }
+  catch { console.log("   chave ilegivel (blob invalido) - nao da pra perguntar ao provedor"); falhas++; continue; }
+
+  const r = await fetch(url, { method: "POST", headers: { Authorization: `Bearer ${chave}` }, body: fd });
   const corpo = r.ok ? "" : (await r.text()).replace(/\s+/g, " ").slice(0, 160);
-  console.log(`   provedor com a dica nova: HTTP ${r.status} ${r.ok ? "(aceito)" : "→ " + corpo}`);
+  console.log(`   provedor com a dica nova: HTTP ${r.status} ${r.ok ? "(aceito)" : "-> " + corpo}`);
   if (!r.ok) falhas++;
 }
 console.log(`\n${falhas ? `${falhas} FALHA(S)` : "todas as dicas cabem e o provedor aceita"}`);
