@@ -200,6 +200,17 @@ export async function lancarPagamento(entrada: {
   const texto = (v: unknown) => String(v ?? "").trim().slice(0, 500);
   const sobrou = valorNum - faltaDaCobranca > 0.005;
   const motivoSemCredito = sobrou && entrada?.creditarExcedente !== true ? texto(entrada?.motivoSemCredito) : "";
+  /**
+   * Doc 75: QUANTO sobrou e não virou crédito — o fato, não a justificativa.
+   *
+   * É a mesma condição do motivo acima, só que gravada como número e sem depender de ela escrever
+   * nada. É esta coluna que faz "pagou a mais" no fechamento (ver `fechamento.ts`): sem ela, a tela
+   * deduzia a sobra de "pagou mais do que foi cobrado até aqui" e varria para dentro quem pagou
+   * vários pacotes no mês ou um pacote adiantado ainda em aberto, que não é pagar a mais.
+   */
+  const excedenteSemCredito = sobrou && entrada?.creditarExcedente !== true
+    ? Number((valorNum - faltaDaCobranca).toFixed(2))
+    : null;
   const motivoSemDiferenca = quita ? texto(entrada?.motivoSemDiferenca) : "";
   // Meio-dia: a coluna é hora de parede, e meio-dia não troca de dia em fuso nenhum do caminho.
   const date = new Date(`${entrada.data}T12:00:00`);
@@ -235,6 +246,7 @@ export async function lancarPagamento(entrada: {
     quitaDiferenca: quita,
     motivoSemCredito: motivoSemCredito || null,
     motivoSemDiferenca: motivoSemDiferenca || null,
+    excedenteSemCredito: excedenteSemCredito == null ? null : excedenteSemCredito.toFixed(2),
     // Só faz sentido quando sobra diferença — e nunca junto de "não haverá diferença de valor".
     diferencaOutraData: !quita && entrada?.diferencaOutraData === true && valorNum + creditoAplicado < faltaDaCobranca - 0.005,
     linkedTransactionId: tx?.id ?? null,

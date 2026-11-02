@@ -557,6 +557,13 @@ export const patientPriceHistory = pgTable("patient_price_history", {
   // NULO é o estado das linhas anteriores ao doc 69 — "ninguém respondeu" —, e é ele que mantém as
   // cobranças já existentes como estão. Sem default: nulo tem significado próprio. Ver `lib/preco.ts`.
   aplicaEm: text("aplica_em"),
+  // Doc 75: a vigência que a pessoa DIGITOU em "Vale a partir de", quando ela não é a mesma coisa
+  // que `dataEfetiva`. Com "aplicar no próximo pacote" (doc 69/73), `dataEfetiva` vira o início do
+  // próximo pacote — e o prazo do próximo reajuste passou a ser empurrado junto, o que o dono
+  // apontou. Uma data diz quando o DINHEIRO muda; esta diz de quando corre o PRAZO.
+  // NULA quando as duas coincidem (e nas linhas anteriores ao doc 75): nulo = "é a própria
+  // dataEfetiva". Ver `vigenciaDoReajuste` em `lib/reajuste.ts`.
+  vigenciaDeclarada: timestamp("vigencia_declarada"),
   dataCriacao: timestamp("data_criacao").defaultNow().notNull(),
 });
 
@@ -900,6 +907,20 @@ export const sessionPayments = pgTable("session_payments", {
    */
   motivoSemCredito: text("motivo_sem_credito"),
   motivoSemDiferenca: text("motivo_sem_diferenca"),
+  /**
+   * Doc 75: QUANTO sobrou e NÃO virou crédito no saldo — a resposta "Não" daquela mesma pergunta.
+   *
+   * Até aqui essa resposta só existia pelo texto OPCIONAL acima: quem respondia "Não" sem escrever
+   * nada não deixava rastro nenhum. Com isso, "pagou a mais" no fechamento era deduzido da conta
+   * (pago acumulado maior que o cobrado acumulado) e varria para dentro quem não pagou a mais
+   * nenhum — quem pagou vários pacotes dentro do mês, ou pagou um pacote adiantado que ainda não
+   * fechou. Foi o que o dono apontou: só Paula (R$ 15) e Roberta (R$ 30) tinham pago a mais de
+   * verdade, e a coluna acusava nove pessoas.
+   *
+   * NULO = não houve sobra, ou a sobra virou crédito (que tem vida própria em `patient_credits`).
+   * É o valor em dinheiro que ficou acima da cobrança e ninguém reclamou de volta.
+   */
+  excedenteSemCredito: numeric("excedente_sem_credito", { precision: 10, scale: 2 }),
   // VINCULO OPCIONAL com o financeiro: se preenchido, este pagamento gerou uma transacao de receita.
   linkedTransactionId: uuid("linked_transaction_id").references(() => transactions.id, { onDelete: "set null" }),
   // Receita Saúde (recibo eletrônico da RF, emissão manual no app): controle de emissão por pagamento.

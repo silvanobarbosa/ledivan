@@ -517,13 +517,27 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
     });
   }
 
+  /**
+   * Doc 75: a janela "Excluir apenas este, ou este e os próximos?" só aparece quando HÁ próximos.
+   *
+   * Mesma razão do doc 73 no editar (`submitEdit`): sem próximas sessões as duas respostas fazem
+   * a mesma coisa, e a terapeuta paga um clique para escolher entre o mesmo e o mesmo. Por isso o
+   * alcance é contado ANTES de abrir — abrir primeiro e contar depois faria a janela piscar.
+   */
   function abrirExclusao(id: string) {
-    setPerguntaExcluir({ id, passo: "inicio" });
-    void contarAlcance(id).then(setQuantos);
+    void contarAlcance(id)
+      .then((n) => {
+        if ((n?.todas ?? 0) <= 1) return aplicarExclusao("apenas_esta", id);
+        setQuantos(n);
+        setPerguntaExcluir({ id, passo: "inicio" });
+      })
+      // Falhou a contagem? Pergunta, como sempre perguntou — é o lado seguro: o outro apaga
+      // sessões que ninguém mandou apagar.
+      .catch(() => setPerguntaExcluir({ id, passo: "inicio" }));
   }
 
-  function aplicarExclusao(alcance: string) {
-    const alvo = perguntaExcluir?.id;
+  function aplicarExclusao(alcance: string, id?: string) {
+    const alvo = id ?? perguntaExcluir?.id;
     if (!alvo) return;
     startTransition(async () => {
       const r = await excluirAgendamento(alvo, alcance);

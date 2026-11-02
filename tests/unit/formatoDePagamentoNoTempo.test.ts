@@ -102,12 +102,16 @@ describe("salvar o cadastro sem mudar nada não muda nada", () => {
 });
 
 describe("crédito não some da tela", () => {
-  it("gratuito com dinheiro a devolver aparece como pago a mais, não como 'sem cobrança'", () => {
-    // Paciente sem histórico, cadastro gratuito, com um pagamento feito. Antes a situação escondia o
-    // crédito atrás de "sem cobrança".
+  it("gratuito com dinheiro a devolver NÃO vira 'sem cobrança' — o dinheiro fica à vista", () => {
+    // Paciente sem histórico, cadastro gratuito, com um pagamento feito. A situação escondia o
+    // crédito atrás de "sem cobrança", e o dinheiro sumia da leitura sem sumir do banco.
+    //
+    // Doc 75: o rótulo deixou de ser "pagou a mais" (que agora exige a sobra marcada como "não
+    // entra como crédito"), mas o que este teste protege segue valendo — o saldo aparece.
     const l = linha(SETEMBRO, [], [{ valor: 800, data: new Date(2026, 7, 30) }], "gratuito");
     expect(l.saldo).toBe(-800);
-    expect(l.situacao).toBe("pago_a_mais");
+    expect(l.situacao).not.toBe("sem_cobranca");
+    expect(l.situacao).toBe("pago");
   });
 
   it("gratuito sem nada a acertar continua 'sem cobrança'", () => {

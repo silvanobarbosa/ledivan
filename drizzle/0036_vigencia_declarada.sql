@@ -1,0 +1,13 @@
+-- Doc 75 item 3: o prazo do proximo reajuste conta da VIGENCIA DECLARADA ("Vale a partir de"),
+-- e nao da data em que o valor novo passa a valer.
+--
+-- Doc 69/73 criou a resposta "aplicar no proximo pacote a iniciar": nela, `data_efetiva` deixa de
+-- ser a data que a pessoa digitou e passa a ser o inicio do proximo pacote, as vezes meses depois.
+-- Como o lembrete de reajuste contava dessa mesma coluna, o prazo era empurrado junto, e o dono viu
+-- isso nas datas da Patricia, da Thayna e da Celani. As duas datas sao coisas diferentes: uma diz
+-- quando o DINHEIRO muda, a outra diz de quando corre o PRAZO.
+--
+-- NULA de proposito nas linhas antigas e em toda linha onde as duas datas coincidem: nulo le-se
+-- "a vigencia e a propria data_efetiva". Nao ha backfill porque nao ha como recuperar o que a
+-- pessoa digitou em registros ja gravados.
+ALTER TABLE "patient_price_history" ADD COLUMN IF NOT EXISTS "vigencia_declarada" timestamp;

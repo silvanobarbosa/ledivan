@@ -8,7 +8,7 @@ import { ChevronRight, MessageCircle, Trash2 } from "lucide-react";
 import { apagarReajuste, apagarReajusteChange } from "@/app/dashboard/patients/actions";
 import { QUEIXAS } from "@/lib/queixas";
 import { idadeEmAnos, idadeEmPalavras } from "@/lib/idade";
-import { agruparPorVigencia, historicoDeReajuste, usaPacote } from "@/lib/reajuste";
+import { agruparPorVigencia, ehAlteracaoDeCampo, historicoDeReajuste, usaPacote } from "@/lib/reajuste";
 import { horaDeParede } from "@/lib/horaLocal";
 import { parseMoedaBR } from "@/lib/money";
 import { MoneyInput as MoneyInputBase } from "@/components/MoneyInput";
@@ -313,10 +313,19 @@ export function PatientFormFields({ p, save, tabInicial, contrato, patientId }: 
   // primeira/última do pacote deixaram de ser modalidades próprias (prints 6.pdf, item 20): viram
   // OPÇÕES de "quando cobrar" dentro do Mensal pacote completo. No radio elas aparecem como "mensal".
   const ehTimingDePacote = (f?: string | null) => f === "primeira_pacote" || f === "ultima_pacote";
+  /**
+   * Doc 75: sem formato gravado, NENHUM vem marcado — nem "Avulso".
+   *
+   * A queda em "sessao" fazia o Financeiro abrir com Avulso selecionado e já expandido, e isso
+   * mente duas vezes: diz que o paciente é avulso quando ninguém escolheu nada, e mostra os campos
+   * de um formato como se fossem os dele. Vazio deixa a escolha à vista, e o servidor segue com a
+   * mesma rede de sempre (no cadastro novo, `paymentFormat` cai em "sessao"; na edição, mantém o
+   * que já estava gravado) — ou seja, vazio não apaga formato de ninguém.
+   */
   const formatoInicial = p?.paymentFormat === "avulso" ? "sessao"
     : p?.paymentFormat === "pacote" ? "mensal"
     : ehTimingDePacote(p?.paymentFormat) ? "mensal"
-    : (p?.paymentFormat || "sessao");
+    : (p?.paymentFormat || "");
   const [format, setFormat] = useState(formatoInicial);
   // Quando cobrar o pacote completo: no vencimento mensal (padrão) ou na 1ª/última sessão do pacote.
   const [quandoCobra, setQuandoCobra] = useState(ehTimingDePacote(p?.paymentFormat) ? p!.paymentFormat! : "mensal");
@@ -870,7 +879,9 @@ export function PatientFormFields({ p, save, tabInicial, contrato, patientId }: 
                 vigencia: l.data, solicitadoEm: l.solicitadoEm, descricao: l.texto, valor: l.valor,
                 lixeira: l.removivel ? { tipo: "vigencia" as const, vigencia: l.data } : null,
               })),
-              ...(p?.reajusteChanges ?? []).map((m) => ({
+              // Doc 75: as linhas `— → valor` gravadas antes desta regra não aparecem (nada é
+              // apagado — ver `ehAlteracaoDeCampo`): eram o Financeiro sendo preenchido, não alterado.
+              ...(p?.reajusteChanges ?? []).filter(ehAlteracaoDeCampo).map((m) => ({
                 vigencia: m.vigencia ? new Date(m.vigencia) : new Date(m.at),
                 solicitadoEm: new Date(m.at),
                 descricao: rotuloMudanca(m.campo, m.de, m.para),

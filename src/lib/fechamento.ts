@@ -63,6 +63,13 @@ export type PagamentoDoMes = {
   status: string;
   /** Doc 50: forma de pagamento — o recebido entra pelo líquido no débito/crédito. */
   metodo?: string | null;
+  /**
+   * Doc 75: quanto deste pagamento sobrou e NÃO virou crédito no saldo (a resposta "Não").
+   *
+   * É o único dado que diz "pagou a mais" — ver `situacao`. Ausente ou zero: ou não sobrou nada, ou
+   * a sobra virou crédito, que é outra coisa e tem vida própria.
+   */
+  excedenteSemCredito?: number | string | null;
 };
 
 
@@ -93,6 +100,14 @@ export type LinhaDoFechamento = {
    * quita corretamente um pacote de agosto.
    */
   saldo: number;
+  /**
+   * Doc 75: a sobra MARCADA como "não entra como crédito no saldo", acumulada até aquele mês.
+   *
+   * É este número — e só ele — que faz "pagou a mais". O saldo negativo não serve: ele também fica
+   * negativo em quem pagou vários pacotes dentro do mês e em quem pagou um pacote adiantado que
+   * ainda não fechou, e nenhum dos dois pagou a mais.
+   */
+  excedenteSemCredito: number;
   situacao: SituacaoDoFechamento;
 };
 
@@ -247,7 +262,25 @@ export function pagoAte(pagamentos: PagamentoDoMes[], pacienteId: string, ano: n
   return Number(total.toFixed(2));
 }
 
-function situacao(opts: { cobra: boolean; sessoes: number; valor: number; pago: number }): SituacaoDoFechamento {
+/**
+ * Doc 75: a sobra marcada como "não entra como crédito", somada até o fim daquele mês.
+ *
+ * Diferente de `pagoAte`, aqui NÃO se desconta taxa de cartão: o que o dono chama de pago a mais é
+ * o dinheiro que a paciente deu além da cobrança e não pediu de volta — "presente da paciente", nas
+ * palavras dela. A taxa da maquininha é um custo da casa, não um desconto nesse presente.
+ */
+export function excedenteSemCreditoAte(pagamentos: PagamentoDoMes[], pacienteId: string, ano: number, mes: number): number {
+  const limite = new Date(ano, mes + 1, 0, 23, 59, 59, 999);
+  const total = pagamentos
+    .filter((p) => p.pacienteId === pacienteId && p.status === "paid")
+    .map((p) => ({ valor: Number(p.excedenteSemCredito ?? 0), data: emData(p.data) }))
+    .filter((p) => Number.isFinite(p.valor) && p.valor > 0 && !Number.isNaN(p.data.getTime()))
+    .filter((p) => p.data.getTime() <= limite.getTime())
+    .reduce((soma, p) => soma + p.valor, 0);
+  return Number(total.toFixed(2));
+}
+
+function situacao(opts: { cobra: boolean; sessoes: number; valor: number; pago: number; excedenteSemCredito: number }): SituacaoDoFechamento {
   const saldo = opts.valor - opts.pago;
   // "Sem cobrança" só quando não há NADA a acertar. Antes bastava o formato de hoje ser gratuito, e
   // um paciente com R$ 800 de crédito aparecia como "sem cobrança" — o dinheiro sumia da leitura
@@ -255,7 +288,16 @@ function situacao(opts: { cobra: boolean; sessoes: number; valor: number; pago: 
   if (!opts.cobra && Math.abs(saldo) <= TOLERANCIA) return "sem_cobranca";
   if (opts.cobra && opts.sessoes === 0 && opts.valor === 0) return "sem_sessoes";
   if (saldo > TOLERANCIA) return "a_receber";
-  if (saldo < -TOLERANCIA) return "pago_a_mais";
+  /**
+   * Doc 75: "pagou a mais" é a sobra MARCADA, não o saldo negativo.
+   *
+   * Saldo negativo acontece por motivos que não são pagar a mais: vários pagamentos no mês, cada um
+   * de um pacote diferente, e pacote pago adiantado que ainda não fechou (não está no "cobrado"
+   * porque a competência dele é o fechamento). Deduzir dali acusava nove pacientes quando duas
+   * tinham pago a mais de verdade — "o restante não deve entrar, pois não significa que foi pago um
+   * valor a mais". Sem a marca, saldo negativo é apenas nada a receber: quitado.
+   */
+  if (opts.excedenteSemCredito > TOLERANCIA) return "pago_a_mais";
   return "pago";
 }
 
@@ -320,6 +362,7 @@ export function linhaDoFechamento(opts: {
   const cobradoAcumulado = soma(acumuladas);
   const pagoAcumulado = pagoAte(opts.pagamentos, paciente.id, ano, mes, opts.taxaVigencias ?? []);
   const saldo = Number((cobradoAcumulado - pagoAcumulado).toFixed(2));
+  const excedenteSemCredito = excedenteSemCreditoAte(opts.pagamentos, paciente.id, ano, mes);
   // Cobra se o formato de ALGUM momento cobrou, ou se sobrou cobrança — não só o de hoje.
   const temCobranca = cobrancas.length > 0 || cobra(paciente.formato);
 
@@ -338,7 +381,8 @@ export function linhaDoFechamento(opts: {
     pagoAcumulado,
     pago: pagoNoMesAtual,
     saldo,
-    situacao: situacao({ cobra: temCobranca, sessoes: naAgenda, valor: cobradoAcumulado, pago: pagoAcumulado }),
+    excedenteSemCredito,
+    situacao: situacao({ cobra: temCobranca, sessoes: naAgenda, valor: cobradoAcumulado, pago: pagoAcumulado, excedenteSemCredito }),
   };
 }
 

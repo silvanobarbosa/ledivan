@@ -6,7 +6,7 @@ import { auth } from "@/auth";
 import { and, eq, gt, inArray, sql } from "drizzle-orm";
 import { encerraAgenda, sessoesAEncerrar } from "@/lib/encerrarAgenda";
 import { revalidatePath } from "next/cache";
-import { entradaDoHistorico, maisRecenteDoHistorico, usaPacote, vencimentoDoPreco } from "@/lib/reajuste";
+import { ehAlteracaoDeCampo, entradaDoHistorico, maisRecenteDoHistorico, usaPacote, vencimentoDoPreco, vigenciaDoReajuste } from "@/lib/reajuste";
 import { dataDoPreco, diaDoFormulario, formatoMudou, vigenciasAGravar } from "@/lib/trocaDeFormato";
 import { agoraParede } from "@/lib/horaLocal";
 import { redirect } from "next/navigation";
@@ -295,10 +295,12 @@ export async function updatePatient(patientId: string, formData: FormData) {
   // Doc 63: a validade do preço conta da vigência do ÚLTIMO reajuste, não do início do tratamento.
   // Sem isto, salvar o Financeiro de novo por outro motivo recalculava a data do início e devolvia
   // o paciente à lista de "Reajustes a vencer" já vencido, desfazendo a baixa do reajuste feito.
-  const precosGravados = await db.select({ id: patientPriceHistory.id, valor: patientPriceHistory.valor, dataEfetiva: patientPriceHistory.dataEfetiva })
+  const precosGravados = await db.select({ id: patientPriceHistory.id, valor: patientPriceHistory.valor, dataEfetiva: patientPriceHistory.dataEfetiva, aplicaEm: patientPriceHistory.aplicaEm, vigenciaDeclarada: patientPriceHistory.vigenciaDeclarada })
     .from(patientPriceHistory).where(eq(patientPriceHistory.patientId, patientId));
+  // Doc 75: o prazo corre da vigência DECLARADA, não da data em que o valor novo passa a valer —
+  // as duas se separam quando o reajuste é empurrado para o próximo pacote. Ver `vigenciaDoReajuste`.
   const ultimoReajuste = precosGravados
-    .map((p) => p.dataEfetiva)
+    .map((p) => vigenciaDoReajuste(p))
     .reduce<Date | null>((maior, d) => (d && (!maior || d.getTime() > maior.getTime()) ? d : maior), null);
 
   const newFee = num(formData.get("sessionFee"), existing.sessionFee);
@@ -499,8 +501,16 @@ export async function updatePatient(patientId: string, formData: FormData) {
     const validade = formData.has("validadePrecoMeses")
       ? (formData.get("validadePrecoMeses") ? parseInt(formData.get("validadePrecoMeses") as string) : null)
       : existing.validadePrecoMeses;
+    /**
+     * Doc 75: num reajuste empurrado para o próximo pacote, corrigir "Vale a partir de" corrige a
+     * VIGÊNCIA — não a data em que o dinheiro muda.
+     *
+     * Mover `dataEfetiva` nesse caso reprecificaria sessões já acontecidas e já cobradas, que é o
+     * que o doc 73 proibiu. Nos demais (as duas datas são a mesma coisa) segue como sempre foi.
+     */
+    const empurrado = precoMaisRecente.aplicaEm === "proximo_pacote";
     await db.update(patientPriceHistory)
-      .set({ dataEfetiva: efetivaPedida! })
+      .set(empurrado ? { vigenciaDeclarada: efetivaPedida! } : { dataEfetiva: efetivaPedida!, vigenciaDeclarada: null })
       .where(eq(patientPriceHistory.id, precoMaisRecente.id));
     // O próximo lembrete conta da vigência: mudando ela, a data do próximo reajuste muda junto.
     await db.update(patients)
@@ -540,7 +550,15 @@ export async function updatePatient(patientId: string, formData: FormData) {
     const efetivaFinal = aplicaEm === "proximo_pacote"
       ? await vigenciaDoProximoPacoteDoPaciente(session.user.id, patientId, efetiva)
       : efetiva;
-    await db.insert(patientPriceHistory).values({ patientId, valor: newFee, dataEfetiva: efetivaFinal, aplicaEm });
+    /**
+     * Doc 75: quando o empurrão do doc 73 move a data, a vigência digitada é GUARDADA.
+     *
+     * `dataEfetiva` responde "de quando o valor novo vale no dinheiro" e continua empurrada;
+     * `vigenciaDeclarada` responde "de quando corre o prazo do próximo reajuste". Iguais, só
+     * `dataEfetiva` — nulo aqui se lê "a vigência é ela mesma".
+     */
+    const vigenciaDeclarada = efetivaFinal.getTime() === efetiva.getTime() ? null : efetiva;
+    await db.insert(patientPriceHistory).values({ patientId, valor: newFee, dataEfetiva: efetivaFinal, aplicaEm, vigenciaDeclarada });
     // Doc 21: alterar o VALOR da sessão = reajuste feito → o paciente sai da lista de reajustes,
     // independentemente da data em "Vale a partir de". O próximo lembrete conta da data efetiva do
     // preço novo + a validade (sem validade, não há próximo lembrete). O update principal acima só
@@ -549,8 +567,10 @@ export async function updatePatient(patientId: string, formData: FormData) {
       ? (formData.get("validadePrecoMeses") ? parseInt(formData.get("validadePrecoMeses") as string) : null)
       : existing.validadePrecoMeses;
     await db.update(patients)
-      // Conta da data GRAVADA (doc 73): empurrada para o próximo pacote, é dela que o prazo corre.
-      .set({ priceReviewDate: vencimentoDoPreco(efetivaFinal, null, validadeAtual) })
+      // Doc 75: conta da VIGÊNCIA (o que ela digitou), não da data empurrada. Contar da empurrada
+      // adiava o reajuste pelo tanto que o próximo pacote estivesse à frente — foi o que o dono viu
+      // nas datas da Patricia, da Thayná e da Celani.
+      .set({ priceReviewDate: vencimentoDoPreco(vigenciaDeclarada ?? efetivaFinal, null, validadeAtual) })
       .where(and(eq(patients.id, patientId), eq(patients.userId, session.user.id)));
   }
   // VIGÊNCIA DO FORMATO (dono, 15/09/2026): a troca vale a partir da data escolhida no formulário e
@@ -664,11 +684,20 @@ export async function updatePatient(patientId: string, formData: FormData) {
       cmp("reajuste", existing.validadePrecoMeses, novo.validadePrecoMeses);
       cmp("pacote", existing.pacoteTipo, novo.pacoteTipo);
     }
-    if (mudancas.length) {
+    /**
+     * Doc 75: só ALTERAÇÃO vira registro, e todas as da mesma gravação compartilham UMA vigência.
+     *
+     * Campo que sai do vazio foi preenchido — ver `ehAlteracaoDeCampo`. A vigência única já era o
+     * comportamento (uma só data para todas as linhas deste salvamento) e continua sendo: é o que o
+     * dono pediu para "mais de um campo alterado". Mexer em um campo só grava esse campo, porque a
+     * comparação é campo a campo contra o que estava gravado — os intocados não entram.
+     */
+    const alteracoes = mudancas.filter(ehAlteracaoDeCampo);
+    if (alteracoes.length) {
       // Doc 35 (A1): grava a VIGÊNCIA ("Vale a partir de") para o acordeão agrupar por data de
       // vigência. Sem data no formulário, vale de hoje — mesma base das outras vigências.
       const vigencia = diaDoFormulario(formData.get("formatoDesde") as string | null) ?? new Date();
-      await db.insert(patientReajusteChanges).values(mudancas.map((m) => ({ userId: session.user.id, patientId, vigencia, ...m })));
+      await db.insert(patientReajusteChanges).values(alteracoes.map((m) => ({ userId: session.user.id, patientId, vigencia, ...m })));
     }
   }
 
@@ -1322,7 +1351,7 @@ export async function apagarReajuste(patientId: string, vigenciaISO: string): Pr
   });
   if (!paciente) return { ok: false, error: "Paciente não encontrado" };
 
-  const precos = await db.select({ id: patientPriceHistory.id, valor: patientPriceHistory.valor, dataEfetiva: patientPriceHistory.dataEfetiva, dataCriacao: patientPriceHistory.dataCriacao })
+  const precos = await db.select({ id: patientPriceHistory.id, valor: patientPriceHistory.valor, dataEfetiva: patientPriceHistory.dataEfetiva, vigenciaDeclarada: patientPriceHistory.vigenciaDeclarada, dataCriacao: patientPriceHistory.dataCriacao })
     .from(patientPriceHistory).where(eq(patientPriceHistory.patientId, patientId));
   const formatos = await db.select({ id: patientPaymentFormatHistory.id, formato: patientPaymentFormatHistory.formato, pacoteTipo: patientPaymentFormatHistory.pacoteTipo, dataEfetiva: patientPaymentFormatHistory.dataEfetiva, dataCriacao: patientPaymentFormatHistory.dataCriacao })
     .from(patientPaymentFormatHistory).where(eq(patientPaymentFormatHistory.patientId, patientId));
@@ -1369,7 +1398,8 @@ export async function apagarReajuste(patientId: string, vigenciaISO: string): Pr
     const ultimo = maisRecenteDoHistorico(precos.filter((p) => !precoIds.includes(p.id)));
     if (ultimo) {
       patch.sessionFee = ultimo.valor;
-      patch.priceReviewDate = vencimentoDoPreco(ultimo.dataEfetiva, null, paciente.validadePrecoMeses);
+      // Doc 75: a vigência declarada do que sobrou — mesma regra do salvamento.
+      patch.priceReviewDate = vencimentoDoPreco(vigenciaDoReajuste(ultimo), null, paciente.validadePrecoMeses);
     } else {
       // Não sobrou preço nenhum: o cadastro vai a zero. Deixar o valor antigo seria manter no
       // cadastro um preço que o histórico já não tem como explicar (doc 65).
