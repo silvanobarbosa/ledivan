@@ -7,6 +7,46 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-11-02 — O recibo da voz, e a falha que passou a dizer o motivo
+
+**Entregue:** depois de executar um comando ditado, o Divã mostra o **recibo** — o comando como o
+app o executou, o paciente, o que ficou gravado, a hora e o id do registro — e a janela fica aberta
+até ela apertar "Conferir". E quando a escuta falha, a tela mostra, miúdo, o motivo técnico e o
+formato do áudio.
+
+**Por quê:** o dono pediu a prova ("ao ouvir e executar um comando, precisamos que o sistema mostre
+o comando executado, provando que fez") e relatou que a voz continuava sem funcionar. O segundo
+pedido é consequência do primeiro: "Não consegui ouvir agora" era tudo que existia, e **não há log
+de runtime para consultar depois** — medido em 02/11, no plano free da Vercel os endpoints de
+runtime-log respondem 404 com o token da casa. Sem motivo na tela, o conserto depende de reproduzir
+às cegas.
+
+**Decisões que ficam valendo:**
+- **Recibo é leitura de volta, não narração.** `ok: true` é a ação falando de si mesma; o recibo sai
+  do que o banco devolveu depois da escrita (`.returning()` na anotação, SELECT do status no
+  cancelamento) e carrega o id. Se a leitura não achar, a ação responde que não gravou.
+- **A prova não navega sozinha.** Antes, confirmar fechava o Divã e empurrava a tela; a prova
+  aparecia e desaparecia no mesmo instante. Quem sai da tela é ela, pelo botão.
+- **O motivo é para ser lido, então não carrega segredo.** `falhaDaEscuta` mascara chave de provedor
+  (a mensagem do provedor às vezes devolve a própria chave) e tem teto de 180 caracteres.
+- **Reservar e pagar dizem, antes do toque, que nada será gravado** — a mesma regra do `soLeva` das
+  tarefas de navegação.
+
+**Armadilhas:**
+- **O que o provedor recusa é arquivo SEM extensão, não extensão errada.** Medido com a chave da
+  terapeuta: WAV enviado como `.webm` transcreve normalmente; sem extensão, 400. A extensão passou a
+  sair do `mimeType` do gravador de qualquer forma — é ela que diz se o aparelho é Android (webm) ou
+  iPhone (mp4), e isso agora viaja no motivo.
+- **O caminho inteiro foi exercitado contra a base real e não quebra**: a chave dela transcreve, e
+  `geralDoPaciente` + `previaDoComando` rodaram para os 32 pacientes dela sem uma exceção. Então o
+  que derruba a escuta dela não está no código que roda aqui — é por isso que o motivo precisava ir
+  para a tela em vez de mais um palpite.
+- No percurso de navegador, o fundo escuro da própria janela fica por cima dos botões de dentro
+  dela: clique de ponteiro some no fundo e fecha o Divã. `e2e-diva-recibo.mjs` aperta pelo elemento.
+
+**Pendente:** a causa da falha de escuta dela. O próximo ditado que falhar mostra a linha "Detalhe
+para o suporte" — é ela que diz qual é.
+
 ## 2026-11-01 — Doc 75: vigência do reajuste, histórico sem registro inútil, e o que é "pagou a mais" (PR #544)
 
 **Entregue:** os sete itens do documento. A janela do lançamento na guia Geral deixou de cortar;

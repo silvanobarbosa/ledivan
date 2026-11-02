@@ -11,6 +11,7 @@ import { previaDoComando, type CobrancaParaPagar } from "@/lib/previaDoComando";
 import { geralDoPaciente } from "@/lib/geralDoPaciente";
 import { horaDeParede } from "@/lib/horaLocal";
 import { audioAceitavel, dicaQueCabe, TETO_DO_AUDIO } from "@/lib/transcricao";
+import { falhaDaEscuta } from "@/lib/motivoDoProvedor";
 
 /**
  * O OUVIDO DO DIVÃ.
@@ -194,19 +195,24 @@ export async function POST(req: NextRequest) {
   } catch (e) {
     console.error("Divã não conseguiu ouvir:", e);
     /**
-     * O MOTIVO, quando o provedor diz qual — e quando ele é acionável por ela.
+     * O MOTIVO VIAJA COM O ERRO.
      *
-     * "Não consegui ouvir agora" escondeu por dias um 400 de dica longa demais: a terapeuta
-     * achou que era o celular. Chave recusada e limite de uso são coisas que ELA resolve, e
-     * dizer qual é poupa a viagem inteira. O resto continua genérico: detalhe de provedor na
-     * tela não ajuda ninguém e pode vazar informação da conta.
+     * Chave recusada e limite de uso são coisas que ELA resolve, e dizer qual é poupa a viagem
+     * inteira. O resto continua genérico na frase principal — e leva o motivo técnico numa linha
+     * embaixo, porque a conta é free e **não há log de runtime para consultar depois** (medido em
+     * 02/11: os endpoints de runtime-log da Vercel respondem 404 neste plano). Sem isso, o
+     * conserto depende de reproduzir às cegas. Ver `falhaDaEscuta`.
      */
-    const status = (e as { status?: number })?.status;
-    const erro = status === 401 || status === 403
-      ? "Sua chave de IA foi recusada pelo provedor. Confira em Ajustes."
-      : status === 429
-        ? "Seu provedor de IA está limitando os pedidos agora. Tente em alguns minutos."
-        : "Não consegui ouvir agora. Tente de novo.";
-    return NextResponse.json({ ok: false, error: erro }, { status: 500 });
+    const { erro, motivo } = falhaDaEscuta(e);
+    /**
+     * O FORMATO do áudio entra no motivo. É a primeira pergunta de quem conserta — o gravador do
+     * navegador entrega webm no Chrome e mp4 no Safari do iPhone —, e não há como descobrir o
+     * aparelho dela de outro jeito.
+     */
+    const doAudio = `áudio ${file.type || "sem tipo"} ${Math.round(file.size / 1024)} kB`;
+    return NextResponse.json(
+      { ok: false, error: erro, motivo: motivo ? `${motivo} · ${doAudio}` : doAudio },
+      { status: 500 },
+    );
   }
 }

@@ -6,6 +6,7 @@ import { patientRecords, patients, therapySessions } from "@/db/schema";
 import { and, eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { agoraParede } from "@/lib/horaLocal";
+import { quandoDoRecibo, type ReciboDaVoz } from "@/lib/reciboDaVoz";
 
 /**
  * O QUE A VOZ EXECUTA — e só depois de ela confirmar na tela.
@@ -22,7 +23,7 @@ import { agoraParede } from "@/lib/horaLocal";
  */
 
 /** A anotação ditada. Aditiva, sem dinheiro, e desfazível apagando o registro. */
-export async function anotarPorVoz(patientId: string, texto: string): Promise<{ ok: boolean; error?: string }> {
+export async function anotarPorVoz(patientId: string, texto: string): Promise<{ ok: boolean; error?: string; recibo?: ReciboDaVoz }> {
   const session = await auth();
   if (!session?.user?.id) return { ok: false, error: "Sessão inválida." };
   const userId = session.user.id;
@@ -36,7 +37,7 @@ export async function anotarPorVoz(patientId: string, texto: string): Promise<{ 
   });
   if (!paciente) return { ok: false, error: "Paciente não encontrado." };
 
-  await db.insert(patientRecords).values({
+  const [gravado] = await db.insert(patientRecords).values({
     userId,
     patientId,
     type: "evolucao",
@@ -44,10 +45,21 @@ export async function anotarPorVoz(patientId: string, texto: string): Promise<{ 
     title: "Anotação por voz",
     content: conteudo,
     createdAt: agoraParede(),
-  });
+  }).returning({ id: patientRecords.id, content: patientRecords.content, createdAt: patientRecords.createdAt });
 
   revalidatePath(`/dashboard/patients/${patientId}`);
-  return { ok: true };
+  // O recibo sai do que o banco devolveu, não do que mandamos gravar.
+  if (!gravado) return { ok: false, error: "A anotação não foi gravada. Tente de novo." };
+  return {
+    ok: true,
+    recibo: {
+      comando: "anotar no prontuário",
+      paciente: paciente.name,
+      gravado: `Anotação por voz: “${gravado.content}”`,
+      quando: quandoDoRecibo(gravado.createdAt),
+      id: gravado.id,
+    },
+  };
 }
 
 /**
@@ -57,7 +69,7 @@ export async function anotarPorVoz(patientId: string, texto: string): Promise<{ 
  * ela por extenso — paciente, dia e hora — antes do toque. Desmarcar a pessoa errada é o pior que
  * esta voz pode fazer, e é por isso que ela não escolhe aqui.
  */
-export async function cancelarPorVoz(sessionId: string): Promise<{ ok: boolean; error?: string }> {
+export async function cancelarPorVoz(sessionId: string): Promise<{ ok: boolean; error?: string; recibo?: ReciboDaVoz }> {
   const session = await auth();
   if (!session?.user?.id) return { ok: false, error: "Sessão inválida." };
   const userId = session.user.id;
@@ -74,5 +86,32 @@ export async function cancelarPorVoz(sessionId: string): Promise<{ ok: boolean; 
 
   revalidatePath("/dashboard/agenda");
   revalidatePath(`/dashboard/patients/${atual.patientId}`);
-  return { ok: true };
+
+  /**
+   * O recibo lê o estado DEPOIS do update — e lê o status, que é a coisa que mudou.
+   *
+   * Um `ok: true` aqui provaria apenas que o update não deu erro. Cancelar é a ação mais pesada da
+   * voz (desmarca alguém de verdade): ela merece a prova de que a linha está, agora, cancelada.
+   */
+  const [depois] = await db.select({
+    status: therapySessions.status,
+    date: therapySessions.date,
+    paciente: patients.name,
+  })
+    .from(therapySessions)
+    .innerJoin(patients, eq(patients.id, therapySessions.patientId))
+    .where(and(eq(therapySessions.id, sessionId), eq(therapySessions.userId, userId)))
+    .limit(1);
+
+  if (depois?.status !== "cancelada") return { ok: false, error: "O cancelamento não foi gravado. Tente de novo." };
+  return {
+    ok: true,
+    recibo: {
+      comando: "cancelar atendimento",
+      paciente: depois.paciente,
+      gravado: `Atendimento de ${quandoDoRecibo(depois.date)} está CANCELADO`,
+      quando: quandoDoRecibo(agoraParede()),
+      id: sessionId,
+    },
+  };
 }
