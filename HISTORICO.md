@@ -7,6 +7,27 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-11-02 — A dica do Whisper conta BYTES, não caracteres
+
+**Entregue:** o corte da dica de nomes passou a medir bytes UTF-8 (#546). O Divã voltou a ouvir.
+
+**Por quê:** a terapeuta relatou que a voz continuava falhando, e desta vez a tela disse o motivo:
+`400 prompt length must be 896 characters or fewer, but provided prompt contains 898 characters`.
+O corte era por `.length`, e a dica dela tinha **885 caracteres e 898 bytes** — cada acento de
+"Thaís", "Conceição", "João" custa 2. A mensagem do provedor diz "characters" e mede byte.
+
+**Decisões que ficam valendo:** `TETO_DA_DICA` continua 896 (224 tokens × 4, régua do Whisper),
+mas a unidade é byte, e quem medir tamanho de texto que vai para provedor usa `bytesDe`.
+
+**Armadilhas:** nenhum dos 8 testes da dica usava acento — todos passavam verdes com "Paciente 00
+xxxx" enquanto a produção recusava. Em app português, teste sem acento não testa o caso real.
+Três das quatro contas estavam acima do teto (gisele 898, ana.raquel 899, demo 908) e só uma
+reclamou; a janela entre "quebrou" e "alguém avisou" foi de dias.
+
+**Pendente:** nada deste bloco.
+
+---
+
 ## 2026-11-02 — O recibo da voz, e a falha que passou a dizer o motivo
 
 **Entregue:** depois de executar um comando ditado, o Divã mostra o **recibo** — o comando como o

@@ -115,9 +115,10 @@ export async function POST(req: NextRequest) {
        * não se escreve o que foi dito: ESCOLHE-SE de um conjunto fechado, e a dica só ajuda a
        * escolher certo.
        *
-       * O corte é por CARACTERES, não por quantidade de nomes: era "80 nomes", que não tem
-       * relação com o que o provedor mede. Com 32 pacientes a dica passou de 1.200 caracteres e o
-       * Groq passou a recusar TODO comando de voz com 400 (medido em 01/11). Ver `dicaQueCabe`.
+       * O corte é por BYTES UTF-8 — a unidade que o provedor realmente mede, apesar de a
+       * mensagem de erro dele dizer "characters". Já foi por quantidade de nomes (80, que não tem
+       * relação com nada) e por caractere (que ignora o acento valendo 2 bytes); as duas versões
+       * derrubaram TODO comando de voz com 400. Ver `dicaQueCabe`.
        */
       prompt: dicaQueCabe(
         `Verbos: anotar, anota, marcar, marca, agendar, cancelar, cancela, desmarcar, lançar pagamento, dar baixa, recebi, pagou, pix. Comandos: ${TAREFAS.map((t) => t.rotulo).join("; ")}.`,
