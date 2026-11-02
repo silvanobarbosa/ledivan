@@ -1,7 +1,7 @@
 "use client";
 
 import { Fragment, useState, useTransition } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { MapPin, Video, X, Trash2, Pencil, Undo2 } from "lucide-react";
 import { Check, MessageCircle } from "lucide-react";
@@ -248,6 +248,15 @@ const hojeISO = () => {
 const FORMAS_BASE = PAYMENT_METHOD_OPTIONS
   .filter((o) => !/^credito_\d+x$/.test(o.value))
   .map((o) => (o.value === "credito" ? { value: o.value, label: "Crédito" } : o));
+
+/**
+ * O QUE O DIVÃ DITOU, quando a terapeuta chegou aqui pela voz.
+ *
+ * São os dois únicos campos que a fala preenche: quanto ela disse que recebeu e, se disse, a
+ * forma. Tudo o mais — a cobrança, quem pagou, a sobra, a diferença — continua sendo escolha
+ * dela na tela, porque mexe dinheiro de lugar. Nada é gravado até ela apertar.
+ */
+type Ditado = { valor: number | null; forma: string | null };
 
 const STATUS_GERAL: Record<string, string> = {
   realizada: "Presente", nao_realizada: "Faltou", cancelada: "Desmarcou",
@@ -533,7 +542,7 @@ function ColunasDoPagamento({ patientId, c, onLancar, cobrar, aviso }: { patient
  * Respondido "Não", nada se grava: a pergunta volta no próximo lançamento, com o saldo atualizado,
  * até o crédito acabar.
  */
-function Lancamento({ patientId, c, responsavel, responsavelCpf, fechar, creditoDisponivel: saldoTotal = 0, creditoAConfirmar = 0 }: { patientId: string; c: CobrancaNaTela; responsavel: string; responsavelCpf: string; fechar: () => void; creditoDisponivel?: number; creditoAConfirmar?: number }) {
+function Lancamento({ patientId, c, responsavel, responsavelCpf, fechar, creditoDisponivel: saldoTotal = 0, creditoAConfirmar = 0, ditado }: { patientId: string; c: CobrancaNaTela; responsavel: string; responsavelCpf: string; fechar: () => void; creditoDisponivel?: number; creditoAConfirmar?: number; ditado?: Ditado }) {
   const [usarCredito, setUsarCredito] = useState<boolean | null>(creditoAConfirmar > 0.005 ? null : false);
   if (usarCredito === null) {
     return (
@@ -553,12 +562,12 @@ function Lancamento({ patientId, c, responsavel, responsavelCpf, fechar, credito
   }
   return (
     <FormularioDeLancamento patientId={patientId} c={c} responsavel={responsavel} responsavelCpf={responsavelCpf}
-      fechar={fechar} usarCredito={usarCredito} saldoTotal={saldoTotal}
+      fechar={fechar} usarCredito={usarCredito} saldoTotal={saldoTotal} ditado={ditado}
       creditoDisponivel={creditoParaAbater({ disponivel: saldoTotal, aConfirmar: creditoAConfirmar, usar: usarCredito })} />
   );
 }
 
-function FormularioDeLancamento({ patientId, c, responsavel, responsavelCpf, fechar, creditoDisponivel = 0, saldoTotal = 0, usarCredito = false }: { patientId: string; c: CobrancaNaTela; responsavel: string; responsavelCpf: string; fechar: () => void; creditoDisponivel?: number; saldoTotal?: number; usarCredito?: boolean }) {
+function FormularioDeLancamento({ patientId, c, responsavel, responsavelCpf, fechar, creditoDisponivel = 0, saldoTotal = 0, usarCredito = false, ditado }: { patientId: string; c: CobrancaNaTela; responsavel: string; responsavelCpf: string; fechar: () => void; creditoDisponivel?: number; saldoTotal?: number; usarCredito?: boolean; ditado?: Ditado }) {
   const router = useRouter();
   const [pending, start] = useTransition();
   const [erro, setErro] = useState<string | null>(null);
@@ -578,7 +587,7 @@ function FormularioDeLancamento({ patientId, c, responsavel, responsavelCpf, fec
   const [diferencaFica, setDiferencaFica] = useState(true);
   const [nome, setNome] = useState(responsavel);
   const [cpf, setCpf] = useState(responsavelCpf);
-  const [formaBase, setFormaBase] = useState("pix");
+  const [formaBase, setFormaBase] = useState(ditado?.forma ?? "pix");
   const [parcelas, setParcelas] = useState(1);
   const mesmoPagador = nome.trim().toLowerCase() === responsavel.trim().toLowerCase();
 
@@ -594,6 +603,14 @@ function FormularioDeLancamento({ patientId, c, responsavel, responsavelCpf, fec
   // Doc 36: havendo crédito no saldo, ele já abate — o campo pré-preenche com o DINHEIRO que falta
   // depois do crédito, e a sobra (pagar a mais) pode virar crédito novo (o usuário decide).
   const [valor, setValor] = useState(() => {
+    /**
+     * O VALOR DITADO ganha do que falta — e é a única coisa que o Divã preenche aqui.
+     *
+     * Ela disse quanto recebeu; se a tela sobrescrevesse esse número pelo que a cobrança espera,
+     * um pagamento parcial ditado viraria um pagamento cheio com um toque. O resto do formulário
+     * nasce igual ao de sempre, e nada é gravado sem ela apertar.
+     */
+    if (ditado?.valor != null && ditado.valor > 0) return comoMascara(ditado.valor);
     const faltaAposCredito = Math.max(0, Math.round((c.falta - Math.min(creditoDisponivel, c.falta)) * 100) / 100);
     return faltaAposCredito > 0 ? comoMascara(faltaAposCredito) : "";
   });
@@ -820,7 +837,31 @@ function FormularioDeLancamento({ patientId, c, responsavel, responsavelCpf, fec
 }
 
 export function GeralTab({ patientId, linhas, responsavel, responsavelCpf, cobrar, ano, creditoDisponivel = 0, creditoAConfirmar = 0 }: { patientId: string; linhas: LinhaNaTela[]; responsavel: string; responsavelCpf?: string | null; cobrar?: CobrarInfo; ano: number | "TODOS"; creditoDisponivel?: number; creditoAConfirmar?: number }) {
-  const [aberta, setAberta] = useState<string | null>(null);
+  /**
+   * O Divã chega por aqui: `?pagar=1&cobranca=<chave>&valor=&forma=`.
+   *
+   * A cobrança vem NA URL porque quem a escolheu foi a prévia, que a mostrou por extenso antes
+   * do toque ("vence em 10/10 · faltam R$ 300,00"). Esta tela não adivinha nada: abre aquela
+   * linha, preenche o valor dito, e espera.
+   */
+  const params = useSearchParams();
+  const chaveDitada = params.get("pagar") === "1" ? params.get("cobranca") : null;
+  const ditado: Ditado = { valor: Number(params.get("valor")) || null, forma: params.get("forma") };
+  // Nasce aberta quando a URL pediu: no caminho da voz, o lançamento já aparece na primeira pintura.
+  const [aberta, setAberta] = useState<string | null>(chaveDitada);
+  /**
+   * Ajuste no RENDER, não num efeito: a linha a abrir é derivada da URL.
+   *
+   * Num efeito, a tela pintaria uma vez com o lançamento fechado e abriria depois — e ela veria
+   * o formulário piscar no caminho da voz. É o padrão "ajustar estado quando a prop muda" da
+   * própria doc do React: guarda-se o valor já visto e corrige-se antes de pintar.
+   */
+  const [ditadaVista, setDitadaVista] = useState<string | null>(chaveDitada);
+  if (chaveDitada !== ditadaVista) {
+    setDitadaVista(chaveDitada);
+    if (chaveDitada) setAberta(chaveDitada);
+  }
+  const ditadoDe = (chave: string) => (chave === chaveDitada ? ditado : undefined);
 
   // O filtro de ano é o MESMO da tabela de pagamentos (documento de 17/09): uma escolha só, e as
   // duas tabelas respondem juntas. Filtrar aqui não apaga nada — o ano de trás continua a um
@@ -899,7 +940,7 @@ export function GeralTab({ patientId, linhas, responsavel, responsavelCpf, cobra
                       </td>
                       <ColunasDoPagamento patientId={patientId} c={l} onLancar={() => setAberta(l.chave)} cobrar={cobrar} />
                     </tr>
-                    {aberta === l.chave && <Lancamento patientId={patientId} c={l} responsavel={responsavel} responsavelCpf={responsavelCpf ?? ""} fechar={() => setAberta(null)} creditoDisponivel={creditoDisponivel} creditoAConfirmar={creditoAConfirmar} />}
+                    {aberta === l.chave && <Lancamento ditado={ditadoDe(l.chave)} patientId={patientId} c={l} responsavel={responsavel} responsavelCpf={responsavelCpf ?? ""} fechar={() => setAberta(null)} creditoDisponivel={creditoDisponivel} creditoAConfirmar={creditoAConfirmar} />}
                   </Fragment>
                 );
               }
@@ -959,7 +1000,7 @@ export function GeralTab({ patientId, linhas, responsavel, responsavelCpf, cobra
                       <td />
                     )}
                   </tr>
-                  {c && aberta === c.chave && <Lancamento patientId={patientId} c={c} responsavel={responsavel} responsavelCpf={responsavelCpf ?? ""} fechar={() => setAberta(null)} creditoDisponivel={creditoDisponivel} creditoAConfirmar={creditoAConfirmar} />}
+                  {c && aberta === c.chave && <Lancamento ditado={ditadoDe(c.chave)} patientId={patientId} c={c} responsavel={responsavel} responsavelCpf={responsavelCpf ?? ""} fechar={() => setAberta(null)} creditoDisponivel={creditoDisponivel} creditoAConfirmar={creditoAConfirmar} />}
                 </Fragment>
               );
             })}

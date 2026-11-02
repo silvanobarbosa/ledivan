@@ -18,8 +18,8 @@
  * Funções puras.
  */
 
-/** As três ações que a voz pode pedir. Lista fechada, como o catálogo de navegação. */
-export type AcaoDaFala = "anotar" | "reservar" | "cancelar";
+/** As ações que a voz pode pedir. Lista fechada, como o catálogo de navegação. */
+export type AcaoDaFala = "anotar" | "reservar" | "cancelar" | "pagar";
 
 export type ComandoDaFala = {
   acao: AcaoDaFala;
@@ -60,6 +60,30 @@ const VERBOS: { acao: AcaoDaFala; ditos: string[] }[] = [
             "anotacao na", "anotacao no", "anotar", "anota"],
   },
   {
+    /**
+     * PAGAR não grava dinheiro: abre o lançamento preenchido e ela aperta (ver `diva-actions`).
+     *
+     * Os ditos são longos de propósito. "registrar na Marcela" é anotação e "registrar o pagamento
+     * da Marcela" é dinheiro — as duas começam igual, e quem separa é o dito mais longo vencer.
+     */
+    acao: "pagar",
+    ditos: ["dar entrada em um pagamento para a", "dar entrada em um pagamento para o",
+            "dar entrada em um pagamento da", "dar entrada em um pagamento do", "dar entrada em um pagamento de",
+            "dar entrada no pagamento da", "dar entrada no pagamento do", "dar entrada no pagamento de",
+            "dar entrada em um pagamento", "dar entrada no pagamento", "dar entrada",
+            "registrar o pagamento da", "registrar o pagamento do", "registrar o pagamento de",
+            "registrar um pagamento da", "registrar um pagamento do", "registrar pagamento da",
+            "registrar pagamento do", "registrar pagamento de", "registrar um pagamento", "registrar pagamento",
+            "lancar um pagamento para a", "lancar um pagamento para o", "lancar um pagamento da",
+            "lancar um pagamento do", "lancar um pagamento de", "lancar o pagamento da", "lancar o pagamento do",
+            "lancar o pagamento de", "lancar pagamento da", "lancar pagamento do", "lancar pagamento de",
+            "lancar pagamento para a", "lancar um pagamento", "lancar o pagamento", "lancar pagamento",
+            "lanca um pagamento da", "lanca o pagamento da", "lanca um pagamento", "lanca o pagamento", "lanca pagamento",
+            "dar baixa no pagamento da", "dar baixa no pagamento do", "dar baixa no pagamento",
+            "dar baixa na", "dar baixa no", "dar baixa",
+            "recebi da", "recebi do", "recebi de", "receber da", "receber do", "receber de", "recebi"],
+  },
+  {
     acao: "reservar",
     ditos: ["reservar horario para a", "reservar horario para o", "reservar um horario para a",
             "marcar um atendimento para a", "marcar um atendimento para o", "marcar atendimento para a",
@@ -96,7 +120,21 @@ export function comandoDaFala(fala: string): ComandoDaFala | null {
       melhor = { acao, tamanho: alvo.length, resto: semEnfeite.slice(alvo.length).trim() };
     }
   }
-  if (!melhor) return null;
+  /**
+   * "A TALITA PAGOU 300" — o único lugar em que o verbo não abre a frase.
+   *
+   * É como se fala de dinheiro recebido, e exigir "lança o pagamento da Talita" obrigaria a
+   * terapeuta a falar como o menu se chama. O padrão é estreito de propósito — nome seguido de
+   * "pagou" — e não abre a porta para procurar verbo solto no meio de qualquer frase.
+   */
+  if (!melhor) {
+    const pagou = semEnfeite.match(/^(?:a|o)\s+(.+?)\s+pagou\s+(.+)$/) ?? semEnfeite.match(/^(.+?)\s+pagou\s+(.+)$/);
+    if (pagou) {
+      const tudo = `${pagou[1]} ${pagou[2]}`.trim();
+      return { acao: "pagar", alvo: tudo, resto: tudo };
+    }
+    return null;
+  }
 
   /**
    * Onde o ALVO termina e o resto começa.
