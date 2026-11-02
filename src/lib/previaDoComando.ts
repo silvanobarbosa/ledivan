@@ -110,6 +110,16 @@ export function previaDoComando(
     if (previa.valor == null) {
       faltando.push("Não entendi o valor. Diga, por exemplo: “lança o pagamento da Marcela, 300 reais”.");
     }
+    /**
+     * A DATA DO PAGAMENTO, quando ela a diz — e ela diz.
+     *
+     * Relato de 02/11: "um pagamento de 400 reais feito pela Talita, em 31/10". O "em 31/10" era
+     * jogado fora aqui e o lançamento nascia com a data de HOJE. Data de dinheiro não é detalhe
+     * de exibição: é por ela que o pagamento cai no mês, no caixa e no recibo —
+     * ver [[licao-uma-coluna-duas-perguntas]]. Sem data dita, vale hoje, como no formulário.
+     */
+    const dia = diaDaFala(comando.resto, agora);
+    if (dia) previa.quando = { iso: dia.toISOString(), porExtenso: `${dois(dia.getDate())}/${dois(dia.getMonth() + 1)}` };
     if (paciente.tipo === "um" && opts.cobrancasDoPaciente) {
       const abertas = opts.cobrancasDoPaciente(paciente.paciente.id)
         .filter((c) => c.falta > 0.005)

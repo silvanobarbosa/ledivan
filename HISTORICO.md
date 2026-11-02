@@ -7,6 +7,38 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-11-02 — A voz passa a LANÇAR o pagamento, com recibo
+
+**Entregue:** "lança o pagamento da Talita, 400 reais, em 31/10" grava de verdade e mostra o
+recibo com o id da linha (#548). A data ditada deixou de ser descartada.
+
+**Por quê:** relato da terapeuta: "o sistema pediu a confirmação, foi confirmado, ele abriu a
+carteira, mas o lançamento não entrou". O app fez o que estava programado — a voz levava à tela
+com o formulário aberto e o valor preenchido, e esperava o toque dela. Conferido no app real: o
+formulário abria mesmo, preenchido com R$ 400,00. Mas **quem confirma um pedido completo considera
+o pedido feito** e vai embora. Dinheiro que depende de um segundo toque invisível é dinheiro que
+não entra.
+
+**Decisões que ficam valendo:**
+- Voz GRAVA pagamento (decisão do dono, 02/11), e isso reverte a regra anterior de que voz não
+  escreve dinheiro. **Reservar continua não gravando** — criar sessão pula as perguntas de
+  sequência do pacote e modalidade.
+- Quem lança é `lancarPagamento`, o motor do formulário, com os MESMOS padrões da tela: forma pix
+  quando ela não diz, sobra vira crédito, diferença fica nesta cobrança. A voz não é uma segunda
+  política de dinheiro.
+- O recibo diz o que SOBROU em aberto ("ainda faltam R$ 100,00"), para pagamento parcial não ser
+  lido como quitação.
+
+**Armadilhas:** a data do pagamento ("em 31/10") era descartada no ramo `pagar` da prévia — o
+lançamento nasceria com a data de hoje, e data de dinheiro decide mês, caixa e recibo. O
+`server-only`, importado por 10 arquivos de produção, não estava declarado no `package.json`: o
+Next resolve por alias interno, então o build passa e qualquer script fora do Next quebra.
+
+**Pendente:** o pagamento real da Talita (R$ 400, 31/10) **não foi lançado por mim** — base de
+produção dela não se mexe daqui. Ela pode ditar de novo.
+
+---
+
 ## 2026-11-02 — A dica do Whisper conta BYTES, não caracteres
 
 **Entregue:** o corte da dica de nomes passou a medir bytes UTF-8 (#547). O Divã voltou a ouvir.

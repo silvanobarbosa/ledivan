@@ -89,3 +89,61 @@ describe("a prévia do comando — nada acontece sem ela ver", () => {
     expect(previa("quem está devendo?")).toBeNull();
   });
 });
+
+/**
+ * A DATA DO PAGAMENTO DITADO.
+ *
+ * Relato de 02/11: "registrar um pagamento de 400 reais feito pela Talita, em 31/10". O "em
+ * 31/10" era descartado e o lançamento nasceria com a data de hoje — data de dinheiro decide o
+ * mês, o caixa e o recibo. Ver [[licao-uma-coluna-duas-perguntas]].
+ */
+describe("o pagamento ditado carrega a data que ela disse", () => {
+  const comCobranca = (fala: string) =>
+    previaDoComando(fala, PACIENTES, {
+      agora: AGORA,
+      sessoesDoPaciente,
+      cobrancasDoPaciente: () => [
+        { chave: "pacote:inicio:1", vencimento: new Date(2026, 10, 1), falta: 400, ano: 2026 },
+      ],
+    });
+
+  it("“em 31/10” vira a data do lançamento, não a de hoje", () => {
+    const p = comCobranca("registrar um pagamento de 400 reais feito pela Marcela, em 31/10")!;
+    expect(p.acao).toBe("pagar");
+    expect(p.valor).toBe(400);
+    const d = new Date(p.quando!.iso);
+    expect([d.getDate(), d.getMonth() + 1]).toEqual([31, 10]);
+    expect(p.quando!.porExtenso).toBe("31/10");
+    expect(p.faltando).toEqual([]);
+  });
+
+  it("“ontem” e “hoje” também valem — é como ela fala", () => {
+    const hoje = comCobranca("a Marcela pagou 400 reais hoje")!;
+    expect(new Date(hoje.quando!.iso).getDate()).toBe(4);
+  });
+
+  it("sem data dita, fica null — e o servidor usa hoje, como o formulário", () => {
+    const p = comCobranca("lança o pagamento da Marcela, 400 reais")!;
+    expect(p.quando).toBeNull();
+    expect(p.valor).toBe(400);
+  });
+
+  it("a data não engole o valor: 400 continua 400 com “31/10” na frase", () => {
+    const p = comCobranca("lança o pagamento de 400 reais da Marcela em 31/10")!;
+    expect(p.valor).toBe(400);
+    expect(p.cobranca?.chave).toBe("pacote:inicio:1");
+  });
+
+  /**
+   * GAP CONHECIDO, deixado à mostra de propósito.
+   *
+   * "pagamento de 400 reais da Marcela", sem verbo, NÃO vira comando — o catálogo pede um verbo
+   * ("lança", "registra", "recebi", "pagou"). Não foi alargado junto com o conserto da data
+   * porque "pagamento" sozinho é também como se pede a TELA de pagamentos, e um substantivo
+   * virando verbo faria "quero ver os pagamentos" lançar dinheiro. Fica registrado aqui para a
+   * próxima sessão saber que é escolha, não esquecimento.
+   */
+  it("sem verbo não vira comando — e isso é escolha, não falha", () => {
+    expect(comCobranca("pagamento de 400 reais da Marcela em 31/10")).toBeNull();
+  });
+});
