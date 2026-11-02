@@ -81,7 +81,32 @@ const VERBOS: { acao: AcaoDaFala; ditos: string[] }[] = [
             "lanca um pagamento da", "lanca o pagamento da", "lanca um pagamento", "lanca o pagamento", "lanca pagamento",
             "dar baixa no pagamento da", "dar baixa no pagamento do", "dar baixa no pagamento",
             "dar baixa na", "dar baixa no", "dar baixa",
-            "recebi da", "recebi do", "recebi de", "receber da", "receber do", "receber de", "recebi"],
+            "recebi da", "recebi do", "recebi de", "receber da", "receber do", "receber de", "recebi",
+            /*
+             * OS BURACOS MEDIDOS EM 02/11, depois de a terapeuta tentar de novo e cair na Carteira.
+             *
+             * Rodando 20 falas naturais contra esta lista, 8 não viravam comando. Não eram falas
+             * exquisitas: faltava a conjugação curta ("registra" existia só como "registrar"), o
+             * substantivo ("faz o lançamento"), o verbo sem a palavra "pagamento" ("lança 400 da
+             * Talita") e a forma de pagamento como verbo ("pix de 400 da Talita").
+             *
+             * Quem fala não repete o nome do menu. Cada buraco destes mandava um pedido COMPLETO
+             * de dinheiro para a tela de navegação.
+             */
+            "registra o pagamento da", "registra o pagamento do", "registra o pagamento de",
+            "registra um pagamento da", "registra um pagamento do", "registra um pagamento de",
+            "registra o pagamento", "registra um pagamento", "registra pagamento",
+            "fazer o lancamento do pagamento da", "fazer o lancamento do pagamento do",
+            "faz o lancamento do pagamento da", "faz o lancamento do pagamento do",
+            "fazer o lancamento da", "fazer o lancamento do", "fazer o lancamento de",
+            "faz o lancamento da", "faz o lancamento do", "faz o lancamento de",
+            "fazer o lancamento", "faz o lancamento", "fazer lancamento", "faz lancamento",
+            "lancamento da", "lancamento do", "lancamento de",
+            "lancar para a", "lancar para o", "lancar na", "lancar no", "lancar da", "lancar do", "lancar de",
+            "lanca para a", "lanca para o", "lanca na", "lanca no", "lanca da", "lanca do", "lanca de",
+            "lancar", "lanca",
+            "pix de", "pix da", "pix do", "entrou de", "entrou da", "entrou do", "entrou",
+            "baixa de", "baixa da", "baixa do", "baixa no", "baixa na", "baixa"],
   },
   {
     acao: "reservar",
@@ -128,9 +153,17 @@ export function comandoDaFala(fala: string): ComandoDaFala | null {
    * "pagou" — e não abre a porta para procurar verbo solto no meio de qualquer frase.
    */
   if (!melhor) {
-    const pagou = semEnfeite.match(/^(?:a|o)\s+(.+?)\s+pagou\s+(.+)$/) ?? semEnfeite.match(/^(.+?)\s+pagou\s+(.+)$/);
-    if (pagou) {
-      const tudo = `${pagou[1]} ${pagou[2]}`.trim();
+    /*
+     * Os jeitos de dizer que o dinheiro CHEGOU, com o nome na frente. Medido em 02/11: "a Talita
+     * fez um pix de 400 reais" não virava comando e ia parar na tela de navegação. A lista é
+     * curta de propósito — só verbo que significa dinheiro entrando. "mandou" ficou de fora
+     * porque "a Marcela mandou mensagem" não é pagamento.
+     */
+    const CHEGOU = /\s+(?:pagou|me pagou|fez um pix de|fez o pix de|fez pix de|mandou um pix de|transferiu|depositou)\s+/;
+    const comNome = semEnfeite.replace(/^(?:a|o)\s+/, "");
+    const onde = comNome.match(CHEGOU);
+    if (onde && onde.index != null && onde.index > 0) {
+      const tudo = `${comNome.slice(0, onde.index)} ${comNome.slice(onde.index + onde[0].length)}`.trim();
       return { acao: "pagar", alvo: tudo, resto: tudo };
     }
     return null;
