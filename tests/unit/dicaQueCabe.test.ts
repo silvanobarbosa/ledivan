@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { dicaQueCabe, TETO_DA_DICA } from "@/lib/transcricao";
+import { bytesDe, dicaQueCabe, TETO_DA_DICA } from "@/lib/transcricao";
 
 /**
  * O teto da dica do Whisper — 896 caracteres, medido com a chave da terapeuta em 01/11:
@@ -57,5 +57,53 @@ describe("a dica cabe no teto do provedor", () => {
   it("um único nome gigante não entra pela metade", () => {
     const d = dicaQueCabe(BASE, ["z".repeat(TETO_DA_DICA)]);
     expect(d).toBe(BASE);
+  });
+});
+
+/**
+ * O MESMO BUG, DE NOVO, POR CAUSA DO TESTE SEM ACENTO.
+ *
+ * Os testes acima usam "Paciente 00 xxxx" — ASCII puro, em que byte e caractere são a mesma
+ * coisa. Por isso passaram verdes enquanto a dica da terapeuta, cheia de "Thaís" e "Conceição",
+ * era recusada em produção: 885 caracteres, 898 bytes, teto de 896 (medido em 02/11).
+ *
+ * Num app em português, teste com nome sem acento não testa o caso real. Estes aqui medem o que
+ * o provedor mede. Ver [[licao-dica-do-whisper-tem-teto]].
+ */
+const ACENTUADOS = (n: number) =>
+  Array.from({ length: n }, (_, i) => `Conceição Thaís Gonçalves ${String(i).padStart(2, "0")}`);
+
+describe("o teto é em BYTES — o que o provedor realmente mede", () => {
+  it("acento conta 2: a dica cheia de nome português cabe em bytes, não só em caracteres", () => {
+    const d = dicaQueCabe(BASE, ACENTUADOS(32));
+    expect(bytesDe(d)).toBeLessThanOrEqual(TETO_DA_DICA);
+    // E a prova de que o teste importa: contando caractere, ela teria passado do teto real.
+    expect(bytesDe(d)).toBeGreaterThan(d.length);
+  });
+
+  it("o caso exato da produção: 885 caracteres não podem virar 898 bytes aceitos", () => {
+    const d = dicaQueCabe(BASE, ACENTUADOS(60));
+    expect(bytesDe(d)).toBeLessThanOrEqual(896);
+  });
+
+  it("base acentuada maior que o teto é truncada em BYTES, sem partir caractere", () => {
+    const d = dicaQueCabe("ç".repeat(TETO_DA_DICA), ["Ana"]);
+    expect(bytesDe(d)).toBeLessThanOrEqual(TETO_DA_DICA);
+    expect(d).not.toContain("�");
+    expect([...d].every((c) => c === "ç")).toBe(true);
+  });
+
+  it("emoji no nome não sai partido ao meio", () => {
+    const d = dicaQueCabe("🙂".repeat(TETO_DA_DICA), ["Ana"]);
+    expect(bytesDe(d)).toBeLessThanOrEqual(TETO_DA_DICA);
+    expect(d).not.toContain("�");
+    expect(d.length % 2).toBe(0);
+  });
+
+  it("bytesDe mede UTF-8, não unidade de código", () => {
+    expect(bytesDe("abc")).toBe(3);
+    expect(bytesDe("ção")).toBe(5);
+    expect(bytesDe("🙂")).toBe(4);
+    expect(bytesDe("")).toBe(0);
   });
 });

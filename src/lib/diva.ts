@@ -232,6 +232,17 @@ export function avisosDoDiva(e: EstadoDoDiva): AvisoDoDiva[] {
  */
 export const DISPENSAS_ATE_CALAR = 3;
 
+/**
+ * A BASE DA DICA mandada ao Whisper, numa fonte só.
+ *
+ * Estava escrita duas vezes: na rota `/api/diva/ouvir` e no diagnóstico
+ * `scripts/conferir-diva-dica.mjs`. A do diagnóstico ficou para trás (faltavam os verbos de
+ * pagamento) e **mediu uma dica menor do que a que a produção manda** — por isso o diagnóstico deu
+ * tudo-certo em 01/11 enquanto a terapeuta seguia sem conseguir falar. Instrumento que mede coisa
+ * diferente da produção não é instrumento. Ver [[licao-instrumento-mede-uma-dimensao]].
+ */
+export const BASE_DA_DICA = `Verbos: anotar, anota, marcar, marca, agendar, cancelar, cancela, desmarcar, lançar pagamento, dar baixa, recebi, pagou, pix. Comandos: ${TAREFAS.map((t) => t.rotulo).join("; ")}.`;
+
 export function abreSozinho(dispensasSeguidas: number): boolean {
   return (Number(dispensasSeguidas) || 0) < DISPENSAS_ATE_CALAR;
 }

@@ -30,18 +30,45 @@ export function dicaDeNomes(nomes: (string | null | undefined)[]): string | unde
 }
 
 /**
- * O TETO DA DICA — em CARACTERES, porque é assim que o provedor conta.
+ * O TETO DA DICA — 896, e a unidade é BYTE UTF-8, não caractere.
  *
- * Medido em 01/11, com a chave da terapeuta: o Groq recusa com
- * `prompt length must be 896 characters or fewer`. O limite do Whisper é descrito como 224
- * tokens, e 896 é exatamente 224 × 4 — a mesma régua serve para os dois provedores.
+ * O provedor escreve "characters" na mensagem de erro, e a mensagem MENTE sobre a unidade. Medido
+ * em 02/11 com a chave da terapeuta: a dica tinha 885 caracteres e o Groq recusou com
+ * `prompt length must be 896 characters or fewer, but provided prompt contains 898 characters`.
+ * 898 é exatamente o tamanho dela em bytes — cada acento de nome português ("Thaís", "João",
+ * "Conceição") custa 2. Num app em português, contar caractere é errar por uma folga que CRESCE
+ * com a lista: 32 pacientes dela davam 13 bytes de diferença; as outras contas chegavam a 22.
  *
- * Foi este teto que quebrou o Divã da Gisele: a dica leva os nomes dos pacientes dela, a lista
- * cresceu para 32, a dica passou de 1.200 caracteres e TODO comando de voz passou a falhar com
- * 400 — que a tela mostrava como "Não consegui ouvir agora". O corte era por QUANTIDADE de nomes
- * (80), que não tem relação nenhuma com o que o provedor mede.
+ * O número 896 continua valendo: é 224 tokens × 4, a régua do Whisper, igual nos dois provedores.
+ *
+ * Foi este teto que quebrou o Divã da Gisele duas vezes seguidas — primeiro porque o corte era
+ * por QUANTIDADE de nomes (80), depois porque era por caractere. Nas duas, o sintoma na tela foi
+ * o mesmo "Não consegui ouvir agora", e TODO comando de voz falhava.
  */
 export const TETO_DA_DICA = 896;
+
+/** O tamanho como o provedor mede: bytes UTF-8. */
+const CONTADOR = new TextEncoder();
+
+export function bytesDe(texto: string): number {
+  return CONTADOR.encode(texto).length;
+}
+
+/**
+ * Corta em bytes sem partir um caractere no meio.
+ *
+ * Cortar por byte cru deixaria meio acento no fim, que o encoder troca pelo caractere de
+ * substituição (3 bytes) e volta a estourar o teto. Aqui o corte anda para trás por CARACTERE até
+ * caber; como byte nunca é menor que caractere, começar no teto já cai perto do fim.
+ */
+function cortadaEmBytes(texto: string, teto: number): string {
+  let fim = Math.min(texto.length, teto);
+  while (fim > 0 && bytesDe(texto.slice(0, fim)) > teto) fim--;
+  const corte = texto.slice(0, fim);
+  // Par substituto partido ao meio (emoji num nome): melhor não levar o pedaço.
+  const ultimo = corte.charCodeAt(corte.length - 1);
+  return ultimo >= 0xd800 && ultimo <= 0xdbff ? corte.slice(0, -1) : corte;
+}
 
 /**
  * A dica cortada para caber: a base inteira mais quantos nomes couberem, na ordem recebida.
@@ -52,14 +79,14 @@ export const TETO_DA_DICA = 896;
  */
 export function dicaQueCabe(base: string, nomes: (string | null | undefined)[], teto = TETO_DA_DICA): string {
   const limpa = base.trim();
-  if (limpa.length >= teto) return limpa.slice(0, teto);
+  if (bytesDe(limpa) >= teto) return cortadaEmBytes(limpa, teto);
   const limpos = [...new Set(nomes.map((n) => (n ?? "").trim()).filter(Boolean))];
   if (!limpos.length) return limpa;
 
   const cabem: string[] = [];
   for (const nome of limpos) {
     const tentativa = `${limpa} Pacientes: ${[...cabem, nome].join(", ")}.`;
-    if (tentativa.length > teto) break;
+    if (bytesDe(tentativa) > teto) break;
     cabem.push(nome);
   }
   return cabem.length ? `${limpa} Pacientes: ${cabem.join(", ")}.` : limpa;
