@@ -7,6 +7,67 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-11-01 — Doc 75: vigência do reajuste, histórico sem registro inútil, e o que é "pagou a mais" (PR #544)
+
+**Entregue:** os sete itens do documento. A janela do lançamento na guia Geral deixou de cortar;
+"Excluir agendamento" sem próximos não pergunta mais; o prazo do próximo reajuste passou a correr da
+vigência declarada; as três datas apontadas (Patrícia 01/10/2027, Thayná 01/09/2027, Celani
+01/03/2027) foram corrigidas; campo que sai do vazio parou de virar "alteração" no histórico; o
+Financeiro de um cadastro sem formato abre sem nada marcado; e "pagou a mais" passou a contar só a
+sobra MARCADA como "não entra como crédito" — de nove pacientes na tela para duas.
+
+**Por quê:** três dos sete eram o mesmo defeito de fundo — **uma coluna respondendo a duas
+perguntas**. `data_efetiva` dizia "de quando o valor novo vale no dinheiro" e, por falta de outro
+lugar, também dizia "de quando corre o prazo do reajuste"; quando o doc 69/73 passou a empurrá-la
+para o início do próximo pacote, o prazo foi empurrado junto e nenhuma tela tinha como mostrar isso.
+O saldo acumulado dizia "quanto falta" e também "pagou a mais", e por isso acusava quem só pagou
+adiantado. Nos dois casos a correção foi separar as perguntas em colunas diferentes, não ajustar a
+conta.
+
+**Decisões que ficam valendo:**
+- **O prazo do reajuste corre da vigência DECLARADA**, não da data em que o valor passa a valer.
+  Nula em `vigencia_declarada` significa "as duas são a mesma", que é o caso comum.
+- **Corrigir a vigência de um reajuste empurrado NÃO move `data_efetiva`.** Mover reprecificaria
+  sessões já acontecidas e já cobradas — é o doc 73 outra vez.
+- **"Pagou a mais" é fato marcado, nunca deduzido.** Só a sobra que recebeu "Não" em "entram como
+  crédito no saldo?" conta, e a tela mostra o valor DA SOBRA, não o saldo. Pagar vários pacotes no
+  mês, ou um pacote adiantado ainda em aberto, é quitado.
+- **Campo que sai do vazio foi preenchido, não alterado** — não vira linha de histórico. Limpar um
+  campo, sim (havia valor e deixou de haver).
+- **Sem formato gravado, nenhum formato vem marcado.** Marcar Avulso por padrão afirmava do paciente
+  uma coisa que ninguém escolheu.
+- A regra antiga sobrevive onde ainda é verdade: saldo negativo continua sendo a posição correta, só
+  não é mais a palavra "pagou a mais".
+
+**Armadilhas:**
+- **Três testes verdes defendiam a regra velha.** Eles não estavam errados quando foram escritos —
+  foram reescritos COM o motivo, preservando o que cada um protegia ("não é devedor", "não é sem
+  cobrança"). Trocar o `expect` sem dizer por quê teria apagado o que eles guardavam.
+- **A lista de colunas do SELECT do fechamento é local**, não a compartilhada de `entradaDoMotor`.
+  Esquecer a coluna nova ali não quebra nada, não aparece em `tsc` — a tela simplesmente deixa de
+  acusar quem pagou a mais. Terceira vez que essa cópia cobra pedágio.
+- **A resposta "Não" só deixava rastro quando ela escrevia o motivo** (campo OPCIONAL do doc 72). Foi
+  esse rastro que permitiu o backfill cobrir exatamente Paula e Roberta; se ela tivesse respondido
+  "Não" sem escrever nada, a sobra seria irrecuperável. Daqui para frente a marca é gravada sempre.
+- **O `npm start` velho na porta 3000 serve o build ANTIGO** e o percurso passa medindo a tela errada.
+  Matar o processo antes (doc 71, de novo).
+- A tabela se dimensiona pelo CONTEÚDO: campo de largura fixa dentro de `<td>` alarga a tabela e o
+  corte aparece no ancestral que rola, não no campo.
+
+**Pendente:**
+- Merge do #544 (botão do dono). Pode conflitar no `HISTORICO.md` com o #543, que não está nesta
+  branch — as duas entradas são de 01/11 e vão para o topo.
+- Merge do #544.
+
+**Correção fechada depois (mesmo PR):** a vigência com o ano digitado errado — 23/07/**1925** em vez
+de 2025, quatro linhas da Meyla (uma de preço, três de configuração). Que era erro de digitação, a
+própria base provou: o início dela é 23/07/2025 e a vigência do FORMATO, gravada no mesmo
+salvamento, traz 23/07/2025. Corrigido por `corrigir-ano-digitado-errado-doc75.mjs`, que RECUSA
+qualquer linha cujo ano corrigido não seja o ano do início do paciente. Medido antes de aplicar: a
+guia Geral dela em 2025 e 2026 (117 linhas, cobranças e pagamentos) fica IDÊNTICA — o preço de
+entrada vale para o que vem antes dele, então 1925 e 2025-07-23 cobrem as mesmas sessões. Dinheiro
+nenhum mudou.
+
 ## 2026-11-01 — Importar dados de outro sistema por planilha
 
 **Entregue:** em Ajustes, "Importar dados de outro sistema": baixa a planilha modelo (gerada pelo
