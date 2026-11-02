@@ -9,7 +9,7 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ## 2026-11-02 — A dica do Whisper conta BYTES, não caracteres
 
-**Entregue:** o corte da dica de nomes passou a medir bytes UTF-8 (#546). O Divã voltou a ouvir.
+**Entregue:** o corte da dica de nomes passou a medir bytes UTF-8 (#547). O Divã voltou a ouvir.
 
 **Por quê:** a terapeuta relatou que a voz continuava falhando, e desta vez a tela disse o motivo:
 `400 prompt length must be 896 characters or fewer, but provided prompt contains 898 characters`.
