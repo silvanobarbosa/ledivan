@@ -7,6 +7,26 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-11-02 — Motores de teste: propriedade e mutação
+
+**Entregue:** `fast-check` com geradores que parecem com a produção (`tests/geradores.ts`), 5
+propriedades da dica do Whisper, e teste de mutação (`npm run test:mutation`) sobre os motores
+puros de voz e limite. A ordem dos três motores ficou escrita no `AGENTS.md`.
+
+**Por quê:** dois bugs seguidos passaram por suíte verde porque os testes mediam a coisa errada.
+Medido: com o bug de ontem reintroduzido, **os 8 testes-exemplo originais continuam passando** —
+são ASCII — enquanto a propriedade falha em 15 casos gerados e encolhe até
+`["Ana Gonçalves","Ana Ana Gonçalves"]`. Exemplo pega o que você já sabia; propriedade pega o
+que você não pensou.
+
+**Decisões que ficam valendo:** propriedade se escreve na UNIDADE de quem cobra o limite; teste de
+tamanho usa a cardinalidade da produção, não 2 itens; mutação roda sob demanda (~70s), nunca
+como gate do CI, com catraca em 80 (medido 84,25%).
+
+**Pendente:** nada deste bloco.
+
+---
+
 ## 2026-11-02 — A voz passa a LANÇAR o pagamento, com recibo
 
 **Entregue:** "lança o pagamento da Talita, 400 reais, em 31/10" grava de verdade e mostra o
