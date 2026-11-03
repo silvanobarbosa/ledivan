@@ -4,6 +4,7 @@ import {
   conteudoDaCelula,
   entraNaSequencia,
   identificacao,
+  identificacaoDoAniversario,
   letraDaRepeticao,
   posicaoEmTexto,
 } from "@/lib/celulaDaAgenda";
@@ -155,5 +156,33 @@ describe("a célula inteira", () => {
 
   it("presencial não acende a câmera", () => {
     expect(conteudoDaCelula({ agendaId: "P-1", online: false }).online).toBe(false);
+  });
+});
+
+/**
+ * O ANIVERSARIANTE NA AGENDA (doc 57): "deve aparecer todo o conteúdo do campo Id agenda".
+ */
+describe("identificação do aniversariante", () => {
+  it("o Id de agenda vai INTEIRO, com espaço e tudo", () => {
+    expect(identificacaoDoAniversario({ agendaId: "Ana J. 3a feira", nome: "Ana Julhia Souza" }))
+      .toBe("Ana J. 3a feira");
+  });
+
+  it("sem Id de agenda, cai no número de registro", () => {
+    expect(identificacaoDoAniversario({ registro: 12, nome: "Ana Julhia Souza" })).toBe("0012");
+  });
+
+  it("sem Id e sem registro, o nome vai COMPLETO — aqui não se corta no primeiro espaço", () => {
+    // É a diferença para a célula: "Ana" não distingue duas Anas num aviso de aniversário.
+    expect(identificacaoDoAniversario({ nome: "Ana Julhia Souza" })).toBe("Ana Julhia Souza");
+    expect(identificacao({ nome: "Ana Julhia Souza" })).toBe("Ana");
+  });
+
+  it("Id só de espaços não vale como Id", () => {
+    expect(identificacaoDoAniversario({ agendaId: "   ", nome: "Ana Julhia" })).toBe("Ana Julhia");
+  });
+
+  it("sem nada, não inventa", () => {
+    expect(identificacaoDoAniversario({})).toBe("—");
   });
 });

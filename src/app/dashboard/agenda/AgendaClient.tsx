@@ -9,7 +9,7 @@ import { perguntaDaConversao } from "@/lib/creditoAConfirmar";
 import { HolidaySetup } from "@/components/dashboard/HolidaySetup";
 import { HOLIDAY_STYLE, type Holiday, type HolidayCity } from "@/lib/holidays-style";
 import { geometriaDaFaixa, posicoesDoDia } from "@/lib/agendaLayout";
-import { conteudoDaCelula, identificacao } from "@/lib/celulaDaAgenda";
+import { conteudoDaCelula, identificacao, identificacaoDoAniversario } from "@/lib/celulaDaAgenda";
 import { textoDoBloqueio } from "@/lib/bloqueioDeHorario";
 import { ehQuinzenal, espelhosDoDia, sinaisDaSessao } from "@/lib/ocupacaoDaAgenda";
 import { CANAIS_DE_CONFIRMACAO, DIAS_DA_SEMANA, ehSemanal2x, geraRepeticoes, modalidadesDe, pedeHorasAntes, pedeLocal, repeticoesDe } from "@/lib/agendamentoNovo";
@@ -107,7 +107,7 @@ function startOfWeek(d: Date) {
   return out;
 }
 
-type Birthday = { name: string; month: number; day: number };
+type Birthday = { name: string; agendaId?: string | null; registro?: number | null; month: number; day: number };
 
 type BlocoBloqueado = { id: string; date: string; duration: number; note: string | null };
 
@@ -197,7 +197,7 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
    * o horário aparece marcado. A pergunta nomeia o paciente que intercala — sem isso, "deseja
    * intercalar?" não diz com quem.
    */
-  const [perguntaQ, setPerguntaQ] = useState<{ day: Date; hour: number; minute: number; quem: string } | null>(null);
+  const [perguntaQ, setPerguntaQ] = useState<{ day: Date; hour: number; minute: number; quem: string; sessaoId: string; sessaoFutura: boolean } | null>(null);
   /** Agendamento nascido de um slot Q: a repetição semanal não entra na lista. */
   const [deSlotQ, setDeSlotQ] = useState(false);
   const [newFreq, setNewFreq] = useState("pontual");
@@ -372,7 +372,7 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
     const p = patients.find((x) => x.id === id);
     return ehQuinzenal({ id, formato: p?.paymentFormat, frequencia: p?.frequency });
   };
-  type Ghost = { hour: number; minute: number; duration: number; patientName: string; patientId?: string };
+  type Ghost = { hour: number; minute: number; duration: number; patientName: string; patientId?: string; sessaoId: string; sessaoFutura: boolean };
   const ghostsForDay = (day: Date): Ghost[] =>
     espelhosDoDia({
       dia: day,
@@ -391,6 +391,8 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
       duration: e.duracao,
       patientName: patients.find((x) => x.id === e.pacienteId)?.name ?? "—",
       patientId: e.pacienteId,
+      sessaoId: e.sessaoId,
+      sessaoFutura: e.sessaoFutura,
     }));
 
   const dayKey = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
@@ -868,12 +870,13 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
                     {birthdaysForDay(day).length > 0 && (
                       <div className="mt-1 px-1 space-y-0.5">
                         {birthdaysForDay(day).slice(0, 2).map((b, i) => (
-                          /* Doc 76: o nome do aniversariante vai INTEIRO. Cortar no primeiro espaço
-                             transformava "Ana Julhia" em "Ana" — e numa agenda com duas Anas o aviso
-                             deixa de dizer de quem é. A célula do dia é estreita, então o nome quebra
-                             em linha em vez de ser cortado. */
+                          /* Doc 57: o aniversariante aparece pelo Id de agenda, o mesmo campo das
+                             células — a agenda fica aberta na tela e identifica por código, não por
+                             nome. Sem Id e sem registro, cai no nome INTEIRO (doc 76): cortar no
+                             primeiro espaço virava "Ana", e com duas Anas o aviso não diz de quem é.
+                             O conteúdo vai todo, quebrando em linha em vez de ser cortado. */
                           <p key={i} className="text-[9px] leading-tight font-semibold flex items-start gap-0.5 justify-center text-pink-600" title={`Aniversário: ${b.name}`}>
-                            🎂 <span className="min-w-0 break-words">{b.name}</span>
+                            🎂 <span className="min-w-0 break-words">{identificacaoDoAniversario({ agendaId: b.agendaId, registro: b.registro, nome: b.name })}</span>
                           </p>
                         ))}
                       </div>
@@ -950,7 +953,7 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
                       return (
                         <button
                           key={`ghost-${gi}`}
-                          onClick={() => setPerguntaQ({ day, hour: g.hour, minute: g.minute, quem })}
+                          onClick={() => setPerguntaQ({ day, hour: g.hour, minute: g.minute, quem, sessaoId: g.sessaoId, sessaoFutura: g.sessaoFutura })}
                           title={`Horário intercalado — quinzenal de ${g.patientName}. Clique para encaixar alguém.`}
                           style={{ top: top + 1, height }}
                           className="absolute left-1 right-1 rounded-lg px-2 py-1 text-left overflow-hidden border-l-[3px] border-dashed border-amber-400 bg-amber-400/10 hover:bg-amber-400/20 transition"
@@ -1439,6 +1442,31 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
                 Sim
               </button>
             </div>
+            {/* Doc 57: a saída para quem não quer mais aquele horário na agenda.
+
+                O slot vazio NÃO é um agendamento — ele é o reflexo do quinzenal da semana vizinha,
+                e não existe linha nenhuma no banco para apagar nele. Por isso aqui só existe uma
+                opção, a que tem significado: apagar os agendamentos quinzenais do paciente daqui
+                para a frente, que é o que faz os slots vazios irem junto. Um "apenas este" teria
+                de apagar a sessão REAL de outra semana para fazer o reflexo sumir — e apagar
+                atendimento de outro dia por um clique num espaço vazio é o tipo de surpresa que
+                não se conserta depois (decisão do dono, 03/11).
+
+                Sem sessão à frente não há o que excluir daqui para a frente: o botão não aparece,
+                em vez de apagar sessão passada, que é histórico e dinheiro. */}
+            {perguntaQ.sessaoFutura && (
+              <button
+                type="button"
+                disabled={pending}
+                onClick={() => aplicarExclusao("mesmos_dias", perguntaQ.sessaoId)}
+                className="w-full mt-1 py-2.5 rounded-xl font-bold text-red-600 border border-red-200 hover:bg-red-50 transition disabled:opacity-60"
+              >
+                Excluir este e os próximos de {perguntaQ.quem}
+              </button>
+            )}
+            <p className="text-[11px] text-foreground/40">
+              Excluir apaga os agendamentos quinzenais deste paciente neste dia e horário, daqui para a frente — o horário intercalado some junto.
+            </p>
           </div>
         </div>
       )}
