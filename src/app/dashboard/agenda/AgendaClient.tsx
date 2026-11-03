@@ -1458,7 +1458,7 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
               <button
                 type="button"
                 disabled={pending}
-                onClick={() => aplicarExclusao("mesmos_dias", perguntaQ.sessaoId)}
+                onClick={() => { const q = perguntaQ; setPerguntaQ(null); aplicarExclusao("mesmos_dias", q.sessaoId); }}
                 className="w-full mt-1 py-2.5 rounded-xl font-bold text-red-600 border border-red-200 hover:bg-red-50 transition disabled:opacity-60"
               >
                 Excluir este e os próximos de {perguntaQ.quem}
