@@ -7,6 +7,52 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-11-03 — Doc 57: lista nos pagamentos, Id de agenda no aniversário, o quinzenal que se apaga e o microfone que sumia
+
+**Entregue:** PRs #558, #559, #560.
+
+- Painel **Pagamentos**: o número abre a lista de quem está dentro dele (como já era em Relatórios).
+- **Aniversariante na agenda** passa a aparecer pelo **Id de agenda** — a agenda fica aberta na
+  tela e identifica por código, não por nome. Sem Id e sem registro, nome inteiro.
+- **Horário intercalado**: a janela do slot Q ganhou a exclusão dos agendamentos quinzenais
+  daquele paciente, daqui para a frente.
+- **Ditado por campo** voltou a existir: estava invisível em produção.
+
+**Por quê:** a terapeuta relatou o microfone "aparecendo e sumindo" e o painel de pagamentos
+mostrando número sem dono. O resto é agenda: nome de aniversariante onde a agenda usa código, e
+nenhuma saída para quem não quer mais aquele horário quinzenal.
+
+**Decisões que ficam valendo:**
+
+- **O slot "Q" não é um agendamento** — não existe linha no banco para apagar nele. Ele é o
+  reflexo da sessão da semana vizinha. Por isso a janela tem UMA opção, não duas: um "apenas
+  este" teria de apagar a sessão REAL de outra semana para o reflexo sumir, e apagar atendimento
+  de outro dia por um clique num espaço vazio não se conserta depois (decisão do dono, 03/11).
+- **O alvo da exclusão é a PRIMEIRA sessão que ainda está por vir**, não a de sete dias à frente.
+  Com as duas vizinhas no futuro, mirar a de depois deixaria viva justamente a próxima — ela
+  apagaria a série e veria o horário continuar na semana seguinte. Sem nenhuma futura, o botão
+  não aparece: o que sobrou é passado, e passado é histórico e dinheiro.
+- **O microfone não se desenha antes de saber se existe motor.** `disponivel === null` deixava o
+  botão na tela e desabilitado; a resposta chegava `false` e ele sumia. Era exatamente o que ela
+  descreveu, inclusive o clique rápido que "não fazia nada".
+- **A IA do ditado é a da casa**, pelo gateway (`origem: "casa"`), com a chave da terapeuta só
+  como reserva — é o que o doc 76 pede e o que o código já previa.
+
+**Armadilhas:**
+
+- **Configuração ausente não dá erro: dá funcionalidade invisível.** O ditado estava completo,
+  testado e no ar desde o doc 76, e nunca funcionou em produção porque `REVERBLABS_AI_BASE_URL`
+  e `REVERBLABS_AI_KEY` não existiam no projeto da Vercel. O código tinha fallback, o fallback
+  não tinha chave, e o resultado foi um botão que some. Nenhum teste pega isso — só olhar o
+  ambiente pega.
+- **Validação em produção achou o que o teste não acha:** a janela do horário intercalado
+  continuava aberta depois de excluir, falando de um horário que já não existia (#560).
+
+**Pendente:** nada do doc 57. Seguem abertos os registros duplicados do Bruno e da Paula no
+banco, e a emissão da NFS-e, esperando uma terapeuta com certificado válido.
+
+---
+
 ## 2026-11-03 — Entrar só com o e-mail, e os três botões de documento
 
 **Entregue:** PR #556. Login sem senha por código de 6 dígitos, enviado ao e-mail e ao Telegram
