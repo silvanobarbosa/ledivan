@@ -64,7 +64,9 @@ const GUIDES: Guide[] = [
     items: [
       { q: "O que tem no prontuário?", a: "É o cenário completo de cada consulta, da mais recente para a mais antiga: data e status da sessão, se foi cobrada/paga, se houve tarefa, e as anotações de evolução. Junta tudo o que também sai no Prontuário PDF." },
       { q: "Exportar o prontuário", a: "No topo do paciente, botão 'Prontuário PDF' → Imprimir/Salvar PDF." },
-      { q: "Emitir recibo", a: "No paciente → aba Financeiro → no Fluxo financeiro, clique em 'recibo' no pagamento desejado → Imprimir/Salvar PDF." },
+      { q: "Emitir Recibo Simples", a: "No paciente → guia Geral → no fluxo financeiro, clique em 'Emitir Recibo Simples' no pagamento desejado → Imprimir/Salvar PDF." },
+      // Doc 76: três documentos diferentes, e a diferença entre eles é a dúvida mais cara aqui.
+      { q: "Recibo, Nota Fiscal e Nota de Serviço: qual é qual?", a: "Recibo Simples é o comprovante que o Ledivan gera e imprime. Nota Fiscal abre o Receita Saúde, onde o recibo eletrônico (RESS) é emitido para atendimento a paciente pessoa física. Nota de Serviço é a NFS-e, que depende do seu município aceitar — em Ajustes → Nota de Serviço você consulta o seu e vê o que falta." },
     ],
   },
   {

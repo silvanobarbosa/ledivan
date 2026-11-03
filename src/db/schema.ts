@@ -1244,3 +1244,26 @@ export const fiscalConfig = pgTable("fiscal_config", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
+
+/**
+ * CÓDIGO DE ACESSO SEM SENHA, do profissional (doc 55).
+ *
+ * O código NÃO fica aqui: fica o HMAC dele (`lib/codigoDeAcesso`). A tabela do paciente
+ * (`patient_auth_code`) guarda o código em claro, e isso significa que quem lê o banco entra em
+ * qualquer conta durante os 10 minutos de validade. Não repetimos isso para o profissional, que
+ * é quem tem o prontuário inteiro do outro lado.
+ *
+ * `tentativas` e `usado_em` existem porque 6 dígitos sem limite de erro e sem uso único são uma
+ * senha fraca e permanente.
+ */
+export const loginCodes = pgTable("login_codes", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: text("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
+  codigoHash: text("codigo_hash").notNull(),
+  /** Por onde foi enviado: email | telegram. Serve para a tela dizer onde ela deve olhar. */
+  canal: text("canal").notNull(),
+  expiraEm: timestamp("expira_em").notNull(),
+  tentativas: integer("tentativas").default(0).notNull(),
+  usadoEm: timestamp("usado_em"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (t) => [index("login_codes_user_idx").on(t.userId)]);
