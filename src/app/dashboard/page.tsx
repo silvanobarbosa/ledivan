@@ -1,7 +1,7 @@
 import { db } from "@/db";
 import { auth } from "@/auth";
 import { users, patients, therapySessions, patientPackages } from "@/db/schema";
-import { and, eq, gte, lte, sql, count, inArray } from "drizzle-orm";
+import { and, eq, gte, lt, lte, sql, count, inArray, notInArray } from "drizzle-orm";
 import { formatDateTime } from "@/lib/therapy";
 import { Users as UsersIcon, CalendarCheck, Clock, ChevronRight, Video, MapPin, AlertTriangle, Percent, Eye } from "lucide-react";
 import { AnaliticosCharts } from "@/components/dashboard/AnaliticosCharts";
@@ -15,6 +15,8 @@ import { proximaDevolutiva, devolutivaNaLista, diasParaDevolutiva } from "@/lib/
 import { idadeEmAnos } from "@/lib/idade";
 import { apareceHoje, mesQueVem, pacientesALembrar } from "@/lib/lembrarAgendamento";
 import { horaDeParede } from "@/lib/horaLocal";
+import { ROTULO_DO_STATUS, STATUS_QUE_NAO_ACONTECERAM } from "@/lib/statusDaSessao";
+import { situacoesDaLista } from "@/lib/situacoesLista";
 import { AnalyticsFilters } from "@/components/dashboard/AnalyticsFilters";
 import Link from "next/link";
 import { cookies } from "next/headers";
@@ -74,16 +76,41 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   if (end) anConds.push(lte(therapySessions.date, end));
 
   const [weekRows, sessoesDoDia, pkgEndingRows, anRows, pats, pkgRealizedRows, agendaFuturaRows] = await Promise.all([
-    db.select({ val: count() }).from(therapySessions).where(sql`${therapySessions.userId} = ${userId} AND ${therapySessions.date} >= ${weekStart} AND ${therapySessions.date} < ${weekEnd}`),
+    /**
+     * SESSÕES NA SEMANA (doc 76): o que o consultório atende, não o que foi desfeito.
+     *
+     * Contava todas as linhas da semana. Uma semana com três desmarcações aparecia cheia, e o
+     * número que a terapeuta usa para saber o próprio volume mentia para cima justamente na
+     * semana ruim. Fora: desmarcada pelo paciente (`cancelada`/`realocada`), desmarcada pelo
+     * profissional e falta com atestado — a mesma lista do fechamento, agora compartilhada.
+     */
+    db.select({ val: count() }).from(therapySessions).where(and(
+      eq(therapySessions.userId, userId),
+      gte(therapySessions.date, weekStart),
+      lt(therapySessions.date, weekEnd),
+      notInArray(therapySessions.status, [...STATUS_QUE_NAO_ACONTECERAM]),
+    )),
+    /**
+     * SESSÕES DO DIA (doc 76): TODAS as do dia — era o pedido, e faltava a maior parte delas.
+     *
+     * Dois filtros escondiam o dia inteiro. `status = 'agendada'` tirava da lista a sessão que
+     * o terapeuta já atendeu (Presente) ou que o paciente faltou: às 15h o bloco do dia ia
+     * esvaziando sozinho. E `pendingConfirmation = false` tirava TODA sessão recorrente — elas
+     * nascem com `pendingConfirmation: true` (`agenda/edicao-actions.ts`), que ali quer dizer
+     * "ainda não confirmada pelo paciente", não "não é sessão". Numa agenda de recorrentes isso
+     * esvaziava o cartão quase por completo.
+     *
+     * Agora vem o dia inteiro, e o RÓTULO de cada uma diz em que pé está.
+     */
     db.query.therapySessions.findMany({
-      where: sql`${therapySessions.userId} = ${userId} AND ${therapySessions.date} >= ${diaInicio} AND ${therapySessions.date} < ${diaFim} AND ${therapySessions.status} = 'agendada' AND ${therapySessions.pendingConfirmation} = false`,
+      where: sql`${therapySessions.userId} = ${userId} AND ${therapySessions.date} >= ${diaInicio} AND ${therapySessions.date} < ${diaFim}`,
       with: { patient: { columns: { name: true, id: true } } }, orderBy: [therapySessions.date],
     }),
     db.select({ pid: patientPackages.patientId, total: sql<number>`sum(${patientPackages.sessions})::int` })
       .from(patientPackages).innerJoin(patients, eq(patientPackages.patientId, patients.id))
       .where(and(eq(patientPackages.userId, userId), eq(patients.patientStatus, "ativo"), eq(patients.contractType, "pacote"))).groupBy(patientPackages.patientId),
     db.select({ isOnline: therapySessions.isOnline, location: therapySessions.location, status: therapySessions.status, date: therapySessions.date, cadastroKind: patients.cadastroKind }).from(therapySessions).innerJoin(patients, eq(therapySessions.patientId, patients.id)).where(and(...anConds)),
-    db.select({ id: patients.id, name: patients.name, agendaId: patients.agendaId, status: patients.patientStatus, prospectDate: patients.prospectDate, prospectFechou: patients.prospectFechou, paymentStatus: patients.paymentStatus, gender: patients.gender, birthDate: patients.birthDate, address: patients.address, phone: patients.phone, guardianName: patients.guardianName, guardianPhone: patients.guardianPhone, email: patients.email, queixaPrincipal: patients.queixaPrincipal, startedAt: patients.startedAt, priceReviewDate: patients.priceReviewDate, devolutivaMeses: patients.devolutivaMeses, devolutivaDispensadaEm: patients.devolutivaDispensadaEm }).from(patients).where(eq(patients.userId, userId)),
+    db.select({ id: patients.id, name: patients.name, agendaId: patients.agendaId, status: patients.patientStatus, prospectDate: patients.prospectDate, prospectFechou: patients.prospectFechou, paymentStatus: patients.paymentStatus, gender: patients.gender, birthDate: patients.birthDate, address: patients.address, phone: patients.phone, guardianName: patients.guardianName, guardianPhone: patients.guardianPhone, email: patients.email, queixaPrincipal: patients.queixaPrincipal, startedAt: patients.startedAt, priceReviewDate: patients.priceReviewDate, devolutivaMeses: patients.devolutivaMeses, devolutivaDispensadaEm: patients.devolutivaDispensadaEm, paymentFormat: patients.paymentFormat, pacoteTipo: patients.pacoteTipo, sessionFee: patients.sessionFee, paymentDay: patients.paymentDay, paymentDay2: patients.paymentDay2, timesPerPeriod: patients.timesPerPeriod, horasAntesPagamento: patients.horasAntesPagamento, sessionsInPacket: patients.sessionsInPacket }).from(patients).where(eq(patients.userId, userId)),
     // Consumo de pacote = fonte única DERIVADA: sessões realizadas+cobráveis por paciente.
     db.select({ pid: therapySessions.patientId, cnt: sql<number>`count(*)::int` })
       .from(therapySessions).where(and(eq(therapySessions.userId, userId), eq(therapySessions.status, "realizada"), eq(therapySessions.chargeable, true))).groupBy(therapySessions.patientId),
@@ -189,8 +216,24 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
     }))
     .sort((a, b) => a.dias - b.dias);
 
+  /**
+   * SITUAÇÃO DE PAGAMENTO PELO MOTOR ÚNICO (doc 76).
+   *
+   * O painel "Pagamentos" contava a coluna `patients.payment_status` — uma marca guardada no
+   * cadastro, que não sabe de qual MÊS é a pendência. O dono pediu: "Em aberto deve considerar
+   * os em aberto dentro do mês vigente e não todos". O recorte por mês já existe, e é do motor
+   * (`resumoDaGeral` descarta cobrança com vencimento depois do fim do mês) — o painel é que
+   * estava lendo outra fonte. Agora lê a mesma da lista de Cadastros: um motor, uma conta.
+   */
+  const situacoesPainel = await situacoesDaLista(userId, pats.map((p) => ({
+    id: p.id, paymentFormat: p.paymentFormat, pacoteTipo: p.pacoteTipo, sessionFee: p.sessionFee,
+    paymentDay: p.paymentDay, paymentDay2: p.paymentDay2, timesPerPeriod: p.timesPerPeriod,
+    horasAntesPagamento: p.horasAntesPagamento, sessionsInPacket: p.sessionsInPacket,
+  })));
+
   const panelPatients = pats.map((p) => ({
     id: p.id, name: p.name, status: p.status,
+    situacao: situacoesPainel.get(p.id)?.situacao ?? null,
     temAgendaFutura: comAgendaFutura.has(p.id),
     gender: p.gender, birthDate: p.birthDate ? (p.birthDate as unknown as string) : null,
     address: p.address, phone: p.phone, guardianPhone: p.guardianPhone, email: p.email,
@@ -281,13 +324,23 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
           <div className="grid gap-2">
             {sessoesDoDia.map((s) => {
               const past = new Date(s.date as unknown as string).getTime() < todayStart;
+              // A sessão já resolvida (Presente/Faltou/Desmarcou) continua na lista do dia — era o
+              // pedido —, mas não leva mais para a tela de atender: não há o que atender nela.
+              const resolvida = ROTULO_DO_STATUS[s.status];
               const Row = (<>
                 <span className="font-mono text-sm font-semibold text-primary shrink-0">{formatDateTime(s.date as unknown as string)}</span>
-                <span className="flex-1 font-medium truncate">{s.patient?.name ?? "—"}</span>
+                <span className={`flex-1 font-medium truncate ${resolvida ? "text-foreground/50" : ""}`}>{s.patient?.name ?? "—"}</span>
+                {resolvida && <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-surface text-foreground/50 shrink-0">{resolvida}</span>}
+                {/* Pedido de horário feito pelo paciente e ainda não aceito — ocupa o lugar, mas não é
+                    compromisso fechado. A recorrente também nasce assim, e por isso o selo só aparece
+                    quando NÃO é recorrente (é a mesma leitura que a agenda faz). */}
+                {s.pendingConfirmation && !s.recurring && !resolvida && (
+                  <span className="text-[11px] font-bold px-2 py-0.5 rounded-full bg-[#fef9c3] text-[#854d0e] shrink-0">A confirmar</span>
+                )}
                 <span className="text-xs text-foreground/40">{s.duration}min</span>
-                {!past && <span className="text-[11px] font-bold text-accent opacity-0 group-hover:opacity-100 transition">Atender →</span>}
+                {!past && !resolvida && <span className="text-[11px] font-bold text-accent opacity-0 group-hover:opacity-100 transition">Atender →</span>}
               </>);
-              return past
+              return past || resolvida
                 ? <div key={s.id} className="flex items-center gap-3 bg-surface/60 rounded-2xl px-4 py-3">{Row}</div>
                 : <Link key={s.id} href={`/atender/${s.id}`} className="flex items-center gap-3 bg-surface/60 rounded-2xl px-4 py-3 hover:bg-surface transition group">{Row}</Link>;
             })}

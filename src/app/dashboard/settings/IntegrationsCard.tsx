@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useTransition } from "react";
-import { Calendar, Mail, MessageCircle, Check, Plug, RefreshCw, ArrowRight, ArrowLeft, ArrowLeftRight, X, CalendarCheck, ShieldCheck } from "lucide-react";
+import { Calendar, Mail, Check, Plug, RefreshCw, ArrowRight, ArrowLeft, ArrowLeftRight, X, CalendarCheck, ShieldCheck } from "lucide-react";
 import { setIntegration, syncGoogleNow } from "./actions";
 import type { Integrations, GoogleSyncMode } from "@/lib/preferences";
 
@@ -30,7 +30,7 @@ export function IntegrationsCard({ initial, calendarAuthorized = false }: { init
     startTransition(() => setIntegration(patch));
   };
 
-  const toggle = (key: "googleCalendar" | "gmail" | "whatsapp") => {
+  const toggle = (key: "googleCalendar" | "gmail") => {
     const turningOn = !state[key];
     const isGoogle = key === "googleCalendar" || key === "gmail";
     // Ao conectar um serviço Google pela 1ª vez (sem direção definida), pergunta a direção.
@@ -49,14 +49,14 @@ export function IntegrationsCard({ initial, calendarAuthorized = false }: { init
     setSyncModal(null);
   };
 
-  const saveNumber = (whatsappNumber: string) => setState((s) => ({ ...s, whatsappNumber }));
-  const commitNumber = () => startTransition(() => setIntegration({ whatsappNumber: state.whatsappNumber }));
-
   const items = [
     { key: "googleCalendar" as const, icon: Calendar, name: "Google Agenda", desc: "Sincronize suas sessões com o Google Calendar.", color: "#4285F4" },
     { key: "gmail" as const, icon: Mail, name: "Gmail", desc: "Envie lembretes e recibos por e-mail.", color: "#EA4335" },
-    { key: "whatsapp" as const, icon: MessageCircle, name: "WhatsApp", desc: "Confirmações e lembretes de sessão por WhatsApp.", color: "#25D366" },
   ];
+  // Doc 76: o WhatsApp saiu daqui. Eram DUAS áreas no Ajustes para o mesmo canal — este liga/desliga
+  // e guarda o número que roteia a mensagem recebida; o card "WhatsApp do seu consultório" conecta o
+  // aparelho pelo QR. Quem configurava um e não o outro ficava com metade do canal funcionando, sem
+  // nada na tela explicando por quê. Tudo agora vive no card do WhatsApp.
 
   const googleConnected = !!state.googleCalendar || !!state.gmail;
 
@@ -86,13 +86,6 @@ export function IntegrationsCard({ initial, calendarAuthorized = false }: { init
                 </button>
               </div>
 
-              {it.key === "whatsapp" && connected && (
-                <div className="flex gap-2 pl-2">
-                  <input value={state.whatsappNumber ?? ""} onChange={(e) => saveNumber(e.target.value)} onBlur={commitNumber}
-                    placeholder="Número com DDD (ex: 11 90000-0000)"
-                    className="flex-1 px-4 py-2.5 rounded-xl bg-surface border border-border focus:ring-2 focus:ring-accent/20 focus:border-accent outline-none transition text-sm" />
-                </div>
-              )}
             </div>
           );
         })}

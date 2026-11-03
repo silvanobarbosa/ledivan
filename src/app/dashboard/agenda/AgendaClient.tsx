@@ -868,8 +868,12 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
                     {birthdaysForDay(day).length > 0 && (
                       <div className="mt-1 px-1 space-y-0.5">
                         {birthdaysForDay(day).slice(0, 2).map((b, i) => (
-                          <p key={i} className="text-[9px] leading-tight font-semibold truncate flex items-center gap-0.5 justify-center text-pink-600" title={`Aniversário: ${b.name}`}>
-                            🎂 <span className="truncate">{b.name.split(" ")[0]}</span>
+                          /* Doc 76: o nome do aniversariante vai INTEIRO. Cortar no primeiro espaço
+                             transformava "Ana Julhia" em "Ana" — e numa agenda com duas Anas o aviso
+                             deixa de dizer de quem é. A célula do dia é estreita, então o nome quebra
+                             em linha em vez de ser cortado. */
+                          <p key={i} className="text-[9px] leading-tight font-semibold flex items-start gap-0.5 justify-center text-pink-600" title={`Aniversário: ${b.name}`}>
+                            🎂 <span className="min-w-0 break-words">{b.name}</span>
                           </p>
                         ))}
                       </div>

@@ -1,11 +1,23 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useTransition } from "react";
 import { MessageCircle, Check, Loader2, RefreshCw } from "lucide-react";
-import { connectWhatsapp, checkWhatsapp, disconnectWhatsapp } from "./actions";
+import { connectWhatsapp, checkWhatsapp, disconnectWhatsapp, setIntegration } from "./actions";
 
-export function WhatsappCard({ connected }: { connected: boolean }) {
+/**
+ * Doc 76: o Ajustes tinha DUAS áreas de WhatsApp — esta (conectar o aparelho pelo QR) e um item
+ * dentro de "Integrações" (ligar o canal e guardar o número). São metades do mesmo canal: sem a
+ * conexão não sai mensagem, e sem o número a mensagem que o paciente RESPONDE não encontra o
+ * consultório (`users.whatsappId` é a chave do roteamento, em `lib/whatsapp.ts`). Configurar uma
+ * e não a outra deixava o canal pela metade, sem nada na tela dizendo o quê faltava.
+ *
+ * Agora é um lugar só, na ordem em que se usa: conecta o aparelho, depois informa o número.
+ */
+export function WhatsappCard({ connected, canal, numero }: { connected: boolean; canal: boolean; numero: string }) {
   const [isConnected, setIsConnected] = useState(connected);
+  const [canalLigado, setCanalLigado] = useState(canal);
+  const [num, setNum] = useState(numero);
+  const [salvando, salvar] = useTransition();
   const [qr, setQr] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -65,6 +77,36 @@ export function WhatsappCard({ connected }: { connected: boolean }) {
       )}
 
       {error && <p className="text-sm text-red-600">{error}</p>}
+
+      {/* O canal e o número — o que antes vivia em "Integrações". Fica depois da conexão porque é
+          essa a ordem de uso: primeiro o aparelho responde, depois o app sabe quem é. */}
+      <div className="border-t border-border pt-4 space-y-3">
+        <label className="flex items-start gap-3 cursor-pointer">
+          <input type="checkbox" checked={canalLigado} className="mt-1 w-4 h-4 accent-[#25D366]"
+            onChange={(e) => {
+              const ligado = e.target.checked;
+              setCanalLigado(ligado);
+              salvar(() => { void setIntegration({ whatsapp: ligado, whatsappNumber: num }); });
+            }} />
+          <span className="text-sm leading-snug">
+            <strong className="text-primary">Usar o WhatsApp para falar com os pacientes</strong>
+            <span className="block text-foreground/50">Confirmações, lembretes e cobranças saem por aqui.</span>
+          </span>
+        </label>
+
+        {canalLigado && (
+          <div className="space-y-1">
+            <input value={num} onChange={(e) => setNum(e.target.value)}
+              onBlur={() => salvar(() => { void setIntegration({ whatsapp: canalLigado, whatsappNumber: num }); })}
+              placeholder="Número com DDD (ex: 11 90000-0000)"
+              className="w-full px-4 py-2.5 rounded-xl bg-surface border border-border focus:ring-2 focus:ring-accent/20 focus:border-accent outline-none transition text-sm" />
+            <p className="text-xs text-foreground/40">
+              É por este número que o Ledivan reconhece as respostas dos pacientes.
+              {salvando && " Salvando…"}
+            </p>
+          </div>
+        )}
+      </div>
 
       {qr && !isConnected && (
         <div className="border-t border-border pt-4 flex flex-col items-center gap-3">

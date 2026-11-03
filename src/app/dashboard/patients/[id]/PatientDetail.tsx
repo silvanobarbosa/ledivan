@@ -32,6 +32,7 @@ import { Phone, Plus, Pencil, Mic, Loader2, FileText, Repeat, Download, MessageC
 import { MessagePatient } from "@/components/dashboard/MessagePatient";
 import { anosDisponiveis } from "@/lib/filtroDeAno";
 import { abrirWhatsapp } from "@/lib/whatsappLink";
+import { TRANSCRICAO_POR_ARQUIVO_LIGADA } from "@/lib/transcricaoPorArquivo";
 
 type Patient = {
   id: string; name: string; email: string | null; phone: string | null; guardianName?: string | null; guardianPhone?: string | null;
@@ -470,7 +471,9 @@ export function PatientDetail({
               <Plus className="w-4 h-4" /> Novo registro
             </button>
             {/* Doc 33: "+ Anamnese estruturada" saiu — a anamnese agora é uma guia própria. */}
-            {transcriptionEnabled && (
+            {/* Doc 76: escondido atrás de `TRANSCRICAO_POR_ARQUIVO_LIGADA` — o bloco sai da tela, o
+                código fica. Ver `lib/transcricaoPorArquivo.ts`. */}
+            {TRANSCRICAO_POR_ARQUIVO_LIGADA && transcriptionEnabled && (
               <button onClick={() => setShowTranscribe((s) => !s)} className="flex items-center gap-2 text-primary font-semibold text-sm hover:underline">
                 <Mic className="w-4 h-4" /> Transcrever sessão (IA)
               </button>
@@ -478,7 +481,7 @@ export function PatientDetail({
           </div>
 
 
-          {transcriptionEnabled && showTranscribe && (
+          {TRANSCRICAO_POR_ARQUIVO_LIGADA && transcriptionEnabled && showTranscribe && (
             <div className="glass-card rounded-[24px] p-5 space-y-3">
               <p className="text-sm font-semibold text-primary flex items-center gap-2"><Mic className="w-4 h-4" /> Transcrição por IA</p>
               <input
