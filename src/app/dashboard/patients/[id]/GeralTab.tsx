@@ -321,7 +321,27 @@ function EnvioControle({ patientId, chave, envio }: { patientId: string; chave: 
 }
 
 /**
- * "Emitir nota" leva ao Receita Saúde, onde a emissão de fato acontece.
+ * "Emitir Nota de Serviço" (doc 76) — a terceira opção, e a única que ainda NÃO emite.
+ *
+ * O documento pede as três na interface e, na mesma página, proíbe simular emissão: *"informar
+ * claramente ao profissional e apresentar uma alternativa oficial, sem simular uma emissão dentro
+ * do Le'Divan"*. Um botão que abrisse um PDF bonito aqui seria exatamente o que ele proíbe.
+ *
+ * Então ele leva para Ajustes → Nota de Serviço, que é onde a consulta responde, com o município
+ * DELA, se existe caminho nacional, e onde o certificado é aplicado. É o passo honesto enquanto a
+ * emissão não existe — e quando existir, é este botão que passa a emitir, sem mudar de lugar.
+ */
+function BotaoNotaDeServico() {
+  return (
+    <Link href="/dashboard/settings#nota-servico" title="Configurar a emissão de NFS-e — ver se o seu município permite"
+      className="text-[11px] font-semibold text-foreground/70 border border-border rounded-full px-2 py-0.5 hover:bg-surface whitespace-nowrap">
+      Emitir Nota de Serviço
+    </Link>
+  );
+}
+
+/**
+ * "Emitir Nota Fiscal" leva ao Receita Saúde, onde a emissão de fato acontece.
  *
  * O sistema não emite nota — ele encurta o caminho e ANOTA que ela foi emitida. Abrir e marcar no
  * mesmo clique é honesto aqui: quem clica está indo emitir, e a marca não é irreversível (marcar de
@@ -342,7 +362,7 @@ function BotaoNotaFiscal({ patientId, pagamentoId }: { patientId: string; pagame
   return (
     <button type="button" onClick={acionar} disabled={pending} title="Abrir o Receita Saúde e registrar a emissão"
       className="text-[11px] font-semibold text-foreground/70 border border-border rounded-full px-2 py-0.5 hover:bg-surface disabled:opacity-60 whitespace-nowrap">
-      {pending ? "..." : "Emitir nota"}
+      {pending ? "..." : "Emitir Nota Fiscal"}
     </button>
   );
 }
@@ -410,12 +430,15 @@ function ListaLancamentos({ patientId, pagamentos, total }: { patientId: string;
                 {p.nota && <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-[#eef2ff] text-[#4338ca] whitespace-nowrap">nota emitida{p.reciboNumero ? ` — nº ${p.reciboNumero}` : ""}</span>}
               </div>
             )}
-            {/* Botões: Emitir recibo / Emitir nota (ações — fora do PDF, doc 30) */}
+            {/* Botões de documento (doc 30; renomeados no doc 76): Recibo Simples, Nota de
+                Serviço e Nota Fiscal — três coisas diferentes, três botões. */}
             <div className="flex items-center gap-2 flex-wrap print:hidden">
               <Link href={`/dashboard/patients/${patientId}/recibo/${p.id}`}
                 className="text-[11px] font-semibold text-primary border border-border rounded-full px-2 py-0.5 hover:bg-surface whitespace-nowrap">
-                Emitir recibo
+                Emitir Recibo Simples
               </Link>
+              {/* À esquerda da Nota Fiscal, como o documento pediu. */}
+              <BotaoNotaDeServico />
               <BotaoNotaFiscal patientId={patientId} pagamentoId={p.id} />
             </div>
           </div>

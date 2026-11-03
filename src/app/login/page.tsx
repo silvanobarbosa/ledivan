@@ -13,6 +13,17 @@ function LoginForm() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
+  /**
+   * Doc 55: entrar só com o e-mail, sem senha.
+   *
+   * O modo por CÓDIGO é o padrão porque foi o pedido — senha é a coisa que ela esquece, e
+   * "esqueci a senha" é a tela que ninguém quer abrir às oito da noite com paciente esperando.
+   * A senha continua existindo atrás de um link: tirar um caminho que funciona não era o pedido.
+   */
+  const [modo, setModo] = useState<"codigo" | "senha">("codigo");
+  const [etapa, setEtapa] = useState<"email" | "codigo">("email");
+  const [codigo, setCodigo] = useState("");
+  const [aviso, setAviso] = useState("");
   // Link de download do app Android. Vem de /api/app/version → sempre a versão atual (nunca preso
   // a um APK velho hardcoded). O card só aparece quando há um apkUrl publicado.
   const [app, setApp] = useState<{ version: string; apkUrl: string } | null>(null);
@@ -48,6 +59,51 @@ function LoginForm() {
         setError(data.error || "Erro ao fazer login");
       }
     } catch (_err) {
+      setError("Erro ao conectar com o servidor");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  /**
+   * Pede o código. A resposta do servidor é sempre a mesma, exista a conta ou não — então a tela
+   * também não pode variar: ela avança para o passo do código em qualquer caso. Dizer "e-mail
+   * não encontrado" aqui entregaria quem usa o sistema.
+   */
+  const pedirCodigo = async (e?: React.FormEvent) => {
+    e?.preventDefault();
+    setError("");
+    setAviso("");
+    setLoading(true);
+    try {
+      await fetch("/api/auth/codigo/pedir", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+      setEtapa("codigo");
+      setAviso("Se existe uma conta com esse e-mail, o código foi enviado — confira o e-mail e, se o seu Telegram estiver vinculado, o Telegram também.");
+    } catch {
+      setError("Erro ao conectar com o servidor");
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const entrarComCodigo = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError("");
+    setLoading(true);
+    try {
+      const res = await fetch("/api/auth/codigo/entrar", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, codigo }),
+      });
+      const data = await res.json();
+      if (res.ok && data.ok) router.push(data.redirectTo || returnTo);
+      else setError(data.error || "Código inválido");
+    } catch {
       setError("Erro ao conectar com o servidor");
     } finally {
       setLoading(false);
@@ -92,10 +148,15 @@ function LoginForm() {
           </p>
 
           {/* Formulário */}
-          <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={modo === "senha" ? handleSubmit : (etapa === "email" ? pedirCodigo : entrarComCodigo)} className="space-y-4">
             {error && (
               <div className="bg-red-50 text-red-600 p-3 rounded-lg text-sm">
                 {error}
+              </div>
+            )}
+            {aviso && !error && (
+              <div className="bg-blue-50 text-blue-800 p-3 rounded-lg text-sm">
+                {aviso}
               </div>
             )}
 
@@ -111,34 +172,83 @@ function LoginForm() {
                 className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
                 placeholder="seu@email.com"
                 required
-                disabled={loading}
+                // No passo do código o e-mail fica travado: mudá-lo ali invalidaria o código que
+                // acabou de chegar, e o erro só apareceria depois de digitar os seis dígitos.
+                disabled={loading || (modo === "codigo" && etapa === "codigo")}
                 autoComplete="email"
               />
             </div>
 
-            <div>
-              <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
-                Senha
-              </label>
-              <input
-                id="password"
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
-                placeholder="••••••••"
-                required
-                disabled={loading}
-                autoComplete="current-password"
-              />
-            </div>
+            {modo === "senha" && (
+              <div>
+                <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+                  Senha
+                </label>
+                <input
+                  id="password"
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent"
+                  placeholder="••••••••"
+                  required
+                  disabled={loading}
+                  autoComplete="current-password"
+                />
+              </div>
+            )}
+
+            {modo === "codigo" && etapa === "codigo" && (
+              <div>
+                <label htmlFor="codigo" className="block text-sm font-medium text-gray-700 mb-1">
+                  Código de 6 dígitos
+                </label>
+                {/* `inputMode="numeric"` abre o teclado de números no celular; `autoComplete`
+                    deixa o iPhone e o Android oferecerem o código do SMS/e-mail direto. */}
+                <input
+                  id="codigo"
+                  type="text"
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  maxLength={7}
+                  value={codigo}
+                  onChange={(e) => setCodigo(e.target.value)}
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent tracking-[0.4em] text-center text-lg"
+                  placeholder="000000"
+                  required
+                  autoFocus
+                  disabled={loading}
+                />
+                <div className="flex items-center justify-between mt-2 text-xs">
+                  <button type="button" onClick={() => { setEtapa("email"); setCodigo(""); setAviso(""); setError(""); }}
+                    className="text-gray-500 hover:underline">
+                    Usar outro e-mail
+                  </button>
+                  <button type="button" onClick={() => pedirCodigo()} disabled={loading}
+                    className="text-purple-600 font-semibold hover:underline disabled:opacity-50">
+                    Enviar outro código
+                  </button>
+                </div>
+              </div>
+            )}
 
             <button
               type="submit"
               disabled={loading}
               className="w-full bg-purple-600 hover:bg-purple-700 text-white font-medium py-2.5 rounded-lg transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {loading ? "Entrando..." : "Entrar"}
+              {loading
+                ? (modo === "codigo" && etapa === "email" ? "Enviando..." : "Entrando...")
+                : (modo === "codigo" && etapa === "email" ? "Enviar código" : "Entrar")}
+            </button>
+
+            {/* O outro caminho. A senha continua lá para quem a usa. */}
+            <button
+              type="button"
+              onClick={() => { setModo(modo === "codigo" ? "senha" : "codigo"); setEtapa("email"); setCodigo(""); setPassword(""); setError(""); setAviso(""); }}
+              className="w-full text-sm text-gray-500 hover:text-purple-600 hover:underline"
+            >
+              {modo === "codigo" ? "Prefiro entrar com a minha senha" : "Entrar sem senha, com código no e-mail ou Telegram"}
             </button>
           </form>
 

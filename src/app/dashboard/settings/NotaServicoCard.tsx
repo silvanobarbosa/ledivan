@@ -45,7 +45,8 @@ export function NotaServicoCard({ certificado, dados }: { certificado: Certifica
   const cor = resposta ? CORES[resposta.situacao] : null;
 
   return (
-    <div className="glass-card rounded-[24px] p-6 space-y-5">
+    // `id`: o botao "Emitir Nota de Servico" na ficha do paciente aponta para ca.
+    <div id="nota-servico" className="glass-card rounded-[24px] p-6 space-y-5 scroll-mt-24">
       <div className="flex items-start gap-5">
         <div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center shrink-0">
           <FileText className="w-6 h-6" />
