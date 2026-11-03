@@ -343,13 +343,22 @@ export function PatientFormFields({ p, save, tabInicial, contrato, patientId }: 
   // a aparecer só numa nova alteração financeira. Vale para TODAS as modalidades (o bloco é um só).
   /** Doc 69: o VALOR mudou nesta edição? É o que faz a pergunta do pacote aparecer. */
   const [valorAlterado, setValorAlterado] = useState(false);
+  /**
+   * Doc 76: o TAMANHO do pacote tambem muda o que o paciente paga.
+   *
+   * A pergunta so aparecia quando o VALOR mudava. Quem trocava so a quantidade de sessoes
+   * nao tinha como dizer "a partir do proximo pacote" — e a troca partia a sequencia em curso
+   * sem perguntar nada. Trocar 4 por 2 no meio de um pacote e uma decisao de dinheiro igual a
+   * trocar o preco.
+   */
+  const [tamanhoAlterado, setTamanhoAlterado] = useState(false);
   const [savedTick, formAction] = useActionState(
     async (prev: number, fd: FormData) => { if (save) await save(fd); return prev + 1; },
     0,
   );
   useEffect(() => {
     // eslint-disable-next-line react-hooks/set-state-in-effect -- reset pós-save é o próprio efeito desejado
-    if (savedTick > 0) { setFinanceiroAlterado(false); setValorAlterado(false); }
+    if (savedTick > 0) { setFinanceiroAlterado(false); setValorAlterado(false); setTamanhoAlterado(false); }
   }, [savedTick]);
   /**
    * Doc 67: o STATUS é controlado — senão ele volta a "Ativo" depois de salvar.
@@ -526,12 +535,12 @@ export function PatientFormFields({ p, save, tabInicial, contrato, patientId }: 
         * Doc 72: e só quando a data cai DENTRO de um pacote. Sem pacote partido ao meio as duas
         * respostas dão o mesmo resultado, e perguntar faria decidir algo que não existe.
         */}
-      {valorAlterado && usaPacote(formatoEfetivo) && pacoteEmAndamentoEm(p?.pacotesEmAndamento ?? [], vigenciaDigitada ?? padraoVigencia) && (
+      {(valorAlterado || tamanhoAlterado) && usaPacote(formatoEfetivo) && pacoteEmAndamentoEm(p?.pacotesEmAndamento ?? [], vigenciaDigitada ?? padraoVigencia) && (
         <fieldset className="space-y-1.5 pt-1">
-          <legend className={labelCls}>Esta data de vigência está no meio de um pacote em andamento. Sobre qual pacote deseja aplicar o novo valor?</legend>
+          <legend className={labelCls}>Esta data de vigência está no meio de um pacote em andamento. Sobre qual pacote deseja aplicar a mudança?</legend>
           {[
-            { v: "vigente", r: "Pacote em andamento", ajuda: "O novo valor vale a partir da próxima sessão; as anteriores ficam no valor antigo e o total deste pacote é recalculado." },
-            { v: "proximo_pacote", r: "Próximo pacote a iniciar", ajuda: "O pacote em andamento fica inteiro no valor antigo; o novo valor só vale quando um novo pacote começar." },
+            { v: "vigente", r: "Pacote em andamento", ajuda: "Vale a partir da próxima sessão; as anteriores ficam como estão e o total deste pacote é recalculado. Mudar a quantidade aqui PARTE o pacote em curso." },
+            { v: "proximo_pacote", r: "Próximo pacote a iniciar", ajuda: "O pacote em andamento fica inteiro como foi contratado — valor e quantidade; a mudança só vale quando um novo pacote começar." },
           ].map((o) => (
             <label key={o.v} className="flex items-start gap-2 text-xs cursor-pointer">
               <input type="radio" name="aplicaPrecoEm" value={o.v} defaultChecked={o.v === "vigente"} className="mt-0.5" />
@@ -561,7 +570,8 @@ export function PatientFormFields({ p, save, tabInicial, contrato, patientId }: 
       <label htmlFor="sessionsInPacket" className={labelCls}>Quantidade de sessões do pacote</label>
       <input id="sessionsInPacket" name="sessionsInPacket" type="number" min={1} max={60} required
         onInvalid={() => setTab("financeiro")}
-        defaultValue={p?.sessionsInPacket ?? ""} className={inputCls} placeholder="ex: 4" />
+        defaultValue={p?.sessionsInPacket ?? ""} className={inputCls} placeholder="ex: 4"
+        onChange={(e) => setTamanhoAlterado(Number(e.target.value) !== Number(p?.sessionsInPacket ?? 0))} />
       <p className="text-[10px] text-foreground/50 mt-1">Quantas sessões compõem o pacote (usado no Completo).</p>
     </div>
   );

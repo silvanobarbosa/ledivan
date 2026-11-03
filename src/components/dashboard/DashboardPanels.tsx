@@ -21,6 +21,13 @@ export type PanelPatient = {
   gender: string | null; birthDate: string | null; address: string | null;
   phone: string | null; guardianPhone: string | null; email: string | null;
   queixaPrincipal: string | null; paymentStatus: string | null;
+  /**
+   * Situação vinda do MOTOR (doc 76), já com o recorte do mês vigente. `paymentStatus`
+   * continua no tipo porque outras caixas do painel ainda o usam, mas quem conta
+   * atraso/aberto/em dia é este campo — a marca do cadastro não sabe de qual mês é a
+   * pendência, e por isso o painel somava cobrança de mês que ainda nem chegou.
+   */
+  situacao?: "em_dia" | "em_aberto" | "atrasado" | null;
   prospectDate: string | null; prospectFechou: string | null; startedAt: string | null;
 };
 export type PanelPresence = { patientId: string; presente: boolean; date: string };
@@ -424,9 +431,15 @@ function QueixaBloco({ patients }: { patients: PanelPatient[] }) {
 // 6. PAGAMENTOS — atraso / em aberto / em dia + "Ver detalhes" (doc 41)
 function Pagamentos({ patients }: { patients: PanelPatient[] }) {
   const ativos = patients.filter((p) => p.status !== "prospect");
-  const atraso = ativos.filter((p) => p.paymentStatus === "overdue").length;
-  const aberto = ativos.filter((p) => p.paymentStatus === "pending").length;
-  const emDia = ativos.filter((p) => p.paymentStatus === "paid").length;
+  // Doc 76: a conta vem do motor único (`situacoesDaLista`), não da coluna `payment_status`.
+  // "Em aberto" passa a ser o que dá para cobrar AGORA — mês vigente e o que ficou para trás —,
+  // que é como o consultório lê o número. Sem a situação calculada, a caixa não inventa: cai no
+  // que estava gravado no cadastro.
+  const situacaoDe = (p: PanelPatient) =>
+    p.situacao ?? (p.paymentStatus === "overdue" ? "atrasado" : p.paymentStatus === "pending" ? "em_aberto" : "em_dia");
+  const atraso = ativos.filter((p) => situacaoDe(p) === "atrasado").length;
+  const aberto = ativos.filter((p) => situacaoDe(p) === "em_aberto").length;
+  const emDia = ativos.filter((p) => situacaoDe(p) === "em_dia").length;
   return (
     <div className={card}>
       <h4 className="font-display font-bold text-primary">Pagamentos</h4>

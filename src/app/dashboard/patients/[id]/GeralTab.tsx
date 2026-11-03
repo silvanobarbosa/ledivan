@@ -18,6 +18,7 @@ import { marcarEmissao } from "./recibo-actions";
 import { doAno, dataDoAnoControle } from "@/lib/filtroDeAno";
 import { numeroDoWhatsapp } from "@/lib/telefoneWhatsapp";
 import { useConfirmarEnvio, ConfirmarEnvioModal } from "@/components/dashboard/confirmarEnvio";
+import { ROTULO_DO_STATUS } from "@/lib/statusDaSessao";
 
 /** Dados para o botão "Cobrar" compor a mensagem da terapeuta. */
 export type CobrarInfo = { telefone: string | null; nome: string; modelo: string | null };
@@ -258,10 +259,8 @@ const FORMAS_BASE = PAYMENT_METHOD_OPTIONS
  */
 type Ditado = { valor: number | null; forma: string | null };
 
-const STATUS_GERAL: Record<string, string> = {
-  realizada: "Presente", nao_realizada: "Faltou", cancelada: "Desmarcou",
-  realocada: "Desmarcou", prof_desmarcou: "Prof. desm.", atestado: "Atestado",
-};
+/** Os rótulos moram em `lib/statusDaSessao` desde que o dashboard passou a precisar dos mesmos. */
+const STATUS_GERAL = ROTULO_DO_STATUS;
 /**
  * Doc 52: a guia Geral deixa de PERGUNTAR e passa a MOSTRAR.
  *

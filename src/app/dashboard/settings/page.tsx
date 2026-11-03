@@ -28,6 +28,7 @@ import { listarVigenciasTaxa } from "./taxas-actions";
 import { AiKeyCard } from "./AiKeyCard";
 import { ImportarCard } from "./ImportarCard";
 import { hasGoogleAccount, hasCalendarScope } from "@/lib/googleCalendar";
+import { TRANSCRICAO_POR_ARQUIVO_LIGADA } from "@/lib/transcricaoPorArquivo";
 
 export const dynamic = "force-dynamic";
 
@@ -206,7 +207,7 @@ export default async function SettingsPage() {
 
           <MeetingCard initial={(prefs.meetingProvider as "jitsi" | "meet") ?? "jitsi"} hasGoogle={googleConnected} />
 
-          <WhatsappCard connected={user.whatsappConnected} />
+          <WhatsappCard connected={user.whatsappConnected} canal={!!prefs.integrations?.whatsapp} numero={prefs.integrations?.whatsappNumber ?? ""} />
 
           {/* Doc 28: Telegram como card próprio, no mesmo espírito do WhatsApp, logo abaixo dele. */}
           <div className="glass-card rounded-[24px] p-6 space-y-3">
@@ -228,7 +229,10 @@ export default async function SettingsPage() {
 
           <IntegrationsCard initial={prefs.integrations ?? {}} calendarAuthorized={calendarAuthorized} />
 
-          <TranscriptionToggle initial={!!prefs.transcriptionEnabled} />
+          {/* Doc 76: enquanto a transcrição por ARQUIVO está fora da tela de Registros, o liga/desliga
+              dela não tem o que ligar — e um controle que não faz nada é pior do que nenhum. A
+              preferência do terapeuta fica gravada e volta junto com o recurso. */}
+          {TRANSCRICAO_POR_ARQUIVO_LIGADA && <TranscriptionToggle initial={!!prefs.transcriptionEnabled} />}
 
           <AiKeyCard configured={!!user.aiKeyEnc} provider={user.aiProvider} />
 

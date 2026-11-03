@@ -5,6 +5,8 @@ import { useRouter } from "next/navigation";
 import { Pencil, Trash2, X, Check } from "lucide-react";
 import { formatDateTime } from "@/lib/therapy";
 import { createAnamnese, updateAnamnese, deleteAnamnese } from "../actions";
+import { BotaoMicrofone } from "@/components/dashboard/BotaoMicrofone";
+import { acrescentaDitado } from "@/lib/ditado";
 
 const inputCls = "w-full px-4 py-2.5 rounded-xl bg-white/70 border border-border focus:ring-2 focus:ring-accent/20 focus:border-accent outline-none transition text-sm";
 
@@ -57,6 +59,16 @@ export function AnamneseItem({ patientId, campo }: { patientId: string; campo: C
         <p className="text-sm font-bold text-primary">{campo.title}</p>
         <div className="flex items-center gap-2 shrink-0">
           {campo.updatedAt && !editando && <span className="text-[11px] text-foreground/40">{formatDateTime(campo.updatedAt)}</span>}
+          {/* Doc 76: o microfone DESTE campo. O texto ditado ACRESCENTA um bloco datado — o item 7
+              do documento proíbe apagar, substituir ou sobrescrever o que já estava aqui. Abre o
+              campo em edição junto, porque o item 5 pede revisão antes de salvar. */}
+          <BotaoMicrofone
+            patientId={patientId}
+            campo="anamnese"
+            rotulo={campo.title}
+            titulo={`Segure para ditar: ${campo.title}`}
+            onTexto={(t) => { setValor((v) => acrescentaDitado(v, t, new Date())); setEditando(true); }}
+          />
           {!editando && (
             <button type="button" onClick={() => setEditando(true)} title="Editar" aria-label="Editar campo" className="text-foreground/40 hover:text-primary transition cursor-pointer">
               <Pencil className="w-4 h-4" />

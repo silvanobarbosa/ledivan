@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { Menu, X } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -15,7 +16,12 @@ import { NavList } from "./Sidebar";
  */
 export function MobileSidebar() {
   const [open, setOpen] = useState(false);
+  const [montado, setMontado] = useState(false);
   const pathname = usePathname();
+
+  // `document` não existe no servidor: o portal só pode abrir depois da hidratação.
+  // eslint-disable-next-line react-hooks/set-state-in-effect
+  useEffect(() => setMontado(true), []);
 
   // fecha ao navegar
   useEffect(() => {
@@ -41,17 +47,25 @@ export function MobileSidebar() {
     };
   }, [open]);
 
-  return (
+  /**
+   * A GAVETA SAI DE DENTRO DO HEADER (doc 76).
+   *
+   * Sintoma no celular: a grade da Agenda era desenhada POR CIMA do menu aberto — "Conciliação",
+   * "Ajustes" e "Ajuda" ficavam atrás do calendário. Parece z-index baixo, e não é: a gaveta já
+   * estava em `z-[59]` contra uma grade em `z-30`.
+   *
+   * A causa é o `backdrop-blur-md` do `<header>`. `backdrop-filter` CRIA um contexto de
+   * empilhamento, e o header é `position: static` — então o `z-10` dele não produz efeito nenhum
+   * e o contexto inteiro é pintado como bloco comum, ANTES dos elementos posicionados do `<main>`.
+   * Dentro desse contexto o `z-[59]` só ordena a gaveta contra seus irmãos do header; contra a
+   * agenda ela nem entra na disputa. Qualquer número teria perdido.
+   *
+   * Por isso o conserto não é subir o número: é tirar a gaveta do header. No `body` ela volta a
+   * disputar na raiz, onde 59 significa 59 — e para de depender de um filtro CSS no header que
+   * ninguém relacionaria ao menu.
+   */
+  const gaveta = (
     <>
-      <button
-        onClick={() => setOpen(true)}
-        aria-label="Abrir menu"
-        aria-expanded={open}
-        className="lg:hidden p-2.5 -ml-1 rounded-2xl text-foreground/70 hover:text-primary hover:bg-surface transition-colors"
-      >
-        <Menu className="w-6 h-6" />
-      </button>
-
       {/* Backdrop */}
       <div
         onClick={() => setOpen(false)}
@@ -103,6 +117,21 @@ export function MobileSidebar() {
           <NavList onNavigate={() => setOpen(false)} className="pb-4" />
         </div>
       </aside>
+    </>
+  );
+
+  return (
+    <>
+      {/* O botão continua no header — é lá que ele é clicado. Só a gaveta viaja. */}
+      <button
+        onClick={() => setOpen(true)}
+        aria-label="Abrir menu"
+        aria-expanded={open}
+        className="lg:hidden p-2.5 -ml-1 rounded-2xl text-foreground/70 hover:text-primary hover:bg-surface transition-colors"
+      >
+        <Menu className="w-6 h-6" />
+      </button>
+      {montado && createPortal(gaveta, document.body)}
     </>
   );
 }
