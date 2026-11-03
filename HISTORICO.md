@@ -7,6 +7,42 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-11-03 — Entrar só com o e-mail, e os três botões de documento
+
+**Entregue:** PR #556. Login sem senha por código de 6 dígitos, enviado ao e-mail e ao Telegram
+(doc 55). Botões renomeados para "Emitir Recibo Simples" e "Emitir Nota Fiscal", mais a nova
+"Emitir Nota de Serviço" à esquerda dela (doc 76).
+
+**Por quê:** senha é a coisa que ela esquece, e "esqueci a senha" é a tela que ninguém quer
+abrir às oito da noite com paciente esperando. O modo por código virou o PADRÃO; a senha
+continua atrás de um link, porque tirar um caminho que funciona não era o pedido.
+
+**Decisões que ficam valendo:**
+
+- **O código vai para o banco como HMAC-SHA256, nunca em claro.** A tabela do paciente
+  (`patient_auth_code`) guarda o código puro — quem lê o banco entra em qualquer conta durante
+  os 10 minutos. Não se repete isso para o profissional, que tem o prontuário do outro lado.
+- HMAC e não hash simples: sem o segredo do servidor, uma tabela de 1 milhão de hashes
+  resolveria todos os códigos possíveis de uma vez.
+- O código morre de TRÊS formas: expira em 10 min, vale uma vez, queima em 5 tentativas.
+- **A resposta é idêntica exista a conta ou não**, na rota e na tela. Num app de consultório, a
+  lista de quem usa o sistema é informação sobre pessoas.
+- O código vai por TODOS os canais da conta: perguntar "por onde quer receber?" obrigaria a
+  dizer quais canais existem ali.
+- O e-mail sai pelo **Resend da casa** e só cai no SMTP dela como reserva — quem está tentando
+  entrar pode não ter SMTP configurado, e isso seria um círculo fechado.
+- O botão **"Emitir Nota de Serviço" NÃO emite** enquanto a emissão não existir: leva à
+  configuração. Quando existir, é ele que passa a emitir, sem mudar de lugar.
+
+**Validado no navegador, ponta a ponta, na conta de QA:** código errado conta tentativa; código
+certo colado com espaço entra; o mesmo código de novo é recusado; e-mail inexistente responde
+igual. No banco, só recuperei o código por força bruta de 1 milhão E com o segredo em mãos.
+
+**Pendente:** a emissão da NFS-e — assim que houver uma terapeuta com certificado válido e
+credenciada, dá para fechar contra a produção restrita.
+
+---
+
 ## 2026-11-03 — Certificado A1: o arquivo fica cifrado, a senha não fica
 
 **Entregue:** PR #554. Tabela `fiscal_config`, envio do certificado A1 com leitura do titular,
