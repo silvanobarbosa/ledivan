@@ -3,7 +3,7 @@
 import { idadeEmPalavras } from "@/lib/idade";
 import { rotuloFinanceiro } from "@/lib/rotulosPaciente";
 import { cobra } from "@/lib/reajuste";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import Link from "next/link";
 import { createRecord } from "../actions";
@@ -33,6 +33,8 @@ import { MessagePatient } from "@/components/dashboard/MessagePatient";
 import { anosDisponiveis } from "@/lib/filtroDeAno";
 import { abrirWhatsapp } from "@/lib/whatsappLink";
 import { TRANSCRICAO_POR_ARQUIVO_LIGADA } from "@/lib/transcricaoPorArquivo";
+import { BotaoMicrofone } from "@/components/dashboard/BotaoMicrofone";
+import { acrescentaDitado } from "@/lib/ditado";
 
 type Patient = {
   id: string; name: string; email: string | null; phone: string | null; guardianName?: string | null; guardianPhone?: string | null;
@@ -173,6 +175,14 @@ export function PatientDetail({
           : "";
   const statusLabel = patient.patientStatus === "inativo" ? "Inativo" : "Ativo";
   const [showRecord, setShowRecord] = useState(false);
+  /**
+   * Doc 76: os campos do novo registro sao NAO CONTROLADOS (name + Server Action), e o ditado
+   * escreve neles por referencia. Transforma-los em controlados so para isso trocaria um
+   * formulario que funciona por estado novo em dois lugares — e o React ja zera este form
+   * sozinho depois de salvar (doc 67), que e o comportamento desejado aqui.
+   */
+  const campoTitulo = useRef<HTMLInputElement>(null);
+  const campoRegistro = useRef<HTMLTextAreaElement>(null);
   // Doc 28: modal do histórico de WhatsApp enviado pelo sistema (2º ícone).
   // transcrição
   const [showTranscribe, setShowTranscribe] = useState(false);
@@ -512,9 +522,34 @@ export function PatientDetail({
               <input type="hidden" name="type" value="registro" />
               <div>
                 <label className="text-xs font-semibold text-foreground/60">Título (opcional)</label>
-                <input name="title" className={inputCls} placeholder="ex: Sessão 12" />
+                <div className="flex items-center gap-2">
+                  <input ref={campoTitulo} name="title" className={inputCls} placeholder="ex: Sessão 12" />
+                  {/* O título é UMA linha: ditar de novo SUBSTITUI. Acrescentar bloco datado aqui
+                      daria um título com histórico dentro, que não é o que um título é. */}
+                  <BotaoMicrofone
+                    patientId={patient.id} campo="titulo" rotulo="Título do registro"
+                    titulo="Segure para ditar o título"
+                    onTexto={(t) => { if (campoTitulo.current) campoTitulo.current.value = t; }}
+                  />
+                </div>
               </div>
-              <textarea name="content" rows={5} required className={inputCls} placeholder="Registro clínico, evolução do paciente, observações da sessão..." />
+              <div className="space-y-2">
+                <textarea ref={campoRegistro} name="content" rows={5} required className={inputCls} placeholder="Registro clínico, evolução do paciente, observações da sessão..." />
+                <div className="flex items-center gap-2">
+                  {/* Doc 76: ACRESCENTA, com data e hora. Ela pode ditar em partes, e nenhuma
+                      gravação apaga a anterior (itens 7 e 8). O registro salvo já nasce com a sua
+                      própria data, então o histórico entre registros a tela já tinha. */}
+                  <BotaoMicrofone
+                    patientId={patient.id} campo="registro" rotulo="Registro da sessão"
+                    titulo="Segure para ditar o registro"
+                    onTexto={(t) => {
+                      const el = campoRegistro.current;
+                      if (el) el.value = acrescentaDitado(el.value, t, new Date());
+                    }}
+                  />
+                  <span className="text-[11px] text-foreground/40">Segure o microfone e fale. Revise antes de salvar.</span>
+                </div>
+              </div>
               <BotaoSalvar>Salvar registro</BotaoSalvar>
             </form>
           )}
