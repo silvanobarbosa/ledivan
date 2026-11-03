@@ -1465,7 +1465,7 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
               </button>
             )}
             <p className="text-[11px] text-foreground/40">
-              Excluir apaga os agendamentos quinzenais deste paciente neste dia e horário, daqui para a frente — o horário intercalado some junto.
+              Excluir apaga os agendamentos quinzenais deste paciente neste dia e horário, daqui para a frente. O que já aconteceu fica.
             </p>
           </div>
         </div>

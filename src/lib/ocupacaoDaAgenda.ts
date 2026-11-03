@@ -59,9 +59,15 @@ export type Espelho = {
   hora: number;
   minuto: number;
   duracao: number;
-  /** A sessão REAL que projeta este espelho. O slot em si não existe no banco (doc 57). */
+  /**
+   * A sessão REAL em que uma exclusão pega (doc 57). O slot em si não existe no banco.
+   *
+   * É a PRÓXIMA sessão daquele combinado que ainda está por vir — não necessariamente a que
+   * fica a sete dias à frente. Excluir "daqui para a frente" a partir dela apaga tudo o que
+   * resta do quinzenal e deixa o passado em paz.
+   */
   sessaoId: string;
-  /** Ela está à FRENTE do dia espelhado? Só então apagar daqui adiante não mexe no passado. */
+  /** Ela ainda está por vir? Sem isso, excluir alcançaria sessão passada — histórico e dinheiro. */
   sessaoFutura: boolean;
 };
 
@@ -81,9 +87,13 @@ export function espelhosDoDia(opts: {
   sessoes: SessaoParaEspelho[];
   /** Quem é quinzenal, por id de paciente. */
   quinzenal: (pacienteId: string) => boolean;
+  /** Hoje. Separa o que ainda dá para excluir do que já aconteceu. */
+  hoje?: Date;
 }): Espelho[] {
   const alvo = meioDia(opts.dia);
-  const porChave = new Map<string, Espelho>();
+  const hoje = meioDia(opts.hoje ?? new Date());
+  type Candidata = { espelho: Espelho; quando: number };
+  const porChave = new Map<string, Candidata>();
 
   // Já ocupado neste dia e horário? Então não é espelho: alguém encaixou.
   const ocupados = new Set(
@@ -106,21 +116,39 @@ export function espelhosDoDia(opts: {
     const chave = `${s.pacienteId}-${d.getHours()}:${d.getMinutes()}`;
     if (ocupados.has(`${d.getHours()}:${d.getMinutes()}`)) continue;
 
-    const espelho: Espelho = {
-      pacienteId: s.pacienteId,
-      hora: d.getHours(),
-      minuto: d.getMinutes(),
-      duracao: s.duracao,
-      sessaoId: s.id,
-      sessaoFutura: delta === 7,
+    const quando = meioDia(d);
+    const candidata: Candidata = {
+      quando,
+      espelho: {
+        pacienteId: s.pacienteId,
+        hora: d.getHours(),
+        minuto: d.getMinutes(),
+        duracao: s.duracao,
+        sessaoId: s.id,
+        sessaoFutura: quando >= hoje,
+      },
     };
-    // Duas sessões projetam o mesmo espelho: a de sete dias antes e a de sete dias depois.
-    // Fica a de DEPOIS — é a única em que excluir "daqui para a frente" não alcança o passado.
+
+    /**
+     * Duas sessões projetam o mesmo espelho: a de sete dias antes e a de sete dias depois.
+     * Vale a PRIMEIRA QUE AINDA ESTÁ POR VIR.
+     *
+     * Pegar sempre a de depois parecia mais seguro e não era: se a de antes também fosse futura,
+     * excluir "daqui para a frente" começaria tarde demais e deixaria viva justamente a próxima
+     * sessão — a terapeuta apagaria a série e veria o horário continuar na agenda da semana que vem.
+     * Nenhuma futura? Fica a mais recente, e a tela não oferece exclusão nenhuma.
+     */
     const antes = porChave.get(chave);
-    if (!antes || (!antes.sessaoFutura && espelho.sessaoFutura)) porChave.set(chave, espelho);
+    if (!antes) { porChave.set(chave, candidata); continue; }
+    const melhor = antes.espelho.sessaoFutura
+      ? (candidata.espelho.sessaoFutura && candidata.quando < antes.quando ? candidata : antes)
+      : (candidata.espelho.sessaoFutura || candidata.quando > antes.quando ? candidata : antes);
+    porChave.set(chave, melhor);
   }
 
-  return [...porChave.values()].sort((a, b) => a.hora * 60 + a.minuto - (b.hora * 60 + b.minuto));
+  return [...porChave.values()]
+    .map((c) => c.espelho)
+    .sort((a, b) => a.hora * 60 + a.minuto - (b.hora * 60 + b.minuto));
 }
 
 /**
