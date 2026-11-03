@@ -7,6 +7,48 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-11-03 — NFS-e: a consulta do município vem antes de tudo
+
+**Entregue:** PR #552. Tela "Nota de Serviço (NFS-e)" no Ajustes: a terapeuta escolhe estado e
+município e recebe o veredito mais o roteiro do que fazer, com cada passo marcado como dela, da
+contadora ou da prefeitura. Tabela oficial de 5.571 municípios no repo, com gerador reprodutível.
+
+**Por quê:** o doc 76 pede emissão de NFS-e por pessoa física. Antes de escrever código fiscal,
+medi a realidade: dos 5.571 municípios, **só 2.870 (51,5%) estão no Emissor Nacional e ativos**.
+Aderir ao *Ambiente* Nacional e aderir ao *Emissor* são colunas diferentes e divergem muito —
+Brasília está no ambiente e não no emissor. Pedir dado fiscal antes de saber disso é fazer
+metade das usuárias trabalhar para descobrir um "não" no fim.
+
+**Decisões que ficam valendo:**
+
+- A consulta roda contra a **planilha pública do gov.br**, não contra a API. `adn.nfse.gov.br`
+  recusa a conexão no handshake TLS e `sefin.nfse.gov.br` responde 403 — sem certificado
+  ICP-Brasil não se lê nem a documentação.
+- A tabela é uma FOTOGRAFIA com data de publicação. `scripts/gerar-municipios-nfse.mjs` tira
+  outra; a lista muda todo mês e tem município com início de vigência futuro.
+- A tela **não emite e não simula** — proibição explícita do doc, com teste travando que nenhum
+  dos quatro textos promete isso e que todo link aponta para gov.br.
+- Todo cenário cita o **Receita Saúde**, que é o que de fato existe para quem atende paciente
+  pessoa física, e que o app já tem.
+
+**Armadilhas:**
+
+- A primeira versão mostrava a data em que EU gerei o arquivo como se fosse a data da lista
+  ("atualizada em 03/11" sobre dados de 28/09). São campos separados agora, com teste.
+- Apóstrofo: a planilha escreve `MIRASSOL D'OESTE`. A busca normaliza e, se falhar, compara sem
+  espaços — senão quem digita "Mirassol D Oeste" não acha o próprio município.
+- `gh pr create --body` com apóstrofo no texto quebra o heredoc do bash. Use `--body-file`.
+
+**Pendente:**
+
+- **Decisão do dono:** emitir pelo ADN exige o certificado **A1 ICP-Brasil** da terapeuta — ele
+  assina a DPS *e* autentica a conexão mTLS. Guardar esse arquivo é guardar a identidade
+  jurídica dela. Enquanto não houver essa decisão, não há emissão.
+- A configuração fiscal (CPF, inscrição municipal, código de serviço) ainda não existe.
+- Renomear os botões para "Emitir Nota Fiscal" e "Emitir Recibo Simples" não foi feito.
+
+---
+
 ## 2026-11-03 — Doc 76: os números do painel, o pacote que se partia, e a voz por campo
 
 **Entregue:** PR #551, em três blocos. (1) Seis correções de tela: sessões da semana deixam de
