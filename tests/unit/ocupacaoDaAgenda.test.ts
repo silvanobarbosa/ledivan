@@ -186,3 +186,52 @@ describe("os sinais da célula", () => {
     expect(s[0].titulo.length).toBeGreaterThan(10);
   });
 });
+
+/**
+ * DE QUAL SESSÃO O ESPELHO SAI (doc 57).
+ *
+ * Importa porque é nela que a exclusão pega. O slot vazio não existe no banco: quem clica nele
+ * e manda excluir está mandando apagar a SÉRIE quinzenal daquele paciente, daqui para a frente.
+ * Se o espelho apontasse para a sessão da semana PASSADA, esse mesmo clique apagaria um
+ * atendimento que já aconteceu — histórico e dinheiro.
+ */
+describe("a sessão que projeta o espelho", () => {
+  const sempreQuinzenal = () => true;
+
+  it("com sessão dos dois lados, o espelho sai da de DEPOIS", () => {
+    const e = espelhosDoDia({
+      dia: qua(16),
+      sessoes: [sessao("passada", 9), sessao("futura", 23)],
+      quinzenal: sempreQuinzenal,
+    });
+    expect(e).toHaveLength(1);
+    expect(e[0].sessaoId).toBe("futura");
+    expect(e[0].sessaoFutura).toBe(true);
+  });
+
+  it("a ordem em que as sessões chegam não muda a escolha", () => {
+    const e = espelhosDoDia({
+      dia: qua(16),
+      sessoes: [sessao("futura", 23), sessao("passada", 9)],
+      quinzenal: sempreQuinzenal,
+    });
+    expect(e[0].sessaoId).toBe("futura");
+  });
+
+  it("só com a sessão passada, o espelho existe mas se declara NÃO futuro", () => {
+    // A tela usa isso para não oferecer a exclusão: não há o que apagar daqui para a frente.
+    const e = espelhosDoDia({ dia: qua(16), sessoes: [sessao("passada", 9)], quinzenal: sempreQuinzenal });
+    expect(e).toHaveLength(1);
+    expect(e[0].sessaoId).toBe("passada");
+    expect(e[0].sessaoFutura).toBe(false);
+  });
+
+  it("cada paciente traz a sua própria sessão", () => {
+    const e = espelhosDoDia({
+      dia: qua(16),
+      sessoes: [sessao("da-p1", 23, 8, "p1"), sessao("da-p2", 23, 14, "p2")],
+      quinzenal: sempreQuinzenal,
+    });
+    expect(e.map((x) => x.sessaoId)).toEqual(["da-p1", "da-p2"]);
+  });
+});

@@ -59,6 +59,10 @@ export type Espelho = {
   hora: number;
   minuto: number;
   duracao: number;
+  /** A sessão REAL que projeta este espelho. O slot em si não existe no banco (doc 57). */
+  sessaoId: string;
+  /** Ela está à FRENTE do dia espelhado? Só então apagar daqui adiante não mexe no passado. */
+  sessaoFutura: boolean;
 };
 
 const emData = (d: Date | string): Date => (d instanceof Date ? d : new Date(d));
@@ -79,8 +83,7 @@ export function espelhosDoDia(opts: {
   quinzenal: (pacienteId: string) => boolean;
 }): Espelho[] {
   const alvo = meioDia(opts.dia);
-  const out: Espelho[] = [];
-  const vistos = new Set<string>();
+  const porChave = new Map<string, Espelho>();
 
   // Já ocupado neste dia e horário? Então não é espelho: alguém encaixou.
   const ocupados = new Set(
@@ -101,14 +104,23 @@ export function espelhosDoDia(opts: {
     if (!casa) continue;
 
     const chave = `${s.pacienteId}-${d.getHours()}:${d.getMinutes()}`;
-    if (vistos.has(chave)) continue;
     if (ocupados.has(`${d.getHours()}:${d.getMinutes()}`)) continue;
 
-    vistos.add(chave);
-    out.push({ pacienteId: s.pacienteId, hora: d.getHours(), minuto: d.getMinutes(), duracao: s.duracao });
+    const espelho: Espelho = {
+      pacienteId: s.pacienteId,
+      hora: d.getHours(),
+      minuto: d.getMinutes(),
+      duracao: s.duracao,
+      sessaoId: s.id,
+      sessaoFutura: delta === 7,
+    };
+    // Duas sessões projetam o mesmo espelho: a de sete dias antes e a de sete dias depois.
+    // Fica a de DEPOIS — é a única em que excluir "daqui para a frente" não alcança o passado.
+    const antes = porChave.get(chave);
+    if (!antes || (!antes.sessaoFutura && espelho.sessaoFutura)) porChave.set(chave, espelho);
   }
 
-  return out.sort((a, b) => a.hora * 60 + a.minuto - (b.hora * 60 + b.minuto));
+  return [...porChave.values()].sort((a, b) => a.hora * 60 + a.minuto - (b.hora * 60 + b.minuto));
 }
 
 /**

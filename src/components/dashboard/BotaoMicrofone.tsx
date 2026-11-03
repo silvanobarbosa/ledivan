@@ -16,6 +16,11 @@ import { Mic, Loader2 } from "lucide-react";
  *
  * O botão só existe quando há motor para ouvir (`GET /api/ditado`). Um microfone que falha ao
  * ser apertado é pior do que microfone nenhum: ela grava a fala inteira antes de descobrir.
+ *
+ * E ele não aparece ANTES da resposta (doc 57). Desenhar primeiro e esconder depois foi o que a
+ * terapeuta viu: "o microfone e a instrução aparecem e logo somem da tela". O que sumia era a
+ * resposta chegando com `disponivel: false` — e, no meio-tempo, o botão estava desabilitado, por
+ * isso o clique rápido também não fazia nada. Enquanto não se sabe, não se desenha.
  */
 
 export type CampoDoDitado = "titulo" | "registro" | "anamnese";
@@ -103,7 +108,9 @@ export function BotaoMicrofone({
     gravador.current?.stop();
   }
 
-  if (disponivel === false) return null;
+  // Só com resposta na mão. `null` é "ainda não sei", e botão que pisca é pior do que botão que
+  // demora: ela tenta usar o que está saindo da tela.
+  if (disponivel !== true) return null;
 
   return (
     <span className="inline-flex items-center gap-2">
@@ -115,7 +122,7 @@ export function BotaoMicrofone({
         onPointerUp={parar}
         onPointerLeave={parar}
         onContextMenu={(e) => e.preventDefault()}
-        disabled={ouvindo || disponivel === null}
+        disabled={ouvindo}
         aria-label={titulo ?? `Ditar ${rotulo ?? "o campo"}`}
         title={titulo ?? "Segure para falar"}
         className={`shrink-0 w-8 h-8 rounded-full inline-flex items-center justify-center transition select-none touch-none disabled:opacity-50 ${

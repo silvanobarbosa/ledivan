@@ -430,6 +430,9 @@ function QueixaBloco({ patients }: { patients: PanelPatient[] }) {
 
 // 6. PAGAMENTOS — atraso / em aberto / em dia + "Ver detalhes" (doc 41)
 function Pagamentos({ patients }: { patients: PanelPatient[] }) {
+  // Doc 57: o número abre a lista de quem está dentro dele. Saber que há 23 em atraso sem poder
+  // ver QUEM obriga a varrer a tela de pagamentos atrás dos mesmos nomes que o painel já tem.
+  const [lista, setLista] = useState<{ titulo: string; itens: PanelPatient[] } | null>(null);
   const ativos = patients.filter((p) => p.status !== "prospect");
   // Doc 76: a conta vem do motor único (`situacoesDaLista`), não da coluna `payment_status`.
   // "Em aberto" passa a ser o que dá para cobrar AGORA — mês vigente e o que ficou para trás —,
@@ -437,9 +440,9 @@ function Pagamentos({ patients }: { patients: PanelPatient[] }) {
   // que estava gravado no cadastro.
   const situacaoDe = (p: PanelPatient) =>
     p.situacao ?? (p.paymentStatus === "overdue" ? "atrasado" : p.paymentStatus === "pending" ? "em_aberto" : "em_dia");
-  const atraso = ativos.filter((p) => situacaoDe(p) === "atrasado").length;
-  const aberto = ativos.filter((p) => situacaoDe(p) === "em_aberto").length;
-  const emDia = ativos.filter((p) => situacaoDe(p) === "em_dia").length;
+  const atraso = ativos.filter((p) => situacaoDe(p) === "atrasado");
+  const aberto = ativos.filter((p) => situacaoDe(p) === "em_aberto");
+  const emDia = ativos.filter((p) => situacaoDe(p) === "em_dia");
   return (
     <div className={card}>
       <h4 className="font-display font-bold text-primary">Pagamentos</h4>
@@ -449,11 +452,12 @@ function Pagamentos({ patients }: { patients: PanelPatient[] }) {
       {/* Doc 41: em atraso + em aberto + em dia; os links (fechar mês/pagamentos/financeiro/saldos/
           conciliação/previsão) saíram e viraram um "Ver detalhes" → relatório financeiro. */}
       <div className="grid grid-cols-3 gap-2">
-        <Stat n={atraso} label="Em atraso" tone="red" />
-        <Stat n={aberto} label="Em aberto" tone="amber" />
-        <Stat n={emDia} label="Em dia" tone="green" />
+        <Stat n={atraso.length} label="Em atraso" tone="red" onAbrir={() => setLista({ titulo: "Pagamento em atraso", itens: atraso })} />
+        <Stat n={aberto.length} label="Em aberto" tone="amber" onAbrir={() => setLista({ titulo: "Pagamento em aberto", itens: aberto })} />
+        <Stat n={emDia.length} label="Em dia" tone="green" onAbrir={() => setLista({ titulo: "Pagamento em dia", itens: emDia })} />
       </div>
       <Link href="/dashboard/relatorio-financeiro" className="inline-block text-xs font-bold px-3 py-1.5 rounded-lg bg-primary text-white">Ver detalhes</Link>
+      {lista && <ModalPacientes titulo={lista.titulo} pacientes={lista.itens} onFechar={() => setLista(null)} />}
     </div>
   );
 }

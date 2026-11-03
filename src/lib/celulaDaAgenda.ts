@@ -70,6 +70,24 @@ export function identificacao(dados: DadosDaCelula): string {
   return "—";
 }
 
+/**
+ * A identificação do ANIVERSARIANTE na agenda (doc 57).
+ *
+ * O mesmo campo que a célula usa — "deve aparecer todo o conteúdo do campo Id agenda" —, com
+ * uma diferença: sem Id de agenda e sem registro, aqui vai o nome COMPLETO. Na célula o primeiro
+ * nome basta porque o bloco é estreito e se repete o dia todo; num aviso de aniversário não
+ * basta, porque numa agenda com duas Anas "Ana" não diz de quem é.
+ */
+export function identificacaoDoAniversario(dados: DadosDaCelula): string {
+  const proprio = (dados.agendaId ?? "").trim();
+  if (proprio) return proprio;
+
+  const registro = Number(dados.registro);
+  if (Number.isFinite(registro) && registro > 0) return String(registro).padStart(4, "0");
+
+  return (dados.nome ?? "").trim() || "—";
+}
+
 const LETRA_DA_REPETICAO: Record<string, string> = {
   quinzenal: "Q",
   mensal: "M",
