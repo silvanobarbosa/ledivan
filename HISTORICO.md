@@ -7,6 +7,41 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-11-03 — Certificado A1: o arquivo fica cifrado, a senha não fica
+
+**Entregue:** PR #554. Tabela `fiscal_config`, envio do certificado A1 com leitura do titular,
+documento e validade, e os campos fiscais. Aparece só onde a consulta do município disse que
+existe caminho nacional.
+
+**Por quê:** decisão do dono — o certificado é responsabilidade da terapeuta, ela usa, ela
+aplica. Era o que faltava para ela ficar conectada ao órgão.
+
+**Decisões que ficam valendo:**
+
+- **O `.pfx` é guardado cifrado; a SENHA não é guardada.** Ela entra, confere, e é descartada;
+  na emissão o app pede de novo. Um A1 é a identidade jurídica da pessoa — sem a senha, um
+  vazamento do banco entrega um arquivo que não assina nada. A tela diz isso ANTES do campo.
+- Certificado vencido é **aceito e denunciado**, nunca recusado: recusar esconde o motivo.
+- Senha errada e arquivo inválido são mensagens diferentes, apesar de a biblioteca devolver a
+  mesma exceção.
+- Tabela nova aplicada por `CREATE TABLE IF NOT EXISTS`, nunca `drizzle-kit push` — ele compara
+  o schema inteiro e já apagou tabela de autenticação na frota.
+
+**Armadilhas:**
+
+- **O node-forge não decodifica o `otherName`.** Ele só preenche `altName.oid` para `type 8`;
+  para `type 0`, que é onde a ICP-Brasil guarda CPF e CNPJ, deixa o ASN.1 cru. Confiar no
+  `.oid` ali devolve "desconhecido" para TODO certificado brasileiro, e falha calado. O
+  escritor dele também não grava o OID, então o teste monta o otherName em ASN.1 na mão.
+- `Date.now()` no corpo de componente reprova no React Compiler **mesmo em Server Component**.
+  Extrair para função de módulo resolve.
+- `gh pr create --body` com apóstrofo quebra o heredoc do bash; use `--body-file`.
+
+**Pendente:** a emissão — montar a DPS, assinar em XMLDSig e transmitir por mTLS. Não há como
+validar isso sem um certificado real já credenciado.
+
+---
+
 ## 2026-11-03 — NFS-e: a consulta do município vem antes de tudo
 
 **Entregue:** PR #552. Tela "Nota de Serviço (NFS-e)" no Ajustes: a terapeuta escolhe estado e
