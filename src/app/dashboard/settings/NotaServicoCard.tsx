@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { FileText, Search, ExternalLink, CheckCircle2, AlertTriangle, Info, Building2, UserCog } from "lucide-react";
 import { consultarMunicipio, municipiosDaUf, ufsConhecidas, COM_EMISSOR_NACIONAL, TOTAL_DE_MUNICIPIOS, DADOS_DE } from "@/lib/municipioNfse";
 import { PARA_A_CONTADORA, tutorialDoMunicipio } from "@/lib/tutorialNfse";
+import { ConfigFiscal, type CertificadoSalvo, type DadosFiscaisSalvos } from "./ConfigFiscal";
 
 /**
  * NOTA DE SERVIÇO — a consulta do município e o roteiro (doc 76).
@@ -31,7 +32,7 @@ const QUEM = {
 
 const campo = "px-4 py-2.5 rounded-xl bg-surface border border-border focus:ring-2 focus:ring-accent/20 focus:border-accent outline-none transition text-sm";
 
-export function NotaServicoCard() {
+export function NotaServicoCard({ certificado, dados }: { certificado: CertificadoSalvo; dados: DadosFiscaisSalvos }) {
   const [uf, setUf] = useState("");
   const [municipio, setMunicipio] = useState("");
   const [consultado, setConsultado] = useState<{ uf: string; nome: string } | null>(null);
@@ -125,6 +126,13 @@ export function NotaServicoCard() {
               );
             })}
           </div>
+
+          {/* A configuracao so aparece onde EXISTE caminho de emissao. Em municipio que nao emite
+              pelo nacional, pedir CPF e certificado seria pedir trabalho por nada. */}
+          {resposta.situacao === "emissor_nacional" && (
+            <ConfigFiscal uf={resposta.uf} municipio={resposta.nome ?? consultado!.nome}
+              certificado={certificado} dados={dados} />
+          )}
 
           {/* O pedido do dono: que ela consiga levar isto pronto para a contadora. */}
           <details className="rounded-2xl border border-border bg-surface/40 p-4">

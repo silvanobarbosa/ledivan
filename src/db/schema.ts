@@ -1190,3 +1190,57 @@ export const pushTokens = pgTable("push_tokens", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 }, (t) => [index("push_user_idx").on(t.userId), index("push_patient_idx").on(t.patientId)]);
+
+/**
+ * CONFIGURAÇÃO FISCAL DA NOTA DE SERVIÇO (doc 76) — uma por terapeuta.
+ *
+ * Tabela NOVA, de propósito: é dado fiscal e um segredo pesado, e não tem por que engordar
+ * `users`, que é lido em toda requisição.
+ *
+ * **A SENHA DO CERTIFICADO NÃO MORA AQUI, e isso é decisão de desenho, não esquecimento.**
+ *
+ * Um certificado A1 é a identidade jurídica da pessoa: com ele se assina qualquer coisa em nome
+ * dela. O dono decidiu (03/11/2026) que o certificado é responsabilidade da terapeuta — "ela usa,
+ * ela aplica". Então o arquivo fica CIFRADO (AES-256-GCM, `lib/crypto`, a mesma do SMTP e da
+ * chave de IA) e a senha é pedida na hora de emitir e descartada em seguida. É o que separa
+ * "vazou o banco" de "vazou a identidade jurídica dela": sem a senha, o `.pfx` cifrado não assina
+ * nada. O A3 em cartão funciona assim por construção, pedindo PIN a cada uso.
+ *
+ * Os campos de LEITURA do certificado (titular, documento, validade) ficam em claro: servem para
+ * a tela avisar antes de vencer, que é o defeito silencioso número um de integração fiscal, e
+ * nenhum deles sozinho assina coisa alguma.
+ */
+export const fiscalConfig = pgTable("fiscal_config", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: text("user_id").references(() => users.id, { onDelete: "cascade" }).notNull().unique(),
+
+  // --- Onde ela atua. É o que decide se existe caminho nacional de emissão. ---
+  municipioUf: text("municipio_uf"),
+  municipioNome: text("municipio_nome"),
+  inscricaoMunicipal: text("inscricao_municipal"),
+
+  // --- Quem é ela para o fisco. ---
+  cpf: text("cpf"),
+  /**
+   * O CNPJ técnico de pessoa física, quando exigido e disponível. O doc 76 é explícito: NÃO é
+   * CNPJ de MEI nem de empresa, e o sistema não pode tratá-lo como tal.
+   */
+  cnpjTecnico: text("cnpj_tecnico"),
+  enderecoFiscal: text("endereco_fiscal"),
+  /** Código do serviço e regime: escolha da contabilidade, não do aplicativo. */
+  codigoServico: text("codigo_servico"),
+  regimeTributario: text("regime_tributario"),
+
+  // --- O certificado A1. ---
+  /** O `.pfx` inteiro, cifrado. Nunca sai daqui em claro, nunca vai para log. */
+  certificadoEnc: text("certificado_enc"),
+  certificadoNomeArquivo: text("certificado_nome_arquivo"),
+  certificadoTitular: text("certificado_titular"),
+  certificadoDocumento: text("certificado_documento"),
+  certificadoTipo: text("certificado_tipo"), // e-CPF | e-CNPJ | desconhecido
+  certificadoValidoAte: timestamp("certificado_valido_ate"),
+  certificadoEnviadoEm: timestamp("certificado_enviado_em"),
+
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});

@@ -1,5 +1,5 @@
 import { db } from "@/db";
-import { users } from "@/db/schema";
+import { users, fiscalConfig } from "@/db/schema";
 import { auth } from "@/auth";
 import { eq } from "drizzle-orm";
 import { LogOut } from "lucide-react";
@@ -31,6 +31,18 @@ import { hasGoogleAccount, hasCalendarScope } from "@/lib/googleCalendar";
 import { TRANSCRICAO_POR_ARQUIVO_LIGADA } from "@/lib/transcricaoPorArquivo";
 import { NotaServicoCard } from "./NotaServicoCard";
 
+/**
+ * Dias ate o certificado vencer.
+ *
+ * Fora do corpo do componente de proposito: `Date.now()` dentro dele e chamada impura, e o
+ * React Compiler reprova o build (a regra vale mesmo em Server Component). Aqui a hora e lida
+ * uma vez por requisicao, que e exatamente o que se quer.
+ */
+function diasAteVencer(quando: Date | null | undefined): number | null {
+  if (!quando) return null;
+  return Math.floor((quando.getTime() - new Date().getTime()) / 86_400_000);
+}
+
 export const dynamic = "force-dynamic";
 
 export default async function SettingsPage() {
@@ -48,6 +60,8 @@ export default async function SettingsPage() {
   const googleConnected = await hasGoogleAccount(user.id);
   const calendarAuthorized = await hasCalendarScope(user.id);
   const vigenciasTaxa = await listarVigenciasTaxa();
+  // Doc 76: o `.pfx` cifrado NAO e lido aqui — so os campos de leitura, que a tela mostra.
+  const fiscal = await db.query.fiscalConfig.findFirst({ where: eq(fiscalConfig.userId, user.id) });
 
   return (
     <div className="max-w-4xl mx-auto space-y-12 pb-20">
@@ -230,7 +244,25 @@ export default async function SettingsPage() {
           {/* Doc 76: a consulta do municipio vem ANTES de qualquer configuracao fiscal. Metade dos
               municipios nao emite pelo caminho nacional, e pedir dado fiscal a quem nao vai poder
               emitir e fazer a pessoa trabalhar para descobrir um "nao" no fim. */}
-          <NotaServicoCard />
+          <NotaServicoCard
+            certificado={fiscal?.certificadoTitular ? {
+              nomeArquivo: fiscal.certificadoNomeArquivo,
+              titular: fiscal.certificadoTitular,
+              documento: fiscal.certificadoDocumento,
+              tipo: fiscal.certificadoTipo,
+              validoAte: fiscal.certificadoValidoAte ? fiscal.certificadoValidoAte.toISOString() : null,
+              enviadoEm: fiscal.certificadoEnviadoEm ? fiscal.certificadoEnviadoEm.toISOString() : null,
+              diasParaVencer: diasAteVencer(fiscal.certificadoValidoAte),
+            } : null}
+            dados={{
+              inscricaoMunicipal: fiscal?.inscricaoMunicipal ?? null,
+              cpf: fiscal?.cpf ?? null,
+              cnpjTecnico: fiscal?.cnpjTecnico ?? null,
+              enderecoFiscal: fiscal?.enderecoFiscal ?? null,
+              codigoServico: fiscal?.codigoServico ?? null,
+              regimeTributario: fiscal?.regimeTributario ?? null,
+            }}
+          />
 
           <IntegrationsCard initial={prefs.integrations ?? {}} calendarAuthorized={calendarAuthorized} />
 
