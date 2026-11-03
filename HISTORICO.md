@@ -7,6 +7,59 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-11-03 — Doc 76: os números do painel, o pacote que se partia, e a voz por campo
+
+**Entregue:** PR #551, em três blocos. (1) Seis correções de tela: sessões da semana deixam de
+contar desmarcadas e atestados; sessões do dia passam a mostrar o dia inteiro; o painel
+Pagamentos lê o motor em vez da coluna `payment_status`; aniversariante com nome inteiro; menu
+do celular por portal; WhatsApp numa área só no Ajustes. (2) "Próximo pacote a iniciar" deixa de
+partir o pacote em andamento. (3) Microfone em cada campo do registro e da anamnese.
+
+**Por quê:** dois documentos das beta testers. O que a tela mostrava não era "um pouco errado":
+na conta da Gisele, **1.856 das 1.876 sessões (99%)** caíam no filtro `pendingConfirmation =
+false` do cartão "Sessões do dia" — sessão recorrente nasce com esse campo em true. E o painel
+Pagamentos dela dizia 33 em aberto / 0 atrasado / 0 em dia contra 23 atrasados / 5 abertos /
+5 em dia do motor: a coluna `payment_status` ficou no default e nunca foi mantida.
+
+**Decisões que ficam valendo:**
+
+- A lista de status que significam "não aconteceu" (`cancelada`, `realocada`, `prof_desmarcou`,
+  `atestado`) mora em `lib/statusDaSessao.ts`. Era comentário em um arquivo e parâmetro padrão em
+  outro, e faltava no terceiro.
+- Quem conta atraso/aberto/em dia é o motor único, no painel como já era na lista de Cadastros.
+- A resposta "vigente ou próximo pacote?" vale para a mudança INTEIRA — valor e quantidade de
+  sessões —, e a pergunta aparece também quando só o tamanho muda.
+- `TRANSCRICAO_POR_ARQUIVO_LIGADA` esconde a transcrição por upload sem apagar o código (escolha
+  do dono). O liga/desliga no Ajustes some junto: controle que não liga nada é pior que nenhum.
+- O ditado por campo usa o **gateway da casa primeiro e a chave da terapeuta como reserva**. Isso
+  contraria o que `lib/transcricao.ts` dizia desde 31/10 ("não reintroduzir sem o dono pedir") —
+  o doc 76 é o dono pedindo, no item 9. A reserva existe para a VPS não virar ponto único de
+  falha, que era a razão da remoção.
+
+**Armadilhas:**
+
+- O menu do celular NÃO era z-index. `backdrop-filter` no `<header>` cria contexto de
+  empilhamento, e com o header `position: static` o z-index dele não vale: o contexto inteiro é
+  pintado antes dos elementos posicionados do `<main>`. A gaveta em `z-[59]` perdia para a grade
+  da agenda em `z-30`, e **qualquer número teria perdido**. Conserto: portal no `body`.
+- O delete das vigências de tamanho usava `>` estrito, então salvar de novo no MESMO DIA
+  acrescentava linha em vez de substituir. Dois pacientes com vigências contraditórias no mesmo
+  dia (Bruno: 2, 4, 2 em 01/11). Agora `>=`.
+- Heredoc de Python com `
+` dentro de string estragou arquivo CRLF duas vezes. Em arquivo com
+  CRLF, use a ferramenta de edição, não heredoc.
+
+**Pendente:**
+
+- **Do dono:** as vigências duplicadas já gravadas do Bruno e da Paula continuam lá. A tela deles
+  só fica certa depois de corrigir esses registros — não mexi em dado de produção.
+- **Do dono:** o acesso simplificado por e-mail + Telegram (doc 55) não foi feito.
+- **NFS-e:** não escrita. O levantamento está na conversa e muda a decisão — ver abaixo.
+- A transcrição do ditado nunca rodou contra um provedor real: não há chave nem gateway no
+  ambiente local. O primeiro uso é o primeiro teste.
+
+---
+
 ## 2026-11-02 — O pedido de dinheiro que morria na Carteira
 
 **Entregue:** 11 formas novas de pedir lançamento viram comando, e a tarefa "Lançar um pagamento"
