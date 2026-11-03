@@ -29,6 +29,7 @@ import { AiKeyCard } from "./AiKeyCard";
 import { ImportarCard } from "./ImportarCard";
 import { hasGoogleAccount, hasCalendarScope } from "@/lib/googleCalendar";
 import { TRANSCRICAO_POR_ARQUIVO_LIGADA } from "@/lib/transcricaoPorArquivo";
+import { NotaServicoCard } from "./NotaServicoCard";
 
 export const dynamic = "force-dynamic";
 
@@ -226,6 +227,10 @@ export default async function SettingsPage() {
 
           <CobrancaMessageCard initial={user.cobrancaMessage} />
           <ReciboCard cpf={user.therapistCpf} descricao={user.descricaoAtendimento} nome={user.name} />
+          {/* Doc 76: a consulta do municipio vem ANTES de qualquer configuracao fiscal. Metade dos
+              municipios nao emite pelo caminho nacional, e pedir dado fiscal a quem nao vai poder
+              emitir e fazer a pessoa trabalhar para descobrir um "nao" no fim. */}
+          <NotaServicoCard />
 
           <IntegrationsCard initial={prefs.integrations ?? {}} calendarAuthorized={calendarAuthorized} />
 
