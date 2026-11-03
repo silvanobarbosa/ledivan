@@ -3,7 +3,7 @@
 import { db } from "@/db";
 import { patients, patientStatusHistory, patientPriceHistory, patientContractHistory, patientPaymentFormatHistory, patientPackageHistory, patientRecords, patientAnamnese, patientActivities, patientDocuments, patientReajusteChanges, assignments, scaleApplications, treatmentGoals, patientPackages, therapySessions } from "@/db/schema";
 import { auth } from "@/auth";
-import { and, eq, gt, inArray, sql } from "drizzle-orm";
+import { and, eq, gt, gte, inArray, sql } from "drizzle-orm";
 import { encerraAgenda, sessoesAEncerrar } from "@/lib/encerrarAgenda";
 import { revalidatePath } from "next/cache";
 import { ehAlteracaoDeCampo, entradaDoHistorico, maisRecenteDoHistorico, usaPacote, vencimentoDoPreco, vigenciaDoReajuste } from "@/lib/reajuste";
@@ -20,7 +20,7 @@ import { occurrencesByCount, weekdayIndex, type LockFreq } from "@/lib/recurrenc
 import { pushToPatient } from "@/lib/push";
 import { normalizeCadastroKind } from "@/lib/cadastro";
 import { geralDoPaciente } from "@/lib/geralDoPaciente";
-import { vigenciaDoProximoPacote } from "@/lib/pacoteIntocado";
+import { vigenciaDoProximoPacote, type PacoteParaReajuste } from "@/lib/pacoteIntocado";
 
 // Envia mensagem ao paciente pelo canal escolhido (WhatsApp do Ledivan, Telegram ou e-mail).
 export async function sendPatientMessage(patientId: string, channel: string, text: string): Promise<{ ok: boolean; error?: string }> {
@@ -256,17 +256,20 @@ export async function createPatient(formData: FormData) {
  * Qualquer tropeço devolve a data escolhida: empurrar a vigência é uma correção, não uma
  * obrigação — e um erro de leitura não pode impedir a terapeuta de salvar um reajuste.
  */
-async function vigenciaDoProximoPacoteDoPaciente(userId: string, patientId: string, escolhida: Date): Promise<Date> {
+async function pacotesParaReajuste(userId: string, patientId: string): Promise<PacoteParaReajuste[]> {
   try {
     const geral = await geralDoPaciente(userId, patientId);
-    if (!geral) return escolhida;
+    if (!geral) return [];
     const dataDaSessao = new Map(
       geral.linhas.flatMap((l) => (l.tipo === "sessao" ? [[l.id, l.data] as const] : [])),
     );
     /**
-     * Cada pacote vira { sequência, INÍCIO, tem pagamento? } — os três dados que a regra do doc 74
-     * usa. O início é a PRIMEIRA sessão do pacote, nunca o vencimento: o documento é explícito em
-     * que um pacote começado em agosto fica no valor antigo mesmo tendo sessões em setembro.
+     * Cada pacote vira { sequência, INÍCIO, FIM, tem pagamento? }.
+     *
+     * O início é a PRIMEIRA sessão do pacote, nunca o vencimento: o doc 74 é explícito em que um
+     * pacote começado em agosto fica no valor antigo mesmo tendo sessões em setembro. O FIM é a
+     * ÚLTIMA — ele existe para o caso do doc 76, em que ainda não há próximo pacote agendado e a
+     * vigência precisa pousar DEPOIS do pacote em curso, em vez de parti-lo no meio.
      */
     const pacotes = geral.linhas.flatMap((l, i) => {
       if (l.tipo !== "pagamento" || l.tipoDeCobranca !== "pacote") return [];
@@ -275,12 +278,29 @@ async function vigenciaDoProximoPacoteDoPaciente(userId: string, patientId: stri
         return d ? [new Date(d).getTime()] : [];
       });
       if (!datas.length) return [];
-      return [{ sequencia: i, inicio: new Date(Math.min(...datas)), temPagamento: l.pagamentos.length > 0 }];
+      return [{
+        sequencia: i,
+        inicio: new Date(Math.min(...datas)),
+        fim: new Date(Math.max(...datas)),
+        temPagamento: l.pagamentos.length > 0,
+      }];
     });
-    return pacotes.length ? vigenciaDoProximoPacote(escolhida, pacotes) : escolhida;
+    return pacotes;
   } catch {
-    return escolhida;
+    return [];
   }
+}
+
+/**
+ * A vigência congelada — a mesma para o PREÇO e para o TAMANHO do pacote (doc 76).
+ *
+ * Antes só o preço passava por aqui. O tamanho usava a data digitada crua, e por isso o 4→2 da
+ * Gisele partiu o pacote em andamento mesmo com a resposta "próximo pacote a iniciar" dada na
+ * tela: metade da mudança respeitava a resposta e a outra metade não. Duas vigências diferentes
+ * para a mesma frase do dono é como o pacote vira um toco cobrado.
+ */
+function vigenciaCongelada(escolhida: Date, pacotes: PacoteParaReajuste[]): Date {
+  return pacotes.length ? vigenciaDoProximoPacote(escolhida, pacotes) : escolhida;
 }
 
 export async function updatePatient(patientId: string, formData: FormData) {
@@ -518,6 +538,21 @@ export async function updatePatient(patientId: string, formData: FormData) {
       .where(and(eq(patients.id, patientId), eq(patients.userId, session.user.id)));
   }
 
+  /**
+   * Doc 69/73/76: a resposta de "aplicar sobre o pacote vigente ou o próximo a iniciar?".
+   *
+   * A pergunta só aparece para quem paga por pacote; de qualquer outro lugar vem vazio, e vazio é
+   * `vigente` — o comportamento que sempre existiu. Um valor estranho vindo por requisição forjada
+   * também cai em `vigente`, nunca num estado que o motor não saiba ler.
+   *
+   * Os pacotes são lidos UMA vez e servem aos dois blocos abaixo (preço e tamanho). Ler duas vezes
+   * abriria a porta para as duas metades da mesma mudança caírem em datas diferentes.
+   */
+  const aplicaEm = formData.get("aplicaPrecoEm") === "proximo_pacote" ? "proximo_pacote" : "vigente";
+  const pacotesDoReajuste = aplicaEm === "proximo_pacote"
+    ? await pacotesParaReajuste(session.user.id, patientId)
+    : [];
+
   if (newFee !== existing.sessionFee) {
     // O preço novo vale da mesma data da troca de formato, quando houve troca — senão as sessões
     // entre a troca e hoje ficavam no preço antigo (R$ 0 de quem era gratuito). Ver `dataDoPreco`.
@@ -531,14 +566,6 @@ export async function updatePatient(patientId: string, formData: FormData) {
       hoje: new Date(),
     });
     /**
-     * Doc 69: a resposta de "aplicar sobre o pacote vigente ou o próximo a iniciar?".
-     *
-     * A pergunta só aparece para quem paga por pacote; de qualquer outro lugar vem vazio, e vazio é
-     * `vigente` — o comportamento que sempre existiu. Um valor estranho vindo por requisição
-     * forjada também cai em `vigente`, nunca num estado que o motor não saiba ler.
-     */
-    const aplicaEm = formData.get("aplicaPrecoEm") === "proximo_pacote" ? "proximo_pacote" : "vigente";
-    /**
      * Doc 73: "próximo pacote a iniciar" é o primeiro pacote SEM NENHUM STATUS LANÇADO — não a
      * data digitada.
      *
@@ -548,7 +575,7 @@ export async function updatePatient(patientId: string, formData: FormData) {
      * novo e o reajuste nunca entraria em vigor.
      */
     const efetivaFinal = aplicaEm === "proximo_pacote"
-      ? await vigenciaDoProximoPacoteDoPaciente(session.user.id, patientId, efetiva)
+      ? vigenciaCongelada(efetiva, pacotesDoReajuste)
       : efetiva;
     /**
      * Doc 75: quando o empurrão do doc 73 move a data, a vigência digitada é GUARDADA.
@@ -620,7 +647,16 @@ export async function updatePatient(patientId: string, formData: FormData) {
       : existing.sessionsInPacket;
     const antigoTamanho = existing.sessionsInPacket;
     if (usaPacote(newFormat) && novoTamanho && novoTamanho >= 1 && novoTamanho !== antigoTamanho) {
-      const desde = diaDoFormulario(formData.get("formatoDesde") as string | null) ?? new Date();
+      /**
+       * Doc 76: o tamanho obedece à MESMA resposta que o preço.
+       *
+       * Era aqui que o pacote do Bruno se partia. A terapeuta respondeu "próximo pacote a
+       * iniciar", o preço foi empurrado — e o tamanho entrou pela data digitada (01/11), que caía
+       * no meio da sequência em curso. O pacote de 4 fechou com 3 e nasceu um de 2 em 06/11,
+       * cobrado R$ 220. A resposta do dono valia para a mudança inteira, não só para o valor.
+       */
+      const escolhida = diaDoFormulario(formData.get("formatoDesde") as string | null) ?? new Date();
+      const desde = aplicaEm === "proximo_pacote" ? vigenciaCongelada(escolhida, pacotesDoReajuste) : escolhida;
       const [temHist] = await db.select({ id: patientPackageHistory.id }).from(patientPackageHistory)
         .where(eq(patientPackageHistory.patientId, patientId)).limit(1);
       const rows: { patientId: string; tamanho: number; dataEfetiva: Date }[] = [];
@@ -640,8 +676,19 @@ export async function updatePatient(patientId: string, formData: FormData) {
        * depois de D contradiz isso e sai. (Quem quiser mesmo programar uma mudança futura salva a
        * futura POR ÚLTIMO, que é a ordem em que as duas frases não se contradizem.)
        */
+      /**
+       * Doc 76: `>=`, não `>`. Salvar de novo NO MESMO DIA é refazer a mesma declaração.
+       *
+       * Com `>` estrito, cada salvamento do mesmo dia só acrescentava uma linha. Achado no banco:
+       * o Bruno (Ana Raquel) tem TRÊS vigências de tamanho em 01/11/2025 — 2, depois 4, depois 2 —
+       * e a Paula tem duas em 28/10/2026. Qual delas vale depende da ordem em que o Postgres
+       * devolve as linhas, porque a ordenação do motor é só por data e empate mantém a ordem de
+       * chegada. Duas frases contraditórias sobre o mesmo dia, e a tela mostrando a que a pessoa
+       * não consegue ver — o mesmo defeito que o doc 70 consertou para as datas posteriores, só
+       * que ele parou um dia antes.
+       */
       await db.delete(patientPackageHistory)
-        .where(and(eq(patientPackageHistory.patientId, patientId), gt(patientPackageHistory.dataEfetiva, desde)));
+        .where(and(eq(patientPackageHistory.patientId, patientId), gte(patientPackageHistory.dataEfetiva, desde)));
       rows.push({ patientId, tamanho: novoTamanho, dataEfetiva: desde });
       await db.insert(patientPackageHistory).values(rows);
     }
