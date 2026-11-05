@@ -7,6 +7,54 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-11-04 — Doc 59: o reflexo que não se apagava, o aniversário que faltava e o horário que a falta libera
+
+**Entregue:** PRs #562 e #563.
+
+- **Slot Q**: o alvo da exclusão passa a ser a primeira sessão da COMBINAÇÃO (paciente + dia da
+  semana + horário) que ainda está por vir, procurada na agenda inteira. E o reflexo de uma
+  combinação que acabou não sobrevive ao dia de hoje.
+- **Aniversário** sai de todos os cadastros com data de nascimento, sem corte por dia.
+- **Horário ocupado**: desmarcou, prof. desmarcou, atestado e faltou liberam o horário.
+- **Sequência com choque** pergunta antes de gravar, em vez de pular em silêncio.
+- **Microfone** do ditado com 44px, e o modelo de transcrição deixou de ser descarregado na VPS.
+
+**Por quê:** ela relatou duas vezes o mesmo defeito com palavras diferentes — "o primeiro slot não
+é excluído" (doc 58) e "Botão Excluir sumiu" (doc 59). Eram o mesmo caso: a sessão que projetava
+o reflexo já tinha acontecido. E, perdendo agendamento sem aviso quando a série batia em horário
+ocupado, ela pediu a pergunta.
+
+**Decisões que ficam valendo:**
+
+- **`liberaOHorario` é uma lista separada de `STATUS_QUE_PAUSAM`, e tem de continuar separada.**
+  A diferença é `nao_realizada`: a FALTA libera a agenda e **continua cobrando**. Juntar as duas
+  listas seria transformar uma mudança de agenda num erro de dinheiro.
+- **Choque de horário não barra nada** — informa e deixa a terapeuta decidir. "Sim" agenda a
+  sequência inteira por cima; "Não" não grava nada (nenhuma linha é escrita antes da resposta).
+- **Data que sai do servidor para a tela vai ESCRITA**, nunca em ISO: a sessão guarda hora de
+  parede, e o navegador lê ISO no fuso dele. Use `dataBR` + `horarioBR`.
+- **Medida de toque em px, não em rem**: a fonte raiz do app é 15px, então `w-11` entrega 41.
+
+**Armadilhas:**
+
+- **O reflexo do quinzenal tem DUAS fontes** (a sessão de sete dias antes e a de sete dias depois),
+  e quem o desenha não é necessariamente quem a exclusão alcança. Separar as duas perguntas foi o
+  que consertou os dois relatos de uma vez.
+- **A queixa do aniversário não era (só) o que parecia.** Na base dela nenhum dia tem mais de dois
+  aniversariantes — o corte nunca disparou — e só há um cadastro inativo com data. O que falta de
+  verdade são **três cadastros sem data de nascimento**: Soledade, Thais Alves e Thais Duarte.
+  Isso é dado, não código.
+- **O ditado é CPU, não configuração.** Medido no gateway: transcrever ~18s de fala leva ~12s e a
+  redação (`rl-heavy`) 4,7s. Mexer em `CPU_THREADS` e em lote não deu ganho confiável e o lote
+  ainda comia a maiúscula inicial. O ganho real foi `WHISPER__TTL=-1`: o modelo era descarregado
+  após uma hora ociosa e quem dita de vez em quando pagava 28s em vez de 4s.
+
+**Pendente:** o Prints 16 — formato da mensagem de cobrança, verificação do app no Google (a
+sincronização com o Google Agenda recusa com `access_denied` porque o app está em teste), e a
+lixeira do pagamento nos valores recebidos por mês e nas movimentações.
+
+---
+
 ## 2026-11-03 — Doc 57: lista nos pagamentos, Id de agenda no aniversário, o quinzenal que se apaga e o microfone que sumia
 
 **Entregue:** PRs #558, #559, #560.
