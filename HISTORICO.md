@@ -7,6 +7,46 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-11-05 — Doc 60: o slot que apagava o passado, e uma redação de cobrança só
+
+**Entregue:** PR #567.
+
+**Por quê:** *"Agendamentos anteriores estão sendo excluídos e isso não pode acontecer"*. O alvo
+da exclusão de um slot vazio era a primeira sessão da combinação **a partir de hoje** — num slot
+de dezembro, isso é a sessão de novembro. Clicar num espaço vazio lá na frente apagava a série
+desde antes do que foi clicado, sem aviso nenhum, porque a tela só mostra o que sobrou. Foi
+regressão do conserto dos docs 58/59 de ontem: ao alargar a busca do alvo, o piso ficou em "hoje".
+
+**Decisões que ficam valendo:**
+
+- **"Este e os próximos" conta a partir do SLOT, não de hoje.** O piso da busca passou a ser o
+  maior entre o dia clicado e hoje: o primeiro porque é o que está na tela, o segundo porque
+  sessão passada é histórico e dinheiro. Os dois pisos são necessários e por motivos diferentes.
+- **O conserto dos docs 58/59 não depende do alvo, e sim do filtro.** Sem sessão daquele dia em
+  diante o reflexo nem chega a ser desenhado — é isso que faz o próprio slot clicado sumir.
+- **Uma redação de cobrança só, para todas as terapeutas.** O texto do doc 60 virou o padrão da
+  casa, com as linhas em branco que ele pediu literalmente. Avulsa e pacote (dia fixo, primeira e
+  última sessão) diziam três textos diferentes para a mesma frase; agora dizem o mesmo, e o que
+  muda entre eles é de onde sai o vencimento e quais sessões entram — dado, não redação. As
+  mensagens de ATRASO ficaram como estavam: ele pediu "o vencimento apenas".
+- **`{sessoes}` é variável de modelo, e a linha dela se apaga sozinha.** Sem saber as datas, sai a
+  LINHA inteira — melhor não dizer do que dizer "Referente às sessões dos dias: .". A saída do
+  doc 63 (voltar a falar da data de início) foi retirada: duas datas para quem precisa de uma.
+
+**Armadilhas:**
+
+- A cobrança guarda os **ids** das sessões, não as datas (doc 29). Para a guia Geral poder listá-las
+  foi preciso levar as datas à tela na travessia do `geralDoPaciente` — é o mesmo ponto onde os
+  docs 58, 71 e 72 já perderam campo três vezes.
+- Há uma QUARTA mensagem de cobrança, a do cron mensal (`cobrancaTexto`), que não tem vencimento
+  nem lista de sessões e **não** foi unificada. Se o dono quiser padrão em tudo, é ali que falta.
+
+**Pendente:** Google Agenda (`access_denied` — o app OAuth está em modo de teste) continua
+esperando a decisão do dono: liberar o e-mail dela como testador, com reconexão a cada 7 dias, ou
+entrar na verificação do Google.
+
+---
+
 ## 2026-11-04 — Prints 16 (parte): a lixeira do pagamento nos outros dois lugares
 
 **Entregue:** PR #565.
