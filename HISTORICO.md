@@ -7,6 +7,40 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-11-04 — Prints 16 (parte): a lixeira do pagamento nos outros dois lugares
+
+**Entregue:** PR #565.
+
+A lixeira que já existia na guia Geral passa a existir também nos **Valores recebidos por mês** e
+nas **Movimentações**, chamando a MESMA ação (`removerPagamento`) — que apaga o pagamento, a
+entrada do caixa ligada a ele e o crédito que ele tenha gerado.
+
+**Por quê:** *"as 3 informações são vinculadas, então quando apagar em um campo, excluir nos 3"*.
+O vínculo já existia no dado; faltavam as portas.
+
+**Decisões que ficam valendo:**
+
+- **Uma porta só para apagar dinheiro.** Qualquer tela nova que mostre pagamento chama
+  `removerPagamento`. Uma segunda rotina de apagar é a maneira de as telas divergirem.
+- **Linha que mostra SOMA não pode ter lixeira.** Para a lixeira ter alvo, o extrato deixou de
+  mostrar uma linha por cobrança (somando os pagamentos e carimbando a data do último) e passou a
+  mostrar **uma linha por lançamento**, com a data e o líquido do próprio. O total do período não
+  muda — é a mesma escolha que o doc 62 já tinha feito nos Valores recebidos, e é o que permite
+  conferir contra o extrato do banco.
+
+**Pendente (precisa do dono):**
+
+- **Formato da mensagem de cobrança.** Ela quer: *"Olá Joyce! Passando informar sobre o pacote de
+  novembro. Sessões dos dias 9, 16, 23 e 30/11 = R$ 360,00. Qualquer dúvida, estou à disposição"*.
+  Falta decidir se vale só para o início de pacote ou para todas as mensagens (vencimento, atraso,
+  falta) — e lembrando que pedido de uma terapeuta vira formato de todas.
+- **Google Agenda.** Não é defeito nosso: o app OAuth está em modo de teste e o Google recusa com
+  `access_denied`. Ou se adiciona o e-mail dela como testador (e o acesso morre a cada 7 dias), ou
+  se entra na verificação do Google (semanas, com política de privacidade e vídeo de demonstração).
+  A terceira saída seria um feed `.ics` assinado — sincroniza só de ida.
+
+---
+
 ## 2026-11-04 — Doc 59: o reflexo que não se apagava, o aniversário que faltava e o horário que a falta libera
 
 **Entregue:** PRs #562 e #563.
