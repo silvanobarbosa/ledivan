@@ -83,8 +83,9 @@ export function ehSemanal2x(repeticao: string | null | undefined): boolean {
   return repeticao === "semanal2x";
 }
 
-/** "14:05" a partir de uma data. */
-function horario(d: Date): string {
+/** "14:05" a partir de uma data, em hora de PAREDE — nunca via `toLocale*`, que já fez data
+ *  andar um dia neste app. Faz par com `dataBR`. */
+export function horarioBR(d: Date): string {
   return `${String(d.getHours()).padStart(2, "0")}:${String(d.getMinutes()).padStart(2, "0")}`;
 }
 
@@ -109,7 +110,7 @@ export function segundoDiaValido(
   if (!ehSemanal2x(repeticao)) return true;
   if (segundoDia == null || !Number.isFinite(segundoDia)) return false;
   if (!segundoHorario) return false;
-  if (primeira && primeira.getDay() === segundoDia && horario(primeira) === segundoHorario) return false;
+  if (primeira && primeira.getDay() === segundoDia && horarioBR(primeira) === segundoHorario) return false;
   return true;
 }
 

@@ -1795,8 +1795,10 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
             data-testid="pergunta-conflitos" className={`${JANELA} max-w-sm outline-none`} onClick={(e) => e.stopPropagation()}>
             <p className="text-sm text-foreground/80">Existem agendamentos nas datas e horários informados. Deseja continuar mesmo assim?</p>
             <ul className="max-h-40 overflow-auto text-sm font-semibold text-foreground/70 space-y-0.5">
-              {perguntaConflitos.datas.map((iso) => (
-                <li key={iso}>{new Date(iso).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })}</li>
+              {/* Já vêm escritas do servidor, em hora de parede: ler ISO aqui deslocava o
+                  horário pelo fuso do navegador (o choque das 15:00 virava 12:00). */}
+              {perguntaConflitos.datas.map((quando) => (
+                <li key={quando}>{quando}</li>
               ))}
             </ul>
             <div className="flex gap-2">

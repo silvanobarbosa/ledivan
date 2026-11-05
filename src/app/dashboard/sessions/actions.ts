@@ -21,6 +21,8 @@ import { aplicarCreditosPendentes } from "@/lib/aplicarCreditos";
 import { abrangenciaValida, marcasDaSessao } from "@/lib/abrangenciaDaSerie";
 import { apagarSessoesComPagamentos } from "@/lib/pagamentosLigados";
 import { liberaOHorario } from "@/lib/statusDaSessao";
+import { dataBR } from "@/lib/recibo";
+import { horarioBR } from "@/lib/agendamentoNovo";
 
 type SessionStatus = "realizada" | "nao_realizada" | "cancelada" | "realocada" | "agendada" | "prof_desmarcou" | "atestado";
 
@@ -129,8 +131,14 @@ export async function createRecurring(formData: FormData): Promise<{ ok: boolean
   const manterConflitos = formData.get("conflitos") === "sim";
   const { datas, puladas, conflitos } = datasEPuladas({ primeira: first, limite: until, freq: freqRaw, segundoDia, segundoHorario, bloqueado, ocupado: ocupadoPorSessao, manterConflitos });
   if (conflitos.length && !manterConflitos) {
-    // Nada foi gravado. Quem decide é ela, com as datas na frente.
-    return { ok: false, conflitos: conflitos.map((d) => d.toISOString()) };
+    /**
+     * Nada foi gravado. Quem decide é ela, com as datas na frente.
+     *
+     * A data vai ESCRITA, não em ISO: a sessão guarda hora de parede, e um ISO atravessa o
+     * fuso do navegador na volta — o choque das 15:00 apareceu como 12:00 na validação.
+     * Ver `dataBR`, que existe pelo mesmo motivo.
+     */
+    return { ok: false, conflitos: conflitos.map((d) => `${dataBR(d)} ${horarioBR(d)}`) };
   }
   if (!datas.length) {
     return { ok: false, error: "Todas as datas dessa repetiç\u00e3o caem em horário bloqueado." };
