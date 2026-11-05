@@ -36,6 +36,14 @@ export function hojeDeParede(agora = new Date()): Date {
 export type CobrancaNaTela = Omit<CobrancaDaGeral, "vencimento" | "competencia" | "pagamento" | "pagamentos" | "envio" | "posicao" | "tipo"> & {
   tipoDeCobranca: CobrancaDaGeral["tipo"];
   vencimento: string | null;
+  /**
+   * As datas (hora de parede) das sessões que esta cobrança cobre — a lista do doc 60.
+   *
+   * Derivada de `ids`, que já é o conjunto certo (exclui gratuita e desmarcada). A mensagem de
+   * cobrança precisa dizer QUAIS sessões estão sendo pagas, e a tela não tem como saber disso
+   * sozinha: a linha da cobrança só carrega a CONTAGEM.
+   */
+  datasDasSessoes: string[];
   /** Doc 31: o vencimento desta cobrança foi EDITADO à mão (há override). A tela mostra o "desfazer". */
   vencimentoEditado: boolean;
   pagamento: { id: string; data: string; metodo: string | null; pagoPor: string | null; recibo: boolean; nota: boolean; reciboNumero: string | null; credito: boolean; motivoSemCredito?: string | null; motivoSemDiferenca?: string | null } | null;
@@ -59,6 +67,7 @@ export type LinhaNaTela =
 function cobrancaNaTela(
   c: Omit<CobrancaDaGeral, "tipo"> & { tipoDeCobranca: CobrancaDaGeral["tipo"] },
   editados: Set<string>,
+  datasPorSessao: Map<string, string>,
 ): CobrancaNaTela {
   return {
     chave: c.chave,
@@ -77,6 +86,8 @@ function cobrancaNaTela(
     // Desmarcou/Prof.desm/Atestado e inclui Presente/Faltou. O recibo escopa por aqui, não por todas
     // as sessões do paciente (bug do doc 28: cruzava a fronteira da cobrança e trazia data errada).
     ids: c.ids,
+    // Doc 60: as datas na ordem em que acontecem — é assim que elas entram na mensagem.
+    datasDasSessoes: c.ids.map((id) => datasPorSessao.get(id)).filter((d): d is string => !!d).sort(),
     parte: c.parte,
     situacao: c.situacao,
     /**
@@ -99,8 +110,8 @@ function cobrancaNaTela(
   };
 }
 
-function naTela(l: LinhaDaGeral, editados: Set<string>): LinhaNaTela {
-  if (l.tipo === "pagamento") return { tipo: "pagamento", ...cobrancaNaTela(l, editados) };
+function naTela(l: LinhaDaGeral, editados: Set<string>, datasPorSessao: Map<string, string>): LinhaNaTela {
+  if (l.tipo === "pagamento") return { tipo: "pagamento", ...cobrancaNaTela(l, editados, datasPorSessao) };
   if (l.tipo === "bloqueio") return { tipo: "bloqueio", data: texto(l.data) ?? "" };
   return {
     tipo: "sessao",
@@ -113,7 +124,7 @@ function naTela(l: LinhaDaGeral, editados: Set<string>): LinhaNaTela {
     avisoDaCobranca: l.avisoDaCobranca ?? null,
     rotulo: l.rotulo,
     valor: l.valor,
-    cobranca: l.cobranca ? cobrancaNaTela({ ...l.cobranca, tipoDeCobranca: l.cobranca.tipo }, editados) : null,
+    cobranca: l.cobranca ? cobrancaNaTela({ ...l.cobranca, tipoDeCobranca: l.cobranca.tipo }, editados, datasPorSessao) : null,
   };
 }
 
@@ -208,8 +219,10 @@ export async function geralDoPaciente(userId: string, patientId: string): Promis
     hoje: hojeDeParede(),
   };
   const resumo = resumoDaGeral(entrada);
+  // Id da sessão → a data dela, em hora de parede. A cobrança guarda só os ids (doc 29).
+  const datasPorSessao = new Map<string, string>(sessoes.map((s) => [s.id, texto(s.date) ?? ""] as const).filter(([, d]) => !!d));
   return {
-    linhas: linhasDaGeral(entrada).map((l) => naTela(l, editados)),
+    linhas: linhasDaGeral(entrada).map((l) => naTela(l, editados, datasPorSessao)),
     resumo: { ...resumo, extrato: resumo.extrato.map((m) => ({ ...m, data: texto(m.data) ?? "" })) },
   };
 }

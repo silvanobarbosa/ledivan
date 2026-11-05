@@ -1091,14 +1091,17 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
 
             {/* Doc 59: o encontro não vai acontecer e a hora vagou — dá para pôr outra pessoa ali.
                 O caminho existe pelo "Novo atendimento", mas da grade ele não existia: o bloco da
-                sessão cobre a célula, e quem clica cai aqui. Então a porta fica aqui. */}
+                sessão cobre a célula, e quem clica cai aqui. Então a porta fica aqui.
+
+                Doc 60: o dono confirmou o lugar — logo abaixo da modalidade, antes de editar e
+                excluir — e pediu a letra um ponto maior que a dos links de baixo. */}
             {!editing && liberaOHorario(selected.status) && (
               <button
                 type="button"
                 onClick={() => { const d = new Date(selected.date); setSelected(null); openNew(d, d.getHours(), d.getMinutes()); }}
-                className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary hover:underline"
+                className="inline-flex items-center gap-1.5 text-base font-semibold text-primary hover:underline"
               >
-                <Plus className="w-4 h-4" /> Agendar outro neste horário
+                <Plus className="w-[18px] h-[18px]" /> Agendar outro neste horário
               </button>
             )}
 
@@ -1817,7 +1820,7 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
                 Não
               </button>
             </div>
-            <p className="text-[11px] text-foreground/40">Com “Sim”, a sequência inteira é agendada, inclusive por cima do que já existe — fica na agenda para você remanejar.</p>
+            <p className="text-[11px] text-foreground/40">Se “Sim”, a sequência inteira é agendada, se necessário agendamentos serão criados junto aos já existentes, ficando disponíveis na agenda para remanejamento posterior.</p>
           </div>
         </div>
       )}

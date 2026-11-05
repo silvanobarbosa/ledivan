@@ -42,7 +42,7 @@ export function ConfirmarEnvioModal({ aberto, onSim, onNao, web }: { aberto: boo
           <p className="font-display text-lg font-bold text-primary">Você enviou a mensagem?</p>
           <button onClick={onNao} className="p-1.5 rounded-lg hover:bg-surface transition" aria-label="Fechar"><X className="w-4 h-4" /></button>
         </div>
-        <p className="text-sm text-foreground/60">Confirme só se a mensagem foi realmente enviada no WhatsApp — o registro conta um envio feito, não a abertura do WhatsApp.</p>
+        <p className="text-sm text-foreground/60">O registro será contabilizado somente após a confirmação do envio da mensagem pelo WhatsApp, não apenas pela abertura do aplicativo.</p>
         {/* Doc 63: o computador abre pelo aplicativo instalado. Se ele não abrir (não instalado,
             esquema não registrado), esta é a saída — e continua levando a mensagem pronta. */}
         {web && (

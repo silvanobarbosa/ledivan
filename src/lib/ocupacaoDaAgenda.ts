@@ -62,9 +62,9 @@ export type Espelho = {
   /**
    * A sessão REAL em que uma exclusão pega (doc 57). O slot em si não existe no banco.
    *
-   * É a PRÓXIMA sessão daquele combinado que ainda está por vir — não necessariamente a que
-   * fica a sete dias à frente. Excluir "daqui para a frente" a partir dela apaga tudo o que
-   * resta do quinzenal e deixa o passado em paz.
+   * É a primeira sessão daquele combinado que cai NO DIA DO SLOT OU DEPOIS — não
+   * necessariamente a que fica a sete dias à frente. Excluir "daqui para a frente" a partir
+   * dela apaga o que resta do quinzenal e não toca no que vem antes do slot clicado.
    */
   sessaoId: string;
   /** Ela ainda está por vir? Sem isso, excluir alcançaria sessão passada — histórico e dinheiro. */
@@ -168,26 +168,35 @@ export function espelhosDoDia(opts: {
 }
 
 /**
- * A PRIMEIRA SESSÃO DAQUELA COMBINAÇÃO QUE AINDA ESTÁ POR VIR — a que uma exclusão alcança.
+ * A PRIMEIRA SESSÃO DAQUELA COMBINAÇÃO A PARTIR DO DIA REFLETIDO — a que uma exclusão alcança.
  *
  * Combinação é paciente + dia da semana + horário, que é o mesmo critério de `sessoesAlcancadas`
  * ("os mesmos dias e horários"). Procurar na combinação INTEIRA, e não só nas duas sessões que
  * projetam o reflexo, é o que conserta o caso do doc 59: a vizinha de trás já aconteceu, a de
  * frente foi excluída, e o alvo certo é a próxima que sobrou, mais adiante na série.
  *
- * `null` quer dizer que não há nada por vir: a tela não oferece exclusão, e o reflexo some do
- * futuro. Apagar sessão passada seria mexer em histórico e em dinheiro.
+ * O PISO SÃO DOIS, e o maior vence (doc 60):
+ *
+ * - **o dia do slot**, porque "este e os próximos" conta a partir do que está na tela. Procurar
+ *   a partir de hoje fazia um clique num slot de dezembro apagar a série desde novembro — a
+ *   terapeuta via sumir agendamento ANTERIOR ao que ela clicou, que é perda de agenda sem aviso;
+ * - **hoje**, porque sessão passada é histórico e dinheiro.
+ *
+ * `null` quer dizer que não há nada daquele dia em diante: a tela não oferece exclusão, e o
+ * reflexo some do futuro — é o que apaga o próprio slot clicado (docs 58 e 59), já que sem
+ * sessão à frente não sobra nada que o projete.
  */
 function primeiraPorVir(opts: {
   sessoes: SessaoParaEspelho[];
   pacienteId: string;
   hora: number;
   minuto: number;
-  /** O dia que está refletindo, em meio-dia. Serve de régua do "mesmo dia da semana". */
+  /** O dia que está refletindo, em meio-dia. Serve de régua do "mesmo dia da semana" e de piso. */
   diaEspelhado: number;
   hoje: number;
 }): { id: string } | null {
   let melhor: { id: string; quando: number } | null = null;
+  const piso = Math.max(opts.hoje, opts.diaEspelhado);
 
   for (const s of opts.sessoes) {
     if (s.pacienteId !== opts.pacienteId) continue;
@@ -195,7 +204,7 @@ function primeiraPorVir(opts: {
     if (Number.isNaN(d.getTime())) continue;
     if (d.getHours() !== opts.hora || d.getMinutes() !== opts.minuto) continue;
     const quando = meioDia(d);
-    if (quando < opts.hoje) continue;
+    if (quando < piso) continue;
     // Mesmo dia da semana que o refletido: múltiplo de sete dias de distância. Um encaixe numa
     // sexta não entra no combinado das quartas — é a regra de `sessoesAlcancadas`, repetida aqui.
     if (Math.round((quando - opts.diaEspelhado) / 86400000) % 7 !== 0) continue;
