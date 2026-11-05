@@ -135,3 +135,25 @@ describe("doc 64: o dinheiro que virou crédito continua sendo dinheiro que entr
     expect(meses[9].recebimentos).toHaveLength(0); // outubro
   });
 });
+
+/**
+ * O ID DO PAGAMENTO NA LINHA (Prints 16).
+ *
+ * "Além do botão de lixeira para excluir o pagamento aqui, gostaria que fosse incluído em mais 2
+ * lugares." A linha do MÊS é uma soma e não serve de alvo: quem apaga é o recebimento, um a um.
+ */
+describe("o recebimento carrega o pagamento de onde saiu", () => {
+  it("cada recebimento do mês traz o seu id", () => {
+    const { meses } = recebidosPorAno([
+      { id: "pg-1", amount: "100", date: "2026-10-05", status: "paid", method: "pix" },
+      { id: "pg-2", amount: "50", date: "2026-10-20", status: "paid", method: "pix" },
+    ], 2026);
+    expect(meses[9].recebimentos.map((r) => r.id)).toEqual(["pg-1", "pg-2"]);
+  });
+
+  it("sem id, a linha existe do mesmo jeito — o número é o que a tabela deve", () => {
+    const { meses, total } = recebidosPorAno([{ amount: "80", date: "2026-03-10", status: "paid" }], 2026);
+    expect(meses[2].recebimentos[0].id).toBeUndefined();
+    expect(total).toBe(80);
+  });
+});

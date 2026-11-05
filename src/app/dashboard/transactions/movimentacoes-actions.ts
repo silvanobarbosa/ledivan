@@ -7,6 +7,7 @@ import { and, eq, isNotNull, isNull } from "drizzle-orm";
 import { geralDoPaciente, type LinhaNaTela } from "@/lib/geralDoPaciente";
 import { resolverCobrancas } from "@/lib/resolverCobrancas";
 import { getVigenciasTaxa } from "@/lib/cardFees";
+import { liquidoDoPagamento } from "@/lib/taxaCartao";
 import { ordenarExtrato, type Movimentacao } from "@/lib/extratoBancario";
 import { descricaoDoMovimento, movimentosDoEstorno } from "@/lib/estornoNoCaixa";
 
@@ -123,8 +124,32 @@ export async function montarMovimentacoes(): Promise<{ ok: boolean; movs?: Movim
       // repetido quatro vezes no mesmo dia, não deixava conferir linha por linha.
       const sessaoEm = c.primeiraSessao ?? c.vencimento;
       const area = areaDoCadastro(p.kind);
+      /**
+       * UMA LINHA POR LANÇAMENTO (Prints 16), e não uma por cobrança.
+       *
+       * A linha agregada somava os pagamentos da cobrança e carimbava a data do último — então a
+       * lixeira que o documento pede não teria alvo (qual dos pagamentos sairia?) e a data não
+       * batia com o extrato do banco. É a mesma escolha que o doc 62 já tinha feito na tabela de
+       * valores recebidos; o total do período não muda, só deixa de esconder as parcelas.
+       */
       if (rec && rec.totalBruto > 0.005) {
-        movs.push({ data: dia(c.pagoEm ?? c.vencimento), descricao: descricaoDoMovimento("Pagamento", c.nome, dia(sessaoEm)), tipo: "entrada", efetivado: true, bruto: rec.totalBruto, liquido: rec.totalLiquido, temLiquido: Math.abs(rec.totalBruto - rec.totalLiquido) > 0.005, categoria: area });
+        const lancamentos = c.lancamentos?.length
+          ? c.lancamentos
+          : [{ id: "", valor: rec.totalBruto, metodo: null, data: c.pagoEm ?? c.vencimento ?? "" }];
+        for (const pg of lancamentos) {
+          const bruto = Number(pg.valor) || 0;
+          if (bruto <= 0.005) continue;
+          const quando = pg.data || c.pagoEm || c.vencimento;
+          const liquido = pg.metodo ? liquidoDoPagamento(bruto, pg.metodo, quando ?? "", vigencias) : bruto;
+          movs.push({
+            data: dia(quando),
+            descricao: descricaoDoMovimento("Pagamento", c.nome, dia(sessaoEm)),
+            tipo: "entrada", efetivado: true, bruto, liquido,
+            temLiquido: Math.abs(bruto - liquido) > 0.005,
+            categoria: area,
+            ...(pg.id ? { pagamentoId: pg.id, pacienteId: p.id } : {}),
+          });
+        }
       }
       if (c.situacao !== "pago" && c.falta > 0.005) {
         movs.push({ data: dia(c.vencimento), descricao: descricaoDoMovimento("Previsto", c.nome, dia(sessaoEm)), tipo: "entrada", efetivado: false, bruto: c.falta, liquido: c.falta, temLiquido: false, categoria: area });

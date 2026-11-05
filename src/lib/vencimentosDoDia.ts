@@ -21,6 +21,14 @@ export type CobrancaResolvida = {
   agendaId?: string | null;
   /** Doc 50: o recebido desta cobrança por forma de pagamento, com bruto e líquido (soma pelo líquido). */
   recebido?: RecebidoResumo;
+  /**
+   * Os lançamentos que FORMAM esse recebido, um a um (Prints 16).
+   *
+   * O resumo por forma soma e perde o pagamento individual — e, sem ele, uma lixeira no extrato
+   * não tem alvo: a linha agregada não sabe dizer qual dos pagamentos sairia. É a mesma lista
+   * que alimenta `recebidoPorForma`, então nenhuma conta muda por existir aqui.
+   */
+  lancamentos?: { id: string; valor: number; metodo: string | null; data: string }[];
   /** Telefone do responsável financeiro ou, na falta, da própria pessoa. */
   telefone: string | null;
   chave: string;

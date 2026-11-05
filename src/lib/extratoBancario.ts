@@ -35,6 +35,15 @@ export type Movimentacao = {
    * estorno vai parar logo abaixo do pagamento que ele desfez.
    */
   par?: string | null;
+  /**
+   * O pagamento de onde esta linha saiu, e de quem (Prints 16).
+   *
+   * Só as linhas de pagamento de paciente têm. É o que permite apagar daqui pela MESMA porta da
+   * guia Geral — "as 3 informações são vinculadas" —, em vez de apagar a transação do caixa e
+   * deixar o pagamento vivo do outro lado.
+   */
+  pagamentoId?: string;
+  pacienteId?: string;
 };
 
 const dia = (iso: string | null | undefined): string => String(iso ?? "").slice(0, 10);

@@ -1,7 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { Loader2 } from "lucide-react";
+import { useEffect, useMemo, useState, useTransition } from "react";
+import { useRouter } from "next/navigation";
+import { Loader2, Trash2 } from "lucide-react";
+import { removerPagamento } from "../patients/[id]/geral-actions";
 import { formatBRL } from "@/lib/therapy";
 import { type Movimentacao } from "@/lib/extratoBancario";
 import { dentroDoIntervalo, type Intervalo } from "@/lib/periodoFiltro";
@@ -16,6 +18,32 @@ const dataBR = (iso: string | null | undefined) => { const m = iso ? String(iso)
  * pagamentos de pacientes/supervisionados. Valor: entrada efetivada verde, saída efetivada vermelho,
  * previsto/pendente em branco. Pagamento no cartão mostra bruto e, abaixo, o líquido.
  */
+/**
+ * A LIXEIRA DO PAGAMENTO, no extrato (Prints 16).
+ *
+ * Chama a MESMA ação da guia Geral de propósito: "as 3 informações são vinculadas, então quando
+ * apagar em um campo, excluir nos 3". `removerPagamento` tira o pagamento, a entrada do caixa
+ * ligada a ele e o crédito que ele tenha gerado. Apagar aqui só a transação deixaria o pagamento
+ * vivo na guia Geral — duas telas contando histórias diferentes sobre o mesmo dinheiro.
+ */
+function RemoverDoExtrato({ pacienteId, pagamentoId, aoApagar }: { pacienteId: string; pagamentoId: string; aoApagar: () => void }) {
+  const router = useRouter();
+  const [pending, start] = useTransition();
+  function acionar() {
+    if (!window.confirm("Remover este pagamento? A cobrança volta a ficar em aberto e a entrada sai do caixa.")) return;
+    start(async () => {
+      const r = await removerPagamento({ pagamentoId, patientId: pacienteId });
+      if (r.ok) { aoApagar(); router.refresh(); }
+    });
+  }
+  return (
+    <button type="button" onClick={acionar} disabled={pending} title="Remover este pagamento" aria-label="Remover este pagamento"
+      className="ml-1 align-middle text-[#b91c1c] hover:bg-[#fef2f2] rounded p-0.5 disabled:opacity-50 print:hidden">
+      <Trash2 className="w-3.5 h-3.5" />
+    </button>
+  );
+}
+
 export function MovimentacoesSection({ intervalo, rotulo }: { intervalo: Intervalo; rotulo: string }) {
   const [movs, setMovs] = useState<Movimentacao[]>([]);
   const [carregando, setCarregando] = useState(true);
@@ -83,6 +111,14 @@ export function MovimentacoesSection({ intervalo, rotulo }: { intervalo: Interva
                         <span className={m.tipo === "entrada" ? "text-[#047857] font-semibold" : "text-[#b91c1c] font-semibold"}>
                           {m.tipo === "entrada" ? "+" : "−"} {formatBRL(m.bruto)}
                         </span>
+                        {/* Prints 16: a lixeira vive ao lado do valor, onde o dinheiro está. */}
+                        {m.pagamentoId && m.pacienteId && (
+                          <RemoverDoExtrato
+                            pacienteId={m.pacienteId}
+                            pagamentoId={m.pagamentoId}
+                            aoApagar={() => setMovs((atuais) => atuais.filter((x) => x.pagamentoId !== m.pagamentoId))}
+                          />
+                        )}
                         {m.temLiquido && <span className="block text-[11px] text-foreground/50">líquido {formatBRL(m.liquido)}</span>}
                       </div>
                     )}
