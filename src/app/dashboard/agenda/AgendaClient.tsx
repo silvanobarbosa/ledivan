@@ -2,14 +2,15 @@
 
 import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { ChevronLeft, ChevronRight, X, Stethoscope, Repeat, Video, AlertTriangle, MapPin, Pencil, CalendarDays, Trash2 , ChevronDown } from "lucide-react";
-import { formatBRL, SESSION_STATUS_LABELS, sessionStatusColor, sessionColorClasses, reservaVencida, RISK_LABELS, riskColor, LEGENDA_DA_AGENDA, corDaLegenda, STATUS_OFERECIDOS, STATUS_QUE_PAUSAM, type RiskLevel } from "@/lib/therapy";
+import { ChevronLeft, ChevronRight, X, Stethoscope, Repeat, Video, AlertTriangle, MapPin, Pencil, CalendarDays, Trash2, Plus, ChevronDown } from "lucide-react";
+import { formatBRL, SESSION_STATUS_LABELS, sessionStatusColor, sessionColorClasses, reservaVencida, RISK_LABELS, riskColor, LEGENDA_DA_AGENDA, corDaLegenda, STATUS_OFERECIDOS, type RiskLevel } from "@/lib/therapy";
 import { updateSessionStatus, confirmSession, createSessionFromAgenda, createRecurring, definirValorDaFalta, pagamentoDaSessao, desfazerCobrancaDaSessao, saldoDeCreditoDaSessao } from "../sessions/actions";
 import { perguntaDaConversao } from "@/lib/creditoAConfirmar";
 import { HolidaySetup } from "@/components/dashboard/HolidaySetup";
 import { HOLIDAY_STYLE, type Holiday, type HolidayCity } from "@/lib/holidays-style";
 import { geometriaDaFaixa, posicoesDoDia } from "@/lib/agendaLayout";
 import { conteudoDaCelula, identificacao, identificacaoDoAniversario } from "@/lib/celulaDaAgenda";
+import { liberaOHorario } from "@/lib/statusDaSessao";
 import { textoDoBloqueio } from "@/lib/bloqueioDeHorario";
 import { ehQuinzenal, espelhosDoDia, sinaisDaSessao } from "@/lib/ocupacaoDaAgenda";
 import { CANAIS_DE_CONFIRMACAO, DIAS_DA_SEMANA, ehSemanal2x, geraRepeticoes, modalidadesDe, pedeHorasAntes, pedeLocal, repeticoesDe } from "@/lib/agendamentoNovo";
@@ -248,15 +249,16 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
    * Já existe algum agendamento nesse horário? (doc 9, item 15 — antes prints 6.pdf item 21.) O dono
    * pediu o aviso para QUALQUER choque, não só de outro paciente: marcar duas vezes o mesmo horário
    * costuma ser engano, mesmo sendo o mesmo paciente. Não barra: avisa, e o profissional decide.
-   * `exceptId` tira a própria sessão (ao mover/editar). Status que pausam (desmarcou/atestado/prof.
-   * desm.) liberam o horário.
+   * `exceptId` tira a própria sessão (ao mover/editar). Doc 59: desmarcou, prof. desmarcou,
+   * atestado e FALTOU liberam o horário — em nenhum deles vai haver encontro. A pergunta é de
+   * agenda, por isso `liberaOHorario`, e não a lista de dinheiro `STATUS_QUE_PAUSAM`.
    */
   function colisaoDeHorario(iniMs: number, durMin: number, exceptId?: string): AgendaSession | null {
     if (Number.isNaN(iniMs)) return null;
     const fim = iniMs + (durMin || 50) * 60000;
     return sessions.find((s) => {
       if (exceptId && s.id === exceptId) return false;
-      if (STATUS_QUE_PAUSAM.has(s.status)) return false;
+      if (liberaOHorario(s.status)) return false;
       const sIni = new Date(s.date).getTime();
       if (Number.isNaN(sIni)) return false;
       const sFim = sIni + (s.duration || 50) * 60000;
@@ -291,8 +293,18 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
     if (abrangencia) formData.set("abrangencia", abrangencia);
     startTransition(async () => {
       const res = newRecorrente ? await createRecurring(formData) : await createSessionFromAgenda(formData);
-      if (res.ok) { setShowNew(false); setNewFreq("pontual"); setPerguntaSerie(null); router.refresh(); }
-      else { setPerguntaSerie(null); setNewError(res.error || "Falha ao agendar."); }
+      /**
+       * Doc 59: choque de horário na sequência não é falha — é uma pergunta, e nada foi gravado
+       * ainda. A terapeuta vê as datas e decide; o doc é explícito nos dois lados ("SIM: realizar
+       * toda a sequência, inclusive nos horários já ocupados" / "NÃO: não realizar nenhum").
+       */
+      if (!res.ok && "conflitos" in res && Array.isArray(res.conflitos) && res.conflitos.length) {
+        setPerguntaSerie(null);
+        setPerguntaConflitos({ formData, datas: res.conflitos });
+        return;
+      }
+      if (res.ok) { setShowNew(false); setNewFreq("pontual"); setPerguntaSerie(null); setPerguntaConflitos(null); router.refresh(); }
+      else { setPerguntaSerie(null); setPerguntaConflitos(null); setNewError(res.error || "Falha ao agendar."); }
     });
   }
   const selectedPatient = patients.find((p) => p.id === newPatient);
@@ -430,6 +442,8 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
    * cortesia) vale para todas as sessões ou só para a primeira.
    */
   const [perguntaSerie, setPerguntaSerie] = useState<FormData | null>(null);
+  /** Doc 59: as datas da série que caem em cima de agendamento vivo, à espera da resposta dela. */
+  const [perguntaConflitos, setPerguntaConflitos] = useState<{ formData: FormData; datas: string[] } | null>(null);
   /** A exclusão, esperando o alcance. `null` quando ninguém pediu para excluir. */
   const [perguntaExcluir, setPerguntaExcluir] = useState<{ id: string; passo: "inicio" | "proximos" } | null>(null);
   const [quantos, setQuantos] = useState<{ mesmosDias: number; todas: number } | null>(null);
@@ -677,6 +691,7 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
   // Doc 73: Escape fecha também a pergunta da série — ela decide se um ritmo inteiro nasce de
   // graça, e janela sem saída pelo teclado foi achado do SuperQA.
   const janelaSerie = useJanela(!!perguntaSerie, () => setPerguntaSerie(null));
+  const janelaConflitos = useJanela(!!perguntaConflitos, () => setPerguntaConflitos(null));
   const janelaFalta = useJanela(!!perguntaFaltou, () => setPerguntaFaltou(null));
   const janelaValor = useJanela(!!pedeValor, () => setPedeValor(null));
   const janelaCredito = useJanela(!!perguntaCredito, () => setPerguntaCredito(null));
@@ -869,7 +884,10 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
                     )}
                     {birthdaysForDay(day).length > 0 && (
                       <div className="mt-1 px-1 space-y-0.5">
-                        {birthdaysForDay(day).slice(0, 2).map((b, i) => (
+                        {/* Doc 59: TODOS os aniversariantes do dia. O corte em dois escondia o
+                            terceiro sem dizer nada — e, ao contrário dos feriados logo acima,
+                            aqui não havia nem o "+N" para denunciar o que ficou de fora. */}
+                        {birthdaysForDay(day).map((b, i) => (
                           /* Doc 57: o aniversariante aparece pelo Id de agenda, o mesmo campo das
                              células — a agenda fica aberta na tela e identifica por código, não por
                              nome. Sem Id e sem registro, cai no nome INTEIRO (doc 76): cortar no
@@ -1070,6 +1088,19 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
             <p className="text-sm text-foreground/60 flex items-center gap-1.5">
               {selected.isOnline ? <><Video className="w-4 h-4 text-primary" /> Online</> : <><MapPin className="w-4 h-4 text-primary" /> Presencial{selected.location ? ` · ${selected.location}` : ""}</>}
             </p>
+
+            {/* Doc 59: o encontro não vai acontecer e a hora vagou — dá para pôr outra pessoa ali.
+                O caminho existe pelo "Novo atendimento", mas da grade ele não existia: o bloco da
+                sessão cobre a célula, e quem clica cai aqui. Então a porta fica aqui. */}
+            {!editing && liberaOHorario(selected.status) && (
+              <button
+                type="button"
+                onClick={() => { const d = new Date(selected.date); setSelected(null); openNew(d, d.getHours(), d.getMinutes()); }}
+                className="inline-flex items-center gap-1.5 text-sm font-semibold text-primary hover:underline"
+              >
+                <Plus className="w-4 h-4" /> Agendar outro neste horário
+              </button>
+            )}
 
             {/* Editar sessão (data / modalidade) */}
             {!editing ? (
@@ -1452,8 +1483,10 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
                 atendimento de outro dia por um clique num espaço vazio é o tipo de surpresa que
                 não se conserta depois (decisão do dono, 03/11).
 
-                Sem sessão à frente não há o que excluir daqui para a frente: o botão não aparece,
-                em vez de apagar sessão passada, que é histórico e dinheiro. */}
+                O alvo é a primeira sessão da combinação que ainda está por vir — e, quando não
+                sobra nenhuma, o reflexo nem chega a ser desenhado (docs 58 e 59): a série acabou,
+                e um slot vazio que ninguém consegue tirar da tela é pior do que nenhum slot.
+                Apagar sessão passada, não: é histórico e dinheiro. */}
             {perguntaQ.sessaoFutura && (
               <button
                 type="button"
@@ -1464,9 +1497,6 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
                 Excluir este e os próximos de {perguntaQ.quem}
               </button>
             )}
-            <p className="text-[11px] text-foreground/40">
-              Excluir apaga os agendamentos quinzenais deste paciente neste dia e horário, daqui para a frente. O que já aconteceu fica.
-            </p>
           </div>
         </div>
       )}
@@ -1758,6 +1788,38 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
       {/* Doc 73: a marca vale para a SÉRIE ou só para esta sessão? A pergunta (e as palavras dela)
           mora em `abrangenciaDaSerie.ts` — ela muda conforme a escolha foi gratuita, avulsa ou
           cortesia, porque as três produzem combinados diferentes. */}
+      {/* Doc 59: os choques da sequência, com data e hora, antes de gravar qualquer coisa. */}
+      {perguntaConflitos && (
+        <div className={FUNDO_DA_JANELA} onClick={() => setPerguntaConflitos(null)}>
+          <div ref={janelaConflitos} tabIndex={-1} role="dialog" aria-modal="true" aria-label="Agendamentos em horários já ocupados"
+            data-testid="pergunta-conflitos" className={`${JANELA} max-w-sm outline-none`} onClick={(e) => e.stopPropagation()}>
+            <p className="text-sm text-foreground/80">Existem agendamentos nas datas e horários informados. Deseja continuar mesmo assim?</p>
+            <ul className="max-h-40 overflow-auto text-sm font-semibold text-foreground/70 space-y-0.5">
+              {perguntaConflitos.datas.map((iso) => (
+                <li key={iso}>{new Date(iso).toLocaleString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric", hour: "2-digit", minute: "2-digit" })}</li>
+              ))}
+            </ul>
+            <div className="flex gap-2">
+              <button
+                disabled={pending}
+                onClick={() => { const q = perguntaConflitos; setPerguntaConflitos(null); q.formData.set("conflitos", "sim"); gravarNovo(q.formData); }}
+                className="flex-1 bg-primary text-white py-2.5 rounded-xl font-bold disabled:opacity-60"
+              >
+                Sim
+              </button>
+              <button
+                disabled={pending}
+                onClick={() => setPerguntaConflitos(null)}
+                className="flex-1 bg-surface text-foreground/70 py-2.5 rounded-xl font-bold hover:bg-surface-container disabled:opacity-60"
+              >
+                Não
+              </button>
+            </div>
+            <p className="text-[11px] text-foreground/40">Com “Sim”, a sequência inteira é agendada, inclusive por cima do que já existe — fica na agenda para você remanejar.</p>
+          </div>
+        </div>
+      )}
+
       {perguntaSerie && (() => {
         const q = perguntaDaAbrangencia({ recorrente: newRecorrente, escolha: escolhaNova, cobrada: newCobrada });
         if (!q) return null;

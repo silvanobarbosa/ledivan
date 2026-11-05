@@ -129,3 +129,29 @@ describe("os campos que a janela deixa mexer", () => {
     }
   });
 });
+
+/**
+ * O HORÁRIO QUE VOLTOU A FICAR LIVRE (doc 59).
+ *
+ * "Caso o horário já possua um agendamento com status Desmarcou, Profissional desmarcou, Atestado
+ * ou Faltou, o sistema deverá permitir um novo agendamento no mesmo dia e horário."
+ */
+describe("o status libera o horário", () => {
+  const naquele = (status: string) => [{ id: "x", data: new Date("2026-09-16T08:00:00"), pacienteId: "p1", status }];
+
+  it("desmarcou, prof. desmarcou, atestado e faltou deixam o horário livre", () => {
+    for (const status of ["cancelada", "realocada", "prof_desmarcou", "atestado", "nao_realizada"]) {
+      expect(horarioOcupado({ destino: "2026-09-16T08:00:00", todas: naquele(status) })).toBe(false);
+    }
+  });
+
+  it("agendada e realizada continuam ocupando", () => {
+    for (const status of ["agendada", "realizada"]) {
+      expect(horarioOcupado({ destino: "2026-09-16T08:00:00", todas: naquele(status) })).toBe(true);
+    }
+  });
+
+  it("sem status informado, o horário continua ocupado — quem não diz nada não libera nada", () => {
+    expect(horarioOcupado({ destino: "2026-09-16T08:00:00", todas: [{ id: "x", data: new Date("2026-09-16T08:00:00"), pacienteId: "p1" }] })).toBe(true);
+  });
+});

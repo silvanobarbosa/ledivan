@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   canalParaGravar,
+  datasEPuladas,
   ehMensal,
   ehOnline,
   geraRepeticoes,
@@ -130,5 +131,41 @@ describe("a modalidade e o resto da tela", () => {
     expect(pedeLocal("presencial")).toBe(true);
     expect(pedeLocal("misto")).toBe(true);
     expect(pedeLocal("online")).toBe(false);
+  });
+});
+
+/**
+ * O CHOQUE DE HORÁRIO NA SEQUÊNCIA (doc 59).
+ *
+ * Antes a série pulava a semana ocupada em silêncio, e a terapeuta perdia agendamento sem saber.
+ * Agora a data volta em `conflitos` para a tela perguntar — e só entra na agenda se ela disser que
+ * sim. "NÃO: cancelar a operação e não realizar nenhum agendamento da sequência."
+ */
+describe("os choques da sequência", () => {
+  const primeira = new Date(2026, 8, 2, 8, 0, 0);
+  const limite = new Date(2026, 8, 30, 23, 59, 0);
+  const ocupadoEm = (dia: number) => (d: Date) => d.getDate() === dia;
+
+  it("denuncia a data ocupada e NÃO agenda nada nela", () => {
+    const r = datasEPuladas({ primeira, limite, freq: "semanal", ocupado: ocupadoEm(16) });
+    expect(r.conflitos.map((d) => d.getDate())).toEqual([16]);
+    expect(r.datas.map((d) => d.getDate())).toEqual([2, 9, 23, 30]);
+  });
+
+  it("com o sim dela, a sequência inteira vai — inclusive por cima", () => {
+    const r = datasEPuladas({ primeira, limite, freq: "semanal", ocupado: ocupadoEm(16), manterConflitos: true });
+    expect(r.datas.map((d) => d.getDate())).toEqual([2, 9, 16, 23, 30]);
+    expect(r.conflitos.map((d) => d.getDate())).toEqual([16]);
+  });
+
+  it("sem choque nenhum, a lista de conflitos é vazia", () => {
+    expect(datasEPuladas({ primeira, limite, freq: "semanal" }).conflitos).toEqual([]);
+  });
+
+  it("horário BLOQUEADO continua sendo outra coisa: pula e não vira pergunta", () => {
+    const r = datasEPuladas({ primeira, limite, freq: "semanal", bloqueado: ocupadoEm(16) });
+    expect(r.conflitos).toEqual([]);
+    expect(r.puladas.map((d) => d.getDate())).toEqual([16]);
+    expect(r.datas.map((d) => d.getDate())).toEqual([2, 9, 23, 30]);
   });
 });

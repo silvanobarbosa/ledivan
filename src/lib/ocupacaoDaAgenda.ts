@@ -125,30 +125,84 @@ export function espelhosDoDia(opts: {
         minuto: d.getMinutes(),
         duracao: s.duracao,
         sessaoId: s.id,
-        sessaoFutura: quando >= hoje,
+        sessaoFutura: false,
       },
     };
 
-    /**
-     * Duas sessões projetam o mesmo espelho: a de sete dias antes e a de sete dias depois.
-     * Vale a PRIMEIRA QUE AINDA ESTÁ POR VIR.
-     *
-     * Pegar sempre a de depois parecia mais seguro e não era: se a de antes também fosse futura,
-     * excluir "daqui para a frente" começaria tarde demais e deixaria viva justamente a próxima
-     * sessão — a terapeuta apagaria a série e veria o horário continuar na agenda da semana que vem.
-     * Nenhuma futura? Fica a mais recente, e a tela não oferece exclusão nenhuma.
-     */
+    // Duas sessões projetam o mesmo espelho: a de sete dias antes e a de sete dias depois. Para
+    // DESENHAR o reflexo tanto faz qual — fica a mais recente. Quem a exclusão alcança é outra
+    // pergunta, respondida abaixo por `primeiraPorVir`, que olha a combinação inteira.
     const antes = porChave.get(chave);
-    if (!antes) { porChave.set(chave, candidata); continue; }
-    const melhor = antes.espelho.sessaoFutura
-      ? (candidata.espelho.sessaoFutura && candidata.quando < antes.quando ? candidata : antes)
-      : (candidata.espelho.sessaoFutura || candidata.quando > antes.quando ? candidata : antes);
-    porChave.set(chave, melhor);
+    if (!antes || candidata.quando > antes.quando) porChave.set(chave, candidata);
   }
 
   return [...porChave.values()]
-    .map((c) => c.espelho)
+    .map((c) => {
+      const alvoDaExclusao = primeiraPorVir({
+        sessoes: opts.sessoes,
+        pacienteId: c.espelho.pacienteId,
+        hora: c.espelho.hora,
+        minuto: c.espelho.minuto,
+        diaEspelhado: alvo,
+        hoje,
+      });
+      return {
+        ...c.espelho,
+        sessaoId: alvoDaExclusao?.id ?? c.espelho.sessaoId,
+        sessaoFutura: !!alvoDaExclusao,
+      };
+    })
+    /**
+     * O REFLEXO DE UMA COMBINAÇÃO QUE ACABOU NÃO SOBREVIVE AO DIA DE HOJE (docs 58 e 59).
+     *
+     * A sessão passada continua projetando o seu reflexo para sete dias depois dela — e, se a série
+     * foi excluída, esse reflexo cai num dia que ainda está por vir e fica lá, sozinho, sem nada
+     * no banco que o explique. Era o que a terapeuta via: excluía a série e o primeiro slot ficava,
+     * agora sem botão de excluir nenhum, porque não havia mais sessão futura para alcançar.
+     *
+     * Em dia PASSADO o reflexo continua: ali ele é história, e a semana de trás tem de se parecer
+     * com o que ela foi.
+     */
+    .filter((e) => e.sessaoFutura || alvo < hoje)
     .sort((a, b) => a.hora * 60 + a.minuto - (b.hora * 60 + b.minuto));
+}
+
+/**
+ * A PRIMEIRA SESSÃO DAQUELA COMBINAÇÃO QUE AINDA ESTÁ POR VIR — a que uma exclusão alcança.
+ *
+ * Combinação é paciente + dia da semana + horário, que é o mesmo critério de `sessoesAlcancadas`
+ * ("os mesmos dias e horários"). Procurar na combinação INTEIRA, e não só nas duas sessões que
+ * projetam o reflexo, é o que conserta o caso do doc 59: a vizinha de trás já aconteceu, a de
+ * frente foi excluída, e o alvo certo é a próxima que sobrou, mais adiante na série.
+ *
+ * `null` quer dizer que não há nada por vir: a tela não oferece exclusão, e o reflexo some do
+ * futuro. Apagar sessão passada seria mexer em histórico e em dinheiro.
+ */
+function primeiraPorVir(opts: {
+  sessoes: SessaoParaEspelho[];
+  pacienteId: string;
+  hora: number;
+  minuto: number;
+  /** O dia que está refletindo, em meio-dia. Serve de régua do "mesmo dia da semana". */
+  diaEspelhado: number;
+  hoje: number;
+}): { id: string } | null {
+  let melhor: { id: string; quando: number } | null = null;
+
+  for (const s of opts.sessoes) {
+    if (s.pacienteId !== opts.pacienteId) continue;
+    const d = emData(s.data);
+    if (Number.isNaN(d.getTime())) continue;
+    if (d.getHours() !== opts.hora || d.getMinutes() !== opts.minuto) continue;
+    const quando = meioDia(d);
+    if (quando < opts.hoje) continue;
+    // Mesmo dia da semana que o refletido: múltiplo de sete dias de distância. Um encaixe numa
+    // sexta não entra no combinado das quartas — é a regra de `sessoesAlcancadas`, repetida aqui.
+    if (Math.round((quando - opts.diaEspelhado) / 86400000) % 7 !== 0) continue;
+    if (!melhor || quando < melhor.quando) melhor = { id: s.id, quando };
+  }
+
+  return melhor ? { id: melhor.id } : null;
 }
 
 /**

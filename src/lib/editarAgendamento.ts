@@ -17,10 +17,14 @@
  *    paz — ela foi marcada à parte, de propósito.
  */
 
+import { liberaOHorario } from "./statusDaSessao";
+
 export type SessaoParaAlcance = {
   id: string;
   data: Date | string;
   pacienteId: string;
+  /** Doc 59: o status decide se aquele horário ainda está ocupado. Ver `liberaOHorario`. */
+  status?: string | null;
 };
 
 export type AlcanceDaExclusao = "apenas_esta" | "mesmos_dias" | "todas";
@@ -70,6 +74,9 @@ export function sessoesAlcancadas(opts: {
  * O lote é explícito: mover para um horário ocupado não é permitido. Ocupar aqui é COINCIDIR o
  * início — é o critério da grade, onde cada célula é um horário. A própria sessão que está sendo
  * movida não conta contra ela mesma.
+ *
+ * Doc 59: uma sessão desmarcada, com atestado ou com falta NÃO ocupa mais nada. O encontro não
+ * vai acontecer; a hora da terapeuta vagou e ela pode marcar outra pessoa ali.
  */
 export function horarioOcupado(opts: {
   destino: Date | string;
@@ -82,6 +89,7 @@ export function horarioOcupado(opts: {
   const ignorar = new Set(opts.ignorar ?? []);
   return opts.todas
     .filter((s) => !ignorar.has(s.id))
+    .filter((s) => !liberaOHorario(s.status))
     .map((s) => emData(s.data))
     .filter((d) => !Number.isNaN(d.getTime()))
     .some((d) => d.getTime() === alvo.getTime());
