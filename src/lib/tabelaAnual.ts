@@ -15,6 +15,8 @@ import { liquidoDoPagamento, FORMAS_COM_TAXA, type VigenciaTaxa } from "./taxaCa
 import { FORMAS_RECEBIMENTO } from "./recebidoPorForma";
 
 export type PagamentoAnual = {
+  /** Prints 16: a lixeira precisa saber QUAL pagamento apagar — a linha do mês é uma soma. */
+  id?: string;
   amount: string | number;
   date: string | Date;
   status: string;
@@ -74,6 +76,8 @@ export function anosComPagamento(pagamentos: PagamentoAnual[]): number[] {
 
 /** UM recebimento, como a tabela o lê: "R$ 50,00 Pix 27/10/26". */
 export type RecebimentoAnual = {
+  /** O pagamento de onde esta linha saiu. É por ele que a lixeira apaga (Prints 16). */
+  id?: string;
   valor: number;
   liquido: number;
   /** Rótulo curto da forma (Pix, Deb, Cre, Din…). */
@@ -116,6 +120,7 @@ export function recebidosPorAno(
     porMes[d.getMonth()].push({
       quando: d.getTime(),
       r: {
+        ...(p.id ? { id: p.id } : {}),
         valor,
         liquido: liquidoDoPagamento(valor, metodo, isoDe(p.date), vigencias),
         curto: CURTO.get(metodo) ?? metodo,

@@ -55,10 +55,13 @@ export function resolverCobrancas(linhas: LinhaNaTela[], p: CadastroParaCobranca
     const grupo = grupoDe(l.tipoDeCobranca);
     const pagoEm = l.pagamentos.length ? l.pagamentos[l.pagamentos.length - 1].data : null;
     // Doc 50: recebido por forma (bruto+líquido). Crédito de pacote não é dinheiro recebido → fora.
+    const emDinheiro = l.pagamentos.filter((pg) => !pg.credito);
     const recebido = recebidoPorForma(
-      l.pagamentos.filter((pg) => !pg.credito).map((pg) => ({ valor: pg.valor, metodo: pg.metodo, data: pg.data })),
+      emDinheiro.map((pg) => ({ valor: pg.valor, metodo: pg.metodo, data: pg.data })),
       vigencias,
     );
+    // Prints 16: os mesmos lançamentos, agora identificados — é por eles que o extrato apaga.
+    const lancamentos = emDinheiro.map((pg) => ({ id: pg.id, valor: pg.valor, metodo: pg.metodo, data: pg.data }));
     const statusSessao = grupo === "avulsa" ? (sessaoPorId.get(l.ids[0])?.status ?? null) : null;
     out.push({
       cadastroId: p.id,
@@ -66,6 +69,7 @@ export function resolverCobrancas(linhas: LinhaNaTela[], p: CadastroParaCobranca
       registro: p.registrationNumber ?? null,
       agendaId: p.agendaId ?? null,
       recebido,
+      lancamentos,
       telefone: telefone ?? null,
       chave: l.chave,
       grupo,
