@@ -198,7 +198,14 @@ describe("os sinais da célula", () => {
 describe("a sessão que projeta o espelho", () => {
   const sempreQuinzenal = () => true;
 
-  it("com as duas ainda por vir, o alvo é a PRIMEIRA — senão a exclusão começa tarde demais", () => {
+  /**
+   * Doc 60: "este e os próximos" conta a partir do SLOT, não de hoje.
+   *
+   * Com as duas vizinhas ainda por vir, o alvo é a de DEPOIS. Mirar na de antes — que era o que
+   * acontecia — fazia um clique num slot de dezembro apagar a série desde novembro: a terapeuta
+   * via sumir agendamento anterior ao que ela clicou, sem nada na tela avisando.
+   */
+  it("com as duas ainda por vir, o alvo é a de DEPOIS — o passado do slot não se mexe", () => {
     const e = espelhosDoDia({
       dia: qua(16),
       sessoes: [sessao("antes", 9), sessao("depois", 23)],
@@ -206,8 +213,19 @@ describe("a sessão que projeta o espelho", () => {
       hoje: qua(1),
     });
     expect(e).toHaveLength(1);
-    expect(e[0].sessaoId).toBe("antes");
+    expect(e[0].sessaoId).toBe("depois");
     expect(e[0].sessaoFutura).toBe(true);
+  });
+
+  it("o alvo nunca é sessão passada, mesmo que ela caia depois do slot", () => {
+    // Slot no passado (a semana de trás continua desenhada), com a série viva à frente.
+    const e = espelhosDoDia({
+      dia: qua(2),
+      sessoes: [sessao("ja-aconteceu", 9), sessao("por-vir", 23)],
+      quinzenal: sempreQuinzenal,
+      hoje: qua(16),
+    });
+    expect(e[0].sessaoId).toBe("por-vir");
   });
 
   it("com a primeira já no passado, o alvo é a de depois", () => {
@@ -224,11 +242,11 @@ describe("a sessão que projeta o espelho", () => {
   it("a ordem em que as sessões chegam não muda a escolha", () => {
     const e = espelhosDoDia({
       dia: qua(16),
-      sessoes: [sessao("depois", 23), sessao("antes", 9)],
+      sessoes: [sessao("depois", 23), sessao("bem-depois", 30), sessao("antes", 9)],
       quinzenal: sempreQuinzenal,
       hoje: qua(1),
     });
-    expect(e[0].sessaoId).toBe("antes");
+    expect(e[0].sessaoId).toBe("depois");
   });
 
   it("só com sessão passada, o espelho existe mas se declara NÃO futuro", () => {

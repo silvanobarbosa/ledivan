@@ -32,6 +32,8 @@ function BotaoCobrar({ patientId, c, cobrar }: { patientId: string; c: CobrancaN
     nome: cobrar.nome,
     valor: formatBRL(c.falta),
     vencimento: c.vencimento ? partes(c.vencimento).data : null,
+    // Doc 60: quais sessões estão sendo cobradas. Sem elas a linha some da mensagem sozinha.
+    sessoes: c.datasDasSessoes,
   });
   const numero = numeroDoWhatsapp(cobrar.telefone);
   // Doc 47: abrir o WhatsApp NÃO registra; a confirmação explícita no retorno é que registra.
