@@ -125,9 +125,11 @@ export function BotaoMicrofone({
         disabled={ouvindo}
         aria-label={titulo ?? `Ditar ${rotulo ?? "o campo"}`}
         title={titulo ?? "Segure para falar"}
-        /* Doc 59: 44px, o alvo de toque mínimo. Antes eram 32 — num botão que se SEGURA, o dedo
-           escorrega para fora e `onPointerLeave` corta a gravação no meio da frase. */
-        className={`shrink-0 w-11 h-11 rounded-full inline-flex items-center justify-center transition select-none touch-none disabled:opacity-50 ${
+        /* Doc 59: 44px CRAVADOS, o alvo de toque mínimo. Antes eram 32 — num botão que se SEGURA,
+           o dedo
+           escorrega para fora e `onPointerLeave` corta a gravação no meio da frase. Em px, e não
+           `w-11`: a fonte raiz do app é 15px, e a medida em rem entregava 41. */
+        className={`shrink-0 w-[44px] h-[44px] rounded-full inline-flex items-center justify-center transition select-none touch-none disabled:opacity-50 ${
           gravando ? "bg-red-500 text-white scale-110" : "bg-primary/10 text-primary hover:bg-primary/20"
         }`}
       >
