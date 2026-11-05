@@ -10,6 +10,7 @@ import {
   sessionColorClasses,
   reservaVencida,
 } from "@/lib/therapy";
+import { liberaOHorario } from "@/lib/statusDaSessao";
 import { sessoesDoMes } from "@/lib/pacoteMes";
 import { posicoesDaSequencia } from "@/lib/sequenciaPacote";
 
@@ -205,5 +206,33 @@ describe("reserva vencida (agendada que já passou, sem desfecho)", () => {
     const cor = sessionColorClasses("agendada", false, false, true);
     expect(cor).toContain("ffedd5");
     expect(sessionColorClasses("agendada", false, false, false)).toContain("transparent");
+  });
+});
+
+/**
+ * LIBERAR O HORÁRIO ≠ PAUSAR O PACOTE (doc 59).
+ *
+ * As duas listas se parecem e respondem a perguntas diferentes. Juntá-las faria a FALTA deixar de
+ * ser cobrada — um erro de dinheiro nascido de uma mudança de agenda.
+ */
+describe("o status libera o horário", () => {
+  it("faltou libera a agenda", () => {
+    expect(liberaOHorario("nao_realizada")).toBe(true);
+  });
+
+  it("...e mesmo assim continua FORA da lista que não cobra", () => {
+    expect(STATUS_QUE_PAUSAM.has("nao_realizada")).toBe(false);
+  });
+
+  it("os quatro que não aconteceram também liberam", () => {
+    for (const s of ["cancelada", "realocada", "prof_desmarcou", "atestado"]) {
+      expect(liberaOHorario(s)).toBe(true);
+    }
+  });
+
+  it("o que ainda vai acontecer, ou já aconteceu, não libera nada", () => {
+    expect(liberaOHorario("agendada")).toBe(false);
+    expect(liberaOHorario("realizada")).toBe(false);
+    expect(liberaOHorario(null)).toBe(false);
   });
 });

@@ -254,3 +254,70 @@ describe("a sessão que projeta o espelho", () => {
     expect(e.map((x) => x.sessaoId)).toEqual(["da-p1", "da-p2"]);
   });
 });
+
+/**
+ * O REFLEXO DE UMA COMBINAÇÃO QUE ACABOU (docs 58 e 59).
+ *
+ * Foi o que a terapeuta viu duas vezes: excluiu a série, os próximos sumiram, e o slot que ela
+ * tinha clicado continuou lá — projetado por uma sessão que já aconteceu e que ninguém pode
+ * apagar. Na segunda vez ela abriu a janela e nem botão de excluir havia mais.
+ */
+describe("o reflexo de uma combinação que acabou", () => {
+  const sempreQuinzenal = () => true;
+
+  it("não sobrevive a um dia que ainda está por vir: sem nada à frente, o slot nem é desenhado", () => {
+    const e = espelhosDoDia({
+      dia: qua(16),
+      sessoes: [sessao("ja-aconteceu", 9)],
+      quinzenal: sempreQuinzenal,
+      hoje: qua(10),
+    });
+    expect(e).toHaveLength(0);
+  });
+
+  it("em dia PASSADO o reflexo fica: ali ele é história, e a semana de trás tem de parecer o que foi", () => {
+    const e = espelhosDoDia({
+      dia: qua(16),
+      sessoes: [sessao("ja-aconteceu", 9)],
+      quinzenal: sempreQuinzenal,
+      hoje: qua(20),
+    });
+    expect(e).toHaveLength(1);
+    expect(e[0].sessaoFutura).toBe(false);
+  });
+
+  it("com a série viva mais adiante, o alvo é a próxima que sobrou — mesmo longe do slot", () => {
+    // A vizinha de frente foi excluída; a de trás já aconteceu. O botão tem de continuar existindo,
+    // apontando para a próxima sessão daquele mesmo dia e horário.
+    const e = espelhosDoDia({
+      dia: qua(16),
+      sessoes: [sessao("ja-aconteceu", 9), sessao("mais-adiante", 30)],
+      quinzenal: sempreQuinzenal,
+      hoje: qua(10),
+    });
+    expect(e).toHaveLength(1);
+    expect(e[0].sessaoId).toBe("mais-adiante");
+    expect(e[0].sessaoFutura).toBe(true);
+  });
+
+  it("um encaixe em OUTRO dia da semana não serve de alvo — não é a mesma combinação", () => {
+    const encaixe = { id: "sexta", data: new Date(2026, 8, 25, 8, 0, 0), duracao: 50, pacienteId: "p1" };
+    const e = espelhosDoDia({
+      dia: qua(16),
+      sessoes: [sessao("ja-aconteceu", 9), encaixe],
+      quinzenal: sempreQuinzenal,
+      hoje: qua(10),
+    });
+    expect(e).toHaveLength(0);
+  });
+
+  it("a sessão de OUTRO paciente no mesmo horário não mantém o reflexo vivo", () => {
+    const e = espelhosDoDia({
+      dia: qua(16),
+      sessoes: [sessao("ja-aconteceu", 9), sessao("de-outro", 30, 8, "p2")],
+      quinzenal: sempreQuinzenal,
+      hoje: qua(10),
+    });
+    expect(e.filter((x) => x.pacienteId === "p1")).toHaveLength(0);
+  });
+});

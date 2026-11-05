@@ -20,6 +20,7 @@ import { creditoDisponivel, geralDoPaciente } from "@/lib/geralDoPaciente";
 import { aplicarCreditosPendentes } from "@/lib/aplicarCreditos";
 import { abrangenciaValida, marcasDaSessao } from "@/lib/abrangenciaDaSerie";
 import { apagarSessoesComPagamentos } from "@/lib/pagamentosLigados";
+import { liberaOHorario } from "@/lib/statusDaSessao";
 
 type SessionStatus = "realizada" | "nao_realizada" | "cancelada" | "realocada" | "agendada" | "prof_desmarcou" | "atestado";
 
@@ -28,7 +29,11 @@ type SessionStatus = "realizada" | "nao_realizada" | "cancelada" | "realocada" |
 // isso garante coerência mesmo p/ sessões criadas antes do pacote (import/seed).
 
 // Cria uma RESERVA RECORRENTE: gera sessões semanais (reservas) da data inicial até "até".
-export async function createRecurring(formData: FormData): Promise<{ ok: boolean; error?: string; count?: number }> {
+/**
+ * Cria a sequência. `conflitos` (doc 59) é a lista das datas que caem em cima de agendamento vivo:
+ * ela volta com `ok: false` e NADA gravado, para a tela perguntar se é para continuar mesmo assim.
+ */
+export async function createRecurring(formData: FormData): Promise<{ ok: boolean; error?: string; count?: number; conflitos?: string[] }> {
   const session = await auth();
   if (!session?.user?.id) return { ok: false, error: "Não autorizado" };
   const userId = session.user.id;
@@ -101,17 +106,32 @@ export async function createRecurring(formData: FormData): Promise<{ ok: boolean
   const ocupados = new Set(bloqueios.map((b) => new Date(b.date).getTime()));
   const bloqueado = (quando: Date) => ocupados.has(quando.getTime());
 
-  // Doc 36 (item 3): a série semanal PULA as semanas que já têm uma sessão naquele horário exato —
-  // ex.: a ocorrência do quinzenal na semana seguinte. Não vira "Hor. Bloq." e não duplica: a sessão
-  // existente fica onde está. Vale para qualquer série (nunca agendar duas no mesmo instante).
+  /**
+   * As semanas que já têm uma sessão naquele horário exato (doc 36, item 3; revisto no doc 59).
+   *
+   * Até o doc 58 a série pulava essas semanas CALADA, e a terapeuta perdia agendamento sem saber.
+   * Agora o choque é denunciado antes de gravar: a tela lista as datas e pergunta se é para
+   * continuar. "Sim" agenda tudo, inclusive em cima — ela remaneja depois, com o caso na mão.
+   *
+   * Status que liberam o horário (desmarcou, prof. desmarcou, atestado, faltou) não entram na
+   * conta: ali não vai haver encontro nenhum.
+   */
   const existentes = await db
-    .select({ date: therapySessions.date })
+    .select({ date: therapySessions.date, status: therapySessions.status })
     .from(therapySessions)
     .where(and(eq(therapySessions.userId, userId), gte(therapySessions.date, first), lte(therapySessions.date, until)));
-  const comSessao = new Set(existentes.map((s) => new Date(s.date).getTime()));
+  const comSessao = new Set(
+    existentes.filter((s) => !liberaOHorario(s.status)).map((s) => new Date(s.date).getTime()),
+  );
   const ocupadoPorSessao = (quando: Date) => comSessao.has(quando.getTime());
 
-  const { datas, puladas } = datasEPuladas({ primeira: first, limite: until, freq: freqRaw, segundoDia, segundoHorario, bloqueado, ocupado: ocupadoPorSessao });
+  // A resposta da pergunta do doc 59. Sem ela, a série para e devolve os choques para a tela.
+  const manterConflitos = formData.get("conflitos") === "sim";
+  const { datas, puladas, conflitos } = datasEPuladas({ primeira: first, limite: until, freq: freqRaw, segundoDia, segundoHorario, bloqueado, ocupado: ocupadoPorSessao, manterConflitos });
+  if (conflitos.length && !manterConflitos) {
+    // Nada foi gravado. Quem decide é ela, com as datas na frente.
+    return { ok: false, conflitos: conflitos.map((d) => d.toISOString()) };
+  }
   if (!datas.length) {
     return { ok: false, error: "Todas as datas dessa repetiç\u00e3o caem em horário bloqueado." };
   }

@@ -24,6 +24,27 @@ export function aconteceu(status: string | null | undefined): boolean {
 }
 
 /**
+ * O HORÁRIO VOLTOU A FICAR LIVRE? (doc 59)
+ *
+ * Pergunta de AGENDA, e não de dinheiro — por isso mora aqui e não reaproveita
+ * `STATUS_QUE_PAUSAM`, que é a lista do que não cobra e não anda na sequência do pacote.
+ *
+ * A diferença é uma só, e é justamente a que importa: **`nao_realizada` ("Faltou") libera o
+ * horário e MESMO ASSIM cobra**. O paciente não veio, a hora da terapeuta vagou, e marcar
+ * outro atendimento ali é o que ela faz na vida real. Juntar as duas listas faria a falta
+ * deixar de ser cobrada — um erro de dinheiro nascido de uma mudança de agenda.
+ */
+export const STATUS_QUE_LIBERAM_O_HORARIO: ReadonlySet<string> = new Set([
+  ...STATUS_QUE_NAO_ACONTECERAM,
+  "nao_realizada",
+]);
+
+/** O horário está livre para um novo agendamento, apesar de já ter uma sessão ali? */
+export function liberaOHorario(status: string | null | undefined): boolean {
+  return STATUS_QUE_LIBERAM_O_HORARIO.has(status ?? "");
+}
+
+/**
  * COMO O STATUS SE CHAMA NA TELA. Era um mapa privado da guia Geral; virou público quando o
  * cartão "Sessões do dia" passou a mostrar o dia inteiro e precisou dizer em que pé está cada
  * sessão. Duas tabelas de rótulo para o mesmo enum é como o mesmo status vira dois nomes.

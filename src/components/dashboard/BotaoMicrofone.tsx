@@ -125,11 +125,13 @@ export function BotaoMicrofone({
         disabled={ouvindo}
         aria-label={titulo ?? `Ditar ${rotulo ?? "o campo"}`}
         title={titulo ?? "Segure para falar"}
-        className={`shrink-0 w-8 h-8 rounded-full inline-flex items-center justify-center transition select-none touch-none disabled:opacity-50 ${
+        /* Doc 59: 44px, o alvo de toque mínimo. Antes eram 32 — num botão que se SEGURA, o dedo
+           escorrega para fora e `onPointerLeave` corta a gravação no meio da frase. */
+        className={`shrink-0 w-11 h-11 rounded-full inline-flex items-center justify-center transition select-none touch-none disabled:opacity-50 ${
           gravando ? "bg-red-500 text-white scale-110" : "bg-primary/10 text-primary hover:bg-primary/20"
         }`}
       >
-        {ouvindo ? <Loader2 className="w-4 h-4 animate-spin" /> : <Mic className="w-4 h-4" />}
+        {ouvindo ? <Loader2 className="w-5 h-5 animate-spin" /> : <Mic className="w-5 h-5" />}
       </button>
       {gravando && <span className="text-[11px] font-bold text-red-600">gravando…</span>}
       {ouvindo && <span className="text-[11px] text-foreground/50">transcrevendo…</span>}

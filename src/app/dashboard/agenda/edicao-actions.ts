@@ -35,7 +35,8 @@ const alcanceValido = (v: string): v is AlcanceDaExclusao =>
 /** Tudo que este terapeuta tem marcado dali para a frente — base do alcance e da checagem. */
 async function agendaDaqui(userId: string, desde: Date) {
   return db
-    .select({ id: therapySessions.id, date: therapySessions.date, patientId: therapySessions.patientId })
+    // Doc 59: o `status` vem junto porque ele decide se aquele horário ainda está ocupado.
+    .select({ id: therapySessions.id, date: therapySessions.date, patientId: therapySessions.patientId, status: therapySessions.status })
     .from(therapySessions)
     .where(and(eq(therapySessions.userId, userId), gte(therapySessions.date, desde)));
 }
@@ -75,7 +76,7 @@ export async function salvarEdicao(opts: {
   const daqui = await agendaDaqui(userId, atual.date);
   const alvos = sessoesAlcancadas({
     escolhida: { id: atual.id, data: atual.date, pacienteId: atual.patientId },
-    todas: daqui.map((s) => ({ id: s.id, data: s.date, pacienteId: s.patientId })),
+    todas: daqui.map((s) => ({ id: s.id, data: s.date, pacienteId: s.patientId, status: s.status })),
     alcance: opts.alcance,
   });
 
@@ -103,7 +104,7 @@ export async function salvarEdicao(opts: {
   for (const n of novas) {
     const ocupado = horarioOcupado({
       destino: n.data,
-      todas: daqui.map((s) => ({ id: s.id, data: s.date, pacienteId: s.patientId })),
+      todas: daqui.map((s) => ({ id: s.id, data: s.date, pacienteId: s.patientId, status: s.status })),
       ignorar: alvos,
     });
     if (ocupado) {
@@ -165,7 +166,7 @@ export async function excluirAgendamento(sessionId: string, alcance: string): Pr
   const daqui = await agendaDaqui(userId, atual.date);
   const alvos = sessoesAlcancadas({
     escolhida: { id: atual.id, data: atual.date, pacienteId: atual.patientId },
-    todas: daqui.map((s) => ({ id: s.id, data: s.date, pacienteId: s.patientId })),
+    todas: daqui.map((s) => ({ id: s.id, data: s.date, pacienteId: s.patientId, status: s.status })),
     alcance,
   });
 

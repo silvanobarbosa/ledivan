@@ -144,23 +144,37 @@ export function datasEPuladas(opts: {
    */
   bloqueado?: (quando: Date) => boolean;
   /**
-   * A data já tem uma SESSÃO ali? (doc 36, item 3)
+   * A data já tem uma SESSÃO VIVA ali? (doc 36, item 3; revisto no doc 59)
    *
    * Diferente de `bloqueado`: aqui o horário não está impedido — já existe um atendimento (ex.: a
-   * ocorrência do quinzenal na semana seguinte). A série PULA essa semana SEM criar nada e SEM
-   * registrar "Hor. Bloq." — a sessão que já existe fica onde está, e a numeração do pacote segue.
+   * ocorrência do quinzenal na semana seguinte). Sessão desmarcada, com atestado ou com falta não
+   * conta: o encontro não vai acontecer e a hora vagou (ver `liberaOHorario`).
+   *
+   * O que se faz com o choque mudou. Até o doc 58 a série PULAVA a semana em silêncio, e a
+   * terapeuta descobria depois — ou não descobria. O doc 59 inverte: as datas em choque voltam
+   * em `conflitos` para a tela perguntar, e só entram na agenda se ela disser que sim.
    */
   ocupado?: (quando: Date) => boolean;
-}): { datas: Date[]; puladas: Date[] } {
+  /** Doc 59: ela viu a lista de choques e respondeu "continuar mesmo assim". */
+  manterConflitos?: boolean;
+}): { datas: Date[]; puladas: Date[]; conflitos: Date[] } {
   const { primeira, limite, freq } = opts;
   const passo = freq === "quinzenal" ? 14 : 7;
   const datas: Date[] = [];
 
   const livre = (d: Date) => !opts.bloqueado?.(d);
   const puladas: Date[] = [];
+  const conflitos: Date[] = [];
+
+  /** O choque entra na agenda? Só se ela mandou. Em todo caso, a data é DENUNCIADA. */
+  const passaPeloChoque = (d: Date) => {
+    if (!opts.ocupado?.(d)) return true;
+    conflitos.push(new Date(d));
+    return !!opts.manterConflitos;
+  };
 
   for (const d = new Date(primeira); d <= limite && datas.length < 260; d.setDate(d.getDate() + passo)) {
-    if (opts.ocupado?.(d)) continue; // já tem sessão ali: pula silencioso (item 3)
+    if (!passaPeloChoque(d)) continue;
     if (livre(d)) datas.push(new Date(d));
     else puladas.push(new Date(d));
   }
@@ -179,7 +193,7 @@ export function datasEPuladas(opts: {
     }
 
     for (const d = new Date(segunda); d <= limite && datas.length < 520; d.setDate(d.getDate() + 7)) {
-      if (opts.ocupado?.(d)) continue;
+      if (!passaPeloChoque(d)) continue;
       if (livre(d)) datas.push(new Date(d));
       else puladas.push(new Date(d));
     }
@@ -187,7 +201,8 @@ export function datasEPuladas(opts: {
   }
 
   puladas.sort((x, y) => x.getTime() - y.getTime());
-  return { datas, puladas };
+  conflitos.sort((x, y) => x.getTime() - y.getTime());
+  return { datas, puladas, conflitos };
 }
 
 /** So as datas. E o que quase todo chamador quer. */
