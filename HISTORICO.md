@@ -7,6 +7,61 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-11-06 — Doc 61: quatro redações, o lembrete de sessão e o mês com duas cobranças
+
+**Entregue:** PR #569.
+
+**Por quê:** três frentes do mesmo documento. As mensagens de cobrança precisavam voltar a ter
+uma redação por situação; o lembrete de sessão não tinha hora definida nem texto; e o Financeiro
+mostrava *"20/11/2026 duas vezes, e uma delas com um pagamento realizado em outubro"*.
+
+**Decisões que ficam valendo:**
+
+- **Quatro redações de cobrança, um lugar só.** Pacote no dia do vencimento (texto do doc 60),
+  pacote que vence na primeira sessão, pacote que vence na última, e avulso (com e sem "pagar
+  até"). O doc 60 tinha unificado a frase e o doc 61 voltou a separá-la — o que NÃO se repetiu
+  foi a redação solta por tela: `mensagemCobranca` tem os cinco modelos e as telas só dizem qual
+  é o caso.
+- **Primeira/última só anunciam o pacote enquanto a data não chegou.** Passada ela, "estaremos
+  iniciando um novo pacote" é mentira, e vale o lembrete padrão. No DIA ainda é o texto do pacote.
+- **A data da cobrança vem SEMPRE do campo do Financeiro.** A mensagem do pacote recalculava o
+  vencimento a partir da primeira ou da última sessão e ignorava o override do lápis (doc 31) —
+  mandava ao paciente justamente a data que a terapeuta tinha acabado de corrigir na tela.
+- **O lembrete de sessão tem HORA, e ela é escolhida em Ajustes:** no dia (6h) ou na véspera
+  (15h). O cron roda nos dois turnos e cada um serve um grupo de terapeutas — é isso que impede
+  o mesmo paciente de receber dois lembretes da mesma sessão. A regra antiga era antecedência em
+  minutos e, com cron diário, disparava a qualquer hora.
+- **Um pacote, um mês.** O dia combinado é um dia DO MÊS e o mês tomado era sempre o da primeira
+  sessão do pacote; o vencimento que repetiria o anterior agora anda para o mês seguinte. Isto
+  NÃO é "vencer depois da primeira sessão" — a dona pediu o contrário em 18/09, e um pacote que
+  começa dia 13 pode vencer dia 10, desde que o dia 10 ainda não tenha sido usado.
+
+**Armadilhas:**
+
+- O mês duplicado vinha junto com um mês VAZIO, e é esse o detalhe que explica o resto: sem
+  cobrança em outubro, o pagamento de outubro casava com a cobrança de novembro e a linha aparecia
+  como "paga" no mês errado. Quem olha só a duplicidade conserta metade.
+- `tests/unit/guiaGeral.test.ts` tinha uma asserção que documentava o comportamento antigo ("a 2ª
+  vence 05/09, dia 5 do mês de início — já passou: em atraso"). Teste verde não prova que a regra
+  está certa; prova que ela não mudou.
+- **Os links de "confirma presença / preciso remarcar" saíram do lembrete** — o texto definido
+  termina em "Aguardo você!". O link da sala continua indo para quem atende online.
+- **`avisoPagamentoTexto` (cron do avulso) NÃO foi alinhado.** O texto do doc diz "você tem sessão
+  hoje", e esse cron dispara horas ou dias antes: usá-lo ali mandaria "hoje" no dia errado.
+- `user.lembrete_quando` foi criada por ALTER aditivo, não por `db:push` (push com schema parcial
+  já apagou tabela de auth nesta frota).
+
+**Pendente:**
+
+- **Dois vencimentos editados à mão continuam duplicando a data**, e são os de Danúbia (cobrança
+  de dezembro posta em 20/11, editada em 01/11) e Thayná (a de dezembro em 30/11). O motor não
+  os produz mais; eles vieram do lápis. Um clique em "desfazer" na guia Geral resolve cada um —
+  é decisão da dona, não do código.
+- A tela **deixa** gravar um vencimento igual ao de outra cobrança do mesmo paciente, sem avisar.
+- Google Agenda (`access_denied`, app OAuth em modo de teste) continua esperando a decisão do dono.
+
+---
+
 ## 2026-11-05 — Doc 60: o slot que apagava o passado, e uma redação de cobrança só
 
 **Entregue:** PR #567.
