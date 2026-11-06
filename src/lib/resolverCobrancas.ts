@@ -1,18 +1,11 @@
 import "server-only";
 
 import { type LinhaNaTela } from "./geralDoPaciente";
-import { type CobrancaResolvida, type SituacaoVenc, type TipoVencimentoPacote } from "./vencimentosDoDia";
+import { type CobrancaResolvida, type SituacaoVenc, tipoVencimentoDe } from "./vencimentosDoDia";
 import { recebidoPorForma } from "./recebidoPorForma";
 import { type VigenciaTaxa } from "./taxaCartao";
 
 const grupoDe = (tipo: string): "avulsa" | "pacote" => (tipo === "pacote" || tipo === "quinzena" ? "pacote" : "avulsa");
-
-function tipoVencimentoDe(formato: string | null | undefined, paymentFormat: string | null | undefined): TipoVencimentoPacote {
-  const f = `${formato ?? ""} ${paymentFormat ?? ""}`.toLowerCase();
-  if (f.includes("primeira")) return "primeira";
-  if (f.includes("ultima") || f.includes("última")) return "ultima";
-  return "dia";
-}
 
 export type CadastroParaCobrancas = {
   id: string;
@@ -20,6 +13,8 @@ export type CadastroParaCobrancas = {
   phone: string | null;
   guardianPhone: string | null;
   paymentFormat: string | null;
+  /** Doc 61: "pagar até X horas antes" — muda a redação da cobrança avulsa. */
+  horasAntesPagamento?: number | null;
   registrationNumber?: number | null;
   agendaId?: string | null;
 };
@@ -82,6 +77,7 @@ export function resolverCobrancas(linhas: LinhaNaTela[], p: CadastroParaCobranca
       dataSessao: grupo === "avulsa" ? (datas[0] ?? null) : null,
       statusSessao,
       horarioAtraso: grupo === "avulsa" ? l.vencimento : null,
+      horasAntes: grupo === "avulsa" ? (p.horasAntesPagamento ?? null) : null,
       tipoVencimento: grupo === "pacote" ? tipoVencimentoDe(l.formato, p.paymentFormat) : undefined,
       primeiraSessao: datas[0] ?? null,
       ultimaSessao: datas.length ? datas[datas.length - 1] : null,

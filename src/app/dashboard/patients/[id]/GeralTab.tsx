@@ -8,6 +8,7 @@ import { Check, MessageCircle } from "lucide-react";
 import { formatBRL, PAYMENT_METHOD_LABELS, PAYMENT_METHOD_OPTIONS, sessionColorClasses } from "@/lib/therapy";
 import type { CobrancaNaTela, LinhaNaTela } from "@/lib/geralDoPaciente";
 import { montarMensagemCobranca } from "@/lib/mensagemCobranca";
+import { casoDoPacote, tipoVencimentoDe } from "@/lib/vencimentosDoDia";
 import { parseMoedaBR } from "@/lib/money";
 import { mascaraMoeda } from "@/lib/mascaraMoeda";
 import { PARCELAS_CREDITO, metodoDoCredito, rotuloDaParcela } from "@/lib/parcelaCredito";
@@ -21,17 +22,36 @@ import { useConfirmarEnvio, ConfirmarEnvioModal } from "@/components/dashboard/c
 import { ROTULO_DO_STATUS } from "@/lib/statusDaSessao";
 
 /** Dados para o botão "Cobrar" compor a mensagem da terapeuta. */
-export type CobrarInfo = { telefone: string | null; nome: string; modelo: string | null };
+export type CobrarInfo = {
+  telefone: string | null;
+  nome: string;
+  modelo: string | null;
+  /** Doc 61: o formato de pagamento do cadastro — com o formato da cobrança, escolhe a redação. */
+  formatoPagamento?: string | null;
+  /** Doc 61: o "pagar até X horas antes" do avulso. Preenchido, troca o texto da cobrança. */
+  horasAntes?: number | null;
+};
 
 /** Abre o WhatsApp com a mensagem de cobrança pronta (ou copia, se não houver telefone). */
 function BotaoCobrar({ patientId, c, cobrar }: { patientId: string; c: CobrancaNaTela; cobrar: CobrarInfo }) {
   const router = useRouter();
   const [pending, start] = useTransition();
   const [copiado, setCopiado] = useState(false);
+  /**
+   * Doc 61: a guia Geral e o Menu Pagamentos escolhem a redação pelo MESMO caminho.
+   *
+   * O caso sai do formato da cobrança (pacote com dia fixo, na primeira ou na última sessão; ou
+   * avulso), e o vencimento sai do campo do Financeiro — o mesmo que o lápis edita. Quem escreve
+   * a frase é `mensagemCobranca`; aqui só se diz qual é a situação.
+   */
+  const avulso = c.tipoDeCobranca !== "pacote" && c.tipoDeCobranca !== "quinzena";
   const msg = montarMensagemCobranca(cobrar.modelo, {
+    caso: avulso ? "avulso" : casoDoPacote(tipoVencimentoDe(c.formato, cobrar.formatoPagamento)),
     nome: cobrar.nome,
     valor: formatBRL(c.falta),
-    vencimento: c.vencimento ? partes(c.vencimento).data : null,
+    vencimento: c.vencimento,
+    sessao: c.datasDasSessoes[0] ?? c.vencimento,
+    horasAntes: avulso ? cobrar.horasAntes : null,
     // Doc 60: quais sessões estão sendo cobradas. Sem elas a linha some da mensagem sozinha.
     sessoes: c.datasDasSessoes,
   });

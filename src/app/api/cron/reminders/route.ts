@@ -1,12 +1,31 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
-import { therapySessions, accounts } from "@/db/schema";
-import { and, eq, gte, lt, isNull, isNotNull, sql } from "drizzle-orm";
+import { therapySessions, accounts, users } from "@/db/schema";
+import { and, eq, gte, lt, isNull, isNotNull } from "drizzle-orm";
+import { sql } from "drizzle-orm";
 import { sendSessionReminder } from "@/lib/reminders";
 import { syncCalendar } from "@/lib/googleCalendar";
+import { geralDoPaciente } from "@/lib/geralDoPaciente";
+import { DIAS_A_FRENTE, posicaoNoPacote, quandoDoDisparo, type QuandoLembrar } from "@/lib/lembreteDaSessao";
 
-// Cron diário (Vercel). Envia lembrete das sessões agendadas nas próximas ~28h
-// para pacientes que optaram por receber, pelo canal escolhido. Idempotente via reminderSentAt.
+export const runtime = "nodejs";
+export const dynamic = "force-dynamic";
+
+/**
+ * O LEMBRETE DE SESSÃO (doc 61).
+ *
+ * Roda duas vezes por dia e cada disparo serve UM grupo de terapeutas:
+ *
+ * - de manhã (6h de Brasília) vão as sessões de HOJE, para quem escolheu "no dia da sessão";
+ * - de tarde (15h) vão as de AMANHÃ, para quem escolheu "no dia anterior".
+ *
+ * Os dois grupos nunca se cruzam — é o que impede o mesmo paciente de receber dois lembretes da
+ * mesma sessão. A escolha é do terapeuta (Ajustes); quem recebe continua sendo decidido paciente a
+ * paciente (`reminderEnabled`). `reminderSentAt` garante a mensagem única mesmo se o cron repetir.
+ *
+ * A regra anterior era por ANTECEDÊNCIA em minutos, e com cron diário ela mandava o lembrete a
+ * qualquer hora do dia — inclusive de madrugada, se fosse essa a hora em que a execução caísse.
+ */
 export async function GET(req: NextRequest) {
   // Fail-closed: sem CRON_SECRET configurado o endpoint NÃO roda (evita disparo aberto de lembretes).
   const secret = process.env.CRON_SECRET;
@@ -18,36 +37,63 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ ok: false }, { status: 401 });
   }
 
-  const now = new Date();
-  const until = new Date(now.getTime() + 28 * 60 * 60 * 1000);
+  // A Vercel roda em UTC; a hora que importa é a de Brasília (UTC-3). `?quando=` força o turno —
+  // é como se confere o disparo da véspera sem esperar as 15h. `?dry=1` percorre sem enviar.
+  const forcado = req.nextUrl.searchParams.get("quando");
+  const simulacao = req.nextUrl.searchParams.get("dry") === "1";
+  const agora = new Date();
+  const horaBR = (agora.getUTCHours() + 24 - 3) % 24;
+  const quando: QuandoLembrar = forcado === "dia" || forcado === "vespera" ? forcado : quandoDoDisparo(horaBR);
+
+  // O dia-alvo em hora de parede: hoje para o turno da manhã, amanhã para o da tarde.
+  const inicio = new Date(agora.getFullYear(), agora.getMonth(), agora.getDate() + DIAS_A_FRENTE[quando]);
+  const fim = new Date(inicio.getTime() + 24 * 60 * 60 * 1000);
+
+  const donos = await db.select({ id: users.id, quando: users.lembreteQuando }).from(users);
+  const atendidos = new Set(donos.filter((d) => (d.quando || "dia") === quando).map((d) => d.id));
 
   const sessions = await db.query.therapySessions.findMany({
     where: and(
       eq(therapySessions.status, "agendada"),
-      gte(therapySessions.date, now),
-      lt(therapySessions.date, until),
+      gte(therapySessions.date, inicio),
+      lt(therapySessions.date, fim),
       isNull(therapySessions.reminderSentAt),
     ),
     with: { patient: true },
   });
 
+  // O "Sessão x de x do pacote" vem do motor de cobrança — é ele que sabe quais sessões formam o
+  // pacote. Uma leitura por paciente, reaproveitada entre as sessões dele no mesmo dia.
+  const pacoteDoPaciente = new Map<string, { tipoDeCobranca: string; ids: string[]; sessoes: number }[]>();
+  async function cobrancasDe(userId: string, patientId: string) {
+    const chave = `${userId}:${patientId}`;
+    if (!pacoteDoPaciente.has(chave)) {
+      const g = await geralDoPaciente(userId, patientId).catch(() => null);
+      pacoteDoPaciente.set(
+        chave,
+        (g?.linhas ?? []).flatMap((l) => (l.tipo === "pagamento" ? [{ tipoDeCobranca: l.tipoDeCobranca, ids: l.ids, sessoes: l.sessoes }] : [])),
+      );
+    }
+    return pacoteDoPaciente.get(chave)!;
+  }
+
   let sent = 0;
   let skipped = 0;
   for (const s of sessions) {
     const p = s.patient;
-    if (!p?.reminderEnabled) { skipped++; continue; }
-    // Respeita a antecedência escolhida: dispara quando faltar <= lead.
-    // Tolerância ao intervalo do cron: se a próxima execução só ocorrer DEPOIS
-    // da sessão, manda agora (evita perder o lembrete em planos com cron diário).
-    // Em cron de 15min, defina CRON_INTERVAL_MIN=15 para anteced. exata.
-    const intervalMin = parseInt(process.env.CRON_INTERVAL_MIN || "1440");
-    const lead = p.reminderLeadMinutes ?? 60;
-    const minutesUntil = (new Date(s.date).getTime() - now.getTime()) / 60000;
-    if (minutesUntil > lead && minutesUntil > intervalMin) { skipped++; continue; }
+    if (!p?.reminderEnabled || !atendidos.has(s.userId)) { skipped++; continue; }
+    if (simulacao) { sent++; continue; }
     const ok = await sendSessionReminder(
       s.userId,
-      { name: p.name, phone: p.phone, email: p.email, reminderChannel: p.reminderChannel },
-      { id: s.id, date: s.date, isOnline: s.isOnline, meetingUrl: s.meetingUrl },
+      { id: p.id, name: p.name, phone: p.phone, email: p.email, reminderChannel: p.reminderChannel },
+      {
+        id: s.id,
+        date: s.date,
+        isOnline: s.isOnline,
+        meetingUrl: s.meetingUrl,
+        vespera: quando === "vespera",
+        pacote: posicaoNoPacote(await cobrancasDe(s.userId, s.patientId), s.id),
+      },
     );
     if (ok) {
       await db.update(therapySessions)
@@ -71,5 +117,5 @@ export async function GET(req: NextRequest) {
     }
   } catch (e) { console.error("cron sync google:", e); }
 
-  return NextResponse.json({ ok: true, candidates: sessions.length, sent, skipped, synced });
+  return NextResponse.json({ ok: true, quando, simulacao, candidates: sessions.length, sent, skipped, synced });
 }

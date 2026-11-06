@@ -37,28 +37,69 @@ describe("vencimentosNoDia (doc 44)", () => {
 });
 
 /**
- * Doc 60: avulsa e pacote passaram a dizer as MESMAS palavras. O que muda é de onde sai o
- * vencimento — e é isso que estes casos prendem, porque é o que um refactor erra calado.
+ * Doc 61: quatro situações, quatro redações — e UMA fonte para a data.
+ *
+ * O que estes casos prendem é justamente o que um refactor erra calado: o caso escolhe o TEXTO,
+ * mas a data sai sempre do campo do Financeiro, inclusive quando ele foi corrigido à mão.
  */
-describe("mensagens de cobrança em dia (doc 44, redação do doc 60)", () => {
-  it("avulsa: o vencimento é o da cobrança, e a sessão do dia entra na lista", () => {
-    const m = mensagemAvulsa({ nome: "Ana Souza", dataSessao: "2026-10-20T15:00:00", vencimento: "2026-10-22T00:00:00", valor: 120 });
+describe("mensagens de cobrança em dia (doc 44, redações do doc 61)", () => {
+  const hoje = "2026-10-15";
+
+  it("avulsa sem prazo combinado: fala da sessão do dia, não de vencimento", () => {
+    const m = mensagemAvulsa({ nome: "Ana Souza", dataSessao: "2026-10-20T15:00:00", vencimento: "2026-10-20T13:00:00", valor: 120, hoje });
     expect(m).toContain("Olá Ana!");
-    expect(m).toContain("pagamento de R$ 120,00, com vencimento em 22/10/26");
-    expect(m).toContain("Referente às sessões dos dias: 20/10/26.");
+    expect(m).toContain("você tem sessão hoje, 20/10/26, e que o pagamento avulso, no valor de R$ 120,00, ainda está pendente.");
+    expect(m).toContain("o pagamento deverá ser realizado até o momento da sessão.");
+    expect(m).not.toContain("horas antes");
   });
 
-  it("avulsa sem vencimento próprio usa o dia da sessão", () => {
-    expect(mensagemAvulsa({ dataSessao: "2026-10-20T15:00:00", valor: 120 })).toContain("com vencimento em 20/10/26");
+  it("avulsa com prazo de pagamento: avisa o prazo e que o horário pode ser cedido", () => {
+    const m = mensagemAvulsa({ nome: "Ana", dataSessao: "2026-10-20T15:00:00", valor: 120, horasAntes: 24, hoje });
+    expect(m).toContain("até às 24 horas antes da sessão");
+    expect(m).toContain("o horário poderá ser cedido a outro paciente");
+    expect(m).not.toContain("até o momento da sessão.");
   });
 
-  it("pacote: dia fixo, primeira e última mudam a DATA, não o texto", () => {
-    expect(mensagemPacote({ tipoVencimento: "dia", vencimento: "2026-10-20T00:00:00", primeiraSessao: "2026-10-01T00:00:00", valor: 400 }))
-      .toContain("com vencimento em 20/10/26");
-    expect(mensagemPacote({ tipoVencimento: "primeira", primeiraSessao: "2026-10-20T00:00:00", valor: 400 }))
-      .toContain("com vencimento em 20/10/26");
-    expect(mensagemPacote({ tipoVencimento: "ultima", ultimaSessao: "2026-10-20T00:00:00", valor: 400 }))
-      .toContain("com vencimento em 20/10/26");
+  it("pacote no dia fixo: o lembrete padrão, com a data do Financeiro", () => {
+    expect(mensagemPacote({ tipoVencimento: "dia", vencimento: "2026-10-20T00:00:00", valor: 400, hoje }))
+      .toContain("pagamento de R$ 400,00, com vencimento em 20/10/26");
+  });
+
+  it("pacote que vence na PRIMEIRA sessão, ainda por vir: anuncia o pacote novo", () => {
+    const m = mensagemPacote({ tipoVencimento: "primeira", vencimento: "2026-10-20T00:00:00", valor: 400, hoje });
+    expect(m).toContain("estaremos iniciando um novo pacote de sessões.");
+    expect(m).toContain("o pagamento deverá ser realizado até a primeira sessão, em 20/10/26.");
+  });
+
+  it("pacote que vence na ÚLTIMA sessão, ainda por vir: anuncia o fechamento", () => {
+    const m = mensagemPacote({ tipoVencimento: "ultima", vencimento: "2026-10-20T00:00:00", valor: 400, hoje });
+    expect(m).toContain("estamos finalizando o pacote de sessões.");
+    expect(m).toContain("o pagamento deverá ser realizado no final deste pacote, em 20/10/26.");
+  });
+
+  it("primeira/última que JÁ PASSOU volta ao lembrete padrão — anunciar início é mentira", () => {
+    for (const tipo of ["primeira", "ultima"] as const) {
+      const m = mensagemPacote({ tipoVencimento: tipo, vencimento: "2026-10-10T00:00:00", valor: 400, hoje });
+      expect(m).toContain("Passando para lembrar do pagamento de R$ 400,00, com vencimento em 10/10/26.");
+      expect(m).not.toContain("novo pacote");
+      expect(m).not.toContain("finalizando");
+    }
+  });
+
+  /**
+   * O defeito que o doc 61 veio corrigir: a mensagem recalculava a data a partir da primeira ou da
+   * última sessão e ignorava o campo do Financeiro — justamente o que a terapeuta tinha corrigido.
+   */
+  it("a data vem do campo do Financeiro, mesmo quando ele foi editado à mão", () => {
+    const m = mensagemPacote({
+      tipoVencimento: "primeira",
+      vencimento: "2026-10-25T00:00:00",
+      datasDasSessoes: ["2026-10-20T15:00:00", "2026-10-27T15:00:00"],
+      valor: 400,
+      hoje,
+    });
+    expect(m).toContain("em 25/10/26.");
+    expect(m).not.toContain("em 20/10/26.");
   });
 });
 
@@ -75,9 +116,9 @@ describe("mensagemDeCobranca — atraso (doc 45)", () => {
     const faltou = mensagemDeCobranca(cob({ chave: "a", situacao: "em_atraso", dataSessao: "2026-10-10T15:00:00", vencimento: "2026-10-10T13:00:00", valor: 100, falta: 100, statusSessao: "nao_realizada" }));
     expect(faltou).toContain("na qual não houve comparecimento");
   });
-  it("em aberto (não atrasado) usa a mensagem normal", () => {
+  it("em aberto (não atrasado) usa a mensagem em dia — no avulso, a do doc 61", () => {
     expect(mensagemDeCobranca(cob({ chave: "a", situacao: "em_aberto", dataSessao: "2026-10-20T15:00:00", valor: 100, falta: 100 })))
-      .toContain("Referente às sessões dos dias: 20/10/26.");
+      .toContain("você tem sessão hoje, 20/10/26");
   });
 });
 
@@ -85,7 +126,7 @@ describe("doc 63: a mensagem do pacote diz QUAIS sessões ela cobra", () => {
   const datas = ["2026-11-09T16:00:00", "2026-11-16T16:00:00", "2026-11-23T16:00:00", "2026-11-30T16:00:00"];
 
   it("a cobrança de vencimento em dia fixo traz as sessões no texto", () => {
-    const texto = mensagemPacote({ nome: "Joyce", tipoVencimento: "dia", vencimento: "2026-11-01T00:00:00", primeiraSessao: datas[0], datasDasSessoes: datas, valor: 240 });
+    const texto = mensagemPacote({ nome: "Joyce", tipoVencimento: "dia", vencimento: "2026-11-01T00:00:00", datasDasSessoes: datas, valor: 240 });
     expect(texto).toContain("com vencimento em 01/11/26");
     expect(texto).toContain("Referente às sessões dos dias: 09/11/26, 16/11/26, 23/11/26 e 30/11/26.");
     expect(texto).toContain("R$ 240,00");

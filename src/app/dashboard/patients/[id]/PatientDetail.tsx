@@ -460,7 +460,7 @@ export function PatientDetail({
           </div>
           <GeralTab patientId={patient.id} linhas={geral} ano={ano} responsavel={pagador.nome}
             responsavelCpf={pagador.cpf} creditoDisponivel={creditoDisponivel} creditoAConfirmar={creditoAConfirmar}
-            cobrar={{ telefone: patient.guardianPhone || patient.phone, nome: patient.guardianName || patient.name, modelo: cobrancaMessage }} />
+            cobrar={{ telefone: patient.guardianPhone || patient.phone, nome: patient.guardianName || patient.name, modelo: cobrancaMessage, formatoPagamento: patient.paymentFormat, horasAntes: patient.horasAntesPagamento }} />
           {/* GER6: valores recebidos por mês, no MESMO ano escolhido acima (líquido — doc 50) */}
           <TabelaAnual payments={payments} ano={ano} vigencias={vigenciasTaxa} patientId={patient.id} />
         </div>

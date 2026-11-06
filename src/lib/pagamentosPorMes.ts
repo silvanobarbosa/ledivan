@@ -22,7 +22,10 @@ function decompor(c: CobrancaResolvida): { atrasado: number; emAberto: number; p
 /**
  * Agrupa as cobranças do ANO por mês de vencimento (doc 46): colunas Atrasado/Em aberto/Pago por
  * cadastro, totais por mês e os 3 cards de resumo do ano (Atrasados/Em aberto/Pagos, qtd+valor).
- * Meses em ordem decrescente de vencimento (mais recente primeiro); dentro do mês, idem.
+ *
+ * Meses em ordem decrescente (o mês corrente primeiro, que é onde ela trabalha); DENTRO do mês,
+ * do MENOR vencimento para o maior (doc 61). A ordem de dentro é uma fila de trabalho: cobra-se o
+ * que vence antes, e a lista de cima para baixo é a ordem em que ela vai agir.
  */
 export function pagamentosPorMes(todas: CobrancaResolvida[], ano: number): { meses: MesPagamentos[]; resumo: ResumoAno } {
   const doAno = todas.filter((c) => { const d = diaDe(c.vencimento); return d && Number(d.slice(0, 4)) === ano; });
@@ -44,7 +47,7 @@ export function pagamentosPorMes(todas: CobrancaResolvida[], ano: number): { mes
   const meses: MesPagamentos[] = [...porMes.entries()]
     .sort((a, b) => b[0].localeCompare(a[0])) // mês mais recente primeiro
     .map(([mes, cobrancas]) => {
-      cobrancas.sort((a, b) => (b.vencimento ?? "").localeCompare(a.vencimento ?? ""));
+      cobrancas.sort((a, b) => (a.vencimento ?? "").localeCompare(b.vencimento ?? "") || a.nome.localeCompare(b.nome, "pt-BR"));
       return {
         mes,
         rotulo: MES_PT[Number(mes.slice(5, 7)) - 1],

@@ -14,7 +14,7 @@ import { getVigenciasTaxa } from "@/lib/cardFees";
 /** Os cadastros que entram nas contagens de cobrança: Paciente e Supervisionado (não prospectado). */
 async function cadastrosCobraveis(userId: string) {
   return db
-    .select({ id: patients.id, name: patients.name, phone: patients.phone, guardianPhone: patients.guardianPhone, paymentFormat: patients.paymentFormat, registrationNumber: patients.registrationNumber, agendaId: patients.agendaId, status: patients.patientStatus })
+    .select({ id: patients.id, name: patients.name, phone: patients.phone, guardianPhone: patients.guardianPhone, paymentFormat: patients.paymentFormat, horasAntesPagamento: patients.horasAntesPagamento, registrationNumber: patients.registrationNumber, agendaId: patients.agendaId, status: patients.patientStatus })
     .from(patients)
     .where(eq(patients.userId, userId));
 }

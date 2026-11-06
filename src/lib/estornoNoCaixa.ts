@@ -29,10 +29,17 @@ export function sessaoEmBR(iso: string | null | undefined): string {
   return m ? `${m[3]}/${m[2]}/${m[1].slice(2)}` : "";
 }
 
-/** "Pagamento · Fulano · Sessão 28/10/26" — a sessão só entra quando se sabe qual é. */
-export function descricaoDoMovimento(rotulo: string, paciente: string, sessaoEm?: string | null): string {
+/**
+ * "Pagamento · Fulano · Sessão 28/10/26" — a sessão só entra quando se sabe qual é.
+ *
+ * Doc 61: quem paga por PACOTE (mensal ou quinzenal) não paga uma sessão, e a linha do extrato
+ * dizia "Sessão" nos dois casos. A data continua sendo a da primeira sessão do grupo — é ela que
+ * identifica o pacote na tela —, mas o substantivo passa a dizer o que foi cobrado. "Sessão" fica
+ * só para o avulso, que é onde ela é literalmente verdade.
+ */
+export function descricaoDoMovimento(rotulo: string, paciente: string, sessaoEm?: string | null, oQue: string = "Sessão"): string {
   const d = sessaoEmBR(sessaoEm);
-  return [rotulo, paciente, d ? `Sessão ${d}` : null].filter(Boolean).join(" · ");
+  return [rotulo, paciente, d ? `${oQue} ${d}` : null].filter(Boolean).join(" · ");
 }
 
 export function movimentosDoEstorno(pagamentos: PagamentoDesfeito[], estornos: EstornoNoCaixa[]): Movimentacao[] {
