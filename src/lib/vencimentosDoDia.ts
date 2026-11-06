@@ -8,7 +8,7 @@
  */
 
 import { type RecebidoResumo } from "./recebidoPorForma";
-import { dataCurtaBR, montarMensagemCobranca } from "./mensagemCobranca";
+import { type CasoDaCobranca, montarMensagemCobranca } from "./mensagemCobranca";
 
 export type SituacaoVenc = "pago" | "em_aberto" | "em_atraso";
 export type TipoVencimentoPacote = "dia" | "primeira" | "ultima";
@@ -48,6 +48,8 @@ export type CobrancaResolvida = {
   statusSessao?: string | null;
   /** Momento a partir do qual fica em atraso (= o vencimento da avulsa). */
   horarioAtraso?: string | null;
+  /** Doc 61: o "pagar até X horas antes" do cadastro — escolhe a redação da avulsa. */
+  horasAntes?: number | null;
   // Pacote
   tipoVencimento?: TipoVencimentoPacote;
   primeiraSessao?: string | null;
@@ -87,53 +89,71 @@ const dataBR = (iso: string | null | undefined): string => {
   return d ? d.split("-").reverse().join("/") : "—";
 };
 
-/** Mensagem de cobrança de uma SESSÃO AVULSA no vencimento (doc 44, redação do doc 60). */
-export function mensagemAvulsa(c: { nome?: string | null; dataSessao?: string | null; vencimento?: string | null; valor: number }): string {
+/** Mensagem de cobrança de uma SESSÃO AVULSA no vencimento (doc 44, redação do doc 61). */
+export function mensagemAvulsa(c: {
+  nome?: string | null;
+  dataSessao?: string | null;
+  vencimento?: string | null;
+  horasAntes?: number | null;
+  valor: number;
+  hoje?: string | null;
+}): string {
   return montarMensagemCobranca(null, {
+    caso: "avulso",
     nome: c.nome,
     valor: `R$ ${reais(c.valor)}`,
-    vencimento: curta(c.vencimento ?? c.dataSessao),
+    vencimento: c.vencimento ?? c.dataSessao,
+    sessao: c.dataSessao,
+    horasAntes: c.horasAntes,
     sessoes: c.dataSessao ? [c.dataSessao] : [],
+    hoje: c.hoje,
   });
 }
 
 /**
- * A data, no formato curto da mensagem — ou nada, para o texto dizer "a combinar".
+ * O caso do PACOTE (doc 61): o vencimento é um dia fixo do mês, a primeira sessão ou a última.
  *
- * `dataCurtaBR` devolve um travessão quando não há data, e travessão dentro de "com vencimento em"
- * é pior do que a falta da data: parece defeito.
+ * O caso escolhe a REDAÇÃO; a data continua vindo do campo do Financeiro em qualquer um deles.
  */
-const curta = (iso: string | null | undefined): string | null => (diaDe(iso) ? dataCurtaBR(iso) : null);
+export const casoDoPacote = (tipo?: TipoVencimentoPacote): CasoDaCobranca =>
+  tipo === "primeira" ? "primeira" : tipo === "ultima" ? "ultima" : "mensal";
 
 /**
- * Mensagem de cobrança de um PACOTE no vencimento (doc 44, redação do doc 60).
+ * De onde vem o vencimento do pacote: o formato do PERÍODO em que a cobrança nasceu, e, na falta
+ * dele, o formato de pagamento do cadastro. Fica aqui, e não no resolvedor, porque a guia Geral
+ * (cliente) precisa da mesma resposta para escolher a redação — duas leituras diferentes do mesmo
+ * cadastro mandariam dois textos diferentes para o mesmo paciente.
+ */
+export function tipoVencimentoDe(formato: string | null | undefined, paymentFormat: string | null | undefined): TipoVencimentoPacote {
+  const f = `${formato ?? ""} ${paymentFormat ?? ""}`.toLowerCase();
+  if (f.includes("primeira")) return "primeira";
+  if (f.includes("ultima") || f.includes("última")) return "ultima";
+  return "dia";
+}
+
+/**
+ * Mensagem de cobrança de um PACOTE no vencimento (doc 44, redações do doc 61).
  *
- * O texto é o padrão da casa, montado em `mensagemCobranca` — avulsa e pacote dizem as MESMAS
- * palavras. O que muda entre eles é de onde sai o vencimento e quais sessões entram na lista, e
- * isso é dado, não redação. Três textos diferentes para a mesma frase era o jeito de um deles
- * ficar para trás quando a dona pedisse a próxima mudança.
- *
- * O vencimento do pacote tem três origens possíveis (doc 44: dia fixo, primeira ou última sessão);
- * a mensagem só precisa saber qual delas vale.
+ * **A data sai do campo `vencimento`, e só dele.** Ela já é o que o Financeiro mostra: o motor
+ * calcula e o lápis sobrescreve (doc 31). Recalcular aqui a partir da primeira ou da última sessão
+ * — o que esta função fazia — ignorava justamente a correção feita à mão, e o paciente recebia uma
+ * data que a terapeuta já tinha arrumado na tela.
  */
 export function mensagemPacote(c: {
   nome?: string | null;
   tipoVencimento?: TipoVencimentoPacote;
   vencimento?: string | null;
-  primeiraSessao?: string | null;
-  ultimaSessao?: string | null;
   datasDasSessoes?: string[] | null;
   valor: number;
+  hoje?: string | null;
 }): string {
-  const venc =
-    c.tipoVencimento === "primeira" ? c.primeiraSessao
-    : c.tipoVencimento === "ultima" ? c.ultimaSessao
-    : c.vencimento;
   return montarMensagemCobranca(null, {
+    caso: casoDoPacote(c.tipoVencimento),
     nome: c.nome,
     valor: `R$ ${reais(c.valor)}`,
-    vencimento: curta(venc),
+    vencimento: c.vencimento,
     sessoes: c.datasDasSessoes ?? [],
+    hoje: c.hoje,
   });
 }
 

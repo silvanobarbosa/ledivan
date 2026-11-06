@@ -25,6 +25,22 @@ export function renderTemplate(event: MsgEvent, v: TemplateVars): { subject: str
   const ass = v.therapistName ? `\n\n${v.therapistName}` : "";
   switch (event) {
     case "session_reminder": {
+      /**
+       * Doc 61: a REDAÇÃO do lembrete é a do dono e é montada em `lembreteDaSessao` — ela depende
+       * de coisas que a template não enxerga (é pacote? que número de sessão?). Chega pronta em
+       * `text`, com as quebras de linha que ele pediu, e aqui só se junta o que é operacional: o
+       * link da sala, sem o qual quem atende online não tem como entrar.
+       *
+       * Os links de "confirma presença / preciso remarcar" saíram do lembrete: o texto que ele
+       * definiu termina em "Aguardo você!", e colar dois parágrafos depois disso era entregar uma
+       * mensagem diferente da que ele escreveu.
+       */
+      if (v.text) {
+        const body = v.isOnline && v.meetingLink
+          ? `${v.text}\n\nAtendimento online — entre por aqui no horário:\n${v.meetingLink}`
+          : v.text;
+        return { subject: "Lembrete da sua sessão", body };
+      }
       let body = `Olá, ${nome}! 🌿\nLembrete da sua sessão: *${v.when}*.`;
       if (v.isOnline && v.meetingLink) body += `\n\nAtendimento online — entre por aqui no horário:\n${v.meetingLink}`;
       if (v.confirmLink) body += `\n\nConfirma presença?\n✅ Sim: ${v.confirmLink}${v.rescheduleLink ? `\n🔁 Preciso remarcar: ${v.rescheduleLink}` : ""}`;

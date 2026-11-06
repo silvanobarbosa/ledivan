@@ -30,7 +30,8 @@ export function CobrancaMessageCard({ initial }: { initial: string | null }) {
         <h3 className="font-display font-bold text-primary">Mensagem de cobrança</h3>
         <ul className="text-sm text-foreground/50 list-disc pl-5 space-y-1 mt-1">
           <li>Permite personalizar a mensagem enviada ao paciente ou responsável para solicitar o pagamento.</li>
-          <li>Se o campo ficar em branco, o Le&rsquo;Divan utilizará a mensagem padrão do aplicativo.</li>
+          <li>Se o campo ficar em branco, o Le&rsquo;Divan utilizará a mensagem padrão do aplicativo — que muda sozinha conforme o caso: pacote no dia do vencimento, pacote que vence na primeira ou na última sessão, e sessão avulsa (com ou sem prazo de pagamento combinado).</li>
+          <li>Escrevendo um texto aqui, ele passa a valer para <b>todos</b> esses casos.</li>
         </ul>
       </div>
       <textarea
@@ -44,7 +45,9 @@ export function CobrancaMessageCard({ initial }: { initial: string | null }) {
         Variáveis: <code className="bg-black/5 px-1 rounded">{"{nome}"}</code>{" "}
         <code className="bg-black/5 px-1 rounded">{"{valor}"}</code>{" "}
         <code className="bg-black/5 px-1 rounded">{"{vencimento}"}</code>{" "}
-        <code className="bg-black/5 px-1 rounded">{"{sessoes}"}</code>
+        <code className="bg-black/5 px-1 rounded">{"{sessoes}"}</code>{" "}
+        <code className="bg-black/5 px-1 rounded">{"{sessao}"}</code>{" "}
+        <code className="bg-black/5 px-1 rounded">{"{horas}"}</code>
       </p>
       <div className="flex items-center gap-3">
         <button onClick={salvar} disabled={pending} className="bg-primary text-white px-5 py-2.5 rounded-xl font-bold text-sm disabled:opacity-60">

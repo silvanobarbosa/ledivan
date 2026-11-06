@@ -28,4 +28,28 @@ describe("pagamentosPorMes (doc 46)", () => {
     expect(meses[0].pago).toBe(50);
     expect(meses[0].aberto).toBe(100);
   });
+
+  /**
+   * Doc 61: dentro do mês, do MENOR vencimento para o maior.
+   *
+   * A tabela é uma fila de trabalho: ela cobra o que vence antes. Em ordem decrescente a primeira
+   * linha era a última a vencer, e a fila tinha de ser lida de baixo para cima.
+   */
+  it("dentro do mês, o vencimento mais próximo vem primeiro", () => {
+    const todas = [
+      cob({ chave: "c", nome: "Carol", vencimento: "2026-01-20T12:00:00" }),
+      cob({ chave: "a", nome: "Ana", vencimento: "2026-01-10T12:00:00" }),
+      cob({ chave: "b", nome: "Bia", vencimento: "2026-01-15T12:00:00" }),
+    ];
+    const { meses } = pagamentosPorMes(todas, 2026);
+    expect(meses[0].cobrancas.map((c) => c.chave)).toEqual(["a", "b", "c"]);
+  });
+
+  it("no mesmo vencimento, desempata pelo nome — a ordem não pode depender da leitura do banco", () => {
+    const todas = [
+      cob({ chave: "z", nome: "Zuleica", vencimento: "2026-01-10T12:00:00" }),
+      cob({ chave: "a", nome: "Ana", vencimento: "2026-01-10T12:00:00" }),
+    ];
+    expect(pagamentosPorMes(todas, 2026).meses[0].cobrancas.map((c) => c.nome)).toEqual(["Ana", "Zuleica"]);
+  });
 });

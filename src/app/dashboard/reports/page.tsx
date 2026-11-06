@@ -85,7 +85,8 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
   const totalIncome = data.reduce((a, d) => a + d.income, 0);
   const totalExpense = data.reduce((a, d) => a + d.expense, 0);
   const totalNet = totalIncome - totalExpense;
-  const maxBar = Math.max(1, ...data.map((d) => Math.max(d.income, d.expense)));
+  // Doc 61: as três barras dividem a MESMA régua — comparar alturas só vale se a escala for uma.
+  const maxBar = Math.max(1, ...data.map((d) => Math.max(d.sessionIncome, d.income - d.sessionIncome, d.expense)));
 
   return (
     <div className="max-w-5xl mx-auto space-y-8 pb-20">
@@ -149,20 +150,25 @@ export default async function ReportsPage({ searchParams }: { searchParams: Prom
                   {d.net >= 0 ? "+" : ""}{formatBRL(d.net)}
                 </span>
               </div>
+              {/*
+                * Doc 61: TRÊS barras, uma cor cada — recebido de sessões (verde), receita lançada
+                * (azul) e despesa (vermelho). A barra verde era a receita INTEIRA, com as duas
+                * parcelas só escritas embaixo em texto miúdo: para saber quanto veio de paciente e
+                * quanto veio de outra fonte era preciso ler, nunca olhar.
+                */}
               <div className="space-y-1.5">
                 <div className="flex items-center gap-2">
-                  <div className="h-2.5 rounded-full bg-[#047857]" style={{ width: `${(d.income / maxBar) * 100}%`, minWidth: d.income > 0 ? "8px" : "0" }} />
-                  <span className="text-xs text-foreground/50 shrink-0">{formatBRL(d.income)} receita</span>
+                  <div className="h-2.5 rounded-full bg-[#047857]" style={{ width: `${(d.sessionIncome / maxBar) * 100}%`, minWidth: d.sessionIncome > 0 ? "8px" : "0" }} />
+                  <span className="text-xs text-foreground/50 shrink-0">{formatBRL(d.sessionIncome)} recebido de sessões</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <div className="h-2.5 rounded-full bg-[#3ba7f2]" style={{ width: `${((d.income - d.sessionIncome) / maxBar) * 100}%`, minWidth: d.income - d.sessionIncome > 0 ? "8px" : "0" }} />
+                  <span className="text-xs text-foreground/50 shrink-0">{formatBRL(d.income - d.sessionIncome)} receita</span>
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="h-2.5 rounded-full bg-[#b91c1c]" style={{ width: `${(d.expense / maxBar) * 100}%`, minWidth: d.expense > 0 ? "8px" : "0" }} />
                   <span className="text-xs text-foreground/50 shrink-0">{formatBRL(d.expense)} despesa</span>
                 </div>
-              </div>
-              {/* Doc 46: compor o total de receita — Sessões (pacientes+supervisionados) e Receitas lançadas. */}
-              <div className="text-[11px] text-foreground/40 space-y-0.5">
-                <p><strong>Sessões:</strong> {formatBRL(d.sessionIncome)} <span className="text-foreground/30">do total recebido entre pacientes e supervisionados</span></p>
-                <p><strong>Receitas:</strong> {formatBRL(d.income - d.sessionIncome)} <span className="text-foreground/30">do total recebido de receitas lançadas</span></p>
               </div>
             </div>
           ))}

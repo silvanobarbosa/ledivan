@@ -146,10 +146,38 @@ describe("situação e pagamento lançado", () => {
       vigencias: [{ formato: "mensal", pacoteTipo: "completo", desde }], reserva: { formato: "mensal" }, precos,
       sessoes: [...seq, terca(27, 9), terca(3, 10), terca(10, 10), terca(17, 10)], pagamentos: [], hoje, ...base,
     }).filter((l) => l.tipo === "pagamento");
-    // 3ª sequência vence 05/10 (depois de hoje, 15/09): ainda no prazo, em aberto. A 2ª vence 05/09
-    // (dia 5 do mês de início) — já passou: em atraso.
+    /**
+     * Doc 61: a 2ª sequência começa em 29/09 e o dia combinado é o 5 — o dia 5 de setembro já foi
+     * usado pela 1ª, então ela vence em 05/10. ANTES as duas venciam em 05/09, e esta asserção
+     * cobrava "em atraso" justamente por causa disso: o mês tinha duas cobranças e outubro, nenhuma.
+     */
+    expect(futura.map((l) => (l.tipo === "pagamento" ? l.vencimento?.getDate() + "/" + ((l.vencimento?.getMonth() ?? 0) + 1) : "")))
+      .toEqual(["5/9", "5/10", "5/11"]);
+    expect(futura[1].tipo === "pagamento" && futura[1].situacao).toBe("em_aberto");
     expect(futura[2].tipo === "pagamento" && futura[2].situacao).toBe("em_aberto");
-    expect(futura[1].tipo === "pagamento" && futura[1].situacao).toBe("em_atraso");
+  });
+
+  /**
+   * O defeito do doc 61, na forma mais curta que ele aparece: dois pacotes no mesmo mês.
+   *
+   * Um pacote que fecha cedo faz o seguinte começar ainda no mesmo mês — e, pela regra antiga, os
+   * dois venciam no mesmo dia 5. Na tela do Financeiro isso é o que ela viu em Danúbia, Thayná e
+   * Yngrid: a mesma data duas vezes, uma delas marcada como paga (o pagamento do mês anterior,
+   * que casou com a cobrança errada) e o mês seguinte sem cobrança nenhuma.
+   */
+  it("doc 61: dois pacotes no mesmo mês não vencem no mesmo dia, e nenhum mês fica vazio", () => {
+    const duasPorSemana = [
+      terca(1), terca(3), terca(8), terca(10),   // 1º pacote: setembro inteiro
+      terca(15), terca(17), terca(22), terca(24), // 2º pacote: ainda setembro
+      terca(29), terca(1, 9), terca(6, 9), terca(8, 9), // 3º pacote: vira o mês
+    ];
+    const linhas = linhasDaGeral({
+      vigencias: [{ formato: "mensal", pacoteTipo: "completo", desde }], reserva: { formato: "mensal" }, precos,
+      sessoes: duasPorSemana, pagamentos: [], hoje, ...base,
+    }).filter((l) => l.tipo === "pagamento");
+    const datas = linhas.map((l) => (l.tipo === "pagamento" ? `${l.vencimento?.getDate()}/${(l.vencimento?.getMonth() ?? 0) + 1}` : ""));
+    expect(datas).toEqual(["5/9", "5/10", "5/11"]);
+    expect(new Set(datas).size).toBe(datas.length);
   });
 
   it("pagamento com a chave da cobrança: pago, com data, responsável e forma", () => {

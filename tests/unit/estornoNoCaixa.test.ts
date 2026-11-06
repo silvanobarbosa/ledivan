@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { movimentosDoEstorno } from "@/lib/estornoNoCaixa";
+import { descricaoDoMovimento, movimentosDoEstorno } from "@/lib/estornoNoCaixa";
 
 /**
  * O ESTORNO NO CAIXA TEM DUAS PONTAS, E SOMA ZERO (doc 57/58).
@@ -54,5 +54,15 @@ describe("movimentosDoEstorno", () => {
   it("as duas pontas carregam o mesmo par — é ele que junta as duas na tela", () => {
     const movs = movimentosDoEstorno([pagamento], [estorno]);
     expect(movs.map((m) => m.par)).toEqual(["s1", "s1"]);
+  });
+
+  /**
+   * Doc 61: quem paga por pacote não paga uma sessão, e o extrato dizia "Sessão" nos dois casos.
+   * A data é a mesma (a primeira sessão do grupo, que é o que identifica o pacote na tela); o que
+   * muda é o substantivo, e "Sessão" fica só onde ela é literalmente verdade.
+   */
+  it("mensal e quinzenal dizem Pacote; o avulso continua dizendo Sessão", () => {
+    expect(descricaoDoMovimento("Pagamento", "Marcela", "2026-10-28T15:00:00", "Pacote")).toBe("Pagamento · Marcela · Pacote 28/10/26");
+    expect(descricaoDoMovimento("Previsto", "Marcela", "2026-10-28T15:00:00")).toBe("Previsto · Marcela · Sessão 28/10/26");
   });
 });

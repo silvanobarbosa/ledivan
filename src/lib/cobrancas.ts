@@ -286,6 +286,8 @@ function cobrancasDoPeriodo(periodo: PeriodoDeVigencia, sessoes: Ordenada[], e: 
   const opcoesDaSequencia = { pacoteTipo: tipoPacote, tamanhos: e.tamanhos, tamanhoPacote: e.tamanhoPacote, tamanhosPorData: e.tamanhosPorData, vezesPorSemana: e.vezesPorSemana };
   const doPacote = sessoes.filter(entraNoPacote).map((s) => ({ id: s.id, date: s.data, status: s.status, repoeSessaoId: s.repoeSessaoId, pausa: pausaASequencia(s) }));
   const out: Cobranca[] = [];
+  /** O vencimento mensal da sequência anterior — ver `umPorCiclo`, logo abaixo. */
+  let vencimentoAnterior: Date | null = null;
 
   for (const seq of todasAsSequencias(doPacote, opcoesDaSequencia)) {
     const inicio = seq.comecouEm;
@@ -326,6 +328,35 @@ function cobrancasDoPeriodo(periodo: PeriodoDeVigencia, sessoes: Ordenada[], e: 
      */
     const primeiroCiclo = seq.sequencia === 0;
     const naoAntesDaPrimeira = (d: Date) => (primeiroCiclo && d.getTime() < inicio.getTime() ? inicio : d);
+
+    /**
+     * Doc 61: DOIS PACOTES NÃO VENCEM NO MESMO DIA — e nenhum mês fica sem cobrança.
+     *
+     * O dia combinado é um dia DO MÊS, e o mês tomado era sempre o da primeira sessão do pacote.
+     * Quando um pacote fecha cedo e o seguinte começa no fim do mesmo mês, os dois caem no mesmo
+     * dia 20: a tela do Financeiro mostra **duas cobranças na mesma data** e o mês seguinte fica
+     * **sem nenhuma**. Foi o que ela viu em Danúbia, Thayná e Yngrid — "20/11 duas vezes, e uma
+     * delas com pagamento realizado em outubro". O pagamento estava certo; a data é que tinha
+     * ficado para trás, e por isso parecia pago o mês errado.
+     *
+     * Então o vencimento que repetiria o anterior anda para o mesmo dia do mês SEGUINTE. Continua
+     * sendo "sempre a data de vencimento definida no financeiro" (dona, 18/09) — é o mesmo dia 20,
+     * no primeiro dia 20 que ainda não foi cobrado.
+     *
+     * Isto NÃO é a mesma coisa que exigir que o vencimento caia depois da primeira sessão: ela
+     * pediu o contrário disso em 18/09 ("os pacotes seguintes voltam a usar o dia combinado"), e
+     * um pacote que começa dia 13 pode muito bem vencer dia 10, desde que o dia 10 seja um que
+     * ainda não foi usado.
+     */
+    const umPorCiclo = (d: Date) => {
+      // Mês a mês até achar um dia que ainda não foi cobrado: três pacotes em dois meses empurram
+      // o terceiro dois meses à frente, e não um — senão dois deles voltam a cair no mesmo dia.
+      let venc = d;
+      while (vencimentoAnterior && venc.getTime() <= vencimentoAnterior.getTime()) {
+        venc = diaDoMes(venc, e.diaPagamento as number, 1);
+      }
+      return venc;
+    };
 
     if (formato === "quinzenal") {
       /**
@@ -421,11 +452,13 @@ function cobrancasDoPeriodo(periodo: PeriodoDeVigencia, sessoes: Ordenada[], e: 
     const vencimento =
       formato === "mensal"
         ? e.diaPagamento
-          ? naoAntesDaPrimeira(diaDoMes(inicio, e.diaPagamento))
+          ? umPorCiclo(naoAntesDaPrimeira(diaDoMes(inicio, e.diaPagamento)))
           : inicio
         : formato === "primeira_pacote"
           ? inicio
           : seq.fechouEm ?? ultimaData;
+
+    if (formato === "mensal") vencimentoAnterior = vencimento;
 
     out.push({
       ...comum,

@@ -24,6 +24,21 @@ export async function saveCobrancaMessage(formData: FormData) {
 }
 
 /**
+ * Quando o LEMBRETE DE SESSÃO sai (doc 61): no dia (6h) ou na véspera (15h).
+ *
+ * Valor fora das duas opções não vai para o banco — o cron escolhe o turno por este campo, e um
+ * valor estranho deixaria a terapeuta sem lembrete nenhum, em silêncio.
+ */
+export async function saveLembreteQuando(formData: FormData) {
+  const session = await auth();
+  if (!session?.user?.id) throw new Error("Não autorizado");
+  const valor = String(formData.get("lembreteQuando") || "");
+  if (valor !== "dia" && valor !== "vespera") throw new Error("Opção inválida");
+  await db.update(users).set({ lembreteQuando: valor }).where(eq(users.id, session.user.id));
+  revalidatePath("/dashboard/settings");
+}
+
+/**
  * Como o atendimento é descrito no RECIBO.
  *
  * A descricao passa por `descricaoValida` e nao vai crua para o banco: um valor fora da lista

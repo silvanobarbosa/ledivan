@@ -123,6 +123,8 @@ export async function montarMovimentacoes(): Promise<{ ok: boolean; movs?: Movim
       // Doc 62: a descrição diz O QUE é, DE QUEM e DE QUAL SESSÃO — "Marcela Damaceno" sozinho,
       // repetido quatro vezes no mesmo dia, não deixava conferir linha por linha.
       const sessaoEm = c.primeiraSessao ?? c.vencimento;
+      // Doc 61: mensal e quinzenal cobram PACOTE; "Sessão" fica só para o avulso.
+      const oQue = c.grupo === "pacote" ? "Pacote" : "Sessão";
       const area = areaDoCadastro(p.kind);
       /**
        * UMA LINHA POR LANÇAMENTO (Prints 16), e não uma por cobrança.
@@ -143,7 +145,7 @@ export async function montarMovimentacoes(): Promise<{ ok: boolean; movs?: Movim
           const liquido = pg.metodo ? liquidoDoPagamento(bruto, pg.metodo, quando ?? "", vigencias) : bruto;
           movs.push({
             data: dia(quando),
-            descricao: descricaoDoMovimento("Pagamento", c.nome, dia(sessaoEm)),
+            descricao: descricaoDoMovimento("Pagamento", c.nome, dia(sessaoEm), oQue),
             tipo: "entrada", efetivado: true, bruto, liquido,
             temLiquido: Math.abs(bruto - liquido) > 0.005,
             categoria: area,
@@ -152,7 +154,7 @@ export async function montarMovimentacoes(): Promise<{ ok: boolean; movs?: Movim
         }
       }
       if (c.situacao !== "pago" && c.falta > 0.005) {
-        movs.push({ data: dia(c.vencimento), descricao: descricaoDoMovimento("Previsto", c.nome, dia(sessaoEm)), tipo: "entrada", efetivado: false, bruto: c.falta, liquido: c.falta, temLiquido: false, categoria: area });
+        movs.push({ data: dia(c.vencimento), descricao: descricaoDoMovimento("Previsto", c.nome, dia(sessaoEm), oQue), tipo: "entrada", efetivado: false, bruto: c.falta, liquido: c.falta, temLiquido: false, categoria: area });
       }
     }
   }));

@@ -69,6 +69,10 @@ export const users = pgTable("user", {
   // O modelo da mensagem de COBRANÇA, personalizável por terapeuta. Variáveis: {nome}, {valor},
   // {vencimento}. Null = usa o texto padrão do app.
   cobrancaMessage: text("cobranca_message"),
+  // Doc 61: quando o LEMBRETE DE SESSÃO sai — "dia" (6h do dia da sessão) ou "vespera" (15h do
+  // dia anterior). A escolha é da terapeuta e vale para todos os pacientes dela; quem recebe
+  // continua sendo decidido no cadastro de cada um (reminderEnabled).
+  lembreteQuando: text("lembrete_quando").default("dia").notNull(),
   // Dados do profissional que entram no RECIBO. O CPF é obrigatório no documento que ela entrega
   // ao paciente, e não existia em lugar nenhum do cadastro.
   therapistCpf: text("therapist_cpf"),
