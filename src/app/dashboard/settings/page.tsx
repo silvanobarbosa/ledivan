@@ -19,6 +19,7 @@ import { SmtpCard } from "./SmtpCard";
 import { WhatsappCard } from "./WhatsappCard";
 import { MeetingCard } from "./MeetingCard";
 import { PasswordCard } from "./PasswordCard";
+import { comoEntrou, pedeSenhaAtual } from "@/lib/comoEntrou";
 import { getPreferences } from "@/lib/preferences";
 import { FeaturesCard } from "./FeaturesCard";
 import { ConsentCard } from "./ConsentCard";
@@ -59,6 +60,8 @@ export default async function SettingsPage() {
   const prefs = await getPreferences(user.id);
   const consentForm = await getConsentForm();
   const googleConnected = await hasGoogleAccount(user.id);
+  // Doc 19: quem entrou pelo Google ou por código não precisa da senha atual para trocar a senha.
+  const viaDaSessao = await comoEntrou();
   const calendarAuthorized = await hasCalendarScope(user.id);
   const vigenciasTaxa = await listarVigenciasTaxa();
   // Doc 76: o `.pfx` cifrado NAO e lido aqui — so os campos de leitura, que a tela mostra.
@@ -219,7 +222,7 @@ export default async function SettingsPage() {
             </form>
           </div>
 
-          <PasswordCard hasPassword={!!user.passwordHash} />
+          <PasswordCard hasPassword={!!user.passwordHash} pedeAtual={pedeSenhaAtual(!!user.passwordHash, viaDaSessao)} />
 
           <MeetingCard initial={(prefs.meetingProvider as "jitsi" | "meet") ?? "jitsi"} hasGoogle={googleConnected} />
 

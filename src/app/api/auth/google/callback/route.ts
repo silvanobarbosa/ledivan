@@ -62,7 +62,7 @@ export async function GET(request: Request) {
     user = novo;
   }
 
-  const token = await assinarSessao(String(user.id));
+  const token = await assinarSessao(String(user.id), "7d", { via: "google" });
   jar.set("auth-session", token, { httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "lax", maxAge: 60 * 60 * 24 * 7, path: "/" });
   return NextResponse.redirect(new URL(returnTo, request.url));
 }

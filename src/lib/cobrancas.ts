@@ -80,6 +80,13 @@ export type Cobranca = {
   ids: string[];
   /** O dia de cobrar, que a guia Geral mostra. */
   vencimento: Date | null;
+  /**
+   * O vencimento que o MOTOR calculou, antes do deslocamento e da edição à mão (doc 19).
+   *
+   * Quem edita o vencimento precisa saber de onde a data atual veio: sem isto, deslocar duas
+   * vezes mediria o segundo deslocamento a partir do primeiro e a sequência andaria em dobro.
+   */
+  vencimentoNatural?: Date | null;
   /** O dia que a põe na Fechamento. `null` = ainda não entra (pacote aberto). */
   competencia: Date | null;
   /** Onde a linha de pagamento vai na guia Geral, em relação às sessões dela. */
@@ -131,6 +138,25 @@ export type EntradaDasCobrancas = {
    * entrada (voltar ao padrão) é o "desfazer" — o motor recalcula o original.
    */
   vencimentos?: { chave: string; vencimento: Date | string }[];
+  /**
+   * Doc 19: a SEQUÊNCIA deslocada do paciente — "desloca o mês das próximas parcelas também".
+   *
+   * O doc 45 resolvia isso escrevendo uma data nova para cada cobrança futura que existia naquele
+   * instante. Sessão marcada depois nascia com o vencimento natural e quebrava a sequência. Aqui
+   * o deslocamento é uma REGRA: a partir de `aPartirDe`, toda cobrança anda `meses` meses — as de
+   * hoje e as que ainda nem foram agendadas.
+   *
+   * Uma por paciente: alterar o vencimento de novo estabelece uma sequência nova, que substitui
+   * esta. O que vence antes do ponto de partida não se mexe, porque é histórico.
+   */
+  deslocamento?: { aPartirDe: Date | string; meses: number } | null;
+  /**
+   * Chaves que o deslocamento NÃO move (doc 19): cobrança com pagamento lançado.
+   *
+   * "Preservando os pagamentos e históricos anteriores" — mexer no vencimento de algo já pago
+   * reescreveria a data de um dinheiro que já entrou.
+   */
+  naoDeslocar?: string[];
 };
 
 const emData = (d: Date | string): Date => (d instanceof Date ? d : new Date(d));
@@ -516,6 +542,33 @@ export function cobrancasDoPaciente(e: EntradaDasCobrancas): Cobranca[] {
 
   for (const grupo of separarPorVigencia(ordenadas, periodos)) {
     out.push(...cobrancasDoPeriodo(grupo.periodo, grupo.sessoes, e));
+  }
+
+  // O que o motor calculou, guardado antes de qualquer data posta por cima. É a referência de
+  // quem for deslocar de novo (doc 19) e de quem quiser desfazer.
+  for (const c of out) c.vencimentoNatural = c.vencimento;
+
+  /**
+   * Doc 19: a sequência deslocada. Vale para toda cobrança cujo vencimento NATURAL cai no ponto
+   * de partida ou depois dele — inclusive as que nasceram agora, de sessões marcadas depois da
+   * decisão. Fica de fora o que já tem pagamento (`naoDeslocar`) e, logo abaixo, o que tem data
+   * escolhida à mão: entre uma regra e uma escolha, vale a escolha.
+   */
+  if (e.deslocamento && e.deslocamento.meses !== 0) {
+    const desde = emData(e.deslocamento.aPartirDe);
+    const meses = e.deslocamento.meses;
+    const parado = new Set(e.naoDeslocar ?? []);
+    if (!Number.isNaN(desde.getTime())) {
+      const diaDe = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+      for (const c of out) {
+        const v = c.vencimento;
+        if (!v || parado.has(c.chave) || diaDe(v) < diaDe(desde)) continue;
+        const alvo = v.getMonth() + meses;
+        // Fevereiro não tem dia 31: encolhe para o último do mês em vez de transbordar para março.
+        const ultimo = new Date(v.getFullYear(), alvo + 1, 0).getDate();
+        c.vencimento = new Date(v.getFullYear(), alvo, Math.min(v.getDate(), ultimo), v.getHours(), v.getMinutes(), 0);
+      }
+    }
   }
 
   // Doc 31: aplica o vencimento editado à mão por cima do calculado. Antes de ordenar, para que a

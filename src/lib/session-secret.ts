@@ -26,13 +26,24 @@ function lerSegredo(): Uint8Array {
 export const SESSION_SECRET = lerSegredo();
 
 /**
+ * COMO a pessoa entrou nesta sessão (doc 19).
+ *
+ * Não é enfeite de auditoria: é o que diz se ainda faz sentido pedir a senha atual para trocar a
+ * senha. Quem entrou pelo Google ou pelo código do e-mail provou quem é por um caminho que não
+ * passa pela senha — e muitas vezes NÃO sabe a senha, ou nem tem uma. Exigir a antiga nesse caso
+ * não protege nada e tranca a pessoa fora do próprio cadastro.
+ */
+export type ViaDaSessao = "senha" | "codigo" | "google";
+
+/**
  * Assina o cookie de sessão com `{ userId }`. Validade padrão de 7 dias.
  * `opts.demo` marca a sessão como conta de DEMONSTRAÇÃO (somente leitura) — o proxy usa esse
- * claim para bloquear qualquer escrita.
+ * claim para bloquear qualquer escrita. `opts.via` registra por onde a pessoa entrou.
  */
-export async function assinarSessao(userId: string, validade = "7d", opts?: { demo?: boolean }): Promise<string> {
+export async function assinarSessao(userId: string, validade = "7d", opts?: { demo?: boolean; via?: ViaDaSessao }): Promise<string> {
   const claims: Record<string, unknown> = { userId };
   if (opts?.demo) claims.demo = true;
+  if (opts?.via) claims.via = opts.via;
   return new jose.SignJWT(claims)
     .setProtectedHeader({ alg: "HS256" })
     .setIssuedAt()
@@ -50,13 +61,19 @@ export async function lerSessao(token: string): Promise<string | null> {
   }
 }
 
-/** Como lerSessao, mas devolve também se é sessão de demonstração (read-only). */
-export async function lerSessaoInfo(token: string): Promise<{ userId: string; demo: boolean } | null> {
+/** Como lerSessao, mas devolve também se é sessão de demonstração (read-only) e por onde entrou. */
+export async function lerSessaoInfo(token: string): Promise<{ userId: string; demo: boolean; via: ViaDaSessao | null } | null> {
   try {
     const { payload } = await jose.jwtVerify(token, SESSION_SECRET);
     const userId = payload.userId as string;
     if (!userId) return null;
-    return { userId, demo: payload.demo === true };
+    const via = payload.via;
+    return {
+      userId,
+      demo: payload.demo === true,
+      // Sessão antiga não tem o claim. `null` = não sabemos, e quem não sabe não afrouxa regra.
+      via: via === "senha" || via === "codigo" || via === "google" ? via : null,
+    };
   } catch {
     return null;
   }

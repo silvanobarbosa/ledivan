@@ -5,6 +5,7 @@ import { randomBytes } from "crypto";
 import { db } from "@/db";
 import { users } from "@/db/schema";
 import { auth } from "@/auth";
+import { comoEntrou, pedeSenhaAtual } from "@/lib/comoEntrou";
 import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { setPreferences, getPreferences, type Integrations } from "@/lib/preferences";
@@ -224,6 +225,17 @@ export async function updateProfile(formData: FormData) {
   if (!session?.user?.id) throw new Error("Não autorizado");
 
   const name = formData.get("name") as string;
+  /**
+   * Doc 19: APAGAR a foto de perfil não pegava.
+   *
+   * O campo vinha como `(formData.get(...) as string) || null` e só era gravado quando era
+   * diferente de `null` — ou seja, o único valor que o `set` ignorava era exatamente o do
+   * apagamento (campo vazio → `null` → fora do update). Salvava tudo, menos o apagar.
+   *
+   * O critério certo é a PRESENÇA do campo no formulário, como o logotipo logo abaixo já fazia:
+   * se o campo veio, o que ele diz vale — inclusive dizer "nenhuma".
+   */
+  const temFoto = formData.has("photo3x4");
   const photo3x4 = (formData.get("photo3x4") as string) || null;
   // Identidade profissional + dados do contrato (doc 27). Tudo opcional; vazio vira null.
   const str = (k: string) => { const v = ((formData.get(k) as string) || "").trim(); return v || null; };
@@ -231,7 +243,7 @@ export async function updateProfile(formData: FormData) {
   await db.update(users)
     .set({
       name,
-      ...(photo3x4 !== null ? { photo3x4 } : {}),
+      ...(temFoto ? { photo3x4 } : {}),
       therapistCpf: str("therapistCpf"),
       therapistPhone: str("therapistPhone"),
       conselho: str("conselho"),
@@ -263,13 +275,43 @@ export async function changePassword(_prev: unknown, formData: FormData): Promis
   if (next !== confirm) return { ok: false, error: "A confirmação não confere." };
 
   const bcrypt = (await import("bcryptjs")).default;
-  if (u.passwordHash) {
+  /**
+   * Doc 19: a senha atual só é exigida de quem entrou COM ela.
+   *
+   * O app tem três portas (senha, código no e-mail/Telegram e Google) e só uma delas passa pela
+   * senha. Quem entra pelas outras muitas vezes não sabe a senha — ou nunca definiu nenhuma — e
+   * ficava trancado: para trocar a senha era preciso saber a senha. Pior, o Ledivan deixa entrar
+   * sem senha de propósito (doc 55), então a trava não protegia uma porta, só emperrava o
+   * conserto dela.
+   *
+   * A sessão aberta por Google ou por código já provou quem é a pessoa. Sessão antiga, assinada
+   * antes do claim existir, não diz por onde entrou — e nesse caso a senha atual continua sendo
+   * pedida, porque quem não sabe não afrouxa regra.
+   */
+  if (u.passwordHash && pedeSenhaAtual(true, await comoEntrou())) {
     const ok = await bcrypt.compare(current, u.passwordHash);
     if (!ok) return { ok: false, error: "Senha atual incorreta." };
   }
   const hash = await bcrypt.hash(next, 10);
   await db.update(users).set({ passwordHash: hash }).where(eq(users.id, u.id));
   return { ok: true };
+}
+
+/**
+ * O Telegram já vinculou? (doc 19)
+ *
+ * O vínculo acontece do lado do bot, quando a pessoa toca em Iniciar Bot — o navegador não fica
+ * sabendo. Sem esta pergunta, o card só mudava para "Telegram conectado" depois de recarregar a
+ * página, e quem acabou de conectar voltava e via o mesmo botão de antes.
+ */
+export async function telegramVinculado(): Promise<{ vinculado: boolean }> {
+  const session = await auth();
+  if (!session?.user?.id) throw new Error("Não autorizado");
+  const u = await db.query.users.findFirst({
+    where: eq(users.id, session.user.id),
+    columns: { telegramId: true },
+  });
+  return { vinculado: !!u?.telegramId };
 }
 
 export async function generateTelegramCode() {

@@ -4,7 +4,7 @@ import { and, asc, eq, isNull } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { db } from "@/db";
 import { auth } from "@/auth";
-import { cobrancaEnvios, cobrancaVencimentos, financialAccounts, patientCredits, patients, sessionPayments, therapySessions, transactions } from "@/db/schema";
+import { cobrancaDeslocamentos, cobrancaEnvios, cobrancaVencimentos, financialAccounts, patientCredits, patients, sessionPayments, therapySessions, transactions } from "@/db/schema";
 import { ensureSessionCategory } from "@/lib/categoriaSessoes";
 import { creditoAConfirmar, creditoDisponivel, geralDoPaciente, hojeDeParede } from "@/lib/geralDoPaciente";
 import { diaDoFormulario } from "@/lib/trocaDeFormato";
@@ -544,24 +544,37 @@ export async function editarVencimento(entrada: { patientId: string; cobrancaCha
   const vencimento = new Date(`${entrada.data}T12:00:00`);
   const overrides: { chave: string; vencimento: Date }[] = [{ chave, vencimento }];
 
-  // Doc 45: ao mudar o MÊS do vencimento, o dono pode aplicar às PRÓXIMAS parcelas também. Desloca o
-  // mês de cada cobrança futura (sem pagamento) pelo mesmo delta, mantendo o dia e a progressão de ano.
-  // Sem pagamento registrado, não mexe em cobrança já quitada.
+  /**
+   * Doc 45 + doc 19: "deseja alterar o mês de vencimento das próximas parcelas também?"
+   *
+   * O doc 45 respondia "sim" escrevendo uma data nova para cada cobrança futura que existia
+   * NAQUELE instante. Sessão marcada depois nascia com o vencimento natural e voltava a quebrar a
+   * sequência que a terapeuta tinha acabado de arrumar. O doc 19 fechou a regra: as novas seguem
+   * a sequência deslocada "enquanto fizerem parte da mesma sequência financeira do paciente".
+   *
+   * Por isso aqui não se grava mais uma lista de datas, e sim UMA regra: a partir de tal
+   * vencimento, tudo anda tantos meses. O motor a aplica inclusive ao que ainda não existe.
+   *
+   * O tamanho do passo é medido a partir do vencimento NATURAL — o que o motor calcula —, nunca
+   * do que está na tela. Medir a partir da data já deslocada faria o segundo deslocamento somar
+   * ao primeiro e a sequência andaria em dobro.
+   *
+   * "Caso seja realizada uma nova alteração de vencimento, deverá ser estabelecida uma nova
+   * sequência": é uma linha por paciente, e a nova substitui a anterior.
+   */
   const anoMes = (iso: string | null | undefined) => { const m = iso ? String(iso).match(/^(\d{4})-(\d{2})/) : null; return m ? Number(m[1]) * 12 + (Number(m[2]) - 1) : null; };
-  const atualAM = anoMes(cobranca.vencimento);
+  const naturalISO = cobranca.vencimentoNatural ?? cobranca.vencimento;
+  const naturalAM = anoMes(naturalISO);
   const novoAM = Number(entrada.data.slice(0, 4)) * 12 + (Number(entrada.data.slice(5, 7)) - 1);
-  const delta = atualAM != null ? novoAM - atualAM : 0;
-  if (entrada.proximasTambem && delta !== 0) {
-    const limite = cobranca.vencimento ? new Date(`${String(cobranca.vencimento).slice(0, 10)}T12:00:00`).getTime() : 0;
-    const futuras = (geral?.linhas ?? [])
-      .flatMap((l) => (l.tipo === "pagamento" ? [l] : []))
-      .filter((c) => c.chave !== chave && c.pagamentos.length === 0 && c.vencimento && new Date(`${String(c.vencimento).slice(0, 10)}T12:00:00`).getTime() > limite);
-    for (const f of futuras) {
-      const d = new Date(`${String(f.vencimento).slice(0, 10)}T12:00:00`);
-      const alvoMes = d.getMonth() + delta;
-      const ultimo = new Date(d.getFullYear(), alvoMes + 1, 0).getDate();
-      overrides.push({ chave: f.chave, vencimento: new Date(d.getFullYear(), alvoMes, Math.min(d.getDate(), ultimo), 12, 0, 0) });
-    }
+  const meses = naturalAM != null ? novoAM - naturalAM : 0;
+  if (entrada.proximasTambem && meses !== 0 && naturalISO) {
+    const aPartirDe = new Date(`${String(naturalISO).slice(0, 10)}T12:00:00`);
+    await db.insert(cobrancaDeslocamentos)
+      .values({ userId: ctx.userId, patientId, aPartirDe, meses, cobrancaChave: chave })
+      .onConflictDoUpdate({
+        target: [cobrancaDeslocamentos.userId, cobrancaDeslocamentos.patientId],
+        set: { aPartirDe, meses, cobrancaChave: chave, updatedAt: new Date() },
+      });
   }
 
   for (const o of overrides) {
@@ -586,6 +599,16 @@ export async function desfazerVencimento(entrada: { patientId: string; cobrancaC
 
   await db.delete(cobrancaVencimentos).where(
     and(eq(cobrancaVencimentos.userId, ctx.userId), eq(cobrancaVencimentos.patientId, patientId), eq(cobrancaVencimentos.cobrancaChave, chave)),
+  );
+
+  /**
+   * Doc 19: desfazer a cobrança que ORIGINOU a sequência desfaz também o deslocamento.
+   *
+   * Sem isto o "sim, desloca as próximas" não teria volta: a data desta cobrança voltaria ao
+   * natural e todas as outras continuariam andadas, sem nada na tela explicando por quê.
+   */
+  await db.delete(cobrancaDeslocamentos).where(
+    and(eq(cobrancaDeslocamentos.userId, ctx.userId), eq(cobrancaDeslocamentos.patientId, patientId), eq(cobrancaDeslocamentos.cobrancaChave, chave)),
   );
 
   revalidatePath(`/dashboard/patients/${patientId}`);

@@ -42,7 +42,7 @@ function generatePKCE() {
 }
 
 async function createSession(userId: string) {
-  const token = await assinarSessao(userId);
+  const token = await assinarSessao(userId, "7d", { via: "senha" });
 
   const cookieStore = await cookies();
   cookieStore.set("auth-session", token, {
