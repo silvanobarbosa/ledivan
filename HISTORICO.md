@@ -7,6 +7,57 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-11-07 — Doc 20: a sequência nova apaga os pins antigos, crédito sem origem não é saldo, anamnese na ordem da entrevista e Relatório de Acompanhamento Terapêutico
+
+**Entregue:** PRs #576 e #577, mais `scripts/doc20-corrigir-dados.mjs`, já rodado em produção.
+
+**Por quê:** o "Sim, desloca as próximas" não movia nada na Celani; o saldo dela acusava R$ 60 de
+crédito que a paciente nunca teve; a anamnese não estava na ordem em que a terapeuta pergunta; e
+não havia como transformar o prontuário num documento de encerramento.
+
+**Decisões que ficam valendo:**
+
+- **Começar uma sequência de vencimentos apaga os pins daquele trecho.** A data explícita ganha da
+  regra, de propósito. Por isso um pin gravado por uma sequência que já não vale tem de sair quando
+  a nova começa, ou a promessa do botão não se cumpre. Ficam de fora a cobrança editada e qualquer
+  cobrança com pagamento — o "(sem pagamento)" do próprio botão.
+- **Crédito só volta ao saldo se o pagamento que o gerou sobreviveu.** Varredura por paciente
+  depois de toda remoção de pagamento, nos dois caminhos.
+- **A ordem dos campos da anamnese é clínica**, não histórica: o que já está dado vem antes do que
+  se investiga, e o histórico de vida fecha. Não reordenar sem pedido.
+- **O relatório usa a IA do PRÓPRIO terapeuta (BYOK).** É prontuário saindo do app: o dado clínico
+  vai para o provedor dele, com a chave dele. Não trocar pelo gateway da casa sem decisão do dono —
+  seria prontuário saindo sob a chave da casa.
+- **O relatório nasce rascunho.** Preenche título e corpo do documento em elaboração; salvar,
+  imprimir e excluir seguem sendo decisão dela. Clicar de novo gera outro.
+
+**Armadilhas:**
+
+- **A regra nova é invisível enquanto houver pin antigo.** No banco da Celani havia 31 pins, 28
+  gravados num único instante pelo comportamento anterior, mais a regra criada depois. Nada se
+  movia e nada na tela explicava por quê. Quando duas camadas decidem o mesmo campo, trocar a de
+  baixo não resolve se a de cima ainda tem dado velho.
+- **`origem_pagamento_id` não tem chave estrangeira.** Um id pendurado para um pagamento que não
+  existe mais é estado possível, e o banco não reclama. As duas pernas da limpeza estão certas
+  isoladas; o buraco é a ordem em que se apaga.
+- **Lista casada por TÍTULO perde o que foi escrito quando o título muda.** Renomear um campo
+  padrão da anamnese deixaria o texto gravado sob o nome antigo invisível e intacto. Campo herdado
+  continua aparecendo, e o script renomeia os que já existiam.
+- **Chave de IA ilegível virava 500.** Erro de servidor para um problema que só a terapeuta
+  resolve. Chave que não abre e chave que o provedor recusa são falhas diferentes e precisam de
+  mensagens diferentes.
+
+**Pendente:**
+
+- A GERAÇÃO do relatório não foi provada em produção: nenhuma conta que eu possa usar tem chave de
+  provedor válida. O caminho até o provedor está provado; o texto, não.
+- **A Ana não tem chave de IA cadastrada** — para ela o botão hoje só avisa. Ou ela cadastra em
+  Ajustes → IA, ou o dono decide levar este recurso para o gateway da casa, sabendo que aí o
+  prontuário sai sob a chave da casa.
+
+---
+
+
 ## 2026-11-07 — Doc 62: a vigência é do campo que mudou, e o ano abre no atual
 
 **Entregue:** PR #574.
