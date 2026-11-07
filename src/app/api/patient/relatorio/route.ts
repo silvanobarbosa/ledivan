@@ -94,6 +94,18 @@ export async function POST(req: Request) {
     return NextResponse.json({ titulo: TITULO_RELATORIO, texto });
   } catch (e) {
     if (e instanceof SemChaveIA) return NextResponse.json({ error: e.message }, { status: 400 });
+    /**
+     * A chave existe, é legível, e o PROVEDOR a recusou. Dizer "não deu agora" manda a terapeuta
+     * esperar por uma falha que só passa se ela trocar a chave — e é a falha mais provável de
+     * todas, porque chave revogada ou sem crédito não avisa ninguém.
+     */
+    const status = typeof e === "object" && e && "status" in e ? Number((e as { status?: unknown }).status) : 0;
+    if (status === 401 || status === 403) {
+      return NextResponse.json({ error: "O provedor recusou sua chave de IA. Confira em Ajustes → IA." }, { status: 400 });
+    }
+    if (status === 429) {
+      return NextResponse.json({ error: "O provedor de IA está limitando as chamadas. Tente de novo em alguns minutos." }, { status: 429 });
+    }
     console.error("relatório de acompanhamento:", e);
     return NextResponse.json({ error: "Não deu para gerar o relatório agora." }, { status: 500 });
   }

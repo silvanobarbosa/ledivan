@@ -20,8 +20,13 @@ const PROVIDERS: Record<string, { baseURL?: string; chat: string }> = {
 };
 
 export class SemChaveIA extends Error {
-  constructor() {
-    super("Cadastre sua chave de IA em Configurações para usar este recurso.");
+  /**
+   * A mensagem é opcional porque há DUAS maneiras de não ter chave utilizável, e a pessoa precisa
+   * saber qual é a dela: não cadastrou nenhuma, ou cadastrou uma que o app já não consegue ler.
+   * A segunda caía como 500 genérico — erro de servidor para um problema que só ela resolve.
+   */
+  constructor(msg?: string) {
+    super(msg ?? "Cadastre sua chave de IA em Configurações para usar este recurso.");
     this.name = "SemChaveIA";
   }
 }
@@ -42,7 +47,13 @@ export async function getUserAiClient(userId: string): Promise<UserAi> {
   const cfg = me?.provider ? PROVIDERS[me.provider] : undefined;
   if (!cfg || !me?.keyEnc) throw new SemChaveIA();
 
-  const apiKey = decryptSecret(me.keyEnc); // pode lançar se a chave estiver corrompida
+  let apiKey: string;
+  try {
+    apiKey = decryptSecret(me.keyEnc);
+  } catch {
+    // NUNCA repetir o conteúdo do blob na mensagem: o que não abre aqui ainda é segredo.
+    throw new SemChaveIA("Não foi possível ler a chave de IA salva. Cadastre-a de novo em Ajustes → IA.");
+  }
   const openai = new OpenAI({ apiKey, ...(cfg.baseURL ? { baseURL: cfg.baseURL } : {}) });
   return { openai, chatModel: cfg.chat };
 }
