@@ -989,9 +989,12 @@ export const cobrancaVencimentos = pgTable("cobranca_vencimentos", {
  * arrumar. Aqui o deslocamento vira REGRA: a partir de `aPartirDe`, tudo anda `meses` meses —
  * inclusive o que ainda não foi agendado.
  *
- * UMA linha por paciente: "caso seja realizada uma nova alteração de vencimento, deverá ser
- * estabelecida uma nova sequência". A nova substitui a anterior. O que vence antes do ponto de
- * partida, e o que já tem pagamento, não se mexe — é histórico.
+ * Uma linha por PONTO DE PARTIDA, não por paciente: "caso seja realizada uma nova alteração de
+ * vencimento, deverá ser estabelecida uma nova sequência, sempre preservando os pagamentos e
+ * históricos anteriores". Guardar uma só por paciente cumpriria a primeira metade e quebraria a
+ * segunda — ajustar uma cobrança de 2027 faria os vencimentos de 2026, já arrumados, voltarem
+ * sozinhos à data natural, calados. Cada sequência manda do seu ponto em diante; a anterior
+ * continua mandando no trecho antes dele. O que já tem pagamento não se mexe.
  *
  * `cobrancaChave` guarda qual cobrança originou a sequência, para o "desfazer" dela também
  * desfazer o deslocamento.
@@ -1007,7 +1010,8 @@ export const cobrancaDeslocamentos = pgTable("cobranca_deslocamentos", {
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 }, (t) => [
-  uniqueIndex("cob_desloc_paciente_uq").on(t.userId, t.patientId),
+  uniqueIndex("cob_desloc_ponto_uq").on(t.userId, t.patientId, t.aPartirDe),
+  index("cob_desloc_patient_idx").on(t.patientId),
 ]);
 
 // Pacotes do paciente (P1, P2, ...). Cada um tem N sessões; consumidas uma a uma
