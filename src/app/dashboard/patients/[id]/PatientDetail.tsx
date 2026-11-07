@@ -145,8 +145,18 @@ export function PatientDetail({
   const params = useSearchParams();
   const anoPedido = Number(params.get("ano"));
   const cobrancaPedida = params.get("cobranca");
+  /**
+   * Doc 62: todo seletor de ano abre no ANO ATUAL, e a virada do calendário se resolve sozinha.
+   *
+   * Abria no ano mais recente COM DADO — e um pacote que vence em janeiro faz a tela abrir em
+   * 2027 em pleno novembro de 2026, escondendo o ano em que a pessoa está trabalhando. O ano
+   * corrente está sempre na lista (ver `anosDisponiveis`), então escolher-lhe é sempre possível.
+   *
+   * O pedido explícito do doc 64 continua ganhando: quem chega da Carteira pelo "Gerenciar" vem
+   * com o ano da cobrança clicada, e é nele que a tela abre.
+   */
   const [ano, setAno] = useState<number | "TODOS">(
-    Number.isInteger(anoPedido) && anoPedido > 2000 ? anoPedido : anosDoPaciente[0],
+    Number.isInteger(anoPedido) && anoPedido > 2000 ? anoPedido : new Date().getFullYear(),
   );
 
   // …e leva a tela até a cobrança, destacando-a: o ano certo sem achar a linha ainda é procurar.

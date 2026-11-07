@@ -7,6 +7,7 @@ import Link from "next/link";
 import { ArrowLeft } from "lucide-react";
 import { updatePatient, deletePatient } from "../../actions";
 import { PatientFormFields } from "@/components/dashboard/PatientFormFields";
+import { assinaturaDoForm } from "@/lib/assinaturaDoForm";
 import { ExcluirPaciente } from "./ExcluirPaciente";
 import { montarContrato, montarContratoSupervisao } from "@/lib/contrato";
 import { enquadreDaAgenda } from "@/lib/enquadreContrato";
@@ -112,6 +113,38 @@ export default async function EditPatientPage({ params, searchParams }: { params
   });
   const contratoTexto = patient.contratoTexto ?? contratoPadrao;
 
+  /**
+   * Doc 62: "todas as alterações deverão permanecer exibidas na tela após clicar em Salvar".
+   *
+   * Os dados que o formulário mostra saem daqui, e a `key` sai deles. Os campos são
+   * NÃO-CONTROLADOS — quem manda neles é `defaultValue`, que o React só aplica ao montar — e
+   * voltar para esta mesma tela depois de salvar (doc 67) não remonta nada: o React reconcilia o
+   * mesmo componente no mesmo lugar, os dados novos chegam e os campos seguem exibindo os velhos.
+   * Com a chave derivada do conteúdo, mudar o conteúdo é mudar a identidade: o React remonta e
+   * todos os `defaultValue` são reaplicados. Enquanto nada muda, a chave é a mesma e digitar não
+   * remonta coisa nenhuma.
+   */
+  const dadosDoCadastro = {
+    registrationNumber: patient.registrationNumber, agendaId: patient.agendaId, dueDateType: patient.dueDateType, dueDate: iso(patient.dueDate), queixaPrincipal: patient.queixaPrincipal,
+    name: patient.name, phone: patient.phone, email: patient.email, patientStatus: patient.patientStatus, cadastroKind: patient.cadastroKind,
+    startedAt: iso(patient.startedAt), birthDate: iso(patient.birthDate), category: patient.category, isCouple: patient.isCouple, guardianRelationship: patient.guardianRelationship,
+    devolutivaMeses: patient.devolutivaMeses, gender: patient.gender, cpf: patient.cpf, address: patient.address, schoolName: patient.schoolName, schoolContact: patient.schoolContact,
+    guardianName: patient.guardianName, guardianCpf: patient.guardianCpf, guardianPhone: patient.guardianPhone, guardianEmail: patient.guardianEmail,
+    spouseName: patient.spouseName, spousePhone: patient.spousePhone, spouseEmail: patient.spouseEmail, spouseCpf: patient.spouseCpf,
+    spouseBirthDate: iso(patient.spouseBirthDate), spouseQueixaPrincipal: patient.spouseQueixaPrincipal, spouseGender: patient.spouseGender, spouseAddress: patient.spouseAddress,
+    emergencyName: patient.emergencyName, emergencyPhone: patient.emergencyPhone, emergencyEmail: patient.emergencyEmail, emergencyRelationship: patient.emergencyRelationship,
+    attendanceMode: patient.attendanceMode, attendanceLocation: patient.attendanceLocation, attendanceDay: patient.attendanceDay, attendanceTime: patient.attendanceTime,
+    sessionFee: patient.sessionFee, frequency: patient.frequency, timesPerPeriod: patient.timesPerPeriod, paymentFormat: patient.paymentFormat, sessionsInPacket: patient.sessionsInPacket, paymentDay: patient.paymentDay, priceReviewDate: iso(patient.priceReviewDate),
+    horasAntesPagamento: patient.horasAntesPagamento, validadePrecoMeses: patient.validadePrecoMeses,
+    pacoteTipo: patient.pacoteTipo, semanasNoMes: patient.semanasNoMes, paymentDay2: patient.paymentDay2,
+    pacotesEmAndamento,
+    priceHistory: priceHistory.map((h) => ({ valor: h.valor, dataEfetiva: (h.dataEfetiva as Date).toISOString(), dataCriacao: (h.dataCriacao as Date | null)?.toISOString() ?? null })),
+    formatHistory: formatHistory.map((h) => ({ formato: h.formato, dataEfetiva: (h.dataEfetiva as Date).toISOString(), dataCriacao: (h.dataCriacao as Date | null)?.toISOString() ?? null })),
+    reajusteChanges: reajusteChanges.map((c) => ({ id: c.id, campo: c.campo, de: c.de, para: c.para, at: (c.at as Date).toISOString(), vigencia: (c.vigencia as Date | null)?.toISOString() ?? null })),
+    reminderEnabled: patient.reminderEnabled, reminderChannel: patient.reminderChannel, reminderLeadMinutes: patient.reminderLeadMinutes,
+    photo3x4: patient.photo3x4, photoExtra1: patient.photoExtra1, photoExtra2: patient.photoExtra2, photoExtra3: patient.photoExtra3,
+  };
+
   return (
     <div className="max-w-2xl space-y-8">
       <Link href={`/dashboard/patients/${id}`} className="inline-flex items-center gap-2 text-foreground/50 hover:text-primary transition">
@@ -124,26 +157,7 @@ export default async function EditPatientPage({ params, searchParams }: { params
       </div>
 
       <div className="space-y-5">
-        <PatientFormFields save={save} patientId={id} tabInicial={guia === "financeiro" ? "financeiro" : guia === "contrato" ? "contrato" : undefined} contrato={<ContratoImpresso texto={contratoTexto} textoPadrao={contratoPadrao} patientId={id} logoUrl={prof?.logoUrl ?? null} />} p={{
-          registrationNumber: patient.registrationNumber, agendaId: patient.agendaId, dueDateType: patient.dueDateType, dueDate: iso(patient.dueDate), queixaPrincipal: patient.queixaPrincipal,
-          name: patient.name, phone: patient.phone, email: patient.email, patientStatus: patient.patientStatus, cadastroKind: patient.cadastroKind,
-          startedAt: iso(patient.startedAt), birthDate: iso(patient.birthDate), category: patient.category, isCouple: patient.isCouple, guardianRelationship: patient.guardianRelationship,
-          devolutivaMeses: patient.devolutivaMeses, gender: patient.gender, cpf: patient.cpf, address: patient.address, schoolName: patient.schoolName, schoolContact: patient.schoolContact,
-          guardianName: patient.guardianName, guardianCpf: patient.guardianCpf, guardianPhone: patient.guardianPhone, guardianEmail: patient.guardianEmail,
-          spouseName: patient.spouseName, spousePhone: patient.spousePhone, spouseEmail: patient.spouseEmail, spouseCpf: patient.spouseCpf,
-          spouseBirthDate: iso(patient.spouseBirthDate), spouseQueixaPrincipal: patient.spouseQueixaPrincipal, spouseGender: patient.spouseGender, spouseAddress: patient.spouseAddress,
-          emergencyName: patient.emergencyName, emergencyPhone: patient.emergencyPhone, emergencyEmail: patient.emergencyEmail, emergencyRelationship: patient.emergencyRelationship,
-          attendanceMode: patient.attendanceMode, attendanceLocation: patient.attendanceLocation, attendanceDay: patient.attendanceDay, attendanceTime: patient.attendanceTime,
-          sessionFee: patient.sessionFee, frequency: patient.frequency, timesPerPeriod: patient.timesPerPeriod, paymentFormat: patient.paymentFormat, sessionsInPacket: patient.sessionsInPacket, paymentDay: patient.paymentDay, priceReviewDate: iso(patient.priceReviewDate),
-          horasAntesPagamento: patient.horasAntesPagamento, validadePrecoMeses: patient.validadePrecoMeses,
-          pacoteTipo: patient.pacoteTipo, semanasNoMes: patient.semanasNoMes, paymentDay2: patient.paymentDay2,
-          pacotesEmAndamento,
-          priceHistory: priceHistory.map((h) => ({ valor: h.valor, dataEfetiva: (h.dataEfetiva as Date).toISOString(), dataCriacao: (h.dataCriacao as Date | null)?.toISOString() ?? null })),
-          formatHistory: formatHistory.map((h) => ({ formato: h.formato, dataEfetiva: (h.dataEfetiva as Date).toISOString(), dataCriacao: (h.dataCriacao as Date | null)?.toISOString() ?? null })),
-          reajusteChanges: reajusteChanges.map((c) => ({ id: c.id, campo: c.campo, de: c.de, para: c.para, at: (c.at as Date).toISOString(), vigencia: (c.vigencia as Date | null)?.toISOString() ?? null })),
-          reminderEnabled: patient.reminderEnabled, reminderChannel: patient.reminderChannel, reminderLeadMinutes: patient.reminderLeadMinutes,
-          photo3x4: patient.photo3x4, photoExtra1: patient.photoExtra1, photoExtra2: patient.photoExtra2, photoExtra3: patient.photoExtra3,
-        }} />
+        <PatientFormFields key={assinaturaDoForm(dadosDoCadastro)} save={save} patientId={id} tabInicial={guia === "financeiro" ? "financeiro" : guia === "contrato" ? "contrato" : undefined} contrato={<ContratoImpresso texto={contratoTexto} textoPadrao={contratoPadrao} patientId={id} logoUrl={prof?.logoUrl ?? null} />} p={dadosDoCadastro} />
         <div className="flex justify-end pt-1">
           <Link href={`/dashboard/patients/${id}`} className="px-6 py-3.5 rounded-2xl font-semibold text-foreground/60 hover:bg-white/60 transition">
             Cancelar
