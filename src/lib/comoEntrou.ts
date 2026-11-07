@@ -14,14 +14,3 @@ export async function comoEntrou(): Promise<ViaDaSessao | null> {
   const info = await lerSessaoInfo(token.value);
   return info?.via ?? null;
 }
-
-/**
- * A senha atual é exigida para trocar a senha?
- *
- * Só quando as DUAS coisas são verdade: já existe uma senha, e foi ela que abriu esta sessão.
- * Quem entrou pelo Google ou pelo código do e-mail já provou quem é por um caminho que não passa
- * pela senha — pedir a antiga ali não protege o cadastro, só impede de consertá-lo.
- */
-export function pedeSenhaAtual(temSenha: boolean, via: ViaDaSessao | null): boolean {
-  return temSenha && via !== "google" && via !== "codigo";
-}
