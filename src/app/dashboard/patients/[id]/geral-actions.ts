@@ -1,6 +1,6 @@
 "use server";
 
-import { and, asc, eq, isNull } from "drizzle-orm";
+import { and, asc, eq, inArray, isNull } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { db } from "@/db";
 import { auth } from "@/auth";
@@ -15,6 +15,8 @@ import { aplicarCreditoNoLancamento } from "@/lib/credito";
 import { creditoParaAbater } from "@/lib/creditoAConfirmar";
 import { aplicarCreditosPendentes } from "@/lib/aplicarCreditos";
 import { apagarPagamentosLigados } from "@/lib/pagamentosLigados";
+import { limparCreditosOrfaos } from "@/lib/creditoOrfao";
+import { pinsDaSequenciaAnterior } from "@/lib/sequenciaDeVencimentos";
 
 /**
  * A SESSÃO DE ORIGEM DO CRÉDITO passa a dizer onde ele foi parar (doc 58).
@@ -393,6 +395,9 @@ export async function removerPagamento(
   await db.update(patientCredits).set({ consumidoEm: null, consumidoPagamentoId: null, naoAuto: true })
     .where(and(eq(patientCredits.userId, userId), eq(patientCredits.consumidoPagamentoId, pagamentoId)));
 
+  // Doc 20: o crédito que acabou de voltar ao saldo só vale se o pagamento que o gerou sobreviveu.
+  await limparCreditosOrfaos(userId, patientId);
+
   /**
    * "COMO SE ELE NUNCA TIVESSE EXISTIDO" (doc 59).
    *
@@ -534,9 +539,9 @@ export async function editarVencimento(entrada: { patientId: string; cobrancaCha
 
   // A cobrança não pode ter pagamento lançado (regra do doc). Refaz a conta pelo mesmo motor da tela.
   const geral = await geralDoPaciente(ctx.userId, patientId);
-  const cobranca = geral?.linhas
-    .flatMap((l) => (l.tipo === "pagamento" ? [l] : l.tipo === "sessao" && l.cobranca ? [l.cobranca] : []))
-    .find((c) => c.chave === chave);
+  const todas = geral?.linhas
+    .flatMap((l) => (l.tipo === "pagamento" ? [l] : l.tipo === "sessao" && l.cobranca ? [l.cobranca] : [])) ?? [];
+  const cobranca = todas.find((c) => c.chave === chave);
   if (!cobranca) return { ok: false, error: "Cobrança não encontrada." };
   if (cobranca.pagamentos.length > 0) return { ok: false, error: "Esta cobrança já tem pagamento lançado — o vencimento não pode ser editado." };
 
@@ -577,6 +582,24 @@ export async function editarVencimento(entrada: { patientId: string; cobrancaCha
         target: [cobrancaDeslocamentos.userId, cobrancaDeslocamentos.patientId, cobrancaDeslocamentos.aPartirDe],
         set: { meses, cobrancaChave: chave, updatedAt: new Date() },
       });
+
+    /**
+     * Doc 20: *"sim não está deslocando o mês das próximas parcelas (sem pagamento)"*.
+     *
+     * As datas gravadas uma a uma pela sequência anterior ganhavam da regra nova e a seguravam
+     * parada. Começar uma sequência é apagar os pins do trecho que ela passa a governar.
+     */
+    const pins = pinsDaSequenciaAnterior(
+      todas.map((c) => ({ chave: c.chave, vencimentoNatural: c.vencimentoNatural, vencimento: c.vencimento, pago: c.pagamentos.length > 0 })),
+      { aPartirDe: String(naturalISO).slice(0, 10), excluir: chave },
+    );
+    if (pins.length) {
+      await db.delete(cobrancaVencimentos).where(and(
+        eq(cobrancaVencimentos.userId, ctx.userId),
+        eq(cobrancaVencimentos.patientId, patientId),
+        inArray(cobrancaVencimentos.cobrancaChave, pins),
+      ));
+    }
   }
 
   for (const o of overrides) {
