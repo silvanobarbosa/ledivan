@@ -7,6 +7,41 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-11-07 — Doc 62: a vigência é do campo que mudou, e o ano abre no atual
+
+**Entregue:** PR #574.
+
+**Por quê:** alterar SÓ o intervalo de reajuste, com vigência 01/11, mexia junto na vigência do
+valor da sessão — que ninguém tinha tocado. Valor da sessão é o que reprecifica pacote e cobrança.
+
+**Decisões que ficam valendo:**
+
+- **A vigência é do campo que MUDOU, não da tela.** "Vale a partir de" é um campo só, e vários
+  campos financeiros guardam a própria vigência. A correção do doc 75 (mexer na data conserta a
+  vigência do preço) continua, mas só vale quando NENHUM outro campo financeiro mudou naquela
+  gravação. Mudou outro, a data é dele; mudaram vários, todos recebem.
+- **O formulário remonta quando o servidor devolve algo diferente.** A `key` sai do conteúdo
+  (`assinaturaDoForm`). Enquanto nada muda, a chave é a mesma e digitar não remonta nada.
+- **Todo seletor de ano abre no ANO ATUAL**, e a virada do calendário se resolve sozinha. O doc 64
+  continua ganhando: quem chega da Carteira pelo "Gerenciar" abre no ano da cobrança clicada.
+
+**Armadilhas:**
+
+- **Navegar para a mesma tela NÃO remonta o componente.** O doc 67 trocou a tela por uma navegação
+  nova para trazer os dados salvos, e isso estava certo — mas o React reconcilia o mesmo
+  componente no mesmo lugar, e `defaultValue` só é aplicado ao MONTAR. Os dados novos chegavam e
+  os campos seguiam exibindo os velhos. Em formulário não-controlado, trazer o dado não basta:
+  é preciso trocar a IDENTIDADE do componente.
+- **A condição do doc 75 olhava intenção pela ferramenta errada.** "Tocou no campo de data" não
+  diz QUAL campo a data governa quando a data é uma só para a tela inteira. O que diz é o
+  conjunto do que mudou naquela gravação.
+- A guia do paciente abria no ano mais recente COM DADO: um pacote que vence em janeiro fazia a
+  tela abrir em 2027 em pleno novembro de 2026. Apareceu validando o doc 19, não por reclamação.
+
+**Pendente:** nada deste documento.
+
+---
+
 ## 2026-11-07 — Doc 19: a senha de quem entra sem senha, e a sequência que não apaga a anterior
 
 **Entregue:** PRs #571 e #572.
