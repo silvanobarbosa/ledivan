@@ -980,6 +980,36 @@ export const cobrancaVencimentos = pgTable("cobranca_vencimentos", {
   index("cob_venc_patient_idx").on(t.patientId),
 ]);
 
+/**
+ * A SEQUÊNCIA de vencimentos deslocada do paciente (doc 19).
+ *
+ * O doc 45 resolvia o "desloca o mês das próximas parcelas também" escrevendo uma data nova em
+ * `cobranca_vencimentos` para cada cobrança futura que existia naquele instante. Sessão marcada
+ * depois nascia com o vencimento natural e quebrava a sequência que a terapeuta tinha acabado de
+ * arrumar. Aqui o deslocamento vira REGRA: a partir de `aPartirDe`, tudo anda `meses` meses —
+ * inclusive o que ainda não foi agendado.
+ *
+ * UMA linha por paciente: "caso seja realizada uma nova alteração de vencimento, deverá ser
+ * estabelecida uma nova sequência". A nova substitui a anterior. O que vence antes do ponto de
+ * partida, e o que já tem pagamento, não se mexe — é histórico.
+ *
+ * `cobrancaChave` guarda qual cobrança originou a sequência, para o "desfazer" dela também
+ * desfazer o deslocamento.
+ */
+export const cobrancaDeslocamentos = pgTable("cobranca_deslocamentos", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: text("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
+  patientId: uuid("patient_id").references(() => patients.id, { onDelete: "cascade" }).notNull(),
+  // Hora de parede, ao meio-dia (ver horaLocal.ts): o vencimento NATURAL da cobrança editada.
+  aPartirDe: timestamp("a_partir_de").notNull(),
+  meses: integer("meses").notNull(),
+  cobrancaChave: text("cobranca_chave").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+}, (t) => [
+  uniqueIndex("cob_desloc_paciente_uq").on(t.userId, t.patientId),
+]);
+
 // Pacotes do paciente (P1, P2, ...). Cada um tem N sessões; consumidas uma a uma
 // nas sessões realizadas+cobráveis. Pagamentos podem ser vinculados a um pacote.
 export const patientPackages = pgTable("patient_packages", {

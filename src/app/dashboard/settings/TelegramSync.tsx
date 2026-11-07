@@ -1,7 +1,7 @@
 "use client";
 
-import { useState } from "react";
-import { generateTelegramCode } from "./actions";
+import { useEffect, useRef, useState } from "react";
+import { generateTelegramCode, telegramVinculado } from "./actions";
 import { Check, RefreshCw, Send } from "lucide-react";
 
 const BOT = process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME || "levitanplusbot";
@@ -9,6 +9,26 @@ const BOT = process.env.NEXT_PUBLIC_TELEGRAM_BOT_USERNAME || "levitanplusbot";
 export function TelegramSync({ currentId }: { currentId?: string | null }) {
   const [code, setCode] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [vinculado, setVinculado] = useState(!!currentId);
+  const poll = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  /**
+   * Doc 19: "depois que o procedimento der certo, o botão deve virar Telegram conectado".
+   *
+   * O estado "Telegram conectado" já existia, mas só aparecia depois de RECARREGAR a página:
+   * quem tocava em Iniciar Bot no Telegram voltava ao navegador e via o mesmo botão azul de
+   * antes, sem saber se tinha dado certo. O vínculo acontece do lado do bot, então a tela
+   * precisa perguntar — enquanto o código estiver válido, e só enquanto estiver.
+   */
+  useEffect(() => {
+    if (!code || vinculado) return;
+    const t = setInterval(async () => {
+      const r = await telegramVinculado().catch(() => ({ vinculado: false }));
+      if (r.vinculado) { setVinculado(true); setCode(null); }
+    }, 3000);
+    poll.current = t;
+    return () => clearInterval(t);
+  }, [code, vinculado]);
 
   const handleGenerate = async () => {
     setLoading(true);
@@ -22,7 +42,7 @@ export function TelegramSync({ currentId }: { currentId?: string | null }) {
     }
   };
 
-  if (currentId && !code) {
+  if (vinculado && !code) {
     return (
       <div className="p-6 bg-[#ecfdf5] rounded-3xl border border-[#047857]/20 flex items-center justify-between">
         <div className="flex items-center gap-4">
@@ -34,7 +54,7 @@ export function TelegramSync({ currentId }: { currentId?: string | null }) {
             <p className="text-sm text-[#047857]/70">Você já pode lançar por mensagem.</p>
           </div>
         </div>
-        <button onClick={handleGenerate} className="text-xs font-bold text-[#047857] hover:underline">Reconectar</button>
+        <button onClick={() => { setVinculado(false); void handleGenerate(); }} className="text-xs font-bold text-[#047857] hover:underline">Reconectar</button>
       </div>
     );
   }
@@ -61,7 +81,7 @@ export function TelegramSync({ currentId }: { currentId?: string | null }) {
             <Send className="w-5 h-5" /> Abrir no Telegram e conectar
           </a>
           <p className="text-xs text-foreground/50 text-center leading-relaxed">
-            Toque no botão acima → o Telegram abre no bot <strong>@{BOT}</strong> → toque em <strong>Iniciar</strong>. Pronto, conecta sozinho.
+            Toque no botão acima → o Telegram abre no bot <strong>@{BOT}</strong> → toque em <strong>Iniciar Bot</strong>. Pronto, conecta sozinho.
           </p>
           <p className="text-[11px] text-foreground/40 text-center">
             Não abriu? Procure <strong>@{BOT}</strong> no Telegram e envie <code className="bg-surface px-1.5 py-0.5 rounded">/v {code}</code> (expira em 10 min).

@@ -65,7 +65,7 @@ export async function POST(req: Request) {
   // um código que ficaria vivo — o contrário (sessão aberta, código vivo) é que seria o furo.
   await db.update(loginCodes).set({ usadoEm: new Date() }).where(eq(loginCodes.id, linha.id));
 
-  const token = await assinarSessao(String(user.id));
+  const token = await assinarSessao(String(user.id), "7d", { via: "codigo" });
   const jar = await cookies();
   jar.set("auth-session", token, {
     httpOnly: true,

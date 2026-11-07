@@ -25,6 +25,22 @@ export function WhatsappCard({ connected, canal, numero }: { connected: boolean;
 
   useEffect(() => () => { if (poll.current) clearInterval(poll.current); }, []);
 
+  /**
+   * Doc 19: "ao clicar em conectar e o procedimento der certo, o botão deve virar desconectar".
+   *
+   * O botão JÁ virava — o que não acontecia era a PERGUNTA. `whatsapp_connected` só era
+   * atualizado enquanto o QR estava na tela, de três em três segundos. Quem escaneava depois,
+   * fechava a página no meio, ou cujo aparelho reconectou sozinho ficava com a flag velha: o card
+   * dizia "Conectar" para sempre, com o WhatsApp conectado do outro lado.
+   *
+   * Perguntar ao ABRIR custa uma chamada e torna o botão honesto sem depender de ninguém.
+   */
+  useEffect(() => {
+    let vivo = true;
+    void checkWhatsapp().then((st) => { if (vivo) setIsConnected(st.connected); }).catch(() => {});
+    return () => { vivo = false; };
+  }, []);
+
   async function connect() {
     setLoading(true); setError(null); setQr(null);
     const res = await connectWhatsapp();

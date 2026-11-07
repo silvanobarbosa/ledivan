@@ -14,7 +14,7 @@ import { and, eq, inArray } from "drizzle-orm";
 import { db } from "@/db";
 import { COLUNAS_DA_SESSAO_COM_PACIENTE } from "@/lib/colunasDaSessao";
 import { COLUNAS_DO_PAGAMENTO, COLUNAS_DO_PRECO, local, pagamentoParaMotor, precoParaMotor, sessaoParaMotor } from "@/lib/entradaDoMotor";
-import { cobrancaVencimentos, patientPackages, patientPackageHistory, patientPaymentFormatHistory, patientPriceHistory, sessionPayments, therapySessions } from "@/db/schema";
+import { cobrancaDeslocamentos, cobrancaVencimentos, patientPackages, patientPackageHistory, patientPaymentFormatHistory, patientPriceHistory, sessionPayments, therapySessions } from "@/db/schema";
 import { resumoDaGeral, type EntradaDaGeral } from "./guiaGeral";
 import { hojeDeParede } from "./geralDoPaciente";
 import { tamanhosDasSequencias } from "./sequenciaPacote";
@@ -50,7 +50,7 @@ export async function situacoesDaLista(userId: string, pacientes: PacienteParaSi
   const saida = new Map<string, SituacaoResumo>();
   if (!ids.length) return saida;
 
-  const [sessoes, pagamentos, precos, vigencias, pacotes, pacoteHist, vencEditados] = await Promise.all([
+  const [sessoes, pagamentos, precos, vigencias, pacotes, pacoteHist, vencEditados, deslocamentos] = await Promise.all([
     db.select({ ...COLUNAS_DA_SESSAO_COM_PACIENTE, isOnline: therapySessions.isOnline })
       .from(therapySessions).where(eq(therapySessions.userId, userId)),
     db.select({ ...COLUNAS_DO_PAGAMENTO, patientId: sessionPayments.patientId })
@@ -69,6 +69,10 @@ export async function situacoesDaLista(userId: string, pacientes: PacienteParaSi
     // onde o dono já empurrou o vencimento para a frente.
     db.select({ patientId: cobrancaVencimentos.patientId, cobrancaChave: cobrancaVencimentos.cobrancaChave, vencimento: cobrancaVencimentos.vencimento })
       .from(cobrancaVencimentos).where(and(eq(cobrancaVencimentos.userId, userId), inArray(cobrancaVencimentos.patientId, ids))),
+    // Doc 19: a sequência deslocada de cada paciente. Sem ela, esta lista mostraria a data natural
+    // e a guia Geral mostraria a deslocada — as duas telas discordando do mesmo vencimento.
+    db.select({ patientId: cobrancaDeslocamentos.patientId, aPartirDe: cobrancaDeslocamentos.aPartirDe, meses: cobrancaDeslocamentos.meses })
+      .from(cobrancaDeslocamentos).where(and(eq(cobrancaDeslocamentos.userId, userId), inArray(cobrancaDeslocamentos.patientId, ids))),
   ]);
 
   const porPaciente = {
@@ -79,6 +83,8 @@ export async function situacoesDaLista(userId: string, pacientes: PacienteParaSi
     pacotes: agrupar(pacotes, (p) => p.patientId),
     pacoteHist: agrupar(pacoteHist, (h) => h.patientId),
     vencEditados: agrupar(vencEditados, (v) => v.patientId),
+    // Uma por paciente (indice unico no banco), entao mapa simples e nao agrupamento.
+    deslocamentos: new Map(deslocamentos.map((d) => [d.patientId, d] as const)),
   };
   const hoje = hojeDeParede();
 
@@ -98,6 +104,8 @@ export async function situacoesDaLista(userId: string, pacientes: PacienteParaSi
       horasAntesPagamento: p.horasAntesPagamento,
       pagamentos: (porPaciente.pagamentos.get(p.id) ?? []).map(pagamentoParaMotor),
       vencimentos: (porPaciente.vencEditados.get(p.id) ?? []).map((v) => ({ chave: v.cobrancaChave, vencimento: local(v.vencimento) })),
+      deslocamento: (() => { const d = porPaciente.deslocamentos.get(p.id); return d ? { aPartirDe: local(d.aPartirDe), meses: d.meses } : null; })(),
+      naoDeslocar: [...new Set((porPaciente.pagamentos.get(p.id) ?? []).map((x) => x.cobrancaChave).filter((k): k is string => !!k))],
       hoje,
     };
     const r = resumoDaGeral(entrada);

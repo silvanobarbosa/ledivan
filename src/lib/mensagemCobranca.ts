@@ -71,23 +71,31 @@ export const MODELO_ULTIMA_SESSAO = [
   ...FIM,
 ].join("\n");
 
-/** Sessão avulsa, sem prazo combinado — paga-se até o momento da sessão (doc 61). */
+/**
+ * Sessão avulsa, sem prazo combinado (doc 61, encurtado pelo doc 19).
+ *
+ * O doc 19 tirou a linha "Conforme combinado, o pagamento deverá ser realizado até o momento da
+ * sessão.": sem prazo combinado não há prazo a lembrar, e "ainda está pendente" já diz o recado.
+ */
 export const MODELO_AVULSO = [
   "Olá {nome}!",
   "",
   "Passando para lembrar que você tem sessão hoje, {sessao}, e que o pagamento avulso, no valor de {valor}, ainda está pendente.",
-  "",
-  "Conforme combinado, o pagamento deverá ser realizado até o momento da sessão.",
   ...FIM,
 ].join("\n");
 
-/** Sessão avulsa com "pagar até X horas antes" preenchido (doc 61) — o horário pode ser cedido. */
+/**
+ * Sessão avulsa com "pagar até X horas antes" preenchido (doc 61) — o horário pode ser cedido.
+ *
+ * Doc 19: "até às {horas} horas" virou "até {horas} horas". O "às" anuncia HORA DO RELÓGIO
+ * ("às 14 horas"), e o número aqui é uma ANTECEDÊNCIA ("24 horas antes da sessão").
+ */
 export const MODELO_AVULSO_PRAZO = [
   "Olá {nome}!",
   "",
   "Passando para lembrar que você tem sessão hoje, {sessao}, e que o pagamento avulso, no valor de {valor}, ainda está pendente.",
   "",
-  "Lembrando que o pagamento deve ser realizado até às {horas} horas antes da sessão. Caso contrário, a sessão será considerada desmarcada, e o horário poderá ser cedido a outro paciente, caso haja procura. 😉",
+  "Lembrando que o pagamento deve ser realizado até {horas} horas antes da sessão. Caso contrário, a sessão será considerada desmarcada, e o horário poderá ser cedido a outro paciente, caso haja procura. 😉",
   ...FIM,
 ].join("\n");
 

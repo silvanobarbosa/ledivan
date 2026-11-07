@@ -15,7 +15,7 @@ import { and, eq, isNull } from "drizzle-orm";
 import { db } from "@/db";
 import { COLUNAS_DA_SESSAO } from "@/lib/colunasDaSessao";
 import { COLUNAS_DO_PAGAMENTO, COLUNAS_DO_PRECO, local, pagamentoParaMotor, precoParaMotor, sessaoParaMotor } from "@/lib/entradaDoMotor";
-import { blockedSlots, cobrancaEnvios, cobrancaVencimentos, sessoesPuladas, patientCredits, patientPackages, patientPackageHistory, patientPaymentFormatHistory, patientPriceHistory, patients, sessionPayments, therapySessions } from "@/db/schema";
+import { blockedSlots, cobrancaDeslocamentos, cobrancaEnvios, cobrancaVencimentos, sessoesPuladas, patientCredits, patientPackages, patientPackageHistory, patientPaymentFormatHistory, patientPriceHistory, patients, sessionPayments, therapySessions } from "@/db/schema";
 import { linhasDaGeral, resumoDaGeral, type CobrancaDaGeral, type EntradaDaGeral, type LinhaDaGeral } from "./guiaGeral";
 import { tamanhosDasSequencias } from "./sequenciaPacote";
 
@@ -33,7 +33,7 @@ export function hojeDeParede(agora = new Date()): Date {
   return new Date(Number(p.year), Number(p.month) - 1, Number(p.day), Number(p.hour) % 24, Number(p.minute));
 }
 
-export type CobrancaNaTela = Omit<CobrancaDaGeral, "vencimento" | "competencia" | "pagamento" | "pagamentos" | "envio" | "posicao" | "tipo"> & {
+export type CobrancaNaTela = Omit<CobrancaDaGeral, "vencimento" | "vencimentoNatural" | "competencia" | "pagamento" | "pagamentos" | "envio" | "posicao" | "tipo"> & {
   tipoDeCobranca: CobrancaDaGeral["tipo"];
   vencimento: string | null;
   /**
@@ -46,6 +46,13 @@ export type CobrancaNaTela = Omit<CobrancaDaGeral, "vencimento" | "competencia" 
   datasDasSessoes: string[];
   /** Doc 31: o vencimento desta cobrança foi EDITADO à mão (há override). A tela mostra o "desfazer". */
   vencimentoEditado: boolean;
+  /**
+   * Doc 19: o vencimento que o MOTOR calculou, antes do deslocamento e da edição à mão.
+   *
+   * Atravessa até aqui porque é dele que sai o tamanho de um novo deslocamento. Medir o segundo
+   * deslocamento a partir do primeiro faria a sequência andar em dobro.
+   */
+  vencimentoNatural: string | null;
   pagamento: { id: string; data: string; metodo: string | null; pagoPor: string | null; recibo: boolean; nota: boolean; reciboNumero: string | null; credito: boolean; motivoSemCredito?: string | null; motivoSemDiferenca?: string | null } | null;
   /** Cada lançamento desta cobrança (doc 21/28): id (remover), data (hora de parede), valor, quem
    *  pagou, método e se já teve recibo/nota emitidos (p/ os controles por lançamento). */
@@ -100,6 +107,7 @@ function cobrancaNaTela(
      */
     aguardandoValor: c.aguardandoValor === true,
     vencimento: texto(c.vencimento ?? c.competencia),
+    vencimentoNatural: texto(c.vencimentoNatural ?? c.vencimento ?? c.competencia),
     pagamento: c.pagamento ? { ...c.pagamento, data: texto(c.pagamento.data) ?? "", reciboNumero: c.pagamento.reciboNumero ?? null, credito: c.pagamento.credito === true } : null,
     // Doc 71/72: tudo o que a tela mostra atravessa AQUI. Esquecer um campo nesta remontagem é o
     // defeito que já apareceu três vezes — o dado chega do banco e morre na travessia.
@@ -149,7 +157,7 @@ export async function geralDoPaciente(userId: string, patientId: string): Promis
   });
   if (!paciente) return null;
 
-  const [sessoes, pagamentos, precos, pacotes, vigencias, envios, puladas, pacoteHist, vencEditados] = await Promise.all([
+  const [sessoes, pagamentos, precos, pacotes, vigencias, envios, puladas, pacoteHist, vencEditados, desloc] = await Promise.all([
     db.select({ ...COLUNAS_DA_SESSAO, isOnline: therapySessions.isOnline, estornoValor: therapySessions.estornoValor, estornoEm: therapySessions.estornoEm, creditoValor: therapySessions.creditoValor, transferidoPara: therapySessions.transferidoPara, creditoUsadoEm: therapySessions.creditoUsadoEm })
       .from(therapySessions).where(and(eq(therapySessions.patientId, patientId), eq(therapySessions.userId, userId))),
     db.select({ ...COLUNAS_DO_PAGAMENTO, reciboEmitidoEm: sessionPayments.reciboEmitidoEm, notaEmitidaEm: sessionPayments.receiptIssuedAt, reciboNumero: sessionPayments.receiptNumber })
@@ -179,6 +187,9 @@ export async function geralDoPaciente(userId: string, patientId: string): Promis
     // Doc 31: vencimentos editados à mão (override por chave de cobrança).
     db.select({ cobrancaChave: cobrancaVencimentos.cobrancaChave, vencimento: cobrancaVencimentos.vencimento })
       .from(cobrancaVencimentos).where(and(eq(cobrancaVencimentos.patientId, patientId), eq(cobrancaVencimentos.userId, userId))),
+    // Doc 19: a sequência deslocada do paciente (uma por paciente, ou nenhuma).
+    db.select({ aPartirDe: cobrancaDeslocamentos.aPartirDe, meses: cobrancaDeslocamentos.meses })
+      .from(cobrancaDeslocamentos).where(and(eq(cobrancaDeslocamentos.patientId, patientId), eq(cobrancaDeslocamentos.userId, userId))).limit(1),
   ]);
 
   const editados = new Set(vencEditados.map((v) => v.cobrancaChave));
@@ -214,6 +225,9 @@ export async function geralDoPaciente(userId: string, patientId: string): Promis
     pagamentos: pagamentos.map(pagamentoParaMotor),
     envios: envios.map((e) => ({ cobrancaChave: e.cobrancaChave, enviadaEm: local(e.enviadaEm), enviadaPor: e.enviadaPor })),
     vencimentos: vencEditados.map((v) => ({ chave: v.cobrancaChave, vencimento: local(v.vencimento) })),
+    // Doc 19: a regra e as cobranças que ela não pode mover (as que já têm dinheiro lançado).
+    deslocamento: desloc[0] ? { aPartirDe: local(desloc[0].aPartirDe), meses: desloc[0].meses } : null,
+    naoDeslocar: [...new Set(pagamentos.map((p) => p.cobrancaChave).filter((k): k is string => !!k))],
     // As datas que a serie pulou por horario bloqueado: viram a linha "Hor. Bloq.", nunca sessao.
     bloqueios: puladas.map((b) => ({ data: local(b.date) })),
     hoje: hojeDeParede(),

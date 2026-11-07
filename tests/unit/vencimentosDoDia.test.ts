@@ -49,13 +49,17 @@ describe("mensagens de cobrança em dia (doc 44, redações do doc 61)", () => {
     const m = mensagemAvulsa({ nome: "Ana Souza", dataSessao: "2026-10-20T15:00:00", vencimento: "2026-10-20T13:00:00", valor: 120, hoje });
     expect(m).toContain("Olá Ana!");
     expect(m).toContain("você tem sessão hoje, 20/10/26, e que o pagamento avulso, no valor de R$ 120,00, ainda está pendente.");
-    expect(m).toContain("o pagamento deverá ser realizado até o momento da sessão.");
+    // Doc 19 tirou a linha "Conforme combinado, o pagamento deverá ser realizado até o momento
+    // da sessão.": sem prazo combinado não há prazo a lembrar.
+    expect(m).not.toContain("até o momento da sessão");
     expect(m).not.toContain("horas antes");
   });
 
   it("avulsa com prazo de pagamento: avisa o prazo e que o horário pode ser cedido", () => {
     const m = mensagemAvulsa({ nome: "Ana", dataSessao: "2026-10-20T15:00:00", valor: 120, horasAntes: 24, hoje });
-    expect(m).toContain("até às 24 horas antes da sessão");
+    // Doc 19: "até às 24 horas" virou "até 24 horas" — o número é antecedência, não hora do relógio.
+    expect(m).toContain("até 24 horas antes da sessão");
+    expect(m).not.toContain("até às");
     expect(m).toContain("o horário poderá ser cedido a outro paciente");
     expect(m).not.toContain("até o momento da sessão.");
   });

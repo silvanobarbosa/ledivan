@@ -103,14 +103,12 @@ describe("doc 61: as quatro redações, palavra por palavra", () => {
     );
   });
 
-  it("pagamento avulso, sem prazo combinado", () => {
+  it("pagamento avulso, sem prazo combinado — doc 19 tirou a linha do 'conforme combinado'", () => {
     expect(montarMensagemCobranca(null, { ...base, caso: "avulso", sessao: "2026-11-09T16:00:00" })).toBe(
       [
         "Olá Joyce!",
         "",
         "Passando para lembrar que você tem sessão hoje, 09/11/26, e que o pagamento avulso, no valor de R$ 360,00, ainda está pendente.",
-        "",
-        "Conforme combinado, o pagamento deverá ser realizado até o momento da sessão.",
         "",
         "Após realizar o pagamento, por gentileza, envie o comprovante por aqui. 😊",
         "",
@@ -119,14 +117,14 @@ describe("doc 61: as quatro redações, palavra por palavra", () => {
     );
   });
 
-  it("pagamento avulso com o campo 'pagar até' preenchido", () => {
+  it("pagamento avulso com o campo 'pagar até' preenchido — sem o 'às' (doc 19)", () => {
     expect(montarMensagemCobranca(null, { ...base, caso: "avulso", sessao: "2026-11-09T16:00:00", horasAntes: 24 })).toBe(
       [
         "Olá Joyce!",
         "",
         "Passando para lembrar que você tem sessão hoje, 09/11/26, e que o pagamento avulso, no valor de R$ 360,00, ainda está pendente.",
         "",
-        "Lembrando que o pagamento deve ser realizado até às 24 horas antes da sessão. Caso contrário, a sessão será considerada desmarcada, e o horário poderá ser cedido a outro paciente, caso haja procura. 😉",
+        "Lembrando que o pagamento deve ser realizado até 24 horas antes da sessão. Caso contrário, a sessão será considerada desmarcada, e o horário poderá ser cedido a outro paciente, caso haja procura. 😉",
         "",
         "Após realizar o pagamento, por gentileza, envie o comprovante por aqui. 😊",
         "",
