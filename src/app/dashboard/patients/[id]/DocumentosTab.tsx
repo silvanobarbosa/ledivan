@@ -3,7 +3,7 @@
 import { useEffect, useState, useTransition } from "react";
 import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
-import { Printer, Pencil, Trash2, X } from "lucide-react";
+import { Printer, Pencil, Trash2, X, Sparkles } from "lucide-react";
 import { photoSrc } from "@/lib/photo";
 import { formatDateTime } from "@/lib/therapy";
 import { createDocument, updateDocument, deleteDocument } from "../actions";
@@ -52,6 +52,7 @@ export function DocumentosTab({ patientId, cabecalho, documentos }: { patientId:
   const [editId, setEditId] = useState<string | null>(null);
   const [erro, setErro] = useState<string | null>(null);
   const [pending, start] = useTransition();
+  const [gerando, setGerando] = useState(false);
   const [montado, setMontado] = useState(false);
   // Doc 34 (G10): o conteúdo a imprimir fica SEMPRE montado (portal), e um nonce dispara a impressão.
   // Assim nada é desmontado antes de o navegador capturar a página (no celular o print() não bloqueia).
@@ -69,6 +70,39 @@ export function DocumentosTab({ patientId, cabecalho, documentos }: { patientId:
   function imprimir(content: string) {
     setPrintDoc(content);
     setPrintNonce((n) => n + 1);
+  }
+
+  /**
+   * O RELATÓRIO DE ACOMPANHAMENTO TERAPÊUTICO (doc 20).
+   *
+   * Preenche o título e o corpo do documento em elaboração — não salva nada. Daqui em diante é um
+   * documento como qualquer outro: a terapeuta revisa, edita, salva, imprime ou descarta. Clicar
+   * de novo gera outro, com o prontuário como estiver naquele momento.
+   *
+   * Substituir um texto que já está na tela apaga trabalho, então o botão pergunta antes.
+   */
+  function gerarRelatorio() {
+    setErro(null);
+    if ((conteudo.trim() || nome.trim()) && !window.confirm("Isto substitui o que está escrito aqui. Gerar o relatório mesmo assim?")) return;
+    setGerando(true);
+    void (async () => {
+      try {
+        const r = await fetch("/api/patient/relatorio", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ patientId }),
+        });
+        const j = await r.json().catch(() => ({}));
+        if (!r.ok) { setErro(j?.error ?? "Não deu para gerar o relatório agora."); return; }
+        setEditId(null);
+        setNome(j.titulo ?? "Relatório de Acompanhamento Terapêutico");
+        setConteudo(j.texto ?? "");
+      } catch {
+        setErro("Não deu para gerar o relatório agora.");
+      } finally {
+        setGerando(false);
+      }
+    })();
   }
 
   function salvar() {
@@ -97,6 +131,15 @@ export function DocumentosTab({ patientId, cabecalho, documentos }: { patientId:
       {/* Área de elaboração: cabeçalho automático + nome + campo de texto. */}
       <div className="glass-card rounded-[24px] p-5 space-y-3">
         <Cabecalho cab={cabecalho} />
+        {/* Doc 20: logo abaixo do "Sessões realizadas" do cabeçalho — e FORA dele, para não sair na impressão. */}
+        <button
+          type="button"
+          onClick={gerarRelatorio}
+          disabled={pending}
+          className="inline-flex items-center gap-1.5 rounded-xl border border-primary/30 bg-primary/5 px-4 py-2 text-sm font-bold text-primary transition hover:bg-primary/10 disabled:opacity-60 cursor-pointer"
+        >
+          <Sparkles className="w-4 h-4" /> {gerando ? "Gerando…" : "Relatório de Acompanhamento Terapêutico"}
+        </button>
         <input
           value={nome}
           onChange={(e) => setNome(e.target.value)}

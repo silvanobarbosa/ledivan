@@ -2,6 +2,7 @@ import "server-only";
 import { and, eq, inArray, isNull, or } from "drizzle-orm";
 import { db } from "@/db";
 import { patientCredits, sessionPayments, therapySessions, transactions } from "@/db/schema";
+import { limparCreditosOrfaos } from "@/lib/creditoOrfao";
 
 /**
  * APAGAR UM PAGAMENTO LEVA JUNTO TUDO O QUE ESTÁ PRESO A ELE (doc 61).
@@ -28,7 +29,7 @@ export async function apagarPagamentosLigados(userId: string, pagamentoIds: stri
   const ids = [...new Set(pagamentoIds.filter((id) => /^[0-9a-f-]{36}$/i.test(id)))];
   if (!ids.length) return 0;
 
-  const alvos = await db.select({ id: sessionPayments.id, tx: sessionPayments.linkedTransactionId })
+  const alvos = await db.select({ id: sessionPayments.id, tx: sessionPayments.linkedTransactionId, patientId: sessionPayments.patientId })
     .from(sessionPayments)
     .where(and(eq(sessionPayments.userId, userId), inArray(sessionPayments.id, ids)));
   if (!alvos.length) return 0;
@@ -60,6 +61,11 @@ export async function apagarPagamentosLigados(userId: string, pagamentoIds: stri
     .where(and(eq(patientCredits.userId, userId), inArray(patientCredits.consumidoPagamentoId, alvoIds)));
 
   await db.delete(sessionPayments).where(and(eq(sessionPayments.userId, userId), inArray(sessionPayments.id, alvoIds)));
+
+  // Doc 20: crédito devolvido ao saldo cuja ORIGEM morreu numa remoção anterior não é dinheiro.
+  for (const pid of new Set(alvos.map((p) => p.patientId).filter((p): p is string => !!p))) {
+    await limparCreditosOrfaos(userId, pid);
+  }
   return alvoIds.length;
 }
 

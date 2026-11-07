@@ -8,16 +8,28 @@ import { createAnamnese } from "../actions";
 
 const inputCls = "w-full px-4 py-2.5 rounded-xl bg-white/70 border border-border focus:ring-2 focus:ring-accent/20 focus:border-accent outline-none transition text-sm";
 
-/** Os campos do modelo padrão da anamnese. Convivem com os personalizados ("+Adicionar campo"). */
+/**
+ * Os campos do modelo padrão da anamnese, NA ORDEM EM QUE A TERAPEUTA PERGUNTA (doc 20).
+ *
+ * A ordem é clínica, não alfabética nem histórica: o que já está dado (identificação, medicação,
+ * tratamento anterior) vem antes do que se investiga, e o histórico de vida fecha. Mexer nela é
+ * mexer na entrevista — não reordene sem pedido.
+ *
+ * "Idade" saiu da identificação: a tela já mostra a idade calculada da data de nascimento, e
+ * pedi-la de novo é um número que envelhece sozinho no texto.
+ */
 const CAMPOS_PADRAO = [
-  "Identificação (idade, profissão, estado civil, com quem mora)",
-  "Queixa principal",
-  "História da queixa atual",
-  "Histórico pessoal / desenvolvimento",
-  "Histórico familiar",
+  "Identificação (profissão, estado civil, com quem mora)",
   "Medicações em uso",
   "Tratamentos anteriores",
+  "Queixa principal",
+  "História da queixa atual",
   "Objetivos do tratamento",
+  "Pontos importantes do acompanhamento clínico",
+  "Histórico pessoal / desenvolvimento",
+  "Histórico familiar",
+  "Histórico profissional",
+  "Lutos vividos",
 ];
 
 type Salvo = { id: string; title: string; content: string; custom: boolean; updatedAt: string | null };
@@ -39,6 +51,14 @@ export function AnamneseTab({ patientId, campos }: { patientId: string; campos: 
       ? { id: s.id, title, content: s.content, custom: false, updatedAt: s.updatedAt }
       : { id: null, title, content: "", custom: false, updatedAt: null };
   });
+  /**
+   * Campo do modelo que já não está no modelo — e que NÃO pode sumir da tela com o que foi escrito
+   * nele. A lista padrão é casada por TÍTULO; renomear um título (doc 20 tirou "idade" da
+   * identificação) deixaria para trás o texto gravado sob o nome antigo, invisível e intacto.
+   */
+  const herdados: CampoAnamnese[] = campos
+    .filter((c) => !c.custom && !CAMPOS_PADRAO.includes(c.title))
+    .map((c) => ({ id: c.id, title: c.title, content: c.content, custom: false, updatedAt: c.updatedAt }));
   const personalizados: CampoAnamnese[] = campos.filter((c) => c.custom).map((c) => ({ id: c.id, title: c.title, content: c.content, custom: true, updatedAt: c.updatedAt }));
 
   function adicionar() {
@@ -57,6 +77,7 @@ export function AnamneseTab({ patientId, campos }: { patientId: string; campos: 
       <p className="text-xs text-foreground/50 -mt-1">Utilize o botão &ldquo;Adicionar campo&rdquo; para incluir novos campos conforme as necessidades de cada paciente.</p>
 
       {padrao.map((c) => <AnamneseItem key={`p:${c.title}`} patientId={patientId} campo={c} />)}
+      {herdados.map((c) => <AnamneseItem key={`h:${c.id}`} patientId={patientId} campo={c} />)}
       {personalizados.map((c) => <AnamneseItem key={`c:${c.id}`} patientId={patientId} campo={c} />)}
 
       {adicionando ? (
