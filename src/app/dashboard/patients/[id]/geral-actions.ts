@@ -560,7 +560,9 @@ export async function editarVencimento(entrada: { patientId: string; cobrancaCha
    * ao primeiro e a sequência andaria em dobro.
    *
    * "Caso seja realizada uma nova alteração de vencimento, deverá ser estabelecida uma nova
-   * sequência": é uma linha por paciente, e a nova substitui a anterior.
+   * sequência, sempre preservando os pagamentos e históricos anteriores": cada alteração grava
+   * uma sequência que vale do SEU ponto em diante, e a anterior continua mandando no trecho antes
+   * dele. Uma linha por ponto de partida — alterar duas vezes o mesmo ponto substitui.
    */
   const anoMes = (iso: string | null | undefined) => { const m = iso ? String(iso).match(/^(\d{4})-(\d{2})/) : null; return m ? Number(m[1]) * 12 + (Number(m[2]) - 1) : null; };
   const naturalISO = cobranca.vencimentoNatural ?? cobranca.vencimento;
@@ -572,8 +574,8 @@ export async function editarVencimento(entrada: { patientId: string; cobrancaCha
     await db.insert(cobrancaDeslocamentos)
       .values({ userId: ctx.userId, patientId, aPartirDe, meses, cobrancaChave: chave })
       .onConflictDoUpdate({
-        target: [cobrancaDeslocamentos.userId, cobrancaDeslocamentos.patientId],
-        set: { aPartirDe, meses, cobrancaChave: chave, updatedAt: new Date() },
+        target: [cobrancaDeslocamentos.userId, cobrancaDeslocamentos.patientId, cobrancaDeslocamentos.aPartirDe],
+        set: { meses, cobrancaChave: chave, updatedAt: new Date() },
       });
   }
 

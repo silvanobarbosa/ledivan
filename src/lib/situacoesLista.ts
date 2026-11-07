@@ -69,8 +69,8 @@ export async function situacoesDaLista(userId: string, pacientes: PacienteParaSi
     // onde o dono já empurrou o vencimento para a frente.
     db.select({ patientId: cobrancaVencimentos.patientId, cobrancaChave: cobrancaVencimentos.cobrancaChave, vencimento: cobrancaVencimentos.vencimento })
       .from(cobrancaVencimentos).where(and(eq(cobrancaVencimentos.userId, userId), inArray(cobrancaVencimentos.patientId, ids))),
-    // Doc 19: a sequência deslocada de cada paciente. Sem ela, esta lista mostraria a data natural
-    // e a guia Geral mostraria a deslocada — as duas telas discordando do mesmo vencimento.
+    // Doc 19: as sequências deslocadas de cada paciente. Sem elas, esta lista mostraria a data
+    // natural e a guia Geral a deslocada — as duas telas discordando do mesmo vencimento.
     db.select({ patientId: cobrancaDeslocamentos.patientId, aPartirDe: cobrancaDeslocamentos.aPartirDe, meses: cobrancaDeslocamentos.meses })
       .from(cobrancaDeslocamentos).where(and(eq(cobrancaDeslocamentos.userId, userId), inArray(cobrancaDeslocamentos.patientId, ids))),
   ]);
@@ -83,8 +83,7 @@ export async function situacoesDaLista(userId: string, pacientes: PacienteParaSi
     pacotes: agrupar(pacotes, (p) => p.patientId),
     pacoteHist: agrupar(pacoteHist, (h) => h.patientId),
     vencEditados: agrupar(vencEditados, (v) => v.patientId),
-    // Uma por paciente (indice unico no banco), entao mapa simples e nao agrupamento.
-    deslocamentos: new Map(deslocamentos.map((d) => [d.patientId, d] as const)),
+    deslocamentos: agrupar(deslocamentos, (d) => d.patientId),
   };
   const hoje = hojeDeParede();
 
@@ -104,7 +103,7 @@ export async function situacoesDaLista(userId: string, pacientes: PacienteParaSi
       horasAntesPagamento: p.horasAntesPagamento,
       pagamentos: (porPaciente.pagamentos.get(p.id) ?? []).map(pagamentoParaMotor),
       vencimentos: (porPaciente.vencEditados.get(p.id) ?? []).map((v) => ({ chave: v.cobrancaChave, vencimento: local(v.vencimento) })),
-      deslocamento: (() => { const d = porPaciente.deslocamentos.get(p.id); return d ? { aPartirDe: local(d.aPartirDe), meses: d.meses } : null; })(),
+      deslocamentos: (porPaciente.deslocamentos.get(p.id) ?? []).map((d) => ({ aPartirDe: local(d.aPartirDe), meses: d.meses })),
       naoDeslocar: [...new Set((porPaciente.pagamentos.get(p.id) ?? []).map((x) => x.cobrancaChave).filter((k): k is string => !!k))],
       hoje,
     };

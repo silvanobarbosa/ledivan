@@ -187,9 +187,9 @@ export async function geralDoPaciente(userId: string, patientId: string): Promis
     // Doc 31: vencimentos editados à mão (override por chave de cobrança).
     db.select({ cobrancaChave: cobrancaVencimentos.cobrancaChave, vencimento: cobrancaVencimentos.vencimento })
       .from(cobrancaVencimentos).where(and(eq(cobrancaVencimentos.patientId, patientId), eq(cobrancaVencimentos.userId, userId))),
-    // Doc 19: a sequência deslocada do paciente (uma por paciente, ou nenhuma).
+    // Doc 19: as sequências deslocadas do paciente — cada uma vale do seu ponto em diante.
     db.select({ aPartirDe: cobrancaDeslocamentos.aPartirDe, meses: cobrancaDeslocamentos.meses })
-      .from(cobrancaDeslocamentos).where(and(eq(cobrancaDeslocamentos.patientId, patientId), eq(cobrancaDeslocamentos.userId, userId))).limit(1),
+      .from(cobrancaDeslocamentos).where(and(eq(cobrancaDeslocamentos.patientId, patientId), eq(cobrancaDeslocamentos.userId, userId))),
   ]);
 
   const editados = new Set(vencEditados.map((v) => v.cobrancaChave));
@@ -226,7 +226,7 @@ export async function geralDoPaciente(userId: string, patientId: string): Promis
     envios: envios.map((e) => ({ cobrancaChave: e.cobrancaChave, enviadaEm: local(e.enviadaEm), enviadaPor: e.enviadaPor })),
     vencimentos: vencEditados.map((v) => ({ chave: v.cobrancaChave, vencimento: local(v.vencimento) })),
     // Doc 19: a regra e as cobranças que ela não pode mover (as que já têm dinheiro lançado).
-    deslocamento: desloc[0] ? { aPartirDe: local(desloc[0].aPartirDe), meses: desloc[0].meses } : null,
+    deslocamentos: desloc.map((d) => ({ aPartirDe: local(d.aPartirDe), meses: d.meses })),
     naoDeslocar: [...new Set(pagamentos.map((p) => p.cobrancaChave).filter((k): k is string => !!k))],
     // As datas que a serie pulou por horario bloqueado: viram a linha "Hor. Bloq.", nunca sessao.
     bloqueios: puladas.map((b) => ({ data: local(b.date) })),

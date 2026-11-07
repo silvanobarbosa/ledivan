@@ -139,17 +139,23 @@ export type EntradaDasCobrancas = {
    */
   vencimentos?: { chave: string; vencimento: Date | string }[];
   /**
-   * Doc 19: a SEQUÊNCIA deslocada do paciente — "desloca o mês das próximas parcelas também".
+   * Doc 19: as SEQUÊNCIAS deslocadas do paciente — "desloca o mês das próximas parcelas também".
    *
    * O doc 45 resolvia isso escrevendo uma data nova para cada cobrança futura que existia naquele
    * instante. Sessão marcada depois nascia com o vencimento natural e quebrava a sequência. Aqui
    * o deslocamento é uma REGRA: a partir de `aPartirDe`, toda cobrança anda `meses` meses — as de
    * hoje e as que ainda nem foram agendadas.
    *
-   * Uma por paciente: alterar o vencimento de novo estabelece uma sequência nova, que substitui
-   * esta. O que vence antes do ponto de partida não se mexe, porque é histórico.
+   * São VÁRIAS, e cada uma vale do seu ponto em diante: "caso seja realizada uma nova alteração de
+   * vencimento, deverá ser estabelecida uma nova sequência, sempre preservando os pagamentos e
+   * históricos anteriores". Guardar uma só por paciente cumpriria a primeira metade e quebraria a
+   * segunda — ajustar uma cobrança de 2027 faria os vencimentos de 2026, já arrumados, voltarem
+   * sozinhos para a data natural. Data de dinheiro não muda calada.
+   *
+   * Para cada cobrança vale a ÚLTIMA sequência cujo ponto de partida não passa do vencimento
+   * natural dela. Os passos não se somam: cada um é medido a partir do natural.
    */
-  deslocamento?: { aPartirDe: Date | string; meses: number } | null;
+  deslocamentos?: { aPartirDe: Date | string; meses: number }[] | null;
   /**
    * Chaves que o deslocamento NÃO move (doc 19): cobrança com pagamento lançado.
    *
@@ -549,25 +555,31 @@ export function cobrancasDoPaciente(e: EntradaDasCobrancas): Cobranca[] {
   for (const c of out) c.vencimentoNatural = c.vencimento;
 
   /**
-   * Doc 19: a sequência deslocada. Vale para toda cobrança cujo vencimento NATURAL cai no ponto
-   * de partida ou depois dele — inclusive as que nasceram agora, de sessões marcadas depois da
-   * decisão. Fica de fora o que já tem pagamento (`naoDeslocar`) e, logo abaixo, o que tem data
+   * Doc 19: as sequências deslocadas. Valem para toda cobrança cujo vencimento NATURAL cai no
+   * ponto de partida ou depois dele — inclusive as que nasceram agora, de sessões marcadas depois
+   * da decisão. Fica de fora o que já tem pagamento (`naoDeslocar`) e, logo abaixo, o que tem data
    * escolhida à mão: entre uma regra e uma escolha, vale a escolha.
+   *
+   * Vale a ÚLTIMA sequência que alcança a cobrança, nunca a soma delas: cada passo é medido a
+   * partir do vencimento natural, então somar dois passos andaria o dobro do pedido.
    */
-  if (e.deslocamento && e.deslocamento.meses !== 0) {
-    const desde = emData(e.deslocamento.aPartirDe);
-    const meses = e.deslocamento.meses;
+  const regras = (e.deslocamentos ?? [])
+    .map((r) => ({ desde: emData(r.aPartirDe), meses: r.meses }))
+    .filter((r) => !Number.isNaN(r.desde.getTime()) && r.meses !== 0)
+    .sort((a, b) => a.desde.getTime() - b.desde.getTime());
+  if (regras.length) {
     const parado = new Set(e.naoDeslocar ?? []);
-    if (!Number.isNaN(desde.getTime())) {
-      const diaDe = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
-      for (const c of out) {
-        const v = c.vencimento;
-        if (!v || parado.has(c.chave) || diaDe(v) < diaDe(desde)) continue;
-        const alvo = v.getMonth() + meses;
-        // Fevereiro não tem dia 31: encolhe para o último do mês em vez de transbordar para março.
-        const ultimo = new Date(v.getFullYear(), alvo + 1, 0).getDate();
-        c.vencimento = new Date(v.getFullYear(), alvo, Math.min(v.getDate(), ultimo), v.getHours(), v.getMinutes(), 0);
-      }
+    const diaDe = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+    for (const c of out) {
+      const v = c.vencimento;
+      if (!v || parado.has(c.chave)) continue;
+      let vale: { desde: Date; meses: number } | null = null;
+      for (const r of regras) if (diaDe(v) >= diaDe(r.desde)) vale = r;
+      if (!vale) continue;
+      const alvo = v.getMonth() + vale.meses;
+      // Fevereiro não tem dia 31: encolhe para o último do mês em vez de transbordar para março.
+      const ultimo = new Date(v.getFullYear(), alvo + 1, 0).getDate();
+      c.vencimento = new Date(v.getFullYear(), alvo, Math.min(v.getDate(), ultimo), v.getHours(), v.getMinutes(), 0);
     }
   }
 
