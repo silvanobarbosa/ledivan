@@ -7,6 +7,66 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-11-07 — Doc 19: a senha de quem entra sem senha, e a sequência que não apaga a anterior
+
+**Entregue:** PRs #571 e #572.
+
+**Por quê:** a terapeuta entra pelo Google, quis definir uma senha para entrar também por e-mail
+e o app respondeu *"Senha atual incorreta"* — ela não tem senha para informar. Junto, o doc 19
+trouxe dois ajustes de redação do avulso, três de tela, e o pedido de que sessões marcadas depois
+sigam a sequência de vencimentos já deslocada.
+
+**Decisões que ficam valendo:**
+
+- **A senha atual só é exigida de quem entrou COM ela.** O app tem três portas — senha, código no
+  e-mail/Telegram (doc 55) e Google — e só uma passa pela senha. A sessão passa a registrar por
+  onde a pessoa entrou (claim `via` no cookie que já existia; nenhum caminho novo de
+  autenticação). Sessão antiga não diz por onde entrou e CONTINUA pedindo: quem não sabe não
+  afrouxa regra. Para quem entrou com a senha a trava fica, e é o que sempre foi — a defesa contra
+  alguém que senta num navegador já logado.
+- **O deslocamento de vencimento é uma REGRA, não uma lista de datas.** O doc 45 gravava uma data
+  nova para cada cobrança futura que existia naquele instante; sessão marcada depois nascia com o
+  vencimento natural e quebrava a sequência recém-arrumada. Agora grava-se um ponto de partida e
+  um número de meses (`cobranca_deslocamentos`), e o motor aplica inclusive ao que ainda não foi
+  agendado.
+- **Cada sequência manda do SEU ponto em diante — a anterior não é apagada.** É uma linha por
+  ponto de partida, não por paciente. Para cada cobrança vale a ÚLTIMA sequência cujo ponto não
+  passa do vencimento natural dela, e os passos NÃO se somam.
+- **O passo é medido do vencimento NATURAL** (`Cobranca.vencimentoNatural`), nunca da data que
+  está na tela. Medir a partir da data já deslocada faria a sequência andar em dobro.
+- **Desfazer a cobrança que originou a sequência desfaz o deslocamento.** Sem isso o "sim" não
+  teria volta.
+
+**Armadilhas:**
+
+- **Guardar UMA sequência por paciente parecia cumprir o pedido e quebrava a outra metade dele.**
+  "Nova alteração = nova sequência" estava certo; "preservando os históricos anteriores" não:
+  ajustar uma cobrança de 2027 faria os vencimentos de 2026, já arrumados, voltarem sozinhos à
+  data natural. Data de dinheiro mudando calada. Só apareceu ao exercitar o caso em produção
+  DEPOIS do #571 — os testes passavam, porque testavam o que eu tinha desenhado.
+- **Apagar a foto de perfil era o ÚNICO valor que o update ignorava.** O campo entrava como
+  `photo3x4 !== null ? {...} : {}` e o apagamento chega como vazio → `null` → fora do update. O
+  critério certo é a PRESENÇA do campo no formulário, como o logotipo ao lado já fazia.
+- **O botão do WhatsApp já virava "Desconectar"; o que faltava era a PERGUNTA.**
+  `whatsapp_connected` só era atualizado enquanto o QR estava na tela. Pedido de tela que parece
+  de botão costuma ser de dado.
+- **`pedeSenhaAtual` morava ao lado de quem lê o cookie** e por isso arrastava o segredo da sessão
+  no carregamento do módulo: o teste sequer rodava (`AUTH0_SECRET ausente`). Função pura que não
+  roda em teste é função sem rede.
+- `account` NÃO registra login por Google — só a autorização do Calendar. Concluir "ela não usa
+  Google" a partir da ausência de linha lá é conclusão errada, e eu cheguei a tirá-la.
+
+**Pendente:**
+
+- **O Ledivan não tem "esqueci a senha".** Quem esquece entra pelo código no e-mail/Telegram e
+  define outra em Ajustes — funciona, mas não é o que a regra da frota pede.
+- O ramo Google/código da senha foi provado por TESTE, não em produção: não dá para abrir sessão
+  por e-mail da terapeuta nem forjar o claim em produção. O controle (quem entra com senha
+  continua sendo perguntado) está conferido no ar.
+- Google Agenda (`access_denied`, app OAuth em modo de teste) continua esperando a decisão do dono.
+
+---
+
 ## 2026-11-06 — Doc 61: quatro redações, o lembrete de sessão e o mês com duas cobranças
 
 **Entregue:** PR #569.
