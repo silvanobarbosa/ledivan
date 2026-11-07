@@ -17,10 +17,18 @@ const SITUACOES: { v: SituacaoFiltro; r: string }[] = [
 const brl = (n: number) => (n > 0.005 ? formatBRL(n) : "—");
 
 export function RelatorioFinanceiro({ pacientes, vigencias }: { pacientes: PacienteFin[]; vigencias: VigenciaTaxa[] }) {
-  // `anos` sai do próprio cálculo; começa no mais recente, ou no ano corrente se não houver dados.
+  // `anos` sai do próprio cálculo.
   const anosBase = useMemo(() => matrizFinanceira(pacientes, 0, "todos", vigencias).anos, [pacientes, vigencias]);
   const [situacao, setSituacao] = useState<SituacaoFiltro>("todos");
-  const [ano, setAno] = useState<number>(anosBase[0] ?? new Date().getFullYear());
+  /**
+   * Doc 62: abre no ANO ATUAL, não no mais recente com dado — e a virada do calendário se resolve
+   * sozinha, sem ninguém mexer em nada em janeiro. Só cai no mais recente quando o ano corrente
+   * não está na lista, que é quando não há nada dele para mostrar.
+   */
+  const anoCorrente = new Date().getFullYear();
+  const [ano, setAno] = useState<number>(
+    anosBase.includes(anoCorrente) ? anoCorrente : (anosBase[0] ?? anoCorrente),
+  );
 
   // Doc 50: nos filtros "Pagos"/"Todos" o valor recebido entra pelo LÍQUIDO (taxa do cartão).
   const m = useMemo(() => matrizFinanceira(pacientes, ano, situacao, vigencias), [pacientes, ano, situacao, vigencias]);

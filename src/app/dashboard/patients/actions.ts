@@ -1,6 +1,7 @@
 "use server";
 
 import { db } from "@/db";
+import { camposFinanceirosAlterados, dataCorrigeVigenciaDoPreco, type CampoFinanceiro } from "@/lib/vigenciaPorCampo";
 import { patients, patientStatusHistory, patientPriceHistory, patientContractHistory, patientPaymentFormatHistory, patientPackageHistory, patientRecords, patientAnamnese, patientActivities, patientDocuments, patientReajusteChanges, assignments, scaleApplications, treatmentGoals, patientPackages, therapySessions } from "@/db/schema";
 import { auth } from "@/auth";
 import { and, eq, gt, gte, inArray, sql } from "drizzle-orm";
@@ -509,13 +510,45 @@ export async function updatePatient(patientId: string, formData: FormData) {
    */
   const efetivaBruta = (formData.get("dataEfetiva") as string | null) || (formData.get("formatoDesde") as string | null);
   const efetivaPedida = efetivaBruta ? new Date(`${efetivaBruta}T00:00:00`) : null;
-  const mesmoDia = (a?: Date | null, b?: Date | null) =>
-    !!a && !!b && a.getFullYear() === b.getFullYear() && a.getMonth() === b.getMonth() && a.getDate() === b.getDate();
-  const soAVigenciaMudou =
-    formData.get("vigenciaEditada") === "true" &&
-    newFee === existing.sessionFee &&
-    !!efetivaPedida && !Number.isNaN(efetivaPedida.getTime()) &&
-    !!precoMaisRecente && !mesmoDia(efetivaPedida, precoMaisRecente.dataEfetiva);
+  /**
+   * Doc 62: a vigência é do campo que MUDOU, não da tela.
+   *
+   * "Vale a partir de" é um campo só, e o Financeiro tem vários campos que guardam a própria
+   * vigência. A correção do doc 75 — mexer na data conserta a vigência do preço — continua, mas a
+   * condição era frouxa: bastava ter tocado na data. Alterar só o intervalo de reajuste, com
+   * vigência 01/11, mexia junto na vigência do VALOR DA SESSÃO, que ninguém tocou.
+   *
+   * Agora a data só corrige o preço quando o preço é a única coisa em jogo — nenhum outro campo
+   * financeiro alterado nesta gravação. Mudou outro campo, a data é dele.
+   */
+  const alteradosFinanceiros: CampoFinanceiro[] = camposFinanceirosAlterados(
+    {
+      valor: existing.sessionFee,
+      formato: existing.paymentFormat,
+      pacote: existing.pacoteTipo,
+      sessoes: existing.sessionsInPacket,
+      vencimento: existing.paymentDay,
+      vencimento2: existing.paymentDay2,
+      pagarAte: existing.horasAntesPagamento,
+      reajuste: existing.validadePrecoMeses,
+    },
+    {
+      valor: newFee,
+      formato: newFormat,
+      pacote: formData.has("pacoteTipo") ? ((formData.get("pacoteTipo") as string) || null) : existing.pacoteTipo,
+      sessoes: formData.has("sessionsInPacket") ? (formData.get("sessionsInPacket") || null) : existing.sessionsInPacket,
+      vencimento: formData.has("paymentDay") ? (formData.get("paymentDay") || null) : existing.paymentDay,
+      vencimento2: formData.has("paymentDay2") ? (formData.get("paymentDay2") || null) : existing.paymentDay2,
+      pagarAte: formData.has("horasAntesPagamento") ? (formData.get("horasAntesPagamento") || null) : existing.horasAntesPagamento,
+      reajuste: formData.has("validadePrecoMeses") ? (formData.get("validadePrecoMeses") || null) : existing.validadePrecoMeses,
+    },
+  );
+  const soAVigenciaMudou = dataCorrigeVigenciaDoPreco({
+    vigenciaEditada: formData.get("vigenciaEditada") === "true",
+    dataNova: efetivaPedida,
+    dataAtual: precoMaisRecente?.dataEfetiva ?? null,
+    alterados: alteradosFinanceiros,
+  });
 
   if (soAVigenciaMudou && precoMaisRecente) {
     const validade = formData.has("validadePrecoMeses")
