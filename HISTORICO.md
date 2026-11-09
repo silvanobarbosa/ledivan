@@ -7,6 +7,55 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-11-09 — Doc 9: relatório pela IA da casa, vencimento sem colisão, nome na impressão e anexo por atividade
+
+**Entregue:** PRs #579 e #580, mais a migration 0038 (coluna `activity_id`, já aplicada em
+produção) e o percurso `scripts/e2e-doc9-relatorio-impressao-anexo.mjs`.
+
+**Por quê:** a Carteira de novembro mostrava, no vencimento do mês, o pagamento do mês anterior
+(Sarah e Thayná); o Relatório de Acompanhamento dependia de a terapeuta cadastrar uma chave de IA
+própria, e nenhuma delas tem; o nome do documento sumira da impressão; e não havia como prender um
+arquivo a uma atividade.
+
+**Decisões que ficam valendo:**
+
+- **A sequência de vencimentos move TAMBÉM a cobrança já paga.** Decisão do dono, revertendo a
+  borda do doc 19. Vencimento não é data de pagamento — o dia em que o dinheiro entrou mora em
+  `session_payments` e não se mexe. Parar a paga não preservava nada e partia a sequência ao meio.
+- **A IA do Relatório é a da CASA**, pelo gateway (`rl-heavy`), com a chave da terapeuta só como
+  reserva. É a mesma política do ditado (doc 76), e por isso a escolha do motor virou um módulo
+  só: `src/lib/motorDeIA.ts`. Duas telas resolvendo IA de jeitos diferentes é uma delas parando
+  sem ninguém notar.
+- **O que o prompt pede, a saída garante.** `textoDoRelatorio` tira a marcação de Markdown que
+  escapar. Pedir não basta quando o custo de errar é um documento entregue à paciente.
+- **Anexo de item mora na tabela que já existe** (`patient_document`, com `record_id` ou
+  `activity_id`), nunca em tabela nova: regra de acesso, rota de download e limpeza num lugar só.
+
+**Armadilhas:**
+
+- **Colisão de vencimento não aparece na guia Geral.** A cobrança paga não mostra "vence", então
+  duas parcelas no mesmo dia só se enxergam na Carteira. O defeito ficou invisível do lado onde a
+  terapeuta trabalha.
+- **Pedir ao modelo não é garantir.** O primeiro teste real voltou com `### Evolução do
+  Tratamento` apesar da proibição, e com "em março" completado para "março de 2026" — uma data que
+  ninguém registrou. Apertada só a proibição de Markdown, o texto virou ficha: repetiu os campos
+  da anamnese um a um e listou as sessões por data. Foram três rodadas até o texto ficar um
+  documento. Prompt de saída clínica se valida gerando, não lendo.
+- **Script com `import` de `dotenv` precisa morar em `scripts/` do próprio app** — fora da pasta,
+  o Node não acha o `node_modules`.
+- **Cobrança colidindo nas contas de teste não é defeito do app.** As 29 que sobraram são todas da
+  conta demo (Dr. Sócrates), nenhuma de nov/2026 em diante. Vale conferir de quem é o dado antes
+  de sair corrigindo.
+
+**Pendente:**
+
+- **Disco C: em 3,4 GB livres de 237 GB.** Mapeado, não apagado: emulador Android `af.avd` 7,8 GB
+  (último uso 21/07/2026), NDK 4,4 GB e system-images 3,5 GB, mais ~4 GB de zips em Downloads. São
+  ~20 GB recuperáveis, e a decisão é do dono.
+- Recuperação de senha e Google Agenda seguem no planejamento, por decisão do dono.
+
+---
+
 ## 2026-11-07 — Doc 20: a sequência nova apaga os pins antigos, crédito sem origem não é saldo, anamnese na ordem da entrevista e Relatório de Acompanhamento Terapêutico
 
 **Entregue:** PRs #576 e #577, mais `scripts/doc20-corrigir-dados.mjs`, já rodado em produção.
