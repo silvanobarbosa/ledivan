@@ -156,13 +156,6 @@ export type EntradaDasCobrancas = {
    * natural dela. Os passos não se somam: cada um é medido a partir do natural.
    */
   deslocamentos?: { aPartirDe: Date | string; meses: number }[] | null;
-  /**
-   * Chaves que o deslocamento NÃO move (doc 19): cobrança com pagamento lançado.
-   *
-   * "Preservando os pagamentos e históricos anteriores" — mexer no vencimento de algo já pago
-   * reescreveria a data de um dinheiro que já entrou.
-   */
-  naoDeslocar?: string[];
 };
 
 const emData = (d: Date | string): Date => (d instanceof Date ? d : new Date(d));
@@ -557,8 +550,15 @@ export function cobrancasDoPaciente(e: EntradaDasCobrancas): Cobranca[] {
   /**
    * Doc 19: as sequências deslocadas. Valem para toda cobrança cujo vencimento NATURAL cai no
    * ponto de partida ou depois dele — inclusive as que nasceram agora, de sessões marcadas depois
-   * da decisão. Fica de fora o que já tem pagamento (`naoDeslocar`) e, logo abaixo, o que tem data
-   * escolhida à mão: entre uma regra e uma escolha, vale a escolha.
+   * da decisão. Fica de fora só o que tem data escolhida à mão (logo abaixo): entre uma regra e
+   * uma escolha, vale a escolha.
+   *
+   * A sequência move TAMBÉM a cobrança já paga (doc 9). Ela ficava parada, e era a parte da
+   * sequência que mais precisava andar: quem paga adiantado tem o vencimento sistematicamente um
+   * ciclo à frente do dinheiro, que é o motivo de a terapeuta deslocar a sequência. Parando a
+   * paga, a parcela seguinte descia para cima dela — duas cobranças no mesmo dia, e o mês passava
+   * a exibir o pagamento do mês anterior na Carteira. Vencimento não é data de pagamento: o dia
+   * em que o dinheiro entrou está em `session_payments` e não se mexe aqui.
    *
    * Vale a ÚLTIMA sequência que alcança a cobrança, nunca a soma delas: cada passo é medido a
    * partir do vencimento natural, então somar dois passos andaria o dobro do pedido.
@@ -568,11 +568,10 @@ export function cobrancasDoPaciente(e: EntradaDasCobrancas): Cobranca[] {
     .filter((r) => !Number.isNaN(r.desde.getTime()) && r.meses !== 0)
     .sort((a, b) => a.desde.getTime() - b.desde.getTime());
   if (regras.length) {
-    const parado = new Set(e.naoDeslocar ?? []);
     const diaDe = (d: Date) => new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
     for (const c of out) {
       const v = c.vencimento;
-      if (!v || parado.has(c.chave)) continue;
+      if (!v) continue;
       let vale: { desde: Date; meses: number } | null = null;
       for (const r of regras) if (diaDe(v) >= diaDe(r.desde)) vale = r;
       if (!vale) continue;

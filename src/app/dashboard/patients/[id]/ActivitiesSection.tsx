@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { Plus, Pencil, Trash2, X, Check } from "lucide-react";
 import { formatDateTime } from "@/lib/therapy";
 import { createActivity, editActivity, deleteActivity } from "../actions";
+import { AnexosDaAtividade } from "./AnexosDoRegistro";
 
 const inputCls = "w-full px-4 py-2.5 rounded-xl bg-white/70 border border-border focus:ring-2 focus:ring-accent/20 focus:border-accent outline-none transition text-sm";
 
@@ -15,7 +16,7 @@ export type Atividade = { id: string; title: string; description: string; update
  * para o mais antigo, logo abaixo do botão. Cada item: 1ª linha título + data/hora + editar/excluir;
  * 2ª linha a descrição. Editar atualiza a data/hora.
  */
-function AtividadeItem({ a }: { a: Atividade }) {
+function AtividadeItem({ a, patientId }: { a: Atividade; patientId: string }) {
   const router = useRouter();
   const [editando, setEditando] = useState(false);
   const [titulo, setTitulo] = useState(a.title);
@@ -66,6 +67,8 @@ function AtividadeItem({ a }: { a: Atividade }) {
       ) : (
         a.description && <p className="text-sm text-foreground/80 whitespace-pre-wrap leading-relaxed">{a.description}</p>
       )}
+      {/* Doc 9: "um botão para anexar embaixo de cada atividade inserida". */}
+      {!editando && <AnexosDaAtividade patientId={patientId} activityId={a.id} />}
     </div>
   );
 }
@@ -107,7 +110,7 @@ export function ActivitiesSection({ patientId, activities }: { patientId: string
       )}
       <p className="text-xs text-foreground/50">Registre as atividades e ferramentas realizadas com o paciente.</p>
 
-      {activities.map((a) => <AtividadeItem key={a.id} a={a} />)}
+      {activities.map((a) => <AtividadeItem key={a.id} a={a} patientId={patientId} />)}
     </div>
   );
 }

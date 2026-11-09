@@ -14,8 +14,10 @@ import { cobrancasDoPaciente, type EntradaDasCobrancas, type SessaoDaCobranca } 
  * As duas bordas que o dono fixou:
  *  - "enquanto fizerem parte da mesma sequência financeira" — uma nova alteração estabelece uma
  *    sequência NOVA, e a regra velha morre com ela (é uma linha por paciente, substituída);
- *  - "preservando os pagamentos e históricos anteriores" — cobrança já paga não anda, e o que
- *    ficou para trás do ponto de partida também não.
+ *  - "preservando os pagamentos e históricos anteriores" — o que ficou para trás do ponto de
+ *    partida não anda.
+ *
+ * O que a cobrança JÁ PAGA faz mudou no doc 9: ela anda junto com a sequência. Ver o teste no fim.
  */
 
 const FEE = 100;
@@ -72,12 +74,25 @@ describe("doc 19: o deslocamento é uma regra, não uma lista de datas", () => {
       .toEqual(["7/9", "5/10", "5/1"]);
   });
 
-  it("cobrança com pagamento lançado não anda, mesmo depois do ponto", () => {
-    const segunda = pacotes(cobrar(tresMeses()))[1].chave;
-    // A 1ª e a 3ª andam um mês; a 2ª (paga) fica em 05/10 — e por isso passa a aparecer ANTES da
-    // primeira, que foi parar em 07/10. A guia ordena por vencimento, não por ordem de pacote.
-    expect(datas(cobrar(tresMeses(), { deslocamentos: [{ aPartirDe: new Date(2026, 8, 5), meses: 1 }], naoDeslocar: [segunda] })))
-      .toEqual(["5/10", "7/10", "5/12"]);
+  /**
+   * DOC 9 — A COBRANÇA JÁ PAGA ANDA JUNTO. Antes ela ficava parada, para "preservar o pagamento".
+   *
+   * Preservava o pagamento de nada: o dia em que o dinheiro entrou mora no pagamento, não no
+   * vencimento. Em troca, quebrava a sequência — a parcela seguinte descia para cima da paga, duas
+   * cobranças ficavam no mesmo dia, e o mês passava a mostrar na Carteira o pagamento do mês
+   * anterior. Era o caso da Sarah e da Thayná (novembro/2026).
+   */
+  it("a cobrança já paga anda junto — a sequência não se parte ao meio", () => {
+    expect(datas(cobrar(tresMeses(), { deslocamentos: [{ aPartirDe: new Date(2026, 8, 5), meses: 1 }] })))
+      .toEqual(["7/10", "5/11", "5/12"]);
+  });
+
+  it("deslocando para trás, nenhuma parcela cai em cima da outra", () => {
+    // O padrão da Sarah: paga adiantado, e por isso a terapeuta puxa a sequência um mês para trás.
+    // Com a paga parada, a 2ª e a 3ª dividiam o mesmo dia. Agora as três andam, e as três diferem.
+    const d = datas(cobrar(tresMeses(), { deslocamentos: [{ aPartirDe: new Date(2026, 8, 1), meses: -1 }] }));
+    expect(d).toEqual(["7/8", "5/9", "5/10"]);
+    expect(new Set(d).size).toBe(d.length);
   });
 
   it("o vencimento editado à mão vence a regra — é a data mais específica que existe", () => {

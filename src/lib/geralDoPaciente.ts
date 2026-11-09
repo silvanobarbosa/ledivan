@@ -225,9 +225,8 @@ export async function geralDoPaciente(userId: string, patientId: string): Promis
     pagamentos: pagamentos.map(pagamentoParaMotor),
     envios: envios.map((e) => ({ cobrancaChave: e.cobrancaChave, enviadaEm: local(e.enviadaEm), enviadaPor: e.enviadaPor })),
     vencimentos: vencEditados.map((v) => ({ chave: v.cobrancaChave, vencimento: local(v.vencimento) })),
-    // Doc 19: a regra e as cobranças que ela não pode mover (as que já têm dinheiro lançado).
+    // Doc 19: as sequências deslocadas do paciente.
     deslocamentos: desloc.map((d) => ({ aPartirDe: local(d.aPartirDe), meses: d.meses })),
-    naoDeslocar: [...new Set(pagamentos.map((p) => p.cobrancaChave).filter((k): k is string => !!k))],
     // As datas que a serie pulou por horario bloqueado: viram a linha "Hor. Bloq.", nunca sessao.
     bloqueios: puladas.map((b) => ({ data: local(b.date) })),
     hoje: hojeDeParede(),

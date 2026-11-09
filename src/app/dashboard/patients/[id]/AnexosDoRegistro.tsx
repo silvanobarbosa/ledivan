@@ -2,24 +2,45 @@
 
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
 import { Paperclip, Download, Trash2 } from "lucide-react";
-import { deleteMaterial, listAnexosDoRegistro, uploadAnexoDoRegistro } from "./materials-actions";
+import {
+  deleteMaterial,
+  listAnexosDaAtividade,
+  listAnexosDoRegistro,
+  uploadAnexoDaAtividade,
+  uploadAnexoDoRegistro,
+} from "./materials-actions";
 
 type Anexo = { id: string; title: string; kind: string; content: string; at: string };
 
 /**
- * Anexos de UM registro do histórico terapêutico (prints 6.pdf, item 5): "incluir botão para anexos
- * em cada inclusão". Mesmo cofre privado dos demais anexos do prontuário — o paciente não vê. Preso
- * ao registro: cai junto quando o registro é apagado.
+ * Anexos de UM item do prontuário: um registro do histórico terapêutico (prints 6.pdf, item 5) ou
+ * uma atividade (doc 9) — "incluir botão para anexos em cada inclusão", agora nos dois lugares.
+ *
+ * Mesmo cofre privado dos demais anexos do prontuário: o paciente não vê. Preso ao item, cai junto
+ * quando o item é apagado. Um componente só porque é a mesma tela e a mesma regra — dois iguais
+ * divergem na primeira correção que alguém faz num deles.
  */
-export function AnexosDoRegistro({ patientId, recordId }: { patientId: string; recordId: string }) {
+function Anexos({
+  patientId,
+  itemId,
+  campo,
+  carregarItens,
+  enviar,
+}: {
+  patientId: string;
+  itemId: string;
+  campo: "recordId" | "activityId";
+  carregarItens: (id: string) => Promise<Anexo[]>;
+  enviar: (fd: FormData) => Promise<{ ok: boolean; error?: string }>;
+}) {
   const [itens, setItens] = useState<Anexo[]>([]);
   const [erro, setErro] = useState<string | null>(null);
   const [pendente, iniciar] = useTransition();
   const inputRef = useRef<HTMLInputElement>(null);
 
   const carregar = useCallback(async () => {
-    setItens(await listAnexosDoRegistro(recordId));
-  }, [recordId]);
+    setItens(await carregarItens(itemId));
+  }, [carregarItens, itemId]);
 
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { void carregar(); }, [carregar]);
@@ -33,10 +54,10 @@ export function AnexosDoRegistro({ patientId, recordId }: { patientId: string; r
     setErro(null);
     const fd = new FormData();
     fd.set("patientId", patientId);
-    fd.set("recordId", recordId);
+    fd.set(campo, itemId);
     fd.set("file", arquivo);
     iniciar(async () => {
-      const r = await uploadAnexoDoRegistro(fd);
+      const r = await enviar(fd);
       if (!r.ok) { setErro(r.error ?? "Não deu para anexar."); return; }
       await carregar();
     });
@@ -81,5 +102,31 @@ export function AnexosDoRegistro({ patientId, recordId }: { patientId: string; r
       </button>
       {erro && <p className="text-xs text-red-600">{erro}</p>}
     </div>
+  );
+}
+
+/** Anexos de um registro do histórico terapêutico. */
+export function AnexosDoRegistro({ patientId, recordId }: { patientId: string; recordId: string }) {
+  return (
+    <Anexos
+      patientId={patientId}
+      itemId={recordId}
+      campo="recordId"
+      carregarItens={listAnexosDoRegistro}
+      enviar={uploadAnexoDoRegistro}
+    />
+  );
+}
+
+/** Anexos de uma atividade (doc 9). */
+export function AnexosDaAtividade({ patientId, activityId }: { patientId: string; activityId: string }) {
+  return (
+    <Anexos
+      patientId={patientId}
+      itemId={activityId}
+      campo="activityId"
+      carregarItens={listAnexosDaAtividade}
+      enviar={uploadAnexoDaAtividade}
+    />
   );
 }

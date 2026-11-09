@@ -164,10 +164,13 @@ export const patientDocument = pgTable("patient_document", {
   // Anexo preso a UM registro do histórico terapêutico (prints 6.pdf, item 5). Null = anexo do
   // prontuário em geral (nível do paciente). Cai junto quando o registro é apagado.
   recordId: uuid("record_id").references(() => patientRecords.id, { onDelete: "cascade" }),
+  // Doc 9: o mesmo, preso a UMA atividade (+Atividades). Cai junto quando a atividade é apagada.
+  activityId: uuid("activity_id").references(() => patientActivities.id, { onDelete: "cascade" }),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (t) => ([
   index("patient_document_patient_idx").on(t.patientId),
   index("patient_document_record_idx").on(t.recordId),
+  index("patient_document_activity_idx").on(t.activityId),
 ]));
 
 // Diário entre sessões (#6/diary): o paciente escreve; o terapeuta lê antes da próxima sessão.

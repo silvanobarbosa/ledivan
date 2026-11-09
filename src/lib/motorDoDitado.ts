@@ -25,66 +25,14 @@ import "server-only";
  * morre com ela.
  */
 
-import OpenAI from "openai";
-import { db } from "@/db";
-import { users } from "@/db/schema";
-import { eq } from "drizzle-orm";
-import { decryptSecret } from "@/lib/crypto";
 import { promptDoCampo, textoLimpo, tetoDoCampo, type CampoDoDitado } from "@/lib/ditado";
+import { motorDeIA, type MotorDeIA } from "@/lib/motorDeIA";
 
-const PROVIDERS: Record<string, { baseURL?: string; stt: string; chat: string }> = {
-  openai: { stt: "whisper-1", chat: "gpt-4o-mini" },
-  groq: { baseURL: "https://api.groq.com/openai/v1", stt: "whisper-large-v3", chat: "llama-3.3-70b-versatile" },
-};
+export { gatewayDaCasaLigado } from "@/lib/motorDeIA";
 
-const GATEWAY_BASE = () => (process.env.REVERBLABS_AI_BASE_URL || "").replace(/\/+$/, "");
-const GATEWAY_KEY = () => process.env.REVERBLABS_AI_KEY || "";
-
-/** O gateway da casa está configurado neste ambiente? */
-export function gatewayDaCasaLigado(): boolean {
-  return !!(GATEWAY_BASE() && GATEWAY_KEY());
-}
-
-export type MotorDoDitado = {
-  /** De onde veio — serve para a mensagem de erro dizer onde olhar. */
-  origem: "casa" | "terapeuta";
-  cliente: OpenAI;
-  stt: string;
-  chat: string;
-};
-
-/**
- * O motor a usar, nesta ordem. `null` quando não há nenhum — e aí o microfone não existe na tela.
- *
- * O modelo de texto é o PESADO (`rl-heavy`) de propósito: o que sai daqui vira uma AFIRMAÇÃO
- * dentro de um prontuário. Modelo pequeno erra com fluência, e ninguém revisa o que parece certo.
- */
-export async function motorDoDitado(userId: string): Promise<MotorDoDitado | null> {
-  if (gatewayDaCasaLigado()) {
-    return {
-      origem: "casa",
-      cliente: new OpenAI({ apiKey: GATEWAY_KEY(), baseURL: GATEWAY_BASE(), timeout: 60_000 }),
-      stt: process.env.REVERBLABS_AI_STT || "rl-stt",
-      chat: process.env.REVERBLABS_AI_MODEL || "rl-heavy",
-    };
-  }
-
-  const [me] = await db.select({ provider: users.aiProvider, keyEnc: users.aiKeyEnc })
-    .from(users).where(eq(users.id, userId)).limit(1);
-  const cfg = me?.provider ? PROVIDERS[me.provider] : undefined;
-  if (!cfg || !me?.keyEnc) return null;
-
-  let apiKey: string;
-  try { apiKey = decryptSecret(me.keyEnc); }
-  catch { return null; }
-
-  return {
-    origem: "terapeuta",
-    cliente: new OpenAI({ apiKey, timeout: 60_000, ...(cfg.baseURL ? { baseURL: cfg.baseURL } : {}) }),
-    stt: cfg.stt,
-    chat: cfg.chat,
-  };
-}
+/** O motor do ditado é o motor de IA do app — a casa primeiro, a chave da terapeuta como reserva. */
+export type MotorDoDitado = MotorDeIA;
+export const motorDoDitado = motorDeIA;
 
 /**
  * A fala organizada em texto de prontuário.

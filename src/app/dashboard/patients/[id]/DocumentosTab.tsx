@@ -57,6 +57,9 @@ export function DocumentosTab({ patientId, cabecalho, documentos }: { patientId:
   // Doc 34 (G10): o conteúdo a imprimir fica SEMPRE montado (portal), e um nonce dispara a impressão.
   // Assim nada é desmontado antes de o navegador capturar a página (no celular o print() não bloqueia).
   const [printDoc, setPrintDoc] = useState("");
+  // Doc 9: o nome do documento sumiu da impressão — só o corpo viajava para o portal. O papel saía
+  // com cabeçalho e texto, sem dizer QUE documento era.
+  const [printNome, setPrintNome] = useState("");
   const [printNonce, setPrintNonce] = useState(0);
 
   // eslint-disable-next-line react-hooks/set-state-in-effect
@@ -67,8 +70,9 @@ export function DocumentosTab({ patientId, cabecalho, documentos }: { patientId:
     window.print();
   }, [printNonce]);
 
-  function imprimir(content: string) {
-    setPrintDoc(content);
+  function imprimir(d: DocumentoSalvo) {
+    setPrintDoc(d.content);
+    setPrintNome(rotuloDoc(d));
     setPrintNonce((n) => n + 1);
   }
 
@@ -135,7 +139,7 @@ export function DocumentosTab({ patientId, cabecalho, documentos }: { patientId:
         <button
           type="button"
           onClick={gerarRelatorio}
-          disabled={pending}
+          disabled={gerando || pending}
           className="inline-flex items-center gap-1.5 rounded-xl border border-primary/30 bg-primary/5 px-4 py-2 text-sm font-bold text-primary transition hover:bg-primary/10 disabled:opacity-60 cursor-pointer"
         >
           <Sparkles className="w-4 h-4" /> {gerando ? "Gerando…" : "Relatório de Acompanhamento Terapêutico"}
@@ -180,7 +184,7 @@ export function DocumentosTab({ patientId, cabecalho, documentos }: { patientId:
               </div>
               <div className="flex items-center gap-2 shrink-0">
                 <button type="button" onClick={() => editar(d)} title="Editar" aria-label="Editar documento" className="text-foreground/40 hover:text-primary transition cursor-pointer"><Pencil className="w-4 h-4" /></button>
-                <button type="button" onClick={() => imprimir(d.content)} title="Imprimir" aria-label="Imprimir documento" className="text-foreground/40 hover:text-primary transition cursor-pointer"><Printer className="w-4 h-4" /></button>
+                <button type="button" onClick={() => imprimir(d)} title="Imprimir" aria-label="Imprimir documento" className="text-foreground/40 hover:text-primary transition cursor-pointer"><Printer className="w-4 h-4" /></button>
                 <button type="button" onClick={() => excluir(d)} disabled={pending} title="Excluir" aria-label="Excluir documento" className="text-foreground/40 hover:text-red-600 transition cursor-pointer disabled:opacity-50"><Trash2 className="w-4 h-4" /></button>
               </div>
             </div>
@@ -206,6 +210,7 @@ export function DocumentosTab({ patientId, cabecalho, documentos }: { patientId:
           `}</style>
           <div className="font-sans text-[15px] leading-relaxed text-black">
             <Cabecalho cab={cabecalho} />
+            {printNome && <p className="font-bold text-center text-[16px] mb-4">{printNome}</p>}
             <pre className="whitespace-pre-wrap font-sans text-[15px] leading-relaxed">{printDoc}</pre>
           </div>
         </div>,
