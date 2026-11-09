@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { TITULO_RELATORIO, promptDoRelatorio } from "@/lib/relatorioAcompanhamento";
+import { TITULO_RELATORIO, promptDoRelatorio, textoDoRelatorio } from "@/lib/relatorioAcompanhamento";
 
 /**
  * DOC 20 — Relatório de Acompanhamento Terapêutico.
@@ -55,5 +55,35 @@ describe("doc 20: o pedido do relatório", () => {
 
   it("o título é fixo — é o nome do botão", () => {
     expect(TITULO_RELATORIO).toBe("Relatório de Acompanhamento Terapêutico");
+  });
+});
+
+/**
+ * Doc 9, item 5: o primeiro teste real de geração voltou com `### Evolução do Tratamento`, apesar
+ * de o prompt proibir Markdown. O campo do documento é texto puro — o `###` iria para o papel.
+ */
+describe("textoDoRelatorio: o que o prompt pede, a saída garante", () => {
+  it("tira cabeçalho de Markdown e mantém o título", () => {
+    expect(textoDoRelatorio("### Evolução do Tratamento\nMarina chegou em agosto."))
+      .toBe("Evolução do Tratamento\nMarina chegou em agosto.");
+  });
+
+  it("tira negrito e itálico sem comer o texto", () => {
+    expect(textoDoRelatorio("A paciente **reduziu** a cafeína e *dormiu* melhor."))
+      .toBe("A paciente reduziu a cafeína e dormiu melhor.");
+  });
+
+  it("não mexe em asterisco solto nem em pontuação", () => {
+    expect(textoDoRelatorio("Dose de 50mg * manhã")).toBe("Dose de 50mg * manhã");
+    expect(textoDoRelatorio("Objetivo: dormir a noite inteira.")).toBe("Objetivo: dormir a noite inteira.");
+  });
+
+  it("junta as linhas em branco repetidas e apara as pontas", () => {
+    expect(textoDoRelatorio("\n\nPrimeira.\n\n\n\nSegunda.\n\n")).toBe("Primeira.\n\nSegunda.");
+  });
+
+  it("texto sem marcação nenhuma atravessa igual", () => {
+    const t = "Marina Teixeira iniciou o acompanhamento em agosto de 2026.\n\nSegue em atendimento.";
+    expect(textoDoRelatorio(t)).toBe(t);
   });
 });

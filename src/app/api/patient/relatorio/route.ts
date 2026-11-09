@@ -6,7 +6,7 @@ import { db } from "@/db";
 import { patientActivities, patientAnamnese, patientRecords, patients } from "@/db/schema";
 import { motorDeIA } from "@/lib/motorDeIA";
 import { rateLimit } from "@/lib/rateLimit";
-import { TITULO_RELATORIO, promptDoRelatorio, type FontesDoRelatorio } from "@/lib/relatorioAcompanhamento";
+import { TITULO_RELATORIO, promptDoRelatorio, textoDoRelatorio, type FontesDoRelatorio } from "@/lib/relatorioAcompanhamento";
 
 const Corpo = z.object({ patientId: z.string().uuid() });
 
@@ -102,7 +102,7 @@ export async function POST(req: Request) {
         { role: "user", content: prompt.usuario },
       ],
     });
-    const texto = (r.choices[0]?.message?.content ?? "").trim();
+    const texto = textoDoRelatorio(r.choices[0]?.message?.content ?? "");
     if (!texto) return NextResponse.json({ error: "A IA não devolveu texto. Tente de novo." }, { status: 502 });
     return NextResponse.json({ titulo: TITULO_RELATORIO, texto });
   } catch (e) {
