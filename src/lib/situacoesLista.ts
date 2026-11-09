@@ -104,7 +104,6 @@ export async function situacoesDaLista(userId: string, pacientes: PacienteParaSi
       pagamentos: (porPaciente.pagamentos.get(p.id) ?? []).map(pagamentoParaMotor),
       vencimentos: (porPaciente.vencEditados.get(p.id) ?? []).map((v) => ({ chave: v.cobrancaChave, vencimento: local(v.vencimento) })),
       deslocamentos: (porPaciente.deslocamentos.get(p.id) ?? []).map((d) => ({ aPartirDe: local(d.aPartirDe), meses: d.meses })),
-      naoDeslocar: [...new Set((porPaciente.pagamentos.get(p.id) ?? []).map((x) => x.cobrancaChave).filter((k): k is string => !!k))],
       hoje,
     };
     const r = resumoDaGeral(entrada);

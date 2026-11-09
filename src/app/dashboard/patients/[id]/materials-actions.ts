@@ -1,7 +1,7 @@
 "use server";
 
 import { db } from "@/db";
-import { patientDocument, patientRecords, patients } from "@/db/schema";
+import { patientActivities, patientDocument, patientRecords, patients } from "@/db/schema";
 import { and, eq, desc, isNull } from "drizzle-orm";
 import { auth } from "@/auth";
 import { revalidatePath } from "next/cache";
@@ -106,8 +106,10 @@ export async function listAnexosProntuario(patientId: string) {
       eq(patientDocument.userId, s.user.id),
       eq(patientDocument.patientId, patientId),
       eq(patientDocument.compartilhado, false),
-      // anexos presos a um registro aparecem SÓ dentro do registro, não na lista geral.
+      // anexo preso a um item aparece SÓ dentro dele (registro, doc 33; atividade, doc 9), nunca
+      // também na lista geral — senão o mesmo arquivo passa a existir duas vezes na tela.
       isNull(patientDocument.recordId),
+      isNull(patientDocument.activityId),
     ))
     .orderBy(desc(patientDocument.createdAt));
   return rows.map((r) => ({ id: r.id, title: r.title, kind: r.kind, content: r.content, at: (r.createdAt as Date).toISOString() }));
@@ -123,18 +125,35 @@ export async function listAnexosDoRegistro(recordId: string) {
   return rows.map((r) => ({ id: r.id, title: r.title, kind: r.kind, content: r.content, at: (r.createdAt as Date).toISOString() }));
 }
 
-/** Anexa um arquivo a um registro específico do histórico terapêutico. */
-export async function uploadAnexoDoRegistro(formData: FormData): Promise<{ ok: boolean; error?: string }> {
+/** Anexos presos a UMA atividade (doc 9). */
+export async function listAnexosDaAtividade(activityId: string) {
+  const s = await auth();
+  if (!s?.user?.id) return [];
+  const rows = await db.select().from(patientDocument)
+    .where(and(eq(patientDocument.userId, s.user.id), eq(patientDocument.activityId, activityId)))
+    .orderBy(desc(patientDocument.createdAt));
+  return rows.map((r) => ({ id: r.id, title: r.title, kind: r.kind, content: r.content, at: (r.createdAt as Date).toISOString() }));
+}
+
+/**
+ * O anexo preso a um item do prontuário — registro (doc 33) ou atividade (doc 9).
+ *
+ * Um caminho só porque é uma regra só: mesmo cofre privado, mesmo limite de tamanho, mesma lista
+ * de tipos e a mesma checagem de dono. O que muda é a qual item ele fica pendurado.
+ */
+async function anexarAoItem(
+  formData: FormData,
+  campo: "recordId" | "activityId",
+  rotuloDoItem: string,
+): Promise<{ ok: boolean; error?: string }> {
   const s = await auth();
   if (!s?.user?.id) return { ok: false, error: "Sessão inválida." };
   const patientId = formData.get("patientId") as string;
-  const recordId = formData.get("recordId") as string;
+  const itemId = formData.get(campo) as string;
   if (!patientId || !(await owns(s.user.id, patientId))) return { ok: false, error: "Sem acesso a este paciente." };
-  if (!recordId) return { ok: false, error: "Registro inválido." };
-  // o registro tem que ser deste profissional e deste paciente
-  const [rec] = await db.select({ id: patientRecords.id }).from(patientRecords)
-    .where(and(eq(patientRecords.id, recordId), eq(patientRecords.userId, s.user.id), eq(patientRecords.patientId, patientId))).limit(1);
-  if (!rec) return { ok: false, error: "Registro não encontrado." };
+  if (!itemId) return { ok: false, error: `${rotuloDoItem} inválido.` };
+  // o item tem que ser deste profissional e deste paciente
+  if (!(await itemEDoPaciente(s.user.id, patientId, itemId, campo))) return { ok: false, error: `${rotuloDoItem} não encontrado.` };
 
   const file = formData.get("file") as File | null;
   const title = ((formData.get("title") as string) || "").trim() || (file?.name ?? "Anexo");
@@ -152,14 +171,36 @@ export async function uploadAnexoDoRegistro(formData: FormData): Promise<{ ok: b
     });
     await db.insert(patientDocument).values({
       userId: s.user.id, patientId, title: title.slice(0, 160), kind: "file", content: blob.pathname,
-      compartilhado: false, recordId,
+      compartilhado: false, [campo]: itemId,
     });
     revalidatePath(`/dashboard/patients/${patientId}`);
     return { ok: true };
   } catch (e) {
-    console.error("upload anexo registro:", e);
+    console.error(`upload anexo ${campo}:`, e);
     return { ok: false, error: "Falha ao enviar o arquivo." };
   }
+}
+
+/** O item existe, é deste profissional e é DESTE paciente — nunca só "existe". */
+async function itemEDoPaciente(userId: string, patientId: string, itemId: string, campo: "recordId" | "activityId") {
+  if (campo === "recordId") {
+    const [r] = await db.select({ id: patientRecords.id }).from(patientRecords)
+      .where(and(eq(patientRecords.id, itemId), eq(patientRecords.userId, userId), eq(patientRecords.patientId, patientId))).limit(1);
+    return !!r;
+  }
+  const [a] = await db.select({ id: patientActivities.id }).from(patientActivities)
+    .where(and(eq(patientActivities.id, itemId), eq(patientActivities.userId, userId), eq(patientActivities.patientId, patientId))).limit(1);
+  return !!a;
+}
+
+/** Anexa um arquivo a um registro específico do histórico terapêutico. */
+export async function uploadAnexoDoRegistro(formData: FormData): Promise<{ ok: boolean; error?: string }> {
+  return anexarAoItem(formData, "recordId", "Registro");
+}
+
+/** Anexa um arquivo a uma atividade específica (doc 9). */
+export async function uploadAnexoDaAtividade(formData: FormData): Promise<{ ok: boolean; error?: string }> {
+  return anexarAoItem(formData, "activityId", "Atividade");
 }
 
 export async function listMaterials(patientId: string) {

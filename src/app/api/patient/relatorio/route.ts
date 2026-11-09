@@ -4,7 +4,7 @@ import { and, asc, desc, eq } from "drizzle-orm";
 import { auth } from "@/auth";
 import { db } from "@/db";
 import { patientActivities, patientAnamnese, patientRecords, patients } from "@/db/schema";
-import { getUserAiClient, SemChaveIA } from "@/lib/ai-client";
+import { motorDeIA } from "@/lib/motorDeIA";
 import { rateLimit } from "@/lib/rateLimit";
 import { TITULO_RELATORIO, promptDoRelatorio, type FontesDoRelatorio } from "@/lib/relatorioAcompanhamento";
 
@@ -13,12 +13,18 @@ const Corpo = z.object({ patientId: z.string().uuid() });
 /**
  * RELATÓRIO DE ACOMPANHAMENTO TERAPÊUTICO (doc 20) — o prontuário virando documento.
  *
- * A IA é a do PRÓPRIO terapeuta (BYOK, ver ai-client): é prontuário saindo do app, e o dado
- * clínico vai para o provedor dele, com a chave dele. Sem chave cadastrada o botão avisa, em vez
- * de dar 500.
+ * A IA é a da CASA (doc 9): "o profissional consegue utilizar esse recurso diretamente no
+ * sistema, sem precisar contratar outro serviço de IA, criar uma conta externa ou cadastrar uma
+ * chave própria". É a mesma política do ditado (doc 76), e por isso o motor é o mesmo módulo —
+ * gateway da casa primeiro, chave da terapeuta como reserva, modelo PESADO nos dois casos.
  *
- * O texto gerado é RASCUNHO: nasce no campo de edição e só vira documento quando a terapeuta
- * salva — ela revisa, corta e completa antes, como o documento pede.
+ * Confidencialidade: o prontuário sai do app para o gateway da casa, que é infraestrutura nossa
+ * (VPS própria), não um provedor de terceiro contratado pela terapeuta. O conteúdo clínico nunca
+ * entra em log — nem no caminho feliz nem no erro: o `console.error` do fim registra a falha, não
+ * o que foi enviado. Nada é guardado deste lado: o texto gerado nasce no campo de edição e só
+ * existe em banco quando ela salva.
+ *
+ * O texto gerado é RASCUNHO: ela revisa, corta e completa antes de salvar, como o documento pede.
  */
 export async function POST(req: Request) {
   const session = await auth();
@@ -79,10 +85,17 @@ export async function POST(req: Request) {
     );
   }
 
+  const motor = await motorDeIA(userId);
+  if (!motor) {
+    return NextResponse.json(
+      { error: "A IA do Le'Divan está indisponível no momento. Tente de novo em alguns minutos." },
+      { status: 503 },
+    );
+  }
+
   try {
-    const ai = await getUserAiClient(userId);
-    const r = await ai.openai.chat.completions.create({
-      model: ai.chatModel,
+    const r = await motor.cliente.chat.completions.create({
+      model: motor.chat,
       temperature: 0.4,
       messages: [
         { role: "system", content: prompt.sistema },
@@ -93,20 +106,20 @@ export async function POST(req: Request) {
     if (!texto) return NextResponse.json({ error: "A IA não devolveu texto. Tente de novo." }, { status: 502 });
     return NextResponse.json({ titulo: TITULO_RELATORIO, texto });
   } catch (e) {
-    if (e instanceof SemChaveIA) return NextResponse.json({ error: e.message }, { status: 400 });
     /**
-     * A chave existe, é legível, e o PROVEDOR a recusou. Dizer "não deu agora" manda a terapeuta
-     * esperar por uma falha que só passa se ela trocar a chave — e é a falha mais provável de
-     * todas, porque chave revogada ou sem crédito não avisa ninguém.
+     * Rodando pela IA da casa, a terapeuta não tem o que consertar — a mensagem diz o estado, não
+     * manda ela mexer em configuração que não é dela. Rodando pela chave dela (reserva), aí sim o
+     * 401/403 é acionável e precisa apontar para Ajustes → IA.
      */
     const status = typeof e === "object" && e && "status" in e ? Number((e as { status?: unknown }).status) : 0;
-    if (status === 401 || status === 403) {
+    if ((status === 401 || status === 403) && motor.origem === "terapeuta") {
       return NextResponse.json({ error: "O provedor recusou sua chave de IA. Confira em Ajustes → IA." }, { status: 400 });
     }
     if (status === 429) {
-      return NextResponse.json({ error: "O provedor de IA está limitando as chamadas. Tente de novo em alguns minutos." }, { status: 429 });
+      return NextResponse.json({ error: "A IA está limitando as chamadas agora. Tente de novo em alguns minutos." }, { status: 429 });
     }
-    console.error("relatório de acompanhamento:", e);
-    return NextResponse.json({ error: "Não deu para gerar o relatório agora." }, { status: 500 });
+    // A falha, nunca o conteúdo: o prontuário não entra em log.
+    console.error("relatório de acompanhamento: falha na geração", { origem: motor.origem, status });
+    return NextResponse.json({ error: "Não deu para gerar o relatório agora. Tente de novo em alguns minutos." }, { status: 502 });
   }
 }
