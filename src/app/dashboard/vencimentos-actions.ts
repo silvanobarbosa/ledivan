@@ -6,7 +6,8 @@ import { auth } from "@/auth";
 import { patients } from "@/db/schema";
 import { geralDoPaciente, type LinhaNaTela } from "@/lib/geralDoPaciente";
 import { registrarCobrancaEnviada } from "@/app/dashboard/patients/[id]/geral-actions";
-import { vencimentosNoDia, type CobrancaResolvida } from "@/lib/vencimentosDoDia";
+import { type CobrancaResolvida } from "@/lib/vencimentosDoDia";
+import { vencimentosDoUsuarioEm } from "@/lib/vencimentosDoUsuario";
 import { resolverCobrancas } from "@/lib/resolverCobrancas";
 import { pagamentosPorMes, type MesPagamentos, type ResumoAno } from "@/lib/pagamentosPorMes";
 import { getVigenciasTaxa } from "@/lib/cardFees";
@@ -27,18 +28,8 @@ export async function vencimentosEm(diaISO: string): Promise<{ ok: boolean; avul
   const session = await auth();
   if (!session?.user?.id) return { ok: false, error: "Sessão inválida." };
   if (!/^\d{4}-\d{2}-\d{2}$/.test(diaISO)) return { ok: false, error: "Data inválida." };
-  const userId = session.user.id;
-
-  const vigencias = await getVigenciasTaxa(userId);
-  const lista = (await cadastrosCobraveis(userId)).filter((p) => p.status === "ativo");
-  const todas: CobrancaResolvida[] = [];
-  await Promise.all(lista.map(async (p) => {
-    const geral = await geralDoPaciente(userId, p.id);
-    if (!geral) return;
-    todas.push(...resolverCobrancas(geral.linhas as LinhaNaTela[], p, vigencias));
-  }));
-
-  const { avulsas, pacotes } = vencimentosNoDia(todas, diaISO);
+  // Doc 63: a conta mora em `vencimentosDoUsuario` — o aviso diário usa a mesma, sem sessão.
+  const { avulsas, pacotes } = await vencimentosDoUsuarioEm(session.user.id, diaISO);
   return { ok: true, avulsas, pacotes };
 }
 
