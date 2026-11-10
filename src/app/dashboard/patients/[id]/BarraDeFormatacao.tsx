@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import { AlignCenter, AlignJustify, AlignLeft, AlignRight, List } from "lucide-react";
 import { comoHtml } from "@/lib/textoRico";
 
@@ -145,6 +145,14 @@ export function CampoRico({
   className?: string;
 }) {
   const ref = useRef<HTMLDivElement>(null);
+  /**
+   * O conteúdo inicial congela na primeira renderização.
+   *
+   * `dangerouslySetInnerHTML` lendo a prop viva reescreve o campo a cada tecla — e reescrever o
+   * campo devolve o cursor ao começo dele. O texto saía invertido, letra por letra, porque cada
+   * caractere era digitado na posição zero. Quem troca o conteúdo de fora troca a `key`.
+   */
+  const [inicial] = useState(() => comoHtml(htmlInicial));
 
   return (
     <div
@@ -162,7 +170,7 @@ export function CampoRico({
         const texto = e.clipboardData.getData("text/plain");
         document.execCommand("insertText", false, texto);
       }}
-      dangerouslySetInnerHTML={{ __html: comoHtml(htmlInicial) }}
+      dangerouslySetInnerHTML={{ __html: inicial }}
       className={`campo-rico w-full px-4 py-3 rounded-xl bg-white/70 border border-border focus:ring-2 focus:ring-accent/20 focus:border-accent outline-none transition text-sm overflow-auto ${className}`}
       style={{ minHeight: minAltura }}
     />

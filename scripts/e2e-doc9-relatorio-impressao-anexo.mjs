@@ -73,20 +73,22 @@ const page = await ctx.newPage();
 
 try {
   // ───────────────────────────── 1. O BOTÃO GERA O RELATÓRIO ──────────────────────────────────
-  await page.goto(`${BASE}/dashboard/patients/${p.id}`, { waitUntil: "networkidle" });
+  await page.goto(`${BASE}/dashboard/patients/${p.id}`, { waitUntil: "domcontentloaded" });
   await page.getByRole("button", { name: "Documentos", exact: true }).click();
   await page.waitForTimeout(500);
 
   const botao = page.getByRole("button", { name: /Relatório de Acompanhamento Terapêutico/ });
   check("o botão existe na guia Documentos", await botao.count() > 0);
   await botao.click();
+  // Doc 63: o nome e o corpo deixaram de ser <input>/<textarea> e viraram campos formatáveis.
   await page.waitForFunction(() => {
-    const t = document.querySelector("textarea");
-    return !!t && t.value.trim().length > 200;
+    const campos = document.querySelectorAll(".campo-rico");
+    return campos.length > 1 && (campos[1].innerText ?? "").trim().length > 200;
   }, { timeout: 120000 });
 
-  const nome = await page.inputValue('input[placeholder^="Nome do documento"]');
-  const corpo = await page.inputValue("textarea");
+  const campos = page.locator(".campo-rico");
+  const nome = (await campos.nth(0).innerText()).trim();
+  const corpo = (await campos.nth(1).innerText()).trim();
   check("preencheu o NOME do documento", nome === "Relatório de Acompanhamento Terapêutico", nome);
   check("preencheu o CORPO com o relatório", corpo.length > 200, `${corpo.length} caracteres`);
   check("o corpo não tem cabeçalho de Markdown", !/^#{1,6} /m.test(corpo));
@@ -100,7 +102,7 @@ try {
   check("o relatório virou documento salvo", !!doc && doc.name === "Relatório de Acompanhamento Terapêutico", doc?.name ?? "(nenhum)");
 
   // ───────────────────────────── 3. A IMPRESSÃO TRAZ O NOME ───────────────────────────────────
-  await page.reload({ waitUntil: "networkidle" });
+  await page.reload({ waitUntil: "domcontentloaded" });
   await page.getByRole("button", { name: "Documentos", exact: true }).click();
   await page.waitForTimeout(500);
   await page.getByRole("button", { name: "Imprimir documento" }).first().click();
@@ -127,6 +129,10 @@ try {
   check("o botão fica EMBAIXO da atividade", iAnx > iDesc && iDesc > iTit, `titulo=${iTit} descricao=${iDesc} anexar=${iAnx}`);
   const quantos = await page.getByRole("button", { name: /Anexar arquivo/ }).count();
   check("um por atividade, não um na guia inteira", quantos === 1, `${quantos} botão(ões) para 1 atividade`);
+} catch (e) {
+  // Sem isto o `process.exit` do finally engole a exceção e o percurso "passa" sem ter rodado.
+  falhas++;
+  console.log("FALHA  o percurso parou:", e?.message ?? e);
 } finally {
   await nav.close();
   for (const id of criados) {
