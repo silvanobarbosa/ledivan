@@ -304,9 +304,29 @@ function vigenciaCongelada(escolhida: Date, pacotes: PacoteParaReajuste[]): Date
   return pacotes.length ? vigenciaDoProximoPacote(escolhida, pacotes) : escolhida;
 }
 
+/**
+ * Doc 63: os campos que pertencem à área do FORMATO DE PAGAMENTO.
+ *
+ * O cadastro é um formulário só — Dados e Financeiro enviam juntos. O documento pediu um Salvar
+ * próprio para a área do formato: "ao clicar em um botão salvar o mesmo deve salvar apenas o da
+ * área correspondente a ele". Como o POST carrega o formulário inteiro, quem recorta é o servidor:
+ * com `areaDoSalvar=financeiro`, tudo o que não está nesta lista é descartado antes de qualquer
+ * leitura, e cada campo descartado cai no valor que já estava gravado — que é exatamente o que
+ * `formData.has(x) ? ... : existing.x` já fazia por toda esta função.
+ */
+const CAMPOS_DO_FORMATO = new Set([
+  "paymentFormat", "sessionFee", "sessionsInPacket", "pacoteTipo", "paymentDay", "paymentDay2",
+  "horasAntesPagamento", "formatoDesde", "vigenciaEditada", "aplicaPrecoEm", "financeiroTocado",
+  "areaDoSalvar", "voltarPara",
+]);
+
 export async function updatePatient(patientId: string, formData: FormData) {
   const session = await auth();
   if (!session?.user?.id) throw new Error("Não autorizado");
+
+  if (formData.get("areaDoSalvar") === "financeiro") {
+    for (const chave of [...formData.keys()]) if (!CAMPOS_DO_FORMATO.has(chave)) formData.delete(chave);
+  }
 
   const existing = await db.query.patients.findFirst({
     where: and(eq(patients.id, patientId), eq(patients.userId, session.user.id)),
@@ -418,6 +438,7 @@ export async function updatePatient(patientId: string, formData: FormData) {
           existing.returnedAt,
           formData.get("validadePrecoMeses") ? parseInt(formData.get("validadePrecoMeses") as string) : null,
           ultimoReajuste,
+          existing.reajusteAPartirDe,
         )
       : existing.priceReviewDate,
     attendanceMode: (formData.get("attendanceMode") as string) || existing.attendanceMode,
@@ -480,7 +501,7 @@ export async function updatePatient(patientId: string, formData: FormData) {
       const retorno = new Date();
       await db.update(patients).set({
         returnedAt: retorno,
-        priceReviewDate: vencimentoDoPreco(existing.startedAt, retorno, existing.validadePrecoMeses, ultimoReajuste),
+        priceReviewDate: vencimentoDoPreco(existing.startedAt, retorno, existing.validadePrecoMeses, ultimoReajuste, existing.reajusteAPartirDe),
       }).where(and(eq(patients.id, patientId), eq(patients.userId, session.user.id)));
     }
   }
@@ -567,7 +588,7 @@ export async function updatePatient(patientId: string, formData: FormData) {
       .where(eq(patientPriceHistory.id, precoMaisRecente.id));
     // O próximo lembrete conta da vigência: mudando ela, a data do próximo reajuste muda junto.
     await db.update(patients)
-      .set({ priceReviewDate: vencimentoDoPreco(efetivaPedida!, null, validade) })
+      .set({ priceReviewDate: vencimentoDoPreco(efetivaPedida!, null, validade, null, existing.reajusteAPartirDe) })
       .where(and(eq(patients.id, patientId), eq(patients.userId, session.user.id)));
   }
 
@@ -630,7 +651,7 @@ export async function updatePatient(patientId: string, formData: FormData) {
       // Doc 75: conta da VIGÊNCIA (o que ela digitou), não da data empurrada. Contar da empurrada
       // adiava o reajuste pelo tanto que o próximo pacote estivesse à frente — foi o que o dono viu
       // nas datas da Patricia, da Thayná e da Celani.
-      .set({ priceReviewDate: vencimentoDoPreco(vigenciaDeclarada ?? efetivaFinal, null, validadeAtual) })
+      .set({ priceReviewDate: vencimentoDoPreco(vigenciaDeclarada ?? efetivaFinal, null, validadeAtual, null, existing.reajusteAPartirDe) })
       .where(and(eq(patients.id, patientId), eq(patients.userId, session.user.id)));
   }
   // VIGÊNCIA DO FORMATO (dono, 15/09/2026): a troca vale a partir da data escolhida no formulário e
@@ -1479,7 +1500,7 @@ export async function apagarReajuste(patientId: string, vigenciaISO: string): Pr
     if (ultimo) {
       patch.sessionFee = ultimo.valor;
       // Doc 75: a vigência declarada do que sobrou — mesma regra do salvamento.
-      patch.priceReviewDate = vencimentoDoPreco(vigenciaDoReajuste(ultimo), null, paciente.validadePrecoMeses);
+      patch.priceReviewDate = vencimentoDoPreco(vigenciaDoReajuste(ultimo), null, paciente.validadePrecoMeses, null, paciente.reajusteAPartirDe);
     } else {
       // Não sobrou preço nenhum: o cadastro vai a zero. Deixar o valor antigo seria manter no
       // cadastro um preço que o histórico já não tem como explicar (doc 65).

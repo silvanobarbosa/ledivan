@@ -433,6 +433,10 @@ export const patients = pgTable("patients", {
   // Validade do preço em meses, contada do início — ou do RETORNO, quando o paciente parou e
   // voltou. A data vencida fica em `priceReviewDate`, calculada a partir daqui.
   validadePrecoMeses: integer("validade_preco_meses"),
+  // Doc 63: a data a partir da qual o prazo acima conta, escolhida no calendário. Quando existe,
+  // é ela que manda — as referências antigas (início, retorno, último reajuste) continuam valendo
+  // para quem nunca usou o campo. É só LEMBRETE: não mexe em valor de sessão, pacote ou cobrança.
+  reajusteAPartirDe: timestamp("reajuste_a_partir_de"),
   // Pacote: "completo" são 4 sessões (o padrão do dono); "fragmentado" é por semanas do mês.
   pacoteTipo: text("pacote_tipo"),
   // LEGADO: o terapeuta informava quantas semanas do mês tinham atendimento. Não é mais
@@ -807,6 +811,27 @@ export const patientReajusteChanges = pgTable("patient_reajuste_changes", {
   vigencia: timestamp("vigencia"),
 }, (t) => [
   index("reajuste_changes_patient_idx").on(t.patientId),
+]);
+
+/**
+ * OBSERVAÇÕES do Financeiro (doc 63): um assunto e o texto dele, por paciente.
+ *
+ * Anotação livre da terapeuta sobre o financeiro daquele paciente — o combinado por telefone, o
+ * acerto de um mês atípico, o que ela precisa lembrar e não cabe em campo nenhum. Não entra em
+ * conta nenhuma: não é cobrança, não é reajuste, não é histórico de valor.
+ *
+ * `createdAt` é a data que a lista mostra, e ela acompanha a EDIÇÃO: o documento pede que editar
+ * atualize a data e o horário do registro em vez de criar outro.
+ */
+export const patientObservacoes = pgTable("patient_observacoes", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  userId: text("user_id").references(() => users.id, { onDelete: "cascade" }).notNull(),
+  patientId: uuid("patient_id").references(() => patients.id, { onDelete: "cascade" }).notNull(),
+  assunto: text("assunto").notNull(),
+  observacao: text("observacao").notNull(),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (t) => [
+  index("patient_observacoes_patient_idx").on(t.patientId),
 ]);
 
 // Crédito no saldo do paciente (doc 36): quando paga a mais e o usuário escolhe guardar a sobra.
