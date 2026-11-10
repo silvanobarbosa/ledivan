@@ -40,14 +40,34 @@ describe("montarContrato", () => {
     expect(t).toContain("5.2. Faltas do Paciente: As sessões em que o paciente não comparecer e não realizar o cancelamento prévio do agendamento serão cobradas normalmente, independentemente do motivo da ausência (saúde, viagens, imprevistos ou compromissos escolares). A cobrança será desconsiderada mediante apresentação de atestado médico.");
   });
   it("doc 41: terapia troca 'analítico' por 'terapêutico' (6.1 e seção 8)", () => {
-    const t = c({ ...base, descricaoAtendimento: "terapia" });
+    // Doc 63: a seção 8 só existe com o processo de encerramento combinado — por isso ele entra aqui.
+    const t = c({ ...base, descricaoAtendimento: "terapia", processoEncerramento: "2 a 4" });
     expect(t).toContain("sigilo ético e terapêutico");
     expect(t).toContain("8. DO ENCERRAMENTO E ALTA TERAPÊUTICA");
     expect(t).not.toContain("sigilo ético e analítico");
-    const psi = c({ ...base, descricaoAtendimento: "psicanalise" });
+    const psi = c({ ...base, descricaoAtendimento: "psicanalise", processoEncerramento: "2 a 4" });
     expect(psi).toContain("sigilo ético e analítico");
     expect(psi).toContain("8. DO ENCERRAMENTO E ALTA ANALÍTICA");
   });
+  // Doc 63: o processo de encerramento é combinado por paciente e entra na cláusula 8.1 em negrito.
+  it("doc 63: preenchido, a cláusula 8.1 sai com o combinado em negrito", () => {
+    const bruto = montarContrato({ ...base, processoEncerramento: "2 a 4" });
+    expect(textoLimpo(bruto)).toContain("realização de no mínimo 2 a 4 sessões de encerramento");
+    // O negrito é o marcador …, o mesmo que o contrato usa no que o sistema preencheu.
+    expect(bruto).toContain("2 a 4");
+    expect(textoLimpo(bruto)).toContain("9. DO FORO");
+  });
+  it("doc 63: vazio, a seção do encerramento some e o foro vira a 8", () => {
+    const t = c({ ...base, processoEncerramento: null });
+    expect(t).not.toContain("DO ENCERRAMENTO E ALTA");
+    expect(t).not.toContain("Processo de Encerramento:");
+    expect(t).toContain("8. DO FORO");
+    expect(t).not.toContain("9. DO FORO");
+  });
+  it("doc 63: só espaço em branco conta como vazio", () => {
+    expect(c({ ...base, processoEncerramento: "   " })).not.toContain("DO ENCERRAMENTO E ALTA");
+  });
+
   // Doc 70: a IDADE saiu do contrato — ela é a data de nascimento contada, e envelhece sozinha
   // depois de o documento impresso ser assinado. A data fica; o número, não.
   it("mostra a data de nascimento e NÃO mostra idade", () => {

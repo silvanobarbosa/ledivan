@@ -159,6 +159,7 @@ export async function createPatient(formData: FormData) {
     isCouple: formData.get("isCouple") === "1",
     guardianRelationship: (formData.get("guardianRelationship") as string) || null,
     devolutivaMeses: formData.get("devolutivaMeses") ? Number(formData.get("devolutivaMeses")) : null,
+    processoEncerramento: (formData.get("processoEncerramento") as string)?.trim() || null,
     queixaPrincipal: (formData.get("queixaPrincipal") as string)?.trim() || null,
     gender: genderOf(formData),
     cpf: (formData.get("cpf") as string) || null,
@@ -364,6 +365,9 @@ export async function updatePatient(patientId: string, formData: FormData) {
     devolutivaMeses: formData.has("devolutivaMeses")
       ? (formData.get("devolutivaMeses") ? Number(formData.get("devolutivaMeses")) : null)
       : existing.devolutivaMeses,
+    processoEncerramento: formData.has("processoEncerramento")
+      ? ((formData.get("processoEncerramento") as string)?.trim() || null)
+      : existing.processoEncerramento,
     queixaPrincipal: formData.has("queixaPrincipal") ? ((formData.get("queixaPrincipal") as string)?.trim() || null) : existing.queixaPrincipal,
     gender: formData.has("gender") ? genderOf(formData) : existing.gender,
     cpf: (formData.get("cpf") as string) ?? existing.cpf,

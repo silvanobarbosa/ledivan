@@ -41,6 +41,7 @@ export default async function Contrato({ params }: { params: Promise<{ id: strin
       paymentDay2: patients.paymentDay2,
       horasAntesPagamento: patients.horasAntesPagamento,
       timesPerPeriod: patients.timesPerPeriod,
+      processoEncerramento: patients.processoEncerramento,
       contratoTexto: patients.contratoTexto,
     })
     .from(patients)
@@ -73,6 +74,7 @@ export default async function Contrato({ params }: { params: Promise<{ id: strin
     pacienteEndereco: paciente.address,
     pacienteTelefone: paciente.phone,
     responsavelTelefone: paciente.guardianPhone,
+    processoEncerramento: paciente.processoEncerramento,
     responsavelEmail: paciente.guardianEmail,
     pacienteEmail: paciente.email,
     valorSessao: paciente.sessionFee,
