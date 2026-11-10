@@ -21,7 +21,7 @@ import { resolveFeature, parseOverrides } from "@/lib/features";
 import { horaDeParede } from "@/lib/horaLocal";
 import { creditoAConfirmar, creditoDisponivel, geralDoPaciente } from "@/lib/geralDoPaciente";
 import { getVigenciasTaxa } from "@/lib/cardFees";
-import { descricaoValida } from "@/lib/recibo";
+import { comoAssina, descricaoValida } from "@/lib/recibo";
 import { pagadorSugerido } from "@/lib/pagadorSugerido";
 import { agendaRecorrente } from "@/lib/agendaRecorrente";
 
@@ -230,6 +230,9 @@ export default async function PatientPage({ params }: { params: Promise<{ id: st
       telefone: me?.therapistPhone ?? null,
       email: me?.email ?? null,
       logoUrl: me?.logoUrl ?? null,
+      // Doc 63: a assinatura no fim do documento impresso — nome, como ela assina (a descrição do
+      // atendimento de Ajustes) e o registro. Sem registro, a linha simplesmente não sai.
+      assina: comoAssina(me?.descricaoAtendimento),
     },
     paciente: {
       nome: patient.name,

@@ -7,6 +7,8 @@ import { auth } from "@/auth";
 import { and, eq, gt, gte, inArray, sql } from "drizzle-orm";
 import { encerraAgenda, sessoesAEncerrar } from "@/lib/encerrarAgenda";
 import { revalidatePath } from "next/cache";
+import { limparHtmlDoDocumento } from "@/lib/htmlDoDocumento";
+import { somenteTexto } from "@/lib/textoRico";
 import { ehAlteracaoDeCampo, entradaDoHistorico, maisRecenteDoHistorico, usaPacote, vencimentoDoPreco, vigenciaDoReajuste } from "@/lib/reajuste";
 import { dataDoPreco, diaDoFormulario, formatoMudou, vigenciasAGravar } from "@/lib/trocaDeFormato";
 import { agoraParede } from "@/lib/horaLocal";
@@ -1300,10 +1302,12 @@ export async function createDocument(patientId: string, content: string, name: s
   const session = await auth();
   if (!session?.user?.id) return { ok: false, error: "Não autorizado" };
   const userId = session.user.id;
-  const c = (content || "").trim();
-  if (!c) return { ok: false, error: "Escreva o conteúdo do documento." };
-  const nome = (name || "").trim();
-  if (!nome) return { ok: false, error: "Dê um nome ao documento." };
+  // Doc 63: o documento passou a guardar formatação. O que entra é HTML passado pela faxina, e o
+  // que decide se está preenchido é o TEXTO dentro dele — `<div><br></div>` não é conteúdo.
+  const c = limparHtmlDoDocumento(content || "").trim();
+  if (!somenteTexto(c).trim()) return { ok: false, error: "Escreva o conteúdo do documento." };
+  const nome = limparHtmlDoDocumento(name || "").trim();
+  if (!somenteTexto(nome).trim()) return { ok: false, error: "Dê um nome ao documento." };
   const dono = await db.query.patients.findFirst({ where: and(eq(patients.id, patientId), eq(patients.userId, userId)), columns: { id: true } });
   if (!dono) return { ok: false, error: "Paciente não encontrado." };
 
@@ -1321,10 +1325,12 @@ export async function updateDocument(id: string, content: string, name: string):
   const session = await auth();
   if (!session?.user?.id) return { ok: false, error: "Não autorizado" };
   const userId = session.user.id;
-  const c = (content || "").trim();
-  if (!c) return { ok: false, error: "Escreva o conteúdo do documento." };
-  const nome = (name || "").trim();
-  if (!nome) return { ok: false, error: "Dê um nome ao documento." };
+  // Doc 63: o documento passou a guardar formatação. O que entra é HTML passado pela faxina, e o
+  // que decide se está preenchido é o TEXTO dentro dele — `<div><br></div>` não é conteúdo.
+  const c = limparHtmlDoDocumento(content || "").trim();
+  if (!somenteTexto(c).trim()) return { ok: false, error: "Escreva o conteúdo do documento." };
+  const nome = limparHtmlDoDocumento(name || "").trim();
+  if (!somenteTexto(nome).trim()) return { ok: false, error: "Dê um nome ao documento." };
   const doc = await db.query.patientDocuments.findFirst({ where: and(eq(patientDocuments.id, id), eq(patientDocuments.userId, userId)) });
   if (!doc) return { ok: false, error: "Documento não encontrado." };
   await db.update(patientDocuments).set({ name: nome, content: c, updatedAt: agoraParede() })
