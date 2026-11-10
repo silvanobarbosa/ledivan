@@ -1,6 +1,6 @@
 "use server";
 
-import { and, asc, eq, inArray, isNull } from "drizzle-orm";
+import { and, asc, eq, isNull } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
 import { db } from "@/db";
 import { auth } from "@/auth";
@@ -16,7 +16,6 @@ import { creditoParaAbater } from "@/lib/creditoAConfirmar";
 import { aplicarCreditosPendentes } from "@/lib/aplicarCreditos";
 import { apagarPagamentosLigados } from "@/lib/pagamentosLigados";
 import { limparCreditosOrfaos } from "@/lib/creditoOrfao";
-import { pinsDaSequenciaAnterior } from "@/lib/sequenciaDeVencimentos";
 
 /**
  * A SESSÃO DE ORIGEM DO CRÉDITO passa a dizer onde ele foi parar (doc 58).
@@ -528,7 +527,7 @@ export async function limparEnviosDaCobranca(entrada: { patientId: string; cobra
  * SÓ enquanto o pagamento NÃO foi lançado — depois de pago não faz sentido remarcar o vencimento, e
  * o documento restringe a edição a esse caso.
  */
-export async function editarVencimento(entrada: { patientId: string; cobrancaChave: string; data: string; proximasTambem?: boolean }): Promise<{ ok: boolean; error?: string }> {
+export async function editarVencimento(entrada: { patientId: string; cobrancaChave: string; data: string }): Promise<{ ok: boolean; error?: string }> {
   const patientId = String(entrada?.patientId ?? "");
   const chave = String(entrada?.cobrancaChave ?? "").slice(0, 200);
   const ctx = await contexto(patientId, chave);
@@ -547,69 +546,22 @@ export async function editarVencimento(entrada: { patientId: string; cobrancaCha
 
   // Meio-dia hora de parede: não escorrega de dia em fuso nenhum do caminho (igual ao pagamento).
   const vencimento = new Date(`${entrada.data}T12:00:00`);
-  const overrides: { chave: string; vencimento: Date }[] = [{ chave, vencimento }];
 
   /**
-   * Doc 45 + doc 19: "deseja alterar o mês de vencimento das próximas parcelas também?"
+   * Doc 63: a janela "deseja alterar o mês das próximas parcelas também?" SAIU.
    *
-   * O doc 45 respondia "sim" escrevendo uma data nova para cada cobrança futura que existia
-   * NAQUELE instante. Sessão marcada depois nascia com o vencimento natural e voltava a quebrar a
-   * sequência que a terapeuta tinha acabado de arrumar. O doc 19 fechou a regra: as novas seguem
-   * a sequência deslocada "enquanto fizerem parte da mesma sequência financeira do paciente".
-   *
-   * Por isso aqui não se grava mais uma lista de datas, e sim UMA regra: a partir de tal
-   * vencimento, tudo anda tantos meses. O motor a aplica inclusive ao que ainda não existe.
-   *
-   * O tamanho do passo é medido a partir do vencimento NATURAL — o que o motor calcula —, nunca
-   * do que está na tela. Medir a partir da data já deslocada faria o segundo deslocamento somar
-   * ao primeiro e a sequência andaria em dobro.
-   *
-   * "Caso seja realizada uma nova alteração de vencimento, deverá ser estabelecida uma nova
-   * sequência, sempre preservando os pagamentos e históricos anteriores": cada alteração grava
-   * uma sequência que vale do SEU ponto em diante, e a anterior continua mandando no trecho antes
-   * dele. Uma linha por ponto de partida — alterar duas vezes o mesmo ponto substitui.
+   * Editar um vencimento passa a alterar só aquele, e a tela avisa para conferir as próximas. A
+   * regra de sequência deixou de ser CRIADA aqui — as que já existem em `cobranca_deslocamentos`
+   * continuam valendo e sendo aplicadas pelo motor, porque o documento é explícito: "as datas
+   * anteriores deverão permanecer exatamente como estão, sem recálculos, alterações ou
+   * deslocamentos retroativos". Tirar a janela não pode desarrumar o que ela já arrumou.
    */
-  const anoMes = (iso: string | null | undefined) => { const m = iso ? String(iso).match(/^(\d{4})-(\d{2})/) : null; return m ? Number(m[1]) * 12 + (Number(m[2]) - 1) : null; };
-  const naturalISO = cobranca.vencimentoNatural ?? cobranca.vencimento;
-  const naturalAM = anoMes(naturalISO);
-  const novoAM = Number(entrada.data.slice(0, 4)) * 12 + (Number(entrada.data.slice(5, 7)) - 1);
-  const meses = naturalAM != null ? novoAM - naturalAM : 0;
-  if (entrada.proximasTambem && meses !== 0 && naturalISO) {
-    const aPartirDe = new Date(`${String(naturalISO).slice(0, 10)}T12:00:00`);
-    await db.insert(cobrancaDeslocamentos)
-      .values({ userId: ctx.userId, patientId, aPartirDe, meses, cobrancaChave: chave })
-      .onConflictDoUpdate({
-        target: [cobrancaDeslocamentos.userId, cobrancaDeslocamentos.patientId, cobrancaDeslocamentos.aPartirDe],
-        set: { meses, cobrancaChave: chave, updatedAt: new Date() },
-      });
-
-    /**
-     * Doc 20: *"sim não está deslocando o mês das próximas parcelas (sem pagamento)"*.
-     *
-     * As datas gravadas uma a uma pela sequência anterior ganhavam da regra nova e a seguravam
-     * parada. Começar uma sequência é apagar os pins do trecho que ela passa a governar.
-     */
-    const pins = pinsDaSequenciaAnterior(
-      todas.map((c) => ({ chave: c.chave, vencimentoNatural: c.vencimentoNatural, vencimento: c.vencimento, pago: c.pagamentos.length > 0 })),
-      { aPartirDe: String(naturalISO).slice(0, 10), excluir: chave },
-    );
-    if (pins.length) {
-      await db.delete(cobrancaVencimentos).where(and(
-        eq(cobrancaVencimentos.userId, ctx.userId),
-        eq(cobrancaVencimentos.patientId, patientId),
-        inArray(cobrancaVencimentos.cobrancaChave, pins),
-      ));
-    }
-  }
-
-  for (const o of overrides) {
-    await db.insert(cobrancaVencimentos)
-      .values({ userId: ctx.userId, patientId, cobrancaChave: o.chave, vencimento: o.vencimento })
-      .onConflictDoUpdate({
-        target: [cobrancaVencimentos.userId, cobrancaVencimentos.patientId, cobrancaVencimentos.cobrancaChave],
-        set: { vencimento: o.vencimento, updatedAt: new Date() },
-      });
-  }
+  await db.insert(cobrancaVencimentos)
+    .values({ userId: ctx.userId, patientId, cobrancaChave: chave, vencimento })
+    .onConflictDoUpdate({
+      target: [cobrancaVencimentos.userId, cobrancaVencimentos.patientId, cobrancaVencimentos.cobrancaChave],
+      set: { vencimento, updatedAt: new Date() },
+    });
 
   revalidatePath(`/dashboard/patients/${patientId}`);
   return { ok: true };
