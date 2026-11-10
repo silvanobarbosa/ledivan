@@ -28,7 +28,8 @@ export type PatientFormData = {
   registrationNumber?: number | null; agendaId?: string | null; dueDateType?: string | null; dueDate?: string | null; queixaPrincipal?: string | null;
   name?: string; phone?: string | null; email?: string | null; patientStatus?: string; cadastroKind?: string | null;
   startedAt?: string | null; birthDate?: string | null; category?: string | null; isCouple?: boolean | null;
-  guardianRelationship?: string | null; devolutivaMeses?: number | null; reajusteAPartirDe?: string | null;
+  guardianRelationship?: string | null; devolutivaMeses?: number | null;
+  processoEncerramento?: string | null; reajusteAPartirDe?: string | null;
   gender?: string | null; cpf?: string | null; address?: string | null;
   schoolName?: string | null; schoolContact?: string | null;
   guardianName?: string | null; guardianCpf?: string | null; guardianPhone?: string | null; guardianEmail?: string | null;
@@ -805,6 +806,26 @@ export function PatientFormFields({ p, save, tabInicial, contrato, patientId, ob
                 dica="Defina a quantidade de meses para o lembrete da devolutiva. Se não preenchido, nenhum lembrete será gerado. O primeiro prazo será contado a partir do primeiro agendamento e, depois, a partir da data da última devolutiva."
                 defaultValue={p?.devolutivaMeses} placeholder="ex: 6"
               />
+            </div>
+          </Card>
+        )}
+
+        {/* Doc 63: logo abaixo da Devolutiva. Em cartão próprio, e não dentro dela, porque a
+            Devolutiva só existe para menores de 18 — e o encerramento se combina com qualquer
+            paciente. A supervisão tem contrato próprio, sem esta cláusula. */}
+        {!supervisionado && (
+          <Card title="Processo de encerramento">
+            <div className="sm:max-w-sm">
+              <label htmlFor="processoEncerramento" className={labelCls}>Processo de encerramento</label>
+              <input
+                id="processoEncerramento" name="processoEncerramento" type="text" maxLength={40}
+                defaultValue={p?.processoEncerramento ?? ""} className={inputCls} placeholder="ex: 2 a 4"
+              />
+              <p className="text-[10px] text-foreground/50 mt-1">
+                Define as condições e a quantidade mínima de sessões para o encerramento do tratamento.
+                Quando preenchido, será incluído automaticamente no contrato terapêutico: realização
+                mínima de x sessões antes do encerramento.
+              </p>
             </div>
           </Card>
         )}

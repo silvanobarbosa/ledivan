@@ -165,27 +165,28 @@ function VencimentoEditavel({ patientId, c }: { patientId: string; c: CobrancaNa
   const [editando, setEditando] = useState(false);
   const [valor, setValor] = useState(c.vencimento ? c.vencimento.slice(0, 10) : "");
   const [erro, setErro] = useState<string | null>(null);
-  const [perguntaMes, setPerguntaMes] = useState(false);
+  // Doc 63: o aviso que substituiu a janela de confirmacao. Fica ate ela fechar.
+  const [avisarProximas, setAvisarProximas] = useState(false);
   const venc = c.vencimento ? partes(c.vencimento).data : null;
   const podeEditar = c.pagamentos.length === 0;
 
   // Doc 33: pago o valor TOTAL, o "· vence dd/mm" some — não faz mais sentido mostrar prazo de algo quitado.
   if (!venc || c.situacao === "pago") return null;
 
-  // Doc 45: só pergunta das "próximas parcelas" quando o MÊS muda (dia/ano iguais segue direto).
+  /**
+   * Doc 63: a janela "deseja alterar o mês das próximas parcelas também?" saiu. Salvar altera SÓ
+   * esta cobrança; quando o mês muda, a tela avisa para conferir as próximas em vez de deslocá-las
+   * sozinha. As sequências já criadas pela janela antiga seguem valendo (ver `editarVencimento`).
+   */
   const mesMudou = () => { const antigo = c.vencimento?.slice(0, 7); return !!antigo && valor.slice(0, 7) !== antigo; };
-  const gravar = (proximasTambem: boolean) => {
-    setPerguntaMes(false);
-    start(async () => {
-      const r = await editarVencimento({ patientId, cobrancaChave: c.chave, data: valor, proximasTambem });
-      if (r.ok) { setEditando(false); setErro(null); router.refresh(); }
-      else setErro(r.error ?? "Não deu para salvar.");
-    });
-  };
   const salvar = () => {
     if (!valor) { setErro("Escolha a data."); return; }
-    if (mesMudou()) { setPerguntaMes(true); return; }
-    gravar(false);
+    const mudou = mesMudou();
+    start(async () => {
+      const r = await editarVencimento({ patientId, cobrancaChave: c.chave, data: valor });
+      if (r.ok) { setEditando(false); setErro(null); setAvisarProximas(mudou); router.refresh(); }
+      else setErro(r.error ?? "Não deu para salvar.");
+    });
   };
   const desfazer = () =>
     start(async () => {
@@ -215,18 +216,6 @@ function VencimentoEditavel({ patientId, c }: { patientId: string; c: CobrancaNa
           <X className="w-3.5 h-3.5" />
         </button>
         {erro && <span className="text-[10px] text-[#991b1b]">{erro}</span>}
-        {perguntaMes && (
-          <span className="fixed inset-0 z-[80] flex items-center justify-center bg-black/30 p-4" onClick={() => setPerguntaMes(false)}>
-            <span className="block bg-white rounded-[20px] p-5 w-full max-w-sm shadow-2xl" onClick={(e) => e.stopPropagation()}>
-              <span className="block font-display text-base font-bold text-primary">Deseja alterar o mês de vencimento das próximas parcelas também?</span>
-              <span className="block text-xs text-foreground/60 mt-1">Sim desloca o mês das próximas parcelas (sem pagamento), mantendo os dias e anos. Não altera só esta.</span>
-              <span className="flex gap-2 mt-4">
-                <button type="button" disabled={pending} onClick={() => gravar(true)} className="flex-1 bg-primary text-white py-2 rounded-xl text-sm font-bold disabled:opacity-60">Sim</button>
-                <button type="button" disabled={pending} onClick={() => gravar(false)} className="flex-1 bg-surface text-foreground/70 py-2 rounded-xl text-sm font-bold disabled:opacity-60">Não</button>
-              </span>
-            </span>
-          </span>
-        )}
       </span>
     );
   }
@@ -234,6 +223,14 @@ function VencimentoEditavel({ patientId, c }: { patientId: string; c: CobrancaNa
   return (
     <span className="inline-flex items-center gap-1 align-middle">
       {` · vence ${venc}`}
+      {avisarProximas && (
+        <span className="inline-flex items-start gap-1 rounded-lg bg-[#fef3c7] text-[#92400e] px-2 py-1 text-[10px] font-medium print:hidden">
+          Atenção! Confira se as próximas datas estão corretas e, caso identifique alguma divergência, faça os ajustes necessários.
+          <button type="button" onClick={() => setAvisarProximas(false)} aria-label="Fechar aviso" className="shrink-0 cursor-pointer">
+            <X className="w-3 h-3" />
+          </button>
+        </span>
+      )}
       {podeEditar && (
         <>
           <button type="button" onClick={() => setEditando(true)} aria-label="Editar vencimento" title="Editar vencimento" className="text-foreground/40 hover:text-foreground cursor-pointer">

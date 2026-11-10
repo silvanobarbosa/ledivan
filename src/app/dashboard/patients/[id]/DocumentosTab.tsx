@@ -6,12 +6,17 @@ import { useRouter } from "next/navigation";
 import { Printer, Pencil, Trash2, X, Sparkles } from "lucide-react";
 import { photoSrc } from "@/lib/photo";
 import { formatDateTime } from "@/lib/therapy";
+import { comoHtml, somenteTexto } from "@/lib/textoRico";
+import { BarraDeFormatacao, CampoRico } from "./BarraDeFormatacao";
 import { createDocument, updateDocument, deleteDocument } from "../actions";
 
-const inputCls = "w-full px-4 py-3 rounded-xl bg-white/70 border border-border focus:ring-2 focus:ring-accent/20 focus:border-accent outline-none transition text-sm";
-
 export type CabecalhoDoc = {
-  profissional: { nome: string; registro: string | null; registroLabel: string; telefone: string | null; email: string | null; logoUrl: string | null };
+  profissional: {
+    nome: string; registro: string | null; registroLabel: string; telefone: string | null;
+    email: string | null; logoUrl: string | null;
+    /** Doc 63: como ela assina — a descrição do atendimento definida em Ajustes. */
+    assina: string;
+  };
   paciente: { nome: string; nascimento: string | null; idade: string | null; sessoesPresente: number };
 };
 export type DocumentoSalvo = { id: string; number: number; name: string | null; content: string; updatedAt: string };
@@ -42,13 +47,38 @@ function Cabecalho({ cab }: { cab: CabecalhoDoc }) {
   );
 }
 
+/**
+ * A ASSINATURA no fim do documento (doc 63): nome completo, como ela assina e o registro.
+ *
+ * Cinco linhas de respiro antes, como o documento pede — espaço para assinar à caneta no papel.
+ * Sem registro no cadastro, a linha não sai: campo em branco não vira linha vazia impressa.
+ */
+function Assinatura({ p, respiro }: { p: CabecalhoDoc["profissional"]; respiro?: boolean }) {
+  if (!p.nome) return null;
+  return (
+    <div className="text-center text-[15px] leading-relaxed" style={respiro ? { marginTop: "5em" } : undefined}>
+      <p className="font-bold">{p.nome}</p>
+      <p>{p.assina}</p>
+      {p.registro && <p>{p.registro}</p>}
+    </div>
+  );
+}
+
 /** O rótulo de um documento na lista: o nome dado pelo profissional, ou "Documento N" (doc antigo). */
-const rotuloDoc = (d: DocumentoSalvo) => (d.name && d.name.trim() ? d.name : `Documento ${d.number}`);
+const rotuloDoc = (d: DocumentoSalvo) => {
+  // Doc 63: o nome passou a guardar formatação; na lista e nas perguntas ele vale como texto.
+  const nome = somenteTexto(d.name ?? "").trim();
+  return nome ? nome : `Documento ${d.number}`;
+};
 
 export function DocumentosTab({ patientId, cabecalho, documentos }: { patientId: string; cabecalho: CabecalhoDoc; documentos: DocumentoSalvo[] }) {
   const router = useRouter();
   const [nome, setNome] = useState("");
   const [conteudo, setConteudo] = useState("");
+  // Doc 63: os campos são NÃO controlados (ver CampoRico). Trocar o conteúdo de fora — editar
+  // outro documento, gerar o relatório, limpar depois de salvar — é remontá-los, e a chave é como
+  // se faz isso: reatribuir o estado não mexeria no que já está na tela.
+  const [chaveDosCampos, setChaveDosCampos] = useState(0);
   const [editId, setEditId] = useState<string | null>(null);
   const [erro, setErro] = useState<string | null>(null);
   const [pending, start] = useTransition();
@@ -71,9 +101,16 @@ export function DocumentosTab({ patientId, cabecalho, documentos }: { patientId:
   }, [printNonce]);
 
   function imprimir(d: DocumentoSalvo) {
-    setPrintDoc(d.content);
-    setPrintNome(rotuloDoc(d));
+    setPrintDoc(comoHtml(d.content));
+    setPrintNome(comoHtml(d.name ?? "") || `Documento ${d.number}`);
     setPrintNonce((n) => n + 1);
+  }
+
+  /** Troca o que está nos campos — e remonta os dois, senão a tela segue mostrando o anterior. */
+  function recarregarCampos(novoNome: string, novoConteudo: string) {
+    setNome(novoNome);
+    setConteudo(novoConteudo);
+    setChaveDosCampos((k) => k + 1);
   }
 
   /**
@@ -87,7 +124,8 @@ export function DocumentosTab({ patientId, cabecalho, documentos }: { patientId:
    */
   function gerarRelatorio() {
     setErro(null);
-    if ((conteudo.trim() || nome.trim()) && !window.confirm("Isto substitui o que está escrito aqui. Gerar o relatório mesmo assim?")) return;
+    const temTexto = !!(somenteTexto(conteudo).trim() || somenteTexto(nome).trim());
+    if (temTexto && !window.confirm("Isto substitui o que está escrito aqui. Gerar o relatório mesmo assim?")) return;
     setGerando(true);
     void (async () => {
       try {
@@ -99,8 +137,7 @@ export function DocumentosTab({ patientId, cabecalho, documentos }: { patientId:
         const j = await r.json().catch(() => ({}));
         if (!r.ok) { setErro(j?.error ?? "Não deu para gerar o relatório agora."); return; }
         setEditId(null);
-        setNome(j.titulo ?? "Relatório de Acompanhamento Terapêutico");
-        setConteudo(j.texto ?? "");
+        recarregarCampos(j.titulo ?? "Relatório de Acompanhamento Terapêutico", j.texto ?? "");
       } catch {
         setErro("Não deu para gerar o relatório agora.");
       } finally {
@@ -111,17 +148,18 @@ export function DocumentosTab({ patientId, cabecalho, documentos }: { patientId:
 
   function salvar() {
     setErro(null);
-    if (!nome.trim()) { setErro("Dê um nome ao documento."); return; }
-    if (!conteudo.trim()) { setErro("Escreva o conteúdo do documento."); return; }
+    // O que vale é o TEXTO: um campo com `<div><br></div>` dentro não está escrito, está vazio.
+    if (!somenteTexto(nome).trim()) { setErro("Dê um nome ao documento."); return; }
+    if (!somenteTexto(conteudo).trim()) { setErro("Escreva o conteúdo do documento."); return; }
     start(async () => {
       const r = editId ? await updateDocument(editId, conteudo, nome) : await createDocument(patientId, conteudo, nome);
-      if (r.ok) { setConteudo(""); setNome(""); setEditId(null); router.refresh(); }
+      if (r.ok) { recarregarCampos("", ""); setEditId(null); router.refresh(); }
       else setErro(r.error ?? "Não deu para salvar.");
     });
   }
 
   function editar(d: DocumentoSalvo) {
-    setEditId(d.id); setConteudo(d.content); setNome(d.name ?? ""); setErro(null);
+    setEditId(d.id); recarregarCampos(d.name ?? "", d.content); setErro(null);
     if (typeof window !== "undefined") window.scrollTo({ top: 0, behavior: "smooth" });
   }
 
@@ -144,19 +182,30 @@ export function DocumentosTab({ patientId, cabecalho, documentos }: { patientId:
         >
           <Sparkles className="w-4 h-4" /> {gerando ? "Gerando…" : "Relatório de Acompanhamento Terapêutico"}
         </button>
-        <input
-          value={nome}
-          onChange={(e) => setNome(e.target.value)}
-          className={inputCls}
+        {/* Doc 63: a barra fica logo abaixo do botão do relatório e vale para os DOIS campos —
+            ela age sobre a seleção que estiver no nome ou no corpo. */}
+        <BarraDeFormatacao />
+        <CampoRico
+          key={`nome-${chaveDosCampos}`}
+          htmlInicial={nome}
+          aoMudar={setNome}
           placeholder="Nome do documento (ex.: Declaração de comparecimento)"
+          minAltura="3rem"
         />
-        <textarea
-          rows={12}
-          value={conteudo}
-          onChange={(e) => setConteudo(e.target.value)}
-          className={inputCls}
+        <CampoRico
+          key={`conteudo-${chaveDosCampos}`}
+          htmlInicial={conteudo}
+          aoMudar={setConteudo}
           placeholder="Escreva o documento…"
+          minAltura="18rem"
+          className="documento-impresso"
         />
+        {/* A assinatura é automática, como o cabeçalho: aparece aqui para ela conferir, e sai no
+            papel. Não é campo — vem do nome, da descrição do atendimento e do registro em Ajustes. */}
+        <div className="rounded-xl border border-dashed border-border px-4 py-3 text-foreground/50">
+          <p className="text-[10px] uppercase tracking-widest font-bold text-foreground/30 mb-1">Sai no fim do documento impresso</p>
+          <Assinatura p={cabecalho.profissional} />
+        </div>
         {erro && <p className="text-sm text-red-600">{erro}</p>}
         {/* Doc 34 (G8): o "Imprimir" saiu da área de edição — a impressão fica na lista de documentos. */}
         <div className="flex flex-wrap items-center gap-2">
@@ -210,8 +259,13 @@ export function DocumentosTab({ patientId, cabecalho, documentos }: { patientId:
           `}</style>
           <div className="font-sans text-[15px] leading-relaxed text-black">
             <Cabecalho cab={cabecalho} />
-            {printNome && <p className="font-bold text-center text-[16px] mb-4">{printNome}</p>}
-            <pre className="whitespace-pre-wrap font-sans text-[15px] leading-relaxed">{printDoc}</pre>
+            {/* Doc 63: nome e corpo saem com a formatação que ela aplicou. O HTML vem do banco, já
+                passado pela faxina do servidor (ver `limparHtmlDoDocumento`). */}
+            {printNome && (
+              <div className="font-bold text-center text-[16px] mb-4" dangerouslySetInnerHTML={{ __html: printNome }} />
+            )}
+            <div className="documento-impresso" dangerouslySetInnerHTML={{ __html: printDoc }} />
+            <Assinatura p={cabecalho.profissional} respiro />
           </div>
         </div>,
         document.body,

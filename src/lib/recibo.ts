@@ -36,6 +36,11 @@ export const DESCRICOES: { valor: DescricaoAtendimento; rotulo: string }[] = [
   { valor: "psicologia", rotulo: "Psicologia" },
 ];
 
+/** Como a profissional assina, pela descrição do atendimento escolhida em Ajustes. */
+export function comoAssina(v: string | null | undefined): string {
+  return COMO_ASSINA[descricaoValida(v)];
+}
+
 export function descricaoValida(v: string | null | undefined): DescricaoAtendimento {
   return v === "psicanalise" || v === "psicologia" ? v : "terapia";
 }
