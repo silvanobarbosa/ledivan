@@ -7,6 +7,65 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-11-10 — Doc 63: documento formatável, Observações, reajuste único e os avisos do dia
+
+**Entregue:** PRs #583 a #588, as migrations 0039 (`patients.processo_encerramento`) e 0040
+(`patient_observacoes` + `patients.reajuste_a_partir_de`), ambas já aplicadas em produção, e o
+percurso `scripts/e2e-doc63.mjs` (34 verificações no app de verdade).
+
+**Por quê:** treze pedidos de uma vez, todos de uso diário — o documento que precisava de
+formatação e de assinatura, o financeiro que precisava de anotação e de um campo de reajuste em vez
+de três, o microfone que perdia a frase quando o dedo escorregava, e a janela de confirmação de
+datas que fazia mais do que a dona queria.
+
+**Decisões que ficam valendo:**
+
+- **O documento guarda HTML, e nada é migrado.** `comoHtml` converte na LEITURA o que foi escrito
+  antes (e o relatório da IA, que continua nascendo em texto puro). O que decide se um campo está
+  preenchido é o TEXTO dentro dele — `<div><br></div>` é vazio.
+- **A faxina do HTML é no servidor** (`limparHtmlDoDocumento`, com `sanitize-html`). O campo cola
+  como texto puro, mas isso é conforto: a fronteira é quem grava, porque é o banco que devolve o
+  conteúdo para a tela e para o papel.
+- **A sequência de vencimentos deixou de ser CRIADA.** A janela "deseja alterar o mês das próximas
+  parcelas também?" saiu; editar um vencimento altera só aquele e a tela avisa para conferir as
+  próximas. As sequências já gravadas em `cobranca_deslocamentos` continuam valendo e sendo
+  aplicadas — o documento é explícito em não recalcular nada para trás.
+- **O microfone alterna, com teto.** O risco que o segurar evitava (esquecer ligado e gravar a sala)
+  continua de pé, então o botão mostra cronômetro e encerra sozinho em cinco minutos.
+- **"A partir da data" é o campo da terapeuta e ganha das referências automáticas** (início,
+  retorno, último reajuste) até ela mesma trocá-lo. Quem nunca o preencher não muda de
+  comportamento. É só lembrete: nenhum valor de sessão, pacote ou cobrança se move por causa dele.
+- **Salvar por área, recortado no servidor.** O cadastro é um formulário só; o botão do formato de
+  pagamento envia marcado (`areaDoSalvar=financeiro`) e o servidor descarta o que não é da área.
+  Cada campo descartado cai no valor já gravado, que é o que a função já fazia campo a campo.
+- **O aviso do dia manda o que FALTA receber**, não o valor cheio: avisar pelo cheio manda a
+  terapeuta cobrar o que já entrou.
+
+**Armadilhas:**
+
+- **Campo editável lendo a prop viva escreve ao contrário.** O `dangerouslySetInnerHTML` ligado ao
+  estado reescrevia o campo a cada tecla, e reescrever devolve o cursor ao começo: "Declaro para os
+  devidos fins." saía ".snif sodived so arap oralceD". O conteúdo inicial tem de CONGELAR na
+  primeira renderização; trocar conteúdo de fora é trocar a `key`.
+- **`process.exit` dentro de um `finally` engole a exceção.** O percurso disse "tudo certo" sem ter
+  rodado uma única verificação. Todo percurso precisa de um `catch` antes do `finally`.
+- **`networkidle` não chega em tela com conexão aberta.** O `waitUntil` dos percursos é
+  `domcontentloaded`.
+- **Percurso roda contra `npm start`, não contra o `npm run dev`.** Em dev o Fast Refresh
+  renavega a página sozinho e todo seletor expira esperando a navegação terminar.
+- **Declarar `frame-src` tira o `default-src` da jogada.** Sem `'self'` ali, o quadro que imprime o
+  nosso próprio arquivo é bloqueado pela CSP.
+- **O percurso do doc 9 quebrou junto com a mudança dos campos.** Percurso guardado no repo é
+  código: ele envelhece com a tela que observa.
+
+**Pendente:**
+
+- Recuperação de senha e Google Agenda seguem no planejamento, por decisão do dono.
+- Disco C: com ~3,4 GB livres de 237 GB. Mapeado e não apagado: emulador `af.avd` 7,8 GB, NDK
+  4,4 GB, system-images 3,5 GB e ~4 GB de zips em Downloads — ~20 GB, e a decisão é do dono.
+
+---
+
 ## 2026-11-09 — Doc 9: relatório pela IA da casa, vencimento sem colisão, nome na impressão e anexo por atividade
 
 **Entregue:** PRs #579 e #580, mais a migration 0038 (coluna `activity_id`, já aplicada em
