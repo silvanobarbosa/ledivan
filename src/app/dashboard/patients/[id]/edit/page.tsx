@@ -9,6 +9,7 @@ import { updatePatient, deletePatient } from "../../actions";
 import { PatientFormFields } from "@/components/dashboard/PatientFormFields";
 import { assinaturaDoForm } from "@/lib/assinaturaDoForm";
 import { ExcluirPaciente } from "./ExcluirPaciente";
+import { listarObservacoes } from "../financeiro-actions";
 import { montarContrato, montarContratoSupervisao } from "@/lib/contrato";
 import { enquadreDaAgenda } from "@/lib/enquadreContrato";
 import { horaDeParede } from "@/lib/horaLocal";
@@ -41,6 +42,7 @@ export default async function EditPatientPage({ params, searchParams }: { params
     .where(eq(patientPaymentFormatHistory.patientId, id));
 
   // Doc 33 (F15): mudanças de configuração (nº sessões, vencimento, pagar até, intervalo, pacote).
+  const observacoes = await listarObservacoes(id);
   const reajusteChanges = await db.select({ id: patientReajusteChanges.id, campo: patientReajusteChanges.campo, de: patientReajusteChanges.de, para: patientReajusteChanges.para, at: patientReajusteChanges.at, vigencia: patientReajusteChanges.vigencia })
     .from(patientReajusteChanges)
     .where(eq(patientReajusteChanges.patientId, id));
@@ -129,7 +131,7 @@ export default async function EditPatientPage({ params, searchParams }: { params
     registrationNumber: patient.registrationNumber, agendaId: patient.agendaId, dueDateType: patient.dueDateType, dueDate: iso(patient.dueDate), queixaPrincipal: patient.queixaPrincipal,
     name: patient.name, phone: patient.phone, email: patient.email, patientStatus: patient.patientStatus, cadastroKind: patient.cadastroKind,
     startedAt: iso(patient.startedAt), birthDate: iso(patient.birthDate), category: patient.category, isCouple: patient.isCouple, guardianRelationship: patient.guardianRelationship,
-    devolutivaMeses: patient.devolutivaMeses, processoEncerramento: patient.processoEncerramento, gender: patient.gender, cpf: patient.cpf, address: patient.address, schoolName: patient.schoolName, schoolContact: patient.schoolContact,
+    devolutivaMeses: patient.devolutivaMeses, processoEncerramento: patient.processoEncerramento, reajusteAPartirDe: (patient.reajusteAPartirDe as Date | null)?.toISOString() ?? null, gender: patient.gender, cpf: patient.cpf, address: patient.address, schoolName: patient.schoolName, schoolContact: patient.schoolContact,
     guardianName: patient.guardianName, guardianCpf: patient.guardianCpf, guardianPhone: patient.guardianPhone, guardianEmail: patient.guardianEmail,
     spouseName: patient.spouseName, spousePhone: patient.spousePhone, spouseEmail: patient.spouseEmail, spouseCpf: patient.spouseCpf,
     spouseBirthDate: iso(patient.spouseBirthDate), spouseQueixaPrincipal: patient.spouseQueixaPrincipal, spouseGender: patient.spouseGender, spouseAddress: patient.spouseAddress,
@@ -158,7 +160,7 @@ export default async function EditPatientPage({ params, searchParams }: { params
       </div>
 
       <div className="space-y-5">
-        <PatientFormFields key={assinaturaDoForm(dadosDoCadastro)} save={save} patientId={id} tabInicial={guia === "financeiro" ? "financeiro" : guia === "contrato" ? "contrato" : undefined} contrato={<ContratoImpresso texto={contratoTexto} textoPadrao={contratoPadrao} patientId={id} logoUrl={prof?.logoUrl ?? null} />} p={dadosDoCadastro} />
+        <PatientFormFields key={assinaturaDoForm(dadosDoCadastro)} save={save} patientId={id} observacoes={observacoes} tabInicial={guia === "financeiro" ? "financeiro" : guia === "contrato" ? "contrato" : undefined} contrato={<ContratoImpresso texto={contratoTexto} textoPadrao={contratoPadrao} patientId={id} logoUrl={prof?.logoUrl ?? null} />} p={dadosDoCadastro} />
         <div className="flex justify-end pt-1">
           <Link href={`/dashboard/patients/${id}`} className="px-6 py-3.5 rounded-2xl font-semibold text-foreground/60 hover:bg-white/60 transition">
             Cancelar

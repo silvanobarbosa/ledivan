@@ -56,6 +56,20 @@ describe("vencimento do preço", () => {
     expect(v?.getDate()).toBe(28);
   });
 
+  // Doc 63: "A partir da data" é o campo da terapeuta, e ganha das referências automáticas.
+  it("doc 63: a data escolhida manda sobre início, retorno e último reajuste", () => {
+    const v = vencimentoDoPreco(dia(1, 1, 2020), dia(1, 8, 2026), 12, dia(1, 9, 2026), dia(1, 10, 2026));
+    expect(v).toEqual(dia(1, 10, 2027));
+  });
+
+  it("doc 63: sem a data escolhida, nada muda para quem nunca usou o campo", () => {
+    expect(vencimentoDoPreco(dia(10, 3, 2026), null, 6, null, null)).toEqual(dia(10, 9, 2026));
+  });
+
+  it("doc 63: a data escolhida sem prazo em meses não gera lembrete", () => {
+    expect(vencimentoDoPreco(dia(10, 3, 2026), null, null, null, dia(1, 10, 2026))).toBeNull();
+  });
+
   it("sem validade ou sem referência, não há vencimento", () => {
     expect(vencimentoDoPreco(dia(1, 1, 2026), null, null)).toBeNull();
     expect(vencimentoDoPreco(dia(1, 1, 2026), null, 0)).toBeNull();

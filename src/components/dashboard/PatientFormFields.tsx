@@ -4,6 +4,9 @@ import { useActionState, useEffect, useState, useTransition, type ReactNode } fr
 import { useRouter } from "next/navigation";
 import { InfoTip } from "@/components/InfoTip";
 import { SubmitButton } from "@/components/SubmitButton";
+import { ObservacoesFinanceiro } from "@/app/dashboard/patients/[id]/ObservacoesFinanceiro";
+import { ProximoReajuste } from "@/app/dashboard/patients/[id]/ProximoReajuste";
+import type { Observacao } from "@/app/dashboard/patients/[id]/financeiro-actions";
 import { ChevronRight, MessageCircle, Trash2 } from "lucide-react";
 import { apagarReajuste, apagarReajusteChange } from "@/app/dashboard/patients/actions";
 import { QUEIXAS } from "@/lib/queixas";
@@ -25,7 +28,8 @@ export type PatientFormData = {
   registrationNumber?: number | null; agendaId?: string | null; dueDateType?: string | null; dueDate?: string | null; queixaPrincipal?: string | null;
   name?: string; phone?: string | null; email?: string | null; patientStatus?: string; cadastroKind?: string | null;
   startedAt?: string | null; birthDate?: string | null; category?: string | null; isCouple?: boolean | null;
-  guardianRelationship?: string | null; devolutivaMeses?: number | null; processoEncerramento?: string | null;
+  guardianRelationship?: string | null; devolutivaMeses?: number | null;
+  processoEncerramento?: string | null; reajusteAPartirDe?: string | null;
   gender?: string | null; cpf?: string | null; address?: string | null;
   schoolName?: string | null; schoolContact?: string | null;
   guardianName?: string | null; guardianCpf?: string | null; guardianPhone?: string | null; guardianEmail?: string | null;
@@ -94,6 +98,7 @@ function LixeiraReajuste({ patientId, vigencia }: { patientId: string; vigencia:
 /** Doc 33 (F15): texto de uma mudança de configuração no histórico de reajuste. */
 function rotuloMudanca(campo: string, de: string | null, para: string | null): string {
   const v = (x: string | null) => x ?? "—";
+  const dia = (x: string | null) => (x ? x.split("-").reverse().join("/") : "—");
   const pct = (x: string | null) => (x === "fragmentado" ? "Fragmentado" : x === "completo" ? "Completo" : v(x));
   switch (campo) {
     case "sessoes": return `Sessões do pacote: ${v(de)} → ${v(para)}`;
@@ -101,6 +106,8 @@ function rotuloMudanca(campo: string, de: string | null, para: string | null): s
     case "vencimento2": return `2º vencimento: dia ${v(de)} → dia ${v(para)}`;
     case "pagarAte": return `Pagar até: ${de ? de + "h" : "—"} → ${para ? para + "h" : "—"}`;
     case "reajuste": return `Reajuste: ${de ? de + " meses" : "sem"} → ${para ? para + " meses" : "sem"}`;
+    // Doc 63: a data a partir da qual o prazo conta, gravada em ISO; aqui ela se lê como data.
+    case "reajusteAPartirDe": return `Reajuste a partir de: ${dia(de)} → ${dia(para)}`;
     case "pacote": return `Pacote: ${pct(de)} → ${pct(para)}`;
     default: return `${campo}: ${v(de)} → ${v(para)}`;
   }
@@ -301,7 +308,7 @@ function Formulario({ save, children, guia }: { save?: SaveAction; children: Rea
   );
 }
 
-export function PatientFormFields({ p, save, tabInicial, contrato, patientId }: { p?: PatientFormData; save?: SaveAction; tabInicial?: string; contrato?: ReactNode; patientId?: string }) {
+export function PatientFormFields({ p, save, tabInicial, contrato, patientId, observacoes }: { p?: PatientFormData; save?: SaveAction; tabInicial?: string; contrato?: ReactNode; patientId?: string; observacoes?: Observacao[] }) {
   // Doc 41/42: tipo do cadastro. O supervisionado usa a MESMA estrutura do paciente (Dados,
   // Financeiro e Contrato), só com os campos que fazem sentido para a supervisão clínica.
   const [tipo, setTipo] = useState(p?.cadastroKind || "paciente");
@@ -433,14 +440,6 @@ export function PatientFormFields({ p, save, tabInicial, contrato, patientId }: 
         onValueChange={(v) => setValorAlterado(parseMoedaBR(v) !== parseMoedaBR(p?.sessionFee ?? null))}
       />
     </div>
-  );
-
-  const proximoReajuste = (
-    <NumeroCom
-      name="validadePrecoMeses" label="Próximo reajuste em" unidade="meses" max={60}
-      dica="Daqui a quantos meses deseja ser lembrado de realizar o reajuste? O sistema exibirá o lembrete no dashboard um mês antes da data prevista. O prazo para o próximo reajuste começa a contar a partir da data definida em “Vale a partir de” e é reiniciado a cada alteração de valor."
-      defaultValue={p?.validadePrecoMeses} placeholder="ex: 12"
-    />
   );
 
   // O paymentFormat que de fato vai para o banco: no Mensal pacote completo, "quando cobrar" decide
@@ -599,10 +598,8 @@ export function PatientFormFields({ p, save, tabInicial, contrato, patientId }: 
             defaultValue={p?.horasAntesPagamento} placeholder="ex: 24"
           />
         </div>
-        {/* Doc 68: "Vale a partir de" vem DEPOIS do próximo reajuste. A data responde "a partir
-            de quando vale o que acabei de mexer", e só faz sentido depois de a pessoa ter mexido —
-            lê-la antes é responder uma pergunta que ainda não foi feita. */}
-        <div className="sm:max-w-sm">{proximoReajuste}</div>
+        {/* Doc 63: "Próximo reajuste em" saiu daqui. Ele aparecia uma vez em cada formato, e o
+            documento pediu uma ocorrência só, logo antes das Observações — ver <ProximoReajuste>. */}
         {blocoValeAPartir}
       </div>
     ),
@@ -625,10 +622,8 @@ export function PatientFormFields({ p, save, tabInicial, contrato, patientId }: 
             <input name="paymentDay" type="number" min={1} max={31} defaultValue={p?.paymentDay ?? ""} className={inputCls} placeholder="ex: 5" />
           </div>
         )}
-        {/* Doc 68: "Vale a partir de" vem DEPOIS do próximo reajuste. A data responde "a partir
-            de quando vale o que acabei de mexer", e só faz sentido depois de a pessoa ter mexido —
-            lê-la antes é responder uma pergunta que ainda não foi feita. */}
-        <div className="sm:max-w-sm">{proximoReajuste}</div>
+        {/* Doc 63: "Próximo reajuste em" saiu daqui. Ele aparecia uma vez em cada formato, e o
+            documento pediu uma ocorrência só, logo antes das Observações — ver <ProximoReajuste>. */}
         {blocoValeAPartir}
       </div>
     ),
@@ -650,10 +645,8 @@ export function PatientFormFields({ p, save, tabInicial, contrato, patientId }: 
             <input name="paymentDay2" type="number" min={1} max={31} defaultValue={p?.paymentDay2 ?? ""} className={inputCls} placeholder="ex: 20" />
           </div>
         </div>
-        {/* Doc 68: "Vale a partir de" vem DEPOIS do próximo reajuste. A data responde "a partir
-            de quando vale o que acabei de mexer", e só faz sentido depois de a pessoa ter mexido —
-            lê-la antes é responder uma pergunta que ainda não foi feita. */}
-        <div className="sm:max-w-sm">{proximoReajuste}</div>
+        {/* Doc 63: "Próximo reajuste em" saiu daqui. Ele aparecia uma vez em cada formato, e o
+            documento pediu uma ocorrência só, logo antes das Observações — ver <ProximoReajuste>. */}
         {blocoValeAPartir}
       </div>
     ),
@@ -879,6 +872,19 @@ export function PatientFormFields({ p, save, tabInicial, contrato, patientId }: 
             </div>
             {/* O valor REAL do formato (um só campo no POST). */}
             <input type="hidden" name="paymentFormat" value={formatoEfetivo} />
+            {/* Doc 63: o Salvar desta área. Ele envia o mesmo formulário, mas marcado — o servidor
+                descarta tudo o que não é do formato de pagamento (ver CAMPOS_DO_FORMATO), e o que
+                está em Dados fica como está. */}
+            {save && (
+              <div className="pt-3">
+                <SubmitButton
+                  name="areaDoSalvar" value="financeiro" pendingLabel="Salvando…"
+                  className="inline-flex items-center justify-center gap-2 bg-primary text-white py-2.5 px-5 rounded-xl font-bold text-sm shadow-lg shadow-primary/20 hover:scale-[1.01] transition"
+                >
+                  Salvar formato de pagamento
+                </SubmitButton>
+              </div>
+            )}
           </div>
 
           {/* "Vale a partir de" agora mora DENTRO da modalidade selecionada (doc 16) — ver blocoValeAPartir. */}
@@ -888,6 +894,18 @@ export function PatientFormFields({ p, save, tabInicial, contrato, patientId }: 
               A contagem das sessões do pacote (1/4, 2/4…) será exibida na agenda.
             </p>
           )}
+
+          {/* Doc 63: o campo único do próximo reajuste e, logo abaixo, as Observações — nesta
+              ordem, e as duas antes do Histórico de reajuste. As duas salvam por conta própria;
+              por isso ficam fora do fluxo do formulário, embora dentro do cartão Financeiro. */}
+          {patientId && (
+            <ProximoReajuste
+              patientId={patientId}
+              meses={p?.validadePrecoMeses ?? null}
+              aPartirDe={p?.reajusteAPartirDe ? String(p.reajusteAPartirDe).slice(0, 10) : ""}
+            />
+          )}
+          {patientId && <ObservacoesFinanceiro patientId={patientId} observacoes={observacoes ?? []} />}
 
           {(() => {
             // Doc 35 (A1): histórico de reajuste em ACORDEÃO por data de vigência — a lista mostra só

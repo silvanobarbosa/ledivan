@@ -69,8 +69,14 @@ export function vencimentoDoPreco(
   validadeMeses: number | null | undefined,
   /** Vigência do último reajuste de preço (doc 63) — manda quando é a data mais recente. */
   ultimoReajuste?: Date | null | undefined,
+  /**
+   * "A partir da data" do campo de reajuste (doc 63). Quando a terapeuta escolhe essa data, é DELA
+   * que o prazo conta — ela ganha de início, retorno e último reajuste, e continua ganhando até ela
+   * mesma trocar o campo. É o campo dela; as referências automáticas são a rede de quem nunca o usou.
+   */
+  aPartirDe?: Date | null | undefined,
 ): Date | null {
-  const base = referenciaDoPreco(inicio, retorno, ultimoReajuste);
+  const base = aPartirDe ?? referenciaDoPreco(inicio, retorno, ultimoReajuste);
   if (!base || !validadeMeses || validadeMeses <= 0) return null;
 
   const d = new Date(base);

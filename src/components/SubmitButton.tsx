@@ -10,6 +10,9 @@ type Props = {
   className?: string;
   /** Desabilita mesmo fora do pending (ex.: validação) */
   disabled?: boolean;
+  /** Nome/valor que o botão leva no envio — é assim que o form diz QUAL botão o enviou. */
+  name?: string;
+  value?: string;
 };
 
 /**
@@ -23,12 +26,16 @@ export function SubmitButton({
   pendingLabel = "Enviando…",
   className = "",
   disabled,
+  name,
+  value,
 }: Props) {
   const { pending } = useFormStatus();
   const isOff = pending || disabled;
   return (
     <button
       type="submit"
+      name={name}
+      value={value}
       disabled={isOff}
       aria-busy={pending}
       className={`${className} active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed disabled:active:scale-100`}
