@@ -51,7 +51,10 @@ const nextConfig: NextConfig = {
               "connect-src 'self' https: wss:",
               // o Jitsi roda dentro de um iframe desses domínios; sem frame-src ele cai no
               // default-src 'self' e o iframe é bloqueado.
-              "frame-src https://8x8.vc https://*.8x8.vc https://meet.jit.si",
+              // Doc 63: 'self' entra porque a impressora do anexo carrega o arquivo em um quadro
+              // do PRÓPRIO domínio (/api/files/<id>/raw). Declarar frame-src tira o default-src
+              // da jogada: sem 'self' aqui, o quadro do nosso próprio arquivo é bloqueado.
+              "frame-src 'self' https://8x8.vc https://*.8x8.vc https://meet.jit.si",
               "frame-ancestors 'none'",
               "base-uri 'self'",
             ].join("; "),

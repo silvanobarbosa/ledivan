@@ -538,7 +538,7 @@ export function PatientDetail({
                       daria um título com histórico dentro, que não é o que um título é. */}
                   <BotaoMicrofone
                     patientId={patient.id} campo="titulo" rotulo="Título do registro"
-                    titulo="Segure para ditar o título"
+                    titulo="Ditar o título"
                     onTexto={(t) => { if (campoTitulo.current) campoTitulo.current.value = t; }}
                   />
                 </div>
@@ -551,13 +551,13 @@ export function PatientDetail({
                       própria data, então o histórico entre registros a tela já tinha. */}
                   <BotaoMicrofone
                     patientId={patient.id} campo="registro" rotulo="Registro da sessão"
-                    titulo="Segure para ditar o registro"
+                    titulo="Ditar o registro"
                     onTexto={(t) => {
                       const el = campoRegistro.current;
                       if (el) el.value = acrescentaDitado(el.value, t, new Date());
                     }}
                   />
-                  <span className="text-[11px] text-foreground/40">Segure o microfone e fale. Revise antes de salvar.</span>
+                  <span className="text-[11px] text-foreground/40">Clique no microfone para iniciar a gravação e em seguida clique novamente para finalizar a gravação. Revise antes de salvar.</span>
                 </div>
               </div>
               <BotaoSalvar>Salvar registro</BotaoSalvar>

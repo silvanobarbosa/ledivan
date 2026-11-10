@@ -5,7 +5,7 @@ import {
   LayoutDashboard,
   Users,
   CalendarDays,
-  ArrowLeftRight,
+  Banknote,
   Settings,
 } from "lucide-react";
 import Link from "next/link";
@@ -18,7 +18,9 @@ export function BottomNavBar() {
     { icon: Users, label: "Cadastros", href: "/dashboard/patients" },
     { icon: CalendarDays, label: "Agenda", href: "/dashboard/agenda" },
     { icon: LayoutDashboard, label: "Dashboard", href: "/dashboard" },
-    { icon: ArrowLeftRight, label: "Caixa", href: "/dashboard/transactions" },
+    // Doc 63: no celular o item ainda dizia "Caixa" e abria Transações, enquanto a sidebar já
+    // levava a "Carteira" (ver nav.ts). Mesmo nome, mesmo destino nos dois lugares.
+    { icon: Banknote, label: "Carteira", href: "/dashboard/pagamentos" },
     { icon: Settings, label: "Ajustes", href: "/dashboard/settings" },
   ];
 

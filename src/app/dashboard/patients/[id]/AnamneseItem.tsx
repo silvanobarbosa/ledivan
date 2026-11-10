@@ -66,7 +66,7 @@ export function AnamneseItem({ patientId, campo }: { patientId: string; campo: C
             patientId={patientId}
             campo="anamnese"
             rotulo={campo.title}
-            titulo={`Segure para ditar: ${campo.title}`}
+            titulo={`Ditar: ${campo.title}`}
             onTexto={(t) => { setValor((v) => acrescentaDitado(v, t, new Date())); setEditando(true); }}
           />
           {!editando && (

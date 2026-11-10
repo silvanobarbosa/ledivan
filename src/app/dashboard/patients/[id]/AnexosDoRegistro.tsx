@@ -1,7 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
-import { Paperclip, Download, Trash2 } from "lucide-react";
+import { Paperclip, Printer, Trash2 } from "lucide-react";
 import {
   deleteMaterial,
   listAnexosDaAtividade,
@@ -63,11 +63,34 @@ function Anexos({
     });
   }
 
-  async function baixar(id: string) {
-    const r = await fetch(`/api/files/${id}`);
-    const d = await r.json().catch(() => null);
-    if (d?.url) window.open(d.url, "_blank", "noopener");
-    else setErro("Não consegui abrir o arquivo.");
+  /**
+   * Doc 63: o ícone de baixar virou IMPRESSORA, e ela faz o que a impressora da área Documentos
+   * faz — manda o papel para a impressora, sem passo de download no meio.
+   *
+   * O arquivo é aberto por `/api/files/<id>/raw`, que o serve pelo nosso domínio: só assim o
+   * navegador deixa a página chamar `print()` no que o quadro carregou. Se o visualizador não
+   * aceitar imprimir (o Safari do iPhone é o caso), o arquivo abre numa aba e ela imprime de lá —
+   * nunca fica sem saída.
+   */
+  function imprimir(id: string) {
+    const url = `/api/files/${id}/raw`;
+    const quadro = document.createElement("iframe");
+    quadro.setAttribute("aria-hidden", "true");
+    quadro.style.cssText = "position:absolute;width:0;height:0;border:0;visibility:hidden";
+    const abrirEmAba = () => window.open(url, "_blank", "noopener");
+    quadro.onload = () => {
+      try {
+        quadro.contentWindow?.focus();
+        quadro.contentWindow?.print();
+      } catch {
+        abrirEmAba();
+      }
+      // O quadro não pode sair antes de a janela de impressão abrir; sai depois, para não acumular.
+      setTimeout(() => quadro.remove(), 60_000);
+    };
+    quadro.onerror = () => { quadro.remove(); abrirEmAba(); };
+    quadro.src = url;
+    document.body.appendChild(quadro);
   }
 
   function excluir(a: Anexo) {
@@ -81,8 +104,8 @@ function Anexos({
         <div key={a.id} className="flex items-center gap-2 text-xs">
           <Paperclip className="w-3.5 h-3.5 text-primary shrink-0" />
           <span className="flex-1 truncate font-medium text-foreground/70">{a.title}</span>
-          <button type="button" onClick={() => void baixar(a.id)} title="Abrir" className="p-1 rounded text-primary hover:bg-surface">
-            <Download className="w-3.5 h-3.5" />
+          <button type="button" onClick={() => imprimir(a.id)} title="Imprimir" aria-label={`Imprimir ${a.title}`} className="p-1 rounded text-primary hover:bg-surface cursor-pointer">
+            <Printer className="w-3.5 h-3.5" />
           </button>
           <button type="button" onClick={() => excluir(a)} title="Excluir" className="p-1 rounded text-red-600 hover:bg-surface">
             <Trash2 className="w-3.5 h-3.5" />
