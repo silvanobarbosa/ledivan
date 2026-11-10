@@ -376,6 +376,10 @@ export const patients = pgTable("patients", {
   guardianRelationship: text("guardian_relationship"), // grau de parentesco do responsável
   // Devolutiva periódica: a cada quantos meses, contados da primeira sessão. Nulo = não combinada.
   devolutivaMeses: integer("devolutiva_meses"),
+  // Doc 63: o processo de encerramento combinado com este paciente — a quantidade mínima de sessões
+  // de desligamento. Texto, e não número, porque o combinado é uma faixa ("2 a 4"). Preenchido,
+  // entra na cláusula 8.1 do contrato; vazio, a cláusula não sai.
+  processoEncerramento: text("processo_encerramento"),
   // Devolutiva deste ciclo "dispensada" no Dashboard (✓) — guarda a data da própria devolutiva, para
   // ela sumir da lista agora e reaparecer só no ciclo seguinte (doc 9, item 2).
   devolutivaDispensadaEm: timestamp("devolutiva_dispensada_em"),

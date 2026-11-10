@@ -46,6 +46,9 @@ export type DadosDoContrato = {
   diaPagamento: number | null;
   diaPagamento2: number | null;
   horasAntesPagamento: number | null;
+  // Doc 63: o mínimo de sessões de encerramento combinado com este paciente. Vazio = a seção 8 não
+  // sai no contrato (e a do foro passa a ser a 8).
+  processoEncerramento?: string | null;
   // Data em que o contrato está sendo visto (doc 28) — preenche a linha da assinatura. O caller passa
   // `new Date()`; fica como parâmetro para a função seguir pura/testável.
   hoje: Date | null;
@@ -193,6 +196,21 @@ export function montarContrato(d: DadosDoContrato): string {
   const ehTerapia = descricaoValida(d.descricaoAtendimento) === "terapia";
   const sigiloAdj = ehTerapia ? "terapêutico" : "analítico";
   const altaTermo = ehTerapia ? "TERAPÊUTICA" : "ANALÍTICA";
+
+  /**
+   * Doc 63: a seção do encerramento só existe quando a terapeuta combinou o mínimo de sessões no
+   * cadastro do paciente. "Se não for preenchido, ocultar este texto do contrato" — e com ele a
+   * própria seção, que não teria mais nada dentro. O foro assume o número vago, porque contrato
+   * com buraco na numeração parece contrato com cláusula arrancada.
+   */
+  const encerramento = (d.processoEncerramento ?? "").trim();
+  const secaoEncerramento = encerramento
+    ? `8. DO ENCERRAMENTO E ALTA ${altaTermo}
+8.1. Processo de Encerramento: O desligamento exige um período de elaboração. Caso se decida interromper o tratamento, concorda-se com a realização de no mínimo ${neg(encerramento)} sessões de encerramento para o manejo da separação e fechamento do vínculo.
+
+`
+    : "";
+  const numeroDoForo = encerramento ? 9 : 8;
 
   // Doc 41: sem "próximo reajuste em" (periodicidade não definida), a cláusula 4.3 inteira sai do
   // contrato; volta a aparecer assim que a periodicidade é preenchida.
@@ -354,10 +372,7 @@ ${faltaDoProfissional("paciente")}
 7.1. Privacidade do Ambiente: Para sessões online, os RESPONSÁVEIS comprometem-se a garantir ambiente privado, silencioso, sem interrupções e com conexão estável durante a sessão.
 7.2. Gravação Proibida: É expressamente proibida a gravação (áudio ou vídeo) das sessões por qualquer das partes sem autorização prévia e formal por escrito.
 
-8. DO ENCERRAMENTO E ALTA ${altaTermo}
-8.1. Processo de Encerramento: O desligamento exige um período de elaboração. Caso se decida interromper o tratamento, concorda-se com a realização de no mínimo [ex: 2 a 4] sessões de encerramento para o manejo da separação e fechamento do vínculo.
-
-9. DO FORO
+${secaoEncerramento}${numeroDoForo}. DO FORO
 Para dirimir dúvidas oriundas deste contrato, as partes elegem o Foro da Comarca de ${foroCidadeUf}, com renúncia a qualquer outro.
 
 Por estarem assim justos e contratados, assinam o presente instrumento em 2 (duas) vias de igual teor e forma.
