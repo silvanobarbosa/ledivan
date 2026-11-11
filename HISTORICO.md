@@ -7,6 +7,65 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-11-11 — A falha que não deixava rastro passa a ter código
+
+**Entregue:** a tabela `app_falhas` (migration 0041, já aplicada em produção), `src/lib/falhas.ts`
+com a peneira de segredo, a tela `/dashboard/error.tsx`, `updatePatient` e as quatro ações do
+Financeiro embrulhadas, `scripts/ver-falhas.mjs` para ler o que foi gravado, 14 testes de unidade
+e o percurso `scripts/e2e-falha-com-codigo.mjs` (11 verificações no app de verdade).
+
+**Por quê:** a dona fotografou um "A server error occurred" ao salvar, em inglês, sem motivo e sem
+volta. A varredura dos 71 cadastros não reproduziu nada, e não havia de onde tirar a causa: em
+produção o Next REDIGE a mensagem antes de ela chegar ao navegador, e a Vercel no plano gratuito não
+guarda log de runtime. O que faltava não era o conserto de um bug — era o instrumento que diz QUAL
+bug. Sem ele, a próxima vez custaria o mesmo dia.
+
+**Decisões que ficam valendo:**
+
+- **O código da tela é o `digest` do erro, não um número à parte.** `registrarFalha` escreve o
+  código que gravou no `digest` do erro antes de deixá-lo subir. É o que faz os seis caracteres que
+  a dona lê acharem a linha no banco. Sem essa linha, a tela mostra o hash do Next e o banco guarda
+  outro valor — era assim que isto nasceu, e o par não existia.
+- **Nada de segredo entra na tabela.** Mensagem de erro de driver de banco carrega a string de
+  conexão inteira, com a senha. `peneirar` mora em `peneiraDeSegredo.ts`, separado de quem abre
+  conexão, justamente para poder ser testado — e é testado com senha, chave `sk-`, JSON com `token`
+  e cookie assinado.
+- **Registrar a falha NUNCA joga.** Se o banco é o que está fora, sobra só o código na tela. Um erro
+  ao registrar o erro não pode virar o erro que a pessoa vê.
+- **A ação que joga é embrulhada com `unstable_rethrow` antes de tudo.** `redirect()` e `notFound()`
+  funcionam JOGANDO: sem isso, um salvamento bem-sucedido seria registrado como falha e o
+  redirecionamento sumiria. Vale igual dentro de `comRegistro`.
+- **A tela de erro avisa para CONFERIR o que estava sendo salvo.** Ela não sabe se a gravação passou
+  ou não; dizer "não foi salvo" seria chute, e o chute aqui faz a pessoa digitar duas vezes.
+
+**Armadilhas:**
+
+- **O percurso quase mediu o botão errado.** Depois que o balão do Divã sai do caminho, TODOS os
+  botões de salvar ficam "visíveis" para o Playwright, inclusive os das abas fechadas — e o primeiro
+  é o "Salvar formato de pagamento", que recorta o envio para o Financeiro e não exerce o caminho
+  que se quer. O envio é pedido ao formulário com `requestSubmit(botao)`, passando o botão como
+  submitter.
+- **O balão do Divã volta depois de removido do DOM**: disputar o clique com ele é perder tempo;
+  por isso o envio não passa pelo mouse.
+- **Formulário incompleto não chega ao servidor.** O cadastro semeado sem "Sessões no pacote" era
+  barrado pela validação do navegador, e o percurso passava sem ter exercido nada.
+- **Caminho de dado é mais resiliente do que parecia, e isso atrapalha forçar falha**: data inválida
+  e número que não é número caem em `null` sem quebrar. A falha do percurso é forçada apagando o
+  cadastro debaixo da tela aberta — `throw` do próprio código, sem gatilho de teste em produção.
+- **Hipótese descartada:** valor de sessão acima do teto de `numeric(10,2)` NÃO é a causa — a
+  máscara de moeda já trava em 10 dígitos, que é exatamente o teto da coluna.
+
+**Pendente:**
+
+- **A causa do erro que a dona viu continua desconhecida.** O instrumento existe para nomeá-la na
+  próxima vez: quando acontecer, pedir o código da tela e rodar `node scripts/ver-falhas.mjs <CODIGO>`.
+- Só `updatePatient` e o Financeiro estão embrulhados. As outras ~20 ações `"use server"` continuam
+  caindo na tela de erro sem linha no banco — ampliar conforme aparecer, não de uma vez.
+- `app_falhas` não tem expurgo: se virar volume, cortar por `created_at`.
+- Recuperação de senha e Google Agenda seguem no planejamento, por decisão do dono.
+
+---
+
 ## 2026-11-10 — Doc 63: documento formatável, Observações, reajuste único e os avisos do dia
 
 **Entregue:** PRs #583 a #588, as migrations 0039 (`patients.processo_encerramento`) e 0040

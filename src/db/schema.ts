@@ -1337,3 +1337,33 @@ export const loginCodes = pgTable("login_codes", {
   usadoEm: timestamp("usado_em"),
   createdAt: timestamp("created_at").defaultNow().notNull(),
 }, (t) => [index("login_codes_user_idx").on(t.userId)]);
+
+/**
+ * AS FALHAS QUE A PESSOA VIU — e que ninguém mais via (doc 64).
+ *
+ * Uma Server Action que joga uma exceção derruba a tela inteira num "A server error occurred", sem
+ * motivo, sem código e sem volta. Em produção o Next REDIGE a mensagem antes de ela chegar ao
+ * navegador, de propósito: o texto do erro pode conter dado do banco. O resultado é que a dona
+ * relata "deu erro ao salvar" e não há de onde tirar o que aconteceu — foi exatamente o que custou
+ * esta investigação, com a falha não reproduzindo em nenhum dos 71 cadastros varridos.
+ *
+ * Esta tabela é o único lugar onde o motivo fica. O `codigo` é o mesmo `digest` que a tela mostra,
+ * então a pessoa lê quatro caracteres na tela e eles achám a linha aqui.
+ *
+ * NADA de segredo entra: `registrarFalha` (lib/falhas.ts) passa mensagem e pilha por uma peneira
+ * antes de gravar — driver de banco põe a string de conexão inteira na mensagem de erro.
+ */
+export const appFalhas = pgTable("app_falhas", {
+  id: uuid("id").primaryKey().defaultRandom(),
+  /** Sem FK e anulável de propósito: falha de sessão inválida não tem dono a referenciar. */
+  userId: text("user_id"),
+  /** O que a pessoa estava fazendo: o nome da ação (`updatePatient`, `lancarPagamento`…). */
+  acao: text("acao").notNull(),
+  /** O id do que ela estava mexendo (paciente, cobrança), quando a ação souber dizer. */
+  alvo: text("alvo"),
+  /** O código curto que aparece na tela de erro, para casar o relato com esta linha. */
+  codigo: text("codigo").notNull(),
+  mensagem: text("mensagem").notNull(),
+  pilha: text("pilha"),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+}, (t) => [index("app_falhas_created_idx").on(t.createdAt)]);
