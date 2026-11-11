@@ -6,6 +6,7 @@ import { z } from "zod";
 import { auth } from "@/auth";
 import { db } from "@/db";
 import { patientObservacoes, patientReajusteChanges, patients } from "@/db/schema";
+import { comRegistro } from "@/lib/falhas";
 import { vencimentoDoPreco } from "@/lib/reajuste";
 
 /**
@@ -54,7 +55,7 @@ export async function listarObservacoes(patientId: string): Promise<Observacao[]
   return linhas.map((l) => ({ ...l, at: (l.at as Date).toISOString() }));
 }
 
-export async function criarObservacao(entrada: unknown): Promise<{ ok: boolean; error?: string }> {
+async function criarObservacaoInterno(entrada: unknown): Promise<{ ok: boolean; error?: string }> {
   const dados = Texto.safeParse(entrada);
   if (!dados.success) return { ok: false, error: dados.error.issues[0]?.message ?? "Dados inválidos." };
   const ctx = await donoDoPaciente(dados.data.patientId);
@@ -74,7 +75,7 @@ export async function criarObservacao(entrada: unknown): Promise<{ ok: boolean; 
  * Editar NÃO cria registro novo — e a data mostrada passa a ser a da alteração, como o documento
  * pede ("salvas sem criar um novo registro e atualizando a data e o horário originais de criação").
  */
-export async function editarObservacao(entrada: unknown): Promise<{ ok: boolean; error?: string }> {
+async function editarObservacaoInterno(entrada: unknown): Promise<{ ok: boolean; error?: string }> {
   const Editar = Texto.extend({ id: z.string().uuid() });
   const dados = Editar.safeParse(entrada);
   if (!dados.success) return { ok: false, error: dados.error.issues[0]?.message ?? "Dados inválidos." };
@@ -90,7 +91,7 @@ export async function editarObservacao(entrada: unknown): Promise<{ ok: boolean;
 }
 
 /** Apaga UMA observação — o assunto e o texto dela, e nada mais. */
-export async function excluirObservacao(entrada: unknown): Promise<{ ok: boolean; error?: string }> {
+async function excluirObservacaoInterno(entrada: unknown): Promise<{ ok: boolean; error?: string }> {
   const Excluir = z.object({ patientId: z.string().uuid(), id: z.string().uuid() });
   const dados = Excluir.safeParse(entrada);
   if (!dados.success) return { ok: false, error: "Dados inválidos." };
@@ -122,7 +123,7 @@ const Reajuste = z.object({
  *
  * A alteração entra no histórico de reajuste junto com as demais, pela mesma tabela de mudanças.
  */
-export async function salvarProximoReajuste(entrada: unknown): Promise<{ ok: boolean; error?: string }> {
+async function salvarProximoReajusteInterno(entrada: unknown): Promise<{ ok: boolean; error?: string }> {
   const dados = Reajuste.safeParse(entrada);
   if (!dados.success) return { ok: false, error: "Informe de quantos em quantos meses lembrar." };
   const { patientId, meses, aPartirDe } = dados.data;
@@ -172,4 +173,39 @@ export async function salvarProximoReajuste(entrada: unknown): Promise<{ ok: boo
   revalidatePath(`/dashboard/patients/${patientId}`);
   revalidatePath("/dashboard");
   return { ok: true };
+}
+
+/**
+ * O QUE A PESSOA LÊ QUANDO ESTA TELA QUEBRA.
+ *
+ * Estas quatro ações conversam por `{ ok, error }`, mas só do erro que elas PREVEEM. O imprevisto —
+ * banco fora, coluna que mudou, texto fora do tamanho — sobe como exceção, derruba a tela do
+ * Financeiro no aviso genérico do navegador e leva embora o que estava digitado. Era essa a tela
+ * que a dona fotografou, e não havia de onde tirar o motivo.
+ *
+ * Embrulhadas, o imprevisto volta como mensagem no lugar, com o formulário ainda preenchido, e o
+ * motivo fica gravado em `app_falhas` com o mesmo código que a mensagem mostra.
+ *
+ * `listarObservacoes` fica de fora: ela é leitura, já devolve lista vazia no erro, e embrulhá-la
+ * mudaria o tipo do retorno sem ninguém ganhar nada.
+ */
+const doPatientId = (entrada: unknown): string | null => {
+  const e = entrada as { patientId?: unknown } | null;
+  return typeof e?.patientId === "string" ? e.patientId : null;
+};
+
+export async function criarObservacao(entrada: unknown): Promise<{ ok: boolean; error?: string }> {
+  return comRegistro({ acao: "criarObservacao", alvo: doPatientId(entrada) }, () => criarObservacaoInterno(entrada));
+}
+
+export async function editarObservacao(entrada: unknown): Promise<{ ok: boolean; error?: string }> {
+  return comRegistro({ acao: "editarObservacao", alvo: doPatientId(entrada) }, () => editarObservacaoInterno(entrada));
+}
+
+export async function excluirObservacao(entrada: unknown): Promise<{ ok: boolean; error?: string }> {
+  return comRegistro({ acao: "excluirObservacao", alvo: doPatientId(entrada) }, () => excluirObservacaoInterno(entrada));
+}
+
+export async function salvarProximoReajuste(entrada: unknown): Promise<{ ok: boolean; error?: string }> {
+  return comRegistro({ acao: "salvarProximoReajuste", alvo: doPatientId(entrada) }, () => salvarProximoReajusteInterno(entrada));
 }
