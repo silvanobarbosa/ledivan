@@ -204,9 +204,13 @@ export function montarContrato(d: DadosDoContrato): string {
    * com buraco na numeração parece contrato com cláusula arrancada.
    */
   const encerramento = (d.processoEncerramento ?? "").trim();
+  // Doc 64: combinado de UMA sessão fala no singular. "no mínimo 1 sessões" é erro de português num
+  // documento que a pessoa assina. Só o 1 exato muda; faixa ("2 a 4") e qualquer outro número seguem
+  // no plural, que é o que o documento manda ("caso contrário... continuar com a programação").
+  const sessaoTermo = encerramento === "1" ? "sessão" : "sessões";
   const secaoEncerramento = encerramento
     ? `8. DO ENCERRAMENTO E ALTA ${altaTermo}
-8.1. Processo de Encerramento: O desligamento exige um período de elaboração. Caso se decida interromper o tratamento, concorda-se com a realização de no mínimo ${neg(encerramento)} sessões de encerramento para o manejo da separação e fechamento do vínculo.
+8.1. Processo de Encerramento: O desligamento exige um período de elaboração. Caso se decida interromper o tratamento, concorda-se com a realização de no mínimo ${neg(encerramento)} ${sessaoTermo} de encerramento para o manejo da separação e fechamento do vínculo.
 
 `
     : "";

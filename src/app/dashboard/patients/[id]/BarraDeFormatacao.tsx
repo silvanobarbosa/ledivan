@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { AlignCenter, AlignJustify, AlignLeft, AlignRight, List } from "lucide-react";
+import { AlignCenter, AlignJustify, AlignLeft, AlignRight, Bold, Italic, List } from "lucide-react";
 import { comoHtml } from "@/lib/textoRico";
 
 /**
@@ -40,6 +40,11 @@ const CORES = [
   { valor: "#000000", rotulo: "Preto" },
   { valor: "#dc2626", rotulo: "Vermelho" },
   { valor: "#1d4ed8", rotulo: "Azul" },
+];
+
+const ESTILOS = [
+  { comando: "bold", rotulo: "Negrito", Icone: Bold },
+  { comando: "italic", rotulo: "Itálico", Icone: Italic },
 ];
 
 const ALINHAMENTOS = [
@@ -91,6 +96,14 @@ export function BarraDeFormatacao() {
       >
         {TAMANHOS.map((t) => <option key={t.rotulo} value={t.valor}>{t.rotulo}</option>)}
       </select>
+
+      {/* Doc 64: negrito e itálico. Vêm antes da cor porque é a dupla que se usa mais, e são os
+          dois únicos comandos da barra que ALTERNAM — clicar de novo na seleção já formatada tira. */}
+      {ESTILOS.map(({ comando, rotulo, Icone }) => (
+        <button key={comando} type="button" title={rotulo} aria-label={rotulo} onClick={() => aplicar(comando)} className={botaoCls}>
+          <Icone className="w-4 h-4" />
+        </button>
+      ))}
 
       <span className="flex items-center gap-1 px-1">
         {CORES.map((c) => (

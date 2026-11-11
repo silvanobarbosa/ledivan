@@ -72,6 +72,15 @@ export default async function DashboardLayout({
                 ★ Admin
               </Link>
             )}
+            {/* Doc 64: no celular o Divã e o escanear-recibo moram AQUI, não mais flutuando sobre
+                o conteúdo. No computador eles se posicionam sozinhos no canto (classes `lg:fixed`
+                em lib/modal.ts), e este lugar na barra deixa de valer. A janela de cada um é
+                `fixed`, então estar dentro do cabeçalho não muda nada para ela. */}
+            <Diva
+              estado={estadoDiva ?? { sessoesHoje: 0, cobrancasEmAtraso: 0, valorEmAtraso: 0, semProximoAgendamento: 0, reajustesAVencer: 0 }}
+              podeOuvir={!!user?.aiKeyEnc}
+            />
+            <ScanRecibo hasAiKey={!!user?.aiKeyEnc} />
             <HelpButton />
             <button aria-label="Notificações" className="p-2 lg:p-3 bg-white border border-border rounded-2xl text-foreground/60 hover:text-primary hover:border-primary transition-all">
               <Bell className="w-5 h-5" />
@@ -99,11 +108,6 @@ export default async function DashboardLayout({
       </div>
 
       <BottomNavBar />
-      <ScanRecibo hasAiKey={!!user?.aiKeyEnc} />
-      <Diva
-        estado={estadoDiva ?? { sessoesHoje: 0, cobrancasEmAtraso: 0, valorEmAtraso: 0, semProximoAgendamento: 0, reajustesAVencer: 0 }}
-        podeOuvir={!!user?.aiKeyEnc}
-      />
       <OnboardingTour />
     </div>
   );

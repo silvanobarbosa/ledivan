@@ -129,11 +129,11 @@ export function ScanRecibo({ hasAiKey }: { hasAiKey: boolean }) {
       <input type="file" accept="image/*" capture="environment" className="hidden" ref={fileRef} onChange={escolher} />
       <button
         onClick={() => fileRef.current?.click()}
-        className={`print:hidden ${FLUTUANTE_BAIXO} w-14 h-14 lg:w-16 lg:h-16 bg-accent text-primary rounded-full shadow-2xl flex items-center justify-center hover:scale-110 active:scale-95 transition-all z-50 border-4 border-white`}
+        className={`print:hidden ${FLUTUANTE_BAIXO} w-10 h-10 lg:w-16 lg:h-16 bg-accent text-primary rounded-full shadow-lg lg:shadow-2xl flex items-center justify-center hover:scale-110 active:scale-95 transition-all z-50 border-2 lg:border-4 border-white shrink-0`}
         title="Ler um recibo e lançar"
         aria-label="Ler um recibo e lançar"
       >
-        <Camera className="w-7 h-7" />
+        <Camera className="w-5 h-5 lg:w-7 lg:h-7" />
       </button>
 
       {aberto && (

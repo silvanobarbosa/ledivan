@@ -223,13 +223,19 @@ function VencimentoEditavel({ patientId, c }: { patientId: string; c: CobrancaNa
   return (
     <span className="inline-flex items-center gap-1 align-middle">
       {` · vence ${venc}`}
+      {/* Doc 64: o aviso virou JANELA. Embutido na linha ele passava despercebido — nasce no meio
+          de um texto corrido, com letra de 10px, numa tela que acabou de recarregar. A janela
+          interrompe, que é o ponto de um aviso sobre data de dinheiro. */}
       {avisarProximas && (
-        <span className="inline-flex items-start gap-1 rounded-lg bg-[#fef3c7] text-[#92400e] px-2 py-1 text-[10px] font-medium print:hidden">
-          Atenção! Confira se as próximas datas estão corretas e, caso identifique alguma divergência, faça os ajustes necessários.
-          <button type="button" onClick={() => setAvisarProximas(false)} aria-label="Fechar aviso" className="shrink-0 cursor-pointer">
-            <X className="w-3 h-3" />
-          </button>
-        </span>
+        <div className="fixed inset-0 z-[80] flex items-end sm:items-center justify-center bg-black/30 p-4 print:hidden" onClick={() => setAvisarProximas(false)}>
+          <div className="bg-white rounded-[24px] p-6 w-full max-w-sm space-y-4 shadow-2xl" onClick={(e) => e.stopPropagation()} role="alertdialog" aria-label="Confira as próximas datas">
+            <p className="font-display text-lg font-bold text-primary">Atenção!</p>
+            <p className="text-sm text-foreground/70">
+              Confira se as próximas datas estão corretas e, caso identifique alguma divergência, faça os ajustes necessários.
+            </p>
+            <button type="button" onClick={() => setAvisarProximas(false)} className="w-full bg-primary text-white py-3 rounded-xl font-bold cursor-pointer">OK</button>
+          </div>
+        </div>
       )}
       {podeEditar && (
         <>

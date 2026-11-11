@@ -200,12 +200,9 @@ export function DocumentosTab({ patientId, cabecalho, documentos }: { patientId:
           minAltura="18rem"
           className="documento-impresso"
         />
-        {/* A assinatura é automática, como o cabeçalho: aparece aqui para ela conferir, e sai no
-            papel. Não é campo — vem do nome, da descrição do atendimento e do registro em Ajustes. */}
-        <div className="rounded-xl border border-dashed border-border px-4 py-3 text-foreground/50">
-          <p className="text-[10px] uppercase tracking-widest font-bold text-foreground/30 mb-1">Sai no fim do documento impresso</p>
-          <Assinatura p={cabecalho.profissional} />
-        </div>
+        {/* Doc 64: a prévia da assinatura SAIU da tela — no celular ela empurrava os campos e o
+            botão Salvar para fora da vista. A assinatura continua automática e continua saindo no
+            papel (ver o portal de impressão, abaixo); quem quer conferi-la manda imprimir. */}
         {erro && <p className="text-sm text-red-600">{erro}</p>}
         {/* Doc 34 (G8): o "Imprimir" saiu da área de edição — a impressão fica na lista de documentos. */}
         <div className="flex flex-wrap items-center gap-2">

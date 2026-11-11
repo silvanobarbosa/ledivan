@@ -1,6 +1,7 @@
 "use client";
 
 import { useCallback, useEffect, useRef, useState, useTransition } from "react";
+import { createPortal } from "react-dom";
 import { Paperclip, Printer, Trash2 } from "lucide-react";
 import {
   deleteMaterial,
@@ -11,6 +12,18 @@ import {
 } from "./materials-actions";
 
 type Anexo = { id: string; title: string; kind: string; content: string; at: string };
+
+/**
+ * O anexo é uma IMAGEM? (doc 64)
+ *
+ * Decide por qual caminho a impressão vai, e as duas naturezas que o upload aceita se comportam de
+ * forma diferente: imagem o navegador desenha dentro da nossa página, PDF não. Olha a extensão do
+ * nome e, na falta dela, a do arquivo guardado — é o que temos; o tipo MIME não é gravado.
+ */
+function ehImagem(a: Anexo): boolean {
+  const alvo = `${a.title} ${a.content}`.toLowerCase();
+  return /\.(jpe?g|png|webp|gif|bmp|avif)(\?|$|\s)/.test(alvo);
+}
 
 /**
  * Anexos de UM item do prontuário: um registro do histórico terapêutico (prints 6.pdf, item 5) ou
@@ -37,6 +50,13 @@ function Anexos({
   const [erro, setErro] = useState<string | null>(null);
   const [pendente, iniciar] = useTransition();
   const inputRef = useRef<HTMLInputElement>(null);
+  // Doc 64: o bloco de impressão da imagem, no molde do da área Documentos.
+  const [montado, setMontado] = useState(false);
+  const [printAnexo, setPrintAnexo] = useState<Anexo | null>(null);
+  const [printNonce, setPrintNonce] = useState(0);
+
+  // eslint-disable-next-line react-hooks/set-state-in-effect
+  useEffect(() => { setMontado(true); }, []);
 
   const carregar = useCallback(async () => {
     setItens(await carregarItens(itemId));
@@ -64,15 +84,24 @@ function Anexos({
   }
 
   /**
-   * Doc 63: o ícone de baixar virou IMPRESSORA, e ela faz o que a impressora da área Documentos
-   * faz — manda o papel para a impressora, sem passo de download no meio.
+   * Doc 64: a IMAGEM imprime como a área Documentos imprime.
    *
-   * O arquivo é aberto por `/api/files/<id>/raw`, que o serve pelo nosso domínio: só assim o
-   * navegador deixa a página chamar `print()` no que o quadro carregou. Se o visualizador não
-   * aceitar imprimir (o Safari do iPhone é o caso), o arquivo abre numa aba e ela imprime de lá —
-   * nunca fica sem saída.
+   * O quadro escondido (doc 63) manda o `print()` para OUTRO documento, e no celular isso não abre
+   * a janela de Cancelar/Imprimir — foi o que a dona viu. O caminho que abre é o mesmo dos
+   * documentos: desenhar o que se quer imprimir num bloco da PRÓPRIA página e chamar
+   * `window.print()`. Um nonce dispara, e o bloco não é desmontado antes da captura (no celular o
+   * `print()` não trava a execução).
+   *
+   * PDF segue pelo caminho antigo: navegador de celular não desenha PDF dentro da página, então
+   * não há como pôr o arquivo no nosso bloco — ele abre no visualizador, que tem a impressão dele.
    */
-  function imprimir(id: string) {
+  function imprimir(a: Anexo) {
+    if (ehImagem(a)) {
+      setPrintAnexo(a);
+      setPrintNonce((n) => n + 1);
+      return;
+    }
+    const id = a.id;
     const url = `/api/files/${id}/raw`;
     const quadro = document.createElement("iframe");
     quadro.setAttribute("aria-hidden", "true");
@@ -104,7 +133,7 @@ function Anexos({
         <div key={a.id} className="flex items-center gap-2 text-xs">
           <Paperclip className="w-3.5 h-3.5 text-primary shrink-0" />
           <span className="flex-1 truncate font-medium text-foreground/70">{a.title}</span>
-          <button type="button" onClick={() => imprimir(a.id)} title="Imprimir" aria-label={`Imprimir ${a.title}`} className="p-1 rounded text-primary hover:bg-surface cursor-pointer">
+          <button type="button" onClick={() => imprimir(a)} title="Imprimir" aria-label={`Imprimir ${a.title}`} className="p-1 rounded text-primary hover:bg-surface cursor-pointer">
             <Printer className="w-3.5 h-3.5" />
           </button>
           <button type="button" onClick={() => excluir(a)} title="Excluir" className="p-1 rounded text-red-600 hover:bg-surface">
@@ -124,6 +153,34 @@ function Anexos({
         <Paperclip className="w-3.5 h-3.5" /> {pendente ? "Anexando…" : "Anexar arquivo"}
       </button>
       {erro && <p className="text-xs text-red-600">{erro}</p>}
+
+      {/* Doc 64: o bloco que vai para o papel. Mesmo molde do da área Documentos — portal no body,
+          escondido na tela, visível só na impressão. A impressão é disparada no `onLoad` da imagem:
+          chamar `print()` antes de ela carregar imprime uma folha em branco. */}
+      {montado && printAnexo && createPortal(
+        <div id="anexo-print-root">
+          <style>{`
+            #anexo-print-root { display: none; }
+            @media print {
+              @page { margin: 12mm; }
+              body > *:not(#anexo-print-root) { display: none !important; }
+              #anexo-print-root { display: block !important; }
+              /* A tela do paciente injeta um "body * { visibility: hidden }" para imprimir só o
+                 Controle, e ele vale em qualquer aba. Sem reverter aqui, o anexo sai em branco. */
+              #anexo-print-root, #anexo-print-root * { visibility: visible !important; }
+            }
+          `}</style>
+          {/* eslint-disable-next-line @next/next/no-img-element -- arquivo privado servido pela nossa rota, sem otimização do Next */}
+          <img
+            key={printNonce}
+            src={`/api/files/${printAnexo.id}/raw`}
+            alt={printAnexo.title}
+            onLoad={() => window.print()}
+            style={{ maxWidth: "100%", display: "block", margin: "0 auto" }}
+          />
+        </div>,
+        document.body,
+      )}
     </div>
   );
 }

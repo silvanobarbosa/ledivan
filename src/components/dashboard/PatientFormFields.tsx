@@ -822,9 +822,9 @@ export function PatientFormFields({ p, save, tabInicial, contrato, patientId, ob
                 defaultValue={p?.processoEncerramento ?? ""} className={inputCls} placeholder="ex: 2 a 4"
               />
               <p className="text-[10px] text-foreground/50 mt-1">
-                Define as condições e a quantidade mínima de sessões para o encerramento do tratamento.
-                Quando preenchido, será incluído automaticamente no contrato terapêutico: realização
-                mínima de x sessões antes do encerramento.
+                Defina a quantidade mínima de sessões necessárias para o encerramento do tratamento e
+                elaboração da separação terapêutica. — Campo opcional. Se preenchido, a quantidade
+                mínima de sessões para encerramento constará no contrato.
               </p>
             </div>
           </Card>

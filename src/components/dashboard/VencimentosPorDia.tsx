@@ -82,6 +82,16 @@ export function VencimentosPorDia() {
   const vencimentoCol = (c: CobrancaResolvida) => (c.tipoVencimento === "primeira" || c.tipoVencimento === "ultima" ? TIPO_VENC[c.tipoVencimento] : dataBR(c.vencimento));
   const temTelefone = (c: CobrancaResolvida) => !!numeroDoWhatsapp(c.telefone);
 
+  /**
+   * Doc 64: a linha de total no fim da tabela.
+   *
+   * Soma o que FALTA receber das cobranças ainda abertas, e não a coluna inteira: a linha de uma
+   * cobrança quitada mostra o valor cheio (é o que foi pago), e somar junto devolveria um "total a
+   * pagar" que inclui dinheiro que já entrou. O mesmo motivo do aviso do dia (doc 63).
+   */
+  const totalAPagar = (lista: CobrancaResolvida[]) =>
+    lista.reduce((s, c) => (pago(c) ? s : s + c.falta), 0);
+
   // Doc 50: títulos centralizados.
   const th = "px-2 py-2 text-center font-bold whitespace-nowrap";
   const td = "px-2 py-2 whitespace-nowrap";
@@ -124,6 +134,13 @@ export function VencimentosPorDia() {
                       </tr>
                     ))}
                   </tbody>
+                  <tfoot className="border-t border-border">
+                    <tr className="font-bold text-primary">
+                      <td className={td} colSpan={2}>Total a pagar</td>
+                      <td className={`${td} tabular-nums`}>{formatBRL(totalAPagar(avulsas))}</td>
+                      <td className={td} colSpan={3} />
+                    </tr>
+                  </tfoot>
                 </table>
               </div>
             )}
@@ -155,6 +172,13 @@ export function VencimentosPorDia() {
                       </tr>
                     ))}
                   </tbody>
+                  <tfoot className="border-t border-border">
+                    <tr className="font-bold text-primary">
+                      <td className={td} colSpan={6}>Total a pagar</td>
+                      <td className={`${td} tabular-nums`}>{formatBRL(totalAPagar(pacotes))}</td>
+                      <td className={td} colSpan={2} />
+                    </tr>
+                  </tfoot>
                 </table>
               </div>
             )}

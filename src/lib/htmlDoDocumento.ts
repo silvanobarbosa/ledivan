@@ -9,7 +9,7 @@ import { TAGS_DO_DOCUMENTO } from "@/lib/textoRico";
  * mas nada disso é garantia: quem posta é o navegador, e um Server Action aceita o que mandarem.
  * O que entra no banco é o que depois volta para a tela e para o papel, então a fronteira é aqui.
  *
- * Passam as tags do editor e, dentro de `style`, só as quatro propriedades que a barra aplica.
+ * Passam as tags do editor e, dentro de `style`, só as propriedades que a barra aplica.
  * Some tudo o mais — atributo de evento, `href`, `src`, classe, id, tag fora da lista.
  */
 export function limparHtmlDoDocumento(html: string): string {
@@ -22,6 +22,11 @@ export function limparHtmlDoDocumento(html: string): string {
         "font-family": [/^[\w\s"',-]+$/],
         "font-size": [/^[\w.%-]+$/],
         "text-align": [/^(left|center|right|justify)$/],
+        // Doc 64: com `styleWithCSS` ligado, negrito e itálico do navegador saem como
+        // `font-weight`/`font-style` num `<span>`, e não como `<b>`/`<i>`. Sem estas duas linhas a
+        // faxina apagava a formatação no caminho para o banco — o botão funcionava e não salvava.
+        "font-weight": [/^(bold|bolder|normal|[1-9]00)$/],
+        "font-style": [/^(italic|normal|oblique)$/],
         // Cor: só as três do documento, nos formatos que o navegador escreve.
         color: [/^#[0-9a-fA-F]{3,6}$/, /^rgb\(\s*\d{1,3}\s*,\s*\d{1,3}\s*,\s*\d{1,3}\s*\)$/, /^[a-z]+$/],
       },
