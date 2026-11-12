@@ -16,6 +16,7 @@ import { podeSerCortesia } from "@/lib/cortesia";
 import { formatoNaData } from "@/lib/vigenciaDoFormato";
 import { getUserAiClient, SemChaveIA } from "@/lib/ai-client";
 import { chavesDaCobrancaDaSessao, decidirDesfazer } from "@/lib/desfazerCobranca";
+import { STATUS_DE_DESMARCADA } from "@/lib/desmarcouDoAvulso";
 import { creditoDisponivel, geralDoPaciente } from "@/lib/geralDoPaciente";
 import { aplicarCreditosPendentes } from "@/lib/aplicarCreditos";
 import { abrangenciaValida, marcasDaSessao } from "@/lib/abrangenciaDaSerie";
@@ -633,7 +634,7 @@ export async function desfazerCobrancaDaSessao(
   return { ok: true };
 }
 
-export async function updateSessionStatus(sessionId: string, status: SessionStatus, justificativa?: string, chargeable?: boolean, faltouConta?: boolean) {
+export async function updateSessionStatus(sessionId: string, status: SessionStatus, justificativa?: string, chargeable?: boolean, faltouConta?: boolean, desmarcouCobra?: boolean) {
   const session = await auth();
   if (!session?.user?.id) throw new Error("Não autorizado");
   const userId = session.user.id;
@@ -663,8 +664,17 @@ export async function updateSessionStatus(sessionId: string, status: SessionStat
    * escolha. Sessão EXTRA não entra: o `valorExtra` dela é do agendamento e não tem nada com isto.
    */
   const limpaValorDaFalta = !faltouAgora && !existing.extra && existing.valorExtra != null;
+  /**
+   * Documento de 12/11/2026: a resposta do "Desmarcou" segue a mesma disciplina do `faltouConta`.
+   *
+   * Só vale DESMARCADA, e sai junto com o status — uma sessão que voltou para "Presente" não pode
+   * guardar uma resposta que a faria cobrar de novo se alguém a desmarcasse por engano meses
+   * depois. Sem resposta explícita, `null`: o passado inteiro está assim, e nenhuma linha antiga
+   * pode começar a cobrar sozinha.
+   */
+  const desmarcadaAgora = STATUS_DE_DESMARCADA.has(status);
   await db.update(therapySessions)
-    .set({ status, justificativa: justificativa || null, ...(chargeable !== undefined ? { chargeable } : {}), ...(limpaValorDaFalta ? { valorExtra: null } : {}), faltouConta: faltouAgora ? (faltouConta ?? existing.faltouConta ?? null) : null })
+    .set({ status, justificativa: justificativa || null, ...(chargeable !== undefined ? { chargeable } : {}), ...(limpaValorDaFalta ? { valorExtra: null } : {}), faltouConta: faltouAgora ? (faltouConta ?? existing.faltouConta ?? null) : null, desmarcouCobra: desmarcadaAgora ? (desmarcouCobra ?? existing.desmarcouCobra ?? null) : null })
     .where(and(eq(therapySessions.id, sessionId), eq(therapySessions.userId, userId)));
 
   // (consumo de pacote é derivado na página do paciente — sem update manual aqui)

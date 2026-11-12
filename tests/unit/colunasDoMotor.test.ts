@@ -29,6 +29,7 @@ const EXIGIDAS = [
   "extra",            // avul/grat: fora da sequência
   "valorExtra",       // o valor da avulsa
   "repoeSessaoId",    // reposição ocupa vaga, não cria
+  "desmarcouCobra",   // doc 12/11 — a desmarcada avulsa que mantém a cobrança de pé
 ] as const;
 
 describe("colunas que o motor de cobranças precisa", () => {

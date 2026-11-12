@@ -426,3 +426,88 @@ describe("valor informado para UMA sessão (doc 62)", () => {
     expect(c.map((x) => [x.tipo, x.valor])).toEqual([["pacote", FEE * 4]]);
   });
 });
+
+/**
+ * A SESSÃO DESMARCADA QUE CONTINUA COBRANDO (documento do dono, 12/11/2026).
+ *
+ * "Desmarcou" sempre apagou a cobrança — `cancelada` está em `STATUS_QUE_PAUSAM`. Agora, no
+ * AVULSO, a terapeuta responde se o pagamento fica pendente; respondido Sim, a cobrança daquela
+ * sessão continua de pé na guia Geral, esperando pagamento. Respondido Não (ou sem resposta, que
+ * é todo o passado), nada muda: a linha sai.
+ *
+ * O que estes testes protegem é a BORDA: a marca não pode atravessar para o pacote nem para
+ * quem está noutro status.
+ */
+describe("desmarcada que mantém a cobrança (doc 12/11)", () => {
+  it("avulso: com o Sim, a desmarcada continua cobrando o valor da sessão", () => {
+    const ss = [sessao(14, 8, { status: "cancelada", desmarcouCobra: true }), sessao(21)];
+    const c = cobrancasDoPaciente({ ...base(), sessoes: ss });
+    expect(c.map((x) => [x.chave, x.valor])).toEqual([
+      [`sessao:${ss[0].id}`, FEE],
+      [`sessao:${ss[1].id}`, FEE],
+    ]);
+  });
+
+  it("avulso: com o Não, a desmarcada não cobra", () => {
+    const ss = [sessao(14, 8, { status: "cancelada", desmarcouCobra: false }), sessao(21)];
+    const c = cobrancasDoPaciente({ ...base(), sessoes: ss });
+    expect(c.map((x) => x.ids)).toEqual([[ss[1].id]]);
+  });
+
+  it("avulso: sem resposta segue como sempre foi — a desmarcada não cobra", () => {
+    const ss = [sessao(14, 8, { status: "cancelada" }), sessao(21)];
+    const c = cobrancasDoPaciente({ ...base(), sessoes: ss });
+    expect(c.map((x) => x.ids)).toEqual([[ss[1].id]]);
+  });
+
+  it("a desmarcada cobrada vence NO DIA DELA, como qualquer sessão avulsa", () => {
+    const ss = [sessao(14, 8, { status: "cancelada", desmarcouCobra: true })];
+    const [c] = cobrancasDoPaciente({ ...base(), sessoes: ss });
+    expect(c.vencimento?.getTime()).toBe(new Date(2026, 8, 14, 14, 0, 0).getTime());
+  });
+
+  /**
+   * A sessão FORA da sequência do pacote ("não adicionar — sim") é gravada como extra avulsa. É
+   * ela que o documento alcança no mensal e no quinzenal.
+   */
+  it("extra avulsa de um mensal: com o Sim, continua cobrando à parte", () => {
+    const ss = [
+      sessao(14, 8, { status: "cancelada", extra: "avul", valorExtra: "90.00", desmarcouCobra: true }),
+      sessao(21),
+      sessao(28),
+      sessao(5, 9),
+      sessao(12, 9),
+    ];
+    const c = cobrancasDoPaciente({ ...base({ reserva: { formato: "mensal", pacoteTipo: "completo" }, tamanhoPacote: 4 }), sessoes: ss });
+    expect(c.filter((x) => x.tipo === "extra").map((x) => [x.chave, x.valor])).toEqual([[`extra:${ss[0].id}`, 90]]);
+  });
+
+  it("extra avulsa de um mensal: sem a marca, a desmarcada não cobra", () => {
+    const ss = [
+      sessao(14, 8, { status: "cancelada", extra: "avul", valorExtra: "90.00" }),
+      sessao(21),
+      sessao(28),
+      sessao(5, 9),
+      sessao(12, 9),
+    ];
+    const c = cobrancasDoPaciente({ ...base({ reserva: { formato: "mensal", pacoteTipo: "completo" }, tamanhoPacote: 4 }), sessoes: ss });
+    expect(c.filter((x) => x.tipo === "extra")).toEqual([]);
+  });
+
+  /**
+   * DENTRO da sequência a marca não faz nada — o documento é explícito ("caso seja adicionado à
+   * sequência, essa configuração não deverá acontecer"). O pacote continua cobrando o tamanho
+   * contratado, e a desmarcada continua pausando a posição.
+   */
+  it("pacote: a marca não cria cobrança nem muda o valor do pacote", () => {
+    const ss = [sessao(14, 8, { status: "cancelada", desmarcouCobra: true }), sessao(21), sessao(28), sessao(5, 9), sessao(12, 9)];
+    const c = cobrancasDoPaciente({ ...base({ reserva: { formato: "mensal", pacoteTipo: "completo" }, tamanhoPacote: 4 }), sessoes: ss });
+    expect(c.map((x) => [x.tipo, x.valor])).toEqual([["pacote", FEE * 4]]);
+  });
+
+  /** A marca é do Desmarcou. Noutro status, quem manda é a regra daquele status. */
+  it("a marca não cobra uma sessão que está em Faltou com o Não", () => {
+    const ss = [sessao(14, 8, { status: "nao_realizada", faltouConta: false, desmarcouCobra: true })];
+    expect(cobrancasDoPaciente({ ...base(), sessoes: ss })).toEqual([]);
+  });
+});

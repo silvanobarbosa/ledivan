@@ -28,6 +28,8 @@ export const COLUNAS_DA_SESSAO = {
   chargeable: therapySessions.chargeable,
   /** Doc 45/54: a resposta de "Faltou". É a que faltava em três telas. */
   faltouConta: therapySessions.faltouConta,
+  /** Doc 12/11: a resposta de "Desmarcou" no avulso — manter a cobrança em aberto ou não. */
+  desmarcouCobra: therapySessions.desmarcouCobra,
   /** Doc 54: atendimento do pacote dado de cortesia. */
   cortesia: therapySessions.cortesia,
   /** Sessão extra, fora da sequência: `avul` cobra à parte, `grat` não cobra. */

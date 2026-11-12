@@ -7,6 +7,61 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-11-12 — A sessão avulsa desmarcada passa a decidir o dinheiro
+
+**Entregue:** `src/lib/desmarcouDoAvulso.ts` (o alcance e a leitura da resposta), a coluna
+`desmarcou_cobra` (migration 0042, já aplicada em produção), os dois caminhos avulsos do motor de
+cobranças, a janela do "Desmarcou" na agenda, 18 testes de unidade e o percurso
+`scripts/e2e-desmarcou-avulso.mjs` — 16 verificações no app de verdade.
+
+**Por quê:** "Desmarcou" apagava a cobrança calado. No pacote isso está certo — a posição volta
+para a sessão seguinte e o paciente não perde nada. Na sessão AVULSA desmarcada em cima da hora,
+que a terapeuta tinha combinado cobrar, o valor sumia da guia Geral sem deixar rastro, e a única
+forma de trazê-lo de volta era desfazer o status.
+
+**Decisões que ficam valendo:**
+
+- **O alcance é o rótulo da célula, não o cadastro.** Quem responde "é avulsa?" é
+  `tipoDaFaltaPeloRotulo`, o mesmo que a janela do Faltou usa. É isso que faz o mensal/quinzenal
+  com "não adicionar à sequência — sim" entrar (ele é AVUL na tela) e o resto do pacote ficar de
+  fora, sem uma segunda classificação correndo em paralelo.
+- **`null` é "ninguém respondeu", e não cobra.** O passado inteiro está assim. Só o "Sim"
+  explícito cria cobrança — mesma disciplina do `faltouConta` do doc 45, pelo mesmo motivo: a tela
+  Atender encerra sessões sem abrir janela nenhuma.
+- **A resposta sai junto com o status.** Saiu do Desmarcou, a marca é limpa. Guardá-la faria uma
+  sessão voltar a cobrar sozinha se alguém a desmarcasse de novo meses depois.
+- **A janela do pagamento já lançado (doc 55) agora recebe o status de quem a abriu.** Ela fixava
+  `nao_realizada` porque só o Faltou a abria — reaproveitá-la sem isso faria a sessão desmarcada
+  aparecer como FALTA na agenda e na guia Geral.
+- **Já paga não pergunta sobre pendência.** O dinheiro entrou; o que falta é destino (estornar ou
+  transferir), e essa lógica financeira não foi reescrita, foi reusada.
+
+**Armadilhas:**
+
+- **O percurso media a tela antes de ela existir.** A janela do Desmarcou só abre DEPOIS de o app
+  perguntar ao servidor se a sessão tem pagamento — conferir no instante do clique reprovava o que
+  funciona.
+- **E media o banco antes da gravação.** A janela fecha no clique, não no fim da ação: lendo ali, o
+  percurso reprovava o "Sim" e aprovava o "Não" com o valor do "Sim". Agora espera o FATO no banco.
+- **O balão do Divã come o clique na conta de QA** (já conhecido do doc 63): o percurso clica pelo
+  DOM, não pelo mouse.
+- **A lista de colunas do motor é um teste.** Acrescentar `desmarcou_cobra` sem documentá-la em
+  `tests/unit/colunasDoMotor.test.ts` quebra de propósito — é o guarda que nasceu do `faltouConta`
+  que se perdia a caminho do motor.
+
+**Pendente:**
+
+- **"Atrasado" é consequência, não rótulo forçado.** O documento diz que o valor fica "com status
+  Atrasado"; o que ficou implementado é a cobrança seguir EM ABERTO, e a guia Geral chamá-la de
+  atrasada quando o vencimento passa — que é a regra que já vale para todo o resto. Uma sessão
+  desmarcada hoje, com vencimento hoje, aparece "em aberto" até vencer. Se o dono quiser o rótulo
+  "Atrasado" imediato, é outra entrega (e muda o significado da palavra em todas as telas).
+- **Os percursos `e2e-doc58` e `e2e-doc60` não rodam nesta máquina** — falham no clique do bloco da
+  agenda, interceptado pelo balão do Divã. Verificado no `main` limpo, reconstruído: a falha é
+  anterior a esta entrega. Vale migrá-los para o clique por DOM.
+
+---
+
 ## 2026-11-11 — A falha que não deixava rastro passa a ter código
 
 **Entregue:** a tabela `app_falhas` (migration 0041, já aplicada em produção), `src/lib/falhas.ts`
