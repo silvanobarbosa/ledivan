@@ -651,6 +651,12 @@ export const therapySessions = pgTable("therapy_sessions", {
   // true = conta para cobrança/pacote (comportamento padrão); false = não cobra (R$0) e não abate do
   // pacote; null = legado (conta, como sempre foi). Só tem efeito quando o status é nao_realizada.
   faltouConta: boolean("faltou_conta"),
+  // Documento de 12/11/2026: numa sessão "Desmarcou" AVULSA, a resposta de "manter o pagamento
+  // pendente?". true = a cobrança daquela sessão continua de pé na guia Geral, esperando
+  // pagamento; false = sai, sem cobrança; null = legado — e legado não começa a cobrar sozinho.
+  // Só tem efeito quando o status é de desmarcada (`cancelada`/`realocada`); ao sair do Desmarcou
+  // a resposta é limpa, pelo mesmo motivo do `faltouConta`.
+  desmarcouCobra: boolean("desmarcou_cobra"),
   // Doc 55: a sessão avulsa que voltou a ser gratuita E TINHA pagamento lançado, com a terapeuta
   // escolhendo ESTORNAR. O pagamento em si é apagado — então o dinheiro sai de todas as somas
   // sozinho; o que fica aqui é o REGISTRO do estorno, para a guia Geral poder dizer "Estorno
