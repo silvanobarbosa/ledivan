@@ -41,6 +41,9 @@ const token = await new jose.SignJWT({ userId: qa.id })
   .sign(new TextEncoder().encode(process.env.AUTH0_SECRET));
 
 const NOME = "QA desmarcou avulso";
+const MENSAL = "QA desmarcou mensal";
+/** Os cadastros criados no caminho — apagados no fim, aconteça o que acontecer. */
+const apagarDepois = [];
 // AVULSO ("sessao"): é o formato que o documento alcança. A sessão nasce HOJE, às 8h, para cair na
 // semana que a agenda abre sozinha — navegar semana a semana só acrescentaria passos que podem
 // falhar por motivo nenhum.
@@ -57,11 +60,13 @@ const [s] = await sql`
   RETURNING id`;
 
 const limpar = async () => {
-  await sql`DELETE FROM session_payments WHERE user_id = ${qa.id} AND cobranca_chave LIKE ${"%" + s.id}`;
-  await sql`DELETE FROM therapy_sessions WHERE patient_id = ${p.id}`;
-  await sql`DELETE FROM patient_price_history WHERE patient_id = ${p.id}`;
-  await sql`DELETE FROM patient_payment_format_history WHERE patient_id = ${p.id}`;
-  await sql`DELETE FROM patients WHERE id = ${p.id}`;
+  for (const pid of [p.id, ...apagarDepois]) {
+    await sql`DELETE FROM session_payments WHERE user_id = ${qa.id} AND patient_id = ${pid}`;
+    await sql`DELETE FROM therapy_sessions WHERE patient_id = ${pid}`;
+    await sql`DELETE FROM patient_price_history WHERE patient_id = ${pid}`;
+    await sql`DELETE FROM patient_payment_format_history WHERE patient_id = ${pid}`;
+    await sql`DELETE FROM patients WHERE id = ${pid}`;
+  }
 };
 
 const nav = await chromium.launch();
@@ -71,7 +76,7 @@ await ctx.addCookies([{ name: "auth-session", value: token, domain: alvo.hostnam
 const page = await ctx.newPage();
 
 /** O estado da sessão no banco — a única prova de que a escolha atravessou. */
-const noBanco = async () => (await sql`SELECT status, desmarcou_cobra FROM therapy_sessions WHERE id = ${s.id}`)[0];
+const noBanco = async (id = s.id) => (await sql`SELECT status, desmarcou_cobra FROM therapy_sessions WHERE id = ${id}`)[0];
 
 /**
  * ESPERA O FATO, não o relógio.
@@ -80,12 +85,12 @@ const noBanco = async () => (await sql`SELECT status, desmarcou_cobra FROM thera
  * estado ANTERIOR. Sem isto o percurso reprovava o Sim e aprovava o Não com o valor do Sim: o
  * erro clássico de medir uma resposta assíncrona pela tela que já sumiu.
  */
-const esperarNoBanco = async (condicao, ms = 20000) => {
+const esperarNoBanco = async (condicao, ms = 20000, id = s.id) => {
   const ate = Date.now() + ms;
-  let st = await noBanco();
+  let st = await noBanco(id);
   while (!condicao(st) && Date.now() < ate) {
     await new Promise((r) => setTimeout(r, 250));
-    st = await noBanco();
+    st = await noBanco(id);
   }
   return st;
 };
@@ -115,16 +120,16 @@ const clicarPorTexto = async (texto) =>
   }, texto);
 
 /** Abre o painel da sessão na agenda e clica num status. */
-const marcar = async (status) => {
+const marcar = async (status, quem = NOME, qual = 0) => {
   await page.goto(`${BASE}/dashboard/agenda`, { waitUntil: "domcontentloaded", timeout: 90000 });
-  await page.waitForSelector(`button[title^="${NOME}"]`, { timeout: 30000 });
-  const abriu = await page.evaluate((nome) => {
-    const b = [...document.querySelectorAll("button")].find((x) => (x.getAttribute("title") ?? "").startsWith(nome));
+  await page.waitForSelector(`button[title^="${quem}"]`, { timeout: 30000 });
+  const abriu = await page.evaluate(([nome, i]) => {
+    const b = [...document.querySelectorAll("button")].filter((x) => (x.getAttribute("title") ?? "").startsWith(nome))[i];
     if (!b) return false;
     b.click();
     return true;
-  }, NOME);
-  if (!abriu) throw new Error("não achei o bloco da sessão na agenda");
+  }, [quem, qual]);
+  if (!abriu) throw new Error(`não achei o bloco da sessão de ${quem} na agenda`);
   await page.waitForSelector("text=Status", { timeout: 15000 });
   if (!(await clicarPorTexto(status))) throw new Error(`não achei o botão de status "${status}"`);
 };
@@ -134,9 +139,9 @@ const marcar = async (status) => {
  * tem pagamento lançado — é o que decide qual das duas janelas aparece. Conferir a tela no
  * instante do clique media o quadro antes de ele existir, e o percurso reprovava o que funciona.
  */
-const esperarAPergunta = async () => {
+const esperarAPergunta = async (ms = 20000) => {
   try {
-    await page.waitForSelector("text=Deseja manter o pagamento pendente", { timeout: 20000 });
+    await page.waitForSelector("text=Deseja manter o pagamento pendente", { timeout: ms });
     return true;
   } catch {
     return false;
@@ -201,6 +206,60 @@ try {
   check("depois do estorno a sessão fica Desmarcou, não Faltou", depois.status === "cancelada", depois.status);
   const [estornado] = await sql`SELECT estornado_em FROM session_payments WHERE id = ${pg.id}`;
   check("o pagamento foi estornado", !!estornado?.estornado_em, String(estornado?.estornado_em ?? "(não estornado)"));
+
+  /**
+   * O CASO QUE O DONO RELATOU: paciente MENSAL, sessão marcada "não adicionar à sequência — sim".
+   *
+   * O avulso puro acima não prova este: ali o formato do CADASTRO já é "sessao". Aqui o cadastro é
+   * de pacote e quem faz a sessão ser avulsa é a marca `extra = 'avul'`, que vira o rótulo AVUL na
+   * célula — e é o rótulo, não o cadastro, que decide se a janela abre. Se essa emenda estiver
+   * frouxa, o mensal/quinzenal fica sem janela nenhuma, que foi exatamente a queixa.
+   *
+   * A sessão do pacote junto é de propósito: sem uma sequência de verdade ao lado, a extra seria
+   * a única sessão do paciente e o teste passaria por um motivo que não é o que se quer medir.
+   */
+  const [pm] = await sql`
+    INSERT INTO patients (user_id, name, payment_format, session_fee, patient_status, payment_day, sessions_in_packet, pacote_tipo, started_at, times_per_period)
+    VALUES (${qa.id}, ${MENSAL}, 'mensal', '100.00', 'ativo', 10, 4, 'completo', ${quando}, 1)
+    RETURNING id`;
+  await sql`
+    INSERT INTO therapy_sessions (user_id, patient_id, date, duration, fee, status)
+    VALUES (${qa.id}, ${pm.id}, ${new Date(quando.getTime() - 7 * 86400000)}, 50, '100.00', 'realizada')`;
+  const [sm] = await sql`
+    INSERT INTO therapy_sessions (user_id, patient_id, date, duration, fee, status, extra, valor_extra)
+    VALUES (${qa.id}, ${pm.id}, ${new Date(quando.getTime() + 3600000)}, 50, '100.00', 'agendada', 'avul', '90.00')
+    RETURNING id`;
+  apagarDepois.push(pm.id);
+
+  await page.goto(`${BASE}/dashboard/agenda`, { waitUntil: "domcontentloaded", timeout: 90000 });
+  await page.waitForSelector(`button[title^="${MENSAL}"]`, { timeout: 30000 });
+  const rotulo = await page.evaluate((nome) => {
+    const b = [...document.querySelectorAll("button")].find((x) => (x.getAttribute("title") ?? "").startsWith(nome));
+    return b ? b.innerText.replace(/\s+/g, " ").trim() : null;
+  }, MENSAL);
+  check("a célula do mensal fora da sequência mostra AVUL", /AVUL/.test(rotulo ?? ""), rotulo ?? "(sem bloco)");
+
+  await marcar("Desmarcou", MENSAL);
+  check("o mensal com sessão AVUL abre a pergunta do pagamento", await esperarAPergunta());
+  check("a janela oferece o Sim (mensal AVUL)", await clicarPorTexto("Sim"));
+  const stm = await esperarNoBanco((x) => x.desmarcou_cobra === true, 20000, sm.id);
+  check("mensal AVUL: fica Desmarcou com a cobrança mantida", stm.status === "cancelada" && stm.desmarcou_cobra === true, `${stm.status}/${stm.desmarcou_cobra}`);
+
+  await page.goto(`${BASE}/dashboard/patients/${pm.id}`, { waitUntil: "domcontentloaded", timeout: 90000 });
+  await page.waitForSelector('[data-testid="guia-geral"]', { timeout: 30000 });
+  const chaveM = await page.locator(`tr[data-sessao="${sm.id}"]`).first().getAttribute("data-chave").catch(() => null);
+  check("mensal AVUL: a cobrança da extra continua na guia Geral", chaveM === `extra:${sm.id}`, chaveM ?? "(sem cobrança)");
+
+  /** E a sessão DENTRO da sequência continua sem janela — é o que o documento manda preservar. */
+  const [sseq] = await sql`
+    INSERT INTO therapy_sessions (user_id, patient_id, date, duration, fee, status)
+    VALUES (${qa.id}, ${pm.id}, ${new Date(quando.getTime() + 2 * 3600000)}, 50, '100.00', 'agendada')
+    RETURNING id`;
+  await marcar("Desmarcou", MENSAL, 1);
+  const abriuNoPacote = await esperarAPergunta(4000);
+  check("sessão DENTRO da sequência segue sem janela", !abriuNoPacote);
+  const sq = await esperarNoBanco((x) => x.status === "cancelada", 15000, sseq.id);
+  check("… e vai direto para Desmarcou, como sempre foi", sq.status === "cancelada", sq.status);
 } catch (e) {
   // Sem este catch, o `process.exit` do finally engole a exceção e o percurso diz "tudo certo" sem
   // ter verificado nada — foi o que aconteceu no doc 63.
