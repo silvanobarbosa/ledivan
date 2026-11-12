@@ -51,11 +51,11 @@ forma de trazê-lo de volta era desfazer o status.
 
 **Pendente:**
 
-- **"Atrasado" é consequência, não rótulo forçado.** O documento diz que o valor fica "com status
-  Atrasado"; o que ficou implementado é a cobrança seguir EM ABERTO, e a guia Geral chamá-la de
-  atrasada quando o vencimento passa — que é a regra que já vale para todo o resto. Uma sessão
-  desmarcada hoje, com vencimento hoje, aparece "em aberto" até vencer. Se o dono quiser o rótulo
-  "Atrasado" imediato, é outra entrega (e muda o significado da palavra em todas as telas).
+- ~~"Atrasado" é consequência, não rótulo forçado.~~ **RESOLVIDO pelo dono em 12/11**, no anexo
+  seguinte: "o valor da sessão deverá permanecer na guia Financeiro Geral, com status **em aberto
+  ou Atrasado, conforme as regras já definidas no sistema**". É exatamente o que está no ar — a
+  cobrança fica em aberto e a guia Geral a chama de atrasada quando o vencimento passa. Nada a
+  mudar.
 - **Os percursos `e2e-doc58` e `e2e-doc60` não rodam nesta máquina** — falham no clique do bloco da
   agenda, interceptado pelo balão do Divã. Verificado no `main` limpo, reconstruído: a falha é
   anterior a esta entrega. Vale migrá-los para o clique por DOM.
