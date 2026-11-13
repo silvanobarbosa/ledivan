@@ -1,0 +1,11 @@
+-- A sessão DESMARCADA que continua cobrando (documento do dono, 12/11/2026).
+--
+-- "Desmarcou" sempre apagou a cobrança da sessão: `cancelada` pausa a sequência e não gera linha
+-- no financeiro. Está certo dentro do pacote — a posição volta para a sessão seguinte —, mas erra
+-- na sessão AVULSA desmarcada em cima da hora, que a terapeuta combinou cobrar: o valor sumia da
+-- guia Geral e só voltava desfazendo o status.
+--
+-- A coluna guarda a resposta da janela: true = o pagamento fica pendente; false = sai sem cobrar.
+-- NULL é o legado, e é de propósito que o default seja NULL em vez de false: as duas se comportam
+-- igual hoje, mas NULL diz "ninguém respondeu" — e só o "Sim" explícito cria cobrança.
+ALTER TABLE "therapy_sessions" ADD COLUMN IF NOT EXISTS "desmarcou_cobra" boolean;

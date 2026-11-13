@@ -23,6 +23,7 @@ import { perguntaDaAbrangencia, type Abrangencia } from "@/lib/abrangenciaDaSeri
 import { OPCOES_DA_DEVOLUTIVA, OPCOES_DO_ABATIMENTO, TITULO_DA_DEVOLUTIVA, type AbatimentoDaDevolutiva, type EscolhaDaDevolutiva } from "@/lib/quadroDaDevolutiva";
 import { formatoNaData } from "@/lib/vigenciaDoFormato";
 import { tipoDaFalta, tipoDaFaltaPeloRotulo, perguntaDaFalta, COMO_REFAZER } from "@/lib/perguntaFalta";
+import { COMO_REFAZER_DESMARCOU, DESMARCOU_PERGUNTA, ofereceEscolhaDoDesmarcou } from "@/lib/desmarcouDoAvulso";
 import { useJanela } from "@/lib/useJanela";
 import { mascaraMoeda } from "@/lib/mascaraMoeda";
 import { MoneyInput } from "@/components/MoneyInput";
@@ -565,9 +566,9 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
     });
   }
 
-  const changeStatus = (id: string, status: SessionStatus, chargeable?: boolean, faltouConta?: boolean, depois?: () => void) => {
+  const changeStatus = (id: string, status: SessionStatus, chargeable?: boolean, faltouConta?: boolean, depois?: () => void, desmarcouCobra?: boolean) => {
     startTransition(async () => {
-      await updateSessionStatus(id, status, undefined, chargeable, faltouConta);
+      await updateSessionStatus(id, status, undefined, chargeable, faltouConta, desmarcouCobra);
       setSelected(null);
       setPerguntaFaltou(null);
       if (depois) depois();
@@ -642,7 +643,16 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
     if (!pedeDestino) return;
     setErroDoDestino(null);
     startTransition(async () => {
-      await updateSessionStatus(pedeDestino.id, "nao_realizada", undefined, undefined, false);
+      /**
+       * O STATUS é o de quem abriu a janela (doc 12/11). Ela nasceu no "Faltou" e passou a servir
+       * também ao "Desmarcou" — fixar `nao_realizada` aqui faria a sessão desmarcada aparecer como
+       * falta na agenda e na guia Geral, que é o contrário do que o documento pede.
+       *
+       * Nas duas, a resposta de cobrança é "não": o valor está sendo estornado ou transferido, e
+       * manter a cobrança de pé cobraria de novo o que acabou de sair.
+       */
+      const statusDaJanela = pedeDestino.status ?? "nao_realizada";
+      await updateSessionStatus(pedeDestino.id, statusDaJanela, undefined, undefined, false, false);
       const r = await desfazerCobrancaDaSessao(pedeDestino.id, escolha);
       if (!r.ok) return setErroDoDestino(r.error ?? "Não consegui concluir.");
       setPedeDestino(null);
@@ -673,8 +683,11 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
    * de voltar na guia Geral para lançar.
    */
   const [pedeValor, setPedeValor] = useState<{ id: string } | null>(null);
-  /** Doc 55: o "Não" numa sessão que JÁ tem pagamento lançado — estornar ou transferir. */
-  const [pedeDestino, setPedeDestino] = useState<{ id: string; valor: number } | null>(null);
+  /** Doc 55: o "Não" numa sessão que JÁ tem pagamento lançado — estornar ou transferir.
+   *  Doc 12/11: `status` diz quem abriu a janela, porque agora o "Desmarcou" também a usa. */
+  const [pedeDestino, setPedeDestino] = useState<{ id: string; valor: number; status?: SessionStatus } | null>(null);
+  /** Doc 12/11: o "Desmarcou" de uma sessão avulsa SEM pagamento — manter a cobrança ou não. */
+  const [perguntaDesmarcou, setPerguntaDesmarcou] = useState<{ id: string } | null>(null);
   const [erroDoDestino, setErroDoDestino] = useState<string | null>(null);
   const [valorDaFalta, setValorDaFalta] = useState("");
   const [erroDoValor, setErroDoValor] = useState<string | null>(null);
@@ -696,30 +709,74 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
   const janelaValor = useJanela(!!pedeValor, () => setPedeValor(null));
   const janelaCredito = useJanela(!!perguntaCredito, () => setPerguntaCredito(null));
   const janelaDestino = useJanela(!!pedeDestino, () => setPedeDestino(null));
+  // Doc 12/11: a do Desmarcou decide dinheiro e tem de ter saída pelo teclado, como as outras.
+  const janelaDesmarcou = useJanela(!!perguntaDesmarcou, () => setPerguntaDesmarcou(null));
   const janelaExcluir = useJanela(!!perguntaExcluir, () => { setPerguntaExcluir(null); setQuantos(null); });
   const janelaQ = useJanela(!!perguntaQ, () => setPerguntaQ(null));
   // O painel do novo agendamento é um <form>, não um <div> — daí o tipo explícito.
   const janelaNova = useJanela<HTMLFormElement>(showNew, () => setShowNew(false));
+  /**
+   * O QUE A SESSÃO É, para efeito de dinheiro: gratuita, avulsa ou do pacote.
+   *
+   * Doc 57: vale o que a sessão É AGORA — o rótulo da célula —, não o formato do cadastro. E o
+   * formato do cadastro, quando precisa entrar, é o que valia NA DATA DA SESSÃO: perguntar pelo de
+   * hoje erraria o paciente que trocou de plano depois.
+   *
+   * Nasceu dentro do "Faltou" e saiu para cá quando o "Desmarcou" passou a precisar da mesma
+   * resposta (doc 12/11). Duas cópias desta conta seriam duas classificações do mesmo paciente.
+   */
+  const tipoDaSessao = (id: string) => {
+    const sess = sessions.find((x) => x.id === id);
+    const pac = patients.find((x) => x.id === sess?.patientId);
+    const formato = pac
+      ? formatoNaData(
+          (pac.vigencias ?? []).map((v) => ({ ...v, desde: new Date(v.desde), criadoEm: new Date(v.criadoEm) })),
+          sess?.date ? new Date(sess.date as unknown as string) : new Date(),
+          { formato: pac.paymentFormat ?? "sessao", pacoteTipo: pac.pacoteTipo ?? null },
+        ).formato
+      : null;
+    return tipoDaFaltaPeloRotulo(sess?.codigo, formato);
+  };
+
   const pickStatus = (id: string, status: SessionStatus) => {
     if (status === "nao_realizada") {
-      // O formato muda no tempo: vale o que estava vigente NA DATA DA SESSÃO, não o de hoje.
-      // Perguntar pelo formato atual erraria o paciente que trocou de plano depois da falta.
-      const sess = sessions.find((x) => x.id === id);
-      const pac = patients.find((x) => x.id === sess?.patientId);
-      const formato = pac
-        ? formatoNaData(
-            (pac.vigencias ?? []).map((v) => ({ ...v, desde: new Date(v.desde), criadoEm: new Date(v.criadoEm) })),
-            sess?.date ? new Date(sess.date as unknown as string) : new Date(),
-            { formato: pac.paymentFormat ?? "sessao", pacoteTipo: pac.pacoteTipo ?? null },
-          ).formato
-        : null;
-      /**
-       * Doc 57: a janela é a do que a sessão É AGORA — o rótulo da célula —, não a do formato do
-       * cadastro. Quem já converteu uma vez (gratuito que virou AVUL) precisa, na segunda, da
-       * pergunta do AVUL; pelo cadastro a janela ofereceria converter o que já está convertido.
-       */
-      setPerguntaFaltou({ id, tipo: tipoDaFaltaPeloRotulo(sess?.codigo, formato) });
-    } else changeStatus(id, status);
+      setPerguntaFaltou({ id, tipo: tipoDaSessao(id) });
+      return;
+    }
+    /**
+     * Documento de 12/11/2026: o "Desmarcou" de uma sessão AVULSA pergunta o que fazer com o
+     * dinheiro, em vez de apagar a cobrança calado.
+     *
+     * Duas janelas, porque são duas perguntas diferentes: com pagamento JÁ lançado não há o que
+     * manter pendente — o que existe é um valor recebido precisando de destino, e essa janela já
+     * existe (doc 55). Sem pagamento, a pergunta é se a cobrança fica de pé.
+     *
+     * Pacote e gratuito seguem indo direto: no pacote a sessão não tem cobrança própria para
+     * manter, e no gratuito não há valor nenhum.
+     */
+    if (status === "cancelada" && ofereceEscolhaDoDesmarcou(tipoDaSessao(id))) {
+      setErroDoDestino(null);
+      startTransition(async () => {
+        const r = await pagamentoDaSessao(id);
+        if (r.ok && r.valor != null && r.valor > 0) {
+          setPedeDestino({ id, valor: r.valor, status: "cancelada" });
+          return;
+        }
+        setPerguntaDesmarcou({ id });
+      });
+      return;
+    }
+    changeStatus(id, status);
+  };
+
+  /**
+   * A resposta da janela do Desmarcou. O status é o mesmo nas duas saídas — "o agendamento deverá
+   * permanecer com o status Desmarcou na Agenda" —, e a única diferença é a cobrança ficar de pé
+   * ou não. Por isso a mesma chamada, com a resposta junto.
+   */
+  const responderDesmarcou = (id: string, manter: boolean) => {
+    setPerguntaDesmarcou(null);
+    changeStatus(id, "cancelada", undefined, undefined, undefined, manter);
   };
 
   const confirm = (id: string) => {
@@ -1339,6 +1396,31 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
             <div className="flex gap-2 mt-4">
               <button disabled={pending} onClick={() => responderSim(perguntaFaltou.id, perguntaFaltou.tipo)} className="flex-1 bg-primary text-white py-2.5 rounded-xl text-sm font-bold disabled:opacity-60">Sim</button>
               <button disabled={pending} onClick={() => responderNao(perguntaFaltou.id, perguntaFaltou.tipo)} className="flex-1 bg-surface text-foreground/70 py-2.5 rounded-xl text-sm font-bold disabled:opacity-60">Não</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Documento de 12/11/2026: o "Desmarcou" de uma sessão AVULSA sem pagamento lançado.
+          Até aqui ele apagava a cobrança calado — e a sessão desmarcada em cima da hora, que a
+          terapeuta tinha combinado cobrar, sumia do financeiro sem deixar rastro. */}
+      {perguntaDesmarcou && (
+        <div className={FUNDO_DA_JANELA} onClick={() => setPerguntaDesmarcou(null)}>
+          <div ref={janelaDesmarcou} tabIndex={-1} role="dialog" aria-modal="true" aria-label="Pagamento da sessão desmarcada" className={`${JANELA} max-w-sm outline-none`} onClick={(e) => e.stopPropagation()}>
+            <p className="text-lg font-display font-bold text-primary">{DESMARCOU_PERGUNTA.titulo}</p>
+            <p className="text-sm text-foreground/60 mt-1">
+              <strong>Sim:</strong> {DESMARCOU_PERGUNTA.explicaSim}
+            </p>
+            <p className="text-sm text-foreground/60 mt-1">
+              <strong>Não:</strong> {DESMARCOU_PERGUNTA.explicaNao}
+            </p>
+            {/* As duas saídas deixam a sessão em "Desmarcou" — só o dinheiro muda. Dizer isso aqui
+                evita a leitura de que "Não" desfaz o status. */}
+            <p className="text-xs text-foreground/50 mt-2">Nos dois casos a sessão fica como <strong>Desmarcou</strong> na agenda e na guia Geral.</p>
+            <p className="text-xs text-foreground/50 mt-1">{COMO_REFAZER_DESMARCOU}</p>
+            <div className="flex gap-2 mt-4">
+              <button disabled={pending} onClick={() => responderDesmarcou(perguntaDesmarcou.id, true)} className="flex-1 bg-primary text-white py-2.5 rounded-xl text-sm font-bold disabled:opacity-60">Sim</button>
+              <button disabled={pending} onClick={() => responderDesmarcou(perguntaDesmarcou.id, false)} className="flex-1 bg-surface text-foreground/70 py-2.5 rounded-xl text-sm font-bold disabled:opacity-60">Não</button>
             </div>
           </div>
         </div>

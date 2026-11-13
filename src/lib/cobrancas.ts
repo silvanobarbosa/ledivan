@@ -37,6 +37,7 @@
  */
 
 import { codigoDaSessao } from "./celulaDaAgenda";
+import { desmarcouCobrando } from "./desmarcouDoAvulso";
 import { faixaQuePartiuASequencia, faixasDaSequencia, precoCobravel, valorDoPacote, valorPorSessao, type PrecoVigente } from "./preco";
 import { cobra, usaPacote } from "./reajuste";
 import { posicoesDaSequencia, todasAsSequencias } from "./sequenciaPacote";
@@ -58,6 +59,9 @@ export type SessaoDaCobranca = {
   faltouConta?: boolean | null;
   /** Sessão extra, FORA da sequência: `avul` cobra à parte, `grat` não cobra. */
   extra?: "avul" | "grat" | string | null;
+  /** Documento de 12/11/2026: numa sessão "Desmarcou" AVULSA, true = manter a cobrança em aberto.
+   *  false/null = o de sempre (desmarcou, não cobra). Só vale quando o status é de desmarcada. */
+  desmarcouCobra?: boolean | null;
   /** O valor informado da extra avulsa. */
   valorExtra?: number | string | null;
   /** Qual sessao desmarcada esta aqui repoe (documento de 17/09). Reposicao ocupa vaga, nao cria. */
@@ -293,7 +297,7 @@ function cobrancasDoPeriodo(periodo: PeriodoDeVigencia, sessoes: Ordenada[], e: 
   if (!usaPacote(formato)) {
     // A cada sessão: cada atendimento que ocupou posição é uma cobrança, no dia em que aconteceu.
     return sessoes
-      .filter((s) => !ehExtra(s) && !devolutivaGratuita(s) && !STATUS_QUE_PAUSAM.has(s.status) && !pausaASequencia(s))
+      .filter((s) => !ehExtra(s) && !devolutivaGratuita(s) && (!STATUS_QUE_PAUSAM.has(s.status) || desmarcouCobrando(s)) && !pausaASequencia(s))
       .map((s) => ({
         chave: `sessao:${s.id}`,
         tipo: "sessao" as const,
@@ -508,7 +512,9 @@ export function cobrancasDoPaciente(e: EntradaDasCobrancas): Cobranca[] {
 
   // Extra: não olha o período. É "independente da definição do financeiro".
   for (const s of ordenadas) {
-    if (s.extra !== "avul" || STATUS_QUE_PAUSAM.has(s.status)) continue;
+    // A desmarcada com a cobrança mantida (doc 12/11) é a exceção: o status pausa, a resposta
+    // da terapeuta não. Sem a resposta, segue valendo o pulo de sempre.
+    if (s.extra !== "avul" || (STATUS_QUE_PAUSAM.has(s.status) && !desmarcouCobrando(s))) continue;
     /**
      * Doc 65: a extra marcada como CORTESIA não cobra.
      *

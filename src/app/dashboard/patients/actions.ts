@@ -12,7 +12,8 @@ import { somenteTexto } from "@/lib/textoRico";
 import { ehAlteracaoDeCampo, entradaDoHistorico, maisRecenteDoHistorico, usaPacote, vencimentoDoPreco, vigenciaDoReajuste } from "@/lib/reajuste";
 import { dataDoPreco, diaDoFormulario, formatoMudou, vigenciasAGravar } from "@/lib/trocaDeFormato";
 import { agoraParede } from "@/lib/horaLocal";
-import { redirect } from "next/navigation";
+import { redirect, unstable_rethrow } from "next/navigation";
+import { registrarFalha } from "@/lib/falhas";
 import { put } from "@vercel/blob";
 import { sendWhatsappFromUser } from "@/lib/whatsappEvolution";
 import { recordOutbound } from "@/lib/messaging/inbox";
@@ -323,7 +324,32 @@ const CAMPOS_DO_FORMATO = new Set([
   "areaDoSalvar", "voltarPara",
 ]);
 
+/**
+ * Doc 64: salvar o cadastro é a ação mais usada do app, e a única cujo erro a dona fotografou.
+ *
+ * Quando ela joga, o Next derruba a tela inteira e REDIGE a mensagem antes de o navegador vê-la —
+ * é por isso que "deu erro ao salvar" não tinha onde ser investigado. Este embrulho não muda o
+ * comportamento (continua jogando, a tela de erro continua aparecendo), mas deixa a causa gravada
+ * em `app_falhas` com o mesmo código que a tela mostra.
+ *
+ * `unstable_rethrow` é obrigatório aqui: `redirect()` e `notFound()` funcionam JOGANDO, e sem ele
+ * o salvamento bem-sucedido seria registrado como falha — e, pior, o redirecionamento sumiria.
+ *
+ * O código que a tela mostra é o mesmo gravado no banco porque `registrarFalha` o escreve no
+ * `digest` deste erro antes de ele subir. Por isso o `throw` é DEPOIS do registro, não antes.
+ */
 export async function updatePatient(patientId: string, formData: FormData) {
+  try {
+    return await updatePatientInterno(patientId, formData);
+  } catch (erro) {
+    unstable_rethrow(erro);
+    const session = await auth().catch(() => null);
+    await registrarFalha({ acao: "updatePatient", erro, userId: session?.user?.id ?? null, alvo: patientId });
+    throw erro;
+  }
+}
+
+async function updatePatientInterno(patientId: string, formData: FormData) {
   const session = await auth();
   if (!session?.user?.id) throw new Error("Não autorizado");
 
