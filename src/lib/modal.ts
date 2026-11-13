@@ -44,17 +44,28 @@ export const JANELA = `${PAINEL_DA_JANELA} p-6 space-y-4`;
  * acabaram no mesmo lugar.
  */
 
-/** O de escanear: o primeiro degrau acima da barra. */
-export const FLUTUANTE_BAIXO = "fixed right-5 bottom-28 lg:right-10 lg:bottom-10";
+/**
+ * Doc 64: NO CELULAR, dois destes saem do canto e sobem para a barra do topo.
+ *
+ * A pilha resolvia a briga entre eles, mas não o problema maior: três círculos empilhados sobre a
+ * direita de uma tela de 390px cobrem justamente onde os formulários põem os campos e o botão
+ * Salvar. Na barra do topo eles ficam sempre à mão e não tapam nada.
+ *
+ * No computador a tela sobra e eles continuam flutuando, como estavam — é por isso que as classes
+ * de posição ficam todas com prefixo `lg:` daqui para baixo.
+ */
 
-/** O de suporte: o degrau do meio, livre do anterior nos dois tamanhos. */
-export const FLUTUANTE_ALTO = "fixed right-5 bottom-[11.5rem] lg:right-10 lg:bottom-28";
+/** O de escanear: na barra do topo no celular; o primeiro degrau do canto no computador. */
+export const FLUTUANTE_BAIXO = "lg:fixed lg:right-10 lg:bottom-10";
+
+/** O de suporte: continua flutuando nos dois tamanhos — é o único que leva rótulo, não é círculo. */
+export const FLUTUANTE_ALTO = "fixed right-5 bottom-28 lg:right-10 lg:bottom-28";
 
 /**
- * O do Divã: o terceiro degrau.
+ * O do Divã: na barra do topo no celular; o degrau de cima do canto no computador.
  *
- * A medida sai da mesma régua dos outros dois — a diferença entre `bottom-28` (7rem) e
- * `bottom-[11.5rem]` é de 4.5rem, e este degrau repete o espaço. Escolher uma altura "que parece
+ * A medida do computador sai da mesma régua dos outros dois — a diferença entre `bottom-28` (7rem)
+ * e `bottom-[11.5rem]` é de 4.5rem, e este degrau repete o espaço. Escolher uma altura "que parece
  * boa" é exatamente como os dois primeiros acabaram em cima um do outro.
  */
-export const FLUTUANTE_DIVA = "fixed right-5 bottom-[16rem] lg:right-10 lg:bottom-[11.5rem]";
+export const FLUTUANTE_DIVA = "lg:fixed lg:right-10 lg:bottom-[11.5rem]";

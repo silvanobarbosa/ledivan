@@ -3,7 +3,7 @@ import { auth } from "@/auth";
 import { users, patients, therapySessions, patientPackages } from "@/db/schema";
 import { and, eq, gte, lt, lte, sql, count, inArray, notInArray } from "drizzle-orm";
 import { formatDateTime } from "@/lib/therapy";
-import { Users as UsersIcon, CalendarCheck, Clock, ChevronRight, Video, MapPin, AlertTriangle, Percent, Eye } from "lucide-react";
+import { Users as UsersIcon, CalendarCheck, Clock, ChevronRight, Video, MapPin, AlertTriangle, Percent, Eye, Layers, CalendarX } from "lucide-react";
 import { AnaliticosCharts } from "@/components/dashboard/AnaliticosCharts";
 import { DashboardPanels } from "@/components/dashboard/DashboardPanels";
 import { ListaReajuste } from "@/components/dashboard/ListaReajuste";
@@ -62,7 +62,10 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
 
   // Janela dos analíticos
   const custom = period === "custom" && (from || to);
-  const activePeriod = custom ? "custom" : period && PERIODS[period] ? period : "12m";
+  // Doc 64: o recorte que abre é "Tudo". Os analíticos abriam nos últimos 12 meses sem dizer, e
+  // quem lê o número de atendimentos do consultório inteiro via um pedaço dele achando que era o
+  // total. O filtro continua lá para quem quiser recortar.
+  const activePeriod = custom ? "custom" : period && PERIODS[period] ? period : "all";
   let cutoff: Date | null = null, end: Date | null = null;
   if (custom) {
     if (from) { cutoff = new Date(from); cutoff.setHours(0, 0, 0, 0); }
@@ -264,6 +267,13 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   // antigo painel "Presença" — a informação vive aqui, junto dos atendimentos realizados.
   const faltas = anRows.filter((r) => r.status === "nao_realizada" && !ehSupervisao(r)).length;
   const comparecimento = total + faltas > 0 ? Math.round((total / (total + faltas)) * 100) : 0;
+  // Doc 64: o que o consultório prestou no período, somando as duas naturezas de serviço. Os dois
+  // cards saem do MESMO `anRows` dos demais, que já vem recortado pelo filtro de período — é o que
+  // mantém os números coerentes entre si quando a dona troca o recorte.
+  const totalServicos = total + supervisoesRealizadas;
+  // "Profissional desmarcou" não é falta do paciente, e por isso nunca esteve no card de Faltas.
+  // Sem card próprio, a desmarcação da terapeuta não aparecia em lugar nenhum dos analíticos.
+  const profDesmarcou = anRows.filter((r) => r.status === "prof_desmarcou").length;
 
   const byLocation = new Map<string, number>();
   for (const r of done) { if (r.isOnline) continue; const k = (r.location || "Sem local definido").trim() || "Sem local definido"; byLocation.set(k, (byLocation.get(k) ?? 0) + 1); }
@@ -360,13 +370,20 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
           <AnalyticsFilters activePeriod={activePeriod} from={from} to={to} />
         </div>
 
-        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-4">
+        {/* Doc 64: oito cards. Em quatro colunas cada linha fecha certo e a ordem pedida se mantém
+            — "Total de serviços" à direita de Supervisões, "Prof. desmarcou" à direita de Faltas. */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
           <div className="glass-card rounded-[28px] p-6 flex items-center gap-4"><div className="w-12 h-12 rounded-2xl bg-primary/10 text-primary flex items-center justify-center"><CalendarCheck className="w-6 h-6" /></div><div><p className="text-2xl font-display font-bold text-primary leading-none">{total}</p><p className="text-xs text-foreground/50 mt-1">Atendimentos realizados</p></div></div>
           {/* Doc 44: Supervisões realizadas vem logo à direita de Atendimentos; sempre visível (0 quando não há). */}
           <div className="glass-card rounded-[28px] p-6 flex items-center gap-4"><div className="w-12 h-12 rounded-2xl bg-[#eef2ff] text-[#4338ca] flex items-center justify-center"><Eye className="w-6 h-6" /></div><div><p className="text-2xl font-display font-bold text-primary leading-none">{supervisoesRealizadas}</p><p className="text-xs text-foreground/50 mt-1">Supervisões realizadas</p></div></div>
+          {/* Doc 64: atendimentos + supervisões — o que o consultório prestou no período. */}
+          <div className="glass-card rounded-[28px] p-6 flex items-center gap-4"><div className="w-12 h-12 rounded-2xl bg-[#f5f3ff] text-[#6d28d9] flex items-center justify-center"><Layers className="w-6 h-6" /></div><div><p className="text-2xl font-display font-bold text-primary leading-none">{totalServicos}</p><p className="text-xs text-foreground/50 mt-1">Total serviços realizados</p></div></div>
           <div className="glass-card rounded-[28px] p-6 flex items-center gap-4"><div className="w-12 h-12 rounded-2xl bg-accent/10 text-accent flex items-center justify-center"><Video className="w-6 h-6" /></div><div><p className="text-2xl font-display font-bold text-primary leading-none">{online} <span className="text-sm font-normal text-foreground/40">({pct(online)}%)</span></p><p className="text-xs text-foreground/50 mt-1">Online</p></div></div>
           <div className="glass-card rounded-[28px] p-6 flex items-center gap-4"><div className="w-12 h-12 rounded-2xl bg-[#ecfdf5] text-[#047857] flex items-center justify-center"><MapPin className="w-6 h-6" /></div><div><p className="text-2xl font-display font-bold text-primary leading-none">{presencial} <span className="text-sm font-normal text-foreground/40">({pct(presencial)}%)</span></p><p className="text-xs text-foreground/50 mt-1">Presencial</p></div></div>
           <div className="glass-card rounded-[28px] p-6 flex items-center gap-4"><div className="w-12 h-12 rounded-2xl bg-[#fee2e2] text-[#b91c1c] flex items-center justify-center"><AlertTriangle className="w-6 h-6" /></div><div><p className="text-2xl font-display font-bold text-primary leading-none">{faltas}</p><p className="text-xs text-foreground/50 mt-1">Faltas</p></div></div>
+          {/* Doc 64: a desmarcação da terapeuta nunca entrou em Faltas (não é falta do paciente) e
+              por isso não aparecia em lugar nenhum dos analíticos. Agora tem card próprio. */}
+          <div className="glass-card rounded-[28px] p-6 flex items-center gap-4"><div className="w-12 h-12 rounded-2xl bg-[#ffedd5] text-[#c2410c] flex items-center justify-center"><CalendarX className="w-6 h-6" /></div><div><p className="text-2xl font-display font-bold text-primary leading-none">{profDesmarcou}</p><p className="text-xs text-foreground/50 mt-1">Prof. desmarcou</p></div></div>
           <div className="glass-card rounded-[28px] p-6 flex items-center gap-4"><div className="w-12 h-12 rounded-2xl bg-[#fef9c3] text-[#854d0e] flex items-center justify-center"><Percent className="w-6 h-6" /></div><div><p className="text-2xl font-display font-bold text-primary leading-none">{comparecimento}%</p><p className="text-xs text-foreground/50 mt-1">Comparecimento</p></div></div>
         </div>
 

@@ -67,6 +67,16 @@ describe("montarContrato", () => {
   it("doc 63: só espaço em branco conta como vazio", () => {
     expect(c({ ...base, processoEncerramento: "   " })).not.toContain("DO ENCERRAMENTO E ALTA");
   });
+  // Doc 64: combinado de UMA sessão fala no singular — "no mínimo 1 sessões" é erro de português
+  // num documento que a pessoa assina.
+  it("doc 64: 1 sai no singular", () => {
+    expect(c({ ...base, processoEncerramento: "1" })).toContain("de no mínimo 1 sessão de encerramento");
+  });
+  it("doc 64: qualquer outro combinado segue no plural", () => {
+    for (const combinado of ["2", "10", "2 a 4", "1 a 2"]) {
+      expect(c({ ...base, processoEncerramento: combinado })).toContain(`de no mínimo ${combinado} sessões de encerramento`);
+    }
+  });
 
   // Doc 70: a IDADE saiu do contrato — ela é a data de nascimento contada, e envelhece sozinha
   // depois de o documento impresso ser assinado. A data fica; o número, não.

@@ -283,13 +283,14 @@ export function Diva({ estado, podeOuvir }: { estado: EstadoDoDiva; podeOuvir: b
 
   return (
     <>
-      {/* O ícone. Fica acima da barra inferior do celular para não cobrir a navegação. */}
+      {/* O ícone. Doc 64: no celular ele mora na barra do topo (o layout o põe lá); no computador
+          continua flutuando no canto. As classes de posição vêm de `FLUTUANTE_DIVA`. */}
       <button
         type="button"
         onClick={() => setAberto(true)}
         aria-label="Abrir o Divã"
         title="Divã — o que deseja fazer?"
-        className={`print:hidden ${FLUTUANTE_DIVA} z-[60] h-14 w-14 lg:h-16 lg:w-16 rounded-full shadow-2xl ring-4 ring-white overflow-hidden transition hover:scale-110 active:scale-95`}
+        className={`print:hidden ${FLUTUANTE_DIVA} z-[60] h-10 w-10 lg:h-16 lg:w-16 rounded-full shadow-lg lg:shadow-2xl ring-2 lg:ring-4 ring-white overflow-hidden transition hover:scale-110 active:scale-95 shrink-0`}
       >
         <Image src="/diva.png" alt="" width={64} height={64} className="h-full w-full object-cover" />
       </button>
