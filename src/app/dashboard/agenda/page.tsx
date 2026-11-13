@@ -1,7 +1,7 @@
 import { db } from "@/db";
 import { auth } from "@/auth";
-import { blockedSlots, patientPackages, patientPackageHistory, patientPaymentFormatHistory, patients, sessionPayments, therapySessions, users } from "@/db/schema";
-import { and, eq, gte, inArray, isNotNull } from "drizzle-orm";
+import { blockedSlots, patientCredits, patientPackages, patientPackageHistory, patientPaymentFormatHistory, patients, sessionPayments, therapySessions, users } from "@/db/schema";
+import { and, eq, gte, inArray, isNotNull, isNull, sql as sqlRaw } from "drizzle-orm";
 import { AgendaClient } from "./AgendaClient";
 import { COLUNAS_DA_SESSAO_COM_PACIENTE } from "@/lib/colunasDaSessao";
 import { riskFromSessions } from "@/lib/therapy";
@@ -25,7 +25,7 @@ export default async function AgendaPage() {
   // agendamento de 2024, por exemplo, era salvo mas nunca aparecia porque caía fora da janela.
   const windowStart = new Date(); windowStart.setDate(windowStart.getDate() - 120);
 
-  const [list, todosPats, bloqueios, me] = await Promise.all([
+  const [list, todosPats, bloqueios, me, creditos] = await Promise.all([
     db.query.therapySessions.findMany({
       where: eq(therapySessions.userId, session.user.id),
       columns: { id: true, patientId: true, date: true, duration: true, status: true, isOnline: true, meetingUrl: true, meetingOpenedAt: true, guestJoinedAt: true, meetingEndedAt: true, pendingConfirmation: true, patientConfirmedAt: true, rescheduleRequestedAt: true, patientArrivedAt: true, location: true, recurring: true, recurrenceFreq: true, sessionKind: true, packageId: true, abaterDoPacote: true, cortesia: true, extra: true, espelhoSoAnterior: true },
@@ -42,6 +42,18 @@ export default async function AgendaPage() {
       .from(blockedSlots)
       .where(and(eq(blockedSlots.userId, session.user.id), gte(blockedSlots.date, windowStart))),
     db.query.users.findFirst({ where: eq(users.id, session.user.id) }),
+    /**
+     * Doc 13/11: o SALDO DE CRÉDITO de cada paciente, para o campo da sessão avulsa já abrir com
+     * ele. Uma consulta agrupada, e não uma por paciente: a agenda desenha a semana inteira e já
+     * lê bastante; um N+1 aqui apareceria na hora de abrir a tela.
+     *
+     * Soma só o que ainda não foi consumido — é a mesma conta de `creditoDisponivel`, que a guia
+     * Geral usa. O saldo que sobra depois de um abatimento parcial já vem descontado daqui.
+     */
+    db.select({ patientId: patientCredits.patientId, total: sqlRaw<string>`sum(${patientCredits.valor})` })
+      .from(patientCredits)
+      .where(and(eq(patientCredits.userId, session.user.id), isNull(patientCredits.consumidoEm)))
+      .groupBy(patientCredits.patientId),
   ]);
 
   // Doc 53: o cadastro INATIVO continua na conta do rótulo.
@@ -79,6 +91,11 @@ export default async function AgendaPage() {
   // As desmarcadas que ainda esperam reposicao, por paciente. Sai do historico inteiro (as cinco
   // mais recentes bastam para a janela de "Novo atendimento" nao virar uma lista).
   const desmarcadasPorPaciente = new Map<string, { id: string; data: string }[]>();
+  /** O saldo de crédito por paciente — ver a consulta agrupada acima. */
+  const creditoPorPaciente = new Map<string, number>(
+    creditos.map((c) => [c.patientId, Math.round((Number(c.total) || 0) * 100) / 100]),
+  );
+
   const vigenciasPorPaciente = new Map<string, { formato: string; pacoteTipo: string | null; desde: string; criadoEm: string }[]>();
   if (todosPats.length) {
     const ids = todosPats.map((x) => x.id);
@@ -237,7 +254,7 @@ export default async function AgendaPage() {
           codigo: codigos.get(s.id) ?? null,
           pagamentoAtrasado: atrasadas.has(s.id),
         }))}
-        patients={pats.map((p) => ({ id: p.id, name: p.name, status: p.patientStatus, cadastroKind: p.cadastroKind, attendanceMode: p.attendanceMode, attendanceLocation: p.attendanceLocation, frequency: p.frequency, agendaId: p.agendaId, registrationNumber: p.registrationNumber, paymentFormat: p.paymentFormat, pacoteTipo: p.pacoteTipo, sessionFee: p.sessionFee, temAgendamento: comAgendamento.has(p.id), desmarcadas: desmarcadasPorPaciente.get(p.id) ?? [], vigencias: vigenciasPorPaciente.get(p.id) ?? [] }))}
+        patients={pats.map((p) => ({ credito: creditoPorPaciente.get(p.id) ?? 0, id: p.id, name: p.name, status: p.patientStatus, cadastroKind: p.cadastroKind, attendanceMode: p.attendanceMode, attendanceLocation: p.attendanceLocation, frequency: p.frequency, agendaId: p.agendaId, registrationNumber: p.registrationNumber, paymentFormat: p.paymentFormat, pacoteTipo: p.pacoteTipo, sessionFee: p.sessionFee, temAgendamento: comAgendamento.has(p.id), desmarcadas: desmarcadasPorPaciente.get(p.id) ?? [], vigencias: vigenciasPorPaciente.get(p.id) ?? [] }))}
         birthdays={/* Doc 59: "todas as pessoas cadastradas que possuam data de nascimento informada" — por isso `todosPats`, e nao `pats`: quem esta inativo continua fazendo aniversario, e o aviso na agenda e a chance de ela lembrar de alguem que parou de vir. */ todosPats.filter((p) => p.birthDate).map((p) => { /* `horaDeParede` antes do `new Date`: a data nasce meia-noite e, lida como UTC, recuava um dia — o aniversario de 21 aparecia em 20. */ const b = new Date(horaDeParede(p.birthDate)); return { name: p.name, agendaId: p.agendaId, registro: p.registrationNumber, month: b.getMonth() + 1, day: b.getDate() }; })}
         locations={locations}
         holidays={holidays}
