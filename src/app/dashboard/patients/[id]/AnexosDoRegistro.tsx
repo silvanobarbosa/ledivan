@@ -54,6 +54,19 @@ function Anexos({
   const [montado, setMontado] = useState(false);
   const [printAnexo, setPrintAnexo] = useState<Anexo | null>(null);
   const [printNonce, setPrintNonce] = useState(0);
+  /**
+   * Doc 13/11: as páginas do PDF já DESENHADAS, em imagem.
+   *
+   * "Todos os tipos de arquivo devem ser abertos com a opção de cancelar e imprimir sendo
+   * visualizadas." No celular o caminho antigo não abria janela nenhuma: o PDF ia para um quadro
+   * escondido, e navegador de celular não desenha PDF dentro da página — o `print()` daquele
+   * quadro não tinha o que imprimir, e o arquivo acabava baixando.
+   *
+   * A imagem já funcionava porque é desenhada na PRÓPRIA página. Então o PDF passa a virar
+   * imagem: cada página é renderizada num canvas e entra no mesmo bloco de impressão.
+   */
+  const [paginasDoPdf, setPaginasDoPdf] = useState<string[] | null>(null);
+  const [erroDoPdf, setErroDoPdf] = useState<string | null>(null);
 
   // eslint-disable-next-line react-hooks/set-state-in-effect
   useEffect(() => { setMontado(true); }, []);
@@ -95,31 +108,66 @@ function Anexos({
    * PDF segue pelo caminho antigo: navegador de celular não desenha PDF dentro da página, então
    * não há como pôr o arquivo no nosso bloco — ele abre no visualizador, que tem a impressão dele.
    */
+  /**
+   * Desenha cada página do PDF num canvas e devolve as imagens.
+   *
+   * O pdf.js entra por `import()` dinâmico: ele é grande, e quem nunca toca na impressora do anexo
+   * não deve baixá-lo.
+   */
+  async function paginasEmImagem(url: string): Promise<string[]> {
+    const pdfjs = await import("pdfjs-dist");
+    /**
+     * O worker vem do NOSSO domínio, empacotado junto.
+     *
+     * Duas armadilhas pagas aqui: `workerSrc = ""` não desliga o worker — o pdf.js fica esperando
+     * um arquivo que nunca chega, e a promessa NUNCA resolve (sem erro, sem log, a impressora
+     * simplesmente não faz nada). E um worker de CDN seria recusado pela CSP (`default-src self`),
+     * com o mesmo sintoma mudo. `new URL(..., import.meta.url)` faz o bundler emitir o arquivo em
+     * /_next/static, que é `self`.
+     */
+    pdfjs.GlobalWorkerOptions.workerSrc = new URL("pdfjs-dist/build/pdf.worker.min.mjs", import.meta.url).toString();
+    const doc = await pdfjs.getDocument({ url }).promise;
+    const imagens: string[] = [];
+    for (let n = 1; n <= doc.numPages; n++) {
+      const pagina = await doc.getPage(n);
+      // 2x: o papel tem muito mais resolução do que a tela, e 1x sai borrado na impressão.
+      const viewport = pagina.getViewport({ scale: 2 });
+      const canvas = document.createElement("canvas");
+      canvas.width = Math.ceil(viewport.width);
+      canvas.height = Math.ceil(viewport.height);
+      const ctx = canvas.getContext("2d");
+      if (!ctx) break;
+      await pagina.render({ canvas, canvasContext: ctx, viewport } as Parameters<typeof pagina.render>[0]).promise;
+      imagens.push(canvas.toDataURL("image/png"));
+    }
+    await doc.destroy();
+    return imagens;
+  }
+
   function imprimir(a: Anexo) {
+    setErroDoPdf(null);
+    setPaginasDoPdf(null);
     if (ehImagem(a)) {
       setPrintAnexo(a);
       setPrintNonce((n) => n + 1);
       return;
     }
-    const id = a.id;
-    const url = `/api/files/${id}/raw`;
-    const quadro = document.createElement("iframe");
-    quadro.setAttribute("aria-hidden", "true");
-    quadro.style.cssText = "position:absolute;width:0;height:0;border:0;visibility:hidden";
+    const url = `/api/files/${a.id}/raw`;
+    // O arquivo abre em aba quando NÃO dá para desenhar: é a saída honesta — melhor o visualizador
+    // do navegador, que tem a impressão dele, do que uma folha em branco.
     const abrirEmAba = () => window.open(url, "_blank", "noopener");
-    quadro.onload = () => {
-      try {
-        quadro.contentWindow?.focus();
-        quadro.contentWindow?.print();
-      } catch {
+    setPrintAnexo(a);
+    void paginasEmImagem(url)
+      .then((imagens) => {
+        if (!imagens.length) { setPrintAnexo(null); abrirEmAba(); return; }
+        setPaginasDoPdf(imagens);
+        setPrintNonce((n) => n + 1);
+      })
+      .catch(() => {
+        setPrintAnexo(null);
+        setErroDoPdf("Não consegui preparar a impressão deste arquivo. Ele foi aberto em outra aba.");
         abrirEmAba();
-      }
-      // O quadro não pode sair antes de a janela de impressão abrir; sai depois, para não acumular.
-      setTimeout(() => quadro.remove(), 60_000);
-    };
-    quadro.onerror = () => { quadro.remove(); abrirEmAba(); };
-    quadro.src = url;
-    document.body.appendChild(quadro);
+      });
   }
 
   function excluir(a: Anexo) {
@@ -153,6 +201,7 @@ function Anexos({
         <Paperclip className="w-3.5 h-3.5" /> {pendente ? "Anexando…" : "Anexar arquivo"}
       </button>
       {erro && <p className="text-xs text-red-600">{erro}</p>}
+      {erroDoPdf && <p className="text-xs text-red-600">{erroDoPdf}</p>}
 
       {/* Doc 64: o bloco que vai para o papel. Mesmo molde do da área Documentos — portal no body,
           escondido na tela, visível só na impressão. A impressão é disparada no `onLoad` da imagem:
@@ -170,14 +219,31 @@ function Anexos({
               #anexo-print-root, #anexo-print-root * { visibility: visible !important; }
             }
           `}</style>
+          {/* PDF já desenhado em páginas (doc 13/11); imagem segue pelo caminho de sempre.
+              A impressão é disparada no onLoad da ÚLTIMA peça: chamar antes de carregar imprime
+              folha em branco. */}
           {/* eslint-disable-next-line @next/next/no-img-element -- arquivo privado servido pela nossa rota, sem otimização do Next */}
-          <img
-            key={printNonce}
-            src={`/api/files/${printAnexo.id}/raw`}
-            alt={printAnexo.title}
-            onLoad={() => window.print()}
-            style={{ maxWidth: "100%", display: "block", margin: "0 auto" }}
-          />
+          {paginasDoPdf
+            ? paginasDoPdf.map((src, i) => (
+                /* eslint-disable-next-line @next/next/no-img-element -- página desenhada aqui, em memória (data:) */
+                <img
+                  key={`${printNonce}:${i}`}
+                  src={src}
+                  alt={`${printAnexo.title} — página ${i + 1}`}
+                  onLoad={i === paginasDoPdf.length - 1 ? () => window.print() : undefined}
+                  style={{ maxWidth: "100%", display: "block", margin: "0 auto", pageBreakAfter: i < paginasDoPdf.length - 1 ? "always" : "auto" }}
+                />
+              ))
+            : (
+              // eslint-disable-next-line @next/next/no-img-element -- arquivo privado da nossa rota, sem otimização do Next
+              <img
+                key={printNonce}
+                src={`/api/files/${printAnexo.id}/raw`}
+                alt={printAnexo.title}
+                onLoad={() => window.print()}
+                style={{ maxWidth: "100%", display: "block", margin: "0 auto" }}
+              />
+            )}
         </div>,
         document.body,
       )}

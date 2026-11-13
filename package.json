@@ -50,6 +50,7 @@
     "node-forge": "^1.4.2",
     "nodemailer": "^10.1.0",
     "openai": "^7.32.0",
+    "pdfjs-dist": "^5.4.149",
     "react": "19.3.0",
     "react-dom": "19.3.0",
     "recharts": "^3.10.1",
