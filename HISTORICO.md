@@ -7,6 +7,58 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-11-13 — O valor que sumia em silêncio, o dinheiro que não se explicava, e dez itens que estavam parados num PR
+
+**Entregue:** `src/lib/valorQueNasceuDaFalta.ts` e a correção do apagamento do valor da sessão
+(PR #595); o aviso de estorno/transferência na guia Geral para a sessão desmarcada; os textos da
+janela do Desmarcou nas palavras do dono; e o merge do PR #591, que estava aberto desde 11/11 com
+os dez itens do documento de analíticos/documentos/contrato. Percurso em 32 verificações.
+
+**Por quê:** o dono relatou "escolho Não, depois Sim, e o valor volta como R$ 0,00". A causa não
+era o Desmarcou: a regra que limpa o valor da falta (doc 54) olhava só o status NOVO — "não é
+Faltou, então apaga". Isso bastava quando `valorExtra` era só o valor da falta; desde o doc 62 ele
+é o valor DAQUELA SESSÃO, escrito pelo lápis da coluna Valor. Qualquer troca de status apagava o
+que a terapeuta digitou — **inclusive marcar "Presente"**, que é o botão mais usado do dia e nunca
+foi relatado. O relato do Desmarcou foi a ponta de um defeito que já estava solto.
+
+**Decisões que ficam valendo:**
+
+- **A pergunta certa é "este valor NASCEU da falta?", não "o status mudou?".** Só perde o número a
+  sessão que estava em "Faltou" com a resposta "Sim" — o único estado em que `definirValorDaFalta`
+  aceita gravar. Condição por ESTADO DE ORIGEM, não por destino.
+- **O aviso do dinheiro vale para a desmarcada também.** Estorno e transferência eram explicados
+  só na sessão que virou gratuita; desmarcada, a linha esvaziava sem dizer para onde foi o que o
+  paciente pagou. O texto do valor é o mesmo; muda o começo da frase ("Sessão desmarcada"), porque
+  dizer "convertida para GRAT" inventaria um evento que não houve.
+- **Desmarcada SEM dinheiro não ganha aviso.** Seria ruído em toda sessão desmarcada do consultório.
+- **"Atrasado" era pergunta encerrada.** O dono respondeu no anexo seguinte: "em aberto **ou**
+  Atrasado, conforme as regras já definidas" — que é o que estava implementado. Nada a mudar.
+
+**Armadilhas:**
+
+- **PR verde e aberto é trabalho que não existe para quem usa.** Dois relatos de "não está
+  funcionando" nesta semana tiveram a mesma causa: #593 e #591 estavam prontos, testados e
+  **parados**. Produção é o `main`; enquanto o merge não acontece, o recurso não existe. Antes de
+  investigar bug relatado, conferir se o código está no `main` — custa dez segundos.
+- **Medir a tela cedo demais reprova o que funciona.** O painel "Vencimentos por dia" carrega por
+  Server Action depois do resto; a conferência lia o corpo da página antes e dizia "sem total".
+  Esperar o TEXTO que se quer ("Total a pagar"), não um estado intermediário descrito por string
+  com quebra de linha — `innerText` cru tem `\n` onde a leitura normalizada tem espaço.
+- **Reproduzir pelo caminho relatado não basta para achar a causa.** O R$ 0,00 só aparece quando o
+  valor vive SÓ na sessão (cadastro sem preço); com preço no cadastro, o fallback mascarava o
+  apagamento e o defeito passava por "funciona".
+
+**Pendente:**
+
+- **Os percursos `e2e-doc58` e `e2e-doc60` seguem sem rodar nesta máquina** — clique interceptado
+  pelo balão do Divã. Confirmado no `main` limpo e reconstruído: é anterior a tudo isto. A saída
+  conhecida é o clique por DOM, como o percurso novo faz.
+- **Verificação em produção depende de segredo que não está aqui.** O `AUTH0_SECRET` local não é o
+  de produção, então o percurso não consegue entrar em `ledivan.com.br`. O que se prova daqui: o
+  sha em produção, o build verde e o mesmo código rodando contra o banco de produção.
+
+---
+
 ## 2026-11-12 — A sessão avulsa desmarcada passa a decidir o dinheiro
 
 **Entregue:** `src/lib/desmarcouDoAvulso.ts` (o alcance e a leitura da resposta), a coluna
@@ -51,11 +103,9 @@ forma de trazê-lo de volta era desfazer o status.
 
 **Pendente:**
 
-- **"Atrasado" é consequência, não rótulo forçado.** O documento diz que o valor fica "com status
-  Atrasado"; o que ficou implementado é a cobrança seguir EM ABERTO, e a guia Geral chamá-la de
-  atrasada quando o vencimento passa — que é a regra que já vale para todo o resto. Uma sessão
-  desmarcada hoje, com vencimento hoje, aparece "em aberto" até vencer. Se o dono quiser o rótulo
-  "Atrasado" imediato, é outra entrega (e muda o significado da palavra em todas as telas).
+- ~~"Atrasado" é consequência, não rótulo forçado.~~ **RESOLVIDO em 12/11**: o dono respondeu no
+  anexo seguinte — "em aberto ou Atrasado, conforme as regras já definidas no sistema", que é
+  exatamente o comportamento no ar.
 - **Os percursos `e2e-doc58` e `e2e-doc60` não rodam nesta máquina** — falham no clique do bloco da
   agenda, interceptado pelo balão do Divã. Verificado no `main` limpo, reconstruído: a falha é
   anterior a esta entrega. Vale migrá-los para o clique por DOM.
