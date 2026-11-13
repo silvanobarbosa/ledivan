@@ -23,6 +23,7 @@ import { perguntaDaAbrangencia, type Abrangencia } from "@/lib/abrangenciaDaSeri
 import { OPCOES_DA_DEVOLUTIVA, OPCOES_DO_ABATIMENTO, TITULO_DA_DEVOLUTIVA, type AbatimentoDaDevolutiva, type EscolhaDaDevolutiva } from "@/lib/quadroDaDevolutiva";
 import { formatoNaData } from "@/lib/vigenciaDoFormato";
 import { tipoDaFalta, tipoDaFaltaPeloRotulo, perguntaDaFalta, COMO_REFAZER } from "@/lib/perguntaFalta";
+import { AVISO_DO_CREDITO, valorSugeridoDaAvulsa } from "@/lib/creditoNaAvulsa";
 import { COMO_REFAZER_DESMARCOU, DESMARCOU_PERGUNTA, ofereceEscolhaDoDesmarcou } from "@/lib/desmarcouDoAvulso";
 import { useJanela } from "@/lib/useJanela";
 import { mascaraMoeda } from "@/lib/mascaraMoeda";
@@ -45,6 +46,9 @@ type PatientLite = { id: string; name: string; status: string; attendanceMode: s
   vigencias?: { formato: string; pacoteTipo: string | null; desde: string; criadoEm: string }[];
   /** "quinzenal", "semanal"… escrito no cadastro. É daqui que sai o espelho da semana alternada. */
   frequency?: string | null;
+  /** Doc 13/11: saldo de crédito do paciente, já descontado do que foi usado. É ele que abre o
+   *  campo da sessão avulsa — ver `creditoNaAvulsa.ts`. */
+  credito?: number;
 };
 type LocationLite = { name: string; address: string };
 
@@ -1741,13 +1745,28 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
                       ))}
                     </div>
                     <input type="hidden" name="cobrada" value={newCobrada} />
-                    {newCobrada === "sim" && (
-                      <div>
-                        <label className="text-[11px] font-semibold text-[#92400e]/80">Valor da sessão avulsa (R$)</label>
-                        <MoneyInput name="valorExtra" required defaultValue={selectedPatient?.sessionFee ?? null}
-                          className="w-full px-3 py-2 rounded-xl bg-white border border-[#fde68a] outline-none text-sm" />
-                      </div>
-                    )}
+                    {newCobrada === "sim" && (() => {
+                      /**
+                       * Doc 13/11: havendo crédito, o campo abre com o SALDO, não com o preço do
+                       * cadastro — é o dinheiro que já está na mão e que ela quer gastar. Gasto em
+                       * parte, a próxima sessão abre com o que sobrou, porque o saldo que chega
+                       * aqui já vem descontado pelo motor de pagamentos.
+                       *
+                       * A `key` leva o valor junto: `defaultValue` só vale na MONTAGEM, e sem ela
+                       * trocar de paciente (ou gastar o crédito) deixava o número antigo na tela.
+                       */
+                      const sugestao = valorSugeridoDaAvulsa({ credito: selectedPatient?.credito, precoDaSessao: selectedPatient?.sessionFee ?? null });
+                      return (
+                        <div>
+                          <label className="text-[11px] font-semibold text-[#92400e]/80">Valor da sessão avulsa (R$)</label>
+                          <MoneyInput key={`${selectedPatient?.id ?? "sem"}:${sugestao.valor ?? ""}`} name="valorExtra" required defaultValue={sugestao.valor}
+                            className="w-full px-3 py-2 rounded-xl bg-white border border-[#fde68a] outline-none text-sm" />
+                          {sugestao.porCredito && (
+                            <p className="mt-1 text-[11px] font-semibold text-[#047857]">{AVISO_DO_CREDITO}</p>
+                          )}
+                        </div>
+                      );
+                    })()}
                     {/* Doc 73: o texto passa a dizer o que ACONTECE, e não o que não acontece.
                         "Fica fora do pacote: não muda a numeração, a contagem nem o valor" era a
                         mesma frase nas duas respostas — e elas produzem coisas diferentes. */}
