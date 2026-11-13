@@ -12,7 +12,6 @@ import { TelegramSync } from "./TelegramSync";
 import { IntegrationsCard } from "./IntegrationsCard";
 import { BookingCard } from "./BookingCard";
 import { CobrancaMessageCard } from "./CobrancaMessageCard";
-import { LembreteSessaoCard } from "./LembreteSessaoCard";
 import { ReciboCard } from "./ReciboCard";
 import { TranscriptionToggle } from "./TranscriptionToggle";
 import { SmtpCard } from "./SmtpCard";
@@ -245,7 +244,6 @@ export default async function SettingsPage() {
           <BookingCard initialSlug={user.bookingSlug} initialAutoConfirm={!!prefs.bookingAutoConfirm} />
 
           <CobrancaMessageCard initial={user.cobrancaMessage} />
-          <LembreteSessaoCard initial={user.lembreteQuando} />
           <ReciboCard cpf={user.therapistCpf} descricao={user.descricaoAtendimento} nome={user.name} />
           {/* Doc 76: a consulta do municipio vem ANTES de qualquer configuracao fiscal. Metade dos
               municipios nao emite pelo caminho nacional, e pedir dado fiscal a quem nao vai poder

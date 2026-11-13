@@ -528,7 +528,7 @@ function avisoDoPagamento(
   const credito = creditado;
   if (Number.isFinite(credito) && credito > 0) {
     if (s.creditoUsadoEm) return `Crédito desta sessão foi utilizado na sessão do dia ${dataCurtaBR(s.creditoUsadoEm)}`;
-    return `${PREFIXO} - Possui um crédito de ${dinheiroBR(credito)} do pago em ${dataCurtaBR(s.pagoEm)} que será abatido na próxima sessão a ser paga`;
+    return `${PREFIXO} - Possui um crédito de ${dinheiroBR(credito)} pago em ${dataCurtaBR(s.pagoEm)} que será abatido na próxima sessão a ser paga`;
   }
 
   // CONVERSÃO SIMPLES, sem dinheiro envolvido.

@@ -28,8 +28,7 @@ import {
   patientStatusColor,
   type RiskLevel,
 } from "@/lib/therapy";
-import { Phone, Plus, Pencil, Mic, Loader2, FileText, Repeat, Download, MessageCircle, Send, Mail } from "lucide-react";
-import { MessagePatient } from "@/components/dashboard/MessagePatient";
+import { Phone, Plus, Pencil, Mic, Loader2, FileText, Repeat, Download, MessageCircle } from "lucide-react";
 import { anosDisponiveis } from "@/lib/filtroDeAno";
 import { abrirWhatsapp } from "@/lib/whatsappLink";
 import { TRANSCRICAO_POR_ARQUIVO_LIGADA } from "@/lib/transcricaoPorArquivo";
@@ -308,10 +307,9 @@ export function PatientDetail({
               </button>
             );
           })()}
-          {/* Doc 42: ao lado do WhatsApp, botões diretos de Telegram e E-mail (compositor da casa,
-              já com o canal escolhido). */}
-          <MessagePatient patient={{ id: patient.id, name: patient.name, phone: patient.phone, email: patient.email }} canalInicial="telegram" rotulo="Telegram" icone={Send} />
-          <MessagePatient patient={{ id: patient.id, name: patient.name, phone: patient.phone, email: patient.email }} canalInicial="email" rotulo="E-mail" icone={Mail} />
+          {/* Doc 13/11: os botões de Telegram e E-mail saíram (doc 42 os tinha posto aqui). "Vamos
+              focar em whatsapp, pode retirar" — três ícones para o mesmo recado, dois deles num
+              canal que o consultório não usa, só ocupavam a barra no celular. */}
           {/* Doc 33: o 2º ícone (histórico de WhatsApp) e o "Prontuário PDF" foram retirados do card. */}
           {/* Doc 36: no celular, "Editar" ficava EMBAIXO de "Exportar dados" (o flex-wrap do pai
               quebrava entre os dois). Agrupados num flex próprio, ficam SEMPRE lado a lado — o pai
