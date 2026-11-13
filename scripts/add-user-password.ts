@@ -2,7 +2,7 @@
  * Script para adicionar/atualizar senha de um usuário existente
  *
  * Uso:
- * npx tsx scripts/add-user-password.ts giselebarrossantos@gmail.com Senha@123
+ * npx tsx scripts/add-user-password.ts <e-mail-da-conta> <senha>
  *
  * Permite que usuário faça login com email/senha no Auth0
  */
@@ -22,7 +22,7 @@ const password = process.argv[3];
 if (!email || !password) {
   console.error("❌ Uso: npx tsx scripts/add-user-password.ts <email> <senha>");
   console.error("\nExemplo:");
-  console.error("  npx tsx scripts/add-user-password.ts giselebarrossantos@gmail.com Senha@123");
+  console.error("  npx tsx scripts/add-user-password.ts <e-mail-da-conta> <senha>");
   process.exit(1);
 }
 

@@ -1,5 +1,11 @@
 # Auth0 Ledivan Plus - Configuração Completa e Funcionando
 
+> **Nota de segurança (13/11/2026).** Este repositório é **público**. As credenciais que estavam
+> escritas aqui foram removidas: senha de pessoa real em documento público vira senha publicada,
+> mesmo que a conta já não exista. Senha nunca entra em documento — ela vive no cofre, e o
+> comando recebe por variável de ambiente.
+
+
 **Data:** 04/08/2026
 **Status:** ✅ FUNCIONANDO EM PRODUÇÃO
 
@@ -17,14 +23,14 @@ Sistema de autenticação Auth0 completamente configurado e funcionando para o p
 ## Credenciais de Acesso
 
 ### Usuária Principal (Gisele)
-- **Email:** giselebarrossantos@gmail.com
-- **Senha:** Gisele2024!
+- **Email:** (removido deste documento — repositório público)
+- **Senha:** (removida deste documento — repositório público)
 - **Status:** 49 pacientes importados do Excel
 - **Login:** Via Google OAuth (em implementação) ou senha
 
 ### Conta Demonstração
 - **Email:** demo@ledivan.com.br
-- **Senha:** ledivan-demo-2026
+- **Senha:** (removida deste documento — repositório público)
 - **Status:** Conta populada para demonstração
 - **Acesso:** Botão "Ver Demonstração" na tela de login
 

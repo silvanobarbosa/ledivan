@@ -2,7 +2,7 @@
 
 ## Status Atual
 
-O sistema está configurado para usar Auth0 como provedor de autenticação. Para permitir que Gisele (giselebarrossantos@gmail.com) faça login com Google, siga os passos abaixo.
+O sistema está configurado para usar Auth0 como provedor de autenticação. Para permitir que Gisele (<e-mail-da-terapeuta>) faça login com Google, siga os passos abaixo.
 
 ## Passo 1: No Painel do Auth0 (https://manage.auth0.com)
 
@@ -53,11 +53,11 @@ Se o Auth0 pedir credenciais do Google:
 
 1. Acesse https://ledivan.com.br/login
 2. Deve aparecer botão **"Continue with Google"**
-3. Gisele pode fazer login com giselebarrossantos@gmail.com
+3. Gisele pode fazer login com <e-mail-da-terapeuta>
 
 ## Observações Importantes
 
-- O usuário Gisele já está criado no banco com o email giselebarrossantos@gmail.com
+- O usuário Gisele já está criado no banco com o email <e-mail-da-terapeuta>
 - O Auth0 automaticamente vinculará a conta Google ao usuário existente pelo email
 - Os 49 pacientes importados estarão disponíveis após o login
 

@@ -1,5 +1,11 @@
 # Auth0 Setup - Quickstart Guide
 
+> **Nota de segurança (13/11/2026).** Este repositório é **público**. As credenciais que estavam
+> escritas aqui foram removidas: senha de pessoa real em documento público vira senha publicada,
+> mesmo que a conta já não exista. Senha nunca entra em documento — ela vive no cofre, e o
+> comando recebe por variável de ambiente.
+
+
 Guia rápido para configurar o Auth0 no Ledivan Plus em 5 minutos.
 
 ## Pré-requisitos
@@ -80,7 +86,7 @@ Correto: Copiar as credenciais que o `setup-auth0.ts` mostra NO FINAL da execuç
 Execute para adicionar senha:
 
 ```bash
-npx tsx scripts/add-user-password.ts giselebarrossantos@gmail.com Senha@123
+npx tsx scripts/add-user-password.ts <e-mail-da-conta> <senha-definida-por-voce>
 ```
 
 Ou configure o middleware (já criado) para sincronizar automaticamente.

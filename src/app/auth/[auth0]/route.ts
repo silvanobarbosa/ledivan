@@ -5,6 +5,7 @@ import { users } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import { assinarSessao } from "@/lib/session-secret";
+import { claimsDaSessao } from "@/lib/claimsDaSessao";
 import { rateLimit } from "@/lib/rateLimit";
 
 /**
@@ -13,8 +14,15 @@ import { rateLimit } from "@/lib/rateLimit";
  * Path: /auth/*
  */
 
-async function createSession(userId: string) {
-  const token = await assinarSessao(userId, "7d", { via: "senha" });
+/**
+ * Abre a sessão A PARTIR DA LINHA DO USUÁRIO, não só do id.
+ *
+ * Era `createSession(userId)` e os claims eram `{ via: "senha" }` — sem a marca `demo`. A conta de
+ * demonstração tem senha publicada no repositório (público), então entrar por aqui com ela dava
+ * sessão de ESCRITA na conta que todo visitante vê. Ver `claimsDaSessao.ts`.
+ */
+async function createSession(usuario: { id: string; isDemo?: boolean | null }) {
+  const token = await assinarSessao(String(usuario.id), "7d", claimsDaSessao(usuario, "senha"));
 
   const cookieStore = await cookies();
   cookieStore.set("auth-session", token, {
@@ -140,7 +148,7 @@ export async function POST(
         createdAt: new Date(),
       }).returning();
 
-      await createSession(newUser.id);
+      await createSession(newUser);
       return NextResponse.json({ success: true, redirectTo: "/dashboard" });
     }
 
@@ -164,7 +172,7 @@ export async function POST(
       );
     }
 
-    await createSession(user.id);
+    await createSession(user);
     return NextResponse.json({ success: true, redirectTo: "/dashboard" });
   }
 

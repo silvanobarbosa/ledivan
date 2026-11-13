@@ -4,6 +4,7 @@ import { users } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import bcrypt from "bcryptjs";
 import { assinarSessao } from "@/lib/session-secret";
+import { claimsDaSessao } from "@/lib/claimsDaSessao";
 import { rateLimit } from "@/lib/rateLimit";
 
 export const dynamic = "force-dynamic";
@@ -47,7 +48,7 @@ export async function POST(req: Request) {
 
   // Conta demo (Dr. Sócrates): o bearer também carrega o claim `demo` → o proxy recusa qualquer
   // escrita feita pelo app com esse token. Read-only no app igual ao navegador.
-  const token = await assinarSessao(String(user.id), "7d", { demo: user.isDemo, via: "senha" });
+  const token = await assinarSessao(String(user.id), "7d", claimsDaSessao(user, "senha"));
   return NextResponse.json({
     token,
     user: { id: String(user.id), email: user.email, name: user.name, role: user.role, isDemo: user.isDemo },

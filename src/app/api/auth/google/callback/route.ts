@@ -5,6 +5,7 @@ import { users } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import crypto from "crypto";
 import { assinarSessao } from "@/lib/session-secret";
+import { claimsDaSessao } from "@/lib/claimsDaSessao";
 
 export const dynamic = "force-dynamic";
 
@@ -62,7 +63,7 @@ export async function GET(request: Request) {
     user = novo;
   }
 
-  const token = await assinarSessao(String(user.id), "7d", { via: "google" });
+  const token = await assinarSessao(String(user.id), "7d", claimsDaSessao(user, "google"));
   jar.set("auth-session", token, { httpOnly: true, secure: process.env.NODE_ENV === "production", sameSite: "lax", maxAge: 60 * 60 * 24 * 7, path: "/" });
   return NextResponse.redirect(new URL(returnTo, request.url));
 }

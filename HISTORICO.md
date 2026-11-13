@@ -2504,7 +2504,7 @@ com "não abater" no banco —, então ninguém chegou a ser cobrado errado.
   Alto; conferido, o rótulo dizia AVUL e tela e cobrança concordavam. O defeito real era outro e
   menor. Reproduzir antes de corrigir.
 - **A bateria `test:parallel` está morta** desde o wipe de 30/08: procura
-  `giselebarrossantos@gmail.com` (a conta é `giselesantosbarbosa@`), nome "Gisele Barros Santos"
+  `<e-mail-da-terapeuta>` (a conta é `giselesantosbarbosa@`), nome "Gisele Barros Santos"
   (é "Gisele Barbosa"), conta demo `demo@ledivan.com.br` (é `socrates@`) e afirma `expected: 65`
   pacientes. Seis vermelhos constantes que ninguém lê.
 

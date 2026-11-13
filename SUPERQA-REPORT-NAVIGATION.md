@@ -80,7 +80,7 @@
 2. **Demo usa conta real**
    - Expõe dados reais de 65 pacientes
    - Nome completo: Gisele Barros Santos
-   - Email: giselebarrossantos@gmail.com
+   - Email: <e-mail-da-terapeuta>
 
 3. **Redirecionamento automático**
    - /login redireciona para /dashboard se há sessão
