@@ -1414,10 +1414,10 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
             <p className="text-sm text-foreground/60 mt-1">
               <strong>Não:</strong> {DESMARCOU_PERGUNTA.explicaNao}
             </p>
-            {/* As duas saídas deixam a sessão em "Desmarcou" — só o dinheiro muda. Dizer isso aqui
-                evita a leitura de que "Não" desfaz o status. */}
-            <p className="text-xs text-foreground/50 mt-2">Nos dois casos a sessão fica como <strong>Desmarcou</strong> na agenda e na guia Geral.</p>
-            <p className="text-xs text-foreground/50 mt-1">{COMO_REFAZER_DESMARCOU}</p>
+            {/* A linha "nos dois casos a sessão fica como Desmarcou" SAIU a pedido do dono
+                (12/11): o status já aparece marcado atrás da janela, e a frase só alongava uma
+                decisão que se toma em dois segundos. */}
+            <p className="text-xs text-foreground/50 mt-2">{COMO_REFAZER_DESMARCOU}</p>
             <div className="flex gap-2 mt-4">
               <button disabled={pending} onClick={() => responderDesmarcou(perguntaDesmarcou.id, true)} className="flex-1 bg-primary text-white py-2.5 rounded-xl text-sm font-bold disabled:opacity-60">Sim</button>
               <button disabled={pending} onClick={() => responderDesmarcou(perguntaDesmarcou.id, false)} className="flex-1 bg-surface text-foreground/70 py-2.5 rounded-xl text-sm font-bold disabled:opacity-60">Não</button>

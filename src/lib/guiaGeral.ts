@@ -26,6 +26,7 @@ import { cobrancasDoPaciente, rotulosDasSessoes, type Cobranca, type EntradaDasC
 import { formatoNaData } from "./vigenciaDoFormato";
 import { STATUS_QUE_PAUSAM } from "./therapy";
 import { horaDeParede } from "./horaLocal";
+import { STATUS_DE_DESMARCADA as SET_DE_DESMARCADA } from "./desmarcouDoAvulso";
 
 export type PagamentoDaGeral = {
   id: string;
@@ -488,9 +489,27 @@ function avisoDoPagamento(
 
   const virouGratuita = s.status === "nao_realizada" && s.faltouConta === false
     && (formato === "sessao" || s.extra === "avul" || s.extra === "grat" || dinheiroDesfeito);
-  if (!virouGratuita) return null;
 
-  const PREFIXO = "Sessão AVUL, que foi convertida para GRAT";
+  /**
+   * A SESSÃO DESMARCADA QUE TINHA DINHEIRO (dono, 12/11/2026).
+   *
+   * O "Desmarcou" passou a oferecer estorno e transferência, e a linha esvaziava sem dizer para
+   * onde foi o que o paciente já tinha pago — a dúvida mais cara desta tabela, e a mesma que o
+   * doc 55 resolveu do lado do Faltou. A porta era `status === nao_realizada`, então nada disso
+   * chegava à desmarcada.
+   *
+   * Exige dinheiro desfeito: desmarcada sem pagamento nenhum não tem o que explicar, e um aviso
+   * ali seria ruído em toda sessão desmarcada do consultório.
+   */
+  const desmarcadaComDinheiro = SET_DE_DESMARCADA.has(s.status) && dinheiroDesfeito;
+  if (!virouGratuita && !desmarcadaComDinheiro) return null;
+
+  /**
+   * O texto do dinheiro é o MESMO nos dois casos — o dono pediu "igual à outra mensagem". O que
+   * muda é o começo da frase: a desmarcada não foi convertida para GRAT, e dizer que foi
+   * inventaria um evento que não aconteceu.
+   */
+  const PREFIXO = virouGratuita ? "Sessão AVUL, que foi convertida para GRAT" : "Sessão desmarcada";
 
   // ESTORNO: o dinheiro voltou para o paciente.
   if (Number.isFinite(estornado) && estornado > 0) {
