@@ -13,7 +13,7 @@ import { conteudoDaCelula, identificacao, identificacaoDoAniversario } from "@/l
 import { liberaOHorario } from "@/lib/statusDaSessao";
 import { textoDoBloqueio } from "@/lib/bloqueioDeHorario";
 import { ehQuinzenal, espelhosDoDia, sinaisDaSessao } from "@/lib/ocupacaoDaAgenda";
-import { CANAIS_DE_CONFIRMACAO, DIAS_DA_SEMANA, ehSemanal2x, geraRepeticoes, modalidadesDe, pedeHorasAntes, pedeLocal, repeticoesDe } from "@/lib/agendamentoNovo";
+import { CANAIS_DE_CONFIRMACAO, DIAS_DA_SEMANA, ehSemanal2x, geraRepeticoes, modalidadesDe, pedeHorasAntes, pedeLocal, PERGUNTA_DAS_HORAS, repeticoesDe } from "@/lib/agendamentoNovo";
 import { CAMPOS_EDITAVEIS } from "@/lib/editarAgendamento";
 import { contarAlcance, excluirAgendamento, reagendarRecorrencia, salvarEdicao } from "./edicao-actions";
 import { BloquearHorario } from "@/components/dashboard/BloquearHorario";
@@ -1223,8 +1223,13 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
                   <select name="confirmChannel" value={editCanal} onChange={(e) => setEditCanal(e.target.value)} className="w-full px-3 py-2 rounded-xl bg-white border border-border outline-none text-sm">
                     {CANAIS_DE_CONFIRMACAO.map((c) => <option key={c.valor} value={c.valor}>{c.rotulo}</option>)}
                   </select>
+                  {/* Doc 13/11: a pergunta inteira em cima do campo. "24" sozinho num quadrado não
+                      diz o que são 24 — e quem abre a tela uma vez por semana não lembra. */}
                   {pedeHorasAntes(editCanal) && (
-                    <input name="confirmLeadHours" type="number" min={1} max={168} defaultValue={24} placeholder="horas antes" className="mt-2 w-full px-3 py-2 rounded-xl bg-white border border-border outline-none text-sm" />
+                    <label className="block mt-2">
+                      <span className="text-[11px] font-semibold text-foreground/50">{PERGUNTA_DAS_HORAS}</span>
+                      <input name="confirmLeadHours" type="number" min={1} max={168} defaultValue={24} className="w-full px-3 py-2 rounded-xl bg-white border border-border outline-none text-sm" />
+                    </label>
                   )}
                 </div>
 
@@ -1855,7 +1860,7 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
               </select>
               {pedeHorasAntes(newCanal) && (
                 <label className="block">
-                  <span className="text-[11px] font-semibold text-foreground/50">Quantas horas antes</span>
+                  <span className="text-[11px] font-semibold text-foreground/50">{PERGUNTA_DAS_HORAS}</span>
                   <input name="confirmLeadHours" type="number" min={1} max={168} defaultValue={24} className="w-full px-3 py-2 rounded-xl bg-white border border-border outline-none text-sm" />
                 </label>
               )}

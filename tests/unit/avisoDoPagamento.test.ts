@@ -100,7 +100,7 @@ describe("para onde foi o dinheiro", () => {
 
   it("creditado: ficou guardado, esperando a próxima a pagar", () => {
     expect(comDinheiro({ creditoValor: 200, pagoEm: new Date(2026, 9, 24, 11, 0) }))
-      .toBe("Sessão AVUL, que foi convertida para GRAT - Possui um crédito de R$ 200,00 do pago em 24/10/26 que será abatido na próxima sessão a ser paga");
+      .toBe("Sessão AVUL, que foi convertida para GRAT - Possui um crédito de R$ 200,00 pago em 24/10/26 que será abatido na próxima sessão a ser paga");
   });
 
   it("crédito já usado: a mensagem muda, porque muda a pergunta de quem lê", () => {

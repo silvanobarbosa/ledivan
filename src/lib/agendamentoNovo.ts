@@ -226,11 +226,28 @@ export function pedeRepetirAte(repeticao: string | null | undefined): boolean {
   return geraRepeticoes(repeticao);
 }
 
+/**
+ * O canal do lembrete — e por que sobrou um só (dono, 13/11/2026).
+ *
+ * "Não é preciso deixar a opção de envio, deverá ser sempre por whatsapp." O e-mail saiu do
+ * produto: a terapeuta fala com paciente por WhatsApp, e manter um canal que ninguém usa obrigava
+ * a escolher numa tela onde não há escolha a fazer.
+ *
+ * A lista continua existindo porque o banco guarda o valor e há agendamentos antigos com
+ * `email` gravado — eles seguem sendo lidos; o que some é a OFERTA.
+ */
 export const CANAIS_DE_CONFIRMACAO: { valor: CanalDeConfirmacao; rotulo: string }[] = [
-  { valor: "nenhum", rotulo: "Não confirmar" },
+  { valor: "nenhum", rotulo: "Não enviar lembrete" },
   { valor: "whatsapp", rotulo: "Por WhatsApp" },
-  { valor: "email", rotulo: "Por e-mail" },
 ];
+
+/**
+ * A pergunta que fica EM CIMA do campo das horas (dono, 13/11/2026).
+ *
+ * O campo mostrava "24" e o rótulo dizia "Quantas horas antes" — faltava dizer antes do quê, e
+ * por qual canal. Texto do próprio dono, inteiro.
+ */
+export const PERGUNTA_DAS_HORAS = "Quantas horas antes do atendimento deseja que o lembrete via WhatsApp seja enviado?";
 
 /** O campo "quantas horas antes" só aparece quando há canal escolhido. */
 export function pedeHorasAntes(canal: string | null | undefined): boolean {
