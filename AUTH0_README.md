@@ -1,5 +1,11 @@
 # Configuração Auth0 - Ledivan Plus
 
+> **Nota de segurança (13/11/2026).** Este repositório é **público**. As credenciais que estavam
+> escritas aqui foram removidas: senha de pessoa real em documento público vira senha publicada,
+> mesmo que a conta já não exista. Senha nunca entra em documento — ela vive no cofre, e o
+> comando recebe por variável de ambiente.
+
+
 > Sistema completo de autenticação com Google OAuth + Email/Senha integrado ao banco Neon
 
 ## Início Rápido (5 minutos)
@@ -124,7 +130,7 @@ npx tsx scripts/setup-universal-login.ts
 npx tsx scripts/test-auth0-setup.ts
 
 # 4. Adicionar senha a usuário
-npx tsx scripts/add-user-password.ts giselebarrossantos@gmail.com Senha@123
+npx tsx scripts/add-user-password.ts <e-mail-da-conta> <senha-definida-por-voce>
 
 # 5. Iniciar servidor
 npm run dev

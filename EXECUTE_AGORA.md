@@ -1,5 +1,11 @@
 # EXECUTE AGORA - Setup Auth0 Ledivan Plus
 
+> **Nota de segurança (13/11/2026).** Este repositório é **público**. As credenciais que estavam
+> escritas aqui foram removidas: senha de pessoa real em documento público vira senha publicada,
+> mesmo que a conta já não exista. Senha nunca entra em documento — ela vive no cofre, e o
+> comando recebe por variável de ambiente.
+
+
 > Este arquivo contém os comandos EXATOS para executar o setup completo do Auth0.
 > Copie e cole os comandos na ordem apresentada.
 
@@ -208,7 +214,7 @@ Se houver ❌ (falhas), resolver antes de continuar.
 Para testar login com email/senha:
 
 ```bash
-npx tsx scripts/add-user-password.ts giselebarrossantos@gmail.com Senha@123
+npx tsx scripts/add-user-password.ts <e-mail-da-conta> <senha-definida-por-voce>
 ```
 
 Deve mostrar:
@@ -244,15 +250,15 @@ http://localhost:3001/auth/login
 ### 7.4 Testar Login com Google
 
 1. Clicar em **"Continue with Google"**
-2. Selecionar conta: `giselebarrossantos@gmail.com`
+2. Selecionar conta: `<e-mail-da-terapeuta>`
 3. Autorizar acesso
 4. Deve redirecionar para `/dashboard`
 
 ### 7.5 Testar Login com Email/Senha
 
 1. Preencher:
-   - Email: `giselebarrossantos@gmail.com`
-   - Senha: `Senha@123` (se executou Passo 6)
+   - Email: `<e-mail-da-terapeuta>`
+   - Senha: `<a senha que você definiu>` (se executou Passo 6)
 2. Clicar em **"Continue"**
 3. Deve redirecionar para `/dashboard`
 
@@ -346,7 +352,7 @@ npx tsx scripts/setup-auth0.ts
 npx tsx scripts/test-auth0-setup.ts
 
 # 5. Adicionar senha (opcional)
-npx tsx scripts/add-user-password.ts giselebarrossantos@gmail.com Senha@123
+npx tsx scripts/add-user-password.ts <e-mail-da-conta> <senha-definida-por-voce>
 
 # 6. Instalar dependências
 npm install

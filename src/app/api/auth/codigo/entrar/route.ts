@@ -6,6 +6,7 @@ import { users, loginCodes } from "@/db/schema";
 import { rateLimit } from "@/lib/rateLimit";
 import { conferirCodigo, digitosDoCodigo, RECADO } from "@/lib/codigoDeAcesso";
 import { assinarSessao } from "@/lib/session-secret";
+import { claimsDaSessao } from "@/lib/claimsDaSessao";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
@@ -65,7 +66,7 @@ export async function POST(req: Request) {
   // um código que ficaria vivo — o contrário (sessão aberta, código vivo) é que seria o furo.
   await db.update(loginCodes).set({ usadoEm: new Date() }).where(eq(loginCodes.id, linha.id));
 
-  const token = await assinarSessao(String(user.id), "7d", { via: "codigo" });
+  const token = await assinarSessao(String(user.id), "7d", claimsDaSessao(user, "codigo"));
   const jar = await cookies();
   jar.set("auth-session", token, {
     httpOnly: true,

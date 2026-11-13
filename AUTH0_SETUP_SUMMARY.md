@@ -1,5 +1,11 @@
 # Resumo Executivo - Configuração Auth0 Ledivan Plus
 
+> **Nota de segurança (13/11/2026).** Este repositório é **público**. As credenciais que estavam
+> escritas aqui foram removidas: senha de pessoa real em documento público vira senha publicada,
+> mesmo que a conta já não exista. Senha nunca entra em documento — ela vive no cofre, e o
+> comando recebe por variável de ambiente.
+
+
 ## Status: PRONTO PARA CONFIGURAÇÃO
 
 A solução completa de autenticação Auth0 foi implementada para o projeto Ledivan Plus.
@@ -201,7 +207,7 @@ Se passou: ✅ Configuração completa
 ### Passo 4: Adicionar Senha à Gisele (opcional, 30s)
 
 ```bash
-npx tsx scripts/add-user-password.ts giselebarrossantos@gmail.com Senha@123
+npx tsx scripts/add-user-password.ts <e-mail-da-conta> <senha-definida-por-voce>
 ```
 
 ### Passo 5: Iniciar Servidor e Testar (2 min)
@@ -213,7 +219,7 @@ npm run dev
 Acessar: http://localhost:3001/auth/login
 
 Testar:
-1. Login com Google (giselebarrossantos@gmail.com)
+1. Login com Google (<e-mail-da-terapeuta>)
 2. Login com Email/Senha (se configurou no passo 4)
 
 ## Características Técnicas
@@ -341,13 +347,13 @@ npm run dev
 1. Auth0 Dashboard > Authentication > Database > ledivan-db
 2. Tab: Custom Database
 3. Botão: "Try Connection"
-4. Usar email: giselebarrossantos@gmail.com
+4. Usar email: <e-mail-da-terapeuta>
 
 **Verificar usuário no banco:**
 ```sql
 SELECT id, email, name, password_hash IS NOT NULL as has_password, role
 FROM users
-WHERE LOWER(email) = 'giselebarrossantos@gmail.com';
+WHERE LOWER(email) = '<e-mail-da-terapeuta>';
 ```
 
 ### Troubleshooting Comum

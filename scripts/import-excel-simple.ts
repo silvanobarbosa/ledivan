@@ -5,12 +5,17 @@ import { eq } from "drizzle-orm";
 import XLSX from "xlsx";
 import * as path from "path";
 
+// O e-mail da conta vem do AMBIENTE (TERAPEUTA_EMAIL). Estava escrito aqui dentro, e este
+// repositório é público — e-mail de cliente em código público é dado exposto de graça.
+// Uso: TERAPEUTA_EMAIL=<conta> npx tsx <este script>
+const EMAIL_DA_CONTA = process.env.TERAPEUTA_EMAIL ?? "";
+
 /**
  * Script simplificado para importar dados do Excel para Gisele
  * Foca nos pacientes principais da aba Estatística
  */
 
-const GISELE_EMAIL = "giselebarrossantos@gmail.com";
+const GISELE_EMAIL = EMAIL_DA_CONTA;
 const EXCEL_FILE = path.join(process.cwd(), "Gi", "Financeiro 040826.xlsx");
 
 async function importExcelSimple() {
@@ -116,7 +121,7 @@ async function importExcelSimple() {
 
   console.log("\n🎯 Próximos passos:");
   console.log("   1. Gisele acessa: https://ledivan.com.br");
-  console.log("   2. Login com Google: giselebarrossantos@gmail.com");
+  console.log(`   2. Login com Google: ${EMAIL_DA_CONTA}`);
   console.log("   3. Ver pacientes importados no dashboard");
 }
 
