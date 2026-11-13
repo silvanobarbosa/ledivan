@@ -7,6 +7,53 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-11-13 — A conta de demonstração estava editável por quem lesse o repositório
+
+**Entregue:** `src/lib/claimsDaSessao.ts` (os claims da sessão num lugar só), as quatro portas de
+entrada passando por ele, os segredos removidos de sete arquivos, sete scripts mortos apagados e o
+percurso `scripts/e2e-demo-somente-leitura.mjs`. PR #602; o #523 foi fechado em favor dele.
+
+**Por quê:** o PR #523 estava aberto desde 30/10 sanitizando dois scripts com senha de pessoa
+real. Ao avaliá-lo apareceu o resto: a mesma senha estava em cinco documentos `.md` que ele não
+tocava — e, puxando o fio da conta de demonstração, um furo de autenticação de verdade.
+
+**O furo.** A conta do Dr. Sócrates é pública: a senha está no repositório de propósito, e o
+repositório é PÚBLICO. O que a protege é um claim — `demo` no token — que o proxy usa para recusar
+escrita. Esse claim era posto **à mão em cada porta**: o app nativo punha, o login por SENHA do
+site não. Medido antes do conserto, com a credencial do próprio repo: o token voltava
+`{"userId":"…","via":"senha"}`, sem `demo`. Escrita liberada na conta que todo prospecto vê.
+
+**Decisões que ficam valendo:**
+
+- **Marca de segurança não se põe à mão em cada porta.** Ela se DERIVA do dado, num lugar só, e as
+  portas chamam. "Lembrar de pôr nas quatro" é a forma de errar na quinta.
+- **Senha não entra em documento.** Nem em `.md`, nem em comentário, nem em exemplo de linha de
+  comando. Em repositório público, exemplo é credencial publicada.
+- **E-mail de cliente também não.** Saiu do código para `TERAPEUTA_EMAIL`.
+- **Sanitizar não desfaz o vazamento.** O histórico do git continua com o valor antigo: a senha
+  está queimada e precisa ser trocada onde quer que tenha sido reusada. Remoção do HEAD só impede
+  a próxima cópia.
+
+**Armadilhas:**
+
+- **O susto do backup.** `backups/*.json` tem 800KB de prontuário real — sessões, pacientes,
+  histórico de contrato. Antes de alarmar, conferi: estão em `.gitignore` e NUNCA foram commitados
+  (`git log --all -- "backups/*"` vazio). São locais. Alarme falso, e a conferência custou um
+  minuto; o alarme errado custaria o dia de alguém.
+- **Substituir e-mail por placeholder quebra script.** A troca cega transformou constantes em
+  texto morto, e `${}` dentro de aspas normais não interpola — sai literal na tela.
+- **Vários "scripts úteis" já não rodavam.** `updatedAt` e `googleCalendarConnected` não existem
+  mais na tabela de usuários. Script legado que ninguém roda não avisa que apodreceu; ele só
+  carrega o segredo adiante.
+
+**Pendente:**
+
+- **Decisão do dono:** reescrever o histórico público do git (purga da senha) ou tratá-la apenas
+  como queimada. Hoje ela não abre nada neste app — a conta citada nem existe —, mas o risco é de
+  REUSO pela pessoa em outros serviços.
+
+---
+
 ## 2026-11-13 — Só WhatsApp, o crédito que abre a sessão, e o PDF que não imprimia
 
 **Entregue:** PRs #597 (o canal único e as remoções), #598 (o crédito preenchendo a sessão avulsa)
