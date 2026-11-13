@@ -32,7 +32,11 @@ const GUIDES: Guide[] = [
       { q: "Como funciona a agenda?", a: "Grade semanal (7h–21h). Navegue por semana ou clique em 'Hoje'. As sessões aparecem coloridas por status." },
       { q: "Mudar o status de uma sessão", a: "Clique no bloco da sessão → escolha realizada, cancelada, remarcada, etc. O ícone ⚠️ indica risco de falta." },
       { q: "A sessão será cobrada?", a: "Cada sessão tem a opção 'Cobrar' (ligada por padrão). Desligue para sessões de cortesia/devolutiva. Ao cobrar um paciente com pacote, é debitado 1 crédito do pacote." },
-      { q: "Lembrete automático", a: "No cadastro do paciente, ligue o lembrete e escolha o canal (WhatsApp/E-mail/Telegram) e a antecedência (de 10 minutos até 24 horas)." },
+      { q: "Lembrete automático", a: "No cadastro do paciente, ligue o lembrete. O envio é por WhatsApp; a antecedência é escolhida no próprio agendamento." },
+      // Doc 13/11: o passo a passo do Google Agenda estava em Ajustes e virou material de consulta.
+      { q: "Como a sua agenda de pacientes funciona", a: "As sessões vão para um calendário separado só seu, chamado \u201cPacientes \u2014 Ledivan\u201d, criado automaticamente no seu Google. Sua agenda pessoal não é lida nem misturada \u2014 os dois ficam lado a lado, e você liga/desliga \u201cPacientes\u201d quando quiser no Google Agenda." },
+      { q: "Como conectar o Google Agenda", a: "Ajustes \u2192 Integrações \u2192 Conectar no \u201cGoogle Agenda\u201d. Escolha a direção (recomendado: \u201cO Ledivan é o principal\u201d), toque em Autorizar acesso ao Agenda e faça login no Google. Na primeira sincronização o calendário \u201cPacientes \u2014 Ledivan\u201d é criado e suas sessões aparecem lá." },
+      { q: "Ocultar as sessões no Google Agenda", a: "No app do Google Agenda, o calendário \u201cPacientes \u2014 Ledivan\u201d aparece na lista à esquerda. Desmarque-o para ocultar as sessões sem mexer na sua agenda pessoal." },
     ],
   },
   {
