@@ -76,7 +76,10 @@ describe("a cobrança que fica de pé", () => {
 describe("o texto da janela", () => {
   it("pergunta pelo pagamento pendente, e diz o que cada resposta faz", () => {
     expect(DESMARCOU_PERGUNTA.titulo).toBe("Deseja manter o pagamento pendente para que seja realizado posteriormente?");
-    expect(DESMARCOU_PERGUNTA.explicaSim).toContain("Financeiro Geral");
+    // Doc 12/11 (2º anexo): o texto do dono é "permanece na guia Geral, para o lançamento do
+    // pagamento" — e nada de "em aberto/atrasado", que é o nome do estado, não o que ela faz.
+    expect(DESMARCOU_PERGUNTA.explicaSim).toContain("para o lançamento do pagamento");
+    expect(DESMARCOU_PERGUNTA.explicaSim).not.toContain("Financeiro Geral");
     expect(DESMARCOU_PERGUNTA.explicaNao).toContain("sem gerar cobrança");
   });
 

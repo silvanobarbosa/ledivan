@@ -47,8 +47,11 @@ export function desmarcouCobrando(s: { status?: string | null; desmarcouCobra?: 
 /** A pergunta da janela, nas palavras do documento. */
 export const DESMARCOU_PERGUNTA = {
   titulo: "Deseja manter o pagamento pendente para que seja realizado posteriormente?",
-  explicaSim: "O valor continua na guia Financeiro Geral, com a cobrança em aberto.",
-  explicaNao: "O valor sai da guia Financeiro Geral, sem gerar cobrança.",
+  // Doc 12/11 (segundo anexo): o dono reescreveu as duas linhas. "Para o lançamento do pagamento"
+  // diz o que ela vai FAZER com a linha; "em aberto" era o nome do estado, que a própria guia
+  // Geral já mostra na coluna de situação.
+  explicaSim: "O valor da sessão permanece na guia Geral, para o lançamento do pagamento.",
+  explicaNao: "O valor da sessão é retirado da guia Geral, sem gerar cobrança.",
 } as const;
 
 /**
