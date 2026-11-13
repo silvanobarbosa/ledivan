@@ -7,6 +7,56 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-11-13 — Só WhatsApp, o crédito que abre a sessão, e o PDF que não imprimia
+
+**Entregue:** PRs #597 (o canal único e as remoções), #598 (o crédito preenchendo a sessão avulsa)
+e #599 (o PDF do anexo virando páginas para a impressão). Três percursos novos, 1792 testes.
+
+**Por quê:** documento de 13/11. O consultório fala por WhatsApp e o resto dos canais só ocupava
+tela; o crédito do paciente obrigava a abrir a guia Geral, ler o saldo e voltar para digitá-lo; e
+a impressora do anexo não abria janela nenhuma no celular quando o arquivo era PDF.
+
+**Decisões que ficam valendo:**
+
+- **Canal único.** E-mail e Telegram saem da OFERTA (lembrete, Integrações, cadastro); os valores
+  antigos continuam sendo lidos. Tirar a oferta não é apagar o dado de quem já tinha ligado.
+- **O crédito manda no campo da avulsa, mas só sugere.** `creditoNaAvulsa.ts` não move dinheiro,
+  não consome crédito e não calcula saldo — ele LÊ o saldo que o motor de pagamentos já descontou.
+  É isso que faz "crédito de 100, digitou 50, a próxima abre com 50" sair de graça. Recalcular ali
+  criaria uma segunda verdade sobre o mesmo dinheiro.
+- **PDF imprime virando imagem.** O que funcionava na imagem era ser desenhada na PRÓPRIA página;
+  o PDF num quadro escondido não é desenhado em celular nenhum. Agora cada página vira canvas em
+  2x e entra no mesmo bloco.
+- **O texto do campo das horas é a pergunta inteira**, não o rótulo curto. Quem abre a tela uma
+  vez por semana não lembra o que são "24".
+
+**Armadilhas:**
+
+- **`workerSrc = ""` não desliga o worker do pdf.js.** Ele espera um arquivo que nunca chega e a
+  promessa NUNCA resolve: sem erro, sem log, o botão não faz nada. Worker de CDN dá o mesmo
+  sintoma, por CSP. O que funciona é empacotar: `new URL(..., import.meta.url)` → /_next/static.
+- **Pasta de rota começando com `_` não vira rota no Next** — o harness de teste dava 404 e eu
+  procurei o erro no pdf.js por um tempo.
+- **O seletor de paciente mostra o PRIMEIRO nome** (ou o id da agenda): dois cadastros de teste
+  começando por "QA" fazem o percurso escolher o errado sem reclamar. Escolher pelo id.
+- **Middleware barra qualquer rota**: percurso sem cookie recebe 307 e mede a tela de login.
+
+**Pendente:**
+
+- **O lembrete tem DOIS mecanismos, e só um envia.** O cron (`/api/cron/reminders`, 2x/dia)
+  dispara lendo o turno que ficava no card do Ajustes — card que o documento mandou remover. O
+  campo "horas antes" do agendamento é gravado e NUNCA lido por envio nenhum. Esta entrega não
+  mudou o envio: ele continua saindo no turno já salvo. Fazer o campo mandar de verdade exige cron
+  de hora em hora, o que depende do plano da Vercel. **Decisão do dono.**
+- **O percurso do anexo não cobre o fluxo completo** — upload usa Vercel Blob e o token não está
+  na máquina. O que é novo (PDF → páginas) foi medido num harness com bundler e CSP reais.
+- **Mirella, 20/11: a janela do Desmarcou não abre, e está certo.** A sessão está DENTRO da
+  sequência do pacote (`extra = null`), e a regra do próprio dono diz que aí a configuração não
+  vale. Ele precisa decidir se quer estender a escolha para sessões do pacote — hoje a desmarcada
+  do pacote pausa a posição e a seguinte assume, que é como o dezembro dela entrou no pacote.
+
+---
+
 ## 2026-11-13 — O valor que sumia em silêncio, o dinheiro que não se explicava, e dez itens que estavam parados num PR
 
 **Entregue:** `src/lib/valorQueNasceuDaFalta.ts` e a correção do apagamento do valor da sessão
