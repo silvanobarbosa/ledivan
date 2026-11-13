@@ -7,6 +7,51 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-11-13 — O campo que prometia um lembrete e não mandava nada
+
+**Entregue:** `src/lib/lembretePorSessao.ts`, o cron de hora em hora e o percurso
+`scripts/e2e-lembrete-por-sessao.mjs` (PR #604). Decisão do dono no mesmo dia: "sim, cada sessão
+com a sua antecedência".
+
+**Por quê:** o agendamento sempre teve "quantas horas antes" — gravado e **nunca lido por envio
+nenhum**. Quem mandava era o cron de turno do doc 61 (6h para as sessões do dia, 15h para as de
+amanhã), com escolha única para todos os pacientes. Duas peças com o mesmo nome, uma sem efeito, e
+isso só apareceu quando o documento de 13/11 mandou tirar o card do Ajustes: tirar o controle que
+FUNCIONA e deixar o que não faz nada teria congelado o lembrete sem ninguém perceber.
+
+**Decisões que ficam valendo:**
+
+- **O caminho antigo continua vivo** para as sessões sem antecedência própria — todo o passado
+  está assim. Desligar os dois de uma vez faria o consultório parar de avisar paciente já marcado.
+  Os caminhos não se cruzam: o de turno pula quem tem antecedência própria, e `reminderSentAt`
+  fecha a porta de qualquer jeito.
+- **A janela FECHA quando a sessão começa.** Cron fora do ar a tarde inteira? Perder o lembrete é
+  melhor do que mandar "não esqueça da sua sessão de ontem".
+- **A sincronia do Google ficou nas horas do turno.** Com cron de hora em hora ela multiplicaria
+  por doze as chamadas ao Google e as leituras do banco, sem nada novo para fazer. Cadência de
+  cron já estourou cota nesta casa.
+
+**Armadilhas:**
+
+- **O relógio do servidor não é o das sessões.** A coluna guarda hora de PAREDE e o driver a monta
+  como se fosse UTC; a Vercel roda em UTC. Comparar `new Date()` cru mandaria TODO lembrete três
+  horas adiantado — sem erro, sem log, sem nada quebrar. `agoraEmParede` existe só para isso, e o
+  teste mostra o erro que ela evita.
+- **Teste de fuso escrito com data LOCAL mede outra coisa.** O primeiro que escrevi usava
+  `new Date(ano, mês, dia)` (local) e por isso "passou" medindo o caso errado; o certo é montar a
+  data como o driver monta: `Date.UTC(...)`.
+- **Plano da conta antes de prometer cadência.** Cron de hora em hora depende do plano; conferido
+  (`vercel teams ls` → **pro**) antes de mexer no `vercel.json`, e conferido depois no painel
+  (`vercel crons ls` → `/api/cron/reminders  0 * * * *`).
+
+**Pendente:**
+
+- O campo vale para agendamentos NOVOS e para os que forem editados. Os já marcados seguem no
+  turno antigo até receberem uma antecedência — não há migração em massa, de propósito: mexer na
+  hora de aviso de sessão já combinada é decisão da terapeuta, não do sistema.
+
+---
+
 ## 2026-11-13 — A conta de demonstração estava editável por quem lesse o repositório
 
 **Entregue:** `src/lib/claimsDaSessao.ts` (os claims da sessão num lugar só), as quatro portas de
