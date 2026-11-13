@@ -147,3 +147,47 @@ describe("gratuito que virou AVUL, cobrou e desfez", () => {
     expect(gratuitoDesfeito({})).toBeNull();
   });
 });
+
+/**
+ * A SESSÃO DESMARCADA QUE TINHA DINHEIRO (documento do dono, 12/11/2026).
+ *
+ * "A opção de estorno já está dando certo, porém precisa também colocar o aviso de estorno na guia
+ * geral igual à outra mensagem de estorno que já temos no sistema."
+ *
+ * O aviso existia só para a sessão em "Faltou" que virou gratuita — a porta era
+ * `status === nao_realizada`. Desmarcada, a linha esvaziava sem dizer para onde foi o que o
+ * paciente já tinha pago, que é a dúvida mais cara desta tabela.
+ *
+ * O texto do dinheiro é o MESMO; o que muda é o começo da frase, porque a sessão não foi
+ * convertida para GRAT — ela foi desmarcada, e dizer "convertida" inventaria um evento.
+ */
+describe("desmarcada com dinheiro desfeito (doc 12/11)", () => {
+  const desmarcada = (extra: Record<string, unknown>) =>
+    linha(base("sessao", { status: "cancelada", ...extra } as never));
+
+  it("o estorno aparece, com o mesmo texto de valor", () => {
+    expect(desmarcada({ estornoValor: 150 }).avisoDoPagamento)
+      .toBe("Sessão desmarcada - Estorno realizado no valor de R$ 150,00");
+  });
+
+  it("a transferência aparece, com a data de destino", () => {
+    expect(desmarcada({ transferidoPara: new Date(2026, 10, 20, 10, 0) }).avisoDoPagamento)
+      .toBe("Sessão desmarcada - este pagamento foi transferido para a data 20/11/26");
+  });
+
+  it("o crédito aparece quando não havia próxima sessão para receber", () => {
+    expect(desmarcada({ creditoValor: 90, pagoEm: new Date(2026, 9, 23) }).avisoDoPagamento)
+      .toContain("Possui um crédito de R$ 90,00");
+  });
+
+  /** Desmarcada SEM dinheiro nenhum não ganha aviso: não há o que explicar. */
+  it("desmarcada sem dinheiro não inventa aviso", () => {
+    expect(desmarcada({}).avisoDoPagamento).toBe(null);
+  });
+
+  /** E a falta que virou gratuita continua dizendo o que sempre disse. */
+  it("não muda o texto da conversão AVUL→GRAT", () => {
+    expect(linha(base("sessao", { faltouConta: false, estornoValor: 150 } as never)).avisoDoPagamento)
+      .toBe("Sessão AVUL, que foi convertida para GRAT - Estorno realizado no valor de R$ 150,00");
+  });
+});

@@ -42,6 +42,8 @@ const token = await new jose.SignJWT({ userId: qa.id })
 
 const NOME = "QA desmarcou avulso";
 const MENSAL = "QA desmarcou mensal";
+const TRANSF = "QA desmarcou transfere";
+const VALOR = "QA desmarcou valor";
 /** Os cadastros criados no caminho — apagados no fim, aconteça o que acontecer. */
 const apagarDepois = [];
 // AVULSO ("sessao"): é o formato que o documento alcança. A sessão nasce HOJE, às 8h, para cair na
@@ -76,7 +78,7 @@ await ctx.addCookies([{ name: "auth-session", value: token, domain: alvo.hostnam
 const page = await ctx.newPage();
 
 /** O estado da sessão no banco — a única prova de que a escolha atravessou. */
-const noBanco = async (id = s.id) => (await sql`SELECT status, desmarcou_cobra FROM therapy_sessions WHERE id = ${id}`)[0];
+const noBanco = async (id = s.id) => (await sql`SELECT status, desmarcou_cobra, valor_extra FROM therapy_sessions WHERE id = ${id}`)[0];
 
 /**
  * ESPERA O FATO, não o relógio.
@@ -96,12 +98,16 @@ const esperarNoBanco = async (condicao, ms = 20000, id = s.id) => {
 };
 
 /** A sessão aparece com cobrança na guia Geral? É a linha que a terapeuta vê. */
-const temCobrancaNaGeral = async () => {
-  await page.goto(`${BASE}/dashboard/patients/${p.id}`, { waitUntil: "domcontentloaded", timeout: 90000 });
+const temCobrancaNaGeral = async (pid = p.id, sid = s.id) => {
+  await page.goto(`${BASE}/dashboard/patients/${pid}`, { waitUntil: "domcontentloaded", timeout: 90000 });
   await page.waitForSelector('[data-testid="guia-geral"]', { timeout: 30000 });
-  const linha = page.locator(`tr[data-sessao="${s.id}"]`).first();
-  if (await linha.count() === 0) return { linha: false, chave: null };
-  return { linha: true, chave: await linha.getAttribute("data-chave") };
+  const linha = page.locator(`tr[data-sessao="${sid}"]`).first();
+  if (await linha.count() === 0) return { linha: false, chave: null, texto: "" };
+  return {
+    linha: true,
+    chave: await linha.getAttribute("data-chave"),
+    texto: (await linha.innerText()).replace(/\s+/g, " ").trim(),
+  };
 };
 
 /**
@@ -206,6 +212,67 @@ try {
   check("depois do estorno a sessão fica Desmarcou, não Faltou", depois.status === "cancelada", depois.status);
   const [estornado] = await sql`SELECT estornado_em FROM session_payments WHERE id = ${pg.id}`;
   check("o pagamento foi estornado", !!estornado?.estornado_em, String(estornado?.estornado_em ?? "(não estornado)"));
+
+  /**
+   * O AVISO DO DINHEIRO na guia Geral (dono, 12/11, 2º anexo): "precisa também colocar o aviso de
+   * estorno na guia geral igual à outra mensagem de estorno que já temos". Sem ele a linha
+   * esvaziava sem dizer para onde foi o que o paciente pagou.
+   */
+  const aposEstorno = await temCobrancaNaGeral();
+  check("a guia Geral avisa do estorno na sessão desmarcada", /Estorno realizado no valor de/.test(aposEstorno.texto), aposEstorno.texto.slice(0, 120));
+
+  /** TRANSFERÊNCIA: o mesmo aviso, do outro lado — o dinheiro foi para a próxima sessão. */
+  const [pt] = await sql`
+    INSERT INTO patients (user_id, name, payment_format, session_fee, patient_status, payment_day, started_at, times_per_period)
+    VALUES (${qa.id}, ${TRANSF}, 'sessao', '100.00', 'ativo', 10, ${quando}, 1) RETURNING id`;
+  apagarDepois.push(pt.id);
+  const [st1] = await sql`
+    INSERT INTO therapy_sessions (user_id, patient_id, date, duration, fee, status)
+    VALUES (${qa.id}, ${pt.id}, ${quando}, 50, '100.00', 'agendada') RETURNING id`;
+  await sql`
+    INSERT INTO therapy_sessions (user_id, patient_id, date, duration, fee, status)
+    VALUES (${qa.id}, ${pt.id}, ${new Date(quando.getTime() + 7 * 86400000)}, 50, '100.00', 'agendada')`;
+  await sql`
+    INSERT INTO session_payments (user_id, patient_id, session_id, amount, date, method, status, cobranca_chave, pago_por)
+    VALUES (${qa.id}, ${pt.id}, ${st1.id}, '100.00', ${quando}, 'pix', 'paid', ${`sessao:${st1.id}`}, ${TRANSF})`;
+
+  await marcar("Desmarcou", TRANSF);
+  let janelaT = false;
+  try {
+    await page.waitForSelector("text=já possui um pagamento registrado", { timeout: 20000 });
+    janelaT = true;
+  } catch { /* o check reprova */ }
+  check("a sessão paga do segundo caso também abre a janela do destino", janelaT);
+  check("a janela oferece transferir", await clicarPorTexto("Transferir para a próxima sessão"));
+  const depoisT = await esperarNoBanco((x) => x.status === "cancelada", 20000, st1.id);
+  check("transferida: a sessão continua Desmarcou", depoisT.status === "cancelada", depoisT.status);
+  const aposTransf = await temCobrancaNaGeral(pt.id, st1.id);
+  check("a guia Geral avisa da transferência na sessão desmarcada", /transferido para a data/.test(aposTransf.texto), aposTransf.texto.slice(0, 140));
+
+  /**
+   * O R$ 0,00 do 2º anexo: escolher Não e depois Sim tem de trazer de volta o VALOR DIGITADO para
+   * a sessão. A sessão nasce com valor próprio e o cadastro sem preço, para que o único número
+   * possível seja o que a terapeuta escreveu — se ele for apagado, a linha volta zerada.
+   */
+  const [pz] = await sql`
+    INSERT INTO patients (user_id, name, payment_format, session_fee, patient_status, payment_day, started_at, times_per_period)
+    VALUES (${qa.id}, ${VALOR}, 'sessao', '0.00', 'ativo', 10, ${quando}, 1) RETURNING id`;
+  apagarDepois.push(pz.id);
+  const [sz] = await sql`
+    INSERT INTO therapy_sessions (user_id, patient_id, date, duration, fee, status, valor_extra)
+    VALUES (${qa.id}, ${pz.id}, ${new Date(quando.getTime() + 4 * 3600000)}, 50, '130.00', 'agendada', '130.00') RETURNING id`;
+
+  await marcar("Desmarcou", VALOR);
+  check("a janela abre na sessão com valor próprio", await esperarAPergunta());
+  await clicarPorTexto("Não");
+  await esperarNoBanco((x) => x.desmarcou_cobra === false, 20000, sz.id);
+  await marcar("Desmarcou", VALOR);
+  check("e reabre para mudar de ideia", await esperarAPergunta());
+  await clicarPorTexto("Sim");
+  const zs = await esperarNoBanco((x) => x.desmarcou_cobra === true, 20000, sz.id);
+  check("o valor digitado para a sessão sobrevive ao Não→Sim", zs.valor_extra != null && Number(zs.valor_extra) === 130, String(zs.valor_extra));
+  const voltou = await temCobrancaNaGeral(pz.id, sz.id);
+  check("… e a guia Geral mostra R$ 130,00, não R$ 0,00", /R\$ 130,00/.test(voltou.texto), voltou.texto.slice(0, 120));
 
   /**
    * O CASO QUE O DONO RELATOU: paciente MENSAL, sessão marcada "não adicionar à sequência — sim".

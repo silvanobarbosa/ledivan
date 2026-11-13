@@ -17,6 +17,7 @@ import { formatoNaData } from "@/lib/vigenciaDoFormato";
 import { getUserAiClient, SemChaveIA } from "@/lib/ai-client";
 import { chavesDaCobrancaDaSessao, decidirDesfazer } from "@/lib/desfazerCobranca";
 import { STATUS_DE_DESMARCADA } from "@/lib/desmarcouDoAvulso";
+import { apagaOValorDaFalta } from "@/lib/valorQueNasceuDaFalta";
 import { creditoDisponivel, geralDoPaciente } from "@/lib/geralDoPaciente";
 import { aplicarCreditosPendentes } from "@/lib/aplicarCreditos";
 import { abrangenciaValida, marcasDaSessao } from "@/lib/abrangenciaDaSerie";
@@ -656,14 +657,15 @@ export async function updateSessionStatus(sessionId: string, status: SessionStat
    */
   const faltouAgora = status === "nao_realizada";
   /**
-   * Saiu de "Faltou": a resposta é limpa, e o VALOR que ela tinha gerado vai junto.
+   * Saiu de "Faltou": a resposta é limpa, e o VALOR QUE ELA GEROU vai junto — só ele.
    *
-   * O valor da falta cobrada do paciente gratuito (doc 54) só existe por causa da resposta. Deixá-lo
-   * para trás guardava um número que ressuscitava sozinho se o status voltasse a Faltou — sem
-   * ninguém digitar nada —, contra o que a própria janela promete ao dizer que remarcar refaz a
-   * escolha. Sessão EXTRA não entra: o `valorExtra` dela é do agendamento e não tem nada com isto.
+   * A condição morava aqui e olhava só o status NOVO ("não é Faltou, então apaga"). Funcionava
+   * enquanto `valorExtra` fosse só o valor da falta do doc 54; desde o doc 62 ele é o valor
+   * DAQUELA SESSÃO, escrito pelo lápis da coluna Valor — e a linha passou a apagar o que a
+   * terapeuta digitou em qualquer troca de status, deixando a cobrança em R$ 0,00 sem avisar.
+   * A regra, agora, pergunta se o valor NASCEU da falta. Ver `valorQueNasceuDaFalta.ts`.
    */
-  const limpaValorDaFalta = !faltouAgora && !existing.extra && existing.valorExtra != null;
+  const limpaValorDaFalta = apagaOValorDaFalta(existing, status);
   /**
    * Documento de 12/11/2026: a resposta do "Desmarcou" segue a mesma disciplina do `faltouConta`.
    *
