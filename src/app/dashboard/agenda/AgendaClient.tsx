@@ -1231,7 +1231,8 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
                       diz o que são 24 — e quem abre a tela uma vez por semana não lembra. */}
                   {pedeHorasAntes(editCanal) && (
                     <label className="block mt-2">
-                      <span className="text-[11px] font-semibold text-foreground/50">{PERGUNTA_DAS_HORAS}</span>
+                      {/* Doc 13/11: sem espaçamento entre as linhas — a pergunta ocupa duas e ficava solta. */}
+                      <span className="block text-[11px] font-semibold leading-tight text-foreground/50">{PERGUNTA_DAS_HORAS}</span>
                       <input name="confirmLeadHours" type="number" min={1} max={168} defaultValue={24} className="w-full px-3 py-2 rounded-xl bg-white border border-border outline-none text-sm" />
                     </label>
                   )}
@@ -1879,7 +1880,8 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
               </select>
               {pedeHorasAntes(newCanal) && (
                 <label className="block">
-                  <span className="text-[11px] font-semibold text-foreground/50">{PERGUNTA_DAS_HORAS}</span>
+                  {/* Doc 13/11: sem espaçamento entre as linhas — a pergunta ocupa duas e ficava solta. */}
+                      <span className="block text-[11px] font-semibold leading-tight text-foreground/50">{PERGUNTA_DAS_HORAS}</span>
                   <input name="confirmLeadHours" type="number" min={1} max={168} defaultValue={24} className="w-full px-3 py-2 rounded-xl bg-white border border-border outline-none text-sm" />
                 </label>
               )}
