@@ -8,6 +8,7 @@ import { queixaGroup } from "@/lib/queixas";
 import { idadeEmAnos } from "@/lib/idade";
 import { categoriaFormato, vencimentoRelatorio, valorRelatorio } from "@/lib/formatoRelatorio";
 import { ExportXLSX } from "@/components/ExportXLSX";
+import { passaNoRelatorio, SITUACOES, CADASTROS, type SituacaoDoFiltro, type CadastroDoFiltro } from "@/lib/filtroDoRelatorio";
 
 export type LinhaRelatorio = {
   id: string;
@@ -31,6 +32,8 @@ export type LinhaRelatorio = {
   sessionFee: string;
   queixaPrincipal: string | null;
   qtdeAtendida: number;
+  /** Doc 42: paciente | supervisionado — é o que o segundo filtro do doc 71 recorta. */
+  cadastroKind: string | null;
 };
 
 // A conta da idade e uma so, em lib/idade: copiada aqui, ela errava o dia por causa do fuso.
@@ -68,7 +71,9 @@ const inp = "px-3 py-2 rounded-xl bg-surface border border-border outline-none t
 const lbl = "text-[11px] font-semibold uppercase tracking-wide text-foreground/40";
 
 export function RelatorioPacientes({ linhas }: { linhas: LinhaRelatorio[] }) {
-  const [tipo, setTipo] = useState("todos");
+  const [tipo, setTipo] = useState<SituacaoDoFiltro>("todos");
+  // Doc 71: segundo recorte, INDEPENDENTE do primeiro — combinados dão "supervisionados inativos".
+  const [cadastro, setCadastro] = useState<CadastroDoFiltro>("todos");
   const [de, setDe] = useState("");
   const [ate, setAte] = useState("");
   const [colunas, setColunas] = useState<Set<string>>(new Set(PADRAO));
@@ -85,10 +90,10 @@ export function RelatorioPacientes({ linhas }: { linhas: LinhaRelatorio[] }) {
       return true;
     };
     return linhas
-      .filter((p) => (tipo === "todos" ? p.status !== "prospect" : p.status === tipo))
+      .filter((p) => passaNoRelatorio(p, tipo, cadastro))
       .filter((p) => dentro(p.startedAt))
       .sort((a, b) => a.name.localeCompare(b.name, "pt-BR"));
-  }, [linhas, tipo, de, ate]);
+  }, [linhas, tipo, cadastro, de, ate]);
 
   function alternar(chave: string) {
     setColunas((atual) => {
@@ -104,10 +109,15 @@ export function RelatorioPacientes({ linhas }: { linhas: LinhaRelatorio[] }) {
         <div className="flex gap-3 flex-wrap items-end">
           <div>
             <span className={lbl}>Tipo</span>
-            <select value={tipo} onChange={(e) => setTipo(e.target.value)} className={inp}>
-              <option value="todos">Todos</option>
-              <option value="ativo">Ativo</option>
-              <option value="inativo">Inativo</option>
+            <select value={tipo} onChange={(e) => setTipo(e.target.value as SituacaoDoFiltro)} className={inp}>
+              {SITUACOES.map((s) => <option key={s.valor} value={s.valor}>{s.rotulo}</option>)}
+            </select>
+          </div>
+          {/* Doc 71: o filtro de CADASTRO é outro — não substitui o de situação, combina com ele. */}
+          <div>
+            <span className={lbl}>Cadastro</span>
+            <select value={cadastro} onChange={(e) => setCadastro(e.target.value as CadastroDoFiltro)} className={inp}>
+              {CADASTROS.map((c) => <option key={c.valor} value={c.valor}>{c.rotulo}</option>)}
             </select>
           </div>
           <div><span className={lbl}>Início de</span><input type="date" value={de} onChange={(e) => setDe(e.target.value)} className={inp} /></div>

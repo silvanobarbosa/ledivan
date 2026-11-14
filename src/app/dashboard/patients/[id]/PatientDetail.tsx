@@ -89,7 +89,7 @@ const inputCls = "w-full px-4 py-2.5 rounded-xl bg-white/70 border border-border
 const TABS = ["Geral", "Registros", "Anamnese", "Atividades", "Documentos"] as const;
 
 export function PatientDetail({
-  patient, pagador, payments, statusHistory, records, transcriptionEnabled, risk: _risk, assignments, moodToken, moodLogs, scales, diaryEntries = [], ratings = [], consents = [], contractHistory: _contractHistory = [], finance, sessionStats, recurring, statusEnabled = false, dailyStatus = [], sharedWritings = [], geral = [], cobrancaMessage = null, anamnese = [], activities = [], documentos = [], docCabecalho, creditoDisponivel = 0, creditoAConfirmar = 0, vigenciasTaxa = [],
+  patient, pagador, payments, statusHistory, records, transcriptionEnabled, risk: _risk, assignments, moodToken, moodLogs, scales, diaryEntries = [], ratings = [], consents = [], contractHistory: _contractHistory = [], finance, sessionStats, recurring, statusEnabled = false, dailyStatus = [], sharedWritings = [], geral = [], anamnese = [], activities = [], documentos = [], docCabecalho, creditoDisponivel = 0, creditoAConfirmar = 0, vigenciasTaxa = [],
 }: {
   patient: Patient; pagador: Pagador; sessions: Session[]; payments: Payment[];
   statusHistory: StatusEntry[]; priceHistory: PriceEntry[]; records: RecordEntry[];
@@ -121,8 +121,6 @@ export function PatientDetail({
   sharedWritings?: { id: string; promptTitle: string | null; content: string; sharedAt: string | null; createdAt: string }[];
   /** Guia Geral: sessões e pagamentos, prontos do motor único. */
   geral?: LinhaNaTela[];
-  /** Modelo da mensagem de cobrança da terapeuta (para o botão "Cobrar" da guia Geral). */
-  cobrancaMessage?: string | null;
   /** Doc 50: vigências de taxa de cartão — a TabelaAnual mostra o recebido LÍQUIDO. */
   vigenciasTaxa?: VigenciaTaxa[];
   /** Doc 60: o dinheiro devolvido ao paciente, para a tabela anual registrar as duas pontas. */
@@ -468,7 +466,7 @@ export function PatientDetail({
           </div>
           <GeralTab patientId={patient.id} linhas={geral} ano={ano} responsavel={pagador.nome}
             responsavelCpf={pagador.cpf} creditoDisponivel={creditoDisponivel} creditoAConfirmar={creditoAConfirmar}
-            cobrar={{ telefone: patient.guardianPhone || patient.phone, nome: patient.guardianName || patient.name, modelo: cobrancaMessage, formatoPagamento: patient.paymentFormat, horasAntes: patient.horasAntesPagamento }} />
+            cobrar={{ telefone: patient.guardianPhone || patient.phone, nome: patient.guardianName || patient.name, formatoPagamento: patient.paymentFormat, horasAntes: patient.horasAntesPagamento }} />
           {/* GER6: valores recebidos por mês, no MESMO ano escolhido acima (líquido — doc 50) */}
           <TabelaAnual payments={payments} ano={ano} vigencias={vigenciasTaxa} patientId={patient.id} />
         </div>
