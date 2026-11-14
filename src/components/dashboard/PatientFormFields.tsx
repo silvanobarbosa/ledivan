@@ -295,15 +295,28 @@ function Secao({ show, children }: { show: string; children: ReactNode }) {
  */
 function Formulario({ save, children, guia }: { save?: SaveAction; children: ReactNode; guia?: string }) {
   if (!save) return <>{children}</>;
+  /**
+   * Doc 13/11: no FINANCEIRO o "Salvar alterações" saiu.
+   *
+   * Cada bloco daquela guia já salva por conta própria — "Salvar formato de pagamento" manda o
+   * bloco do formato (recortado no servidor por `areaDoSalvar`), e o próximo reajuste e as
+   * Observações gravam sozinhos, fora do formulário. Um botão geral ali embaixo só repetia o que
+   * já tinha dono, e um segundo caminho para gravar dinheiro é um caminho a mais para divergir.
+   *
+   * Em Dados ele continua: lá o formulário inteiro é salvo por ele, e não há botão por bloco.
+   */
+  const temBotaoGeral = guia !== "financeiro";
   return (
     <form action={save} className="space-y-5">
       <input type="hidden" name="voltarPara" value={guia ?? "dados"} />
       {children}
-      <div className="pt-1">
-        <SubmitButton pendingLabel="Salvando…" className="inline-flex items-center justify-center gap-2 bg-primary text-white py-3 px-6 rounded-2xl font-bold shadow-lg shadow-primary/20 hover:scale-[1.01] transition">
-          Salvar alterações
-        </SubmitButton>
-      </div>
+      {temBotaoGeral && (
+        <div className="pt-1">
+          <SubmitButton pendingLabel="Salvando…" className="inline-flex items-center justify-center gap-2 bg-primary text-white py-3 px-6 rounded-2xl font-bold shadow-lg shadow-primary/20 hover:scale-[1.01] transition">
+            Salvar alterações
+          </SubmitButton>
+        </div>
+      )}
     </form>
   );
 }

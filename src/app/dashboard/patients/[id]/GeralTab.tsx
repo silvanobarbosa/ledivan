@@ -16,7 +16,7 @@ import { aplicarCreditoNoLancamento } from "@/lib/credito";
 import { creditoParaAbater, perguntaDoLancamento } from "@/lib/creditoAConfirmar";
 import { desfazerVencimento, editarValorDaSessao, editarVencimento, lancarPagamento, limparEnviosDaCobranca, registrarCobrancaEnviada, removerPagamento } from "./geral-actions";
 import { marcarEmissao } from "./recibo-actions";
-import { doAno, dataDoAnoControle } from "@/lib/filtroDeAno";
+import { doAno, dataDoAnoDaLinha } from "@/lib/filtroDeAno";
 import { numeroDoWhatsapp } from "@/lib/telefoneWhatsapp";
 import { useConfirmarEnvio, ConfirmarEnvioModal } from "@/components/dashboard/confirmarEnvio";
 import { ROTULO_DO_STATUS } from "@/lib/statusDaSessao";
@@ -929,7 +929,18 @@ export function GeralTab({ patientId, linhas, responsavel, responsavelCpf, cobra
   // pagamento vale pelo VENCIMENTO — para o pacote que cruza o ano aparecer com as sessões do ano em
   // que começou, e as do ano seguinte caírem no ano seguinte (ver `dataDoAnoControle`).
   // Doc 30: "TODOS" (ano = "TODOS") mostra todos os anos — passa `null` para o filtro (que devolve tudo).
-  const doAnoEscolhido = doAno(linhas, ano === "TODOS" ? null : ano, dataDoAnoControle);
+  /**
+   * Doc 13/11: o cabeçalho do pacote vai pelo ano da PRIMEIRA SESSÃO, e não pelo vencimento.
+   *
+   * O pacote da Beatriz começa em 09/12/2026 e vence em janeiro: pelo vencimento o cabeçalho ia
+   * para 2027 e as sessões de dezembro ficavam em 2026 sem onde lançar o pagamento. O mapa abaixo
+   * é o que dá à linha de cobrança acesso à data das suas sessões — elas estão todas aqui.
+   */
+  const dataDaSessao = (id: string) => {
+    const l = linhas.find((x) => x.tipo === "sessao" && x.id === id);
+    return l && l.tipo === "sessao" ? l.data : null;
+  };
+  const doAnoEscolhido = doAno(linhas, ano === "TODOS" ? null : ano, (l) => dataDoAnoDaLinha(l, dataDaSessao));
 
   if (!linhas.length) {
     return <div className="glass-card rounded-[24px] p-6 text-sm text-foreground/50">Nenhuma sessão registrada ainda.</div>;

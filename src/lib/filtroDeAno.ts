@@ -44,7 +44,37 @@ type LinhaComAno = {
   data?: string | Date | null;
   vencimento?: string | Date | null;
   pagamento?: { data: string | Date } | null;
+  /** As sessões que a cobrança cobre — é por elas que o cabeçalho acha o ano em que o pacote começou. */
+  ids?: string[];
 };
+
+/** Onde achar a data de uma sessão pelo id. A tabela já tem todas as linhas; o mapa sai delas. */
+export type DataDaSessao = (id: string) => string | Date | null | undefined;
+
+/**
+ * A data que define EM QUE ANO a linha aparece — agora com as sessões à mão (dono, 13/11/2026).
+ *
+ * O cabeçalho do pacote vai pelo ano da **primeira sessão**. O doc 32 já pedia isso em palavras
+ * ("junto das sessões do ano em que o pacote começou"), mas a regra foi escrita como "pelo
+ * vencimento", e as duas coisas só coincidem enquanto o vencimento cai no mesmo ano da primeira
+ * sessão. O pacote que começa em 09/12/2026 e vence em janeiro de 2027 separa as duas: o
+ * cabeçalho sumia para 2027 e as sessões de dezembro ficavam sem onde lançar o pagamento.
+ *
+ * Sem o localizador — ou com uma cobrança cujas sessões não estão na tela — vale o vencimento, que
+ * é o comportamento de sempre. Cobrança nenhuma pode sumir do filtro por falta de sessão.
+ */
+export function dataDoAnoDaLinha(l: LinhaComAno, dataDaSessao?: DataDaSessao): string | Date | null {
+  if (l.tipo === "sessao" || l.tipo === "bloqueio") return l.data ?? null;
+  if (dataDaSessao && l.ids?.length) {
+    // A MAIS ANTIGA, não a primeira da lista: a ordem dos ids é do motor, não uma promessa.
+    const datas = l.ids
+      .map((id) => dataDaSessao(id))
+      .filter((d): d is string | Date => d != null)
+      .sort((a, b) => new Date(a).getTime() - new Date(b).getTime());
+    if (datas.length) return datas[0];
+  }
+  return l.vencimento ?? l.pagamento?.data ?? null;
+}
 
 /**
  * A data que define EM QUE ANO a linha aparece na tabela de **Controle** (doc 32).
@@ -61,6 +91,6 @@ type LinhaComAno = {
  * pagamento, não esta função.
  */
 export function dataDoAnoControle(l: LinhaComAno): string | Date | null {
-  if (l.tipo === "sessao" || l.tipo === "bloqueio") return l.data ?? null;
-  return l.vencimento ?? l.pagamento?.data ?? null;
+  // Sem o localizador das sessões: o caminho do vencimento, como antes de 13/11/2026.
+  return dataDoAnoDaLinha(l);
 }
