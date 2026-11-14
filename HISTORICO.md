@@ -7,6 +7,55 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-11-14 — O doc 71 fechado, e o plano de assinatura que a revisão derrubou
+
+**Entregue:** PR #609 — segundo filtro no relatório (Pacientes/Supervisionados, independente do de
+situação), card "Mensagem de cobrança" fora do Ajustes, bloco de configuração do recibo fora do
+Ajustes com a escolha da descrição subindo para o topo do Perfil. 1824 testes, percurso novo de 15
+verificações. Mais o PRD de assinatura (`docs/PRD-assinatura.md`) e a revisão adversarial dele
+(`docs/REVISAO-PRD-assinatura.md`) — documentos, nenhuma linha de produto.
+
+**Por quê:** o doc 73 respondeu as três ambiguidades que tinham travado o doc 71 e autorizou
+preparar a estrutura do doc 72 (assinatura) com o Asaas como gateway.
+
+**Decisões que ficam valendo:**
+
+- **Tirar um card de configuração é tirar também o que ele gravava.** O card da mensagem de cobrança
+  saiu E o texto salvo deixou de ser lido. Só esconder a tela manteria em vigor, invisível, o modelo
+  que cada terapeuta já tinha escrito — e o doc diz que todas usam o padrão do app. A coluna
+  continua no banco: o dado é dela, o que sai é a oferta.
+- **O que alimenta um DOCUMENTO não sai junto com a tela que o configurava.** A descrição do
+  atendimento preenche o recibo que o paciente leva ao imposto de renda; por isso subiu para o
+  Perfil em vez de sumir com o card.
+- **Prospect não entra em "Todos" no relatório**, e cadastro sem tipo gravado conta como PACIENTE —
+  é o que todos eram antes do doc 42.
+- **Dinheiro da casa não é dinheiro do consultório.** Se a assinatura for adiante, ela se chama
+  `licenca`, não `assinatura` (que no código já é assinatura de documento) nem `cobrança` (que é a
+  terapeuta cobrando o paciente), e nunca entra em relatório financeiro dela.
+
+**Armadilhas:**
+
+- **Cadastro aberto não abre.** `/signup` existe mas não está na lista de rotas públicas do
+  `src/proxy.ts`: visitante sem sessão é mandado para o login. E usuário nasce em TRÊS lugares
+  (senha, dois caminhos do Google), não num cadastro só.
+- **A mecânica do claim `demo` barra escrita, não acesso**, e o proxy libera dez caminhos antes de
+  olhar a sessão — entre eles `/api/app/*`, que é o app nativo e autentica por Bearer. Bloqueio
+  posto só ali fica ligado no painel e sem efeito no app, em silêncio.
+- **`neon-http` não tem transação interativa.** Qualquer idempotência de webhook tem de caber numa
+  instrução só.
+- **Sobra de percurso interrompido falsifica contagem.** O percurso do doc 71 acusou duplicatas até
+  passar a limpar os cadastros de QA antes de começar.
+
+**Pendente:**
+
+- **Cinco decisões do dono** antes de qualquer código de assinatura (§11 do PRD). As três primeiras
+  mudam o escopo inteiro: arquivo clínico sempre acessível ou bloqueio total; cobrar à mão nos
+  primeiros assinantes ou integrar o Asaas já; período pré-pago ou mensalidade que renova.
+- A revisão apontou que o plano, como estava, **atende zero usuária real** — Ana e Gisele são
+  isentas por definição.
+
+---
+
 ## 2026-11-14 — O pacote de dezembro que sumia do ano, e o canal único chegando ao Ajustes
 
 **Entregue:** PR #606 (o cabeçalho do pacote passa a seguir o ano da primeira sessão; o "Salvar
