@@ -8,13 +8,11 @@ import { SubmitButton } from "@/components/SubmitButton";
 import { SingleLogo, SinglePhoto } from "@/components/dashboard/PhotoSlots";
 import { LocationsCard } from "./LocationsCard";
 import { parseLocations } from "@/lib/locations";
-import { TelegramSync } from "./TelegramSync";
 import { IntegrationsCard } from "./IntegrationsCard";
 import { BookingCard } from "./BookingCard";
 import { CobrancaMessageCard } from "./CobrancaMessageCard";
 import { ReciboCard } from "./ReciboCard";
 import { TranscriptionToggle } from "./TranscriptionToggle";
-import { SmtpCard } from "./SmtpCard";
 import { WhatsappCard } from "./WhatsappCard";
 import { MeetingCard } from "./MeetingCard";
 import { PasswordCard } from "./PasswordCard";
@@ -228,16 +226,10 @@ export default async function SettingsPage() {
 
           <WhatsappCard connected={user.whatsappConnected} canal={!!prefs.integrations?.whatsapp} numero={prefs.integrations?.whatsappNumber ?? ""} />
 
-          {/* Doc 28: Telegram como card próprio, no mesmo espírito do WhatsApp, logo abaixo dele. */}
-          <div className="glass-card rounded-[24px] p-6 space-y-3">
-            <div>
-              <h3 className="font-display font-bold text-primary">Telegram do seu consultório</h3>
-              <p className="text-sm text-foreground/50">Conecte seu Telegram para enviar lembretes e mensagens aos pacientes por ele.</p>
-            </div>
-            <TelegramSync currentId={user.telegramId} />
-          </div>
-
-          <SmtpCard configured={user.emailConfigured} currentEmail={user.smtpUser} loginEmail={user.email} />
+          {/* Doc 13/11: o card do TELEGRAM e o do E-MAIL PRÓPRIO (SMTP) saíram do Ajustes.
+              O consultório fala por WhatsApp — é a mesma decisão que já tinha tirado o Gmail das
+              Integrações e os botões de Telegram/E-mail do cadastro. Os dados de quem já tinha
+              configurado continuam no banco; o que some é a oferta. */}
 
           <LocationsCard initial={parseLocations(user.attendanceLocations)} />
 

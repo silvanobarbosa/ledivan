@@ -40,6 +40,10 @@ try {
   check("o card 'Lembrete de sessão' saiu do Ajustes", !/Lembrete de sessão/i.test(ajustes));
   check("o Gmail saiu das Integrações", !/Gmail/i.test(ajustes.slice(ajustes.indexOf("Integrações"), ajustes.indexOf("Integrações") + 900)));
   check("o passo a passo da agenda saiu do Ajustes", !/Como a sua agenda de pacientes funciona/i.test(ajustes));
+  // Doc 13/11 (2ª rodada): o consultório fala por WhatsApp — Telegram e e-mail próprio saíram.
+  check("o card do Telegram saiu do Ajustes", !/Telegram do seu consult/i.test(ajustes));
+  check("o card de e-mail próprio (SMTP) saiu do Ajustes", !/Enviar e-mails pelo seu próprio e-mail/i.test(ajustes));
+  check("o WhatsApp do consultório continua", /WhatsApp do seu consult/i.test(ajustes));
   check("o Google Agenda continua lá", /Google Agenda/i.test(ajustes));
 
   // ---------- Ajuda (para onde o texto foi)
