@@ -7,6 +7,56 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-11-14 — O pacote de dezembro que sumia do ano, e o canal único chegando ao Ajustes
+
+**Entregue:** PR #606 (o cabeçalho do pacote passa a seguir o ano da primeira sessão; o "Salvar
+alterações" sai da guia Financeiro) e #607 (Telegram e e-mail próprio saem do Ajustes; a pergunta
+das horas para de ficar solta). 1815 testes, dois percursos novos.
+
+**Por quê:** o dono revisou as quatro pendências abertas e fechou duas delas como RESOLVIDAS —
+a vigência do reajuste (resolvida pelos botões por bloco e pela separação entre Valor e Reajuste) e
+o deslocamento do mês das parcelas (resolvido quando a janela de confirmação saiu). Sobraram duas,
+e as duas foram entregues.
+
+**Decisões que ficam valendo:**
+
+- **O cabeçalho da cobrança vai pelo ano da PRIMEIRA SESSÃO, não pelo vencimento.** O doc 32 já
+  dizia isso em palavras — "junto das sessões do ano em que o pacote começou" —, mas a regra tinha
+  sido escrita como "pelo vencimento", e as duas coincidiam enquanto o vencimento caísse no mesmo
+  ano. Pacote que começa em 09/12 e vence em janeiro separa as duas.
+- **Sem sessão localizável, vale o vencimento.** Cobrança avulsa, ou com ids fora da tela, não
+  pode sumir do filtro por falta de sessão.
+- **Na guia Financeiro não há botão geral.** Cada bloco salva o seu: formato de pagamento pelo
+  botão de área, reajuste e Observações por fora do formulário. Dois caminhos para gravar dinheiro
+  é um caminho a mais para divergir. Em Dados o botão continua, porque lá é o único.
+- **Canal único também no Ajustes.** Telegram e SMTP saíram da tela; o dado de quem configurou
+  continua no banco.
+
+**Armadilhas:**
+
+- **O cadastro da Celani NÃO foi alterado**, a pedido do dono. O crédito de R$ 60,00 tem origem
+  conhecida (o pacote de março começa em 02/03, antes da vigência do valor novo em 23/03: o motor
+  cobra 300 e ela pagou 360), mas o próprio dono pediu para só monitorar. Fica registrado para
+  quem reabrir o assunto não precisar investigar de novo.
+- **Conferência de tela que não troca de aba mede a aba errada.** A primeira verificação do botão
+  acusou falha: a aba do cadastro troca no CLIENTE, e abrir a URL com `?tab=financeiro` não muda
+  o que está montado. Era o percurso, não o código.
+- **A maior parte de um lote de 15 PDFs já estava entregue.** Docs 14–20 e 54–76 constavam no
+  HISTORICO; o Relatório de Acompanhamento e os campos novos da anamnese já existiam no código.
+  Triar antes de implementar evitou refazer o que estava pronto.
+
+**Pendente:**
+
+- **A especificação de assinatura (doc 72)** — teste grátis de 30 dias, cronômetro, PIX e cartão
+  recorrente, cancelamento, reativação e a página institucional inteira. É um PROJETO, não um
+  item: mexe em cobrança de verdade, gateway, bloqueio de acesso e LGPD. Pela regra da casa, vai
+  primeiro a PRD escrito e revisão adversarial, antes de qualquer linha.
+- **Itens do doc 71 ainda sem alinhamento:** filtro do relatório (todos/pacientes/supervisionados),
+  o que exatamente sai junto da "Mensagem de cobrança", a Descrição do atendimento mudando de
+  lugar, a área do recibo, o termo padrão de consentimento e o balão do Divã ilegível no celular.
+
+---
+
 ## 2026-11-13 — O campo que prometia um lembrete e não mandava nada
 
 **Entregue:** `src/lib/lembretePorSessao.ts`, o cron de hora em hora e o percurso
