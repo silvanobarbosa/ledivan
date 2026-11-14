@@ -16,15 +16,6 @@ import { encryptSecret } from "@/lib/crypto";
 import { connectInstance, checkInstanceState, disconnectInstance } from "@/lib/whatsappEvolution";
 import { descricaoValida } from "@/lib/recibo";
 
-// Modelo da mensagem de cobrança (personalizável por terapeuta). Variáveis {nome}/{valor}/{vencimento}.
-export async function saveCobrancaMessage(formData: FormData) {
-  const session = await auth();
-  if (!session?.user?.id) throw new Error("Não autorizado");
-  const texto = ((formData.get("cobrancaMessage") as string) || "").trim().slice(0, 1000);
-  await db.update(users).set({ cobrancaMessage: texto || null }).where(eq(users.id, session.user.id));
-  revalidatePath("/dashboard/settings");
-}
-
 /**
  * Quando o LEMBRETE DE SESSÃO sai (doc 61): no dia (6h) ou na véspera (15h).
  *
@@ -37,25 +28,6 @@ export async function saveLembreteQuando(formData: FormData) {
   const valor = String(formData.get("lembreteQuando") || "");
   if (valor !== "dia" && valor !== "vespera") throw new Error("Opção inválida");
   await db.update(users).set({ lembreteQuando: valor }).where(eq(users.id, session.user.id));
-  revalidatePath("/dashboard/settings");
-}
-
-/**
- * Como o atendimento é descrito no RECIBO.
- *
- * A descricao passa por `descricaoValida` e nao vai crua para o banco: um valor fora da lista
- * escreveria no recibo uma profissao que a pessoa nao tem — e recibo e documento.
- *
- * O CPF da terapeuta saiu daqui (doc 27): agora é campo do Perfil (`updateProfile`), fonte única,
- * para não haver dois lugares salvando o mesmo dado e um sobrescrever o outro.
- */
-export async function saveDadosDoRecibo(formData: FormData) {
-  const session = await auth();
-  if (!session?.user?.id) throw new Error("Nao autorizado");
-  const descricao = descricaoValida((formData.get("descricaoAtendimento") as string) || null);
-  await db.update(users)
-    .set({ descricaoAtendimento: descricao })
-    .where(eq(users.id, session.user.id));
   revalidatePath("/dashboard/settings");
 }
 
@@ -254,6 +226,17 @@ export async function updateProfile(formData: FormData) {
       plataformaOnline: str("plataformaOnline"),
       // Doc 31: logotipo (vazio = sem logo). O campo está sempre no form, então salva direto.
       ...(formData.has("logoUrl") ? { logoUrl: (formData.get("logoUrl") as string) || null } : {}),
+      /**
+       * Doc 71: a DESCRIÇÃO DO ATENDIMENTO subiu para o topo do Perfil e salva com ele.
+       *
+       * O card do recibo saiu do Ajustes, mas a escolha não: ela é o que vai escrito no recibo que
+       * o paciente leva ao imposto de renda. Gravar pela PRESENÇA do campo (e não por "veio vazio")
+       * é a mesma regra da foto logo acima — e `descricaoValida` recusa valor fora da lista, para
+       * nenhum recibo sair declarando serviço que não é o prestado.
+       */
+      ...(formData.has("descricaoAtendimento")
+        ? { descricaoAtendimento: descricaoValida(formData.get("descricaoAtendimento") as string) }
+        : {}),
     })
     .where(eq(users.id, session.user.id));
 

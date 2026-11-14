@@ -42,6 +42,8 @@ export default async function RelatorioPacientesPage() {
       dueDate: patients.dueDate,
       sessionFee: patients.sessionFee,
       queixaPrincipal: patients.queixaPrincipal,
+      // Doc 71: o segundo filtro (Pacientes/Supervisionados) lê daqui.
+      cadastroKind: patients.cadastroKind,
     })
     .from(patients)
     .where(eq(patients.userId, session.user.id));

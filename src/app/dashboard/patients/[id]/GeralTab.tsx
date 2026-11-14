@@ -25,7 +25,6 @@ import { ROTULO_DO_STATUS } from "@/lib/statusDaSessao";
 export type CobrarInfo = {
   telefone: string | null;
   nome: string;
-  modelo: string | null;
   /** Doc 61: o formato de pagamento do cadastro — com o formato da cobrança, escolhe a redação. */
   formatoPagamento?: string | null;
   /** Doc 61: o "pagar até X horas antes" do avulso. Preenchido, troca o texto da cobrança. */
@@ -45,7 +44,8 @@ function BotaoCobrar({ patientId, c, cobrar }: { patientId: string; c: CobrancaN
    * a frase é `mensagemCobranca`; aqui só se diz qual é a situação.
    */
   const avulso = c.tipoDeCobranca !== "pacote" && c.tipoDeCobranca !== "quinzena";
-  const msg = montarMensagemCobranca(cobrar.modelo, {
+  // Doc 71: sem modelo próprio — vale o texto padrão do app, igual para todas.
+  const msg = montarMensagemCobranca(null, {
     caso: avulso ? "avulso" : casoDoPacote(tipoVencimentoDe(c.formato, cobrar.formatoPagamento)),
     nome: cobrar.nome,
     valor: formatBRL(c.falta),

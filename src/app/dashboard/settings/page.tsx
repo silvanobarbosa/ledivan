@@ -10,10 +10,9 @@ import { LocationsCard } from "./LocationsCard";
 import { parseLocations } from "@/lib/locations";
 import { IntegrationsCard } from "./IntegrationsCard";
 import { BookingCard } from "./BookingCard";
-import { CobrancaMessageCard } from "./CobrancaMessageCard";
-import { ReciboCard } from "./ReciboCard";
 import { TranscriptionToggle } from "./TranscriptionToggle";
 import { WhatsappCard } from "./WhatsappCard";
+import { DESCRICOES, descricaoValida } from "@/lib/recibo";
 import { MeetingCard } from "./MeetingCard";
 import { PasswordCard } from "./PasswordCard";
 import { comoEntrou } from "@/lib/comoEntrou";
@@ -89,6 +88,21 @@ export default async function SettingsPage() {
             
             {/* Doc 28: a foto 3x4 saiu do perfil. */}
             <form action={updateProfile} className="space-y-6">
+              {/* Doc 71: a descrição do atendimento abre a área, ANTES do nome completo. É o texto
+                  que sai no recibo do paciente — declarar "atendimentos psicológicos" no recibo de
+                  quem não é psicóloga é erro em documento que vai para o imposto de renda. */}
+              <div className="space-y-2">
+                <label className="text-xs font-bold text-foreground/30 uppercase tracking-widest">Descrição do atendimento</label>
+                <select
+                  name="descricaoAtendimento"
+                  defaultValue={descricaoValida(user.descricaoAtendimento)}
+                  className="w-full p-4 bg-surface rounded-2xl border border-border focus:border-primary outline-none font-medium"
+                >
+                  {DESCRICOES.map((d) => <option key={d.valor} value={d.valor}>{d.rotulo}</option>)}
+                </select>
+                <p className="text-xs text-foreground/40">Usado no recibo que você entrega ao paciente.</p>
+              </div>
+
               <div className="space-y-2">
                 <label className="text-xs font-bold text-foreground/30 uppercase tracking-widest">Nome Completo</label>
                 <input
@@ -235,8 +249,12 @@ export default async function SettingsPage() {
 
           <BookingCard initialSlug={user.bookingSlug} initialAutoConfirm={!!prefs.bookingAutoConfirm} />
 
-          <CobrancaMessageCard initial={user.cobrancaMessage} />
-          <ReciboCard cpf={user.therapistCpf} descricao={user.descricaoAtendimento} nome={user.name} />
+          {/* Doc 71: o card "Mensagem de cobrança" SAIU. Todas usam o texto padrão do app,
+              que já muda sozinho conforme o caso (mensal, 1ª/última sessão do pacote, avulsa).
+              O que uma pede de redação de cobrança é a redação de todas — regra da casa. */}
+          {/* Doc 71: o card do RECIBO saiu do Ajustes. A emissão continua: o botão na linha do
+              pagamento é o mesmo. O que subiu para o topo do Perfil foi a ESCOLHA da descrição do
+              atendimento — ela preenche o recibo e por isso não podia sair junto com o card. */}
           {/* Doc 76: a consulta do municipio vem ANTES de qualquer configuracao fiscal. Metade dos
               municipios nao emite pelo caminho nacional, e pedir dado fiscal a quem nao vai poder
               emitir e fazer a pessoa trabalhar para descobrir um "nao" no fim. */}
