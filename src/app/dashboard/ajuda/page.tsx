@@ -88,7 +88,7 @@ const GUIDES: Guide[] = [
   {
     id: "financeiro", icon: Wallet, title: "Financeiro",
     items: [
-      { q: "Lançar receita/despesa", a: "Menu Transações → 'Novo lançamento'. Para despesas do consultório, escolha a categoria. Exporte tudo em CSV quando quiser." },
+      { q: "Lançar receita/despesa", a: "Menu Transações → 'Cadastrar despesas' ou 'Cadastrar Receita Pessoal', cada uma no bloco dela. Exporte tudo em CSV quando quiser." },
       { q: "Pagamento de sessão vira receita?", a: "Ao registrar um pagamento, marque 'Lançar como receita'. Ou ative o vínculo automático em Ajustes." },
       { q: "Escanear recibo com IA", a: "Use o botão 📸 (canto inferior). A IA lê a nota e cria o lançamento de despesa automaticamente." },
     ],

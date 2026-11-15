@@ -885,6 +885,24 @@ export function PatientFormFields({ p, save, tabInicial, contrato, patientId, ob
             </div>
             {/* O valor REAL do formato (um só campo no POST). */}
             <input type="hidden" name="paymentFormat" value={formatoEfetivo} />
+
+            {/*
+              Doc 74: o aviso do prazo de reajuste, logo abaixo do formato de pagamento.
+
+              Só no CADASTRO NOVO (`patientId` ausente é o que já distingue criar de editar nesta
+              tela) e só com um formato que cobra — no Gratuito não há valor a reajustar, e sem
+              nenhum formato marcado (doc 75) não há o que avisar ainda. Na edição ele some: ali o
+              prazo está à mão, logo abaixo, no campo do próximo reajuste.
+
+              É só informativo. Não envia nada e não muda o que é salvo.
+            */}
+            {!patientId && format && format !== "gratuito" && (
+              <p className="mt-3 text-[11px] text-foreground/60 bg-surface/60 border border-border rounded-xl px-3 py-2">
+                O valor cadastrado terá o reajuste previsto para 12 meses. Caso deseje alterar esse
+                prazo, após cadastrar o paciente, acesse a guia Financeiro e edite as informações de
+                reajuste.
+              </p>
+            )}
             {/* Doc 63: o Salvar desta área. Ele envia o mesmo formulário, mas marcado — o servidor
                 descarta tudo o que não é do formato de pagamento (ver CAMPOS_DO_FORMATO), e o que
                 está em Dados fica como está. */}

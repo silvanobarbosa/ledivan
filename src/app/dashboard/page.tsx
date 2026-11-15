@@ -58,6 +58,8 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   // Janela do dia para o bloco "Sessões do dia": começa à meia-noite, não em `now`. Sessão das
   // 9h ainda é sessão do dia às 15h — o terapeuta precisa ver o dia inteiro, não só o que sobrou.
   const diaInicio = new Date(todayStart);
+  /** YYYY-MM-DD de uma data LOCAL — o formato em que o painel compara dia com dia (doc 74). */
+  const diaDeParede = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
   const diaFim = new Date(todayStart + 24 * 60 * 60 * 1000);
 
   // Janela dos analíticos
@@ -294,7 +296,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
         <p className="text-foreground/40 font-medium">Resumo do seu consultório e analíticos de atendimento.</p>
       </section>
 
-      <DashboardPanels patients={panelPatients} presence={panelPresence} mensagemAniversario={user.birthdayMessage ?? ""} aLembrar={aLembrar} mensagemAgendamento={user.agendamentoMessage ?? ""} mostrarLembrar={apareceHoje()} contagemLembretes={contagemLembretes} corteSemana={new Date(todayStart - 6 * 24 * 60 * 60 * 1000).toISOString()} hoje={`${diaInicio.getFullYear()}-${String(diaInicio.getMonth() + 1).padStart(2, "0")}-${String(diaInicio.getDate()).padStart(2, "0")}`} />
+      <DashboardPanels patients={panelPatients} presence={panelPresence} mensagemAniversario={user.birthdayMessage ?? ""} aLembrar={aLembrar} mensagemAgendamento={user.agendamentoMessage ?? ""} mostrarLembrar={apareceHoje()} contagemLembretes={contagemLembretes} corteSemana={diaDeParede(new Date(todayStart - 6 * 24 * 60 * 60 * 1000))} hoje={diaDeParede(diaInicio)} />
 
       {/* Vencimentos por dia (doc 44): logo abaixo da área de Pagamentos. */}
       <VencimentosPorDia />

@@ -25,6 +25,8 @@
  * Funções puras.
  */
 
+import { SET_QUE_NAO_ACONTECERAM } from "./statusDaSessao";
+
 /** As quatro situações de cobrança que têm redação própria (doc 61). */
 export type CasoDaCobranca = "mensal" | "primeira" | "ultima" | "avulso";
 
@@ -125,6 +127,31 @@ export function listaDeSessoes(datas: string[] | null | undefined): string {
   if (curtas.length === 0) return "";
   if (curtas.length === 1) return curtas[0];
   return `${curtas.slice(0, -1).join(", ")} e ${curtas[curtas.length - 1]}`;
+}
+
+/**
+ * AS SESSÕES QUE A MENSAGEM CITA — só as que a cobrança efetivamente cobra (doc 74).
+ *
+ * O pacote CARREGA no conjunto dele as sessões desmarcadas: elas pertencem ao pagamento (doc 54
+ * exige que permaneçam no `ids`, é por ele que o recibo escopa), mas não ocupam posição e não
+ * entram no valor. A mensagem, porém, listava o conjunto inteiro — o pacote do William vencendo em
+ * 15/11 anunciava seis datas quando cobrava quatro, e duas delas (03/11 e 17/11) tinham status que
+ * não gera cobrança. Quem recebe não consegue conferir o que paga, que é justamente para o que a
+ * linha das datas existe (doc 63).
+ *
+ * O recorte é aqui, na redação, e NÃO no `ids`: mexer no conjunto moveria recibo, valor e sequência
+ * do pacote junto — nada disso foi pedido e tudo isso é dinheiro.
+ *
+ * "Faltou" continua na lista de propósito: a falta é cobrada (ver `STATUS_QUE_LIBERAM_O_HORARIO`),
+ * e esconder a data dela faria a mensagem cobrar uma sessão que não menciona.
+ */
+export function datasQueACobrancaCita(
+  sessoes: { data: string; status?: string | null }[] | null | undefined,
+): string[] {
+  return (sessoes ?? [])
+    .filter((s) => !!s.data && !SET_QUE_NAO_ACONTECERAM.has(s.status ?? ""))
+    .map((s) => s.data)
+    .sort();
 }
 
 export type DadosDaCobranca = {
