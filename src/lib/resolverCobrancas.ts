@@ -3,6 +3,7 @@ import "server-only";
 import { type LinhaNaTela } from "./geralDoPaciente";
 import { type CobrancaResolvida, type SituacaoVenc, tipoVencimentoDe } from "./vencimentosDoDia";
 import { recebidoPorForma } from "./recebidoPorForma";
+import { datasQueACobrancaCita } from "./mensagemCobranca";
 import { type VigenciaTaxa } from "./taxaCartao";
 
 const grupoDe = (tipo: string): "avulsa" | "pacote" => (tipo === "pacote" || tipo === "quinzena" ? "pacote" : "avulsa");
@@ -81,8 +82,14 @@ export function resolverCobrancas(linhas: LinhaNaTela[], p: CadastroParaCobranca
       tipoVencimento: grupo === "pacote" ? tipoVencimentoDe(l.formato, p.paymentFormat) : undefined,
       primeiraSessao: datas[0] ?? null,
       ultimaSessao: datas.length ? datas[datas.length - 1] : null,
-      // Doc 63: a mensagem do pacote lista os dias das sessões cobradas, não só o início.
-      datasDasSessoes: grupo === "pacote" ? datas : null,
+      /**
+       * Doc 63: a mensagem do pacote lista os dias das sessões cobradas, não só o início.
+       *
+       * Doc 74: e lista só as que a cobrança COBRA — as desmarcadas continuam no `ids` (doc 54) e
+       * fora da redação. `datas` segue inteiro para `primeiraSessao`/`ultimaSessao`, que são a
+       * extensão do pacote e não a lista da mensagem.
+       */
+      datasDasSessoes: grupo === "pacote" ? datasQueACobrancaCita(l.ids.map((id) => sessaoPorId.get(id)).filter((s): s is { data: string; status: string } => !!s)) : null,
       ultimaRealizada,
     });
   }

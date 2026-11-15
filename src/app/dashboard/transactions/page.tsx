@@ -3,7 +3,6 @@ import { auth } from "@/auth";
 import { transactions, categories, financialAccounts, sessionPayments, despesas, receitasPessoais } from "@/db/schema";
 import { eq, desc, ilike, and, gte, lte, or, isNull, isNotNull } from "drizzle-orm";
 import { cn } from "@/lib/utils";
-import { AddTransaction } from "./AddTransaction";
 import { DespesasSection, type DespesaLinha } from "./DespesasSection";
 import { ReceitasSection, type ReceitaLinha } from "./ReceitasSection";
 import { MovimentacoesSection } from "./MovimentacoesSection";
@@ -136,7 +135,10 @@ export default async function TransactionsPage({
               amount: t.amount,
             }))}
           />
-          <AddTransaction categories={allCategories} accounts={userAccounts.map((a) => ({ id: a.id, name: a.name }))} />
+          {/* Doc 74: o "Novo lançamento" saiu daqui. Receita e despesa já nascem no bloco delas
+              ("Nova receita" / "Nova despesa"), que pergunta o que cada uma precisa; este botão era
+              um terceiro caminho genérico para o mesmo dinheiro. O lançamento por recibo escaneado
+              (ScanRecibo) continua usando a mesma ação. */}
         </div>
       </div>
 

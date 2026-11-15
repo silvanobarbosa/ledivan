@@ -18,6 +18,7 @@ import { COLUNAS_DO_PAGAMENTO, COLUNAS_DO_PRECO, local, pagamentoParaMotor, prec
 import { blockedSlots, cobrancaDeslocamentos, cobrancaEnvios, cobrancaVencimentos, sessoesPuladas, patientCredits, patientPackages, patientPackageHistory, patientPaymentFormatHistory, patientPriceHistory, patients, sessionPayments, therapySessions } from "@/db/schema";
 import { linhasDaGeral, resumoDaGeral, type CobrancaDaGeral, type EntradaDaGeral, type LinhaDaGeral } from "./guiaGeral";
 import { tamanhosDasSequencias } from "./sequenciaPacote";
+import { datasQueACobrancaCita } from "./mensagemCobranca";
 
 const dois = (n: number) => String(n).padStart(2, "0");
 const texto = (d: Date | null | undefined): string | null =>
@@ -74,7 +75,7 @@ export type LinhaNaTela =
 function cobrancaNaTela(
   c: Omit<CobrancaDaGeral, "tipo"> & { tipoDeCobranca: CobrancaDaGeral["tipo"] },
   editados: Set<string>,
-  datasPorSessao: Map<string, string>,
+  datasPorSessao: Map<string, { data: string; status: string }>,
 ): CobrancaNaTela {
   return {
     chave: c.chave,
@@ -94,7 +95,11 @@ function cobrancaNaTela(
     // as sessões do paciente (bug do doc 28: cruzava a fronteira da cobrança e trazia data errada).
     ids: c.ids,
     // Doc 60: as datas na ordem em que acontecem — é assim que elas entram na mensagem.
-    datasDasSessoes: c.ids.map((id) => datasPorSessao.get(id)).filter((d): d is string => !!d).sort(),
+    // Doc 74: desmarcada/atestado/prof. desmarcou ficam no `ids` (doc 54) mas saem da MENSAGEM —
+    // o recorte é da redação, ver `datasQueACobrancaCita`.
+    datasDasSessoes: datasQueACobrancaCita(
+      c.ids.map((id) => datasPorSessao.get(id)).filter((d): d is { data: string; status: string } => !!d),
+    ),
     parte: c.parte,
     situacao: c.situacao,
     /**
@@ -118,7 +123,7 @@ function cobrancaNaTela(
   };
 }
 
-function naTela(l: LinhaDaGeral, editados: Set<string>, datasPorSessao: Map<string, string>): LinhaNaTela {
+function naTela(l: LinhaDaGeral, editados: Set<string>, datasPorSessao: Map<string, { data: string; status: string }>): LinhaNaTela {
   if (l.tipo === "pagamento") return { tipo: "pagamento", ...cobrancaNaTela(l, editados, datasPorSessao) };
   if (l.tipo === "bloqueio") return { tipo: "bloqueio", data: texto(l.data) ?? "" };
   return {
@@ -233,7 +238,10 @@ export async function geralDoPaciente(userId: string, patientId: string): Promis
   };
   const resumo = resumoDaGeral(entrada);
   // Id da sessão → a data dela, em hora de parede. A cobrança guarda só os ids (doc 29).
-  const datasPorSessao = new Map<string, string>(sessoes.map((s) => [s.id, texto(s.date) ?? ""] as const).filter(([, d]) => !!d));
+  // Doc 74: o mapa carrega o STATUS junto da data — é ele que decide quais datas a mensagem cita.
+  const datasPorSessao = new Map<string, { data: string; status: string }>(
+    sessoes.map((s) => [s.id, { data: texto(s.date) ?? "", status: s.status }] as const).filter(([, d]) => !!d.data),
+  );
   return {
     linhas: linhasDaGeral(entrada).map((l) => naTela(l, editados, datasPorSessao)),
     resumo: { ...resumo, extrato: resumo.extrato.map((m) => ({ ...m, data: texto(m.data) ?? "" })) },

@@ -7,6 +7,48 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-11-15 — A cobrança que anunciava sessões que não cobrava
+
+**Entregue:** doc 74 inteiro. O "Novo lançamento" saiu de Transações; a lista "Não vieram na
+semana" ganhou teto; a mensagem de cobrança de pacote passou a citar só as sessões que cobra; o
+cadastro novo avisa o prazo de reajuste. 1835 testes e um percurso de 18 verificações.
+
+**Por quê:** o pacote do William, vencendo em 15/11, anunciava seis datas e cobrava quatro — duas
+estavam desmarcadas. Quem recebe a mensagem não consegue conferir o que paga, que é a única razão
+de a linha das datas existir (doc 63).
+
+**Decisões que ficam valendo:**
+
+- **O conjunto de sessões da cobrança (`ids`) NÃO muda.** Desmarcada, atestado e "prof. desmarcou"
+  continuam pertencendo ao pagamento — o doc 54 exige isso, e é por esse conjunto que o recibo
+  escopa. O recorte é da REDAÇÃO: `datasQueACobrancaCita`, em `mensagemCobranca.ts`, e as duas
+  telas que montam a mensagem (guia Geral e Menu Pagamentos) passam por ela.
+- **"Faltou" continua na lista.** A falta é cobrada; esconder a data faria a mensagem cobrar uma
+  sessão que não menciona. Só os três status que o dono nomeou saem.
+- **"Não vieram na semana" é uma janela FECHADA**, de `hoje-6` a `hoje`, comparada por dia em
+  texto (YYYY-MM-DD). Sem teto, uma sessão da semana que vem já marcada como realizada tirava a
+  pessoa da lista: o cartão respondia pela agenda futura.
+- **O aviso do prazo de reajuste só existe no cadastro novo.** Na edição o prazo está à mão, logo
+  abaixo, no campo do próximo reajuste — repetir o aviso ali seria ruído.
+
+**Armadilhas:**
+
+- **A data do vencimento também é uma data na mensagem.** A primeira verificação do percurso
+  procurou a data desmarcada no texto inteiro e acusou falha: ela estava na linha do vencimento,
+  não na lista de sessões. Conferir a LINHA certa, não a mensagem toda.
+- **Os botões de Receita e Despesa não se chamam "Nova ..."** — são "Cadastrar Receita Pessoal" e
+  "Cadastrar despesas". O texto da Ajuda foi corrigido junto, senão ela mandaria a dona procurar
+  um botão que não existe.
+- **`createTransaction` continua de pé**: o ScanRecibo usa a mesma ação. Só a tela saiu.
+
+**Pendente:**
+
+- **Doc 72 (assinatura) segue parado nas cinco decisões do dono** — ver `docs/PRD-assinatura.md`,
+  §11. Três delas mudam o escopo inteiro.
+
+---
+
+
 ## 2026-11-14 — O doc 71 fechado, e o plano de assinatura que a revisão derrubou
 
 **Entregue:** PR #609 — segundo filtro no relatório (Pacientes/Supervisionados, independente do de

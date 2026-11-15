@@ -10,6 +10,7 @@ import { salvarMensagemAgendamento, salvarMensagemAniversario } from "@/app/dash
 import { TextoMais } from "./TextoMais";
 import { mensagemPara, MODELO_PADRAO_DO_LEMBRETE } from "@/lib/lembrarAgendamento";
 import { horaDeParede } from "@/lib/horaLocal";
+import { naoVieramNaSemana } from "@/lib/naoVieramNaSemana";
 import { numeroDoWhatsapp } from "@/lib/telefoneWhatsapp";
 import { useConfirmarEnvio, ConfirmarEnvioModal } from "./confirmarEnvio";
 import { registrarLembrete } from "@/app/dashboard/lembretes-actions";
@@ -93,7 +94,7 @@ export function DashboardPanels({
           fim do mês) não está na lista do doc; fica ao fim dos painéis para não quebrar a ordem. */}
       <div className="flex flex-col gap-4">
         <Prospeccao patients={patients} />
-        <Relatorios patients={patients} presence={presence} corte={corteSemana} />
+        <Relatorios patients={patients} presence={presence} corte={corteSemana} hoje={hoje} />
         <Aniversariantes patients={patients} modeloSalvo={mensagemAniversario} hoje={hoje} contagem={contagemLembretes} />
         <QueixaBloco patients={patients} />
         <Pagamentos patients={patients} />
@@ -139,7 +140,7 @@ function Prospeccao({ patients }: { patients: PanelPatient[] }) {
 // 2. RELATÓRIOS — o painel virou porta de entrada, não a ferramenta. Os filtros e as colunas
 // vivem em /dashboard/relatorio-pacientes: caixa de seleção de coluna não cabe num cartão de
 // dashboard, e o resultado é uma tabela larga. Aqui ficam só os números que orientam o clique.
-function Relatorios({ patients, presence, corte }: { patients: PanelPatient[]; presence: PanelPresence[]; corte: string }) {
+function Relatorios({ patients, presence, corte, hoje }: { patients: PanelPatient[]; presence: PanelPresence[]; corte: string; hoje: string }) {
   const [lista, setLista] = useState<{ titulo: string; itens: PanelPatient[] } | null>(null);
   /**
    * Duas caixas só: Ativos e Inativos (dono, 23/10). Quem está PAUSADO cai numa delas pela agenda
@@ -149,12 +150,9 @@ function Relatorios({ patients, presence, corte }: { patients: PanelPatient[]; p
   const ativos = patients.filter((p) => categoriaDoCadastro(p) === "ativo");
   const inativos = patients.filter((p) => categoriaDoCadastro(p) === "inativo");
   const contagem = contagemDeCadastros(patients);
-  // "Não vieram na semana": ativo sem sessão realizada nos últimos 7 dias. `corte` vem do servidor.
-  const semana = useMemo(() => {
-    const limite = new Date(corte).getTime();
-    const vieram = new Set(presence.filter((r) => r.presente && new Date(r.date).getTime() >= limite).map((r) => r.patientId));
-    return ativos.filter((p) => !vieram.has(p.id));
-  }, [ativos, presence, corte]);
+  // "Não vieram na semana": ativo sem sessão realizada nos últimos 7 dias. `corte` e `hoje` (os dois
+  // YYYY-MM-DD) vêm do servidor. Doc 74: a janela tem TETO — ver `naoVieramNaSemana`.
+  const semana = useMemo(() => naoVieramNaSemana(ativos, presence, corte, hoje), [ativos, presence, corte, hoje]);
   return (
     <div className={card}>
       <h4 className="font-display font-bold text-primary">Relatórios</h4>
