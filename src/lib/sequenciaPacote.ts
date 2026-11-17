@@ -48,6 +48,15 @@ export type SessaoDaSequencia = {
    * texto são do status, a pausa é da resposta. Quem decide isso é quem chama; aqui só se obedece.
    */
   pausa?: boolean | null;
+  /**
+   * A desmarcada que o dono tirou da contagem (documento de 17/11/2026, pacote FRACIONADO em
+   * aberto). Diferente de `pausa`: pausar segura a posição sem ocupá-la, e o mês continua com a
+   * mesma quantidade de vagas; isto TIRA a vaga — o pacote de quatro vira de três.
+   *
+   * Quem decide é quem chama, e só o fracionado chama: no completo o tamanho é contratado, não
+   * deduzido do calendário, e encolhê-lo seria mudar o combinado.
+   */
+  foraDaCobranca?: boolean | null;
 };
 
 export type PosicaoNaSequencia = {
@@ -136,9 +145,9 @@ const pausou = (s: { status: string; pausa?: boolean | null }): boolean => !!s.p
 const transparente = (s: { pausa?: boolean | null }): boolean => !!s.pausa;
 
 /** Descarta o que não dá para posicionar e ordena pelo que manda: a data. */
-function emOrdem(sessoes: SessaoDaSequencia[]): { id: string; data: Date; status: string; repoe: string | null; pausa: boolean }[] {
+function emOrdem(sessoes: SessaoDaSequencia[]): { id: string; data: Date; status: string; repoe: string | null; pausa: boolean; fora: boolean }[] {
   return sessoes
-    .map((s) => ({ id: s.id, data: emData(s.date), status: s.status, repoe: s.repoeSessaoId ?? null, pausa: !!s.pausa }))
+    .map((s) => ({ id: s.id, data: emData(s.date), status: s.status, repoe: s.repoeSessaoId ?? null, pausa: !!s.pausa || !!s.foraDaCobranca, fora: !!s.foraDaCobranca }))
     .filter((s) => !Number.isNaN(s.data.getTime()))
     // Duas no mesmo instante acontecem (encaixe, casal). O id desempata para que a numeração seja
     // sempre a mesma — ordem instável aqui faria o número dançar a cada recarga da tela.
@@ -276,7 +285,8 @@ function posicoesFragmentado(sessoes: SessaoDaSequencia[]): Map<string, PosicaoN
   for (const s of ordenadas) {
     const k = chaveDoMes(s.data);
     if (!vagas.has(k)) { vagas.set(k, 0); meses.push(k); }
-    if (!s.repoe) vagas.set(k, vagas.get(k)! + 1);
+    // A desmarcada tirada da contagem (17/11) não abre vaga: é isso que encolhe o mês de 4 para 3.
+    if (!s.repoe && !s.fora) vagas.set(k, vagas.get(k)! + 1);
   }
 
   // Preenche mês a mês, consumindo de uma fila única — é o que permite a sessão de outubro fechar

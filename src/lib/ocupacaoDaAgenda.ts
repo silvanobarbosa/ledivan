@@ -17,27 +17,22 @@
 
 export type TipoDeOcupacao = "paciente" | "bloqueio" | "espelho_quinzenal";
 
-/** Quem é quinzenal, mesmo quando a SESSÃO não guarda isso. */
-export type PacienteQuinzenal = {
-  id: string;
-  /** O formato de pagamento (`quinzenal`) ou a frequência escrita no cadastro. */
-  formato?: string | null;
-  frequencia?: string | null;
-};
-
 /**
- * O paciente é atendido de quinze em quinze dias?
+ * QUEM É QUINZENAL, PARA EFEITO DO (Q) NA AGENDA: o AGENDAMENTO, e só ele (dono, 17/11/2026).
  *
- * A pergunta precisa olhar o CADASTRO, e não só a sessão. A frequência só é gravada na sessão
- * quando o agendamento nasce pela janela de repetição — e a base tem 43 pacientes quinzenais cujas
- * sessões não guardam isso, o que fazia o espelho da semana alternada nunca aparecer. Marca que
- * nunca aparece é marca que não existe.
+ * Durante um tempo a pergunta foi ao CADASTRO — porque a frequência só é gravada na sessão quando
+ * o agendamento nasce pela janela de repetição, e sem isso o espelho quase não aparecia. O efeito
+ * colateral é o que o dono veio reclamar: paciente com o FINANCEIRO quinzenal e agenda semanal
+ * ganhava o (Q) em todo horário dele. O financeiro diz de quanto em quanto tempo ele PAGA; o (Q)
+ * da agenda responde outra coisa — de quanto em quanto tempo ele VEM.
+ *
+ * "Não utilizar como critério a configuração da guia Financeiro." Então o critério é um só:
+ * `recurrence_freq = 'quinzenal'` na própria sessão.
+ *
+ * O preço disso está medido: na base de hoje nenhum paciente ativo tem sessão com essa marca, e o
+ * espelho some até ela criar as repetições quinzenais pela janela de agendamento. Era a escolha do
+ * dono entre um (Q) que aparece onde não devia e um (Q) que só aparece onde ele foi configurado.
  */
-export function ehQuinzenal(p: PacienteQuinzenal | null | undefined): boolean {
-  if (!p) return false;
-  if (p.formato === "quinzenal") return true;
-  return /quinzen/i.test(p.frequencia ?? "");
-}
 
 export type SessaoParaEspelho = {
   id: string;
@@ -85,8 +80,6 @@ export function espelhosDoDia(opts: {
   dia: Date;
   /** As sessões da janela inteira, para achar as que estão a sete dias daqui. */
   sessoes: SessaoParaEspelho[];
-  /** Quem é quinzenal, por id de paciente. */
-  quinzenal: (pacienteId: string) => boolean;
   /** Hoje. Separa o que ainda dá para excluir do que já aconteceu. */
   hoje?: Date;
 }): Espelho[] {
@@ -106,7 +99,7 @@ export function espelhosDoDia(opts: {
   for (const s of opts.sessoes) {
     const d = emData(s.data);
     if (Number.isNaN(d.getTime())) continue;
-    if (!(s.recorrenciaQuinzenal || opts.quinzenal(s.pacienteId))) continue;
+    if (!s.recorrenciaQuinzenal) continue;
     // Quantas semanas o alvo está DEPOIS da sessão: +7 = o alvo é a semana anterior à sessão;
     // -7 = a semana posterior. Normal espelha as duas; "APENAS ESTE" (doc 36) só a anterior (+7).
     const delta = Math.round((meioDia(d) - alvo) / 86400000);

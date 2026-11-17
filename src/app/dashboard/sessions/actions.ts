@@ -480,6 +480,44 @@ export async function confirmSession(sessionId: string) {
  * entrou; "não estornado" porque um valor já devolvido não pode ser devolvido de novo — e as duas
  * linhas legadas em `pending`/`overdue` deste banco são cobrança sem dinheiro, não pagamento.
  */
+/**
+ * A desmarcada de um pacote FRACIONADO em aberto deve abrir a janela de escolha (dono, 17/11/2026)?
+ *
+ * Três perguntas, e as duas primeiras a tela já sabe responder sozinha (formato e tipo de pacote do
+ * cadastro). A terceira só o servidor responde: *este pacote já tem pagamento lançado?*. Um pacote
+ * pago não entra — encolhê-lo mudaria o tamanho de uma cobrança cujo dinheiro já entrou.
+ *
+ * A cobrança do pacote é achada pelo motor único (`geralDoPaciente`), a mesma lista que a guia Geral
+ * desenha: o conjunto `ids` da cobrança é quem diz de qual pacote aquela sessão faz parte. Sequência
+ * ainda aberta não tem cobrança nenhuma — e pacote sem cobrança é, por definição, pacote sem
+ * pagamento.
+ */
+export async function pacoteDaSessaoEmAberto(sessionId: string): Promise<{ ok: boolean; emAberto?: boolean; error?: string }> {
+  const session = await auth();
+  if (!session?.user?.id) return { ok: false, error: "Não autorizado" };
+  const userId = session.user.id;
+
+  const sess = await db.query.therapySessions.findFirst({
+    where: and(eq(therapySessions.id, sessionId), eq(therapySessions.userId, userId)),
+    columns: { id: true, patientId: true },
+  });
+  if (!sess?.patientId) return { ok: false, error: "Sessão não encontrada." };
+
+  const geral = await geralDoPaciente(userId, sess.patientId);
+  if (!geral) return { ok: false, error: "Paciente não encontrado." };
+
+  const cobrancas = geral.linhas.flatMap((l) =>
+    l.tipo === "pagamento" ? [l] : l.tipo === "sessao" && l.cobranca ? [l.cobranca] : [],
+  );
+  // O quinzenal cobra o mesmo pacote em DUAS linhas ("quinzena"), e as duas são pagamento daquele
+  // pacote. Olhar só o tipo "pacote" deixaria todo quinzenal passar como se nunca tivesse pago.
+  const doPacote = cobrancas.filter(
+    (c) => (c.tipoDeCobranca === "pacote" || c.tipoDeCobranca === "quinzena") && c.ids.includes(sessionId),
+  );
+  const pago = doPacote.some((c) => c.pagamentos.length > 0);
+  return { ok: true, emAberto: !pago };
+}
+
 export async function pagamentoDaSessao(sessionId: string): Promise<{ ok: boolean; valor?: number; error?: string }> {
   const session = await auth();
   if (!session?.user?.id) return { ok: false, error: "Não autorizado" };

@@ -38,6 +38,7 @@
 
 import { codigoDaSessao } from "./celulaDaAgenda";
 import { desmarcouCobrando } from "./desmarcouDoAvulso";
+import { foraDaContagemDoPacote } from "./desmarcadaDoPacote";
 import { faixaQuePartiuASequencia, faixasDaSequencia, precoCobravel, valorDoPacote, valorPorSessao, type PrecoVigente } from "./preco";
 import { cobra, usaPacote } from "./reajuste";
 import { posicoesDaSequencia, todasAsSequencias } from "./sequenciaPacote";
@@ -206,6 +207,31 @@ const ehCortesia = (s: SessaoDaCobranca) => s.cortesia === true;
 const pausaASequencia = (s: SessaoDaCobranca) => faltouNaoConta(s) || ehCortesia(s);
 
 /**
+ * A sessão como a sequência do pacote a enxerga.
+ *
+ * `foraDaCobranca` é a desmarcada que o dono tirou da contagem (17/11/2026) — e só no FRACIONADO,
+ * porque é lá que a quantidade do pacote sai do calendário. No completo o tamanho é contratado, e
+ * encolhê-lo por uma desmarcação seria mudar o combinado sem ninguém pedir.
+ *
+ * Uma função só, usada pelo cálculo das cobranças E pelos rótulos: duas cópias desta tradução
+ * fariam a célula da agenda e a guia Geral discordarem sobre o tamanho do mesmo pacote.
+ */
+function paraASequencia(s: Ordenada, tipoPacote: string) {
+  const fora = tipoPacote === "fragmentado" && foraDaContagemDoPacote(s);
+  return {
+    id: s.id,
+    date: s.data,
+    status: s.status,
+    repoeSessaoId: s.repoeSessaoId,
+    // Quem saiu da contagem também PAUSA: fora daqui, `pausa` é o que diz quais sessões datam o
+    // vencimento e quais entram na conta da quinzena. Sem isto, a sessão excluída continuaria
+    // escolhendo a data de uma cobrança da qual ela nem faz parte.
+    pausa: pausaASequencia(s) || fora,
+    foraDaCobranca: fora,
+  };
+}
+
+/**
  * GRATUITO + "Faltou" + "Sim, transformar em sessão paga" = uma sessão AVULSA (doc 54).
  *
  * Marcá-la aqui, e não no banco, é de propósito: a janela promete que remarcar "Faltou" refaz a
@@ -313,7 +339,7 @@ function cobrancasDoPeriodo(periodo: PeriodoDeVigencia, sessoes: Ordenada[], e: 
 
   const tipoPacote = periodo.pacoteTipo === "fragmentado" ? "fragmentado" : "completo";
   const opcoesDaSequencia = { pacoteTipo: tipoPacote, tamanhos: e.tamanhos, tamanhoPacote: e.tamanhoPacote, tamanhosPorData: e.tamanhosPorData, vezesPorSemana: e.vezesPorSemana };
-  const doPacote = sessoes.filter(entraNoPacote).map((s) => ({ id: s.id, date: s.data, status: s.status, repoeSessaoId: s.repoeSessaoId, pausa: pausaASequencia(s) }));
+  const doPacote = sessoes.filter(entraNoPacote).map((s) => paraASequencia(s, tipoPacote));
   const out: Cobranca[] = [];
   /** O vencimento mensal da sequência anterior — ver `umPorCiclo`, logo abaixo. */
   let vencimentoAnterior: Date | null = null;
@@ -617,7 +643,7 @@ export function rotulosDasSessoes(e: EntradaDasCobrancas): Map<string, string> {
     const { formato, pacoteTipo } = grupo.periodo;
     const posicoes = usaPacote(formato)
       ? posicoesDaSequencia(
-          grupo.sessoes.filter(entraNoPacote).map((s) => ({ id: s.id, date: s.data, status: s.status, repoeSessaoId: s.repoeSessaoId, pausa: pausaASequencia(s) })),
+          grupo.sessoes.filter(entraNoPacote).map((s) => paraASequencia(s, pacoteTipo === "fragmentado" ? "fragmentado" : "completo")),
           { pacoteTipo: pacoteTipo === "fragmentado" ? "fragmentado" : "completo", tamanhos: e.tamanhos, tamanhoPacote: e.tamanhoPacote, tamanhosPorData: e.tamanhosPorData, vezesPorSemana: e.vezesPorSemana },
         )
       : new Map();
