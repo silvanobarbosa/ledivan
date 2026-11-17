@@ -60,6 +60,9 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   const diaInicio = new Date(todayStart);
   /** YYYY-MM-DD de uma data LOCAL — o formato em que o painel compara dia com dia (doc 74). */
   const diaDeParede = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  // Pedido de 17/11: domingo e sábado da semana vigente, em hora local — o recorte da consulta da semana.
+  const domingoDaSemana = new Date(todayStart - diaInicio.getDay() * 24 * 60 * 60 * 1000);
+  const sabadoDaSemana = new Date(todayStart + (6 - diaInicio.getDay()) * 24 * 60 * 60 * 1000);
   const diaFim = new Date(todayStart + 24 * 60 * 60 * 1000);
 
   // Janela dos analíticos
@@ -133,14 +136,23 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
   const comAgendaFutura = new Set(agendaFuturaRows.map((r) => r.pid));
   const pkgRealizedMap = new Map(pkgRealizedRows.map((r) => [r.pid, Number(r.cnt)]));
 
-  // Presença: TODAS as sessões realizadas/faltadas do profissional — sem corte de janela e sem
-  // filtro de paciente ativo. A contagem é pelo STATUS do agendamento no período que o dono escolhe
-  // na tela (Presente = presença, Faltou = falta; Desmarcou/Prof/Atestado/sem status não entram, pois
-  // a consulta só traz realizada/nao_realizada). Inclui INATIVOS: quem fez 10 sessões e foi inativado
-  // continua contando 7/3. Antes o corte de 24 meses escondia sessões antigas (bug do dono, 27/09).
+  /**
+   * As sessões da SEMANA VIGENTE (domingo a sábado) — é só delas que sai "Não vieram na semana".
+   *
+   * Pedido de 17/11: a lista passou a ser de quem DESMARCOU, FALTOU ou apresentou ATESTADO nesta semana, e
+   * não mais de quem não tem sessão realizada. Quem escolhe os status é `naoVieramNaSemana`; aqui
+   * só se recorta a semana, porque é o que faz esta consulta caber num punhado de linhas.
+   *
+   * Antes esta leitura trazia TODAS as sessões realizadas/faltadas do profissional, sem corte de
+   * data — uma varredura da tabela inteira a cada abertura do painel, para alimentar um cartão só.
+   */
   const presenceRows = await db.select({ patientId: therapySessions.patientId, status: therapySessions.status, date: therapySessions.date })
     .from(therapySessions)
-    .where(and(eq(therapySessions.userId, userId), inArray(therapySessions.status, ["realizada", "nao_realizada"])));
+    .where(and(
+      eq(therapySessions.userId, userId),
+      gte(therapySessions.date, domingoDaSemana),
+      lt(therapySessions.date, new Date(sabadoDaSemana.getTime() + 24 * 60 * 60 * 1000)),
+    ));
   // LEMBRAR AGENDAMENTO: quem atende uma vez por mês e ainda não marcou o mês que vem.
   //
   // Quem é mensal sai da própria agenda — a sessão mensal guarda a frequência, mesmo sem gerar as
@@ -246,7 +258,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
     prospectDate: p.prospectDate ? (p.prospectDate as unknown as string) : null, prospectFechou: p.prospectFechou,
     startedAt: p.startedAt ? (p.startedAt as unknown as string) : null,
   }));
-  const panelPresence = presenceRows.map((r) => ({ patientId: r.patientId, presente: r.status === "realizada", date: horaDeParede(r.date) }));
+  const panelPresence = presenceRows.map((r) => ({ patientId: r.patientId, status: r.status, date: horaDeParede(r.date) }));
 
   // Doc 49: quantas vezes cada cadastro já foi parabenizado/lembrado (chave `${id}:${kind}`).
   const contagemLembretes = await contarLembretes(userId);
@@ -296,7 +308,7 @@ export default async function DashboardPage({ searchParams }: { searchParams: Pr
         <p className="text-foreground/40 font-medium">Resumo do seu consultório e analíticos de atendimento.</p>
       </section>
 
-      <DashboardPanels patients={panelPatients} presence={panelPresence} mensagemAniversario={user.birthdayMessage ?? ""} aLembrar={aLembrar} mensagemAgendamento={user.agendamentoMessage ?? ""} mostrarLembrar={apareceHoje()} contagemLembretes={contagemLembretes} corteSemana={diaDeParede(new Date(todayStart - 6 * 24 * 60 * 60 * 1000))} hoje={diaDeParede(diaInicio)} />
+      <DashboardPanels patients={panelPatients} presence={panelPresence} mensagemAniversario={user.birthdayMessage ?? ""} aLembrar={aLembrar} mensagemAgendamento={user.agendamentoMessage ?? ""} mostrarLembrar={apareceHoje()} contagemLembretes={contagemLembretes} hoje={diaDeParede(diaInicio)} />
 
       {/* Vencimentos por dia (doc 44): logo abaixo da área de Pagamentos. */}
       <VencimentosPorDia />

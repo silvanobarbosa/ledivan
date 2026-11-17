@@ -235,17 +235,6 @@ export function avisosDoDiva(e: EstadoDoDiva): AvisoDoDiva[] {
 }
 
 /**
- * A pergunta da abertura aparece?
- *
- * Ela é um PEDÁGIO: quem abre o app vinte vezes por dia para olhar a agenda vai odiar ser
- * interrogado na vigésima. Então ela desiste. Três dispensas seguidas sem escolher nada e o Divã
- * para de abrir sozinho — continua no ícone flutuante, a um toque, para quando ela quiser.
- *
- * Escolher uma tarefa zera a contagem: ali ele provou que serve.
- */
-export const DISPENSAS_ATE_CALAR = 3;
-
-/**
  * A BASE DA DICA mandada ao Whisper, numa fonte só.
  *
  * Estava escrita duas vezes: na rota `/api/diva/ouvir` e no diagnóstico
@@ -256,6 +245,3 @@ export const DISPENSAS_ATE_CALAR = 3;
  */
 export const BASE_DA_DICA = `Verbos: anotar, anota, marcar, marca, agendar, cancelar, cancela, desmarcar, lançar pagamento, dar baixa, recebi, pagou, pix. Comandos: ${TAREFAS.map((t) => t.rotulo).join("; ")}.`;
 
-export function abreSozinho(dispensasSeguidas: number): boolean {
-  return (Number(dispensasSeguidas) || 0) < DISPENSAS_ATE_CALAR;
-}

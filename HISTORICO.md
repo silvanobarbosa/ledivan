@@ -7,6 +7,55 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-11-17 — A lista que perguntava ao contrário, e o Divã que abria sem ser chamado
+
+**Entregue:** o cartão "Não vieram na semana" passou a ser da semana do calendário (domingo a
+sábado) e a listar só quem desmarcou, faltou ou teve atestado; a janela do Divã deixou de abrir
+sozinha. 1841 testes e um percurso novo (`scripts/e2e-semana-e-diva.mjs`), 13 verificações.
+
+**Por quê:** o cartão respondia à pergunta oposta — "quem NÃO tem sessão realizada" —, e por isso
+trazia todo paciente quinzenal, mensal ou de férias que simplesmente não tinha sessão naquela
+semana. É o "status vazio" que o dono mandou não considerar.
+
+**Decisões que ficam valendo:**
+
+- **A lista mudou de sinal.** Era ausência de prova (sem sessão realizada); virou presença de
+  registro (tem sessão com status de ausência). Quem não tem nada marcado na semana não aparece.
+- **`prof_desmarcou` NÃO entra.** O dono nomeou três situações e, no documento anterior, quando
+  quis incluir a desmarcação do profissional, escreveu-a por extenso. Aqui não escreveu — e faz
+  sentido: quando a terapeuta desmarcou, o paciente não deixou de vir. É a mesma razão pela qual
+  "Profissional desmarcou" nunca entrou no card de Faltas dos analíticos.
+- **A semana é a do calendário.** Recorte móvel de sete dias, numa quarta-feira, mistura metade da
+  semana passada com metade desta.
+- **O Divã só abre no clique.** Saíram a contagem de dispensas, a marca do dia e o `abreSozinho`:
+  sem ninguém decidindo sozinho, não há o que contar. O aviso da voz **não** foi perdido — passou
+  a esperar dentro da janela e aparece na primeira abertura feita pela pessoa.
+- **A numeração dos PDFs do dono COLIDE com a numeração interna.** Já havia um "Doc 75" no código
+  (o formato de pagamento que não vem marcado) e um `e2e-doc75.mjs`. Este bloco se identifica pela
+  DATA, não pelo número — e quem for escrever "Doc NN" num comentário confere antes se o número
+  já está tomado.
+
+**Armadilhas:**
+
+- **A consulta do painel varria a tabela inteira** de sessões a cada abertura, para alimentar um
+  cartão só. Agora é recortada pela semana. Sem isso, a mudança teria deixado a varredura de pé
+  carregando um dado que ninguém mais usa.
+- **Conferir pelo texto da PÁGINA acusa falso.** Três verificações falharam porque outros cartões
+  do painel (as sessões do dia) também escrevem o nome do paciente na tela. A lista é a janela, e
+  é a janela que se lê.
+- **O ícone do Divã é flutuante e fica fora da área visível** — o clique do Playwright rola a
+  página atrás dele para sempre. Clique direto no DOM.
+- **Um `npm run build` abortou uma vez** com "Your version of Next.js is affected by a known
+  security vulnerability" e passou na repetição. A versão aqui é 16.4.2, acima do CVE do SVG
+  (<= 16.4.0). Se voltar a aparecer, é a verificação do próprio Next, não o código.
+
+**Pendente:**
+
+- **A assinatura segue parada nas cinco decisões do dono** — `docs/PRD-assinatura.md`, §11.
+
+---
+
+
 ## 2026-11-15 — A cobrança que anunciava sessões que não cobrava
 
 **Entregue:** doc 74 inteiro. O "Novo lançamento" saiu de Transações; a lista "Não vieram na

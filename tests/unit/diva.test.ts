@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { abreSozinho, avisosDoDiva, DISPENSAS_ATE_CALAR, normalizar, TAREFAS, tarefaDaFala } from "@/lib/diva";
+import { avisosDoDiva, normalizar, TAREFAS, tarefaDaFala } from "@/lib/diva";
 
 describe("o Divã — o catálogo", () => {
   it("toda tarefa aponta para uma rota do app e tem o que reconhecer na fala", () => {
@@ -89,14 +89,3 @@ describe("o Divã — o que te espera", () => {
   });
 });
 
-describe("o Divã — a pergunta da abertura é dispensável", () => {
-  it("abre sozinho enquanto ela não o dispensar três vezes seguidas", () => {
-    expect(abreSozinho(0)).toBe(true);
-    expect(abreSozinho(DISPENSAS_ATE_CALAR - 1)).toBe(true);
-  });
-
-  it("na terceira dispensa seguida, cala — e fica só no ícone", () => {
-    expect(abreSozinho(DISPENSAS_ATE_CALAR)).toBe(false);
-    expect(abreSozinho(10)).toBe(false);
-  });
-});

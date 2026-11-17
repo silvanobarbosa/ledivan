@@ -31,7 +31,8 @@ export type PanelPatient = {
   situacao?: "em_dia" | "em_aberto" | "atrasado" | null;
   prospectDate: string | null; prospectFechou: string | null; startedAt: string | null;
 };
-export type PanelPresence = { patientId: string; presente: boolean; date: string };
+/** Pedido de 17/11: as sessões da semana vigente, com o status — é delas que sai "Não vieram na semana". */
+export type PanelPresence = { patientId: string; status: string | null; date: string };
 
 const inRange = (iso: string | null, from: string, to: string): boolean => {
   if (!iso) return false;
@@ -68,7 +69,7 @@ export type ParaLembrar = {
 };
 
 export function DashboardPanels({
-  patients, presence, mensagemAniversario, corteSemana, hoje,
+  patients, presence, mensagemAniversario, hoje,
   aLembrar = [], mensagemAgendamento = "", mostrarLembrar = false, contagemLembretes = {},
 }: {
   patients: PanelPatient[];
@@ -77,7 +78,6 @@ export function DashboardPanels({
   /** Doc 49: contagem de lembretes confirmados, chave `${patientId}:${kind}`. */
   contagemLembretes?: Record<string, number>;
   /** Início da janela de 7 dias, em ISO, calculado no servidor. Ver AtivosInativos. */
-  corteSemana: string;
   /** Hoje em YYYY-MM-DD, do servidor. Ver Aniversariantes. */
   hoje: string;
   /** Mensais sem data no mês que vem. Ver LembrarAgendamento. */
@@ -94,7 +94,7 @@ export function DashboardPanels({
           fim do mês) não está na lista do doc; fica ao fim dos painéis para não quebrar a ordem. */}
       <div className="flex flex-col gap-4">
         <Prospeccao patients={patients} />
-        <Relatorios patients={patients} presence={presence} corte={corteSemana} hoje={hoje} />
+        <Relatorios patients={patients} presence={presence} hoje={hoje} />
         <Aniversariantes patients={patients} modeloSalvo={mensagemAniversario} hoje={hoje} contagem={contagemLembretes} />
         <QueixaBloco patients={patients} />
         <Pagamentos patients={patients} />
@@ -140,7 +140,7 @@ function Prospeccao({ patients }: { patients: PanelPatient[] }) {
 // 2. RELATÓRIOS — o painel virou porta de entrada, não a ferramenta. Os filtros e as colunas
 // vivem em /dashboard/relatorio-pacientes: caixa de seleção de coluna não cabe num cartão de
 // dashboard, e o resultado é uma tabela larga. Aqui ficam só os números que orientam o clique.
-function Relatorios({ patients, presence, corte, hoje }: { patients: PanelPatient[]; presence: PanelPresence[]; corte: string; hoje: string }) {
+function Relatorios({ patients, presence, hoje }: { patients: PanelPatient[]; presence: PanelPresence[]; hoje: string }) {
   const [lista, setLista] = useState<{ titulo: string; itens: PanelPatient[] } | null>(null);
   /**
    * Duas caixas só: Ativos e Inativos (dono, 23/10). Quem está PAUSADO cai numa delas pela agenda
@@ -150,9 +150,9 @@ function Relatorios({ patients, presence, corte, hoje }: { patients: PanelPatien
   const ativos = patients.filter((p) => categoriaDoCadastro(p) === "ativo");
   const inativos = patients.filter((p) => categoriaDoCadastro(p) === "inativo");
   const contagem = contagemDeCadastros(patients);
-  // "Não vieram na semana": ativo sem sessão realizada nos últimos 7 dias. `corte` e `hoje` (os dois
-  // YYYY-MM-DD) vêm do servidor. Doc 74: a janela tem TETO — ver `naoVieramNaSemana`.
-  const semana = useMemo(() => naoVieramNaSemana(ativos, presence, corte, hoje), [ativos, presence, corte, hoje]);
+  // "Não vieram na semana" (pedido de 17/11): quem desmarcou, faltou ou teve atestado na semana de domingo
+  // a sábado. `hoje` (YYYY-MM-DD) vem do servidor — ver `naoVieramNaSemana`.
+  const semana = useMemo(() => naoVieramNaSemana(ativos, presence, hoje), [ativos, presence, hoje]);
   return (
     <div className={card}>
       <h4 className="font-display font-bold text-primary">Relatórios</h4>
@@ -163,7 +163,7 @@ function Relatorios({ patients, presence, corte, hoje }: { patients: PanelPatien
         <Stat n={contagem.noCadastro} label="No cadastro" />
         <Stat n={ativos.length} label="Ativos" tone="green" onAbrir={() => setLista({ titulo: "Cadastros ativos", itens: ativos })} />
         <Stat n={inativos.length} label="Inativos" onAbrir={() => setLista({ titulo: "Cadastros inativos", itens: inativos })} />
-        <Stat n={semana.length} label="Não vieram na semana" tone="amber" onAbrir={() => setLista({ titulo: "Ativos sem sessão realizada nos últimos 7 dias", itens: semana })} />
+        <Stat n={semana.length} label="Não vieram na semana" tone="amber" onAbrir={() => setLista({ titulo: "Desmarcaram, faltaram ou apresentaram atestado nesta semana", itens: semana })} />
       </div>
       <Link href="/dashboard/relatorio-pacientes" className="inline-block text-xs font-bold px-3 py-1.5 rounded-lg bg-primary text-white">Montar relatório</Link>
       {lista && <ModalPacientes titulo={lista.titulo} pacientes={lista.itens} onFechar={() => setLista(null)} />}
