@@ -7,6 +7,45 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-11-17 — As três correções de segurança: Next, node-forge e o SheetJS que ninguém via
+
+**Entregue:** `next` 16.4.2 → **16.4.6**, `node-forge` 1.4.2 → **1.4.3**, e `xlsx` 0.18.5 (npm,
+abandonado) → **SheetJS 0.20.3**, vindo do CDN do fornecedor. `npm audit --omit=dev` passou de
+duas vulnerabilidades a **zero**.
+
+**Por quê:** o `npm run build` parou com `SecurityFatalError` — o Next 16.2.0–16.4.4 tem dois
+advisories de vazamento de cache entre root params (GHSA-mfr8-8qww-v76h e GHSA-vc7v-qv4w-wrv8).
+Puxando esse fio apareceu o que importa mais:
+
+**O `xlsx` estava declarado como dependência de DESENVOLVIMENTO e é importado por código de
+produção** (`src/app/api/importar/modelo/route.ts` e `src/app/dashboard/settings/importar-actions.ts`).
+Isso tem duas consequências: o pacote subia junto do deploy sem estar declarado, e — pior — o
+portão de auditoria da casa roda com `--omit=dev` e **não enxergava** as duas falhas ALTAS do
+SheetJS (prototype pollution e ReDoS), que são alcançadas justamente por `XLSX.read` sobre o
+arquivo que a terapeuta envia na importação de planilha.
+
+**Decisões que ficam valendo:**
+- **O SheetJS vem do CDN do fornecedor** (`https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz`),
+  porque o pacote `xlsx` do npm foi abandonado em 0.18.5 e as duas falhas só estão corrigidas da
+  0.19.3/0.20.2 em diante. É o caminho que o próprio advisory indica. O `package-lock.json` grava
+  a URL **com hash de integridade**, então a instalação continua verificada; em compensação, o
+  `npm ci` passa a precisar alcançar `cdn.sheetjs.com` — se esse host cair, o build cai junto.
+- **As 28 vulnerabilidades restantes são todas de desenvolvimento** (vite, vitest, eslint,
+  shadcn, drizzle-kit e suas cadeias de glob). Ficam como estão: a "correção" que o npm propõe é
+  REBAIXAR vitest, vite e eslint-config-next de major, o que quebra ferramenta para não ganhar
+  nada em produção. O `picomatch` (alto) **não tem versão corrigida publicada** — a 4.0.7, última
+  que existe, ainda é vulnerável. Override não resolve.
+
+**Armadilhas:**
+- A auditoria por `--omit=dev` só protege se as dependências estiverem no bloco certo. Dependência
+  de produção declarada como dev é um ponto cego do portão, não só um detalhe de arrumação.
+- O percurso `scripts/e2e-importar.mjs` é o que prova o salto do SheetJS (0.18 → 0.20 atravessa um
+  major): ele lê planilha enviada, monta o modelo de quatro abas e confere a importação inteira.
+
+**Pendente:** o tier **`rl-heavy` está fora do ar — HTTP 402, créditos do OpenRouter esgotados**.
+O teste `tests/unit/relatorioGeracaoReal.test.ts` falha por isso, e falhava ANTES destas mudanças.
+Enquanto não houver crédito, o Relatório de Acompanhamento não gera. É do dono.
+
 ## 2026-11-17 — O pacote fracionado que encolhe quando ela decide, e o (Q) que voltou a ser do agendamento
 
 **Entregue:** no pacote FRACIONADO mensal ou quinzenal ainda em aberto, marcar "Desmarcou"
