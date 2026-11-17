@@ -1,12 +1,12 @@
 import { describe, expect, it } from "vitest";
-import { ehQuinzenal, espelhosDoDia, sinaisDaSessao } from "@/lib/ocupacaoDaAgenda";
+import { espelhosDoDia, sinaisDaSessao } from "@/lib/ocupacaoDaAgenda";
 
 /**
  * O ESPELHO DO QUINZENAL e os sinais da célula.
  *
- * O espelho existia mas **nunca aparecia**: ele dependia de a SESSÃO guardar a frequência, e a
- * base tem 43 pacientes quinzenais cujas sessões não guardam. Zero espelhos em toda a agenda.
- * Marca que nunca aparece é marca que não existe.
+ * Dono, 17/11/2026: quem decide é o AGENDAMENTO (`recurrence_freq = 'quinzenal'`), nunca a guia
+ * Financeiro. Paciente que PAGA de quinze em quinze dias e VEM toda semana não tem semana
+ * alternada — e ganhava o (Q) em todo horário dele.
  */
 
 const qua = (dia: number, hora = 8) => new Date(2026, 8, dia, hora, 0, 0);
@@ -16,60 +16,35 @@ const sessao = (id: string, dia: number, hora = 8, pacienteId = "p1") => ({
   data: qua(dia, hora),
   duracao: 50,
   pacienteId,
+  recorrenciaQuinzenal: true,
 });
 
-describe("quem é quinzenal", () => {
-  it("pelo formato de pagamento", () => {
-    expect(ehQuinzenal({ id: "p1", formato: "quinzenal" })).toBe(true);
-  });
-
-  it("pela frequência escrita no cadastro, que é onde a base guarda", () => {
-    expect(ehQuinzenal({ id: "p1", frequencia: "Quinzenal" })).toBe(true);
-    expect(ehQuinzenal({ id: "p1", frequencia: "quinzenal (2x/mês)" })).toBe(true);
-  });
-
-  it("quem não é, não é", () => {
-    expect(ehQuinzenal({ id: "p1", formato: "mensal", frequencia: "semanal" })).toBe(false);
-    expect(ehQuinzenal(null)).toBe(false);
-    expect(ehQuinzenal({ id: "p1" })).toBe(false);
-  });
+/** O agendamento que NÃO se repete de quinze em quinze dias: é o que não espelha mais nada. */
+const semanal = (id: string, dia: number, hora = 8, pacienteId = "p1") => ({
+  ...sessao(id, dia, hora, pacienteId),
+  recorrenciaQuinzenal: false,
 });
 
 describe("o espelho da semana alternada", () => {
-  const sempreQuinzenal = () => true;
-
   it("aparece a sete dias de uma sessão quinzenal", () => {
     // Sessões em 09 e 23; a semana de 16 é a alternada.
     const e = espelhosDoDia({
       dia: qua(16),
       sessoes: [sessao("a", 9), sessao("b", 23)],
-      quinzenal: sempreQuinzenal,
     });
     expect(e).toHaveLength(1);
     expect(e[0].hora).toBe(8);
     expect(e[0].pacienteId).toBe("p1");
   });
 
-  it("APARECE mesmo quando a sessão não guarda a frequência — é o caso da base inteira", () => {
-    const e = espelhosDoDia({
-      dia: qua(16),
-      sessoes: [sessao("a", 9)],
-      quinzenal: (id) => id === "p1",
-    });
-    expect(e).toHaveLength(1);
+  it("o critério é o AGENDAMENTO: sem recorrência quinzenal, não há espelho (dono, 17/11)", () => {
+    const e = espelhosDoDia({ dia: qua(16), sessoes: [semanal("a", 9)] });
+    expect(e).toEqual([]);
   });
 
-  it("a sessão que sabe da própria frequência dispensa o cadastro", () => {
-    const e = espelhosDoDia({
-      dia: qua(16),
-      sessoes: [{ ...sessao("a", 9), recorrenciaQuinzenal: true }],
-      quinzenal: () => false,
-    });
-    expect(e).toHaveLength(1);
-  });
-
-  it("paciente que NÃO é quinzenal não gera espelho", () => {
-    const e = espelhosDoDia({ dia: qua(16), sessoes: [sessao("a", 9)], quinzenal: () => false });
+  it("o financeiro quinzenal NÃO basta — quem paga a cada quinze dias pode vir toda semana", () => {
+    // A sessão é a única fonte: não há mais por onde o cadastro entrar nesta conta.
+    const e = espelhosDoDia({ dia: qua(16), sessoes: [semanal("a", 9, 8, "paga-quinzenal")] });
     expect(e).toEqual([]);
   });
 
@@ -78,19 +53,18 @@ describe("o espelho da semana alternada", () => {
     const e = espelhosDoDia({
       dia: qua(16),
       sessoes: [sessao("a", 9), sessao("encaixe", 16, 8, "p2")],
-      quinzenal: sempreQuinzenal,
     });
     expect(e).toEqual([]);
   });
 
   it("semana seguinte de um SEMANAL não vira espelho", () => {
-    // A sete dias existe sessão, mas quem não é quinzenal ocupa todas as semanas.
-    const e = espelhosDoDia({ dia: qua(16), sessoes: [sessao("a", 9)], quinzenal: () => false });
+    // A sete dias existe sessão, mas quem vem toda semana ocupa todas elas.
+    const e = espelhosDoDia({ dia: qua(16), sessoes: [semanal("a", 9)] });
     expect(e).toEqual([]);
   });
 
   it("catorze dias de distância não é a semana alternada", () => {
-    const e = espelhosDoDia({ dia: qua(23), sessoes: [sessao("a", 9)], quinzenal: sempreQuinzenal });
+    const e = espelhosDoDia({ dia: qua(23), sessoes: [sessao("a", 9)] });
     expect(e).toEqual([]);
   });
 
@@ -98,7 +72,6 @@ describe("o espelho da semana alternada", () => {
     const e = espelhosDoDia({
       dia: qua(16),
       sessoes: [sessao("a", 9, 14, "p1"), sessao("b", 9, 8, "p2")],
-      quinzenal: sempreQuinzenal,
     });
     expect(e.map((x) => x.hora)).toEqual([8, 14]);
   });
@@ -107,7 +80,6 @@ describe("o espelho da semana alternada", () => {
     const e = espelhosDoDia({
       dia: qua(16),
       sessoes: [sessao("a", 9), sessao("b", 23)],
-      quinzenal: sempreQuinzenal,
     });
     expect(e).toHaveLength(1);
   });
@@ -116,7 +88,6 @@ describe("o espelho da semana alternada", () => {
     const e = espelhosDoDia({
       dia: qua(16),
       sessoes: [{ id: "x", data: "nada", duracao: 50, pacienteId: "p1" }, sessao("a", 9)],
-      quinzenal: sempreQuinzenal,
     });
     expect(e).toHaveLength(1);
   });
@@ -127,7 +98,6 @@ describe("o espelho da semana alternada", () => {
     const e = espelhosDoDia({
       dia: qua(2),
       sessoes: [{ ...sessao("a", 9), soEspelhoAnterior: true }],
-      quinzenal: sempreQuinzenal,
     });
     expect(e).toHaveLength(1);
   });
@@ -137,14 +107,13 @@ describe("o espelho da semana alternada", () => {
     const e = espelhosDoDia({
       dia: qua(16),
       sessoes: [{ ...sessao("a", 9), soEspelhoAnterior: true }],
-      quinzenal: sempreQuinzenal,
     });
     expect(e).toHaveLength(0);
   });
 
   it("sem o flag, segue espelhando os dois lados (controle)", () => {
-    const anterior = espelhosDoDia({ dia: qua(2), sessoes: [sessao("a", 9)], quinzenal: sempreQuinzenal });
-    const posterior = espelhosDoDia({ dia: qua(16), sessoes: [sessao("a", 9)], quinzenal: sempreQuinzenal });
+    const anterior = espelhosDoDia({ dia: qua(2), sessoes: [sessao("a", 9)] });
+    const posterior = espelhosDoDia({ dia: qua(16), sessoes: [sessao("a", 9)] });
     expect(anterior).toHaveLength(1);
     expect(posterior).toHaveLength(1);
   });
@@ -196,7 +165,6 @@ describe("os sinais da célula", () => {
  * nem sempre é essa, e começar tarde demais deixaria viva justamente a próxima.
  */
 describe("a sessão que projeta o espelho", () => {
-  const sempreQuinzenal = () => true;
 
   /**
    * Doc 60: "este e os próximos" conta a partir do SLOT, não de hoje.
@@ -209,7 +177,6 @@ describe("a sessão que projeta o espelho", () => {
     const e = espelhosDoDia({
       dia: qua(16),
       sessoes: [sessao("antes", 9), sessao("depois", 23)],
-      quinzenal: sempreQuinzenal,
       hoje: qua(1),
     });
     expect(e).toHaveLength(1);
@@ -222,7 +189,6 @@ describe("a sessão que projeta o espelho", () => {
     const e = espelhosDoDia({
       dia: qua(2),
       sessoes: [sessao("ja-aconteceu", 9), sessao("por-vir", 23)],
-      quinzenal: sempreQuinzenal,
       hoje: qua(16),
     });
     expect(e[0].sessaoId).toBe("por-vir");
@@ -232,7 +198,6 @@ describe("a sessão que projeta o espelho", () => {
     const e = espelhosDoDia({
       dia: qua(16),
       sessoes: [sessao("antes", 9), sessao("depois", 23)],
-      quinzenal: sempreQuinzenal,
       hoje: qua(20),
     });
     expect(e[0].sessaoId).toBe("depois");
@@ -243,7 +208,6 @@ describe("a sessão que projeta o espelho", () => {
     const e = espelhosDoDia({
       dia: qua(16),
       sessoes: [sessao("depois", 23), sessao("bem-depois", 30), sessao("antes", 9)],
-      quinzenal: sempreQuinzenal,
       hoje: qua(1),
     });
     expect(e[0].sessaoId).toBe("depois");
@@ -254,7 +218,6 @@ describe("a sessão que projeta o espelho", () => {
     const e = espelhosDoDia({
       dia: qua(16),
       sessoes: [sessao("antes", 9)],
-      quinzenal: sempreQuinzenal,
       hoje: qua(20),
     });
     expect(e).toHaveLength(1);
@@ -266,7 +229,6 @@ describe("a sessão que projeta o espelho", () => {
     const e = espelhosDoDia({
       dia: qua(16),
       sessoes: [sessao("da-p1", 23, 8, "p1"), sessao("da-p2", 23, 14, "p2")],
-      quinzenal: sempreQuinzenal,
       hoje: qua(1),
     });
     expect(e.map((x) => x.sessaoId)).toEqual(["da-p1", "da-p2"]);
@@ -281,13 +243,11 @@ describe("a sessão que projeta o espelho", () => {
  * apagar. Na segunda vez ela abriu a janela e nem botão de excluir havia mais.
  */
 describe("o reflexo de uma combinação que acabou", () => {
-  const sempreQuinzenal = () => true;
 
   it("não sobrevive a um dia que ainda está por vir: sem nada à frente, o slot nem é desenhado", () => {
     const e = espelhosDoDia({
       dia: qua(16),
       sessoes: [sessao("ja-aconteceu", 9)],
-      quinzenal: sempreQuinzenal,
       hoje: qua(10),
     });
     expect(e).toHaveLength(0);
@@ -297,7 +257,6 @@ describe("o reflexo de uma combinação que acabou", () => {
     const e = espelhosDoDia({
       dia: qua(16),
       sessoes: [sessao("ja-aconteceu", 9)],
-      quinzenal: sempreQuinzenal,
       hoje: qua(20),
     });
     expect(e).toHaveLength(1);
@@ -310,7 +269,6 @@ describe("o reflexo de uma combinação que acabou", () => {
     const e = espelhosDoDia({
       dia: qua(16),
       sessoes: [sessao("ja-aconteceu", 9), sessao("mais-adiante", 30)],
-      quinzenal: sempreQuinzenal,
       hoje: qua(10),
     });
     expect(e).toHaveLength(1);
@@ -323,7 +281,6 @@ describe("o reflexo de uma combinação que acabou", () => {
     const e = espelhosDoDia({
       dia: qua(16),
       sessoes: [sessao("ja-aconteceu", 9), encaixe],
-      quinzenal: sempreQuinzenal,
       hoje: qua(10),
     });
     expect(e).toHaveLength(0);
@@ -333,7 +290,6 @@ describe("o reflexo de uma combinação que acabou", () => {
     const e = espelhosDoDia({
       dia: qua(16),
       sessoes: [sessao("ja-aconteceu", 9), sessao("de-outro", 30, 8, "p2")],
-      quinzenal: sempreQuinzenal,
       hoje: qua(10),
     });
     expect(e.filter((x) => x.pacienteId === "p1")).toHaveLength(0);

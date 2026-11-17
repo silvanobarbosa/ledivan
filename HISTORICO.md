@@ -7,6 +7,51 @@ Quem abre este app lê este arquivo antes de propor trabalho.
 
 ---
 
+## 2026-11-17 — O pacote fracionado que encolhe quando ela decide, e o (Q) que voltou a ser do agendamento
+
+**Entregue:** no pacote FRACIONADO mensal ou quinzenal ainda em aberto, marcar "Desmarcou"
+pergunta se aquela sessão continua compondo a cobrança; respondendo "Não", o pacote passa a ter
+uma sessão a menos, a numeração se reorganiza (1/3 · 1/3 · 2/3 · 3/3) e o valor da guia Geral é
+recalculado. E o (Q) da agenda passou a sair só da recorrência do AGENDAMENTO. 1853 testes e um
+percurso novo (`scripts/e2e-pacote-fracionado-e-q.mjs`), 17 verificações.
+
+**Por quê:** desmarcar dentro do pacote sempre segurou a posição sem encolher o mês — certo quando
+o paciente vai repor, errado quando ele não vai. Não havia por onde dizer isso, e a terapeuta
+cobrava quatro sessões de um mês que teve três. O (Q), por sua vez, aparecia em quem tem o
+FINANCEIRO quinzenal e vem toda semana: o financeiro diz de quanto em quanto tempo ele PAGA, e o
+(Q) responde de quanto em quanto tempo ele VEM.
+
+**Decisões que ficam valendo:**
+- A resposta mora no MESMO campo do doc 12/11 (`desmarcou_cobra`). A pergunta é a mesma — *esta
+  desmarcada conta para o dinheiro?* —, só o efeito muda conforme o que a sessão é. `null` é o
+  legado e continua contando: nenhum pacote antigo encolhe sozinho.
+- **Pacote COMPLETO fica fora.** O tamanho dele é contratado, não deduzido do calendário, e
+  encolhê-lo por uma desmarcação seria mudar o combinado. Fora também: avulso, "primeira do
+  pacote" e pacote com pagamento lançado — mexer no tamanho de um pacote pago mudaria um valor já
+  recebido.
+- A sessão tirada continua no `ids` da cobrança (invariante do doc 54, de que o recibo depende):
+  ela pertence ao pacote, só não ocupa vaga.
+- **O (Q) tem um critério só: `recurrence_freq = 'quinzenal'` na sessão.** O cadastro saiu da
+  conta — `ehQuinzenal` foi apagada.
+
+**Armadilhas:**
+- Tirar a sessão da contagem também a tira da DATAÇÃO do pacote. Quando a desmarcada era a
+  primeira do mês, o vencimento anda para a sessão seguinte (17/11 → 18/11 no percurso). É
+  coerente com "não considerar essa sessão na cobrança", mas é uma data que se mexe.
+- Medido antes de soltar: **nenhum paciente ativo tem sessão com `recurrence_freq = 'quinzenal'`**
+  — eram 18 cadastros quinzenais pelo cadastro, zero pelo agendamento. O espelho (Q) some da base
+  de hoje e volta conforme ela criar as repetições quinzenais pela janela de agendamento. Foi a
+  escolha do dono entre um (Q) que aparece onde não devia e um (Q) que só aparece onde foi
+  configurado.
+- O `npm run build` para UMA vez com `SecurityFatalError`: o Next 16.4.2 tem advisory aberto e o
+  próprio comando interrompe para mostrar o aviso. Repetir o comando continua. **Não é falha
+  intermitente** — o diário do doc 75 registrou como se fosse.
+
+**Pendente:** a atualização do Next (advisory acima) continua aberta — decisão do dono. O doc 72
+(assinatura) segue parado nas cinco perguntas do `docs/PRD-assinatura.md` §11.
+
+---
+
 ## 2026-11-17 — A lista que perguntava ao contrário, e o Divã que abria sem ser chamado
 
 **Entregue:** o cartão "Não vieram na semana" passou a ser da semana do calendário (domingo a

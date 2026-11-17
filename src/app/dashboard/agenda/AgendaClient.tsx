@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, useTransition } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { ChevronLeft, ChevronRight, X, Stethoscope, Repeat, Video, AlertTriangle, MapPin, Pencil, CalendarDays, Trash2, Plus, ChevronDown } from "lucide-react";
 import { formatBRL, SESSION_STATUS_LABELS, sessionStatusColor, sessionColorClasses, reservaVencida, RISK_LABELS, riskColor, LEGENDA_DA_AGENDA, corDaLegenda, STATUS_OFERECIDOS, type RiskLevel } from "@/lib/therapy";
-import { updateSessionStatus, confirmSession, createSessionFromAgenda, createRecurring, definirValorDaFalta, pagamentoDaSessao, desfazerCobrancaDaSessao, saldoDeCreditoDaSessao } from "../sessions/actions";
+import { updateSessionStatus, confirmSession, createSessionFromAgenda, createRecurring, definirValorDaFalta, pagamentoDaSessao, pacoteDaSessaoEmAberto, desfazerCobrancaDaSessao, saldoDeCreditoDaSessao } from "../sessions/actions";
 import { perguntaDaConversao } from "@/lib/creditoAConfirmar";
 import { HolidaySetup } from "@/components/dashboard/HolidaySetup";
 import { HOLIDAY_STYLE, type Holiday, type HolidayCity } from "@/lib/holidays-style";
@@ -12,7 +12,7 @@ import { geometriaDaFaixa, posicoesDoDia } from "@/lib/agendaLayout";
 import { conteudoDaCelula, identificacao, identificacaoDoAniversario } from "@/lib/celulaDaAgenda";
 import { liberaOHorario } from "@/lib/statusDaSessao";
 import { textoDoBloqueio } from "@/lib/bloqueioDeHorario";
-import { ehQuinzenal, espelhosDoDia, sinaisDaSessao } from "@/lib/ocupacaoDaAgenda";
+import { espelhosDoDia, sinaisDaSessao } from "@/lib/ocupacaoDaAgenda";
 import { CANAIS_DE_CONFIRMACAO, DIAS_DA_SEMANA, ehSemanal2x, geraRepeticoes, modalidadesDe, pedeHorasAntes, pedeLocal, PERGUNTA_DAS_HORAS, repeticoesDe } from "@/lib/agendamentoNovo";
 import { CAMPOS_EDITAVEIS } from "@/lib/editarAgendamento";
 import { contarAlcance, excluirAgendamento, reagendarRecorrencia, salvarEdicao } from "./edicao-actions";
@@ -25,6 +25,7 @@ import { formatoNaData } from "@/lib/vigenciaDoFormato";
 import { tipoDaFalta, tipoDaFaltaPeloRotulo, perguntaDaFalta, COMO_REFAZER } from "@/lib/perguntaFalta";
 import { AVISO_DO_CREDITO, valorSugeridoDaAvulsa } from "@/lib/creditoNaAvulsa";
 import { COMO_REFAZER_DESMARCOU, DESMARCOU_PERGUNTA, ofereceEscolhaDoDesmarcou } from "@/lib/desmarcouDoAvulso";
+import { PACOTE_PERGUNTA, pacoteAceitaEscolha } from "@/lib/desmarcadaDoPacote";
 import { useJanela } from "@/lib/useJanela";
 import { mascaraMoeda } from "@/lib/mascaraMoeda";
 import { MoneyInput } from "@/components/MoneyInput";
@@ -380,15 +381,9 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
   /**
    * O espelho da semana alternada de um quinzenal.
    *
-   * Antes ele saía SÓ da sessão (`recurrenceFreq === "quinzenal"`), e por isso nunca aparecia: a
-   * frequência só é gravada na sessão quando o agendamento nasce pela janela de repetição, e a
-   * base tem 43 pacientes quinzenais cujas sessões não guardam isso. Zero espelhos em toda a
-   * agenda — marca que nunca aparece é marca que não existe. Agora a pergunta vai ao CADASTRO.
+   * Dono, 17/11/2026: quem decide é o AGENDAMENTO (`recurrenceFreq === "quinzenal"`), nunca a guia
+   * Financeiro. A regra mora em `ocupacaoDaAgenda`, com o porquê.
    */
-  const pacienteEhQuinzenal = (id: string) => {
-    const p = patients.find((x) => x.id === id);
-    return ehQuinzenal({ id, formato: p?.paymentFormat, frequencia: p?.frequency });
-  };
   type Ghost = { hour: number; minute: number; duration: number; patientName: string; patientId?: string; sessaoId: string; sessaoFutura: boolean };
   const ghostsForDay = (day: Date): Ghost[] =>
     espelhosDoDia({
@@ -401,7 +396,6 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
         recorrenciaQuinzenal: s.recurring && s.recurrenceFreq === "quinzenal",
         soEspelhoAnterior: s.espelhoSoAnterior === true,
       })),
-      quinzenal: pacienteEhQuinzenal,
     }).map((e) => ({
       hour: e.hora,
       minute: e.minuto,
@@ -692,6 +686,8 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
   const [pedeDestino, setPedeDestino] = useState<{ id: string; valor: number; status?: SessionStatus } | null>(null);
   /** Doc 12/11: o "Desmarcou" de uma sessão avulsa SEM pagamento — manter a cobrança ou não. */
   const [perguntaDesmarcou, setPerguntaDesmarcou] = useState<{ id: string } | null>(null);
+  // Doc de 17/11: a desmarcada de um pacote fracionado em aberto.
+  const [perguntaPacote, setPerguntaPacote] = useState<{ id: string } | null>(null);
   const [erroDoDestino, setErroDoDestino] = useState<string | null>(null);
   const [valorDaFalta, setValorDaFalta] = useState("");
   const [erroDoValor, setErroDoValor] = useState<string | null>(null);
@@ -715,6 +711,7 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
   const janelaDestino = useJanela(!!pedeDestino, () => setPedeDestino(null));
   // Doc 12/11: a do Desmarcou decide dinheiro e tem de ter saída pelo teclado, como as outras.
   const janelaDesmarcou = useJanela(!!perguntaDesmarcou, () => setPerguntaDesmarcou(null));
+  const janelaPacote = useJanela(!!perguntaPacote, () => setPerguntaPacote(null));
   const janelaExcluir = useJanela(!!perguntaExcluir, () => { setPerguntaExcluir(null); setQuantos(null); });
   const janelaQ = useJanela(!!perguntaQ, () => setPerguntaQ(null));
   // O painel do novo agendamento é um <form>, não um <div> — daí o tipo explícito.
@@ -729,18 +726,24 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
    * Nasceu dentro do "Faltou" e saiu para cá quando o "Desmarcou" passou a precisar da mesma
    * resposta (doc 12/11). Duas cópias desta conta seriam duas classificações do mesmo paciente.
    */
-  const tipoDaSessao = (id: string) => {
+  const contratoDaSessao = (id: string) => {
     const sess = sessions.find((x) => x.id === id);
     const pac = patients.find((x) => x.id === sess?.patientId);
-    const formato = pac
+    const periodo = pac
       ? formatoNaData(
           (pac.vigencias ?? []).map((v) => ({ ...v, desde: new Date(v.desde), criadoEm: new Date(v.criadoEm) })),
           sess?.date ? new Date(sess.date as unknown as string) : new Date(),
           { formato: pac.paymentFormat ?? "sessao", pacoteTipo: pac.pacoteTipo ?? null },
-        ).formato
+        )
       : null;
-    return tipoDaFaltaPeloRotulo(sess?.codigo, formato);
+    return {
+      tipo: tipoDaFaltaPeloRotulo(sess?.codigo, periodo?.formato ?? null),
+      formato: periodo?.formato ?? null,
+      pacoteTipo: periodo?.pacoteTipo ?? null,
+    };
   };
+
+  const tipoDaSessao = (id: string) => contratoDaSessao(id).tipo;
 
   const pickStatus = (id: string, status: SessionStatus) => {
     if (status === "nao_realizada") {
@@ -770,7 +773,37 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
       });
       return;
     }
+    /**
+     * Documento de 17/11/2026: o "Desmarcou" de um pacote FRACIONADO em aberto pergunta se aquela
+     * sessão continua compondo o pacote. Respondendo "Não", o pacote encolhe — a quantidade, a
+     * numeração e o valor acompanham.
+     *
+     * A pergunta não existe no pacote COMPLETO (o tamanho dele é contratado, não deduzido do mês)
+     * nem num pacote já pago — e quem sabe do pagamento é o servidor, daí a consulta antes de abrir.
+     */
+    const contrato = contratoDaSessao(id);
+    if (status === "cancelada" && contrato.tipo === "pacote" && pacoteAceitaEscolha(contrato.formato, contrato.pacoteTipo)) {
+      startTransition(async () => {
+        const r = await pacoteDaSessaoEmAberto(id);
+        if (r.ok && r.emAberto) { setPerguntaPacote({ id }); return; }
+        // Pacote pago, ou a consulta falhou: segue o caminho de sempre, sem decidir nada sozinho.
+        changeStatus(id, status);
+      });
+      return;
+    }
     changeStatus(id, status);
+  };
+
+  /**
+   * A resposta da janela do pacote. O status é Desmarcou nas duas saídas — "manter o agendamento
+   * com o status Desmarcou" —, e o que muda é a sessão compor ou não a quantidade cobrável.
+   *
+   * Grava no MESMO campo do doc 12/11 (`desmarcouCobra`): a pergunta é a mesma, o efeito é que
+   * depende do que a sessão é.
+   */
+  const responderPacote = (id: string, considerar: boolean) => {
+    setPerguntaPacote(null);
+    changeStatus(id, "cancelada", undefined, undefined, undefined, considerar);
   };
 
   /**
@@ -1431,6 +1464,28 @@ export function AgendaClient({ sessions, patients = [], birthdays = [], location
             <div className="flex gap-2 mt-4">
               <button disabled={pending} onClick={() => responderDesmarcou(perguntaDesmarcou.id, true)} className="flex-1 bg-primary text-white py-2.5 rounded-xl text-sm font-bold disabled:opacity-60">Sim</button>
               <button disabled={pending} onClick={() => responderDesmarcou(perguntaDesmarcou.id, false)} className="flex-1 bg-surface text-foreground/70 py-2.5 rounded-xl text-sm font-bold disabled:opacity-60">Não</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Documento de 17/11/2026: o "Desmarcou" dentro de um pacote FRACIONADO ainda em aberto.
+          Responder "Não" tira a sessão da contagem — o pacote passa a ter uma sessão a menos, a
+          numeração se reorganiza e o valor é recalculado. O agendamento fica na agenda, desmarcado. */}
+      {perguntaPacote && (
+        <div className={FUNDO_DA_JANELA} onClick={() => setPerguntaPacote(null)}>
+          <div ref={janelaPacote} tabIndex={-1} role="dialog" aria-modal="true" aria-label="Cobrança da sessão no pacote" className={`${JANELA} max-w-sm outline-none`} onClick={(e) => e.stopPropagation()}>
+            <p className="text-lg font-display font-bold text-primary">{PACOTE_PERGUNTA.titulo}</p>
+            <p className="text-sm text-foreground/60 mt-1">
+              <strong>Sim:</strong> {PACOTE_PERGUNTA.explicaSim}
+            </p>
+            <p className="text-sm text-foreground/60 mt-1">
+              <strong>Não:</strong> {PACOTE_PERGUNTA.explicaNao}
+            </p>
+            <p className="text-xs text-foreground/50 mt-2">{COMO_REFAZER_DESMARCOU}</p>
+            <div className="flex gap-2 mt-4">
+              <button disabled={pending} onClick={() => responderPacote(perguntaPacote.id, true)} className="flex-1 bg-primary text-white py-2.5 rounded-xl text-sm font-bold disabled:opacity-60">Sim</button>
+              <button disabled={pending} onClick={() => responderPacote(perguntaPacote.id, false)} className="flex-1 bg-surface text-foreground/70 py-2.5 rounded-xl text-sm font-bold disabled:opacity-60">Não</button>
             </div>
           </div>
         </div>
