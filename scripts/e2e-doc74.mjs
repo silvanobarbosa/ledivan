@@ -3,8 +3,6 @@
 //
 // O que o teste puro não prova:
 //   - que o "Novo lançamento" sumiu de Transações (e que receita/despesa continuam com os seus);
-//   - que a lista "Não vieram na semana" PARA de aceitar sessão da semana que vem como presença —
-//     a regra agora é pura, mas quem passa `corte`/`hoje` até ela é a página;
 //   - que a mensagem de cobrança de um pacote mensal real esconde Desmarcou/Atestado/Prof. desm.
 //     (o conjunto de ids continua com elas de propósito — doc 54 —, então o recorte precisa chegar
 //     justamente até a redação, e não até o motor);
@@ -79,40 +77,11 @@ try {
   check("o botão 'Novo lançamento' saiu de Transações", !transacoes.includes("Novo lançamento"));
   check("os blocos de Receitas e Despesas continuam com o botão deles", transacoes.includes("Cadastrar Receita Pessoal") && transacoes.includes("Cadastrar despesas"));
 
-  // ------------------------------------------- 2) "Não vieram na semana" não olha a semana que vem
+  // O cartão "Não vieram na semana" era conferido aqui; a REGRA mudou no doc 75 (semana de
+  // domingo a sábado, e só quem desmarcou/faltou/teve atestado). Passou a ser `e2e-doc75.mjs`.
+
   const hoje = new Date(); hoje.setHours(0, 0, 0, 0);
   const maisDias = (n) => new Date(hoje.getTime() + n * 24 * 60 * 60 * 1000);
-  const [futuro] = await sql`
-    INSERT INTO patients (user_id, name, payment_format, session_fee, patient_status, started_at)
-    VALUES (${qa.id}, ${"QA74 so na proxima semana"}, 'sessao', '100.00', 'ativo', ${maisDias(-30)})
-    RETURNING id`;
-  criados.push(futuro.id);
-  // A armadilha do doc 74: uma sessão da PRÓXIMA semana já marcada como realizada.
-  await sql`
-    INSERT INTO therapy_sessions (user_id, patient_id, date, duration, fee, status)
-    VALUES (${qa.id}, ${futuro.id}, ${new Date(maisDias(4).setHours(18, 0, 0, 0))}, 50, '100.00', 'realizada')`;
-
-  const [recente] = await sql`
-    INSERT INTO patients (user_id, name, payment_format, session_fee, patient_status, started_at)
-    VALUES (${qa.id}, ${"QA74 veio ontem"}, 'sessao', '100.00', 'ativo', ${maisDias(-30)})
-    RETURNING id`;
-  criados.push(recente.id);
-  await sql`
-    INSERT INTO therapy_sessions (user_id, patient_id, date, duration, fee, status)
-    VALUES (${qa.id}, ${recente.id}, ${new Date(maisDias(-1).setHours(18, 0, 0, 0))}, 50, '100.00', 'realizada')`;
-
-  await page.goto(`${BASE}/dashboard`, { waitUntil: "domcontentloaded", timeout: 90000 });
-  await page.waitForTimeout(2500);
-  await page.evaluate(() => {
-    const alvo = [...document.querySelectorAll("*")].find((e) => e.children.length === 0 && e.textContent?.trim() === "Não vieram na semana");
-    (alvo?.closest("button") ?? alvo?.parentElement?.closest("button") ?? alvo?.parentElement)?.click();
-  });
-  await page.waitForTimeout(900);
-  const naLista = await textoDaPagina();
-  check("a lista abriu", naLista.includes("Ativos sem sessão realizada nos últimos 7 dias"));
-  check("sessão da PRÓXIMA semana não tira ninguém da lista", naLista.includes("QA74 so na proxima semana"));
-  check("quem veio ontem fica fora da lista", !naLista.includes("QA74 veio ontem"));
-  await page.keyboard.press("Escape");
 
   // ------------------------------- 3) a mensagem do pacote lista só as sessões que ela cobra
   // Mensal de 4, uma por semana, com duas datas sem cobrança no meio — o caso do William.

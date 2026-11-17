@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { Mic, Square, X, ChevronRight, Loader2 } from "lucide-react";
-import { abreSozinho, avisosDoDiva, TAREFAS, type EstadoDoDiva, type TarefaDoDiva } from "@/lib/diva";
+import { avisosDoDiva, TAREFAS, type EstadoDoDiva, type TarefaDoDiva } from "@/lib/diva";
 import { useJanela } from "@/lib/useJanela";
 import { anotarPorVoz, cancelarPorVoz, pagarPorVoz } from "@/app/dashboard/diva-actions";
 import type { ReciboDaVoz } from "@/lib/reciboDaVoz";
@@ -16,32 +16,25 @@ import { FLUTUANTE_DIVA, FUNDO_DA_JANELA, JANELA } from "@/lib/modal";
  * Um ícone flutuante que abre a pergunta — "o que deseja fazer?" — com o catálogo do que o app faz
  * e, para quem tem chave de IA cadastrada, um botão de falar.
  *
- * A pergunta aparece sozinha na primeira visita do dia e é DISPENSÁVEL: três dispensas seguidas e
- * ela para de abrir por conta própria, ficando só no ícone. Quem abre o app vinte vezes por dia
- * para olhar a agenda não pode ser interrogado nas vinte.
- *
- * A contagem mora no navegador (localStorage), de propósito: é preferência de uso, não dado
- * clínico, e não vale uma coluna no banco nem uma ida ao servidor a cada abertura.
+ * **A janela NUNCA abre sozinha** (pedido do dono de 17/11/2026). Ela abria na primeira visita do dia
+ * e desistia depois de três dispensas seguidas; o dono pediu que não abra em nenhuma — só no
+ * clique do ícone. Com isso saíram a contagem de dispensas, a marca do dia e o `abreSozinho`:
+ * nada mais decide por conta própria se a pergunta aparece, então não há o que contar.
  */
 
-const CHAVE_DISPENSAS = "ledivan_diva_dispensas";
-const CHAVE_DIA = "ledivan_diva_dia";
 /**
  * O aviso de que a VOZ ficou pronta. Uma vez por pessoa, e só.
  *
  * Recurso novo que ninguém sabe que existe é recurso que não existe — e o microfone do Divã não
- * se anuncia sozinho. O aviso abre o Divã na primeira visita depois de a função entrar no ar,
- * mesmo para quem já tinha dispensado a pergunta do dia, e some para sempre ao ser lido.
+ * se anuncia sozinho. Pedido de 17/11: o aviso deixou de ABRIR a janela; ele agora espera dentro dela, e
+ * aparece na primeira vez que a pessoa abrir o Divã por vontade própria. Some para sempre ao ser
+ * lido.
  */
 const CHAVE_AVISO_VOZ = "ledivan_diva_aviso_voz";
 
-const leNumero = (chave: string): number => {
-  try { return Number(localStorage.getItem(chave) ?? "0") || 0; } catch { return 0; }
-};
 const grava = (chave: string, valor: string) => {
   try { localStorage.setItem(chave, valor); } catch { /* navegador sem storage: o Divã só não lembra */ }
 };
-const hojeISO = () => new Date().toISOString().slice(0, 10);
 
 type PacienteNaTela = { id: string; nome: string };
 type PreviaNaTela = {
@@ -87,46 +80,29 @@ export function Diva({ estado, podeOuvir }: { estado: EstadoDoDiva; podeOuvir: b
   const gravador = useRef<MediaRecorder | null>(null);
   const pedacos = useRef<Blob[]>([]);
   const router = useRouter();
-  const janela = useJanela(aberto, () => fechar(false));
+  const janela = useJanela(aberto, () => fechar());
 
   const avisos = avisosDoDiva(estado);
 
-  // Abre sozinho UMA vez por dia, e só enquanto ela não tiver dispensado três vezes seguidas.
-  useEffect(() => {
-    try {
-      /**
-       * Chegou numa tela POR PEDIDO do próprio Divã (`?novo=1`, `?bloquear=1`)? Então ele fica
-       * quieto: a pessoa já disse o que queria, e abrir a pergunta por cima da janela que ela
-       * acabou de pedir é atrapalhar justamente quem foi atendido.
-       */
-      if (/[?&](novo|bloquear)=1/.test(window.location.search)) return;
-
-      // O aviso da voz vem primeiro e vale uma abertura própria, independente da pergunta do dia.
-      const jaViuOAviso = localStorage.getItem(CHAVE_AVISO_VOZ) === "1";
-      if (!jaViuOAviso) {
-        // eslint-disable-next-line react-hooks/set-state-in-effect -- anunciar o recurso novo é o efeito desejado
-        setAvisoDaVoz(true);
-        // eslint-disable-next-line react-hooks/set-state-in-effect -- idem
-        setAberto(true);
-        grava(CHAVE_DIA, hojeISO());
-        return;
-      }
-
-      if (localStorage.getItem(CHAVE_DIA) === hojeISO()) return;
-      grava(CHAVE_DIA, hojeISO());
-      if (abreSozinho(leNumero(CHAVE_DISPENSAS))) {
-        // eslint-disable-next-line react-hooks/set-state-in-effect -- abrir na primeira visita do dia é o efeito desejado
-        setAberto(true);
-      }
-    } catch { /* sem storage: não abre sozinho, e está tudo bem */ }
-  }, []);
+  /**
+   * Pedido de 17/11: NÃO há efeito de abertura. A janela só existe no clique do ícone — ver `abrir`.
+   */
 
   const pararGravador = useCallback(() => {
     gravador.current?.stream.getTracks().forEach((t) => t.stop());
     gravador.current = null;
   }, []);
 
-  function fechar(escolheu: boolean) {
+  /**
+   * Abrir é sempre um PEDIDO da pessoa (pedido de 17/11). É aqui, e só aqui, que a janela nasce — e é na
+   * primeira dessas vezes que o aviso da voz, se ainda não foi lido, aparece junto.
+   */
+  function abrir() {
+    try { if (localStorage.getItem(CHAVE_AVISO_VOZ) !== "1") setAvisoDaVoz(true); } catch { /* sem storage: só não anuncia */ }
+    setAberto(true);
+  }
+
+  function fechar() {
     setAberto(false);
     setFala(null);
     setSugestao(null);
@@ -139,11 +115,11 @@ export function Diva({ estado, podeOuvir }: { estado: EstadoDoDiva; podeOuvir: b
     // Fechar a janela já conta como ter lido o aviso: ele não volta a perseguir ninguém.
     if (avisoDaVoz) { grava(CHAVE_AVISO_VOZ, "1"); setAvisoDaVoz(false); }
     // Escolher uma tarefa zera a contagem: ali ele provou que serve.
-    grava(CHAVE_DISPENSAS, escolheu ? "0" : String(leNumero(CHAVE_DISPENSAS) + 1));
+
   }
 
   function ir(tarefa: { rota: string }) {
-    fechar(true);
+    fechar();
     router.push(tarefa.rota);
   }
 
@@ -165,7 +141,7 @@ export function Diva({ estado, podeOuvir }: { estado: EstadoDoDiva; podeOuvir: b
 
     if (comando.acao === "reservar" && comando.quando) {
       // Reservar não escreve por voz: leva à janela preenchida, e ela aperta Agendar.
-      fechar(true);
+      fechar();
       router.push(`/dashboard/agenda?novo=1&paciente=${paciente.id}&quando=${encodeURIComponent(comando.quando.iso)}`);
       return;
     }
@@ -287,7 +263,7 @@ export function Diva({ estado, podeOuvir }: { estado: EstadoDoDiva; podeOuvir: b
           continua flutuando no canto. As classes de posição vêm de `FLUTUANTE_DIVA`. */}
       <button
         type="button"
-        onClick={() => setAberto(true)}
+        onClick={abrir}
         aria-label="Abrir o Divã"
         title="Divã — o que deseja fazer?"
         className={`print:hidden ${FLUTUANTE_DIVA} z-[60] h-10 w-10 lg:h-16 lg:w-16 rounded-full shadow-lg lg:shadow-2xl ring-2 lg:ring-4 ring-white overflow-hidden transition hover:scale-110 active:scale-95 shrink-0`}
@@ -296,7 +272,7 @@ export function Diva({ estado, podeOuvir }: { estado: EstadoDoDiva; podeOuvir: b
       </button>
 
       {aberto && (
-        <div className={FUNDO_DA_JANELA} onClick={() => fechar(false)}>
+        <div className={FUNDO_DA_JANELA} onClick={() => fechar()}>
           <div
             ref={janela}
             tabIndex={-1}
@@ -314,7 +290,7 @@ export function Diva({ estado, podeOuvir }: { estado: EstadoDoDiva; podeOuvir: b
                   <p className="text-xs text-foreground/50">Escolha abaixo{podeOuvir ? " ou fale comigo" : ""}.</p>
                 </div>
               </div>
-              <button type="button" onClick={() => fechar(false)} aria-label="Fechar" className="p-1.5 rounded-lg hover:bg-surface transition shrink-0">
+              <button type="button" onClick={() => fechar()} aria-label="Fechar" className="p-1.5 rounded-lg hover:bg-surface transition shrink-0">
                 <X className="w-4 h-4" />
               </button>
             </div>
@@ -497,7 +473,7 @@ export function Diva({ estado, podeOuvir }: { estado: EstadoDoDiva; podeOuvir: b
                       {recibo.recibo.quando} · registro {recibo.recibo.id.slice(0, 8)}
                     </p>
                     <button type="button"
-                      onClick={() => { const r = recibo.rota; fechar(true); router.push(r); }}
+                      onClick={() => { const r = recibo.rota; fechar(); router.push(r); }}
                       className="flex w-full items-center justify-between gap-2 rounded-xl bg-[#047857] px-3 py-2 text-left text-sm font-bold text-white">
                       <span>Conferir</span>
                       <ChevronRight className="w-4 h-4" />
